@@ -1,4 +1,4 @@
-name: Azure Static Web Apps CI/CD - SIMPLE
+name: Azure Static Web Apps CI/CD - WORKING
 
 on:
   push:
@@ -14,22 +14,31 @@ jobs:
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
     runs-on: ubuntu-latest
     name: Build and Deploy Job
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           submodules: true
+          lfs: false
 
-      - name: Setup Node.js
+      - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build application
-        run: npm run build
-
+      - name: Clean install dependencies
+        run: |
+          npm ci --prefer-offline --no-audit
+          
+      - name: Build Next.js application
+        run: |
+          npm run build
+          ls -la out/ || echo "out directory not found"
+          
       - name: Deploy to Azure Static Web Apps
         uses: Azure/static-web-apps-deploy@v1
         with:
@@ -38,6 +47,7 @@ jobs:
           action: "upload"
           app_location: "/"
           output_location: "out"
+          skip_app_build: true
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
