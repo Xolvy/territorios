@@ -1,86 +1,18 @@
 {
-  "routes": [
-    {
-      "route": "/api/*",
-      "headers": {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization"
-      }
-    },
-    {
-      "route": "/admin*",
-      "rewrite": "/admin/index.html"
-    },
-    {
-      "route": "/diagnostico*",
-      "rewrite": "/diagnostico/index.html"
-    },
-    {
-      "route": "/enhanced*",
-      "rewrite": "/enhanced/index.html"
-    },
-    {
-      "route": "/auth-test*",
-      "rewrite": "/auth-test/index.html"
-    },
-    {
-      "route": "/test-admin-sdk*",
-      "rewrite": "/test-admin-sdk/index.html"
-    },
-    {
-      "route": "/test-conductor*",
-      "rewrite": "/test-conductor/index.html"
-    },
-    {
-      "route": "/test-main*",
-      "rewrite": "/test-main/index.html"
-    },
-    {
-      "route": "/test-simple*",
-      "rewrite": "/test-simple/index.html"
-    }
-  ],
   "navigationFallback": {
     "rewrite": "/index.html",
-    "exclude": ["/api/*", "/_next/*", "/favicon.ico", "/manifest.json"]
+    "exclude": ["/_next/*", "/favicon.ico", "/manifest.json", "/*.png", "/*.ico", "/*.js", "/*.css"]
   },
   "mimeTypes": {
     ".json": "application/json",
     ".js": "text/javascript",
     ".css": "text/css",
-    ".html": "text/html",
-    ".woff2": "font/woff2",
-    ".woff": "font/woff",
-    ".ttf": "font/ttf"
-  },
-  "globalHeaders": {
-    "X-Frame-Options": "DENY",
-    "X-Content-Type-Options": "nosniff",
-    "X-XSS-Protection": "1; mode=block",
-    "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
-    "Referrer-Policy": "strict-origin-when-cross-origin",
-    "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: https:; connect-src 'self' https://*.googleapis.com https://*.firebaseapp.com wss://*.firebaseapp.com",
-    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
-    "Cache-Control": "public, max-age=31536000, immutable"
+    ".html": "text/html"
   },
   "responseOverrides": {
     "404": {
       "rewrite": "/404.html",
       "statusCode": 404
     }
-  },
-  "platform": {
-    "apiRuntime": "node:20"
-  },
-  "trailingSlash": "auto",
-  "forwardingGateway": {
-    "allowedForwardedHosts": [
-      "app-conductores.azurestaticapps.net",
-      "lively-hill-009fd0b0f.2.azurestaticapps.net"
-    ]
-  },
-  "networking": {
-    "allowedIpRanges": []
   }
 }
