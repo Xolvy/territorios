@@ -1,7 +1,6 @@
 {
   "navigationFallback": {
-    "rewrite": "/index.html",
-    "exclude": ["/images/*.{png,jpg,gif}", "/css/*", "/_next/*", "/api/*"]
+    "rewrite": "/index.html"
   },
   "routes": [
     {
@@ -11,14 +10,7 @@
   ],
   "responseOverrides": {
     "404": {
-      "rewrite": "/index.html",
-      "statusCode": 200
+      "rewrite": "/index.html"
     }
-  },
-  "mimeTypes": {
-    ".html": "text/html",
-    ".js": "text/javascript",
-    ".css": "text/css",
-    ".json": "application/json"
   }
 }
