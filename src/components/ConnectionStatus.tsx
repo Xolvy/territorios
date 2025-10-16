@@ -19,6 +19,14 @@ export default function ConnectionStatus({
 
   const checkConnection = async () => {
     try {
+      // Verificar si los errores de Firebase están deshabilitados
+      const hideFirebaseErrors = process.env.NEXT_PUBLIC_HIDE_FIREBASE_ERRORS === 'true';
+      
+      if (hideFirebaseErrors) {
+        setConnectionStatus("connected");
+        return;
+      }
+
       // Verificar conectividad básica
       if (!navigator.onLine) {
         setConnectionStatus("offline");
@@ -95,6 +103,14 @@ export default function ConnectionStatus({
   }, []);
 
   useEffect(() => {
+    // Verificar si los errores de Firebase están deshabilitados
+    const hideFirebaseErrors = process.env.NEXT_PUBLIC_HIDE_FIREBASE_ERRORS === 'true';
+    
+    if (hideFirebaseErrors) {
+      setIsVisible(false);
+      return;
+    }
+
     // Mostrar solo si hay problemas de conexión
     setIsVisible(
       connectionStatus === "blocked" ||
