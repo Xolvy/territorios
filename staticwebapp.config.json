@@ -1,7 +1,15 @@
 {
   "navigationFallback": {
     "rewrite": "/index.html",
-    "exclude": ["/_next/*", "/favicon.ico", "/manifest.json", "/*.png", "/*.ico", "/*.js", "/*.css"]
+    "exclude": [
+      "/_next/*",
+      "/favicon.ico",
+      "/manifest.json",
+      "/*.png",
+      "/*.ico",
+      "/*.js",
+      "/*.css"
+    ]
   },
   "mimeTypes": {
     ".json": "application/json",
