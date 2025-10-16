@@ -1,5 +1,6 @@
 // Import offline interceptor first
 import { isFirebaseOfflineMode } from "./firebase-interceptor";
+import { logger } from "@/utils/logger";
 
 // 🚫 FIREBASE INITIALIZATION GUARD - Prevents unauthorized Firebase initialization
 if (typeof window !== "undefined" && isFirebaseOfflineMode()) {
@@ -72,9 +73,9 @@ const isOfflineModeForced =
   (typeof window !== "undefined" && (window as any).__FIREBASE_DISABLED__);
 
 if (isOfflineModeForced) {
-  console.log("🚫 FIREBASE INITIALIZATION COMPLETELY BLOCKED");
-  console.log("🔒 OFFLINE MODE ENFORCED - Firebase completely disabled");
-  console.log(
+  logger.log("🚫 FIREBASE INITIALIZATION COMPLETELY BLOCKED");
+  logger.log("🔒 OFFLINE MODE ENFORCED - Firebase completely disabled");
+  logger.log(
     "💡 To enable Firebase: Update .env.local with real Firebase credentials"
   );
   isFirebaseEnabled = false;
@@ -99,23 +100,23 @@ if (isOfflineModeForced) {
       if (typeof window !== "undefined") {
         try {
           analytics = getAnalytics(app);
-          console.log("✅ Firebase initialized successfully");
+          logger.log("✅ Firebase initialized successfully");
         } catch (error) {
-          console.warn("⚠️ Analytics not available:", error);
+          logger.warn("⚠️ Analytics not available:", error);
         }
       }
     } else {
-      console.warn(
+      logger.warn(
         "⚠️ Firebase configuration incomplete - running in offline mode"
       );
-      console.warn(
+      logger.warn(
         "📝 Create .env.local with valid Firebase credentials to enable Firebase features"
       );
       isFirebaseEnabled = false;
     }
   } catch (error) {
-    console.error("❌ Firebase initialization failed:", error);
-    console.warn("📝 App will continue in offline mode");
+    logger.error("❌ Firebase initialization failed:", error);
+    logger.warn("📝 App will continue in offline mode");
     isFirebaseEnabled = false;
   }
 }
@@ -128,15 +129,15 @@ if (typeof window !== "undefined" && db) {
       ({ enableMultiTabIndexedDbPersistence }) => {
         enableMultiTabIndexedDbPersistence(db)
           .then(() => {
-            console.log("🔄 Firebase offline persistence enabled");
+            logger.log("🔄 Firebase offline persistence enabled");
           })
           .catch((err) => {
             if (err.code === "failed-precondition") {
-              console.log(
+              logger.log(
                 "Multiple tabs open, persistence can only be enabled in one tab at a time."
               );
             } else if (err.code === "unimplemented") {
-              console.log(
+              logger.log(
                 "The current browser does not support all of the features required to enable persistence"
               );
             }
@@ -144,7 +145,7 @@ if (typeof window !== "undefined" && db) {
       }
     );
   } catch (error) {
-    console.log("Firebase offline configuration info:", error);
+    logger.log("Firebase offline configuration info:", error);
   }
 }
 
@@ -157,14 +158,14 @@ if (
   hasValidFirebaseConfig
 ) {
   try {
-    console.log(
+    logger.log(
       "🔧 Firebase emulator connection available but skipped for stability"
     );
     // Emulator connection temporarily disabled to prevent errors
     // connectFirestoreEmulator(db, "localhost", 8080);
     // connectAuthEmulator(auth, "http://localhost:9099");
   } catch (error) {
-    console.log(
+    logger.log(
       "🔧 Firebase emulator connection skipped:",
       error instanceof Error
         ? error.message

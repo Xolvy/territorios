@@ -1,79 +1,63 @@
+import { useEffect, useState, useCallback } from "react";
+
 /**
- * Hook para manejar el estado offline/online de la aplicación
- * Integra con Firestore para trabajo offline perfecto
+ * useOfflineStatus
+ * Simple hook to detect online/offline status and provide helper methods used by components.
+ * Mirrors typical implementations and matches the expected named export.
  */
+export function useOfflineStatus() {
+  const [isOnline, setIsOnline] = useState<boolean>(
+    typeof navigator !== "undefined" ? navigator.onLine : true
+  );
+  const [showOfflineBanner, setShowOfflineBanner] = useState<boolean>(true);
 
-import { useState, useEffect } from "react";
-import { offlineManager } from "@/lib/offlineManager";
-
-interface ConnectionState {
-  isOnline: boolean;
-  isFirestoreConnected: boolean;
-  lastSyncTime: Date | null;
-  pendingChanges: number;
-}
-
-export const useOfflineStatus = () => {
-  const [connectionState, setConnectionState] = useState<ConnectionState>({
-    isOnline: navigator.onLine,
-    isFirestoreConnected: false,
-    lastSyncTime: null,
-    pendingChanges: 0,
-  });
-
-  const [showOfflineBanner, setShowOfflineBanner] = useState(false);
-
-  useEffect(() => {
-    // Listener para cambios de conexión
-    const unsubscribe = offlineManager.onConnectionChange((online) => {
-      setConnectionState((prev) => ({
-        ...prev,
-        isOnline: online,
-        isFirestoreConnected: online,
-        lastSyncTime: online ? new Date() : prev.lastSyncTime,
-      }));
-
-      // Mostrar banner offline solo cuando se pierde la conexión
-      if (!online) {
-        setShowOfflineBanner(true);
-      } else {
-        // Ocultar banner después de reconectar
-        setTimeout(() => setShowOfflineBanner(false), 3000);
-      }
-    });
-
-    // Verificar estado inicial
-    setConnectionState((prev) => ({
-      ...prev,
-      isOnline: offlineManager.getConnectionStatus(),
-    }));
-
-    return unsubscribe;
+  const updateOnlineStatus = useCallback(() => {
+    setIsOnline(typeof navigator !== "undefined" ? navigator.onLine : true);
   }, []);
 
-  const refreshConnection = async () => {
-    // Forzar reconexión
-    window.location.reload();
-  };
+  useEffect(() => {
+    if (typeof window === "undefined") return;
 
-  const getStatusMessage = (): string => {
-    if (connectionState.isOnline) {
-      return "Conectado - Datos sincronizados";
-    } else {
-      return "Sin conexión - Trabajando offline";
-    }
-  };
+    window.addEventListener("online", updateOnlineStatus);
+    window.addEventListener("offline", updateOnlineStatus);
 
-  const getStatusColor = (): string => {
-    return connectionState.isOnline ? "text-green-500" : "text-amber-500";
-  };
+    // initial read
+    updateOnlineStatus();
+
+    return () => {
+      window.removeEventListener("online", updateOnlineStatus);
+      window.removeEventListener("offline", updateOnlineStatus);
+    };
+  }, [updateOnlineStatus]);
+
+  function getStatusMessage() {
+    return isOnline ? "Conectado" : "Sin conexión";
+  }
+
+  function getStatusColor() {
+    return isOnline ? "green" : "red";
+  }
+
+  function refreshConnection() {
+    // Try a simple online check; for a more robust implementation consider a lightweight fetch to a known URL
+    const online = typeof navigator !== "undefined" ? navigator.onLine : true;
+    setIsOnline(online);
+    if (online) setShowOfflineBanner(false);
+    return online;
+  }
+
+  function dismissBanner() {
+    setShowOfflineBanner(false);
+  }
 
   return {
-    ...connectionState,
+    isOnline,
     showOfflineBanner,
-    refreshConnection,
     getStatusMessage,
     getStatusColor,
-    dismissBanner: () => setShowOfflineBanner(false),
-  };
-};
+    refreshConnection,
+    dismissBanner,
+  } as const;
+}
+
+export default useOfflineStatus;

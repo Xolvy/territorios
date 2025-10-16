@@ -13,16 +13,22 @@ declare global {
   }
 }
 
-if (typeof window !== "undefined") {
+import { logger } from "@/utils/logger";
+
+if (globalThis?.window) {
   const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
 
   if (apiKey === "offline-mode" || apiKey?.startsWith("offline-")) {
-    console.warn(
+    logger.warn(
       "🚫 FIREBASE INTERCEPTOR: Completely blocking Firebase in offline mode"
     );
 
     // Override all Firebase SDK modules before they can be imported
-    const originalImport = window.__webpack_require__ || window.require;
+    // using globalThis.window here is intentional for build-time interception
+    // @ts-ignore: global webpack/require interception
+    const originalImport =
+      (globalThis as any).window?.__webpack_require__ ||
+      (globalThis as any).window?.require;
 
     if (originalImport) {
       const firebaseModules = [
@@ -35,12 +41,13 @@ if (typeof window !== "undefined") {
       ];
 
       // Mock all Firebase modules
-      firebaseModules.forEach((moduleName) => {
+      // using for..of to satisfy linter rules
+      for (const moduleName of firebaseModules) {
         try {
           // Create mock implementations
           const mockModule = {
             initializeApp: () => {
-              console.warn(
+              logger.warn(
                 `🚫 Firebase ${moduleName} initialization blocked in offline mode`
               );
               return null;
@@ -60,20 +67,21 @@ if (typeof window !== "undefined") {
           };
 
           // Override the module
-          if (window.define?.amd) {
-            window.define(moduleName, () => mockModule);
+          // @ts-ignore: modifying global AMD define for mocks
+          if ((globalThis as any).window?.define?.amd) {
+            (globalThis as any).window.define(moduleName, () => mockModule);
           }
         } catch (error) {
-          console.warn(`Could not mock ${moduleName}:`, error);
+          logger.warn(`Could not mock ${moduleName}:`, error);
         }
-      });
+      }
     }
 
     // Set global flag
-    (window as any).__FIREBASE_OFFLINE_MODE__ = true;
-    (window as any).__FIREBASE_DISABLED__ = true;
+    (globalThis as any).window.__FIREBASE_OFFLINE_MODE__ = true;
+    (globalThis as any).window.__FIREBASE_DISABLED__ = true;
 
-    console.log(
+    logger.log(
       "🔒 Firebase completely disabled - application will run in full offline mode"
     );
   }
@@ -81,8 +89,8 @@ if (typeof window !== "undefined") {
 
 export const isFirebaseOfflineMode = () => {
   return (
-    typeof window !== "undefined" &&
-    ((window as any).__FIREBASE_OFFLINE_MODE__ === true ||
+    globalThis?.window &&
+    ((globalThis as any).window.__FIREBASE_OFFLINE_MODE__ === true ||
       process.env.NEXT_PUBLIC_FIREBASE_API_KEY === "offline-mode")
   );
 };

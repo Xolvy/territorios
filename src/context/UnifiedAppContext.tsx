@@ -31,6 +31,7 @@ import {
   SystemEvent,
   AppStats,
 } from "@/types/unified";
+import { logger } from "@/utils/logger";
 import {
   auth,
   db,
@@ -439,7 +440,7 @@ export function UnifiedAppProvider({ children }: AppProviderProps) {
       dispatch({ type: "SET_LOADING", payload: false });
       dispatch({ type: "SET_AUTHENTICATED", payload: false });
       dispatch({ type: "SET_APP_USER", payload: null });
-      console.log(`🔒 Running in offline mode - ${reason}`);
+      logger.log(`🔒 Running in offline mode - ${reason}`);
     };
 
     // Comprehensive auth availability check

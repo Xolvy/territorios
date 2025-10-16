@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode } from "react";
+import { logger } from "@/utils/logger";
 import Toast, { ToastMessage, ToastType } from "./Toast";
 
 interface ToastContextType {
@@ -134,28 +135,32 @@ export const toast = {
     if (globalToastContext) {
       globalToastContext.showSuccess(title, message);
     } else {
-      console.log(`✅ ${title}${message ? `: ${message}` : ""}`);
+      const fullMessage = message ? `${title}: ${message}` : title;
+      logger.log(`✅ ${fullMessage}`);
     }
   },
   error: (title: string, message?: string) => {
     if (globalToastContext) {
       globalToastContext.showError(title, message);
     } else {
-      console.error(`❌ ${title}${message ? `: ${message}` : ""}`);
+      const fullMessage = message ? `${title}: ${message}` : title;
+      logger.error(`❌ ${fullMessage}`);
     }
   },
   warning: (title: string, message?: string) => {
     if (globalToastContext) {
       globalToastContext.showWarning(title, message);
     } else {
-      console.warn(`⚠️ ${title}${message ? `: ${message}` : ""}`);
+      const fullMessage = message ? `${title}: ${message}` : title;
+      logger.warn(`⚠️ ${fullMessage}`);
     }
   },
   info: (title: string, message?: string) => {
     if (globalToastContext) {
       globalToastContext.showInfo(title, message);
     } else {
-      console.log(`ℹ️ ${title}${message ? `: ${message}` : ""}`);
+      const fullMessage = message ? `${title}: ${message}` : title;
+      logger.log(`ℹ️ ${fullMessage}`);
     }
   },
 };

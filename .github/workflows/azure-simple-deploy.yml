@@ -1,4 +1,4 @@
-name: Azure Static Web Apps CI/CD - WORKING
+name: Azure Static Web Apps CI/CD
 
 on:
   push:
@@ -27,18 +27,15 @@ jobs:
       - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: "npm"
 
-      - name: Clean install dependencies
-        run: |
-          npm ci --prefer-offline --no-audit
-          
+      - name: Install dependencies
+        run: npm ci
+
       - name: Build Next.js application
-        run: |
-          npm run build
-          ls -la out/ || echo "out directory not found"
-          
+        run: npm run build
+
       - name: Deploy to Azure Static Web Apps
         uses: Azure/static-web-apps-deploy@v1
         with:
@@ -59,3 +56,4 @@ jobs:
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_LIVELY_HILL_009FD0B0F }}
           action: "close"
+          app_location: "/"
