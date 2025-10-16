@@ -123,85 +123,62 @@ const SimpleAuthScreen: React.FC<SimpleAuthScreenProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center z-50 p-4">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5"></div>
-      </div>
-
-      {/* Main Container */}
-      <div className="relative w-full max-w-md">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      {/* Main Container - Super Compact */}
+      <div className="relative w-full max-w-sm">
         {/* Login Card */}
-        <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl shadow-2xl overflow-hidden">
+        <div className="bg-white rounded-lg shadow-xl overflow-hidden">
           
-          {/* Header Section */}
-          <div className="relative bg-gradient-to-r from-blue-600/20 to-purple-600/20 px-8 py-6 border-b border-white/10">
+          {/* Compact Header */}
+          <div className="relative bg-blue-600 px-4 py-3">
             {/* Close Button */}
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full transition-all duration-200 group"
+              className="absolute top-2 right-2 p-1 hover:bg-white/20 rounded-full transition-colors"
             >
-              <X className="w-5 h-5 text-white/60 group-hover:text-white/90" />
+              <X className="w-3 h-3 text-white" />
             </button>
 
-            {/* Logo/Icon */}
-            <div className="flex justify-center mb-4">
-              <div className="relative">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-                  <Shield className="w-8 h-8 text-white" />
-                </div>
-                <div className="absolute -inset-1 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl blur opacity-25"></div>
+            {/* Mini Logo */}
+            <div className="flex items-center justify-center gap-2">
+              <div className="w-6 h-6 bg-white/20 rounded flex items-center justify-center">
+                <Shield className="w-3 h-3 text-white" />
               </div>
-            </div>
-
-            {/* Title */}
-            <div className="text-center">
-              <h1 className="text-2xl font-bold text-white mb-2">Bienvenido</h1>
-              <p className="text-white/60 text-sm">Ingresa tus credenciales para continuar</p>
+              <h2 className="text-sm font-medium text-white">Iniciar Sesión</h2>
             </div>
           </div>
 
-          {/* Form Section */}
-          <div className="px-8 py-6">
+          {/* Compact Form */}
+          <div className="p-4">
             {/* Error Message */}
             {error && (
-              <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-                <div className="text-sm text-red-300">{error}</div>
+              <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded flex items-start gap-2">
+                <AlertCircle className="w-3 h-3 text-red-500 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-red-700">{error}</p>
               </div>
             )}
 
             {/* Login Form */}
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-3">
               {/* Username Field */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-white/80">
-                  Usuario
-                </label>
-                <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <User className="h-5 w-5 text-white/40 group-focus-within:text-blue-400 transition-colors" />
-                  </div>
+              <div>
+                <div className="relative">
+                  <User className="absolute left-2 top-1/2 transform -translate-y-1/2 w-3 h-3 text-gray-400" />
                   <input
                     type="text"
                     value={username}
                     onChange={handleUsernameChange}
-                    placeholder="Teléfono o correo electrónico"
-                    className="block w-full pl-10 pr-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                    placeholder="Teléfono o email"
+                    className="w-full pl-7 pr-2 py-2 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                     required
                   />
                 </div>
               </div>
 
               {/* Password Field */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-white/80">
-                  Contraseña
-                </label>
-                <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Lock className="h-5 w-5 text-white/40 group-focus-within:text-blue-400 transition-colors" />
-                  </div>
+              <div>
+                <div className="relative">
+                  <Lock className="absolute left-2 top-1/2 transform -translate-y-1/2 w-3 h-3 text-gray-400" />
                   <input
                     type={showPassword ? "text" : "password"}
                     value={password}
@@ -209,39 +186,39 @@ const SimpleAuthScreen: React.FC<SimpleAuthScreenProps> = ({
                       setPassword(e.target.value);
                       setError(null);
                     }}
-                    placeholder="Ingresa tu contraseña"
-                    className="block w-full pl-10 pr-12 py-3 bg-white/5 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                    placeholder="Contraseña"
+                    className="w-full pl-7 pr-7 py-2 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-white/40 hover:text-white/70 transition-colors"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                   >
                     {showPassword ? (
-                      <EyeOff className="h-5 w-5" />
+                      <EyeOff className="w-3 h-3" />
                     ) : (
-                      <Eye className="h-5 w-5" />
+                      <Eye className="w-3 h-3" />
                     )}
                   </button>
                 </div>
               </div>
 
               {/* Submit Button */}
-              <div className="pt-4">
+              <div className="pt-1">
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 disabled:from-gray-600 disabled:to-gray-700 text-white font-medium rounded-xl shadow-lg hover:shadow-xl disabled:shadow-none transition-all duration-300 disabled:cursor-not-allowed transform hover:scale-[1.02] disabled:scale-100"
+                  className="w-full flex items-center justify-center gap-1.5 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white text-xs font-medium rounded transition-colors disabled:cursor-not-allowed"
                 >
                   {isLoading ? (
                     <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>Iniciando sesión...</span>
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      <span>Iniciando...</span>
                     </>
                   ) : (
                     <>
-                      <LogIn className="w-5 h-5" />
+                      <LogIn className="w-3 h-3" />
                       <span>Iniciar Sesión</span>
                     </>
                   )}
@@ -250,18 +227,18 @@ const SimpleAuthScreen: React.FC<SimpleAuthScreenProps> = ({
             </form>
           </div>
 
-          {/* Footer */}
-          <div className="px-8 py-4 bg-white/5 border-t border-white/10">
-            <p className="text-center text-xs text-white/40">
-              Sistema de Gestión de Conductores
+          {/* Mini Footer */}
+          <div className="px-4 py-2 bg-gray-50 border-t">
+            <p className="text-center text-xs text-gray-500">
+              Sistema de Conductores
             </p>
           </div>
         </div>
 
-        {/* Additional Info */}
-        <div className="mt-6 text-center">
-          <p className="text-xs text-white/40">
-            ¿Problemas para acceder? Contacta al administrador
+        {/* Help Text */}
+        <div className="mt-2 text-center">
+          <p className="text-xs text-white/80">
+            ¿Problemas? Contacta al admin
           </p>
         </div>
       </div>
