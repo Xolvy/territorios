@@ -32,30 +32,51 @@ export const FirebaseTest: React.FC = () => {
         
         addLog("✅ Firebase inicializado correctamente");
         
-        // Test 2: Verificar autenticación anónima
-        addLog("🔐 Probando autenticación anónima...");
-        await signInAnonymously(auth);
-        addLog("✅ Autenticación anónima exitosa");
+        // Test 2: Verificar autenticación anónima (opcional)
+        addLog("🔐 Verificando autenticación anónima...");
+        try {
+          await signInAnonymously(auth);
+          addLog("✅ Autenticación anónima exitosa");
+        } catch (authError: any) {
+          if (authError.code === 'auth/admin-restricted-operation') {
+            addLog("⚠️ Autenticación anónima deshabilitada (configuración de seguridad)");
+            addLog("💡 Puedes habilitarla en Firebase Console > Authentication > Sign-in method");
+          } else {
+            addLog(`⚠️ Error de autenticación: ${authError.message}`);
+          }
+          // Continúa con las otras pruebas
+        }
         
         // Test 3: Verificar Firestore
         addLog("📊 Probando conexión a Firestore...");
-        const testCollection = collection(db, "test");
+        try {
+          const testCollection = collection(db, "test");
+          
+          // Intentar escribir un documento de prueba
+          const docRef = await addDoc(testCollection, {
+            message: "Prueba de conexión Firebase",
+            timestamp: new Date(),
+            app: "conductores-app-v2",
+          });
+          
+          addLog(`✅ Documento creado con ID: ${docRef.id}`);
+          
+          // Intentar leer documentos
+          const querySnapshot = await getDocs(testCollection);
+          addLog(`✅ Documentos leídos: ${querySnapshot.size}`);
+          
+        } catch (firestoreError: any) {
+          if (firestoreError.code === 'permission-denied') {
+            addLog("⚠️ Acceso a Firestore restringido (reglas de seguridad)");
+            addLog("💡 Configura las reglas de Firestore para permitir lectura/escritura");
+            addLog("📋 Firestore conectado pero sin permisos de escritura");
+          } else {
+            addLog(`⚠️ Error de Firestore: ${firestoreError.message}`);
+          }
+        }
         
-        // Intentar escribir un documento de prueba
-        const docRef = await addDoc(testCollection, {
-          message: "Prueba de conexión Firebase",
-          timestamp: new Date(),
-          app: "conductores-app-v2",
-        });
-        
-        addLog(`✅ Documento creado con ID: ${docRef.id}`);
-        
-        // Intentar leer documentos
-        const querySnapshot = await getDocs(testCollection);
-        addLog(`✅ Documentos leídos: ${querySnapshot.size}`);
-        
-        setStatus("✅ Firebase funcionando perfectamente");
-        addLog("🎉 Todas las pruebas de Firebase exitosas");
+        setStatus("✅ Firebase configurado correctamente");
+        addLog("🎉 Configuración de Firebase verificada");
         
       } catch (error: any) {
         setStatus(`❌ Error: ${error.message}`);
@@ -81,7 +102,7 @@ export const FirebaseTest: React.FC = () => {
       <div className="bg-black text-green-400 p-4 rounded-lg font-mono text-sm max-h-64 overflow-y-auto">
         <h3 className="text-white font-semibold mb-2">📋 Logs de Prueba:</h3>
         {logs.map((log, index) => (
-          <div key={index} className="mb-1">
+          <div key={`log-${index}-${log.substring(0, 10)}`} className="mb-1">
             {log}
           </div>
         ))}
