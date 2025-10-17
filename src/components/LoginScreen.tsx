@@ -56,6 +56,17 @@ const LoginScreen: React.FC = () => {
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !loading) {
+      e.preventDefault();
+      if (!showVerification) {
+        handleAdminLogin();
+      } else {
+        handleVerifyCode();
+      }
+    }
+  };
+
   const handleVerifyCode = async () => {
     if (!verificationCode) {
       setError("Por favor ingrese el código de verificación");
@@ -148,7 +159,14 @@ const LoginScreen: React.FC = () => {
         )}
 
         {!showVerification ? (
-          <div className="space-y-4">
+          <form 
+            className="space-y-4" 
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleAdminLogin();
+            }}
+            onKeyDown={handleKeyDown}
+          >
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 <Phone className="w-4 h-4 inline mr-2" />
@@ -160,6 +178,7 @@ const LoginScreen: React.FC = () => {
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 placeholder="Ej: 0994749286"
                 className="w-full"
+                autoComplete="tel"
               />
             </div>
 
@@ -173,19 +192,27 @@ const LoginScreen: React.FC = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Ingrese su contraseña"
                 className="w-full"
+                autoComplete="current-password"
               />
             </div>
 
             <Button
-              onClick={handleAdminLogin}
+              type="submit"
               disabled={loading}
               className="w-full bg-blue-600 hover:bg-blue-700"
             >
               {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
             </Button>
-          </div>
+          </form>
         ) : (
-          <div className="space-y-4">
+          <form 
+            className="space-y-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleVerifyCode();
+            }}
+            onKeyDown={handleKeyDown}
+          >
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Código de Verificación
@@ -196,17 +223,18 @@ const LoginScreen: React.FC = () => {
                 onChange={(e) => setVerificationCode(e.target.value)}
                 placeholder="Ingrese el código recibido"
                 className="w-full"
+                autoComplete="one-time-code"
               />
             </div>
 
             <Button
-              onClick={handleVerifyCode}
+              type="submit"
               disabled={loading}
               className="w-full bg-blue-600 hover:bg-blue-700"
             >
               {loading ? "Verificando..." : "Verificar Código"}
             </Button>
-          </div>
+          </form>
         )}
 
         {/* Contenedor invisible para reCAPTCHA */}
