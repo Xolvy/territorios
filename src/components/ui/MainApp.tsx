@@ -18,7 +18,7 @@ interface Conductor {
   telefono: string;
 }
 
-type AppState = 
+type AppState =
   | { screen: "welcome" }
   | { screen: "admin"; user: User }
   | { screen: "conductor"; conductor: Conductor };
@@ -48,12 +48,7 @@ const MainApp: React.FC = () => {
   }
 
   if (appState.screen === "admin") {
-    return (
-      <AdminDashboard
-        user={appState.user}
-        onLogout={handleLogout}
-      />
-    );
+    return <AdminDashboard user={appState.user} onLogout={handleLogout} />;
   }
 
   if (appState.screen === "conductor") {

@@ -56,7 +56,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
 
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
-  const [selectedConductor, setSelectedConductor] = useState<Conductor | null>(null);
+  const [selectedConductor, setSelectedConductor] = useState<Conductor | null>(
+    null
+  );
   const [formData, setFormData] = useState({ nombre: "", telefono: "" });
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -132,7 +134,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
                   Dashboard Administrador
                 </h1>
                 <p className="text-white/60 text-sm">
-                  {user.role === "super-admin" ? "Super Administrador" : "Administrador"}
+                  {user.role === "super-admin"
+                    ? "Super Administrador"
+                    : "Administrador"}
                 </p>
               </div>
             </div>
@@ -162,7 +166,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
               </div>
               <div>
                 <p className="text-white/60 text-sm">Total Conductores</p>
-                <p className="text-2xl font-bold text-white">{conductores.length}</p>
+                <p className="text-2xl font-bold text-white">
+                  {conductores.length}
+                </p>
               </div>
             </div>
           </div>
@@ -202,7 +208,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
               <h2 className="text-xl font-semibold text-white">
                 Gestión de Conductores
               </h2>
-              
+
               <div className="flex items-center gap-3">
                 {/* Search */}
                 <div className="relative">
@@ -273,7 +279,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-2">
                         <Phone className="w-4 h-4 text-white/40" />
-                        <span className="text-white/80">{conductor.telefono}</span>
+                        <span className="text-white/80">
+                          {conductor.telefono}
+                        </span>
                       </div>
                     </td>
                     <td className="py-4 px-6 text-white/60">
@@ -317,7 +325,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
               <div className="text-center py-12">
                 <Users className="w-12 h-12 text-white/20 mx-auto mb-4" />
                 <p className="text-white/60">
-                  {searchTerm ? "No se encontraron conductores" : "No hay conductores registrados"}
+                  {searchTerm
+                    ? "No se encontraron conductores"
+                    : "No hay conductores registrados"}
                 </p>
               </div>
             )}
@@ -332,7 +342,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
             <div className="p-6 border-b border-white/10">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-white">
-                  {modalMode === "create" ? "Nuevo Conductor" : "Editar Conductor"}
+                  {modalMode === "create"
+                    ? "Nuevo Conductor"
+                    : "Editar Conductor"}
                 </h3>
                 <button
                   onClick={() => setShowModal(false)}
@@ -351,7 +363,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
                 <input
                   type="text"
                   value={formData.nombre}
-                  onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, nombre: e.target.value })
+                  }
                   placeholder="Nombre del conductor"
                   className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
@@ -364,7 +378,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
                 <input
                   type="tel"
                   value={formData.telefono}
-                  onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, telefono: e.target.value })
+                  }
                   placeholder="0991234567"
                   className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />

@@ -1,7 +1,17 @@
 "use client";
 
 import React, { useState } from "react";
-import { Shield, Users, User, Phone, Lock, Eye, EyeOff, LogIn, X } from "lucide-react";
+import {
+  Shield,
+  Users,
+  User,
+  Phone,
+  Lock,
+  Eye,
+  EyeOff,
+  LogIn,
+  X,
+} from "lucide-react";
 
 interface WelcomeScreenProps {
   onAdminLogin: (user: any) => void;
@@ -12,7 +22,9 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   onAdminLogin,
   onConductorLogin,
 }) => {
-  const [mode, setMode] = useState<"welcome" | "admin" | "conductor">("welcome");
+  const [mode, setMode] = useState<"welcome" | "admin" | "conductor">(
+    "welcome"
+  );
   const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -74,9 +86,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
             <h1 className="text-3xl font-bold text-white mb-2">
               Sistema de Conductores
             </h1>
-            <p className="text-white/60">
-              Selecciona tu tipo de acceso
-            </p>
+            <p className="text-white/60">Selecciona tu tipo de acceso</p>
           </div>
 
           {/* Opciones de Acceso */}
@@ -117,9 +127,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                   <h3 className="text-lg font-semibold text-white mb-1">
                     Conductor
                   </h3>
-                  <p className="text-white/60 text-sm">
-                    Ver mis asignaciones
-                  </p>
+                  <p className="text-white/60 text-sm">Ver mis asignaciones</p>
                 </div>
                 <div className="text-white/40 group-hover:text-white/60 transition-colors">
                   →
@@ -286,9 +294,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
 
             {conductores.length === 0 && (
               <div className="text-center py-8">
-                <p className="text-white/60">
-                  No hay conductores registrados
-                </p>
+                <p className="text-white/60">No hay conductores registrados</p>
               </div>
             )}
           </div>

@@ -145,7 +145,9 @@ const ConductorDashboard: React.FC<ConductorDashboardProps> = ({
 
             <div className="flex items-center gap-3">
               <div className="text-right">
-                <p className="text-white font-medium text-sm">{conductor.nombre}</p>
+                <p className="text-white font-medium text-sm">
+                  {conductor.nombre}
+                </p>
                 <p className="text-white/60 text-xs">{conductor.telefono}</p>
               </div>
               <button
@@ -171,7 +173,9 @@ const ConductorDashboard: React.FC<ConductorDashboardProps> = ({
               </div>
               <div>
                 <p className="text-white/60 text-xs">Total</p>
-                <p className="text-xl font-bold text-white">{estadosCount.todos}</p>
+                <p className="text-xl font-bold text-white">
+                  {estadosCount.todos}
+                </p>
               </div>
             </div>
           </div>
@@ -183,7 +187,9 @@ const ConductorDashboard: React.FC<ConductorDashboardProps> = ({
               </div>
               <div>
                 <p className="text-white/60 text-xs">Pendientes</p>
-                <p className="text-xl font-bold text-white">{estadosCount.pendiente}</p>
+                <p className="text-xl font-bold text-white">
+                  {estadosCount.pendiente}
+                </p>
               </div>
             </div>
           </div>
@@ -195,7 +201,9 @@ const ConductorDashboard: React.FC<ConductorDashboardProps> = ({
               </div>
               <div>
                 <p className="text-white/60 text-xs">En Progreso</p>
-                <p className="text-xl font-bold text-white">{estadosCount.en_progreso}</p>
+                <p className="text-xl font-bold text-white">
+                  {estadosCount.en_progreso}
+                </p>
               </div>
             </div>
           </div>
@@ -207,7 +215,9 @@ const ConductorDashboard: React.FC<ConductorDashboardProps> = ({
               </div>
               <div>
                 <p className="text-white/60 text-xs">Completadas</p>
-                <p className="text-xl font-bold text-white">{estadosCount.completada}</p>
+                <p className="text-xl font-bold text-white">
+                  {estadosCount.completada}
+                </p>
               </div>
             </div>
           </div>
@@ -219,9 +229,21 @@ const ConductorDashboard: React.FC<ConductorDashboardProps> = ({
           <div className="flex flex-wrap gap-2">
             {[
               { key: "todos", label: "Todos", count: estadosCount.todos },
-              { key: "pendiente", label: "Pendientes", count: estadosCount.pendiente },
-              { key: "en_progreso", label: "En Progreso", count: estadosCount.en_progreso },
-              { key: "completada", label: "Completadas", count: estadosCount.completada },
+              {
+                key: "pendiente",
+                label: "Pendientes",
+                count: estadosCount.pendiente,
+              },
+              {
+                key: "en_progreso",
+                label: "En Progreso",
+                count: estadosCount.en_progreso,
+              },
+              {
+                key: "completada",
+                label: "Completadas",
+                count: estadosCount.completada,
+              },
             ].map((filter) => (
               <button
                 key={filter.key}
@@ -241,14 +263,18 @@ const ConductorDashboard: React.FC<ConductorDashboardProps> = ({
         {/* Asignaciones */}
         <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl">
           <div className="p-6 border-b border-white/10">
-            <h2 className="text-xl font-semibold text-white">Mis Asignaciones</h2>
+            <h2 className="text-xl font-semibold text-white">
+              Mis Asignaciones
+            </h2>
           </div>
 
           <div className="p-6">
             {filteredAsignaciones.length === 0 ? (
               <div className="text-center py-12">
                 <MapPin className="w-12 h-12 text-white/20 mx-auto mb-4" />
-                <p className="text-white/60">No hay asignaciones para mostrar</p>
+                <p className="text-white/60">
+                  No hay asignaciones para mostrar
+                </p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -270,7 +296,9 @@ const ConductorDashboard: React.FC<ConductorDashboardProps> = ({
                             </h3>
                             <div className="flex items-center gap-2 text-white/70 mb-2">
                               <Building className="w-4 h-4" />
-                              <span className="text-sm">{asignacion.direccion}</span>
+                              <span className="text-sm">
+                                {asignacion.direccion}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -281,14 +309,18 @@ const ConductorDashboard: React.FC<ConductorDashboardProps> = ({
                             <Calendar className="w-4 h-4 text-white/40" />
                             <div>
                               <p className="text-xs text-white/60">Asignado</p>
-                              <p className="text-sm text-white">{asignacion.fechaAsignacion}</p>
+                              <p className="text-sm text-white">
+                                {asignacion.fechaAsignacion}
+                              </p>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
                             <Clock className="w-4 h-4 text-white/40" />
                             <div>
                               <p className="text-xs text-white/60">Vence</p>
-                              <p className="text-sm text-white">{asignacion.fechaVencimiento}</p>
+                              <p className="text-sm text-white">
+                                {asignacion.fechaVencimiento}
+                              </p>
                             </div>
                           </div>
                         </div>

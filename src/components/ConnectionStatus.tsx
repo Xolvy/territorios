@@ -20,8 +20,9 @@ export default function ConnectionStatus({
   const checkConnection = async () => {
     try {
       // Verificar si los errores de Firebase están deshabilitados
-      const hideFirebaseErrors = process.env.NEXT_PUBLIC_HIDE_FIREBASE_ERRORS === 'true';
-      
+      const hideFirebaseErrors =
+        process.env.NEXT_PUBLIC_HIDE_FIREBASE_ERRORS === "true";
+
       if (hideFirebaseErrors) {
         setConnectionStatus("connected");
         return;
@@ -104,8 +105,9 @@ export default function ConnectionStatus({
 
   useEffect(() => {
     // Verificar si los errores de Firebase están deshabilitados
-    const hideFirebaseErrors = process.env.NEXT_PUBLIC_HIDE_FIREBASE_ERRORS === 'true';
-    
+    const hideFirebaseErrors =
+      process.env.NEXT_PUBLIC_HIDE_FIREBASE_ERRORS === "true";
+
     if (hideFirebaseErrors) {
       setIsVisible(false);
       return;

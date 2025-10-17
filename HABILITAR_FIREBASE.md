@@ -5,15 +5,18 @@ Para habilitar Firebase y resolver el error de conexión:
 ## 📋 Pasos Necesarios
 
 ### 1. Crear Proyecto Firebase
+
 1. Ve a https://console.firebase.google.com/
 2. Crea un nuevo proyecto llamado "conductores-app"
 3. Habilita Authentication (Email/Password + Teléfono)
 4. Crea Firestore Database
 
 ### 2. Obtener Credenciales
+
 En la configuración del proyecto, copia las credenciales web
 
 ### 3. Reemplazar Variables de Entorno
+
 Actualiza el archivo `.env.local` con credenciales reales:
 
 ```bash
@@ -31,6 +34,7 @@ NEXT_PUBLIC_ENABLE_OFFLINE_MODE=false
 ```
 
 ### 4. Rebuild y Deploy
+
 ```bash
 npm run build
 git add .
@@ -39,6 +43,7 @@ git push
 ```
 
 ## ✅ Resultado
+
 - ✅ Autenticación real con Firebase
 - ✅ Base de datos sincronizada
 - ✅ Datos persistentes en la nube
