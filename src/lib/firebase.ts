@@ -35,13 +35,13 @@ import {
 
 // Firebase configuration with environment variable support
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+  apiKey: "AIzaSyCuIWh-1vuNFf7-pvAc73OBxl9XO9JNAJo",
+  authDomain: "conductores-9oct.firebaseapp.com",
+  projectId: "conductores-9oct",
+  storageBucket: "conductores-9oct.firebasestorage.app",
+  messagingSenderId: "94952280857",
+  appId: "1:94952280857:web:628608a9e3372fb6f2eb88",
+  measurementId: "G-YM2JGP4KQ6",
 };
 
 // Check if Firebase config is complete and not using demo values
