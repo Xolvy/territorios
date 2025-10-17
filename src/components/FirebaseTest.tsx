@@ -1,8 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { auth, db } from "@/lib/firebase";
-import { collection, addDoc, getDocs } from "firebase/firestore";
 
 export const FirebaseTest: React.FC = () => {
   const [status, setStatus] = useState<string>("Verificando Firebase...");
@@ -19,41 +17,46 @@ export const FirebaseTest: React.FC = () => {
     const testFirebase = async () => {
       try {
         addLog("🚀 Iniciando prueba de Firebase");
-
+        
+        // Import Firebase dynamically to avoid SSR issues
+        const { auth, db } = await import("@/lib/firebase");
+        const { collection, addDoc, getDocs } = await import("firebase/firestore");
+        const { signInAnonymously } = await import("firebase/auth");
+        
         // Test 1: Verificar inicialización
         if (!auth || !db) {
           setStatus("❌ Firebase no está inicializado");
           addLog("❌ Firebase no está disponible");
           return;
         }
-
+        
         addLog("✅ Firebase inicializado correctamente");
-
+        
         // Test 2: Verificar autenticación anónima
         addLog("🔐 Probando autenticación anónima...");
-        const { signInAnonymously } = await import("firebase/auth");
         await signInAnonymously(auth);
         addLog("✅ Autenticación anónima exitosa");
-
+        
         // Test 3: Verificar Firestore
         addLog("📊 Probando conexión a Firestore...");
         const testCollection = collection(db, "test");
-
+        
         // Intentar escribir un documento de prueba
         const docRef = await addDoc(testCollection, {
           message: "Prueba de conexión Firebase",
           timestamp: new Date(),
           app: "conductores-app-v2",
         });
-
+        
         addLog(`✅ Documento creado con ID: ${docRef.id}`);
-
+        
         // Intentar leer documentos
         const querySnapshot = await getDocs(testCollection);
         addLog(`✅ Documentos leídos: ${querySnapshot.size}`);
-
+        
         setStatus("✅ Firebase funcionando perfectamente");
         addLog("🎉 Todas las pruebas de Firebase exitosas");
+        
       } catch (error: any) {
         setStatus(`❌ Error: ${error.message}`);
         addLog(`❌ Error en prueba: ${error.message}`);
