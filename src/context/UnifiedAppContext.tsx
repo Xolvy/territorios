@@ -769,6 +769,19 @@ export function UnifiedAppProvider({ children }: AppProviderProps) {
 
     dispatch({ type: "SET_APP_USER", payload: conductor });
     dispatch({ type: "SET_AUTHENTICATED", payload: true });
+    
+    // Log successful conductor login
+    await logSystemEvent({
+      type: "user_action",
+      entity: "user",
+      action: "conductor_login",
+      userId: conductor.uid,
+      entityId: conductor.uid,
+      data: {
+        conductorName: conductor.displayName || conductor.fullName,
+        loginMethod: "conductor_selection"
+      }
+    });
   };
 
   // ===== TERRITORY FUNCTIONS =====

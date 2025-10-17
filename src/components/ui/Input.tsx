@@ -25,8 +25,8 @@ const Input = forwardRef<HTMLInputElement, InputProps>(({
   
   const baseClasses = 'px-3 py-2 border rounded-xl transition-all duration-200 focus-ring';
   const variantClasses = {
-    default: 'bg-white/10 border-white/30 text-white placeholder-gray-400 focus:bg-white/15 focus:border-white/50',
-    filled: 'bg-white/5 border-transparent text-white placeholder-gray-400 focus:bg-white/10'
+    default: 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:bg-white focus:border-blue-500',
+    filled: 'bg-gray-50 border-transparent text-gray-900 placeholder-gray-500 focus:bg-white'
   };
 
   return (
@@ -34,7 +34,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(({
       {label && (
         <label 
           htmlFor={inputId}
-          className="block text-sm font-medium text-gray-300 mb-2"
+          className="block text-sm font-medium text-gray-700 mb-2"
         >
           {label}
         </label>
@@ -46,7 +46,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(({
         className={cn(
           baseClasses,
           variantClasses[variant],
-          error && 'border-red-400 focus:border-red-400',
+          error && 'border-red-500 focus:border-red-500',
           fullWidth && 'w-full',
           className
         )}
@@ -56,10 +56,10 @@ const Input = forwardRef<HTMLInputElement, InputProps>(({
       {(error || helperText) && (
         <div className="mt-1 text-sm">
           {error && (
-            <p className="text-red-400">{error}</p>
+            <p className="text-red-600">{error}</p>
           )}
           {!error && helperText && (
-            <p className="text-gray-400">{helperText}</p>
+            <p className="text-gray-600">{helperText}</p>
           )}
         </div>
       )}
