@@ -637,12 +637,12 @@ export default function TerritoryMultiSelector({
               <div className="grid grid-cols-2 gap-2">
                 <Button
                   onClick={clearAllSelections}
-                  variant="outline"
+                  variant="secondary"
                   className="w-full"
                 >
                   Limpiar selección
                 </Button>
-                <Button onClick={onClose} variant="outline" className="w-full">
+                <Button onClick={onClose} variant="secondary" className="w-full">
                   Cancelar
                 </Button>
               </div>

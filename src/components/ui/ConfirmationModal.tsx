@@ -60,7 +60,7 @@ export default function ConfirmationModal({
         <p className={`text-sm ${getTypeStyles()}`}>{message}</p>
 
         <div className="flex gap-3 justify-end">
-          <Button variant="outline" onClick={onCancel} size="sm">
+          <Button variant="secondary" onClick={onCancel} size="sm">
             {cancelText}
           </Button>
           <Button

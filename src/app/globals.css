@@ -1,24 +1,73 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* 🚀 Azure SWA Performance Optimizations */
+/* 🎨 Professional Design System */
 @layer base {
+  * {
+    @apply border-border;
+  }
+  
   html {
     scroll-behavior: smooth;
     font-display: swap;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
 
   body {
+    @apply bg-secondary-50 text-secondary-900;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   }
 
-  /* Preload critical resources */
-  .preload-critical {
-    content-visibility: auto;
-    contain-intrinsic-size: 1px 1000px;
+  /* Focus styles */
+  *:focus {
+    @apply outline-none;
+  }
+}
+
+@layer components {
+  /* Custom animations */
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+  
+  .animate-slide-down {
+    animation: slideDown 0.3s ease-out;
+  }
+  
+  .animate-scale-in {
+    animation: scaleIn 0.2s ease-out;
+  }
+
+  /* Professional shadows */
+  .shadow-soft {
+    box-shadow: 0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04);
+  }
+  
+  .shadow-medium {
+    box-shadow: 0 4px 25px -3px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  }
+  
+  .shadow-hard {
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Gradient backgrounds */
+  .bg-gradient-primary {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  }
+  
+  .bg-gradient-secondary {
+    background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
   }
 }
 

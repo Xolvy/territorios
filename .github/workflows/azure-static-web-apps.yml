@@ -1,0 +1,65 @@
+name: 'Azure Static Web Apps CI/CD - App Conductores'
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [ main ]
+
+env:
+  NODE_VERSION: '20.x'
+  NEXT_TELEMETRY_DISABLED: 1
+  NODE_ENV: production
+
+jobs:
+  build_and_deploy_job:
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
+    runs-on: ubuntu-latest
+    name: 'Build and Deploy'
+
+    steps:
+      - name: 'Checkout repository'
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: 'Setup Node'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 'Install dependencies'
+        run: npm ci --prefer-offline --no-audit --progress=false
+
+      - name: 'Build and export (static)'
+        run: |
+          echo 'Building and exporting to out/ ...'
+          npm run build:export
+
+      - name: 'Verify export output'
+        run: |
+          echo 'Files in out/'
+          ls -la out || true
+          echo 'Count:'
+          (find out -type f | wc -l) || true
+
+      - name: 'Deploy to Azure Static Web Apps'
+        id: swa
+        uses: Azure/static-web-apps-deploy@v2
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }} # optional, used to comment on PRs
+          action: 'upload'
+          app_location: '/'
+          api_location: ''
+          output_location: 'out'
+          skip_app_build: true
+          production_branch: 'main'
+
+      - name: 'Post-deploy info'
+        if: steps.swa.outputs.static_web_app_url
+        run: |
+          echo 'Deployed! URL='${{ steps.swa.outputs.static_web_app_url }}
+          echo 'Deployment ID='${{ steps.swa.outputs.deployment_id }}

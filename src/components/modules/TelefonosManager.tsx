@@ -883,7 +883,7 @@ export default function TelefonosManager({
                     setFiltroEstado("");
                     setFiltroTipoBusqueda("general");
                   }}
-                  variant="outline"
+                  variant="secondary"
                   className="flex items-center gap-2 px-4"
                 >
                   <RotateCcw size={16} />
@@ -924,7 +924,7 @@ export default function TelefonosManager({
               </Button>
               <Button
                 onClick={() => setShowImportModal(true)}
-                variant="outline"
+                variant="secondary"
                 className="flex items-center gap-2"
               >
                 <Upload size={16} />
@@ -932,7 +932,7 @@ export default function TelefonosManager({
               </Button>
               <Button
                 onClick={exportarCSV}
-                variant="outline"
+                variant="secondary"
                 className="flex items-center gap-2"
                 disabled={telefonosFiltrados.length === 0}
               >
@@ -946,7 +946,7 @@ export default function TelefonosManager({
               </Button>
               <Button
                 onClick={cargarTelefonos}
-                variant="outline"
+                variant="secondary"
                 className="flex items-center gap-2"
               >
                 <RotateCcw size={16} />
@@ -954,8 +954,8 @@ export default function TelefonosManager({
               </Button>
               <Button
                 onClick={handleEliminarTodos}
-                variant="outline"
-                className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300"
+                variant="error"
+                className="flex items-center gap-2"
                 disabled={telefonos.length === 0 || loading}
                 title={`Eliminar todos los ${telefonos.length} registros telefónicos`}
               >
@@ -1047,7 +1047,7 @@ export default function TelefonosManager({
                   <Button type="submit">Agregar Teléfono</Button>
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="secondary"
                     onClick={() => setShowAddForm(false)}
                   >
                     Cancelar
@@ -1095,7 +1095,7 @@ export default function TelefonosManager({
                     </Button>
                     <Button
                       onClick={() => setShowImportModal(true)}
-                      variant="outline"
+                      variant="secondary"
                       size="sm"
                       className="flex items-center gap-2"
                     >
@@ -1352,7 +1352,7 @@ export default function TelefonosManager({
             <div className="flex justify-end gap-3 pt-4">
               <Button
                 type="button"
-                variant="outline"
+                variant="secondary"
                 onClick={() => setEditModal({ isOpen: false, telefono: null })}
               >
                 Cancelar
@@ -1391,7 +1391,7 @@ Pedro López, Carrera 789, 555-9012, No llamar"
             <div className="flex justify-end gap-3">
               <Button
                 type="button"
-                variant="outline"
+                variant="secondary"
                 onClick={() => setShowImportModal(false)}
               >
                 Cancelar

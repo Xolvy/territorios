@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
 import RoleTestComponent from '@/components/RoleTestComponent';
+import UserManagementPanel from '@/components/admin/UserManagementPanel';
 
 export default function TestRolesPage() {
   return (
@@ -18,6 +19,13 @@ export default function TestRolesPage() {
         }>
           <RoleTestComponent />
         </Suspense>
+
+        {/* Panel de Gestión de Usuarios */}
+        <div className="mt-8">
+          <Suspense fallback={<div className="p-6 text-center">Cargando panel de usuarios...</div>}>
+            <UserManagementPanel className="bg-white shadow-lg" />
+          </Suspense>
+        </div>
         
         <div className="mt-8 text-center space-x-4">
           <Link 
