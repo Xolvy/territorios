@@ -296,10 +296,10 @@ export const FirebaseAdminPanel: React.FC = () => {
               </div>
             </div>
             <div>
-              <strong>3. En producción (Vercel):</strong>
+              <strong>3. En producción (Azure Static Web Apps):</strong>
               <p>
-                Configura las mismas variables en Settings → Environment
-                Variables
+                Configura las mismas variables en el portal de Azure o mediante
+                GitHub Actions secrets
               </p>
             </div>
           </div>

@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 // Configuración para exportación estática
 export const dynamic = "force-static";
 
-// Health check endpoint para Docker y monitoreo
+// Health check endpoint para monitoreo de Azure Static Web Apps
 export async function GET(request: NextRequest) {
   try {
     // Verificar estado de la aplicación

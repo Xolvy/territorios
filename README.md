@@ -114,7 +114,6 @@ First Load: <3 segundos
 │   └── types/         # Definiciones TypeScript
 ├── 📱 public/         # Assets estáticos y PWA
 ├── 🔧 .github/        # CI/CD workflows
-├── 🐳 Dockerfile      # Containerización
 └── ⚙️ staticwebapp.config.json # Azure SWA config
 ```
 

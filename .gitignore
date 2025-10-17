@@ -65,10 +65,6 @@ coverage/
 tmp/
 temp/
 
-# Docker
-Dockerfile.dev
-docker-compose.override.yml
-
 # Azure
 .azure/
 
@@ -80,5 +76,5 @@ docker-compose.override.yml
 sw.js.map
 workbox-*.js.map
 
-# Vercel
-.vercel
+# Azure deployment artifacts
+*.zip
