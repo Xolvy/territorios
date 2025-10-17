@@ -675,8 +675,8 @@ export function UnifiedAppProvider({ children }: AppProviderProps) {
     // Verificar credenciales de super admin
     if (phoneNumber === "0994749286" && password === "Sonita.09") {
       try {
-        // Autenticar con Firebase Auth usando el email y contraseña configurados
-        const email = "59994749286@phone.local";
+        // Autenticar con Firebase Auth usando el email real del usuario
+        const email = "italo.fm0@gmail.com";
         const firebasePassword = "Territorios";
 
         const userCredential = await signInWithEmailAndPassword(
