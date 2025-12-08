@@ -1,0 +1,31 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user is Admin
+    // WARNING: This depends on client-side logic in the current implementation (demo mode).
+    // In a real secure app, Custom Claims or a secure user collection read is required.
+    // For this MVP/Demo, we will allow authenticated users to read/write but ideally restrictive.
+    
+    // Public read access for login dependencies
+    match /conductores/{document=**} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+    
+    match /configuracion/{document=**} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // Default rule for other collections
+    match /{document=**} {
+      allow read, write: if isAuthenticated();
+    }
+  }
+}
