@@ -204,8 +204,8 @@ export const renderConductorDashboard = async (container, userEmail) => {
         const tbody = document.getElementById('lista-telefonos');
         const publicadores = await getPublicadores();
 
-        // Mock user ID for assignment (using email or selector)
-        const userId = userEmail;
+        // Use conductor email as userId for phone assignment
+        const userId = currentConductorEmail || currentConductorName;
 
         const renderTelefonos = async () => {
             const telefonos = await getMisTelefonos(userId);
@@ -236,29 +236,41 @@ export const renderConductorDashboard = async (container, userEmail) => {
 
         await renderTelefonos();
 
-        document.getElementById('btn-solicitar').addEventListener('click', async () => {
-            const count = await solicitarNumeros(50, userId);
-            alert(`Se asignaron ${count} números nuevos.`);
-            await renderTelefonos();
-        });
+        const btnSolicitar = document.getElementById('btn-solicitar');
+        if (btnSolicitar) {
+            btnSolicitar.addEventListener('click', async () => {
+                try {
+                    console.log('Solicitando números para:', userId);
+                    const count = await solicitarNumeros(50, userId);
+                    alert(`Se asignaron ${count} números nuevos.`);
+                    await renderTelefonos();
+                } catch (error) {
+                    console.error('Error solicitando números:', error);
+                    alert('Error al solicitar números: ' + error.message);
+                }
+            });
+        }
 
-        document.getElementById('btn-add-pub-temp').addEventListener('click', () => {
-            showModal(`
-                <h3 class="text-xl font-bold mb-4 text-teal-400">Nuevo Publicador</h3>
-                <input type="text" id="new-temp-pub" placeholder="Nombre Completo" class="w-full mb-4">
-                <button id="save-temp-pub" class="w-full bg-teal-600 py-2 rounded-lg text-white">Guardar</button>
-            `, async (modal) => {
-                document.getElementById('save-temp-pub').addEventListener('click', async () => {
-                    const name = document.getElementById('new-temp-pub').value;
-                    if (name) {
-                        await addPublicador({ nombre: name });
-                        modal.classList.add('hidden');
-                        alert("Publicador agregado");
-                        window.location.reload();
-                    }
+        const btnAddPub = document.getElementById('btn-add-pub-temp');
+        if (btnAddPub) {
+            btnAddPub.addEventListener('click', () => {
+                showModal(`
+                    <h3 class="text-xl font-bold mb-4 text-teal-400">Nuevo Publicador</h3>
+                    <input type="text" id="new-temp-pub" placeholder="Nombre Completo" class="w-full mb-4">
+                    <button id="save-temp-pub" class="w-full bg-teal-600 py-2 rounded-lg text-white">Guardar</button>
+                `, async (modal) => {
+                    document.getElementById('save-temp-pub').addEventListener('click', async () => {
+                        const name = document.getElementById('new-temp-pub').value;
+                        if (name) {
+                            await addPublicador({ nombre: name });
+                            modal.classList.add('hidden');
+                            alert("Publicador agregado");
+                            window.location.reload();
+                        }
+                    });
                 });
             });
-        });
+        }
 
         window.updatePhoneStatus = async (id, status) => {
             await updateTelefonoStatus(id, status, undefined); // Keep current pub
@@ -339,8 +351,11 @@ export const renderConductorDashboard = async (container, userEmail) => {
 
 
         // Auto-load assignments for current conductor
+        console.log('Auto-loading assignments for:', currentConductorName);
         if (currentConductorName && currentConductorName !== "Conductor") {
-            renderAssignments(currentConductorName);
+            setTimeout(() => {
+                renderAssignments(currentConductorName);
+            }, 500); // Small delay to ensure programa is loaded
         }
     }
 };
