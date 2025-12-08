@@ -10,11 +10,22 @@ export const renderConductorDashboard = async (container, userEmail) => {
     const activeModules = config.modulos_activos;
     const conductores = await getConductores();
 
-    // Identificar usuario actual (simulado o real)
-    // En producción usaríamos user.uid, aquí usamos email para mapear o un selector
-    let currentConductorName = "Conductor";
-    const conductorMatch = conductores.find(c => c.email === userEmail);
-    if (conductorMatch) currentConductorName = conductorMatch.nombre;
+    // Identificar usuario actual desde localStorage o email
+    let currentConductorName = localStorage.getItem('selected_conductor_name') || "Conductor";
+    let currentConductorEmail = userEmail;
+
+    // Buscar conductor por email O por nombre (para el caso de demo-login)
+    const conductorMatch = conductores.find(c =>
+        c.email === userEmail ||
+        c.nombre === userEmail ||
+        c.nombre === currentConductorName
+    );
+
+    if (conductorMatch) {
+        currentConductorName = conductorMatch.nombre;
+        currentConductorEmail = conductorMatch.email || userEmail;
+        localStorage.setItem('selected_conductor_name', currentConductorName);
+    }
 
     container.innerHTML = `
         <div class="w-full max-w-7xl animate-fade-in pb-10">
@@ -26,7 +37,7 @@ export const renderConductorDashboard = async (container, userEmail) => {
                 <div class="flex items-center gap-4">
                     <select id="conductor-selector" class="bg-black/30 border border-teal-500/30 rounded px-3 py-1 text-sm">
                         <option value="">-- Soy... --</option>
-                        ${conductores.map(c => `<option value="${c.nombre}" ${c.email === userEmail ? 'selected' : ''}>${c.nombre}</option>`).join('')}
+                        ${conductores.map(c => `<option value="${c.nombre}" ${c.nombre === currentConductorName ? 'selected' : ''}>${c.nombre}</option>`).join('')}
                     </select>
                     <button id="logout-btn" class="bg-red-500/20 hover:bg-red-500/40 text-red-200 px-4 py-2 rounded-lg border border-red-500/30 transition-colors">
                         Salir
@@ -97,6 +108,7 @@ export const renderConductorDashboard = async (container, userEmail) => {
 
     document.getElementById('logout-btn').addEventListener('click', async () => {
         localStorage.removeItem('demo_role');
+        localStorage.removeItem('selected_conductor_name');
         await auth.signOut();
         window.location.reload();
     });
@@ -107,7 +119,21 @@ export const renderConductorDashboard = async (container, userEmail) => {
         const containerTable = document.getElementById('program-table-container');
 
         const renderProgramTable = () => {
-            // Header
+            // Check if programa has data
+            if (!programa || !programa.dias || programa.dias.length === 0) {
+                containerTable.innerHTML = '<p class="text-gray-400 text-center p-4">No hay programa cargado aún.</p>';
+                return;
+            }
+
+            // Build table with turnos structure
+            const turnos = [
+                { id: 'manana', label: '🌅 MAÑANA', headerColor: 'bg-cyan-100' },
+                { id: 'tarde', label: '☀️ TARDE', headerColor: 'bg-orange-100' },
+                { id: 'noche', label: '🌙 NOCHE', headerColor: 'bg-indigo-100' }
+            ];
+
+            const fields = ['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', 'Grupos', 'Territorio'];
+
             let html = `
                 <div class="text-center font-bold text-xl mb-2 uppercase border-b-2 border-black pb-2">
                     Congregación "${config.congregacion?.nombre || '...'}" ${config.congregacion?.numero || ''} <br>
@@ -116,6 +142,7 @@ export const renderConductorDashboard = async (container, userEmail) => {
                 <table class="w-full border-collapse text-xs md:text-sm border border-gray-400">
                     <thead>
                         <tr class="bg-teal-100">
+                            <th class="border border-gray-400 p-1 w-16">Turno</th>
                             <th class="border border-gray-400 p-1 w-20">Detalle</th>
                             ${programa.dias.map(d => `<th class="border border-gray-400 p-1 uppercase">${d.nombre}</th>`).join('')}
                         </tr>
@@ -123,52 +150,52 @@ export const renderConductorDashboard = async (container, userEmail) => {
                     <tbody>
             `;
 
-            // Rows: Lugar, Hora, Conductor, Auxiliar, Faceta, Territorio
-            const fields = ['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', 'Territorio'];
+            // Render each turno
+            turnos.forEach(turno => {
+                fields.forEach((field, fieldIdx) => {
+                    if (fieldIdx === 0) {
+                        // First row of turno: show turno label with rowspan
+                        html += `<tr>
+                            <td class="${turno.headerColor} font-bold border border-gray-400 p-2 text-center" rowspan="${fields.length}">${turno.label}</td>
+                            <td class="${turno.headerColor} font-bold border border-gray-400 p-1">${field}</td>`;
+                    } else {
+                        html += `<tr>
+                            <td class="${turno.headerColor} font-bold border border-gray-400 p-1">${field}</td>`;
+                    }
 
-            fields.forEach(field => {
-                html += `<tr><td class="bg-orange-100 font-bold border border-gray-400 p-1">${field}</td>`;
-                programa.dias.forEach((dia, dayIndex) => {
-                    // Turno Mañana (simplificado: solo mostramos 1 turno por día para demo, o concatenamos)
-                    // Para hacerlo editable como la imagen, necesitamos inputs
-                    const val = dia[field.toLowerCase()] || '';
-                    html += `<td class="border border-gray-400 p-0">
-                        <input type="text" class="w-full h-full p-1 bg-transparent border-none focus:bg-yellow-50 text-center" 
-                            value="${val}" 
-                            data-day="${dayIndex}" 
-                            data-field="${field.toLowerCase()}">
-                    </td>`;
+                    // Add data cells for each day
+                    programa.dias.forEach(dia => {
+                        const turnoData = dia[turno.id] || {};
+                        const val = turnoData[field.toLowerCase()] || '';
+                        html += `<td class="border border-gray-400 p-1 text-center">${val || '<span class="text-gray-400">-</span>'}</td>`;
+                    });
+
+                    html += `</tr>`;
                 });
-                html += `</tr>`;
             });
 
             html += `</tbody></table>`;
             containerTable.innerHTML = html;
-
-            // Bind inputs
-            containerTable.querySelectorAll('input').forEach(input => {
-                input.addEventListener('change', (e) => {
-                    const dayIdx = e.target.dataset.day;
-                    const field = e.target.dataset.field;
-                    programa.dias[dayIdx][field] = e.target.value;
-                });
-            });
         };
 
         renderProgramTable();
 
-        document.getElementById('save-prog').addEventListener('click', async () => {
-            await saveProgramaSemanal(programa);
-            alert("Programa guardado");
+        // Keep save and export buttons for reference (though conductor shouldn't edit)
+        document.getElementById('save-prog')?.addEventListener('click', async () => {
+            alert("El programa solo puede editarse desde el Panel de Administrador");
         });
 
-        document.getElementById('export-prog-png').addEventListener('click', () => {
-            html2canvas(containerTable, { scale: 2 }).then(canvas => {
-                const link = document.createElement('a');
-                link.download = 'programa_semanal.png';
-                link.href = canvas.toDataURL();
-                link.click();
-            });
+        document.getElementById('export-prog-png')?.addEventListener('click', () => {
+            if (typeof html2canvas !== 'undefined') {
+                html2canvas(containerTable, { scale: 2 }).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = 'programa_semanal.png';
+                    link.href = canvas.toDataURL();
+                    link.click();
+                });
+            } else {
+                alert("Función de exportar PNG no disponible");
+            }
         });
     }
 
@@ -260,9 +287,32 @@ export const renderConductorDashboard = async (container, userEmail) => {
             // Filter program for this conductor
             const programa = await getProgramaSemanal();
             let assignments = [];
+
+            const turnos = ['manana', 'tarde', 'noche'];
+            const turnoLabels = { manana: '🌅 Mañana', tarde: '☀️ Tarde', noche: '🌙 Noche' };
+
             programa.dias.forEach(d => {
-                if (d.conductor === name) assignments.push({ dia: d.nombre, role: 'Conductor', ...d });
-                if (d.auxiliar === name) assignments.push({ dia: d.nombre, role: 'Auxiliar', ...d });
+                turnos.forEach(turno => {
+                    const turnoData = d[turno];
+                    if (turnoData) {
+                        if (turnoData.conductor === name) {
+                            assignments.push({
+                                dia: d.nombre,
+                                turno: turnoLabels[turno],
+                                role: 'Conductor',
+                                ...turnoData
+                            });
+                        }
+                        if (turnoData.auxiliar === name) {
+                            assignments.push({
+                                dia: d.nombre,
+                                turno: turnoLabels[turno],
+                                role: 'Auxiliar',
+                                ...turnoData
+                            });
+                        }
+                    }
+                });
             });
 
             if (assignments.length === 0) {
@@ -274,12 +324,12 @@ export const renderConductorDashboard = async (container, userEmail) => {
                         ${assignments.map(a => `
                             <div class="bg-teal-900/30 p-3 rounded border border-teal-500/30">
                                 <div class="flex justify-between">
-                                    <span class="font-bold text-white">${a.dia}</span>
+                                    <span class="font-bold text-white">${a.dia} - ${a.turno}</span>
                                     <span class="text-xs bg-teal-600 px-2 rounded">${a.role}</span>
                                 </div>
                                 <div class="text-sm text-gray-300 mt-1">
-                                    🕒 ${a.hora} | 📍 ${a.lugar} <br>
-                                    🗺️ Territorio: ${a.territorio}
+                                    🕒 ${a.hora || '-'} | 📍 ${a.lugar || '-'} <br>
+                                    🗺️ Territorio: ${a.territorio || '-'}
                                 </div>
                             </div>
                         `).join('')}
@@ -289,7 +339,11 @@ export const renderConductorDashboard = async (container, userEmail) => {
         };
 
         selector.addEventListener('change', (e) => {
-            renderAssignments(e.target.value);
+            const selectedName = e.target.value;
+            if (selectedName) {
+                localStorage.setItem('selected_conductor_name', selectedName);
+            }
+            renderAssignments(selectedName);
         });
 
         // Auto-load for current user if identified
