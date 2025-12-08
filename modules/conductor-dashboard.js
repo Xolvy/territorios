@@ -59,19 +59,6 @@ export const renderConductorDashboard = async (container, userEmail) => {
                     <section class="morphinglass-card">
                         <div class="flex justify-between items-center mb-4">
                             <h2 class="text-xl font-bold text-teal-200">📅 Programa de Predicación</h2>
-                            <div class="flex gap-2">
-                                <button id="export-prog-png" class="text-xs bg-teal-600/50 px-3 py-1 rounded hover:bg-teal-600 border border-teal-500/30">Exportar PNG</button>
-                                <button id="save-prog" class="text-xs bg-blue-600/50 px-3 py-1 rounded hover:bg-blue-600 border border-blue-500/30">Guardar Cambios</button>
-                            </div>
-                        </div>
-                        <div class="overflow-x-auto bg-white text-black rounded-lg p-2" id="program-table-container">
-                            <!-- Tabla dinámica estilo Excel -->
-                        </div>
-                    </section>
-                ` : ''}
-
-                ${activeModules.predicacion_telefonica ? `
-                    <section class="morphinglass-card">
                         <div class="flex justify-between items-center mb-6">
                             <h2 class="text-xl font-bold text-teal-200">📞 Predicación Telefónica</h2>
                             <div class="flex gap-2">
@@ -93,6 +80,7 @@ export const renderConductorDashboard = async (container, userEmail) => {
                                         <th class="p-3">Propietario</th>
                                         <th class="p-3">Publicador</th>
                                         <th class="p-3">Estado</th>
+                                        <th class="p-3 text-right">Acción</th>
                                     </tr>
                                 </thead>
                                 <tbody id="lista-telefonos" class="divide-y divide-white/10">
@@ -227,38 +215,35 @@ export const renderConductorDashboard = async (container, userEmail) => {
                 return dateB - dateA; // Descendente: más reciente primero
             });
 
-            tbody.innerHTML = telefonos.map(t => `
-                <tr class="hover:bg-white/5 transition-colors">
-                    <td class="p-3 font-mono text-teal-300">${formatPhoneNumber(t.numero)}</td>
+            tbody.innerHTML = telefonos.map(t => {
+                const pubName = publicadores.find(p => p.id === t.publicador_asignado)?.nombre || '-';
+                const statusColor = getStatusColor(t.estado);
+
+                return `
+                <tr class="hover:bg-white/5 transition-colors border-b border-white/5">
+                    <td class="p-3 font-mono text-teal-300 font-bold">${formatPhoneNumber(t.numero)}</td>
                     <td class="p-3 text-gray-400 text-xs">${t.direccion}</td>
-                    <td class="p-3 text-gray-300">${t.propietario}</td>
+                    <td class="p-3 text-gray-300 text-sm">${t.propietario}</td>
+                    <td class="p-3 text-sm">${pubName}</td>
                     <td class="p-3">
-                        <select class="bg-black/30 border border-white/10 rounded text-xs p-1 w-full" onchange="window.updatePhonePub('${t.id}', this.value)">
-                            <option value="">Seleccione uno</option>
-                            ${publicadores.map(p => `<option value="${p.id}" ${t.publicador_asignado === p.id ? 'selected' : ''}>${p.nombre}</option>`).join('')}
-                        </select>
+                        <div class="flex items-center gap-2">
+                            <span class="${statusColor} font-medium">${t.estado}</span>
+                            ${t.estado === 'Revisita' ? `
+                                <button onclick="window.handleDevolver('${t.id}')" title="Devolver" class="text-teal-400 hover:text-teal-300">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+                                    </svg>
+                                </button>` : ''}
+                        </div>
                     </td>
-                    <td class="p-3 flex items-center gap-2">
-                        <select class="bg-black/30 border border-white/10 rounded text-xs p-1 w-full ${getStatusColor(t.estado)}" onchange="window.updatePhoneStatus('${t.id}', this.value)">
-                            <option value="Sin asignar" ${t.estado === 'Sin asignar' || t.estado === 'Pendiente' ? 'selected' : ''}>Sin asignar</option>
-                            <option value="No contestaron" ${t.estado === 'No contestaron' ? 'selected' : ''}>No contestaron</option>
-                            <option value="Colgaron" ${t.estado === 'Colgaron' ? 'selected' : ''}>Colgaron</option>
-                            <option value="Contestaron" ${t.estado === 'Contestaron' ? 'selected' : ''}>Contestaron</option>
-                            <option value="Testigo" ${t.estado === 'Testigo' ? 'selected' : ''}>Testigo</option>
-                            <option value="Revisita" ${t.estado === 'Revisita' ? 'selected' : ''}>Revisita</option>
-                            <option value="Suspendido" ${t.estado === 'Suspendido' ? 'selected' : ''}>Suspendido</option>
-                            <option value="No llamar" ${t.estado === 'No llamar' ? 'selected' : ''}>No llamar</option>
-                        </select>
-                        ${t.estado === 'Revisita' ? `
-                            <button onclick="window.handleDevolver('${t.id}')" title="Devolver" class="text-teal-400 hover:text-teal-300 p-1 transition-colors">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
-                                </svg>
-                            </button>
-                        ` : ''}
+                    <td class="p-3 text-right">
+                        <button onclick="window.openEditPhone('${t.id}', '${t.estado}', '${t.publicador_asignado || ''}')" 
+                            class="bg-blue-600/30 hover:bg-blue-600/50 text-blue-200 px-3 py-1 rounded text-xs border border-blue-500/30 transition-colors">
+                            Editar
+                        </button>
                     </td>
                 </tr>
-            `).join('');
+            `}).join('');
         };
 
         await renderTelefonos();
@@ -299,34 +284,9 @@ export const renderConductorDashboard = async (container, userEmail) => {
             });
         }
 
-        window.updatePhoneStatus = async (id, status) => {
-            await updateTelefonoStatus(id, status, undefined);
-
-            // Re-render si se debe ocultar o si cambió a Revisita (para mostrar botón)
-            const hiddenStatuses = ['Colgaron', 'No contestaron', 'Contestaron', 'No llamar', 'Testigo', 'Suspendido'];
-            if (hiddenStatuses.includes(status) || status === 'Revisita' || status === 'Sin asignar') {
-                await renderTelefonos();
-            } else {
-                // Actualizar color visualmente sin recargar si no es necesario
-                // (Aunque renderTelefonos es rápido, aquí optimizamos un poco)
-                const select = document.querySelector(`select[onchange*="${id}"]`);
-                if (select) {
-                    select.className = `bg-black/30 border border-white/10 rounded text-xs p-1 w-full ${getStatusColor(status)}`;
-                }
-            }
-        };
-
-        window.handleDevolver = async (id) => {
-            if (confirm('¿Desea devolver este número? Se quitará el publicador y el estado.')) {
-                await devolverTelefono(id);
-                await renderTelefonos();
-            }
-        };
-
         window.updatePhonePub = async (id, pubId) => {
-            // Update local UI or fetch?
-            // For simplicity, we just update the doc. Ideally we re-fetch or update local state.
-            await updateTelefonoStatus(id, undefined, pubId);
+            // Este método ya no se usa directamente desde la tabla, pero lo mantengo por compatibilidad
+            await window.updatePhoneStatus(id, undefined, pubId);
         };
     }
 
