@@ -159,7 +159,7 @@ export const solicitarNumeros = async (cantidad, usuarioId) => {
         batch.update(doc.ref, {
             asignado_a: usuarioId,
             fecha_asignacion: new Date().toISOString(),
-            estado: 'Pendiente'
+            estado: 'Sin asignar'
         });
     });
 

@@ -223,11 +223,14 @@ export const renderConductorDashboard = async (container, userEmail) => {
                     </td>
                     <td class="p-3">
                         <select class="bg-black/30 border border-white/10 rounded text-xs p-1 w-full ${getStatusColor(t.estado)}" onchange="window.updatePhoneStatus('${t.id}', this.value)">
-                            <option value="Pendiente" ${t.estado === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
+                            <option value="Sin asignar" ${t.estado === 'Sin asignar' || t.estado === 'Pendiente' ? 'selected' : ''}>Sin asignar</option>
+                            <option value="No contestaron" ${t.estado === 'No contestaron' ? 'selected' : ''}>No contestaron</option>
                             <option value="Colgaron" ${t.estado === 'Colgaron' ? 'selected' : ''}>Colgaron</option>
                             <option value="Contestaron" ${t.estado === 'Contestaron' ? 'selected' : ''}>Contestaron</option>
-                            <option value="No llamar" ${t.estado === 'No llamar' ? 'selected' : ''}>No llamar</option>
+                            <option value="Testigo" ${t.estado === 'Testigo' ? 'selected' : ''}>Testigo</option>
                             <option value="Revisita" ${t.estado === 'Revisita' ? 'selected' : ''}>Revisita</option>
+                            <option value="Suspendido" ${t.estado === 'Suspendido' ? 'selected' : ''}>Suspendido</option>
+                            <option value="No llamar" ${t.estado === 'No llamar' ? 'selected' : ''}>No llamar</option>
                         </select>
                     </td>
                 </tr>
@@ -363,8 +366,14 @@ export const renderConductorDashboard = async (container, userEmail) => {
 const getStatusColor = (status) => {
     switch (status) {
         case 'Contestaron': return 'text-green-400';
-        case 'No llamar': return 'text-red-400';
+        case 'Testigo': return 'text-purple-400';
         case 'Revisita': return 'text-yellow-400';
+        case 'No llamar': return 'text-red-400';
+        case 'Suspendido': return 'text-orange-400';
+        case 'Colgaron': return 'text-gray-400';
+        case 'No contestaron': return 'text-blue-400';
+        case 'Sin asignar': return 'text-gray-300';
+        case 'Pendiente': return 'text-gray-300'; // Backward compatibility
         default: return 'text-gray-300';
     }
 };
