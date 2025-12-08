@@ -207,12 +207,22 @@ export const renderConductorDashboard = async (container, userEmail) => {
         // Use conductor email as userId for phone assignment
         const userId = currentConductorEmail || currentConductorName;
 
+        // Helper function to format phone numbers
+        const formatPhoneNumber = (numero) => {
+            if (!numero) return '';
+            const cleaned = numero.toString().replace(/\D/g, '');
+            if (cleaned.length === 7) {
+                return `${cleaned.slice(0, 3)} ${cleaned.slice(3)}`;
+            }
+            return numero; // Return original if not 7 digits
+        };
+
         const renderTelefonos = async () => {
             const telefonos = await getMisTelefonos(userId);
 
             tbody.innerHTML = telefonos.map(t => `
                 <tr class="hover:bg-white/5 transition-colors">
-                    <td class="p-3 font-mono text-teal-300">${t.numero}</td>
+                    <td class="p-3 font-mono text-teal-300">${formatPhoneNumber(t.numero)}</td>
                     <td class="p-3 text-gray-400 text-xs">${t.direccion}</td>
                     <td class="p-3 text-gray-300">${t.propietario}</td>
                     <td class="p-3">
