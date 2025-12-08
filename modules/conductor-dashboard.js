@@ -76,7 +76,7 @@ export const renderConductorDashboard = async (container, userEmail) => {
                             <h2 class="text-xl font-bold text-teal-200">📞 Predicación Telefónica</h2>
                             <div class="flex gap-2">
                                 <button id="btn-solicitar" class="bg-teal-600 hover:bg-teal-500 text-white px-4 py-2 rounded-lg text-sm transition-colors shadow-lg shadow-teal-500/20">
-                                    Solicitar 50 Números
+                                    Solicitar números
                                 </button>
                                 <button id="btn-add-pub-temp" class="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg text-sm transition-colors border border-white/20">
                                     + Publicador
@@ -219,6 +219,13 @@ export const renderConductorDashboard = async (container, userEmail) => {
 
         const renderTelefonos = async () => {
             const telefonos = await getMisTelefonos(userId);
+
+            // Ordenar por fecha de asignación descendente (más recientes primero)
+            telefonos.sort((a, b) => {
+                const dateA = a.fecha_asignacion ? new Date(a.fecha_asignacion) : new Date(0);
+                const dateB = b.fecha_asignacion ? new Date(b.fecha_asignacion) : new Date(0);
+                return dateB - dateA; // Descendente: más reciente primero
+            });
 
             tbody.innerHTML = telefonos.map(t => `
                 <tr class="hover:bg-white/5 transition-colors">
