@@ -1,6 +1,6 @@
 import {
     getConfiguracion, getProgramaSemanal, saveProgramaSemanal,
-    getMisTelefonos, solicitarNumeros, updateTelefonoStatus,
+    getMisTelefonos, solicitarNumeros, updateTelefonoStatus, devolverTelefono,
     getPublicadores, getConductores, addPublicador
 } from '../data/firestore-services.js';
 import { auth } from '../firebase-config.js';
@@ -238,7 +238,7 @@ export const renderConductorDashboard = async (container, userEmail) => {
                             ${publicadores.map(p => `<option value="${p.id}" ${t.publicador_asignado === p.id ? 'selected' : ''}>${p.nombre}</option>`).join('')}
                         </select>
                     </td>
-                    <td class="p-3">
+                    <td class="p-3 flex items-center gap-2">
                         <select class="bg-black/30 border border-white/10 rounded text-xs p-1 w-full ${getStatusColor(t.estado)}" onchange="window.updatePhoneStatus('${t.id}', this.value)">
                             <option value="Sin asignar" ${t.estado === 'Sin asignar' || t.estado === 'Pendiente' ? 'selected' : ''}>Sin asignar</option>
                             <option value="No contestaron" ${t.estado === 'No contestaron' ? 'selected' : ''}>No contestaron</option>
@@ -249,6 +249,13 @@ export const renderConductorDashboard = async (container, userEmail) => {
                             <option value="Suspendido" ${t.estado === 'Suspendido' ? 'selected' : ''}>Suspendido</option>
                             <option value="No llamar" ${t.estado === 'No llamar' ? 'selected' : ''}>No llamar</option>
                         </select>
+                        ${t.estado === 'Revisita' ? `
+                            <button onclick="window.handleDevolver('${t.id}')" title="Devolver" class="text-teal-400 hover:text-teal-300 p-1 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        ` : ''}
                     </td>
                 </tr>
             `).join('');
@@ -293,7 +300,27 @@ export const renderConductorDashboard = async (container, userEmail) => {
         }
 
         window.updatePhoneStatus = async (id, status) => {
-            await updateTelefonoStatus(id, status, undefined); // Keep current pub
+            await updateTelefonoStatus(id, status, undefined);
+
+            // Re-render si se debe ocultar o si cambió a Revisita (para mostrar botón)
+            const hiddenStatuses = ['Colgaron', 'No contestaron', 'Contestaron', 'No llamar', 'Testigo', 'Suspendido'];
+            if (hiddenStatuses.includes(status) || status === 'Revisita' || status === 'Sin asignar') {
+                await renderTelefonos();
+            } else {
+                // Actualizar color visualmente sin recargar si no es necesario
+                // (Aunque renderTelefonos es rápido, aquí optimizamos un poco)
+                const select = document.querySelector(`select[onchange*="${id}"]`);
+                if (select) {
+                    select.className = `bg-black/30 border border-white/10 rounded text-xs p-1 w-full ${getStatusColor(status)}`;
+                }
+            }
+        };
+
+        window.handleDevolver = async (id) => {
+            if (confirm('¿Desea devolver este número? Se quitará el publicador y el estado.')) {
+                await devolverTelefono(id);
+                await renderTelefonos();
+            }
         };
 
         window.updatePhonePub = async (id, pubId) => {

@@ -167,20 +167,55 @@ export const solicitarNumeros = async (cantidad, usuarioId) => {
     return querySnapshot.size;
 };
 
+// Función auxiliar para devolver (resetear) un teléfono
+export const devolverTelefono = async (id) => {
+    await updateDoc(doc(db, "telefonos", id), {
+        estado: 'Sin asignar',
+        asignado_a: null,
+        publicador_asignado: null,
+        fecha_asignacion: null
+    });
+};
+
 export const getMisTelefonos = async (usuarioId) => {
-    // En demo, si usuarioId es null o undefined, traemos algunos de ejemplo o todos
     if (!usuarioId) return [];
     const q = query(collection(db, "telefonos"), where("asignado_a", "==", usuarioId));
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    // Filtrar localmente los que están "ocultos" según reglas de negocio
+    // Colgaron, No contestaron, Contestaron -> Se ocultan (hasta que se asignen todos, pero por ahora se ocultan del dashboard)
+    // No llamar -> Se oculta (lógica de 6 meses es al solicitar, pero aquí no debe verse)
+    const hiddenStatuses = ['Colgaron', 'No contestaron', 'Contestaron', 'No llamar'];
+
+    return querySnapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter(t => !hiddenStatuses.includes(t.estado));
 };
 
 export const updateTelefonoStatus = async (id, estado, publicadorId) => {
+    const telefonoRef = doc(db, "telefonos", id);
+
+    // Regla: Testigo o Suspendido -> Eliminar registro
+    if (estado === 'Testigo' || estado === 'Suspendido') {
+        await deleteDoc(telefonoRef);
+        return;
+    }
+
     const data = {};
-    if (estado !== undefined) data.estado = estado;
+    if (estado !== undefined) {
+        data.estado = estado;
+        // Regla: No llamar -> Guardar fecha para control de 6 meses
+        if (estado === 'No llamar') {
+            data.fecha_no_llamar = new Date().toISOString();
+            // Opcional: ¿Desasignar inmediatamente? 
+            // Si se desasigna, solicitarNumeros podría tomarlo si no filtramos bien.
+            // Mejor mantenerlo asignado u oculto, o manejarlo en solicitarNumeros.
+            // Por ahora, solo guardamos el estado y la fecha.
+        }
+    }
     if (publicadorId !== undefined) data.publicador_asignado = publicadorId;
 
-    await updateDoc(doc(db, "telefonos", id), data);
+    await updateDoc(telefonoRef, data);
 };
 
 // --- PROGRAMA PREDICACIÓN ---
