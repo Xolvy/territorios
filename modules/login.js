@@ -118,6 +118,10 @@ const renderConductorSelection = async (container) => {
 
     try {
         const conductores = await getConductores();
+
+        // Ordenar alfabéticamente por nombre
+        conductores.sort((a, b) => a.nombre.localeCompare(b.nombre));
+
         const listContainer = document.getElementById('conductores-list');
 
         if (conductores.length === 0) {
