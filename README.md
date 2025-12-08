@@ -1,10 +1,14 @@
 # App Territorios JW
 
+[![Deploy to Firebase](https://github.com/Xolvy/conductores/actions/workflows/firebase-deploy.yml/badge.svg)](https://github.com/Xolvy/conductores/actions/workflows/firebase-deploy.yml)
+
 Aplicación web para la gestión de territorios y predicación.
 
 ## 🌐 Aplicación en Vivo
 
 **URL:** [https://territorios-jw.web.app](https://territorios-jw.web.app)
+
+> 🚀 **Auto-Deploy Activo:** Cada push a `main` se despliega automáticamente a Firebase Hosting
 
 ## 📋 Características
 
