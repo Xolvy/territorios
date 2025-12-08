@@ -35,10 +35,10 @@ export const renderConductorDashboard = async (container, userEmail) => {
                     <p class="text-sm text-gray-400">Bienvenido, ${currentConductorName}</p>
                 </div>
                 <div class="flex items-center gap-4">
-                    <select id="conductor-selector" class="bg-black/30 border border-teal-500/30 rounded px-3 py-1 text-sm">
-                        <option value="">-- Soy... --</option>
-                        ${conductores.map(c => `<option value="${c.nombre}" ${c.nombre === currentConductorName ? 'selected' : ''}>${c.nombre}</option>`).join('')}
-                    </select>
+                    <div class="bg-teal-500/10 border border-teal-500/30 rounded px-4 py-2 text-sm">
+                        <span class="text-teal-400 font-semibold">Soy:</span>
+                        <span class="text-white ml-2">${currentConductorName}</span>
+                    </div>
                     <button id="logout-btn" class="bg-red-500/20 hover:bg-red-500/40 text-red-200 px-4 py-2 rounded-lg border border-red-500/30 transition-colors">
                         Salir
                     </button>
@@ -273,7 +273,6 @@ export const renderConductorDashboard = async (container, userEmail) => {
 
     // --- LOGIC: DASHBOARD FILTER ---
     if (activeModules.dashboard) {
-        const selector = document.getElementById('conductor-selector');
         const dashDiv = document.getElementById('dashboard-assignments');
 
         const renderAssignments = async (name) => {
@@ -338,15 +337,8 @@ export const renderConductorDashboard = async (container, userEmail) => {
             }
         };
 
-        selector.addEventListener('change', (e) => {
-            const selectedName = e.target.value;
-            if (selectedName) {
-                localStorage.setItem('selected_conductor_name', selectedName);
-            }
-            renderAssignments(selectedName);
-        });
 
-        // Auto-load for current user if identified
+        // Auto-load assignments for current conductor
         if (currentConductorName && currentConductorName !== "Conductor") {
             renderAssignments(currentConductorName);
         }
