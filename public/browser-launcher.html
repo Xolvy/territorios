@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🚀 Browser Launcher - Territorios JW</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+
+      .launcher-container {
+        text-align: center;
+        max-width: 800px;
+        width: 100%;
+      }
+
+      .header {
+        margin-bottom: 40px;
+      }
+
+      .header h1 {
+        font-size: 3rem;
+        margin-bottom: 10px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      .header p {
+        font-size: 1.2rem;
+        opacity: 0.9;
+      }
+
+      .browsers-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 25px;
+        margin-bottom: 40px;
+      }
+
+      .browser-card {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 30px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        transition: all 0.3s ease;
+        cursor: pointer;
+      }
+
+      .browser-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        background: rgba(255, 255, 255, 0.15);
+      }
+
+      .browser-icon {
+        font-size: 4rem;
+        margin-bottom: 20px;
+      }
+
+      .browser-name {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 10px;
+      }
+
+      .browser-description {
+        opacity: 0.8;
+        font-size: 0.9rem;
+        line-height: 1.4;
+      }
+
+      .status-indicator {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #10b981;
+        animation: pulse 2s infinite;
+      }
+
+      .quick-actions {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        flex-wrap: wrap;
+        margin-bottom: 30px;
+      }
+
+      .action-btn {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        padding: 12px 24px;
+        border-radius: 25px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        font-weight: 500;
+      }
+
+      .action-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: scale(1.05);
+      }
+
+      .troubleshooting {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 15px;
+        padding: 25px;
+        margin-top: 30px;
+        border-left: 4px solid #fbbf24;
+      }
+
+      .troubleshooting h3 {
+        color: #fbbf24;
+        margin-bottom: 15px;
+      }
+
+      .troubleshooting ul {
+        text-align: left;
+        margin-left: 20px;
+      }
+
+      .troubleshooting li {
+        margin-bottom: 8px;
+        opacity: 0.9;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .header h1 {
+          font-size: 2rem;
+        }
+
+        .browsers-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="launcher-container">
+      <div class="header">
+        <h1>🚀 Browser Launcher</h1>
+        <p>Selecciona la mejor opción para ver tu aplicación</p>
+      </div>
+
+      <div class="quick-actions">
+        <button class="action-btn" onclick="testServer()">
+          🔍 Test Server
+        </button>
+        <button class="action-btn" onclick="openInDefault()">
+          🌐 Navegador Por Defecto
+        </button>
+        <button class="action-btn" onclick="refreshPage()">🔄 Refresh</button>
+      </div>
+
+      <div class="browsers-grid">
+        <div class="browser-card" onclick="openInLivePreview()">
+          <div class="status-indicator"></div>
+          <div class="browser-icon">🔴</div>
+          <div class="browser-name">Live Preview</div>
+          <div class="browser-description">
+            Extensión oficial de Microsoft con auto-refresh y debug integrado
+          </div>
+        </div>
+
+        <div class="browser-card" onclick="openInSimpleBrowser()">
+          <div class="status-indicator"></div>
+          <div class="browser-icon">🌐</div>
+          <div class="browser-name">Simple Browser</div>
+          <div class="browser-description">
+            Browser integrado de VS Code, ideal para páginas estáticas
+          </div>
+        </div>
+
+        <div class="browser-card" onclick="openInEdgeDevTools()">
+          <div class="status-indicator"></div>
+          <div class="browser-icon">🔧</div>
+          <div class="browser-name">Edge DevTools</div>
+          <div class="browser-description">
+            Herramientas completas de desarrollo integradas en VS Code
+          </div>
+        </div>
+
+        <div class="browser-card" onclick="openInExternal()">
+          <div class="status-indicator"></div>
+          <div class="browser-icon">🚀</div>
+          <div class="browser-name">Navegador Externo</div>
+          <div class="browser-description">
+            Chrome, Firefox, Edge - Tu navegador predeterminado del sistema
+          </div>
+        </div>
+
+        <div class="browser-card" onclick="openDevTools()">
+          <div class="status-indicator"></div>
+          <div class="browser-icon">🛠️</div>
+          <div class="browser-name">Dev Tools Hub</div>
+          <div class="browser-description">
+            Panel de herramientas avanzado que creamos anteriormente
+          </div>
+        </div>
+
+        <div class="browser-card" onclick="openPerformanceMonitor()">
+          <div class="status-indicator"></div>
+          <div class="browser-icon">📊</div>
+          <div class="browser-name">Performance Monitor</div>
+          <div class="browser-description">
+            Monitor de rendimiento en tiempo real con gráficos
+          </div>
+        </div>
+      </div>
+
+      <div class="troubleshooting">
+        <h3>⚠️ ¿Simple Browser en blanco? Aquí las soluciones:</h3>
+        <ul>
+          <li>
+            <strong>Instala Live Preview:</strong> Extensión oficial que
+            funciona mejor
+          </li>
+          <li>
+            <strong>Verifica el servidor:</strong> Asegúrate que localhost:3000
+            esté ejecutándose
+          </li>
+          <li>
+            <strong>Recarga la página:</strong> Ctrl+R o F5 en Simple Browser
+          </li>
+          <li>
+            <strong>Limpia caché:</strong> Cierra y vuelve a abrir Simple
+            Browser
+          </li>
+          <li>
+            <strong>Usa navegador externo:</strong> Para funcionalidad completa
+          </li>
+          <li>
+            <strong>Verifica puertos:</strong> Puede que esté en puerto
+            diferente
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <script>
+      function openInLivePreview() {
+        // Comando para VS Code Live Preview
+        showNotification("🔴 Abriendo en Live Preview...", "info");
+        // El usuario debe usar Ctrl+Shift+P -> "Live Preview: Show Preview"
+        setTimeout(() => {
+          showNotification(
+            '💡 Usa Ctrl+Shift+P -> "Live Preview: Show Preview"',
+            "success"
+          );
+        }, 1000);
+      }
+
+      function openInSimpleBrowser() {
+        showNotification("🌐 Intentando abrir en Simple Browser...", "info");
+        window.open("http://localhost:3000", "_blank");
+      }
+
+      function openInEdgeDevTools() {
+        showNotification(
+          '🔧 Para Edge DevTools: Ctrl+Shift+P -> "Edge DevTools"',
+          "info"
+        );
+      }
+
+      function openInExternal() {
+        showNotification("🚀 Abriendo en navegador externo...", "success");
+        // Esto abrirá en el navegador predeterminado del sistema
+        const link = document.createElement("a");
+        link.href = "http://localhost:3000";
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+
+      function openDevTools() {
+        showNotification("🛠️ Abriendo Dev Tools Hub...", "info");
+        window.open("http://localhost:3000/browser-hub.html", "_blank");
+      }
+
+      function openPerformanceMonitor() {
+        showNotification("📊 Abriendo Performance Monitor...", "info");
+        window.open("http://localhost:3000/performance-monitor.html", "_blank");
+      }
+
+      function testServer() {
+        showNotification("🔍 Probando servidor...", "info");
+
+        fetch("http://localhost:3000")
+          .then((response) => {
+            if (response.ok) {
+              showNotification(
+                "✅ Servidor funcionando correctamente",
+                "success"
+              );
+              updateServerStatus(true);
+            } else {
+              showNotification(
+                `⚠️ Servidor responde pero con error: ${response.status}`,
+                "warning"
+              );
+              updateServerStatus(false);
+            }
+          })
+          .catch((error) => {
+            showNotification(
+              "❌ Servidor no disponible. ¿Está ejecutándose npm run dev?",
+              "error"
+            );
+            updateServerStatus(false);
+          });
+      }
+
+      function openInDefault() {
+        openInExternal();
+      }
+
+      function refreshPage() {
+        location.reload();
+      }
+
+      function updateServerStatus(online) {
+        const indicators = document.querySelectorAll(".status-indicator");
+        indicators.forEach((indicator) => {
+          indicator.style.background = online ? "#10b981" : "#ef4444";
+        });
+      }
+
+      function showNotification(message, type = "info") {
+        const notification = document.createElement("div");
+
+        const colors = {
+          success: "#10b981",
+          error: "#ef4444",
+          warning: "#fbbf24",
+          info: "#3b82f6",
+        };
+
+        notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${colors[type]};
+                color: white;
+                padding: 15px 25px;
+                border-radius: 10px;
+                z-index: 10000;
+                font-weight: 500;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+                animation: slideIn 0.3s ease-out;
+                max-width: 400px;
+            `;
+
+        notification.textContent = message;
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+          notification.style.animation = "slideOut 0.3s ease-out forwards";
+          setTimeout(() => {
+            if (notification.parentNode) {
+              notification.parentNode.removeChild(notification);
+            }
+          }, 300);
+        }, 4000);
+      }
+
+      // Verificar servidor al cargar
+      document.addEventListener("DOMContentLoaded", function () {
+        testServer();
+
+        // Auto-verificar cada 30 segundos
+        setInterval(testServer, 30000);
+      });
+
+      // Agregar animaciones CSS
+      const style = document.createElement("style");
+      style.textContent = `
+            @keyframes slideIn {
+                from {
+                    opacity: 0;
+                    transform: translateX(100%);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateX(0);
+                }
+            }
+            
+            @keyframes slideOut {
+                from {
+                    opacity: 1;
+                    transform: translateX(0);
+                }
+                to {
+                    opacity: 0;
+                    transform: translateX(100%);
+                }
+            }
+        `;
+      document.head.appendChild(style);
+    </script>
+  </body>
+</html>

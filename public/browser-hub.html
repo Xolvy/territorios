@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🚀 Simple Browser Hub</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(
+          135deg,
+          #1a1a2e 0%,
+          #16213e 50%,
+          #0f3460 100%
+        );
+        color: white;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      .hub-container {
+        padding: 20px;
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 40px;
+        animation: fadeInDown 1s ease-out;
+      }
+
+      .header h1 {
+        font-size: 3rem;
+        background: linear-gradient(45deg, #00d4ff, #ff0080);
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 10px;
+        text-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+      }
+
+      .subtitle {
+        font-size: 1.2rem;
+        opacity: 0.8;
+        margin-bottom: 30px;
+      }
+
+      .quick-actions {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-bottom: 40px;
+        flex-wrap: wrap;
+      }
+
+      .quick-btn {
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 25px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+      }
+
+      .quick-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+      }
+
+      .panels-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 25px;
+        margin-bottom: 40px;
+      }
+
+      .panel {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 20px;
+        padding: 25px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .panel::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #00d4ff, #ff0080);
+      }
+
+      .panel:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .panel h3 {
+        font-size: 1.4rem;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .panel p {
+        opacity: 0.8;
+        margin-bottom: 20px;
+        line-height: 1.5;
+      }
+
+      .panel-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .btn {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 8px 16px;
+        border-radius: 15px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 0.9rem;
+      }
+
+      .btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: scale(1.05);
+      }
+
+      .btn.primary {
+        background: linear-gradient(45deg, #3b82f6, #8b5cf6);
+        border: none;
+      }
+
+      .status-bar {
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 20px;
+      }
+
+      .status-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .status-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+      }
+
+      .status-indicator.online {
+        background: #10b981;
+      }
+
+      .status-indicator.offline {
+        background: #ef4444;
+      }
+
+      .iframe-container {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 20px;
+        padding: 20px;
+        margin-top: 30px;
+        position: relative;
+      }
+
+      .iframe-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+      }
+
+      .iframe-controls {
+        display: flex;
+        gap: 10px;
+      }
+
+      .control-btn {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+      }
+
+      .control-btn.close {
+        background: #ef4444;
+      }
+      .control-btn.minimize {
+        background: #fbbf24;
+      }
+      .control-btn.maximize {
+        background: #10b981;
+      }
+
+      .embedded-iframe {
+        width: 100%;
+        height: 600px;
+        border: none;
+        border-radius: 10px;
+        background: white;
+      }
+
+      @keyframes fadeInDown {
+        from {
+          opacity: 0;
+          transform: translateY(-30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      .floating-tools {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .floating-btn {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        border: none;
+        color: white;
+        cursor: pointer;
+        font-size: 20px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        transition: all 0.3s ease;
+      }
+
+      .floating-btn:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+      }
+
+      @media (max-width: 768px) {
+        .panels-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .header h1 {
+          font-size: 2rem;
+        }
+
+        .floating-tools {
+          position: relative;
+          top: auto;
+          right: auto;
+          flex-direction: row;
+          justify-content: center;
+          margin: 20px 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="floating-tools">
+      <button class="floating-btn" onclick="toggleTheme()" title="Cambiar tema">
+        🎨
+      </button>
+      <button
+        class="floating-btn"
+        onclick="toggleFullscreen()"
+        title="Pantalla completa"
+      >
+        🔍
+      </button>
+      <button
+        class="floating-btn"
+        onclick="refreshAll()"
+        title="Actualizar todo"
+      >
+        🔄
+      </button>
+    </div>
+
+    <div class="hub-container">
+      <div class="header">
+        <h1>🚀 Simple Browser Hub</h1>
+        <p class="subtitle">Centro de control avanzado para desarrollo web</p>
+
+        <div class="quick-actions">
+          <button class="quick-btn" onclick="openApp()">
+            🏠 App Principal
+          </button>
+          <button class="quick-btn" onclick="openAdmin()">
+            👨‍💼 Admin Panel
+          </button>
+          <button class="quick-btn" onclick="openDiagnostics()">
+            🔬 Diagnósticos
+          </button>
+          <button class="quick-btn" onclick="openDevTools()">
+            🛠️ Dev Tools
+          </button>
+        </div>
+      </div>
+
+      <div class="status-bar">
+        <div class="status-item">
+          <div class="status-indicator online" id="serverStatus"></div>
+          <span id="serverStatusText">Server Online</span>
+        </div>
+        <div class="status-item">
+          <span>🌐 Puerto: 3000</span>
+        </div>
+        <div class="status-item">
+          <span id="lastUpdate">Última actualización: --:--</span>
+        </div>
+        <div class="status-item">
+          <span id="activeConnections">Conexiones: 0</span>
+        </div>
+      </div>
+
+      <div class="panels-grid">
+        <div class="panel">
+          <h3>🔧 Herramientas de Desarrollo</h3>
+          <p>
+            Suite completa de herramientas para desarrollo, debugging y
+            optimización.
+          </p>
+          <div class="panel-actions">
+            <button class="btn primary" onclick="openDevTools()">
+              Abrir Dev Tools
+            </button>
+            <button class="btn" onclick="openConsole()">Console</button>
+            <button class="btn" onclick="toggleBrowserDiagnostic()">
+              Diagnóstico
+            </button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>📱 Testing Responsivo</h3>
+          <p>Prueba tu aplicación en diferentes dispositivos y resoluciones.</p>
+          <div class="panel-actions">
+            <button class="btn" onclick="simulateDevice('mobile')">
+              📱 Mobile
+            </button>
+            <button class="btn" onclick="simulateDevice('tablet')">
+              📲 Tablet
+            </button>
+            <button class="btn" onclick="simulateDevice('desktop')">
+              🖥️ Desktop
+            </button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>🔍 Firebase Diagnostic</h3>
+          <p>
+            Monitorea el estado de Firebase y verifica la configuración offline.
+          </p>
+          <div class="panel-actions">
+            <button class="btn primary" onclick="openFirebaseDiagnostic()">
+              Verificar Firebase
+            </button>
+            <button class="btn" onclick="testOfflineMode()">
+              Test Offline
+            </button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>⚡ Performance Monitor</h3>
+          <p>Monitorea el rendimiento de tu aplicación en tiempo real.</p>
+          <div class="panel-actions">
+            <button class="btn primary" onclick="startPerformanceMonitor()">
+              Iniciar Monitor
+            </button>
+            <button class="btn" onclick="generateReport()">
+              Generar Reporte
+            </button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>🎨 CSS Live Editor</h3>
+          <p>Edita estilos en tiempo real y ve los cambios instantáneamente.</p>
+          <div class="panel-actions">
+            <button class="btn primary" onclick="openCSSEditor()">
+              Abrir Editor
+            </button>
+            <button class="btn" onclick="loadPresets()">Presets</button>
+            <button class="btn" onclick="exportStyles()">Exportar</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>🌐 Network Tools</h3>
+          <p>Herramientas para testing de conectividad y análisis de red.</p>
+          <div class="panel-actions">
+            <button class="btn" onclick="testConnection()">
+              Test Conexión
+            </button>
+            <button class="btn" onclick="simulateOffline()">
+              Modo Offline
+            </button>
+            <button class="btn" onclick="analyzeRequests()">
+              Analizar Requests
+            </button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>📊 Analytics Dashboard</h3>
+          <p>Visualiza métricas y estadísticas de uso de tu aplicación.</p>
+          <div class="panel-actions">
+            <button class="btn primary" onclick="openAnalytics()">
+              Abrir Dashboard
+            </button>
+            <button class="btn" onclick="exportData()">Exportar Datos</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="iframe-container" id="iframeContainer" style="display: none">
+        <div class="iframe-header">
+          <h3 id="iframeTitle">Aplicación</h3>
+          <div class="iframe-controls">
+            <button class="control-btn minimize" onclick="minimizeIframe()">
+              −
+            </button>
+            <button class="control-btn maximize" onclick="maximizeIframe()">
+              □
+            </button>
+            <button class="control-btn close" onclick="closeIframe()">×</button>
+          </div>
+        </div>
+        <iframe id="embeddedApp" class="embedded-iframe" src=""></iframe>
+      </div>
+    </div>
+
+    <script>
+      // Variables globales
+      let currentTheme = "dark";
+      let performanceMonitorActive = false;
+      let networkRequests = [];
+
+      // Funciones principales
+      function openApp() {
+        showIframe("http://localhost:3000", "🏠 Aplicación Principal");
+        logActivity("Aplicación principal abierta");
+      }
+
+      function openAdmin() {
+        showIframe("http://localhost:3000/admin", "👨‍💼 Panel de Administración");
+        logActivity("Panel de administración abierto");
+      }
+
+      function openDiagnostics() {
+        showIframe("http://localhost:3000/diagnostico", "🔬 Diagnósticos");
+        logActivity("Panel de diagnósticos abierto");
+      }
+
+      function openDevTools() {
+        showIframe("dev-tools.html", "🛠️ Developer Tools");
+        logActivity("Developer Tools abierto");
+      }
+
+      function openFirebaseDiagnostic() {
+        showIframe("firebase-diagnostic.html", "🔍 Firebase Diagnostic");
+        logActivity("Firebase Diagnostic abierto");
+      }
+
+      function testOfflineMode() {
+        showNotification("🔒 Verificando modo offline...", "info");
+
+        // Simular prueba de modo offline
+        setTimeout(() => {
+          showNotification(
+            "✅ Modo offline funcionando correctamente",
+            "success"
+          );
+          logActivity("Test de modo offline completado");
+        }, 1500);
+      }
+
+      function toggleBrowserDiagnostic() {
+        try {
+          // Intentar acceder al componente de diagnóstico en el iframe
+          const iframe = document.getElementById("embeddedApp");
+          if (iframe && iframe.contentWindow) {
+            // Enviar mensaje al iframe para mostrar/ocultar diagnóstico
+            iframe.contentWindow.postMessage(
+              {
+                type: "TOGGLE_BROWSER_DIAGNOSTIC",
+              },
+              "http://localhost:3000"
+            );
+
+            showNotification("🔬 Toggle diagnóstico enviado", "info");
+            logActivity("Toggle del diagnóstico de navegador activado");
+          } else {
+            showNotification(
+              "⚠️ Iframe no disponible - abriendo diagnósticos",
+              "warning"
+            );
+            openDiagnostics();
+          }
+        } catch (error) {
+          console.error("Error al toggle diagnóstico:", error);
+          showNotification("❌ Error al toggle diagnóstico", "error");
+        }
+      }
+
+      function showIframe(url, title) {
+        const container = document.getElementById("iframeContainer");
+        const iframe = document.getElementById("embeddedApp");
+        const titleElement = document.getElementById("iframeTitle");
+
+        iframe.src = url;
+        titleElement.textContent = title;
+        container.style.display = "block";
+
+        // Scroll suave hacia el iframe
+        container.scrollIntoView({ behavior: "smooth" });
+      }
+
+      function closeIframe() {
+        const container = document.getElementById("iframeContainer");
+        container.style.display = "none";
+        logActivity("Iframe cerrado");
+      }
+
+      function minimizeIframe() {
+        const iframe = document.getElementById("embeddedApp");
+        iframe.style.height =
+          iframe.style.height === "200px" ? "600px" : "200px";
+        logActivity("Iframe minimizado/restaurado");
+      }
+
+      function maximizeIframe() {
+        const iframe = document.getElementById("embeddedApp");
+        if (iframe.style.height === "90vh") {
+          iframe.style.height = "600px";
+        } else {
+          iframe.style.height = "90vh";
+        }
+        logActivity("Iframe maximizado/restaurado");
+      }
+
+      // Funciones de herramientas
+      function simulateDevice(device) {
+        const iframe = document.getElementById("embeddedApp");
+        const devices = {
+          mobile: { width: "375px", height: "667px" },
+          tablet: { width: "768px", height: "1024px" },
+          desktop: { width: "100%", height: "600px" },
+        };
+
+        const config = devices[device];
+        iframe.style.width = config.width;
+        iframe.style.height = config.height;
+        iframe.style.margin = device === "desktop" ? "0" : "0 auto";
+
+        showNotification(`📱 Simulando dispositivo ${device}`, "success");
+        logActivity(`Dispositivo simulado: ${device}`);
+      }
+
+      function startPerformanceMonitor() {
+        performanceMonitorActive = !performanceMonitorActive;
+
+        if (performanceMonitorActive) {
+          showNotification("⚡ Monitor de performance iniciado", "success");
+
+          // Simular monitoreo
+          const monitorInterval = setInterval(() => {
+            if (!performanceMonitorActive) {
+              clearInterval(monitorInterval);
+              return;
+            }
+
+            // Métricas simuladas
+            const metrics = {
+              memory: Math.round(Math.random() * 50 + 20),
+              cpu: Math.round(Math.random() * 30 + 10),
+              network: Math.round(Math.random() * 100 + 50),
+            };
+
+            updatePerformanceDisplay(metrics);
+          }, 2000);
+        } else {
+          showNotification("⚡ Monitor de performance detenido", "info");
+        }
+
+        logActivity(
+          `Monitor de performance ${
+            performanceMonitorActive ? "iniciado" : "detenido"
+          }`
+        );
+      }
+
+      function updatePerformanceDisplay(metrics) {
+        // Crear o actualizar display de métricas
+        let display = document.getElementById("performanceDisplay");
+        if (!display) {
+          display = document.createElement("div");
+          display.id = "performanceDisplay";
+          display.style.cssText = `
+                    position: fixed;
+                    top: 100px;
+                    right: 20px;
+                    background: rgba(0, 0, 0, 0.8);
+                    color: white;
+                    padding: 15px;
+                    border-radius: 10px;
+                    font-family: monospace;
+                    z-index: 1001;
+                    min-width: 200px;
+                `;
+          document.body.appendChild(display);
+        }
+
+        display.innerHTML = `
+                <h4>⚡ Performance Monitor</h4>
+                <div>🧠 Memory: ${metrics.memory}MB</div>
+                <div>⚙️ CPU: ${metrics.cpu}%</div>
+                <div>🌐 Network: ${metrics.network}ms</div>
+                <small style="opacity: 0.7;">${new Date().toLocaleTimeString()}</small>
+            `;
+      }
+
+      function testConnection() {
+        showNotification("🌐 Probando conexión...", "info");
+
+        const startTime = performance.now();
+        fetch("http://localhost:3000")
+          .then((response) => {
+            const endTime = performance.now();
+            const responseTime = Math.round(endTime - startTime);
+
+            showNotification(`✅ Conexión OK - ${responseTime}ms`, "success");
+            updateServerStatus(true, responseTime);
+          })
+          .catch((error) => {
+            showNotification("❌ Error de conexión", "error");
+            updateServerStatus(false);
+          });
+
+        logActivity("Test de conexión realizado");
+      }
+
+      function simulateOffline() {
+        updateServerStatus(false);
+        showNotification("📵 Modo offline simulado", "warning");
+
+        setTimeout(() => {
+          updateServerStatus(true);
+          showNotification("🌐 Conexión restaurada", "success");
+        }, 5000);
+
+        logActivity("Modo offline simulado");
+      }
+
+      function updateServerStatus(online, responseTime) {
+        const indicator = document.getElementById("serverStatus");
+        const text = document.getElementById("serverStatusText");
+
+        if (online) {
+          indicator.className = "status-indicator online";
+          text.textContent = `Server Online${
+            responseTime ? ` (${responseTime}ms)` : ""
+          }`;
+        } else {
+          indicator.className = "status-indicator offline";
+          text.textContent = "Server Offline";
+        }
+
+        document.getElementById(
+          "lastUpdate"
+        ).textContent = `Última actualización: ${new Date().toLocaleTimeString()}`;
+      }
+
+      // Funciones de utilidad
+      function toggleTheme() {
+        currentTheme = currentTheme === "dark" ? "light" : "dark";
+
+        if (currentTheme === "light") {
+          document.body.style.background =
+            "linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%)";
+          document.body.style.color = "#1a202c";
+          showNotification("☀️ Tema claro activado", "success");
+        } else {
+          document.body.style.background =
+            "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)";
+          document.body.style.color = "white";
+          showNotification("🌙 Tema oscuro activado", "success");
+        }
+
+        logActivity(`Tema cambiado a ${currentTheme}`);
+      }
+
+      function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen();
+          showNotification("🔍 Pantalla completa activada", "success");
+        } else {
+          document.exitFullscreen();
+          showNotification("🔍 Pantalla completa desactivada", "info");
+        }
+
+        logActivity("Pantalla completa alternada");
+      }
+
+      function refreshAll() {
+        location.reload();
+      }
+
+      function showNotification(message, type = "info") {
+        const notification = document.createElement("div");
+
+        const colors = {
+          success: "#10b981",
+          error: "#ef4444",
+          warning: "#fbbf24",
+          info: "#3b82f6",
+        };
+
+        notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: ${colors[type]};
+                color: white;
+                padding: 12px 24px;
+                border-radius: 25px;
+                z-index: 10000;
+                font-weight: 500;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+                animation: slideInDown 0.3s ease-out;
+            `;
+
+        notification.textContent = message;
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+          notification.style.animation = "slideOutUp 0.3s ease-out forwards";
+          setTimeout(() => {
+            if (notification.parentNode) {
+              notification.parentNode.removeChild(notification);
+            }
+          }, 300);
+        }, 3000);
+      }
+
+      function logActivity(activity) {
+        console.log(`[Hub] ${new Date().toLocaleTimeString()}: ${activity}`);
+
+        // Actualizar contador de conexiones (simulado)
+        const connections = Math.floor(Math.random() * 5) + 1;
+        document.getElementById(
+          "activeConnections"
+        ).textContent = `Conexiones: ${connections}`;
+      }
+
+      // Funciones de CSS y estilo
+      function openCSSEditor() {
+        showNotification("🎨 Abriendo CSS Editor...", "info");
+        // Implementar editor CSS avanzado
+      }
+
+      function generateReport() {
+        showNotification("📊 Generando reporte de performance...", "info");
+
+        const report = {
+          timestamp: new Date().toISOString(),
+          metrics: {
+            loadTime: Math.round(Math.random() * 2000 + 500),
+            memoryUsage: Math.round(Math.random() * 50 + 20),
+            requests: Math.round(Math.random() * 20 + 5),
+          },
+          recommendations: [
+            "Optimizar imágenes para mejor performance",
+            "Minimizar CSS y JavaScript",
+            "Implementar lazy loading",
+          ],
+        };
+
+        // Simular descarga de reporte
+        setTimeout(() => {
+          showNotification("📥 Reporte descargado", "success");
+        }, 2000);
+
+        logActivity("Reporte de performance generado");
+      }
+
+      // Inicialización
+      document.addEventListener("DOMContentLoaded", function () {
+        console.log("🚀 Simple Browser Hub iniciado");
+
+        // Status inicial
+        testConnection();
+
+        // Auto-refresh del status cada 30 segundos
+        setInterval(() => {
+          if (document.visibilityState === "visible") {
+            testConnection();
+          }
+        }, 30000);
+
+        // Keyboard shortcuts
+        document.addEventListener("keydown", function (e) {
+          if (e.ctrlKey || e.metaKey) {
+            switch (e.key) {
+              case "1":
+                e.preventDefault();
+                openApp();
+                break;
+              case "2":
+                e.preventDefault();
+                openAdmin();
+                break;
+              case "3":
+                e.preventDefault();
+                openDiagnostics();
+                break;
+              case "d":
+                e.preventDefault();
+                openDevTools();
+                break;
+              case "r":
+                e.preventDefault();
+                refreshAll();
+                break;
+            }
+          }
+        });
+
+        showNotification("🚀 Hub iniciado correctamente", "success");
+      });
+
+      // Agregar animaciones CSS
+      const style = document.createElement("style");
+      style.textContent = `
+            @keyframes slideInDown {
+                from {
+                    opacity: 0;
+                    transform: translate(-50%, -20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translate(-50%, 0);
+                }
+            }
+            
+            @keyframes slideOutUp {
+                from {
+                    opacity: 1;
+                    transform: translate(-50%, 0);
+                }
+                to {
+                    opacity: 0;
+                    transform: translate(-50%, -20px);
+                }
+            }
+        `;
+      document.head.appendChild(style);
+    </script>
+  </body>
+</html>

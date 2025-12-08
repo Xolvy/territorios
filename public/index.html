@@ -1,0 +1,2021 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sistema de Territorios JW</title>
+    <meta
+      name="description"
+      content="Gestión moderna de territorios para los Testigos de Jehová"
+    />
+    <meta name="author" content="Sistema de Territorios" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta
+      name="keywords"
+      content="territorios,JW,testigos,jehová,predicación,gestión"
+    />
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="theme-color" content="#10b981" />
+
+    <!-- React y ReactDOM desde CDN -->
+    <script
+      crossorigin
+      src="https://unpkg.com/react@18/umd/react.production.min.js"
+    ></script>
+    <script
+      crossorigin
+      src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"
+    ></script>
+
+    <!-- Firebase SDK v9 (modular) -->
+    <script type="module">
+      // 🚫 FIREBASE INITIALIZATION DISABLED TO PREVENT ERRORS
+      console.warn("🚫 Firebase initialization disabled in public/index.html");
+      console.log("💡 This prevents API key errors in offline mode");
+
+      // Mock Firebase objects to prevent errors
+      const app = null;
+      const db = null;
+      const auth = null;
+
+      // Mock Firebase functions
+      function initializeApp() {
+        return null;
+      }
+      function getFirestore() {
+        return null;
+      }
+      function getAuth() {
+        return null;
+      }
+
+      // Make Firebase available globally
+      window.firebase = {
+        app,
+        db,
+        auth,
+        collection,
+        getDocs,
+        addDoc,
+        updateDoc,
+        deleteDoc,
+        doc,
+        query,
+        where,
+        onSnapshot,
+      };
+
+      console.log("✅ Firebase v9 inicializado correctamente");
+    </script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: "#10b981",
+              secondary: "#3b82f6",
+              danger: "#ef4444",
+            },
+          },
+        },
+      };
+    </script>
+
+    <!-- Custom Styles -->
+    <style>
+      .glass-card {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 1rem;
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .btn-primary:hover {
+        background: linear-gradient(135deg, #059669, #047857);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+      }
+
+      .btn-secondary {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 0.5rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .nav-tab {
+        padding: 0.75rem 1.5rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.7);
+        border-radius: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-weight: 500;
+        white-space: nowrap;
+      }
+
+      .nav-tab.active {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        border-color: rgba(16, 185, 129, 0.5);
+      }
+
+      .territory-card {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 0.75rem;
+        padding: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-align: center;
+      }
+
+      .territory-card:hover {
+        background: rgba(255, 255, 255, 0.1);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+      }
+
+      .territory-card.assigned {
+        border-color: rgba(239, 68, 68, 0.5);
+        background: rgba(239, 68, 68, 0.1);
+      }
+
+      .territory-card.available {
+        border-color: rgba(34, 197, 94, 0.5);
+        background: rgba(34, 197, 94, 0.1);
+      }
+
+      .form-input {
+        width: 100%;
+        padding: 0.75rem;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 0.5rem;
+        color: white;
+        font-size: 1rem;
+      }
+
+      .form-input:focus {
+        outline: none;
+        border-color: rgba(16, 185, 129, 0.6);
+        background: rgba(255, 255, 255, 0.15);
+      }
+
+      .form-input::placeholder {
+        color: rgba(255, 255, 255, 0.4);
+      }
+
+      .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        backdrop-filter: blur(4px);
+      }
+
+      .modal-content {
+        background: rgba(15, 23, 42, 0.95);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 1rem;
+        width: 90%;
+        max-width: 600px;
+        max-height: 90vh;
+        overflow-y: auto;
+        backdrop-filter: blur(10px);
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+      }
+
+      .stat-card {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .loading-spinner {
+        width: 2rem;
+        height: 2rem;
+        border: 3px solid rgba(255, 255, 255, 0.1);
+        border-left: 3px solid #10b981;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .fade-in {
+        animation: fadeIn 0.3s ease-in-out;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .access-mode-btn {
+        background: rgba(255, 255, 255, 0.05);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: 1rem;
+        padding: 2rem;
+        text-align: center;
+        color: white;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        width: 100%;
+      }
+
+      .access-mode-btn:hover {
+        background: rgba(16, 185, 129, 0.2);
+        border-color: rgba(16, 185, 129, 0.5);
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(16, 185, 129, 0.2);
+      }
+
+      .admin-mode:hover {
+        background: rgba(239, 68, 68, 0.2);
+        border-color: rgba(239, 68, 68, 0.5);
+        box-shadow: 0 10px 25px rgba(239, 68, 68, 0.2);
+      }
+
+      .conductor-mode:hover {
+        background: rgba(59, 130, 246, 0.2);
+        border-color: rgba(59, 130, 246, 0.5);
+        box-shadow: 0 10px 25px rgba(59, 130, 246, 0.2);
+      }
+
+      .table-container {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 0.75rem;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        padding: 1rem;
+        text-align: left;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      th {
+        background: rgba(255, 255, 255, 0.1);
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.9);
+      }
+
+      tr:hover {
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .status-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+      }
+
+      .status-active {
+        background: rgba(34, 197, 94, 0.2);
+        color: rgb(187, 247, 208);
+      }
+
+      .status-inactive {
+        background: rgba(107, 114, 128, 0.2);
+        color: rgb(229, 231, 235);
+      }
+
+      .role-admin {
+        background: rgba(239, 68, 68, 0.2);
+        color: rgb(254, 202, 202);
+      }
+
+      .role-conductor {
+        background: rgba(59, 130, 246, 0.2);
+        color: rgb(191, 219, 254);
+      }
+    </style>
+  </head>
+  <body
+    class="bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 min-h-screen text-white"
+  >
+    <div id="root">
+      <div class="min-h-screen flex items-center justify-center">
+        <div class="text-white text-center">
+          <div class="loading-spinner mb-4"></div>
+          <p>Inicializando aplicación...</p>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Wait for Firebase to be available
+      setTimeout(() => {
+        const {
+          useState,
+          useEffect,
+          useCallback,
+          createElement: e,
+          Fragment,
+        } = React;
+        const { render } = ReactDOM;
+
+        // Constants
+        const SUPER_ADMIN = {
+          phone: "0994749286",
+          password: "Sonita.09",
+          role: "superadmin",
+        };
+
+        const TERRITORY_CONFIG = {
+          1: 4,
+          2: 3,
+          3: 7,
+          4: 3,
+          5: 4,
+          6: 4,
+          7: 3,
+          8: 4,
+          9: 2,
+          10: 2,
+          11: 2,
+          12: 1,
+          13: 2,
+          14: 4,
+          15: 4,
+          16: 2,
+          17: 2,
+          18: 2,
+          19: 4,
+          20: 1,
+          21: 2,
+          22: 3,
+        };
+
+        // Main App Component
+        function App() {
+          const [currentUser, setCurrentUser] = useState(null);
+          const [currentView, setCurrentView] = useState("login");
+          const [loading, setLoading] = useState(false);
+          const [error, setError] = useState("");
+
+          // Firebase utilities
+          const {
+            db,
+            collection,
+            getDocs,
+            addDoc,
+            query,
+            where,
+            doc,
+            updateDoc,
+            deleteDoc,
+          } = window.firebase;
+
+          // Login Component
+          function LoginScreen() {
+            const [loginMode, setLoginMode] = useState("selection");
+            const [adminForm, setAdminForm] = useState({
+              phone: "",
+              password: "",
+            });
+            const [conductors, setConductors] = useState([]);
+
+            useEffect(() => {
+              loadConductors();
+            }, []);
+
+            const loadConductors = async () => {
+              try {
+                const q = query(
+                  collection(db, "usuarios"),
+                  where("rol", "==", "conductor")
+                );
+                const snapshot = await getDocs(q);
+                const conductorList = [];
+                snapshot.forEach((doc) => {
+                  conductorList.push({ id: doc.id, ...doc.data() });
+                });
+                setConductors(conductorList);
+                console.log("✅ Conductores cargados:", conductorList.length);
+              } catch (error) {
+                console.error("❌ Error loading conductors:", error);
+                setError("Error cargando conductores: " + error.message);
+              }
+            };
+
+            const handleAdminLogin = async (e) => {
+              e.preventDefault();
+              setLoading(true);
+              setError("");
+
+              try {
+                // Check Super Admin
+                if (
+                  adminForm.phone === SUPER_ADMIN.phone &&
+                  adminForm.password === SUPER_ADMIN.password
+                ) {
+                  setCurrentUser({
+                    phone: adminForm.phone,
+                    role: "superadmin",
+                    nombre: "Super Administrador",
+                  });
+                  setCurrentView("admin");
+                  setLoading(false);
+                  console.log("✅ Super Admin autenticado");
+                  return;
+                }
+
+                // Check other admins
+                const q = query(
+                  collection(db, "usuarios"),
+                  where("telefono", "==", adminForm.phone),
+                  where("rol", "==", "admin")
+                );
+                const snapshot = await getDocs(q);
+
+                if (!snapshot.empty) {
+                  const userData = snapshot.docs[0].data();
+                  if (userData.password === adminForm.password) {
+                    setCurrentUser({ id: snapshot.docs[0].id, ...userData });
+                    setCurrentView("admin");
+                    setLoading(false);
+                    console.log("✅ Admin autenticado:", userData.nombre);
+                    return;
+                  }
+                }
+
+                setError(
+                  "Credenciales incorrectas. Verifique su número y contraseña."
+                );
+              } catch (error) {
+                console.error("❌ Error de autenticación:", error);
+                setError("Error de autenticación: " + error.message);
+              }
+              setLoading(false);
+            };
+
+            const handleConductorLogin = (conductor) => {
+              setCurrentUser(conductor);
+              setCurrentView("conductor");
+              console.log("✅ Conductor autenticado:", conductor.nombre);
+            };
+
+            if (loginMode === "selection") {
+              return e(
+                "div",
+                {
+                  className:
+                    "min-h-screen flex items-center justify-center p-4",
+                },
+                e(
+                  "div",
+                  { className: "max-w-4xl w-full" },
+                  e(
+                    "div",
+                    { className: "glass-card p-8" },
+                    e(
+                      "div",
+                      { className: "text-center mb-8" },
+                      e(
+                        "div",
+                        {
+                          className:
+                            "w-16 h-16 bg-gradient-to-r from-primary to-secondary rounded-2xl flex items-center justify-center mx-auto mb-4",
+                        },
+                        e(
+                          "span",
+                          { className: "text-white font-bold text-2xl" },
+                          "JW"
+                        )
+                      ),
+                      e(
+                        "h1",
+                        { className: "text-4xl font-bold mb-2" },
+                        "Sistema de Territorios JW"
+                      ),
+                      e(
+                        "p",
+                        { className: "text-white/60 text-lg" },
+                        "Gestión moderna de territorios y predicación"
+                      )
+                    ),
+                    e(
+                      "div",
+                      {
+                        className:
+                          "grid grid-cols-1 md:grid-cols-2 gap-8 max-w-2xl mx-auto",
+                      },
+                      e(
+                        "button",
+                        {
+                          className: "access-mode-btn admin-mode",
+                          onClick: () => setLoginMode("admin"),
+                        },
+                        e("div", { className: "text-6xl mb-4" }, "👨‍💼"),
+                        e(
+                          "h3",
+                          { className: "text-2xl font-bold mb-2" },
+                          "Administrador"
+                        ),
+                        e(
+                          "p",
+                          { className: "text-white/80 mb-4" },
+                          "Gestión completa del sistema"
+                        ),
+                        e(
+                          "ul",
+                          { className: "text-sm text-white/60 space-y-1" },
+                          e("li", null, "• Gestión de usuarios"),
+                          e("li", null, "• Asignación de territorios"),
+                          e("li", null, "• Predicación telefónica"),
+                          e("li", null, "• Reportes y estadísticas")
+                        )
+                      ),
+                      e(
+                        "button",
+                        {
+                          className: "access-mode-btn conductor-mode",
+                          onClick: () => setLoginMode("conductor"),
+                        },
+                        e("div", { className: "text-6xl mb-4" }, "🚗"),
+                        e(
+                          "h3",
+                          { className: "text-2xl font-bold mb-2" },
+                          "Conductor"
+                        ),
+                        e(
+                          "p",
+                          { className: "text-white/80 mb-4" },
+                          "Acceso a territorios asignados"
+                        ),
+                        e(
+                          "ul",
+                          { className: "text-sm text-white/60 space-y-1" },
+                          e("li", null, "• Ver territorios asignados"),
+                          e("li", null, "• Gestionar manzanas"),
+                          e("li", null, "• Predicación telefónica"),
+                          e("li", null, "• Reportar progreso")
+                        )
+                      )
+                    )
+                  )
+                )
+              );
+            }
+
+            if (loginMode === "admin") {
+              return e(
+                "div",
+                {
+                  className:
+                    "min-h-screen flex items-center justify-center p-4",
+                },
+                e(
+                  "div",
+                  { className: "max-w-md w-full" },
+                  e(
+                    "div",
+                    { className: "glass-card p-6" },
+                    e(
+                      "div",
+                      { className: "text-center mb-6" },
+                      e("div", { className: "text-5xl mb-4" }, "👨‍💼"),
+                      e(
+                        "h2",
+                        { className: "text-2xl font-bold" },
+                        "Acceso Administrador"
+                      ),
+                      e(
+                        "p",
+                        { className: "text-white/60 mt-2" },
+                        "Ingrese sus credenciales"
+                      )
+                    ),
+                    e(
+                      "form",
+                      { onSubmit: handleAdminLogin },
+                      e(
+                        "div",
+                        { className: "space-y-4" },
+                        e(
+                          "div",
+                          null,
+                          e(
+                            "label",
+                            {
+                              className: "block text-white/80 mb-2 font-medium",
+                            },
+                            "Número de Teléfono"
+                          ),
+                          e("input", {
+                            type: "text",
+                            className: "form-input",
+                            placeholder: "0994749286",
+                            value: adminForm.phone,
+                            onChange: (e) =>
+                              setAdminForm({
+                                ...adminForm,
+                                phone: e.target.value,
+                              }),
+                            required: true,
+                          })
+                        ),
+                        e(
+                          "div",
+                          null,
+                          e(
+                            "label",
+                            {
+                              className: "block text-white/80 mb-2 font-medium",
+                            },
+                            "Contraseña"
+                          ),
+                          e("input", {
+                            type: "password",
+                            className: "form-input",
+                            placeholder: "••••••••",
+                            value: adminForm.password,
+                            onChange: (e) =>
+                              setAdminForm({
+                                ...adminForm,
+                                password: e.target.value,
+                              }),
+                            required: true,
+                          })
+                        )
+                      ),
+                      e(
+                        "div",
+                        { className: "flex gap-3 mt-6" },
+                        e(
+                          "button",
+                          {
+                            type: "button",
+                            className: "flex-1 btn-secondary",
+                            onClick: () => setLoginMode("selection"),
+                          },
+                          "← Volver"
+                        ),
+                        e(
+                          "button",
+                          {
+                            type: "submit",
+                            className: "flex-1 btn-primary",
+                            disabled: loading,
+                          },
+                          loading ? "Verificando..." : "Iniciar Sesión"
+                        )
+                      )
+                    ),
+                    error &&
+                      e(
+                        "div",
+                        {
+                          className:
+                            "mt-4 p-3 bg-red-500/20 border border-red-500/40 rounded text-red-200 text-sm",
+                        },
+                        error
+                      )
+                  )
+                )
+              );
+            }
+
+            if (loginMode === "conductor") {
+              return e(
+                "div",
+                {
+                  className:
+                    "min-h-screen flex items-center justify-center p-4",
+                },
+                e(
+                  "div",
+                  { className: "max-w-2xl w-full" },
+                  e(
+                    "div",
+                    { className: "glass-card p-6" },
+                    e(
+                      "div",
+                      { className: "text-center mb-6" },
+                      e("div", { className: "text-5xl mb-4" }, "🚗"),
+                      e(
+                        "h2",
+                        { className: "text-2xl font-bold" },
+                        "Seleccionar Conductor"
+                      ),
+                      e(
+                        "p",
+                        { className: "text-white/60 mt-2" },
+                        "Selecciona tu nombre para acceder a tus territorios"
+                      )
+                    ),
+                    e(
+                      "div",
+                      { className: "space-y-3 max-h-96 overflow-y-auto" },
+                      conductors.length > 0
+                        ? conductors.map((conductor) =>
+                            e(
+                              "button",
+                              {
+                                key: conductor.id,
+                                className:
+                                  "w-full p-4 glass-card hover:bg-white/20 transition-all rounded-xl text-left",
+                                onClick: () => handleConductorLogin(conductor),
+                              },
+                              e(
+                                "div",
+                                { className: "flex items-center" },
+                                e("div", { className: "text-3xl mr-4" }, "👨‍💼"),
+                                e(
+                                  "div",
+                                  { className: "flex-1" },
+                                  e(
+                                    "div",
+                                    {
+                                      className:
+                                        "font-semibold text-lg text-white",
+                                    },
+                                    conductor.nombre
+                                  ),
+                                  e(
+                                    "div",
+                                    { className: "text-white/60 text-sm" },
+                                    conductor.telefono || "Sin teléfono"
+                                  ),
+                                  e(
+                                    "div",
+                                    { className: "text-primary text-xs mt-1" },
+                                    "Click para acceder →"
+                                  )
+                                )
+                              )
+                            )
+                          )
+                        : e(
+                            "div",
+                            { className: "text-center py-8 text-white/60" },
+                            e("div", { className: "text-4xl mb-4" }, "📭"),
+                            e(
+                              "p",
+                              { className: "text-lg" },
+                              "No hay conductores registrados"
+                            ),
+                            e(
+                              "p",
+                              { className: "text-sm mt-2" },
+                              "Los administradores pueden crear conductores desde el panel de administración"
+                            )
+                          )
+                    ),
+                    e(
+                      "div",
+                      { className: "mt-6" },
+                      e(
+                        "button",
+                        {
+                          className: "w-full btn-secondary",
+                          onClick: () => setLoginMode("selection"),
+                        },
+                        "← Volver al Inicio"
+                      )
+                    )
+                  )
+                )
+              );
+            }
+          }
+
+          // Admin Dashboard Component
+          function AdminDashboard() {
+            const [activeTab, setActiveTab] = useState("overview");
+            const [users, setUsers] = useState([]);
+            const [stats, setStats] = useState({});
+            const [showCreateUserModal, setShowCreateUserModal] =
+              useState(false);
+            const [newUser, setNewUser] = useState({
+              nombre: "",
+              telefono: "",
+              rol: "conductor",
+              password: "",
+              activo: true,
+            });
+
+            useEffect(() => {
+              loadUsers();
+            }, []);
+
+            const loadUsers = async () => {
+              try {
+                const snapshot = await getDocs(collection(db, "usuarios"));
+                const usersList = [];
+                snapshot.forEach((doc) => {
+                  usersList.push({ id: doc.id, ...doc.data() });
+                });
+                setUsers(usersList);
+
+                // Calculate stats
+                const totalUsers = usersList.length;
+                const totalConductors = usersList.filter(
+                  (u) => u.rol === "conductor"
+                ).length;
+                const totalAdmins = usersList.filter(
+                  (u) => u.rol === "admin"
+                ).length;
+
+                setStats({
+                  totalUsers,
+                  totalConductors,
+                  totalAdmins,
+                  totalTerritories: 22,
+                  totalPhones: 0,
+                });
+
+                console.log("✅ Usuarios cargados:", totalUsers);
+              } catch (error) {
+                console.error("❌ Error cargando usuarios:", error);
+                setError("Error cargando datos: " + error.message);
+              }
+            };
+
+            const handleCreateUser = async (e) => {
+              e.preventDefault();
+              setLoading(true);
+
+              try {
+                const userData = {
+                  ...newUser,
+                  fechaCreacion: new Date(),
+                  creadoPor: currentUser.nombre || "Super Admin",
+                };
+
+                await addDoc(collection(db, "usuarios"), userData);
+
+                setNewUser({
+                  nombre: "",
+                  telefono: "",
+                  rol: "conductor",
+                  password: "",
+                  activo: true,
+                });
+                setShowCreateUserModal(false);
+                loadUsers();
+
+                console.log("✅ Usuario creado:", userData.nombre);
+              } catch (error) {
+                console.error("❌ Error creando usuario:", error);
+                setError("Error creando usuario: " + error.message);
+              }
+              setLoading(false);
+            };
+
+            const handleDeleteUser = async (userId, userName) => {
+              if (
+                !confirm(
+                  `¿Está seguro de que desea eliminar al usuario "${userName}"?`
+                )
+              ) {
+                return;
+              }
+
+              try {
+                await deleteDoc(doc(db, "usuarios", userId));
+                loadUsers();
+                console.log("✅ Usuario eliminado:", userName);
+              } catch (error) {
+                console.error("❌ Error eliminando usuario:", error);
+                setError("Error eliminando usuario: " + error.message);
+              }
+            };
+
+            const renderOverview = () => {
+              return e(
+                "div",
+                { className: "fade-in" },
+                e(
+                  "h2",
+                  { className: "text-3xl font-bold mb-6" },
+                  "Panel de Administración"
+                ),
+                e(
+                  "div",
+                  { className: "stats-grid mb-8" },
+                  e(
+                    "div",
+                    { className: "stat-card" },
+                    e("div", { className: "text-4xl text-blue-400" }, "👥"),
+                    e(
+                      "div",
+                      null,
+                      e(
+                        "div",
+                        { className: "text-2xl font-bold" },
+                        stats.totalUsers || "0"
+                      ),
+                      e(
+                        "div",
+                        { className: "text-white/60" },
+                        "Usuarios Totales"
+                      )
+                    )
+                  ),
+                  e(
+                    "div",
+                    { className: "stat-card" },
+                    e("div", { className: "text-4xl text-green-400" }, "🚗"),
+                    e(
+                      "div",
+                      null,
+                      e(
+                        "div",
+                        { className: "text-2xl font-bold" },
+                        stats.totalConductors || "0"
+                      ),
+                      e("div", { className: "text-white/60" }, "Conductores")
+                    )
+                  ),
+                  e(
+                    "div",
+                    { className: "stat-card" },
+                    e("div", { className: "text-4xl text-red-400" }, "🛡️"),
+                    e(
+                      "div",
+                      null,
+                      e(
+                        "div",
+                        { className: "text-2xl font-bold" },
+                        (stats.totalAdmins || 0) + 1
+                      ),
+                      e(
+                        "div",
+                        { className: "text-white/60" },
+                        "Administradores"
+                      )
+                    )
+                  ),
+                  e(
+                    "div",
+                    { className: "stat-card" },
+                    e("div", { className: "text-4xl text-purple-400" }, "🗺️"),
+                    e(
+                      "div",
+                      null,
+                      e("div", { className: "text-2xl font-bold" }, "22"),
+                      e("div", { className: "text-white/60" }, "Territorios")
+                    )
+                  )
+                ),
+                e(
+                  "div",
+                  {
+                    className:
+                      "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6",
+                  },
+                  e(
+                    "div",
+                    {
+                      className:
+                        "glass-card p-6 hover:bg-white/20 transition-all cursor-pointer",
+                    },
+                    e(
+                      "h3",
+                      {
+                        className:
+                          "text-xl font-semibold mb-4 flex items-center",
+                      },
+                      e("span", { className: "text-2xl mr-3" }, "👥"),
+                      "Gestión de Usuarios"
+                    ),
+                    e(
+                      "p",
+                      { className: "text-white/60 mb-4" },
+                      "Crear, editar y eliminar usuarios del sistema"
+                    ),
+                    e(
+                      "button",
+                      {
+                        className: "btn-primary w-full",
+                        onClick: () => setActiveTab("users"),
+                      },
+                      "Gestionar Usuarios"
+                    )
+                  ),
+                  e(
+                    "div",
+                    {
+                      className:
+                        "glass-card p-6 hover:bg-white/20 transition-all cursor-pointer",
+                    },
+                    e(
+                      "h3",
+                      {
+                        className:
+                          "text-xl font-semibold mb-4 flex items-center",
+                      },
+                      e("span", { className: "text-2xl mr-3" }, "🗺️"),
+                      "Territorios"
+                    ),
+                    e(
+                      "p",
+                      { className: "text-white/60 mb-4" },
+                      "Asignar territorios y manzanas a conductores"
+                    ),
+                    e(
+                      "button",
+                      {
+                        className: "btn-primary w-full",
+                        onClick: () => setActiveTab("territories"),
+                      },
+                      "Ver Territorios"
+                    )
+                  ),
+                  e(
+                    "div",
+                    {
+                      className:
+                        "glass-card p-6 hover:bg-white/20 transition-all cursor-pointer",
+                    },
+                    e(
+                      "h3",
+                      {
+                        className:
+                          "text-xl font-semibold mb-4 flex items-center",
+                      },
+                      e("span", { className: "text-2xl mr-3" }, "📞"),
+                      "Predicación Telefónica"
+                    ),
+                    e(
+                      "p",
+                      { className: "text-white/60 mb-4" },
+                      "Gestionar números telefónicos y asignaciones"
+                    ),
+                    e(
+                      "button",
+                      {
+                        className: "btn-primary w-full",
+                        onClick: () => setActiveTab("phones"),
+                      },
+                      "Gestionar Teléfonos"
+                    )
+                  )
+                )
+              );
+            };
+
+            const renderUsers = () => {
+              return e(
+                "div",
+                { className: "fade-in" },
+                e(
+                  "div",
+                  { className: "flex justify-between items-center mb-6" },
+                  e(
+                    "h2",
+                    { className: "text-3xl font-bold" },
+                    "Gestión de Usuarios"
+                  ),
+                  e(
+                    "button",
+                    {
+                      className: "btn-primary flex items-center gap-2",
+                      onClick: () => setShowCreateUserModal(true),
+                    },
+                    e("span", null, "➕"),
+                    "Crear Usuario"
+                  )
+                ),
+                e(
+                  "div",
+                  { className: "table-container" },
+                  e(
+                    "table",
+                    null,
+                    e(
+                      "thead",
+                      null,
+                      e(
+                        "tr",
+                        null,
+                        e("th", null, "Nombre"),
+                        e("th", null, "Teléfono"),
+                        e("th", null, "Rol"),
+                        e("th", null, "Estado"),
+                        e("th", null, "Fecha"),
+                        e("th", null, "Acciones")
+                      )
+                    ),
+                    e(
+                      "tbody",
+                      null,
+                      ...users.map((user) =>
+                        e(
+                          "tr",
+                          { key: user.id },
+                          e(
+                            "td",
+                            null,
+                            e(
+                              "div",
+                              { className: "flex items-center gap-3" },
+                              e(
+                                "div",
+                                { className: "text-2xl" },
+                                user.rol === "admin" ? "👨‍💼" : "🚗"
+                              ),
+                              e(
+                                "div",
+                                null,
+                                e(
+                                  "div",
+                                  { className: "font-semibold" },
+                                  user.nombre
+                                ),
+                                user.creadoPor &&
+                                  e(
+                                    "div",
+                                    { className: "text-xs text-white/60" },
+                                    `Por: ${user.creadoPor}`
+                                  )
+                              )
+                            )
+                          ),
+                          e("td", null, user.telefono || "-"),
+                          e(
+                            "td",
+                            null,
+                            e(
+                              "span",
+                              {
+                                className: `status-badge ${
+                                  user.rol === "admin"
+                                    ? "role-admin"
+                                    : "role-conductor"
+                                }`,
+                              },
+                              user.rol === "admin"
+                                ? "Administrador"
+                                : "Conductor"
+                            )
+                          ),
+                          e(
+                            "td",
+                            null,
+                            e(
+                              "span",
+                              {
+                                className: `status-badge ${
+                                  user.activo
+                                    ? "status-active"
+                                    : "status-inactive"
+                                }`,
+                              },
+                              user.activo ? "Activo" : "Inactivo"
+                            )
+                          ),
+                          e(
+                            "td",
+                            null,
+                            user.fechaCreacion
+                              ? new Date(
+                                  user.fechaCreacion.seconds * 1000
+                                ).toLocaleDateString()
+                              : "-"
+                          ),
+                          e(
+                            "td",
+                            null,
+                            e(
+                              "div",
+                              { className: "flex gap-2" },
+                              e(
+                                "button",
+                                {
+                                  className:
+                                    "text-blue-400 hover:text-blue-300 px-2 py-1 rounded transition-colors",
+                                  onClick: () =>
+                                    console.log("Editar usuario:", user.id),
+                                },
+                                "✏️"
+                              ),
+                              e(
+                                "button",
+                                {
+                                  className:
+                                    "text-red-400 hover:text-red-300 px-2 py-1 rounded transition-colors",
+                                  onClick: () =>
+                                    handleDeleteUser(user.id, user.nombre),
+                                },
+                                "🗑️"
+                              )
+                            )
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              );
+            };
+
+            const renderTerritories = () => {
+              return e(
+                "div",
+                { className: "fade-in" },
+                e(
+                  "h2",
+                  { className: "text-3xl font-bold mb-6" },
+                  "Gestión de Territorios"
+                ),
+                e(
+                  "div",
+                  { className: "glass-card p-6" },
+                  e(
+                    "h3",
+                    { className: "text-xl font-semibold mb-4" },
+                    "Mapa de Territorios (22 Total)"
+                  ),
+                  e(
+                    "div",
+                    {
+                      className:
+                        "grid grid-cols-4 md:grid-cols-6 lg:grid-cols-11 gap-3",
+                    },
+                    ...Array.from({ length: 22 }, (_, i) => i + 1).map((num) =>
+                      e(
+                        "div",
+                        {
+                          key: num,
+                          className: "territory-card available",
+                          onClick: () =>
+                            console.log("Territorio seleccionado:", num),
+                        },
+                        e("div", { className: "text-xl font-bold mb-1" }, num),
+                        e(
+                          "div",
+                          { className: "text-xs text-white/60" },
+                          `${TERRITORY_CONFIG[num]} manzanas`
+                        ),
+                        e(
+                          "div",
+                          { className: "text-xs text-green-400 mt-1" },
+                          "Disponible"
+                        )
+                      )
+                    )
+                  )
+                )
+              );
+            };
+
+            const renderPhones = () => {
+              return e(
+                "div",
+                { className: "fade-in" },
+                e(
+                  "h2",
+                  { className: "text-3xl font-bold mb-6" },
+                  "Predicación Telefónica"
+                ),
+                e(
+                  "div",
+                  { className: "grid grid-cols-1 lg:grid-cols-2 gap-6" },
+                  e(
+                    "div",
+                    { className: "glass-card p-6" },
+                    e(
+                      "h3",
+                      {
+                        className:
+                          "text-xl font-semibold mb-4 flex items-center",
+                      },
+                      e("span", { className: "text-2xl mr-3" }, "📱"),
+                      "Gestión de Números"
+                    ),
+                    e(
+                      "div",
+                      { className: "space-y-4" },
+                      e(
+                        "div",
+                        null,
+                        e(
+                          "label",
+                          { className: "block text-white/80 mb-2 font-medium" },
+                          "Importar desde CSV"
+                        ),
+                        e("textarea", {
+                          className: "form-input h-32",
+                          placeholder:
+                            "Nombre,Dirección,Teléfono,Estado\nJuan Pérez,Av. Principal 123,0987654321,Disponible\nMaría García,Calle Secundaria 456,0123456789,Disponible",
+                        })
+                      ),
+                      e(
+                        "div",
+                        { className: "flex gap-3" },
+                        e(
+                          "button",
+                          { className: "btn-primary flex-1" },
+                          "📤 Importar CSV"
+                        ),
+                        e(
+                          "button",
+                          { className: "btn-secondary flex-1" },
+                          "🗑️ Limpiar"
+                        )
+                      )
+                    )
+                  ),
+                  e(
+                    "div",
+                    { className: "glass-card p-6" },
+                    e(
+                      "h3",
+                      {
+                        className:
+                          "text-xl font-semibold mb-4 flex items-center",
+                      },
+                      e("span", { className: "text-2xl mr-3" }, "📊"),
+                      "Estadísticas"
+                    ),
+                    e(
+                      "div",
+                      { className: "space-y-4" },
+                      e(
+                        "div",
+                        {
+                          className:
+                            "flex justify-between items-center p-3 bg-white/5 rounded",
+                        },
+                        e(
+                          "span",
+                          { className: "flex items-center gap-2" },
+                          e("span", null, "📞"),
+                          "Total de Números:"
+                        ),
+                        e("span", { className: "font-bold text-blue-400" }, "0")
+                      ),
+                      e(
+                        "div",
+                        {
+                          className:
+                            "flex justify-between items-center p-3 bg-white/5 rounded",
+                        },
+                        e(
+                          "span",
+                          { className: "flex items-center gap-2" },
+                          e("span", null, "✅"),
+                          "Asignados:"
+                        ),
+                        e(
+                          "span",
+                          { className: "font-bold text-green-400" },
+                          "0"
+                        )
+                      ),
+                      e(
+                        "div",
+                        {
+                          className:
+                            "flex justify-between items-center p-3 bg-white/5 rounded",
+                        },
+                        e(
+                          "span",
+                          { className: "flex items-center gap-2" },
+                          e("span", null, "🆓"),
+                          "Disponibles:"
+                        ),
+                        e(
+                          "span",
+                          { className: "font-bold text-yellow-400" },
+                          "0"
+                        )
+                      ),
+                      e(
+                        "div",
+                        {
+                          className:
+                            "flex justify-between items-center p-3 bg-white/5 rounded",
+                        },
+                        e(
+                          "span",
+                          { className: "flex items-center gap-2" },
+                          e("span", null, "🎯"),
+                          "Contactados:"
+                        ),
+                        e(
+                          "span",
+                          { className: "font-bold text-purple-400" },
+                          "0"
+                        )
+                      )
+                    )
+                  )
+                )
+              );
+            };
+
+            const tabs = [
+              {
+                id: "overview",
+                label: "📊 Resumen",
+                component: renderOverview,
+              },
+              { id: "users", label: "👥 Usuarios", component: renderUsers },
+              {
+                id: "territories",
+                label: "🗺️ Territorios",
+                component: renderTerritories,
+              },
+              { id: "phones", label: "📞 Teléfonos", component: renderPhones },
+              {
+                id: "reports",
+                label: "📈 Reportes",
+                component: () =>
+                  e(
+                    "div",
+                    { className: "text-center py-16" },
+                    e("div", { className: "text-6xl mb-4" }, "🚧"),
+                    e(
+                      "h3",
+                      { className: "text-2xl font-bold mb-2" },
+                      "Reportes en Desarrollo"
+                    ),
+                    e(
+                      "p",
+                      { className: "text-white/60" },
+                      "Esta funcionalidad estará disponible próximamente"
+                    )
+                  ),
+              },
+              {
+                id: "settings",
+                label: "⚙️ Configuración",
+                component: () =>
+                  e(
+                    "div",
+                    { className: "text-center py-16" },
+                    e("div", { className: "text-6xl mb-4" }, "🚧"),
+                    e(
+                      "h3",
+                      { className: "text-2xl font-bold mb-2" },
+                      "Configuración en Desarrollo"
+                    ),
+                    e(
+                      "p",
+                      { className: "text-white/60" },
+                      "Esta funcionalidad estará disponible próximamente"
+                    )
+                  ),
+              },
+            ];
+
+            return e(
+              "div",
+              { className: "min-h-screen" },
+              // Header
+              e(
+                "header",
+                {
+                  className:
+                    "bg-white/10 backdrop-blur-md border-b border-white/20 sticky top-0 z-50",
+                },
+                e(
+                  "div",
+                  { className: "container mx-auto px-4" },
+                  e(
+                    "div",
+                    { className: "flex items-center justify-between h-16" },
+                    e(
+                      "div",
+                      { className: "flex items-center space-x-4" },
+                      e(
+                        "div",
+                        {
+                          className:
+                            "w-10 h-10 bg-gradient-to-r from-primary to-secondary rounded-lg flex items-center justify-center",
+                        },
+                        e(
+                          "span",
+                          { className: "text-white font-bold text-lg" },
+                          "JW"
+                        )
+                      ),
+                      e(
+                        "div",
+                        null,
+                        e(
+                          "h1",
+                          { className: "text-white font-bold text-xl" },
+                          "Sistema de Territorios JW"
+                        ),
+                        e(
+                          "p",
+                          { className: "text-white/60 text-sm" },
+                          `Administrador: ${
+                            currentUser?.nombre || "Super Admin"
+                          }`
+                        )
+                      )
+                    ),
+                    e(
+                      "button",
+                      {
+                        className: "btn-secondary flex items-center gap-2",
+                        onClick: () => {
+                          setCurrentUser(null);
+                          setCurrentView("login");
+                        },
+                      },
+                      e("span", null, "🚪"),
+                      "Cerrar Sesión"
+                    )
+                  )
+                )
+              ),
+
+              e(
+                "div",
+                { className: "container mx-auto p-4" },
+                // Navigation Tabs
+                e(
+                  "div",
+                  { className: "mb-8" },
+                  e(
+                    "div",
+                    {
+                      className:
+                        "flex flex-wrap gap-2 bg-white/5 rounded-2xl p-2",
+                    },
+                    ...tabs.map((tab) =>
+                      e(
+                        "button",
+                        {
+                          key: tab.id,
+                          className: `nav-tab ${
+                            activeTab === tab.id ? "active" : ""
+                          }`,
+                          onClick: () => setActiveTab(tab.id),
+                        },
+                        tab.label
+                      )
+                    )
+                  )
+                ),
+
+                // Content
+                tabs.find((tab) => tab.id === activeTab)?.component(),
+
+                // Create User Modal
+                showCreateUserModal &&
+                  e(
+                    "div",
+                    { className: "modal" },
+                    e(
+                      "div",
+                      { className: "modal-content" },
+                      e(
+                        "div",
+                        { className: "p-6 border-b border-white/10" },
+                        e(
+                          "div",
+                          { className: "flex justify-between items-center" },
+                          e(
+                            "h3",
+                            { className: "text-xl font-bold" },
+                            "Crear Nuevo Usuario"
+                          ),
+                          e(
+                            "button",
+                            {
+                              className:
+                                "text-white/60 hover:text-white text-2xl",
+                              onClick: () => setShowCreateUserModal(false),
+                            },
+                            "×"
+                          )
+                        )
+                      ),
+                      e(
+                        "form",
+                        { onSubmit: handleCreateUser },
+                        e(
+                          "div",
+                          { className: "p-6 space-y-4" },
+                          e(
+                            "div",
+                            null,
+                            e(
+                              "label",
+                              {
+                                className:
+                                  "block text-white/80 mb-2 font-medium",
+                              },
+                              "Nombre Completo"
+                            ),
+                            e("input", {
+                              type: "text",
+                              className: "form-input",
+                              value: newUser.nombre,
+                              onChange: (e) =>
+                                setNewUser({
+                                  ...newUser,
+                                  nombre: e.target.value,
+                                }),
+                              required: true,
+                              placeholder: "Ej: Juan Pérez González",
+                            })
+                          ),
+                          e(
+                            "div",
+                            null,
+                            e(
+                              "label",
+                              {
+                                className:
+                                  "block text-white/80 mb-2 font-medium",
+                              },
+                              "Teléfono"
+                            ),
+                            e("input", {
+                              type: "text",
+                              className: "form-input",
+                              value: newUser.telefono,
+                              onChange: (e) =>
+                                setNewUser({
+                                  ...newUser,
+                                  telefono: e.target.value,
+                                }),
+                              placeholder: "Ej: 0987654321",
+                            })
+                          ),
+                          e(
+                            "div",
+                            null,
+                            e(
+                              "label",
+                              {
+                                className:
+                                  "block text-white/80 mb-2 font-medium",
+                              },
+                              "Rol"
+                            ),
+                            e(
+                              "select",
+                              {
+                                className: "form-input",
+                                value: newUser.rol,
+                                onChange: (e) =>
+                                  setNewUser({
+                                    ...newUser,
+                                    rol: e.target.value,
+                                  }),
+                              },
+                              e("option", { value: "conductor" }, "Conductor"),
+                              e("option", { value: "admin" }, "Administrador")
+                            )
+                          ),
+                          newUser.rol === "admin" &&
+                            e(
+                              "div",
+                              null,
+                              e(
+                                "label",
+                                {
+                                  className:
+                                    "block text-white/80 mb-2 font-medium",
+                                },
+                                "Contraseña"
+                              ),
+                              e("input", {
+                                type: "password",
+                                className: "form-input",
+                                value: newUser.password,
+                                onChange: (e) =>
+                                  setNewUser({
+                                    ...newUser,
+                                    password: e.target.value,
+                                  }),
+                                required: newUser.rol === "admin",
+                                placeholder: "Contraseña para el administrador",
+                              })
+                            )
+                        ),
+                        e(
+                          "div",
+                          {
+                            className:
+                              "p-6 border-t border-white/10 flex justify-end gap-3",
+                          },
+                          e(
+                            "button",
+                            {
+                              type: "button",
+                              className: "btn-secondary",
+                              onClick: () => setShowCreateUserModal(false),
+                            },
+                            "Cancelar"
+                          ),
+                          e(
+                            "button",
+                            {
+                              type: "submit",
+                              className: "btn-primary",
+                              disabled: loading,
+                            },
+                            loading ? "Creando..." : "Crear Usuario"
+                          )
+                        )
+                      )
+                    )
+                  )
+              )
+            );
+          }
+
+          // Conductor Dashboard Component
+          function ConductorDashboard() {
+            return e(
+              "div",
+              { className: "min-h-screen" },
+              // Header
+              e(
+                "header",
+                {
+                  className:
+                    "bg-white/10 backdrop-blur-md border-b border-white/20 sticky top-0 z-50",
+                },
+                e(
+                  "div",
+                  { className: "container mx-auto px-4" },
+                  e(
+                    "div",
+                    { className: "flex items-center justify-between h-16" },
+                    e(
+                      "div",
+                      { className: "flex items-center space-x-4" },
+                      e(
+                        "div",
+                        {
+                          className:
+                            "w-10 h-10 bg-gradient-to-r from-primary to-secondary rounded-lg flex items-center justify-center",
+                        },
+                        e(
+                          "span",
+                          { className: "text-white font-bold text-lg" },
+                          "JW"
+                        )
+                      ),
+                      e(
+                        "div",
+                        null,
+                        e(
+                          "h1",
+                          { className: "text-white font-bold text-xl" },
+                          "Panel del Conductor"
+                        ),
+                        e(
+                          "p",
+                          { className: "text-white/60 text-sm" },
+                          `Bienvenido, ${currentUser?.nombre}`
+                        )
+                      )
+                    ),
+                    e(
+                      "button",
+                      {
+                        className: "btn-secondary flex items-center gap-2",
+                        onClick: () => {
+                          setCurrentUser(null);
+                          setCurrentView("login");
+                        },
+                      },
+                      e("span", null, "🚪"),
+                      "Cerrar Sesión"
+                    )
+                  )
+                )
+              ),
+
+              e(
+                "div",
+                { className: "container mx-auto p-4" },
+                // Stats
+                e(
+                  "div",
+                  { className: "stats-grid mb-8" },
+                  e(
+                    "div",
+                    { className: "stat-card" },
+                    e("div", { className: "text-4xl text-blue-400" }, "🗺️"),
+                    e(
+                      "div",
+                      null,
+                      e("div", { className: "text-2xl font-bold" }, "0"),
+                      e(
+                        "div",
+                        { className: "text-white/60" },
+                        "Territorios Asignados"
+                      )
+                    )
+                  ),
+                  e(
+                    "div",
+                    { className: "stat-card" },
+                    e("div", { className: "text-4xl text-green-400" }, "🏠"),
+                    e(
+                      "div",
+                      null,
+                      e("div", { className: "text-2xl font-bold" }, "0"),
+                      e(
+                        "div",
+                        { className: "text-white/60" },
+                        "Manzanas Asignadas"
+                      )
+                    )
+                  ),
+                  e(
+                    "div",
+                    { className: "stat-card" },
+                    e("div", { className: "text-4xl text-purple-400" }, "📞"),
+                    e(
+                      "div",
+                      null,
+                      e("div", { className: "text-2xl font-bold" }, "0"),
+                      e(
+                        "div",
+                        { className: "text-white/60" },
+                        "Teléfonos Asignados"
+                      )
+                    )
+                  )
+                ),
+
+                // Main Content
+                e(
+                  "div",
+                  { className: "glass-card p-8 text-center" },
+                  e("div", { className: "text-6xl mb-6" }, "🚧"),
+                  e(
+                    "h3",
+                    { className: "text-2xl font-bold mb-4" },
+                    "Panel en Desarrollo"
+                  ),
+                  e(
+                    "p",
+                    { className: "text-white/60 mb-6" },
+                    "Tu panel de conductor personalizado estará disponible próximamente"
+                  ),
+                  e(
+                    "div",
+                    { className: "bg-white/5 rounded-lg p-6 max-w-md mx-auto" },
+                    e(
+                      "h4",
+                      { className: "font-semibold mb-3" },
+                      "Próximas funcionalidades:"
+                    ),
+                    e(
+                      "ul",
+                      {
+                        className: "text-sm text-white/60 space-y-2 text-left",
+                      },
+                      e("li", null, "✨ Vista de territorios asignados"),
+                      e("li", null, "✨ Gestión de manzanas específicas"),
+                      e("li", null, "✨ Seguimiento de progreso"),
+                      e("li", null, "✨ Reportes de predicación"),
+                      e("li", null, "✨ Predicación telefónica")
+                    )
+                  )
+                )
+              )
+            );
+          }
+
+          // Loading Component
+          if (loading) {
+            return e(
+              "div",
+              { className: "min-h-screen flex items-center justify-center" },
+              e(
+                "div",
+                { className: "text-center" },
+                e("div", { className: "loading-spinner mb-4" }),
+                e("p", { className: "text-white/80" }, "Procesando...")
+              )
+            );
+          }
+
+          // Error Component
+          if (error) {
+            return e(
+              "div",
+              {
+                className: "min-h-screen flex items-center justify-center p-4",
+              },
+              e(
+                "div",
+                { className: "glass-card p-6 max-w-md mx-auto text-center" },
+                e("div", { className: "text-red-400 text-4xl mb-4" }, "⚠️"),
+                e(
+                  "h3",
+                  { className: "text-red-200 font-semibold text-lg mb-2" },
+                  "Error del Sistema"
+                ),
+                e("p", { className: "text-red-300 mb-4 text-sm" }, error),
+                e(
+                  "button",
+                  {
+                    className: "btn-secondary",
+                    onClick: () => {
+                      setError("");
+                      setCurrentView("login");
+                    },
+                  },
+                  "Volver al Inicio"
+                )
+              )
+            );
+          }
+
+          // Main App Router
+          return e(
+            "div",
+            { className: "min-h-screen" },
+            currentView === "login" && e(LoginScreen),
+            currentView === "admin" && e(AdminDashboard),
+            currentView === "conductor" && e(ConductorDashboard)
+          );
+        }
+
+        // Render the app
+        render(e(App), document.getElementById("root"));
+
+        // Service Worker Registration
+        if ("serviceWorker" in navigator) {
+          window.addEventListener("load", () => {
+            navigator.serviceWorker
+              .register("/service-worker.js")
+              .then((registration) => console.log("✅ SW registrado"))
+              .catch((error) => console.log("❌ SW error:", error));
+          });
+        }
+
+        console.log(
+          "🚀 Sistema JW v6.0 - Aplicación React con Firebase v9 inicializada correctamente"
+        );
+      }, 1000);
+    </script>
+  </body>
+</html>

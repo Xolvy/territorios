@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Developer Tools - Territorios JW</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        min-height: 100vh;
+      }
+
+      .dev-panel {
+        padding: 20px;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+
+      .header h1 {
+        font-size: 2.5rem;
+        margin-bottom: 10px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      .tools-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+
+      .tool-card {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 15px;
+        padding: 20px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+
+      .tool-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      }
+
+      .tool-card h3 {
+        color: #fbbf24;
+        margin-bottom: 15px;
+        font-size: 1.3rem;
+      }
+
+      .btn {
+        background: linear-gradient(45deg, #3b82f6, #8b5cf6);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        margin: 5px;
+        transition: all 0.3s ease;
+        font-weight: 500;
+      }
+
+      .btn:hover {
+        transform: scale(1.05);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      }
+
+      .console-output {
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 10px;
+        padding: 15px;
+        margin-top: 20px;
+        font-family: "Courier New", monospace;
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .performance-metrics {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-top: 20px;
+      }
+
+      .metric {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 15px;
+        border-radius: 10px;
+        text-align: center;
+      }
+
+      .metric-value {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #10b981;
+      }
+
+      .quick-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 20px;
+      }
+
+      .link-btn {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        text-decoration: none;
+        padding: 8px 16px;
+        border-radius: 20px;
+        transition: all 0.3s ease;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+      }
+
+      .link-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: scale(1.05);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="dev-panel">
+      <div class="header">
+        <h1>🛠️ Developer Tools</h1>
+        <p>Panel de herramientas avanzado para Simple Browser</p>
+      </div>
+
+      <div class="tools-grid">
+        <div class="tool-card">
+          <h3>🔍 Inspección de Elementos</h3>
+          <p>Herramientas para inspeccionar y modificar el DOM</p>
+          <button class="btn" onclick="highlightElements()">
+            Resaltar Elementos
+          </button>
+          <button class="btn" onclick="showElementInfo()">
+            Info de Elemento
+          </button>
+          <button class="btn" onclick="toggleGridOverlay()">
+            Overlay Grid
+          </button>
+        </div>
+
+        <div class="tool-card">
+          <h3>⚡ Performance</h3>
+          <p>Monitoreo de rendimiento en tiempo real</p>
+          <button class="btn" onclick="measurePerformance()">
+            Medir Rendimiento
+          </button>
+          <button class="btn" onclick="showMemoryUsage()">
+            Uso de Memoria
+          </button>
+          <button class="btn" onclick="analyzeLoadTime()">
+            Tiempo de Carga
+          </button>
+        </div>
+
+        <div class="tool-card">
+          <h3>🔧 Console Mejorada</h3>
+          <p>Consola interactiva con funciones avanzadas</p>
+          <button class="btn" onclick="clearConsole()">Limpiar Console</button>
+          <button class="btn" onclick="exportLogs()">Exportar Logs</button>
+          <button class="btn" onclick="runDiagnostics()">Diagnósticos</button>
+        </div>
+
+        <div class="tool-card">
+          <h3>📱 Responsive Testing</h3>
+          <p>Pruebas de diseño responsivo</p>
+          <button class="btn" onclick="simulateDevice('mobile')">
+            📱 Mobile
+          </button>
+          <button class="btn" onclick="simulateDevice('tablet')">
+            📲 Tablet
+          </button>
+          <button class="btn" onclick="simulateDevice('desktop')">
+            🖥️ Desktop
+          </button>
+        </div>
+
+        <div class="tool-card">
+          <h3>🌐 Network Tools</h3>
+          <p>Herramientas de red y conectividad</p>
+          <button class="btn" onclick="testConnection()">Test Conexión</button>
+          <button class="btn" onclick="simulateOffline()">Modo Offline</button>
+          <button class="btn" onclick="checkFirebase()">Estado Firebase</button>
+        </div>
+
+        <div class="tool-card">
+          <h3>🎨 CSS Live Editor</h3>
+          <p>Editor de CSS en tiempo real</p>
+          <button class="btn" onclick="openCSSEditor()">Abrir Editor</button>
+          <button class="btn" onclick="exportCSS()">Exportar CSS</button>
+          <button class="btn" onclick="resetStyles()">Reset Estilos</button>
+        </div>
+      </div>
+
+      <div class="performance-metrics">
+        <div class="metric">
+          <div class="metric-value" id="loadTime">--</div>
+          <div>Tiempo de Carga (ms)</div>
+        </div>
+        <div class="metric">
+          <div class="metric-value" id="memoryUsage">--</div>
+          <div>Memoria (MB)</div>
+        </div>
+        <div class="metric">
+          <div class="metric-value" id="networkRequests">--</div>
+          <div>Requests de Red</div>
+        </div>
+        <div class="metric">
+          <div class="metric-value" id="jsErrors">--</div>
+          <div>Errores JS</div>
+        </div>
+      </div>
+
+      <div class="quick-links">
+        <a href="http://localhost:3000" class="link-btn" target="_blank"
+          >🏠 App Principal</a
+        >
+        <a href="http://localhost:3000/admin" class="link-btn" target="_blank"
+          >👨‍💼 Admin</a
+        >
+        <a
+          href="http://localhost:3000/diagnostico"
+          class="link-btn"
+          target="_blank"
+          >🔬 Diagnóstico</a
+        >
+        <a href="javascript:void(0)" class="link-btn" onclick="openInNewTab()"
+          >🚀 Nueva Pestaña</a
+        >
+        <a
+          href="javascript:void(0)"
+          class="link-btn"
+          onclick="toggleFullscreen()"
+          >🔍 Pantalla Completa</a
+        >
+      </div>
+
+      <div class="console-output" id="consoleOutput">
+        <div style="color: #10b981">
+          ✅ Developer Tools iniciado correctamente
+        </div>
+        <div style="color: #fbbf24">
+          ⚡ Listo para potenciar tu experiencia de desarrollo
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Variables globales
+      let elementInspectionMode = false;
+      let gridOverlayActive = false;
+      let currentDevice = "desktop";
+
+      // Funciones de inspección de elementos
+      function highlightElements() {
+        elementInspectionMode = !elementInspectionMode;
+
+        if (elementInspectionMode) {
+          logToConsole(
+            "🔍 Modo inspección activado - Haz clic en cualquier elemento",
+            "info"
+          );
+          document.body.style.cursor = "crosshair";
+
+          // Agregar listeners para inspección
+          window.parent.document.addEventListener(
+            "mouseover",
+            highlightElement
+          );
+          window.parent.document.addEventListener("click", selectElement);
+        } else {
+          logToConsole("🔍 Modo inspección desactivado", "info");
+          document.body.style.cursor = "default";
+          window.parent.document.removeEventListener(
+            "mouseover",
+            highlightElement
+          );
+          window.parent.document.removeEventListener("click", selectElement);
+        }
+      }
+
+      function highlightElement(e) {
+        if (e.target !== window.parent.document.body) {
+          e.target.style.outline = "2px solid #3b82f6";
+          e.target.style.backgroundColor = "rgba(59, 130, 246, 0.1)";
+
+          setTimeout(() => {
+            e.target.style.outline = "";
+            e.target.style.backgroundColor = "";
+          }, 2000);
+        }
+      }
+
+      function selectElement(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const element = e.target;
+        const info = {
+          tag: element.tagName.toLowerCase(),
+          id: element.id || "No ID",
+          classes: element.className || "No classes",
+          dimensions: `${element.offsetWidth}x${element.offsetHeight}`,
+          position: `top: ${element.offsetTop}px, left: ${element.offsetLeft}px`,
+        };
+
+        logToConsole(`🎯 Elemento seleccionado:`, "success");
+        logToConsole(`   Tag: ${info.tag}`, "info");
+        logToConsole(`   ID: ${info.id}`, "info");
+        logToConsole(`   Classes: ${info.classes}`, "info");
+        logToConsole(`   Dimensiones: ${info.dimensions}`, "info");
+        logToConsole(`   Posición: ${info.position}`, "info");
+      }
+
+      function showElementInfo() {
+        logToConsole("📊 Analizando elementos de la página...", "info");
+
+        try {
+          const doc = window.parent.document;
+          const elements = doc.querySelectorAll("*");
+          const elementStats = {};
+
+          elements.forEach((el) => {
+            const tag = el.tagName.toLowerCase();
+            elementStats[tag] = (elementStats[tag] || 0) + 1;
+          });
+
+          logToConsole(`📈 Estadísticas de elementos:`, "success");
+          Object.entries(elementStats)
+            .sort(([, a], [, b]) => b - a)
+            .slice(0, 10)
+            .forEach(([tag, count]) => {
+              logToConsole(`   ${tag}: ${count}`, "info");
+            });
+
+          updateMetric("networkRequests", elements.length);
+        } catch (error) {
+          logToConsole(
+            `❌ Error analizando elementos: ${error.message}`,
+            "error"
+          );
+        }
+      }
+
+      function toggleGridOverlay() {
+        gridOverlayActive = !gridOverlayActive;
+
+        if (gridOverlayActive) {
+          createGridOverlay();
+          logToConsole("📏 Grid overlay activado", "success");
+        } else {
+          removeGridOverlay();
+          logToConsole("📏 Grid overlay desactivado", "info");
+        }
+      }
+
+      function createGridOverlay() {
+        const overlay = document.createElement("div");
+        overlay.id = "gridOverlay";
+        overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                pointer-events: none;
+                z-index: 9999;
+                background-image: 
+                    linear-gradient(rgba(59, 130, 246, 0.1) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(59, 130, 246, 0.1) 1px, transparent 1px);
+                background-size: 20px 20px;
+            `;
+
+        try {
+          window.parent.document.body.appendChild(overlay);
+        } catch (error) {
+          document.body.appendChild(overlay);
+        }
+      }
+
+      function removeGridOverlay() {
+        try {
+          const overlay = window.parent.document.getElementById("gridOverlay");
+          if (overlay) overlay.remove();
+        } catch (error) {
+          const overlay = document.getElementById("gridOverlay");
+          if (overlay) overlay.remove();
+        }
+      }
+
+      // Funciones de performance
+      function measurePerformance() {
+        logToConsole("⚡ Midiendo rendimiento...", "info");
+
+        const perfData = performance.getEntriesByType("navigation")[0];
+
+        if (perfData) {
+          const loadTime = Math.round(
+            perfData.loadEventEnd - perfData.fetchStart
+          );
+          const domReady = Math.round(
+            perfData.domContentLoadedEventEnd - perfData.fetchStart
+          );
+          const firstPaint = Math.round(
+            perfData.responseStart - perfData.fetchStart
+          );
+
+          logToConsole(`📊 Métricas de rendimiento:`, "success");
+          logToConsole(`   Tiempo total de carga: ${loadTime}ms`, "info");
+          logToConsole(`   DOM listo: ${domReady}ms`, "info");
+          logToConsole(`   First Paint: ${firstPaint}ms`, "info");
+
+          updateMetric("loadTime", loadTime);
+        } else {
+          logToConsole("⚠️ Datos de performance no disponibles", "warning");
+        }
+      }
+
+      function showMemoryUsage() {
+        if ("memory" in performance) {
+          const memory = performance.memory;
+          const used = Math.round(memory.usedJSHeapSize / 1024 / 1024);
+          const total = Math.round(memory.totalJSHeapSize / 1024 / 1024);
+          const limit = Math.round(memory.jsHeapSizeLimit / 1024 / 1024);
+
+          logToConsole(`💾 Uso de memoria:`, "success");
+          logToConsole(`   Usado: ${used}MB`, "info");
+          logToConsole(`   Total: ${total}MB`, "info");
+          logToConsole(`   Límite: ${limit}MB`, "info");
+
+          updateMetric("memoryUsage", used);
+        } else {
+          logToConsole("⚠️ API de memoria no disponible", "warning");
+        }
+      }
+
+      function analyzeLoadTime() {
+        logToConsole("⏱️ Analizando tiempos de carga...", "info");
+
+        const resources = performance.getEntriesByType("resource");
+        let totalSize = 0;
+        let slowestResource = null;
+        let slowestTime = 0;
+
+        resources.forEach((resource) => {
+          const loadTime = resource.responseEnd - resource.startTime;
+          if (loadTime > slowestTime) {
+            slowestTime = loadTime;
+            slowestResource = resource.name;
+          }
+
+          if (resource.transferSize) {
+            totalSize += resource.transferSize;
+          }
+        });
+
+        logToConsole(`📈 Análisis de recursos:`, "success");
+        logToConsole(`   Total de recursos: ${resources.length}`, "info");
+        logToConsole(
+          `   Tamaño transferido: ${Math.round(totalSize / 1024)}KB`,
+          "info"
+        );
+        logToConsole(
+          `   Recurso más lento: ${Math.round(slowestTime)}ms`,
+          "info"
+        );
+        logToConsole(
+          `   ${slowestResource?.split("/").pop() || "N/A"}`,
+          "info"
+        );
+
+        updateMetric("networkRequests", resources.length);
+      }
+
+      // Funciones de consola
+      function clearConsole() {
+        document.getElementById("consoleOutput").innerHTML = "";
+        logToConsole("🧹 Consola limpiada", "success");
+      }
+
+      function exportLogs() {
+        const logs = document.getElementById("consoleOutput").innerText;
+        const blob = new Blob([logs], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `dev-tools-logs-${new Date()
+          .toISOString()
+          .slice(0, 19)}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        logToConsole("💾 Logs exportados correctamente", "success");
+      }
+
+      function runDiagnostics() {
+        logToConsole("🔬 Ejecutando diagnósticos...", "info");
+
+        // Verificar APIs disponibles
+        const apis = [
+          "localStorage",
+          "sessionStorage",
+          "indexedDB",
+          "serviceWorker",
+          "geolocation",
+          "notifications",
+          "performance",
+          "fetch",
+        ];
+
+        logToConsole("🔍 APIs disponibles:", "success");
+        apis.forEach((api) => {
+          const available =
+            api in window ||
+            (api === "serviceWorker" && "serviceWorker" in navigator);
+          logToConsole(
+            `   ${api}: ${available ? "✅" : "❌"}`,
+            available ? "success" : "error"
+          );
+        });
+
+        // Verificar errores JS
+        let errorCount = 0;
+        const originalError = window.onerror;
+        window.onerror = function () {
+          errorCount++;
+          updateMetric("jsErrors", errorCount);
+          return originalError ? originalError.apply(this, arguments) : false;
+        };
+      }
+
+      // Funciones de dispositivos
+      function simulateDevice(device) {
+        const devices = {
+          mobile: { width: "375px", height: "667px", name: "📱 iPhone SE" },
+          tablet: { width: "768px", height: "1024px", name: "📲 iPad" },
+          desktop: { width: "1920px", height: "1080px", name: "🖥️ Desktop" },
+        };
+
+        const config = devices[device];
+        currentDevice = device;
+
+        try {
+          const iframe = window.parent.document.querySelector(
+            'iframe[src*="localhost:3000"]'
+          );
+          if (iframe) {
+            iframe.style.width = config.width;
+            iframe.style.height = config.height;
+            iframe.style.border = "2px solid #3b82f6";
+            iframe.style.borderRadius = "10px";
+            iframe.style.boxShadow = "0 10px 25px rgba(0,0,0,0.2)";
+          }
+
+          logToConsole(
+            `📱 Simulando dispositivo: ${config.name} (${config.width} x ${config.height})`,
+            "success"
+          );
+        } catch (error) {
+          logToConsole(
+            `❌ Error simulando dispositivo: ${error.message}`,
+            "error"
+          );
+        }
+      }
+
+      // Funciones de red
+      function testConnection() {
+        logToConsole("🌐 Probando conexión...", "info");
+
+        const startTime = performance.now();
+        fetch("http://localhost:3000")
+          .then((response) => {
+            const endTime = performance.now();
+            const responseTime = Math.round(endTime - startTime);
+
+            logToConsole(`✅ Conexión exitosa`, "success");
+            logToConsole(`   Status: ${response.status}`, "info");
+            logToConsole(`   Tiempo de respuesta: ${responseTime}ms`, "info");
+          })
+          .catch((error) => {
+            logToConsole(`❌ Error de conexión: ${error.message}`, "error");
+          });
+      }
+
+      function simulateOffline() {
+        logToConsole("📵 Simulando modo offline...", "info");
+
+        // Simular offline interceptando requests
+        const originalFetch = window.fetch;
+        window.fetch = function () {
+          return Promise.reject(new Error("Simulando modo offline"));
+        };
+
+        setTimeout(() => {
+          window.fetch = originalFetch;
+          logToConsole("🌐 Modo online restaurado", "success");
+        }, 10000);
+
+        logToConsole("⚠️ Modo offline activado por 10 segundos", "warning");
+      }
+
+      function checkFirebase() {
+        logToConsole("🔥 Verificando estado de Firebase...", "info");
+
+        try {
+          // Intentar acceder al objeto Firebase global
+          if (typeof firebase !== "undefined") {
+            logToConsole("✅ Firebase SDK disponible", "success");
+          } else {
+            logToConsole("⚠️ Firebase SDK no encontrado", "warning");
+          }
+
+          // Verificar service worker
+          if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.getRegistrations().then((registrations) => {
+              logToConsole(
+                `🔧 Service Workers registrados: ${registrations.length}`,
+                "info"
+              );
+            });
+          }
+        } catch (error) {
+          logToConsole(
+            `❌ Error verificando Firebase: ${error.message}`,
+            "error"
+          );
+        }
+      }
+
+      // Funciones de CSS
+      function openCSSEditor() {
+        const editor = document.createElement("div");
+        editor.innerHTML = `
+                <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+                           background: rgba(0,0,0,0.9); padding: 20px; border-radius: 10px; 
+                           z-index: 10000; width: 80%; max-width: 600px;">
+                    <h3 style="color: white; margin-bottom: 15px;">🎨 CSS Live Editor</h3>
+                    <textarea id="cssEditor" style="width: 100%; height: 300px; background: #1a1a1a; 
+                                                   color: #fff; border: 1px solid #444; border-radius: 5px; 
+                                                   padding: 10px; font-family: monospace;">
+/* Escribe tu CSS aquí */
+body {
+    background: linear-gradient(45deg, #667eea, #764ba2);
+}
+                    </textarea>
+                    <div style="margin-top: 15px;">
+                        <button onclick="applyCSSChanges()" style="background: #10b981; color: white; 
+                                border: none; padding: 10px 20px; border-radius: 5px; margin-right: 10px;">
+                            Aplicar
+                        </button>
+                        <button onclick="closeCSSEditor()" style="background: #ef4444; color: white; 
+                                border: none; padding: 10px 20px; border-radius: 5px;">
+                            Cerrar
+                        </button>
+                    </div>
+                </div>
+            `;
+
+        editor.id = "cssEditorModal";
+        document.body.appendChild(editor);
+
+        logToConsole("🎨 Editor CSS abierto", "success");
+      }
+
+      function applyCSSChanges() {
+        const css = document.getElementById("cssEditor").value;
+
+        // Remover estilo anterior si existe
+        const existingStyle = document.getElementById("liveCSS");
+        if (existingStyle) existingStyle.remove();
+
+        // Crear nuevo estilo
+        const style = document.createElement("style");
+        style.id = "liveCSS";
+        style.textContent = css;
+        document.head.appendChild(style);
+
+        logToConsole("🎨 CSS aplicado correctamente", "success");
+      }
+
+      function closeCSSEditor() {
+        const editor = document.getElementById("cssEditorModal");
+        if (editor) editor.remove();
+      }
+
+      function exportCSS() {
+        const liveCSS = document.getElementById("liveCSS");
+        if (liveCSS) {
+          const blob = new Blob([liveCSS.textContent], { type: "text/css" });
+          const url = URL.createObjectURL(blob);
+
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "custom-styles.css";
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+
+          logToConsole("💾 CSS exportado correctamente", "success");
+        } else {
+          logToConsole("⚠️ No hay CSS personalizado para exportar", "warning");
+        }
+      }
+
+      function resetStyles() {
+        const liveCSS = document.getElementById("liveCSS");
+        if (liveCSS) {
+          liveCSS.remove();
+          logToConsole("🔄 Estilos personalizados eliminados", "success");
+        }
+      }
+
+      // Funciones de utilidad
+      function openInNewTab() {
+        window.open("http://localhost:3000", "_blank");
+        logToConsole("🚀 Aplicación abierta en nueva pestaña", "success");
+      }
+
+      function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen();
+          logToConsole("🔍 Modo pantalla completa activado", "success");
+        } else {
+          document.exitFullscreen();
+          logToConsole("🔍 Modo pantalla completa desactivado", "info");
+        }
+      }
+
+      function logToConsole(message, type = "info") {
+        const output = document.getElementById("consoleOutput");
+        const timestamp = new Date().toLocaleTimeString();
+
+        const colors = {
+          info: "#60a5fa",
+          success: "#10b981",
+          warning: "#fbbf24",
+          error: "#ef4444",
+        };
+
+        const div = document.createElement("div");
+        div.style.color = colors[type];
+        div.innerHTML = `[${timestamp}] ${message}`;
+
+        output.appendChild(div);
+        output.scrollTop = output.scrollHeight;
+      }
+
+      function updateMetric(metricId, value) {
+        const element = document.getElementById(metricId);
+        if (element) {
+          element.textContent = value;
+          element.style.animation = "pulse 0.5s ease-in-out";
+          setTimeout(() => {
+            element.style.animation = "";
+          }, 500);
+        }
+      }
+
+      // Inicialización
+      document.addEventListener("DOMContentLoaded", function () {
+        logToConsole("🚀 Developer Tools iniciado correctamente", "success");
+        logToConsole("💡 Explora todas las herramientas disponibles", "info");
+
+        // Métricas iniciales
+        updateMetric("jsErrors", 0);
+        measurePerformance();
+        showMemoryUsage();
+
+        // Auto-refresh de métricas cada 30 segundos
+        setInterval(() => {
+          if (document.visibilityState === "visible") {
+            showMemoryUsage();
+          }
+        }, 30000);
+      });
+
+      // Keyboard shortcuts
+      document.addEventListener("keydown", function (e) {
+        if (e.ctrlKey || e.metaKey) {
+          switch (e.key) {
+            case "i":
+              e.preventDefault();
+              highlightElements();
+              break;
+            case "p":
+              e.preventDefault();
+              measurePerformance();
+              break;
+            case "l":
+              e.preventDefault();
+              clearConsole();
+              break;
+          }
+        }
+      });
+    </script>
+  </body>
+</html>

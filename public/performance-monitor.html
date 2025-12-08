@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>📊 Performance Monitor</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: #0a0a0f;
+        color: #e5e7eb;
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .monitor-container {
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+
+      .header h1 {
+        font-size: 2.5rem;
+        color: #00ff88;
+        margin-bottom: 10px;
+        text-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+      }
+
+      .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+
+      .metric-card {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        border-radius: 15px;
+        padding: 20px;
+        border: 1px solid #2d3748;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .metric-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #00ff88, #00d4ff);
+      }
+
+      .metric-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+      }
+
+      .metric-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+      }
+
+      .metric-value {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+
+      .metric-trend {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.9rem;
+      }
+
+      .trend-up {
+        color: #00ff88;
+      }
+      .trend-down {
+        color: #ff4757;
+      }
+      .trend-stable {
+        color: #ffd700;
+      }
+
+      .chart-container {
+        background: #1a1a2e;
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 30px;
+        border: 1px solid #2d3748;
+      }
+
+      .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+
+      .chart-canvas {
+        width: 100%;
+        height: 300px;
+        background: #0f1419;
+        border-radius: 10px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .realtime-data {
+        background: #1a1a2e;
+        border-radius: 15px;
+        padding: 20px;
+        border: 1px solid #2d3748;
+        max-height: 400px;
+        overflow-y: auto;
+      }
+
+      .log-entry {
+        padding: 8px 0;
+        border-bottom: 1px solid #2d3748;
+        font-family: "Courier New", monospace;
+        font-size: 0.9rem;
+      }
+
+      .log-entry:last-child {
+        border-bottom: none;
+      }
+
+      .controls {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+      }
+
+      .control-btn {
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: all 0.3s ease;
+      }
+
+      .control-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+      }
+
+      .control-btn.active {
+        background: linear-gradient(45deg, #00ff88, #00d4ff);
+      }
+
+      .progress-bar {
+        width: 100%;
+        height: 6px;
+        background: #2d3748;
+        border-radius: 3px;
+        overflow: hidden;
+        margin-top: 10px;
+      }
+
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #00ff88, #00d4ff);
+        border-radius: 3px;
+        transition: width 0.3s ease;
+      }
+
+      .alert {
+        background: #ff4757;
+        color: white;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        display: none;
+        animation: pulse 1s infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.7;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="monitor-container">
+      <div class="header">
+        <h1>📊 Performance Monitor</h1>
+        <p>Monitor avanzado de rendimiento en tiempo real</p>
+      </div>
+
+      <div class="alert" id="performanceAlert">
+        ⚠️ Rendimiento degradado detectado
+      </div>
+
+      <div class="controls">
+        <button
+          class="control-btn active"
+          id="startBtn"
+          onclick="toggleMonitoring()"
+        >
+          ▶️ Iniciar Monitor
+        </button>
+        <button class="control-btn" onclick="resetMetrics()">🔄 Reset</button>
+        <button class="control-btn" onclick="exportReport()">
+          📊 Exportar
+        </button>
+        <button class="control-btn" onclick="captureSnapshot()">
+          📸 Snapshot
+        </button>
+        <button class="control-btn" onclick="toggleAlerts()">🔔 Alertas</button>
+      </div>
+
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-header">
+            <span class="metric-title">🧠 Memoria (MB)</span>
+            <span id="memoryTrend" class="metric-trend trend-stable">●</span>
+          </div>
+          <div class="metric-value" id="memoryValue">--</div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="memoryProgress"></div>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-header">
+            <span class="metric-title">⚙️ CPU (%)</span>
+            <span id="cpuTrend" class="metric-trend trend-stable">●</span>
+          </div>
+          <div class="metric-value" id="cpuValue">--</div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="cpuProgress"></div>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-header">
+            <span class="metric-title">🌐 Network (ms)</span>
+            <span id="networkTrend" class="metric-trend trend-stable">●</span>
+          </div>
+          <div class="metric-value" id="networkValue">--</div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="networkProgress"></div>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-header">
+            <span class="metric-title">🔥 FPS</span>
+            <span id="fpsTrend" class="metric-trend trend-stable">●</span>
+          </div>
+          <div class="metric-value" id="fpsValue">--</div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="fpsProgress"></div>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-header">
+            <span class="metric-title">📦 Cache Hit Rate (%)</span>
+            <span id="cacheTrend" class="metric-trend trend-stable">●</span>
+          </div>
+          <div class="metric-value" id="cacheValue">--</div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="cacheProgress"></div>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-header">
+            <span class="metric-title">⚡ Load Time (ms)</span>
+            <span id="loadTrend" class="metric-trend trend-stable">●</span>
+          </div>
+          <div class="metric-value" id="loadValue">--</div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="loadProgress"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-container">
+        <div class="chart-header">
+          <h3>📈 Tendencias de Rendimiento</h3>
+          <div>
+            <button class="control-btn" onclick="changeTimeRange('1m')">
+              1m
+            </button>
+            <button class="control-btn" onclick="changeTimeRange('5m')">
+              5m
+            </button>
+            <button class="control-btn" onclick="changeTimeRange('15m')">
+              15m
+            </button>
+          </div>
+        </div>
+        <canvas id="performanceChart" class="chart-canvas"></canvas>
+      </div>
+
+      <div class="realtime-data">
+        <h3>📊 Log en Tiempo Real</h3>
+        <div id="logContainer"></div>
+      </div>
+    </div>
+
+    <script>
+      // Variables globales
+      let monitoringActive = false;
+      let monitoringInterval = null;
+      let alertsEnabled = true;
+      let currentTimeRange = "5m";
+
+      // Datos históricos
+      let performanceHistory = {
+        memory: [],
+        cpu: [],
+        network: [],
+        fps: [],
+        cache: [],
+        load: [],
+      };
+
+      // Métricas anteriores para cálculo de tendencias
+      let previousMetrics = {
+        memory: 0,
+        cpu: 0,
+        network: 0,
+        fps: 0,
+        cache: 0,
+        load: 0,
+      };
+
+      // Configuración del canvas
+      let canvas, ctx;
+
+      function initializeCanvas() {
+        canvas = document.getElementById("performanceChart");
+        ctx = canvas.getContext("2d");
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+
+        drawChart();
+      }
+
+      function toggleMonitoring() {
+        monitoringActive = !monitoringActive;
+        const btn = document.getElementById("startBtn");
+
+        if (monitoringActive) {
+          btn.textContent = "⏸️ Pausar Monitor";
+          btn.classList.add("active");
+          startMonitoring();
+          logEntry("🚀 Monitoring iniciado", "success");
+        } else {
+          btn.textContent = "▶️ Iniciar Monitor";
+          btn.classList.remove("active");
+          stopMonitoring();
+          logEntry("⏸️ Monitoring pausado", "info");
+        }
+      }
+
+      function startMonitoring() {
+        monitoringInterval = setInterval(() => {
+          collectMetrics();
+          updateDisplay();
+          checkAlerts();
+        }, 1000); // Actualizar cada segundo
+      }
+
+      function stopMonitoring() {
+        if (monitoringInterval) {
+          clearInterval(monitoringInterval);
+          monitoringInterval = null;
+        }
+      }
+
+      function collectMetrics() {
+        const timestamp = Date.now();
+
+        // Simular métricas realistas
+        const metrics = {
+          memory: generateMemoryMetric(),
+          cpu: generateCPUMetric(),
+          network: generateNetworkMetric(),
+          fps: generateFPSMetric(),
+          cache: generateCacheMetric(),
+          load: generateLoadTimeMetric(),
+        };
+
+        // Agregar timestamp y guardar en historial
+        Object.keys(metrics).forEach((key) => {
+          performanceHistory[key].push({
+            value: metrics[key],
+            timestamp: timestamp,
+          });
+
+          // Mantener solo los últimos datos según el rango de tiempo
+          const maxEntries = getMaxEntries();
+          if (performanceHistory[key].length > maxEntries) {
+            performanceHistory[key].shift();
+          }
+        });
+
+        return metrics;
+      }
+
+      function generateMemoryMetric() {
+        // Simular uso de memoria con tendencia gradual
+        const base = 45 + Math.sin(Date.now() / 10000) * 15;
+        const noise = (Math.random() - 0.5) * 8;
+        return Math.max(10, Math.min(90, base + noise));
+      }
+
+      function generateCPUMetric() {
+        // Simular uso de CPU con picos ocasionales
+        const base = 25 + Math.sin(Date.now() / 8000) * 20;
+        const spike = Math.random() < 0.1 ? Math.random() * 30 : 0;
+        const noise = (Math.random() - 0.5) * 5;
+        return Math.max(5, Math.min(95, base + spike + noise));
+      }
+
+      function generateNetworkMetric() {
+        // Simular latencia de red
+        const base = 120 + Math.sin(Date.now() / 12000) * 40;
+        const spike = Math.random() < 0.05 ? Math.random() * 200 : 0;
+        const noise = (Math.random() - 0.5) * 20;
+        return Math.max(50, Math.min(500, base + spike + noise));
+      }
+
+      function generateFPSMetric() {
+        // Simular FPS con caídas ocasionales
+        const base = 58 + Math.sin(Date.now() / 6000) * 3;
+        const drop = Math.random() < 0.08 ? -Math.random() * 20 : 0;
+        const noise = (Math.random() - 0.5) * 2;
+        return Math.max(30, Math.min(60, base + drop + noise));
+      }
+
+      function generateCacheMetric() {
+        // Simular hit rate del cache
+        const base = 85 + Math.sin(Date.now() / 15000) * 10;
+        const noise = (Math.random() - 0.5) * 5;
+        return Math.max(60, Math.min(98, base + noise));
+      }
+
+      function generateLoadTimeMetric() {
+        // Simular tiempo de carga
+        const base = 800 + Math.sin(Date.now() / 9000) * 300;
+        const spike = Math.random() < 0.1 ? Math.random() * 1000 : 0;
+        const noise = (Math.random() - 0.5) * 100;
+        return Math.max(200, Math.min(3000, base + spike + noise));
+      }
+
+      function updateDisplay() {
+        const latest = getLatestMetrics();
+
+        // Actualizar valores
+        document.getElementById("memoryValue").textContent = Math.round(
+          latest.memory
+        );
+        document.getElementById("cpuValue").textContent = Math.round(
+          latest.cpu
+        );
+        document.getElementById("networkValue").textContent = Math.round(
+          latest.network
+        );
+        document.getElementById("fpsValue").textContent = Math.round(
+          latest.fps
+        );
+        document.getElementById("cacheValue").textContent = Math.round(
+          latest.cache
+        );
+        document.getElementById("loadValue").textContent = Math.round(
+          latest.load
+        );
+
+        // Actualizar barras de progreso
+        updateProgressBar("memoryProgress", latest.memory, 100);
+        updateProgressBar("cpuProgress", latest.cpu, 100);
+        updateProgressBar("networkProgress", latest.network, 500);
+        updateProgressBar("fpsProgress", latest.fps, 60);
+        updateProgressBar("cacheProgress", latest.cache, 100);
+        updateProgressBar("loadProgress", latest.load, 3000);
+
+        // Actualizar tendencias
+        updateTrends(latest);
+
+        // Actualizar gráfico
+        drawChart();
+
+        // Log cada 5 segundos
+        if (Math.round(Date.now() / 1000) % 5 === 0) {
+          logEntry(
+            `📊 Memoria: ${Math.round(latest.memory)}MB, CPU: ${Math.round(
+              latest.cpu
+            )}%, Red: ${Math.round(latest.network)}ms`,
+            "info"
+          );
+        }
+      }
+
+      function getLatestMetrics() {
+        const latest = {};
+        Object.keys(performanceHistory).forEach((key) => {
+          const history = performanceHistory[key];
+          latest[key] =
+            history.length > 0 ? history[history.length - 1].value : 0;
+        });
+        return latest;
+      }
+
+      function updateProgressBar(barId, value, max) {
+        const bar = document.getElementById(barId);
+        const percentage = (value / max) * 100;
+        bar.style.width = Math.min(100, percentage) + "%";
+
+        // Cambiar color según el valor
+        if (percentage > 80) {
+          bar.style.background = "linear-gradient(90deg, #ff4757, #ff6b7a)";
+        } else if (percentage > 60) {
+          bar.style.background = "linear-gradient(90deg, #ffd700, #ffed4e)";
+        } else {
+          bar.style.background = "linear-gradient(90deg, #00ff88, #00d4ff)";
+        }
+      }
+
+      function updateTrends(current) {
+        const trends = {
+          memory: calculateTrend(current.memory, previousMetrics.memory),
+          cpu: calculateTrend(current.cpu, previousMetrics.cpu),
+          network: calculateTrend(
+            current.network,
+            previousMetrics.network,
+            true
+          ), // Invertido para network
+          fps: calculateTrend(current.fps, previousMetrics.fps),
+          cache: calculateTrend(current.cache, previousMetrics.cache),
+          load: calculateTrend(current.load, previousMetrics.load, true), // Invertido para load time
+        };
+
+        Object.keys(trends).forEach((key) => {
+          const trendElement = document.getElementById(key + "Trend");
+          const trend = trends[key];
+
+          if (trend > 0) {
+            trendElement.textContent = "↗️";
+            trendElement.className = "metric-trend trend-up";
+          } else if (trend < 0) {
+            trendElement.textContent = "↘️";
+            trendElement.className = "metric-trend trend-down";
+          } else {
+            trendElement.textContent = "→";
+            trendElement.className = "metric-trend trend-stable";
+          }
+        });
+
+        previousMetrics = { ...current };
+      }
+
+      function calculateTrend(current, previous, inverted = false) {
+        const diff = current - previous;
+        const threshold = Math.abs(current) * 0.05; // 5% de cambio
+
+        if (Math.abs(diff) < threshold) return 0; // Estable
+
+        const trend = diff > 0 ? 1 : -1;
+        return inverted ? -trend : trend;
+      }
+
+      function checkAlerts() {
+        if (!alertsEnabled) return;
+
+        const latest = getLatestMetrics();
+        const alert = document.getElementById("performanceAlert");
+
+        const shouldAlert =
+          latest.memory > 80 ||
+          latest.cpu > 85 ||
+          latest.network > 400 ||
+          latest.fps < 40 ||
+          latest.cache < 70 ||
+          latest.load > 2500;
+
+        if (shouldAlert && alert.style.display === "none") {
+          alert.style.display = "block";
+          logEntry("⚠️ Alerta de rendimiento activada", "warning");
+        } else if (!shouldAlert && alert.style.display === "block") {
+          alert.style.display = "none";
+          logEntry("✅ Rendimiento normalizado", "success");
+        }
+      }
+
+      function drawChart() {
+        if (!ctx) return;
+
+        // Limpiar canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Configuración
+        const padding = 40;
+        const chartWidth = canvas.width - padding * 2;
+        const chartHeight = canvas.height - padding * 2;
+
+        // Dibujar grid
+        drawGrid(padding, chartWidth, chartHeight);
+
+        // Dibujar líneas de datos
+        const colors = {
+          memory: "#00ff88",
+          cpu: "#ff6b7a",
+          network: "#ffd700",
+          fps: "#00d4ff",
+        };
+
+        Object.keys(colors).forEach((metric) => {
+          if (performanceHistory[metric].length > 1) {
+            drawLine(
+              performanceHistory[metric],
+              colors[metric],
+              padding,
+              chartWidth,
+              chartHeight
+            );
+          }
+        });
+
+        // Dibujar leyenda
+        drawLegend(colors, padding);
+      }
+
+      function drawGrid(padding, width, height) {
+        ctx.strokeStyle = "#2d3748";
+        ctx.lineWidth = 1;
+
+        // Líneas horizontales
+        for (let i = 0; i <= 10; i++) {
+          const y = padding + (height / 10) * i;
+          ctx.beginPath();
+          ctx.moveTo(padding, y);
+          ctx.lineTo(padding + width, y);
+          ctx.stroke();
+        }
+
+        // Líneas verticales
+        for (let i = 0; i <= 10; i++) {
+          const x = padding + (width / 10) * i;
+          ctx.beginPath();
+          ctx.moveTo(x, padding);
+          ctx.lineTo(x, padding + height);
+          ctx.stroke();
+        }
+      }
+
+      function drawLine(data, color, padding, width, height) {
+        if (data.length < 2) return;
+
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+
+        const maxValue = Math.max(...data.map((d) => d.value));
+        const minValue = Math.min(...data.map((d) => d.value));
+        const valueRange = maxValue - minValue || 1;
+
+        data.forEach((point, index) => {
+          const x = padding + (width / (data.length - 1)) * index;
+          const normalizedValue = (point.value - minValue) / valueRange;
+          const y = padding + height - normalizedValue * height;
+
+          if (index === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+        });
+
+        ctx.stroke();
+      }
+
+      function drawLegend(colors, padding) {
+        ctx.font = "12px Segoe UI";
+        ctx.fillStyle = "#e5e7eb";
+
+        let x = padding;
+        let y = 20;
+
+        Object.keys(colors).forEach((metric, index) => {
+          // Dibujar color
+          ctx.fillStyle = colors[metric];
+          ctx.fillRect(x, y - 8, 12, 12);
+
+          // Dibujar texto
+          ctx.fillStyle = "#e5e7eb";
+          ctx.fillText(metric.toUpperCase(), x + 18, y + 2);
+
+          x += 80;
+          if ((index + 1) % 4 === 0) {
+            x = padding;
+            y += 20;
+          }
+        });
+      }
+
+      function logEntry(message, type = "info") {
+        const container = document.getElementById("logContainer");
+        const entry = document.createElement("div");
+        entry.className = "log-entry";
+
+        const colors = {
+          info: "#60a5fa",
+          success: "#10b981",
+          warning: "#fbbf24",
+          error: "#ef4444",
+        };
+
+        entry.style.color = colors[type];
+        entry.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+
+        container.appendChild(entry);
+        container.scrollTop = container.scrollHeight;
+
+        // Mantener solo las últimas 50 entradas
+        while (container.children.length > 50) {
+          container.removeChild(container.firstChild);
+        }
+      }
+
+      function resetMetrics() {
+        performanceHistory = {
+          memory: [],
+          cpu: [],
+          network: [],
+          fps: [],
+          cache: [],
+          load: [],
+        };
+
+        previousMetrics = {
+          memory: 0,
+          cpu: 0,
+          network: 0,
+          fps: 0,
+          cache: 0,
+          load: 0,
+        };
+
+        document.getElementById("logContainer").innerHTML = "";
+        logEntry("🔄 Métricas reiniciadas", "info");
+      }
+
+      function exportReport() {
+        const report = {
+          timestamp: new Date().toISOString(),
+          metrics: performanceHistory,
+          summary: generateSummary(),
+        };
+
+        const blob = new Blob([JSON.stringify(report, null, 2)], {
+          type: "application/json",
+        });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `performance-report-${new Date()
+          .toISOString()
+          .slice(0, 19)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        logEntry("📊 Reporte exportado", "success");
+      }
+
+      function generateSummary() {
+        const latest = getLatestMetrics();
+
+        return {
+          averageMemory: calculateAverage("memory"),
+          averageCPU: calculateAverage("cpu"),
+          averageNetwork: calculateAverage("network"),
+          averageFPS: calculateAverage("fps"),
+          current: latest,
+          alerts: {
+            memoryHigh: latest.memory > 80,
+            cpuHigh: latest.cpu > 85,
+            networkSlow: latest.network > 400,
+            fpsLow: latest.fps < 40,
+          },
+        };
+      }
+
+      function calculateAverage(metric) {
+        const data = performanceHistory[metric];
+        if (data.length === 0) return 0;
+
+        const sum = data.reduce((acc, point) => acc + point.value, 0);
+        return sum / data.length;
+      }
+
+      function captureSnapshot() {
+        const latest = getLatestMetrics();
+        logEntry(
+          `📸 Snapshot: MEM:${Math.round(latest.memory)}MB CPU:${Math.round(
+            latest.cpu
+          )}% NET:${Math.round(latest.network)}ms FPS:${Math.round(
+            latest.fps
+          )}`,
+          "info"
+        );
+      }
+
+      function toggleAlerts() {
+        alertsEnabled = !alertsEnabled;
+        logEntry(
+          `🔔 Alertas ${alertsEnabled ? "activadas" : "desactivadas"}`,
+          "info"
+        );
+      }
+
+      function changeTimeRange(range) {
+        currentTimeRange = range;
+        logEntry(`⏱️ Rango de tiempo cambiado a ${range}`, "info");
+      }
+
+      function getMaxEntries() {
+        const ranges = {
+          "1m": 60,
+          "5m": 300,
+          "15m": 900,
+        };
+        return ranges[currentTimeRange] || 300;
+      }
+
+      // Inicialización
+      document.addEventListener("DOMContentLoaded", function () {
+        initializeCanvas();
+        logEntry("📊 Performance Monitor iniciado", "success");
+
+        // Redimensionar canvas cuando cambie el tamaño de ventana
+        window.addEventListener("resize", () => {
+          canvas.width = canvas.offsetWidth;
+          canvas.height = canvas.offsetHeight;
+          drawChart();
+        });
+      });
+    </script>
+  </body>
+</html>

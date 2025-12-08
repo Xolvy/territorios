@@ -1,0 +1,228 @@
+{
+  "// 🚀 CONFIGURACIÓN OPTIMIZADA VS CODE 2025": "",
+  "// Configuraciones para las extensiones instaladas": "",
+
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true,
+    "source.organizeImports": true,
+    "source.addMissingImports": true
+  },
+
+  "// 🎯 TypeScript & JavaScript": "",
+  "typescript.suggest.autoImports": true,
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "javascript.suggest.autoImports": true,
+  "javascript.updateImportsOnFileMove.enabled": "always",
+  "typescript.preferences.importModuleSpecifier": "relative",
+
+  "// 📝 Formatters": "",
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  "// 🎨 Tailwind CSS IntelliSense": "",
+  "tailwindCSS.includeLanguages": {
+    "typescript": "javascript",
+    "typescriptreact": "javascript"
+  },
+  "tailwindCSS.experimental.classRegex": [
+    ["clsx\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"],
+    ["cn\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"]
+  ],
+  "css.validate": false,
+  "scss.validate": false,
+  "less.validate": false,
+
+  "// 🔍 ESLint": "",
+  "eslint.enable": true,
+  "eslint.validate": [
+    "javascript",
+    "typescript",
+    "javascriptreact",
+    "typescriptreact"
+  ],
+  "eslint.workingDirectories": ["./"],
+
+  "// 🎯 Error Lens": "",
+  "errorLens.enabled": true,
+  "errorLens.enabledDiagnosticLevels": ["error", "warning", "info"],
+  "errorLens.fontSize": "12px",
+  "errorLens.fontStyleItalic": true,
+
+  "// 🌈 Better Comments": "",
+  "better-comments.multilineComments": true,
+  "better-comments.highlightPlainText": false,
+  "better-comments.tags": [
+    {
+      "tag": "!",
+      "color": "#FF2D00",
+      "strikethrough": false,
+      "underline": false,
+      "backgroundColor": "transparent",
+      "bold": false,
+      "italic": false
+    },
+    {
+      "tag": "?",
+      "color": "#3498DB",
+      "strikethrough": false,
+      "underline": false,
+      "backgroundColor": "transparent",
+      "bold": false,
+      "italic": false
+    },
+    {
+      "tag": "//",
+      "color": "#474747",
+      "strikethrough": true,
+      "underline": false,
+      "backgroundColor": "transparent",
+      "bold": false,
+      "italic": false
+    },
+    {
+      "tag": "todo",
+      "color": "#FF8C00",
+      "strikethrough": false,
+      "underline": false,
+      "backgroundColor": "transparent",
+      "bold": false,
+      "italic": false
+    },
+    {
+      "tag": "*",
+      "color": "#98C379",
+      "strikethrough": false,
+      "underline": false,
+      "backgroundColor": "transparent",
+      "bold": false,
+      "italic": false
+    }
+  ],
+
+  "// 🎨 Bracket Pair Colorizer": "",
+  "editor.bracketPairColorization.enabled": true,
+  "editor.guides.bracketPairs": "active",
+
+  "// 📱 Auto Rename Tag": "",
+  "auto-rename-tag.activationOnLanguage": [
+    "html",
+    "xml",
+    "php",
+    "javascript",
+    "typescript",
+    "javascriptreact",
+    "typescriptreact"
+  ],
+
+  "// 🔥 Firebase": "",
+  "files.associations": {
+    "firestore.rules": "javascript",
+    "storage.rules": "javascript",
+    "firebase.json": "json"
+  },
+
+  "// 📁 File Explorer": "",
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.expand": false,
+  "explorer.fileNesting.patterns": {
+    "*.ts": "${capture}.js",
+    "*.js": "${capture}.js.map, ${capture}.min.js, ${capture}.d.ts",
+    "*.jsx": "${capture}.js",
+    "*.tsx": "${capture}.ts",
+    "package.json": "package-lock.json, yarn.lock, pnpm-lock.yaml",
+    "tailwind.config.js": "tailwind.config.ts, postcss.config.js, postcss.config.ts",
+    ".eslintrc.js": ".eslintrc.json, .eslintignore, .prettierrc, .prettierignore",
+    "next.config.js": "next.config.ts, next-env.d.ts"
+  },
+
+  "// 🚀 IntelliSense": "",
+  "editor.suggest.insertMode": "replace",
+  "editor.acceptSuggestionOnCommitCharacter": true,
+  "editor.acceptSuggestionOnEnter": "on",
+  "editor.suggestSelection": "first",
+  "editor.tabCompletion": "on",
+  "editor.wordBasedSuggestions": false,
+
+  "// 🎯 Git": "",
+  "git.autofetch": true,
+  "git.confirmSync": false,
+  "git.enableSmartCommit": true,
+  "gitlens.codeLens.enabled": true,
+  "gitlens.blame.compact": true,
+
+  "// 📊 Performance": "",
+  "typescript.disableAutomaticTypeAcquisition": false,
+  "typescript.preferences.includePackageJsonAutoImports": "auto",
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/bower_components": true,
+    "**/*.code-search": true,
+    "**/.next": true,
+    "**/dist": true,
+    "**/build": true
+  },
+
+  "// 🎨 UI Improvements": "",
+  "workbench.iconTheme": "material-icon-theme",
+  "material-icon-theme.activeIconPack": "react",
+  "material-icon-theme.folders.associations": {
+    "components": "react",
+    "hooks": "custom",
+    "utils": "tools",
+    "lib": "shared",
+    "types": "typescript"
+  },
+
+  "// 🔧 Editor Enhancements": "",
+  "editor.minimap.enabled": true,
+  "editor.minimap.maxColumn": 120,
+  "editor.rulers": [80, 120],
+  "editor.wordWrap": "bounded",
+  "editor.wordWrapColumn": 120,
+  "editor.renderWhitespace": "boundary",
+  "editor.showFoldingControls": "mouseover",
+  "editor.foldingStrategy": "indentation",
+
+  "// 📝 TODO Highlight": "",
+  "todohighlight.isEnable": true,
+  "todohighlight.keywords": [
+    {
+      "text": "TODO:",
+      "color": "#FF8C00",
+      "backgroundColor": "transparent",
+      "overviewRulerColor": "#FF8C00"
+    },
+    {
+      "text": "FIXME:",
+      "color": "#FF2D00",
+      "backgroundColor": "transparent",
+      "overviewRulerColor": "#FF2D00"
+    },
+    {
+      "text": "NOTE:",
+      "color": "#3498DB",
+      "backgroundColor": "transparent",
+      "overviewRulerColor": "#3498DB"
+    }
+  ],
+
+  "// 🎯 SonarLint": "",
+  "sonarlint.rules": {
+    "typescript:S1128": "off", // Unused imports - manejado por ESLint
+    "typescript:S125": "off", // Commented code - a veces es útil
+    "javascript:S1128": "off" // Unused imports - manejado por ESLint
+  }
+}

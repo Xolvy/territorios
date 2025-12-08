@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="64" fill="#3b82f6"/>
+  <path d="M128 128h256v256H128z" fill="white"/>
+  <path d="M160 160h64v64h-64zM288 160h64v64h-64zM160 288h64v64h-64zM288 288h64v64h-64z" fill="#3b82f6"/>
+  <text x="256" y="420" text-anchor="middle" fill="white" font-family="Arial" font-size="36" font-weight="bold">TERRITORIOS JW</text>
+</svg>

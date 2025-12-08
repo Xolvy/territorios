@@ -1,0 +1,306 @@
+{
+  "// 🚀 VS CODE SETTINGS FUTURISTAS 2026": "",
+  "// Configuración optimizada para tecnologías emergentes": "",
+
+  "// 🤖 CONFIGURACIÓN IA Y MACHINE LEARNING": "",
+  "github.copilot.enable": {
+    "*": true,
+    "yaml": true,
+    "plaintext": true,
+    "markdown": true,
+    "solidity": true
+  },
+  "github.copilot.inlineSuggest.enable": true,
+  "github.copilot.advanced": {
+    "secret_key": "github_pat_*",
+    "length": 500,
+    "temperature": 0.1,
+    "top_p": 1,
+    "stop": ["\\n\\n\\n"]
+  },
+
+  "codeium.enableConfig": {
+    "*": true,
+    "solidity": true,
+    "rust": true,
+    "dockerfile": true,
+    "kubernetes": true
+  },
+  "codeium.enableCodeLens": true,
+  "codeium.enableSearch": true,
+
+  "continue.telemetryEnabled": false,
+  "continue.enableTabAutocomplete": true,
+  "continue.modelTitle": "GPT-4 Turbo",
+
+  "// ⛓️ CONFIGURACIÓN WEB3 Y BLOCKCHAIN": "",
+  "solidity.enabledAsYouTypeCompilationErrorCheck": true,
+  "solidity.validationDelay": 1500,
+  "solidity.packageDefaultDependenciesContractsDirectory": "contracts",
+  "solidity.packageDefaultDependenciesDirectory": "node_modules",
+  "solidity.compileUsingRemoteVersion": "latest",
+  "solidity.monoRepoSupport": true,
+
+  "hardhat.telemetry": false,
+  "hardhat.format.enable": true,
+  "hardhat.format.formatter": "prettier",
+
+  "// ☁️ CONFIGURACIÓN DEVOPS Y CLOUD NATIVE": "",
+  "docker.attachShellCommand.linuxContainer": "/bin/bash",
+  "docker.attachShellCommand.windowsContainer": "powershell",
+  "docker.defaultRegistryPath": "",
+  "docker.showStartPage": false,
+
+  "kubernetes.namespace": "default",
+  "kubernetes.defaultKubeconfig": "",
+  "kubernetes.autoCleanupOnDebugTerminate": true,
+  "vs-kubernetes": {
+    "vs-kubernetes.crd-code-completion": "enabled",
+    "vs-kubernetes.disable-linters": [],
+    "vs-kubernetes.kubectl-path": "",
+    "vs-kubernetes.helm-path": "",
+    "vs-kubernetes.draft-path": "",
+    "vs-kubernetes.minikube-path": "",
+    "vs-kubernetes.outputFormat": "yaml"
+  },
+
+  "terraform.experimentalFeatures.validateOnSave": true,
+  "terraform.experimentalFeatures.prefillRequiredFields": true,
+  "terraform.languageServer.enable": true,
+  "terraform.languageServer.args": ["serve"],
+
+  "// 🧪 CONFIGURACIÓN TESTING AVANZADO": "",
+  "playwright.reuseBrowser": true,
+  "playwright.enableTrace": true,
+  "playwright.enableVideo": true,
+  "playwright.enableScreenshots": true,
+  "playwright.headless": false,
+  "playwright.workers": 4,
+
+  "vitest.enable": true,
+  "vitest.commandLine": "npx vitest",
+  "vitest.include": ["**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
+  "vitest.exclude": ["**/node_modules/**", "**/dist/**", "**/cypress/**"],
+
+  "jest.jestCommandLine": "npm test",
+  "jest.autoRun": {
+    "watch": true,
+    "onStartup": ["all-tests"]
+  },
+  "jest.enableInlineErrorMessages": true,
+  "jest.showCoverageOnLoad": true,
+
+  "coverage-gutters.showGutterCoverage": true,
+  "coverage-gutters.showLineCoverage": true,
+  "coverage-gutters.showRulerCoverage": true,
+  "coverage-gutters.coverageFileNames": [
+    "lcov.info",
+    "cov.xml",
+    "coverage.xml",
+    "jacoco.xml",
+    "coverage.lcov"
+  ],
+
+  "// 📊 CONFIGURACIÓN PERFORMANCE Y ANALYTICS": "",
+  "importCost.bundleSizeDecoration": "both",
+  "importCost.showCalculatingDecoration": true,
+  "importCost.debug": false,
+  "importCost.typescriptExtensions": ["\\.tsx?$"],
+  "importCost.javascriptExtensions": ["\\.jsx?$"],
+
+  "// 🎨 CONFIGURACIÓN DESIGN SYSTEMS": "",
+  "figma.autocompleteBlocks": true,
+  "figma.fontHelper": true,
+  "figma.assetHelper": true,
+
+  "svg.preview.mode": "svg",
+  "svg.preview.autoOpen": true,
+  "svg.completion.showDeprecated": false,
+
+  "// 🚀 CONFIGURACIÓN FRAMEWORKS MODERNOS": "",
+  "astro.trace.server": "messages",
+  "astro.typescript.enabled": true,
+  "astro.typescript.allowArbitraryAttributes": false,
+
+  "svelte.enable-ts-plugin": true,
+  "svelte.ask-to-enable-ts-plugin": false,
+  "svelte.language-server.debug": false,
+  "svelte.language-server.ls-path": "",
+
+  "// 🌍 CONFIGURACIÓN WEBASSEMBLY": "",
+  "wasm.wasi.enabled": true,
+  "wasm.wasi.trace": false,
+
+  "// 🦀 CONFIGURACIÓN RUST": "",
+  "rust-analyzer.enable": true,
+  "rust-analyzer.server.path": "",
+  "rust-analyzer.updates.channel": "stable",
+  "rust-analyzer.assist.importEnforceGranularity": true,
+  "rust-analyzer.assist.importPrefix": "crate",
+  "rust-analyzer.cargo.buildScripts.enable": true,
+  "rust-analyzer.completion.addCallArgumentSnippets": true,
+  "rust-analyzer.completion.addCallParenthesis": true,
+
+  "// 🔗 CONFIGURACIÓN REMOTE DEVELOPMENT": "",
+  "remote.SSH.connectTimeout": 15,
+  "remote.SSH.enableDynamicForwarding": true,
+  "remote.SSH.enableX11Forwarding": true,
+  "remote.SSH.showLoginTerminal": true,
+
+  "remote.containers.dockerPath": "docker",
+  "remote.containers.dockerComposePath": "docker-compose",
+  "remote.containers.defaultExtensions": [
+    "ms-vscode.vscode-typescript-next",
+    "bradlc.vscode-tailwindcss",
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint"
+  ],
+
+  "// ⚡ CONFIGURACIÓN PERFORMANCE EDITOR": "",
+  "editor.quickSuggestions": {
+    "other": "on",
+    "comments": "on",
+    "strings": "on"
+  },
+  "editor.quickSuggestionsDelay": 0,
+  "editor.suggestOnTriggerCharacters": true,
+  "editor.acceptSuggestionOnEnter": "smart",
+  "editor.snippetSuggestions": "top",
+  "editor.wordBasedSuggestions": "matchingDocuments",
+  "editor.semanticHighlighting.enabled": true,
+  "editor.bracketPairColorization.independentColorPoolPerBracketType": true,
+
+  "// 🎯 CONFIGURACIÓN INTELLISENSE AVANZADO": "",
+  "typescript.suggest.completeFunctionCalls": true,
+  "typescript.suggest.includeAutomaticOptionalChainCompletions": true,
+  "typescript.suggest.jsdoc.generateReturns": true,
+  "typescript.implementationsCodeLens.enabled": true,
+  "typescript.referencesCodeLens.enabled": true,
+  "typescript.preferences.includePackageJsonAutoImports": "auto",
+  "typescript.inlayHints.parameterNames.enabled": "all",
+  "typescript.inlayHints.parameterTypes.enabled": true,
+  "typescript.inlayHints.variableTypes.enabled": true,
+  "typescript.inlayHints.propertyDeclarationTypes.enabled": true,
+  "typescript.inlayHints.functionLikeReturnTypes.enabled": true,
+
+  "// 🔍 CONFIGURACIÓN BÚSQUEDA Y NAVEGACIÓN": "",
+  "search.smartCase": true,
+  "search.globalFindClipboard": true,
+  "search.seedWithNearestWord": true,
+  "search.seedOnFocus": true,
+  "search.actionsPosition": "right",
+  "search.maintainFileSearchCache": true,
+  "search.maxResults": 20000,
+
+  "// 🎨 CONFIGURACIÓN UI FUTURISTA": "",
+  "workbench.colorTheme": "Monokai Pro (Filter Spectrum)",
+  "workbench.iconTheme": "material-icon-theme",
+  "workbench.productIconTheme": "fluent-icons",
+  "workbench.tree.renderIndentGuides": "always",
+  "workbench.tree.indent": 12,
+  "workbench.activityBar.location": "default",
+  "workbench.sideBar.location": "left",
+  "workbench.panel.defaultLocation": "bottom",
+  "workbench.editor.enablePreview": false,
+  "workbench.editor.enablePreviewFromQuickOpen": false,
+  "workbench.startupEditor": "welcomePageInEmptyWorkbench",
+
+  "// 📱 CONFIGURACIÓN RESPONSIVE": "",
+  "window.zoomLevel": 0,
+  "window.autoDetectHighContrast": true,
+  "window.autoDetectColorScheme": true,
+  "window.titleBarStyle": "custom",
+  "window.commandCenter": true,
+
+  "// 🔥 CONFIGURACIÓN EXPERIMENTALES 2026": "",
+  "editor.experimental.asyncTokenization": true,
+  "editor.experimental.stickyScroll.enabled": true,
+  "typescript.experimental.enableProjectDiagnostics": true,
+  "eslint.experimental.useFlatConfig": true,
+  "git.experimental.mergeEditor": true,
+  "terminal.integrated.experimentalReconnection": true,
+
+  "// 🎯 FILE ASSOCIATIONS FUTURISTAS": "",
+  "files.associations": {
+    "*.sol": "solidity",
+    "*.wasm": "wasm",
+    "*.wat": "wasm",
+    "*.rs": "rust",
+    "*.astro": "astro",
+    "*.svelte": "svelte",
+    "Dockerfile*": "dockerfile",
+    "*.containerfile": "dockerfile",
+    "*.k8s.yaml": "kubernetes",
+    "*.k8s.yml": "kubernetes",
+    "*.helm.yaml": "helm",
+    "*.tf": "terraform",
+    "*.tfvars": "terraform-vars",
+    "*.hcl": "terraform"
+  },
+
+  "// 🚀 EMMET PARA FRAMEWORKS MODERNOS": "",
+  "emmet.includeLanguages": {
+    "astro": "html",
+    "svelte": "html",
+    "vue": "html",
+    "solidity": "javascript",
+    "rust": "html"
+  },
+  "emmet.triggerExpansionOnTab": true,
+  "emmet.showSuggestionsAsSnippets": true,
+
+  "// 🎮 CONFIGURACIÓN TERMINAL AVANZADA": "",
+  "terminal.integrated.defaultProfile.windows": "PowerShell",
+  "terminal.integrated.profiles.windows": {
+    "PowerShell": {
+      "source": "PowerShell",
+      "icon": "terminal-powershell",
+      "args": ["-NoExit", "-Command", "Clear-Host"]
+    },
+    "Command Prompt": {
+      "path": "cmd.exe",
+      "icon": "terminal-cmd"
+    },
+    "Git Bash": {
+      "path": "C:\\Program Files\\Git\\bin\\bash.exe",
+      "icon": "terminal-bash"
+    },
+    "WSL": {
+      "path": "wsl.exe",
+      "icon": "terminal-ubuntu"
+    }
+  },
+  "terminal.integrated.fontSize": 14,
+  "terminal.integrated.lineHeight": 1.2,
+  "terminal.integrated.cursorBlinking": true,
+  "terminal.integrated.cursorStyle": "block",
+  "terminal.integrated.enableMultiLinePasteWarning": false,
+
+  "// 🔐 CONFIGURACIÓN SEGURIDAD": "",
+  "security.workspace.trust.enabled": true,
+  "security.workspace.trust.startupPrompt": "once",
+  "security.workspace.trust.banner": "always",
+  "extensions.autoCheckUpdates": true,
+  "extensions.autoUpdate": true,
+
+  "// 🎯 WORKSPACE ESPECÍFICO": "",
+  "files.exclude": {
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/CVS": true,
+    "**/.DS_Store": true,
+    "**/Thumbs.db": true,
+    "**/.next": true,
+    "**/dist": true,
+    "**/build": true,
+    "**/coverage": true,
+    "**/.nyc_output": true,
+    "**/node_modules": true,
+    "**/.cache": true,
+    "**/.temp": true,
+    "**/.wasm-pack": true,
+    "**/target": true,
+    "**/Cargo.lock": false
+  }
+}

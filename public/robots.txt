@@ -1,0 +1,30 @@
+# Robots.txt optimizado para App Conductores en Azure Static Web Apps
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /test-*
+Disallow: /_next/
+
+# Mapas del sitio
+Sitemap: https://lively-hill-009fd0b0f.2.azurestaticapps.net/sitemap.xml
+
+# Crawl-delay para bots
+Crawl-delay: 1
+
+# Permitir específicamente las páginas principales
+Allow: /admin
+Allow: /diagnostico
+Allow: /enhanced
+
+# Google específico
+User-agent: Googlebot
+Allow: /
+Disallow: /api/
+Disallow: /test-*
+
+# Bing específico  
+User-agent: Bingbot
+Allow: /
+Disallow: /api/
+Disallow: /test-*

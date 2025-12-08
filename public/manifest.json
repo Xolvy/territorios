@@ -1,0 +1,35 @@
+{
+  "name": "App Conductores - Sistema de Gestión Territorial",
+  "short_name": "App Conductores",
+  "description": "Sistema completo de gestión de territorios y predicación telefónica optimizado para Azure Static Web Apps",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "categories": ["productivity", "utilities", "business"],
+  "lang": "es",
+  "dir": "ltr",
+  "prefer_related_applications": false,
+  "edge_side_includes": false,
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "192x192",
+      "type": "image/x-icon",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "512x512",
+      "type": "image/x-icon",
+      "purpose": "any"
+    }
+  ]
+}

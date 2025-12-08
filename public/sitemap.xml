@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  
+  <!-- Homepage -->
+  <url>
+    <loc>https://lively-hill-009fd0b0f.2.azurestaticapps.net/</loc>
+    <lastmod>2024-10-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <!-- Admin Panel -->
+  <url>
+    <loc>https://lively-hill-009fd0b0f.2.azurestaticapps.net/admin</loc>
+    <lastmod>2024-10-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Diagnostics Page -->
+  <url>
+    <loc>https://lively-hill-009fd0b0f.2.azurestaticapps.net/diagnostico</loc>
+    <lastmod>2024-10-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Enhanced Features -->
+  <url>
+    <loc>https://lively-hill-009fd0b0f.2.azurestaticapps.net/enhanced</loc>
+    <lastmod>2024-10-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Auth Test -->
+  <url>
+    <loc>https://lively-hill-009fd0b0f.2.azurestaticapps.net/auth-test</loc>
+    <lastmod>2024-10-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+</urlset>
