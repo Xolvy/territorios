@@ -24,12 +24,17 @@ service cloud.firestore {
     }
 
     // Reglas abiertas para lectura para evitar bloqueos en Demo/Dashboard
-    match /programa_semanal/{document=**} {
+    match /programas/{document=**} {
       allow read: if true;
       allow write: if isAuthenticated();
     }
     
     match /publicadores/{document=**} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    match /territorios/{document=**} {
       allow read: if true;
       allow write: if isAuthenticated();
     }
