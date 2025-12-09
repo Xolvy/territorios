@@ -31,6 +31,9 @@ export const renderAdminDashboard = async (container) => {
                     <button class="tab-btn text-left p-3 rounded-lg hover:bg-white/5 transition-colors text-gray-300" data-tab="predicacion">
                         📢 Predicación Pública
                     </button>
+                    <button class="tab-btn text-left p-3 rounded-lg hover:bg-white/5 transition-colors text-gray-300" data-tab="telefonos">
+                        📞 Teléfonos
+                    </button>
                     <button class="tab-btn text-left p-3 rounded-lg hover:bg-white/5 transition-colors text-gray-300" data-tab="programa">
                         📅 Programa Semanal
                     </button>
@@ -77,6 +80,8 @@ const loadTab = async (tabName) => {
         await renderConfigTab(contentDiv);
     } else if (tabName === 'predicacion') {
         await renderPredicacionTab(contentDiv);
+    } else if (tabName === 'telefonos') {
+        await renderTelefonosTab(contentDiv);
     } else if (tabName === 'programa') {
         await renderProgramaTab(contentDiv);
     }
@@ -94,7 +99,6 @@ const renderConfigTab = async (container) => {
             <button class="sub-tab-btn active bg-teal-500/20 text-teal-200 px-4 py-2 rounded-lg border border-teal-500/30" data-sub="modulos">Módulos</button>
             <button class="sub-tab-btn bg-white/5 text-gray-400 px-4 py-2 rounded-lg hover:bg-white/10" data-sub="congregacion">Congregación</button>
             <button class="sub-tab-btn bg-white/5 text-gray-400 px-4 py-2 rounded-lg hover:bg-white/10" data-sub="territorios">Territorios</button>
-            <button class="sub-tab-btn bg-white/5 text-gray-400 px-4 py-2 rounded-lg hover:bg-white/10" data-sub="telefonos">Teléfonos</button>
             <button class="sub-tab-btn bg-white/5 text-gray-400 px-4 py-2 rounded-lg hover:bg-white/10" data-sub="conductores">Conductores</button>
             <button class="sub-tab-btn bg-white/5 text-gray-400 px-4 py-2 rounded-lg hover:bg-white/10" data-sub="publicadores">Publicadores</button>
         </div>
@@ -349,189 +353,191 @@ const loadSubTab = async (subTab, container, config) => {
         }, async (id, data) => {
             await updatePublicador(id, data);
         });
-    } else if (subTab === 'telefonos') {
-        const telefonos = await getTelefonos();
-        container.innerHTML = `
-                                <h3 class="font-semibold text-lg text-teal-100 mb-4">Base de Datos de Teléfonos</h3>
-                                <div class="flex gap-2 mb-4">
-                                    <button id="btn-add-phone" class="bg-teal-600 px-4 py-2 rounded-lg text-sm">+ Manual</button>
-                                    <input type="file" id="csv-upload" accept=".csv" class="hidden">
-                                        <button id="btn-csv" class="bg-white/10 px-4 py-2 rounded-lg text-sm border border-white/10 hover:bg-white/20">📂 Cargar CSV</button>
-                                </div>
+    }
+};
 
-                                <!-- Progress Bar Container -->
-                                <div id="upload-progress-container" class="hidden mb-4 p-4 bg-white/5 rounded-lg border border-white/10">
-                                    <div class="flex justify-between text-sm text-gray-300 mb-2">
-                                        <span id="progress-text">Cargando...</span>
-                                        <span id="progress-percent">0%</span>
-                                    </div>
-                                    <div class="w-full bg-black/50 rounded-full h-2.5">
-                                        <div id="upload-progress-bar" class="bg-teal-500 h-2.5 rounded-full" style="width: 0%"></div>
-                                    </div>
-                                </div>
+const renderTelefonosTab = async (container) => {
+    const telefonos = await getTelefonos();
+    container.innerHTML = `
+                            <h3 class="font-semibold text-lg text-teal-100 mb-4">Base de Datos de Teléfonos</h3>
+                            <div class="flex gap-2 mb-4">
+                                <button id="btn-add-phone" class="bg-teal-600 px-4 py-2 rounded-lg text-sm">+ Manual</button>
+                                <input type="file" id="csv-upload" accept=".csv" class="hidden">
+                                    <button id="btn-csv" class="bg-white/10 px-4 py-2 rounded-lg text-sm border border-white/10 hover:bg-white/20">📂 Cargar CSV</button>
+                            </div>
 
-                                <div class="bg-black/20 rounded-lg border border-white/5 h-96 overflow-y-auto">
-                                    ${telefonos.length === 0 ?
-                '<div class="p-8 text-center text-gray-500">No hay teléfonos registrados</div>' :
-                `<div class="divide-y divide-white/10">
-                        ${telefonos.map(t => `
-                            <div class="flex justify-between items-center p-3 hover:bg-white/5 group">
-                                <div>
-                                    <div class="font-mono text-teal-300 font-bold">${t.numero}</div>
-                                    <div class="text-xs text-gray-400">${t.direccion || 'Sin dirección'} ${t.propietario ? `• ${t.propietario}` : ''}</div>
-                                    <div class="text-xs text-gray-600">Estado: ${t.estado || 'Nuevo'}</div>
+                            <!-- Progress Bar Container -->
+                            <div id="upload-progress-container" class="hidden mb-4 p-4 bg-white/5 rounded-lg border border-white/10">
+                                <div class="flex justify-between text-sm text-gray-300 mb-2">
+                                    <span id="progress-text">Cargando...</span>
+                                    <span id="progress-percent">0%</span>
                                 </div>
-                                <div class="flex gap-2">
-                                     <button onclick="window.editTelefonoAdmin('${t.id}')" class="text-blue-400 p-2 hover:bg-blue-500/20 rounded opacity-0 group-hover:opacity-100 transition-opacity">✏️</button>
-                                     <button onclick="window.deleteTelefonoAdmin('${t.id}')" class="text-red-400 p-2 hover:bg-red-500/20 rounded opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
+                                <div class="w-full bg-black/50 rounded-full h-2.5">
+                                    <div id="upload-progress-bar" class="bg-teal-500 h-2.5 rounded-full" style="width: 0%"></div>
                                 </div>
                             </div>
-                        `).join('')}
-                     </div>`
+
+                            <div class="bg-black/20 rounded-lg border border-white/5 h-[600px] overflow-y-auto">
+                                ${telefonos.length === 0 ?
+            '<div class="p-8 text-center text-gray-500">No hay teléfonos registrados</div>' :
+            `<div class="divide-y divide-white/10">
+                    ${telefonos.map(t => `
+                        <div class="flex justify-between items-center p-3 hover:bg-white/5 group">
+                            <div>
+                                <div class="font-mono text-teal-300 font-bold">${t.numero}</div>
+                                <div class="text-xs text-gray-400">${t.direccion || 'Sin dirección'} ${t.propietario ? `• ${t.propietario}` : ''}</div>
+                                <div class="text-xs text-gray-600">Estado: ${t.estado || 'Nuevo'}</div>
+                            </div>
+                            <div class="flex gap-2">
+                                 <button onclick="window.editTelefonoAdmin('${t.id}')" class="text-blue-400 p-2 hover:bg-blue-500/20 rounded opacity-0 group-hover:opacity-100 transition-opacity">✏️</button>
+                                 <button onclick="window.deleteTelefonoAdmin('${t.id}')" class="text-red-400 p-2 hover:bg-red-500/20 rounded opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
+                            </div>
+                        </div>
+                    `).join('')}
+                 </div>`
+        }
+                            </div>
+                            `;
+
+    window.deleteTelefonoAdmin = async (id) => {
+        showCustomConfirm('¿Eliminar este teléfono?', async () => {
+            await deleteTelefono(id);
+            renderTelefonosTab(container);
+        });
+    };
+
+    window.editTelefonoAdmin = async (id) => {
+        const t = telefonos.find(x => x.id === id);
+        if (!t) return;
+        showModal(`
+                            <h3 class="text-xl font-bold mb-4 text-teal-400">Editar Teléfono</h3>
+
+                            <label class="block text-xs text-teal-500 mb-1">Número</label>
+                            <input type="text" id="edit-p-num" value="${t.numero}" class="w-full mb-3 bg-white/5 border border-white/10 rounded p-2 text-white focus:border-teal-500 outline-none">
+
+                                <label class="block text-xs text-teal-500 mb-1">Dirección</label>
+                                <input type="text" id="edit-p-dir" value="${t.direccion || ''}" class="w-full mb-3 bg-white/5 border border-white/10 rounded p-2 text-white focus:border-teal-500 outline-none">
+
+                                    <label class="block text-xs text-teal-500 mb-1">Propietario</label>
+                                    <input type="text" id="edit-p-prop" value="${t.propietario || ''}" class="w-full mb-4 bg-white/5 border border-white/10 rounded p-2 text-white focus:border-teal-500 outline-none">
+
+                                        <button id="update-phone" class="w-full bg-teal-600 py-2 rounded-lg text-white hover:bg-teal-500 transition-colors">Actualizar</button>
+        `, async (modal) => {
+            document.getElementById('update-phone').addEventListener('click', async () => {
+                await updateTelefono(id, {
+                    numero: document.getElementById('edit-p-num').value,
+                    direccion: document.getElementById('edit-p-dir').value,
+                    propietario: document.getElementById('edit-p-prop').value
+                });
+                modal.classList.add('hidden');
+                renderTelefonosTab(container);
+            });
+        });
+    };
+
+    document.getElementById('btn-csv').addEventListener('click', () => {
+        document.getElementById('csv-upload').click();
+    });
+
+    document.getElementById('csv-upload').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            const text = event.target.result;
+            const lines = text.split('\n');
+            let count = 0;
+
+            // Show progress bar
+            const progressContainer = document.getElementById('upload-progress-container');
+            const progressBar = document.getElementById('upload-progress-bar');
+            const progressText = document.getElementById('progress-text');
+            const progressPercent = document.getElementById('progress-percent');
+
+            progressContainer.classList.remove('hidden');
+
+            const validLines = lines.filter(l => l.trim() && !l.toLowerCase().startsWith('numero') && !l.toLowerCase().startsWith('número'));
+            const total = validLines.length;
+
+            if (total === 0) {
+                showCustomAlert("El archivo está vacío o no tiene formato válido.");
+                progressContainer.classList.add('hidden');
+                return;
             }
-                                </div>
-                                `;
 
-        window.deleteTelefonoAdmin = async (id) => {
-            showCustomConfirm('¿Eliminar este teléfono?', async () => {
-                await deleteTelefono(id);
-                loadSubTab('telefonos', container, config);
-            });
-        };
+            for (let i = 0; i < validLines.length; i++) {
+                const line = validLines[i].trim();
+                const parts = line.split(',');
 
-        window.editTelefonoAdmin = async (id) => {
-            const t = telefonos.find(x => x.id === id);
-            if (!t) return;
-            showModal(`
-                                <h3 class="text-xl font-bold mb-4 text-teal-400">Editar Teléfono</h3>
+                if (parts.length >= 2) {
+                    try {
+                        const name = parts[0]?.trim();
+                        const num = parts[parts.length - 1]?.trim();
+                        const address = parts.length > 2 ? parts[1]?.trim() : '';
 
-                                <label class="block text-xs text-teal-500 mb-1">Número</label>
-                                <input type="text" id="edit-p-num" value="${t.numero}" class="w-full mb-3 bg-white/5 border border-white/10 rounded p-2 text-white focus:border-teal-500 outline-none">
-
-                                    <label class="block text-xs text-teal-500 mb-1">Dirección</label>
-                                    <input type="text" id="edit-p-dir" value="${t.direccion || ''}" class="w-full mb-3 bg-white/5 border border-white/10 rounded p-2 text-white focus:border-teal-500 outline-none">
-
-                                        <label class="block text-xs text-teal-500 mb-1">Propietario</label>
-                                        <input type="text" id="edit-p-prop" value="${t.propietario || ''}" class="w-full mb-4 bg-white/5 border border-white/10 rounded p-2 text-white focus:border-teal-500 outline-none">
-
-                                            <button id="update-phone" class="w-full bg-teal-600 py-2 rounded-lg text-white hover:bg-teal-500 transition-colors">Actualizar</button>
-            `, async (modal) => {
-                document.getElementById('update-phone').addEventListener('click', async () => {
-                    await updateTelefono(id, {
-                        numero: document.getElementById('edit-p-num').value,
-                        direccion: document.getElementById('edit-p-dir').value,
-                        propietario: document.getElementById('edit-p-prop').value
-                    });
-                    modal.classList.add('hidden');
-                    loadSubTab('telefonos', container, config);
-                });
-            });
-        };
-
-        document.getElementById('btn-csv').addEventListener('click', () => {
-            document.getElementById('csv-upload').click();
-        });
-
-        document.getElementById('csv-upload').addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = async (event) => {
-                const text = event.target.result;
-                const lines = text.split('\n');
-                let count = 0;
-
-                // Show progress bar
-                const progressContainer = document.getElementById('upload-progress-container');
-                const progressBar = document.getElementById('upload-progress-bar');
-                const progressText = document.getElementById('progress-text');
-                const progressPercent = document.getElementById('progress-percent');
-
-                progressContainer.classList.remove('hidden');
-
-                const validLines = lines.filter(l => l.trim() && !l.toLowerCase().startsWith('numero') && !l.toLowerCase().startsWith('número'));
-                const total = validLines.length;
-
-                if (total === 0) {
-                    showCustomAlert("El archivo está vacío o no tiene formato válido.");
-                    progressContainer.classList.add('hidden');
-                    return;
+                        if (num && num.length > 5) {
+                            await addTelefono({
+                                numero: num,
+                                direccion: address,
+                                propietario: name
+                            });
+                            count++;
+                        }
+                    } catch (err) { console.error(err); }
                 }
 
-                for (let i = 0; i < validLines.length; i++) {
-                    const line = validLines[i].trim();
-                    const parts = line.split(',');
-
-                    if (parts.length >= 2) {
-                        try {
-                            const name = parts[0]?.trim();
-                            const num = parts[parts.length - 1]?.trim();
-                            const address = parts.length > 2 ? parts[1]?.trim() : '';
-
-                            if (num && num.length > 5) {
-                                await addTelefono({
-                                    numero: num,
-                                    direccion: address,
-                                    propietario: name
-                                });
-                                count++;
-                            }
-                        } catch (err) { console.error(err); }
-                    }
-
-                    // Update progress every 5 items or last item
-                    if (i % 5 === 0 || i === total - 1) {
-                        const percent = Math.round(((i + 1) / total) * 100);
-                        progressBar.style.width = `${percent}%`;
-                        progressPercent.innerText = `${percent}%`;
-                        progressText.innerText = `Cargando ${i + 1} de ${total}...`;
-                        // Allow UI to update
-                        await new Promise(r => setTimeout(r, 0));
-                    }
+                // Update progress every 5 items or last item
+                if (i % 5 === 0 || i === total - 1) {
+                    const percent = Math.round(((i + 1) / total) * 100);
+                    progressBar.style.width = `${percent}%`;
+                    progressPercent.innerText = `${percent}%`;
+                    progressText.innerText = `Cargando ${i + 1} de ${total}...`;
+                    // Allow UI to update
+                    await new Promise(r => setTimeout(r, 0));
                 }
+            }
 
-                progressText.innerText = "Completado";
-                progressBar.style.width = "100%";
-                progressPercent.innerText = "100%";
+            progressText.innerText = "Completado";
+            progressBar.style.width = "100%";
+            progressPercent.innerText = "100%";
 
-                setTimeout(() => {
-                    progressContainer.classList.add('hidden');
-                    showCustomAlert(`Se cargaron ${count} teléfonos correctamente.`);
-                    loadSubTab('telefonos', container, config);
-                }, 500);
-            };
-            reader.readAsText(file);
-        });
+            setTimeout(() => {
+                progressContainer.classList.add('hidden');
+                showCustomAlert(`Se cargaron ${count} teléfonos correctamente.`);
+                renderTelefonosTab(container);
+            }, 500);
+        };
+        reader.readAsText(file);
+    });
 
-        document.getElementById('btn-add-phone').addEventListener('click', () => {
-            showModal(`
-                <h3 class="text-xl font-bold mb-4 text-teal-400">Nuevo Teléfono</h3>
-                
-                <label class="block text-xs text-teal-500 mb-1">Número</label>
-                <input type="text" id="new-p-num" placeholder="Ej. 0991234567" class="w-full mb-3 bg-white/5 border border-white/10 rounded p-2 text-white focus:border-teal-500 outline-none">
-                
-                <label class="block text-xs text-teal-500 mb-1">Dirección</label>
-                <input type="text" id="new-p-dir" placeholder="Ej. Av. Principal 123" class="w-full mb-3 bg-white/5 border border-white/10 rounded p-2 text-white focus:border-teal-500 outline-none">
-                
-                <label class="block text-xs text-teal-500 mb-1">Propietario</label>
-                <input type="text" id="new-p-prop" placeholder="Ej. Juan Pérez" class="w-full mb-4 bg-white/5 border border-white/10 rounded p-2 text-white focus:border-teal-500 outline-none">
-                
-                <button id="save-new-phone" class="w-full bg-teal-600 py-2 rounded-lg text-white hover:bg-teal-500 transition-colors">Guardar</button>
-            `, async (modal) => {
-                document.getElementById('save-new-phone').addEventListener('click', async () => {
-                    await addTelefono({
-                        numero: document.getElementById('new-p-num').value,
-                        direccion: document.getElementById('new-p-dir').value,
-                        propietario: document.getElementById('new-p-prop').value
-                    });
-                    modal.classList.add('hidden');
-                    loadSubTab('telefonos', container, config);
-                    showCustomAlert("Teléfono agregado");
+    document.getElementById('btn-add-phone').addEventListener('click', () => {
+        showModal(`
+            <h3 class="text-xl font-bold mb-4 text-teal-400">Nuevo Teléfono</h3>
+            
+            <label class="block text-xs text-teal-500 mb-1">Número</label>
+            <input type="text" id="new-p-num" placeholder="Ej. 0991234567" class="w-full mb-3 bg-white/5 border border-white/10 rounded p-2 text-white focus:border-teal-500 outline-none">
+            
+            <label class="block text-xs text-teal-500 mb-1">Dirección</label>
+            <input type="text" id="new-p-dir" placeholder="Ej. Av. Principal 123" class="w-full mb-3 bg-white/5 border border-white/10 rounded p-2 text-white focus:border-teal-500 outline-none">
+            
+            <label class="block text-xs text-teal-500 mb-1">Propietario</label>
+            <input type="text" id="new-p-prop" placeholder="Ej. Juan Pérez" class="w-full mb-4 bg-white/5 border border-white/10 rounded p-2 text-white focus:border-teal-500 outline-none">
+            
+            <button id="save-new-phone" class="w-full bg-teal-600 py-2 rounded-lg text-white hover:bg-teal-500 transition-colors">Guardar</button>
+        `, async (modal) => {
+            document.getElementById('save-new-phone').addEventListener('click', async () => {
+                await addTelefono({
+                    numero: document.getElementById('new-p-num').value,
+                    direccion: document.getElementById('new-p-dir').value,
+                    propietario: document.getElementById('new-p-prop').value
                 });
+                modal.classList.add('hidden');
+                renderTelefonosTab(container);
+                showCustomAlert("Teléfono agregado");
             });
         });
-    }
+    });
 };
 
 /* Updated Helper for simple CRUD lists with Edit support */
