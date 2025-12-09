@@ -968,21 +968,16 @@ const renderProgramaTab = async (container) => {
                              `;
                         }
 
-                        const dataListId = `dl-grupos-${turno.id}-${dayIndex}`;
+                        const safeVal = (val || '').replace(/"/g, '&quot;');
                         cellContent = `
                             <div class="relative w-full h-full group/input">
-                                <input type="text" list="${dataListId}" 
-                                    class="w-full bg-transparent text-gray-300 text-[11px] py-1.5 pl-2 pr-7 border border-transparent rounded hover:bg-white/5 hover:border-white/10 focus:bg-black/40 focus:border-${turno.accent.split('-')[1]}-500/50 outline-none transition-all text-center font-medium placeholder-gray-700"
-                                    value="${val}"
-                                    placeholder="-"
-                                    data-day="${dayIndex}"
-                                    data-turno="${turno.id}"
-                                    data-field="${field.toLowerCase()}"
+                                <button class="w-full text-left text-[10px] text-gray-300 py-2 px-2 rounded hover:bg-white/10 border border-transparent hover:border-white/10 truncate font-mono transition-colors focus:outline-none focus:border-${turno.accent.split('-')[1]}-500/50"
+                                    onclick="window.openGroupSelector(${dayIndex}, '${turno.id}', this)"
+                                    data-current="${safeVal}"
                                 >
+                                   ${val || '<span class="text-gray-600">-</span>'}
+                                </button>
                                 ${toggleBtn}
-                                <datalist id="${dataListId}">
-                                    ${(options.Grupos || []).map(o => `<option value="${o}">`).join('')}
-                                </datalist>
                             </div>
                         `;
                     } else {
@@ -1053,6 +1048,16 @@ const renderProgramaTab = async (container) => {
         renderTable(); // Re-render to reflect changes
     };
 
+    // Helper: Group selector opener
+    window.openGroupSelector = (dayIdx, turnoId, btnElement) => {
+        const currentVal = programa.dias[dayIdx][turnoId]['grupos'] || '';
+        showGroupSelectionModal(currentVal, (newVal) => {
+            if (!programa.dias[dayIdx][turnoId]) programa.dias[dayIdx][turnoId] = {};
+            programa.dias[dayIdx][turnoId]['grupos'] = newVal;
+            renderTable(); // Re-render to reflect changes
+        });
+    };
+
     // Helper: Territory selector opener
     window.openTerritorySelector = (dayIdx, turnoId, btnElement) => {
         const currentVal = programa.dias[dayIdx][turnoId]['territorio'] || '';
@@ -1093,8 +1098,8 @@ const renderProgramaTab = async (container) => {
 
 /* --- Group Selection Modal --- */
 const showGroupSelectionModal = (currentValue, onSave) => {
-    // 6 Fixed Groups
-    const groups = Array.from({ length: 6 }, (_, i) => ({ id: `g${i + 1}`, label: `Grupo ${i + 1}` }));
+    // 12 Fixed Groups (can be dynamic if needed)
+    const groups = Array.from({ length: 12 }, (_, i) => ({ id: `g${i + 1}`, label: `Grupo ${i + 1}` }));
 
     // Parse current state
     const selectedLabels = new Set();
@@ -1167,7 +1172,13 @@ const showGroupSelectionModal = (currentValue, onSave) => {
                     onSave(selected[0]);
                 } else {
                     const nums = selected.map(s => s.replace('Grupo ', '')).sort((a, b) => a - b);
-                    onSave(`Grupos ${nums.join(', ')}`);
+                    // Format nicer: "Grupos 1, 2 y 3"
+                    if (nums.length === 1) {
+                        onSave(`Grupo ${nums[0]}`);
+                    } else {
+                        const last = nums.pop();
+                        onSave(`Grupos ${nums.join(', ')} y ${last}`);
+                    }
                 }
             }
             modal.classList.add('hidden');
