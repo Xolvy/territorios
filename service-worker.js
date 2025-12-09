@@ -1,4 +1,4 @@
-const CACHE_NAME = 'app-territorios-v2';
+const CACHE_NAME = 'app-territorios-v3';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
@@ -8,6 +8,9 @@ const ASSETS_TO_CACHE = [
     '/modules/login.js',
     '/modules/admin-dashboard.js',
     '/modules/conductor-dashboard.js',
+    '/modules/utils/helpers.js',
+    '/public/icon-192.png',
+    '/public/icon-512.png',
     '/data/firestore-services.js',
     '/firebase-config.js',
     'https://cdn.tailwindcss.com',

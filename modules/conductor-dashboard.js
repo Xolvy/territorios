@@ -4,6 +4,7 @@ import {
     getPublicadores, getConductores, addPublicador
 } from '../data/firestore-services.js';
 import { auth } from '../firebase-config.js';
+import { formatPhoneNumber, getStatusColor } from './utils/helpers.js';
 
 export const renderConductorDashboard = (container, userEmail) => {
     // 1. UI OPTIMISTA: Renderizar estructura base + Skeletons INMEDIATAMENTE
@@ -306,29 +307,13 @@ const renderProgramTable = (programa, container, config) => {
     container.innerHTML = html;
 };
 
-/* Helper for consistent status colors */
-/* Helper for consistent status colors */
-const getStatusColor = (status) => {
-    if (status === 'Contestaron') return 'text-green-400';
-    if (status === 'No contestan') return 'text-orange-400';
-    if (status === 'No llamar') return 'text-red-400';
-    if (status === 'Colgaron') return 'text-gray-400';
-    if (status === 'Revisita') return 'text-yellow-400';
-    if (status === 'Suspendido') return 'text-orange-500';
-    if (status === 'Testigo') return 'text-purple-400';
-    return 'text-gray-500';
-};
+
 
 const initializePhoneModule = (telefonos, publicadores, userId, tbody) => {
     // Sort publishers
     publicadores.sort((a, b) => a.nombre.localeCompare(b.nombre));
 
-    // Helper format
-    const formatPhoneNumber = (numero) => {
-        if (!numero) return '';
-        const cleaned = numero.toString().replace(/\D/g, '');
-        return cleaned.length === 7 ? `${cleaned.slice(0, 3)} ${cleaned.slice(3)}` : numero;
-    };
+
 
     // List of statuses
     const estados = ['Sin asignar', 'Contestaron', 'No contestan', 'Colgaron', 'Revisita', 'No llamar', 'Suspendido', 'Testigo'];

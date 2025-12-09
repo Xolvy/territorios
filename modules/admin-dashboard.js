@@ -7,6 +7,7 @@ import {
     getPredicacionPublica, savePredicacionPublica,
     getProgramaSemanal, saveProgramaSemanal
 } from '../data/firestore-services.js';
+import { formatPhoneNumber, getStatusColor } from './utils/helpers.js';
 import { auth } from '../firebase-config.js';
 
 export const renderAdminDashboard = async (container) => {
@@ -408,13 +409,6 @@ const renderTelefonosTab = async (container) => {
         </div>
     `;
 
-    // Helper for formatting
-    const formatPhoneNumber = (numero) => {
-        if (!numero) return '';
-        const cleaned = numero.toString().replace(/\D/g, '');
-        return cleaned.length === 7 ? `${cleaned.slice(0, 3)} ${cleaned.slice(3)}` : numero;
-    };
-
     // Render Logic with Filtering
     const renderList = () => {
         const listContainer = document.getElementById('phone-list-container');
@@ -479,16 +473,8 @@ const renderTelefonosTab = async (container) => {
             }
 
             // Resolve Status
-            const rawStatus = t.estado === 'Pendiente' ? '' : t.estado;
-            const displayStatus = rawStatus || 'Sin asignar';
-
-            const statusColor = displayStatus === 'Contestaron' ? 'text-green-400' :
-                displayStatus === 'No contestan' ? 'text-orange-400' :
-                    displayStatus === 'No llamar' ? 'text-red-400' :
-                        displayStatus === 'Revisita' ? 'text-yellow-400' :
-                            displayStatus === 'Suspendido' ? 'text-orange-500' :
-                                displayStatus === 'Colgaron' ? 'text-gray-400' :
-                                    displayStatus === 'Testigo' ? 'text-purple-400' : 'text-gray-500';
+            const displayStatus = (!t.estado || t.estado === 'Pendiente') ? 'Sin asignar' : t.estado;
+            const statusColor = getStatusColor(displayStatus);
 
             return `
                     <tr class="hover:bg-white/5 transition-colors group">
