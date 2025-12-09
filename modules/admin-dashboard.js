@@ -386,9 +386,13 @@ const renderTelefonosTab = async (container) => {
             `<div class="divide-y divide-white/10">
                     ${telefonos.map(t => {
                 const assigned = t.asignado_a || 'Sin asignar';
-                const statusColor = t.estado === 'Contactado' ? 'text-green-400' :
+                const statusColor = t.estado === 'Contestaron' ? 'text-green-400' :
                     t.estado === 'No contestan' ? 'text-orange-400' :
-                        t.estado === 'No llamar' ? 'text-red-400' : 'text-gray-500';
+                        t.estado === 'No llamar' ? 'text-red-400' :
+                            t.estado === 'Revisita' ? 'text-yellow-400' :
+                                t.estado === 'Suspendido' ? 'text-orange-500' :
+                                    t.estado === 'Colgaron' ? 'text-gray-400' :
+                                        t.estado === 'Testigo' ? 'text-purple-400' : 'text-gray-500';
 
                 return `
                         <div class="flex justify-between items-center p-3 hover:bg-white/5 group">
@@ -397,7 +401,7 @@ const renderTelefonosTab = async (container) => {
                                 <div class="text-xs text-gray-400">${t.direccion || 'Sin dirección'} ${t.propietario ? `• ${t.propietario}` : ''}</div>
                                 <div class="text-xs flex gap-3 mt-1">
                                     <span class="text-gray-500 text-[10px] bg-white/5 px-2 py-0.5 rounded">Asignado: ${assigned}</span>
-                                    <span class="${statusColor} text-[10px] uppercase font-bold tracking-wider">${t.estado || 'Pendiente'}</span>
+                                    <span class="${statusColor} text-[10px] uppercase font-bold tracking-wider">${t.estado || 'Sin asignar'}</span>
                                 </div>
                             </div>
                             <div class="flex gap-2">
@@ -423,7 +427,7 @@ const renderTelefonosTab = async (container) => {
         const t = telefonos.find(x => x.id === id);
         if (!t) return;
 
-        const estados = ['Pendiente', 'Contactado', 'No contestan', 'Ocupado', 'Buzón de voz', 'Número equivocado', 'No llamar'];
+        const estados = ['Sin asignar', 'Contestaron', 'No contestan', 'Colgaron', 'Revisita', 'No llamar', 'Suspendido', 'Testigo'];
 
         showModal(`
                             <h3 class="text-xl font-bold mb-4 text-teal-400">Editar Registro Telefónico</h3>

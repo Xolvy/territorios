@@ -309,13 +309,15 @@ const renderProgramTable = (programa, container, config) => {
 };
 
 /* Helper for consistent status colors */
+/* Helper for consistent status colors */
 const getStatusColor = (status) => {
-    if (status === 'Contactado') return 'text-green-400';
+    if (status === 'Contestaron') return 'text-green-400';
     if (status === 'No contestan') return 'text-orange-400';
     if (status === 'No llamar') return 'text-red-400';
-    if (status === 'Ocupado') return 'text-yellow-400';
-    if (status === 'Buzón de voz') return 'text-purple-400';
-    if (status === 'Número equivocado') return 'text-gray-400';
+    if (status === 'Colgaron') return 'text-gray-400';
+    if (status === 'Revisita') return 'text-yellow-400';
+    if (status === 'Suspendido') return 'text-orange-500';
+    if (status === 'Testigo') return 'text-purple-400';
     return 'text-gray-500';
 };
 
@@ -331,7 +333,7 @@ const initializePhoneModule = (telefonos, publicadores, userId, tbody) => {
     };
 
     // List of statuses
-    const estados = ['Pendiente', 'Contactado', 'No contestan', 'Ocupado', 'Buzón de voz', 'Número equivocado', 'No llamar'];
+    const estados = ['Sin asignar', 'Contestaron', 'No contestan', 'Colgaron', 'Revisita', 'No llamar', 'Suspendido', 'Testigo'];
 
     // Render Logic
     const render = () => {
@@ -348,7 +350,7 @@ const initializePhoneModule = (telefonos, publicadores, userId, tbody) => {
 
         tbody.innerHTML = telefonos.map(t => {
             const currentPubId = t.publicador_asignado || '';
-            const currentStatus = t.estado || 'Pendiente';
+            const currentStatus = t.estado || 'Sin asignar';
 
             return `
             <tr class="hover:bg-white/5 transition-colors border-b border-white/5 group">
