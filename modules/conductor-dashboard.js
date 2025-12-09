@@ -330,6 +330,9 @@ const initializePhoneModule = (telefonos, publicadores, userId, tbody) => {
         return cleaned.length === 7 ? `${cleaned.slice(0, 3)} ${cleaned.slice(3)}` : numero;
     };
 
+    // List of statuses
+    const estados = ['Pendiente', 'Contactado', 'No contestan', 'Ocupado', 'Buzón de voz', 'Número equivocado', 'No llamar'];
+
     // Render Logic
     const render = () => {
         telefonos.sort((a, b) => {
@@ -339,39 +342,39 @@ const initializePhoneModule = (telefonos, publicadores, userId, tbody) => {
         });
 
         if (telefonos.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-500 italic">No tienes números asignados. ¡Solicita algunos!</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-gray-500 italic">No tienes números asignados. ¡Solicita algunos!</td></tr>`;
             return;
         }
 
         tbody.innerHTML = telefonos.map(t => {
-            const pubName = publicadores.find(p => p.id === t.publicador_asignado)?.nombre || '-';
-            const statusColor = getStatusColor(t.estado);
+            const currentPubId = t.publicador_asignado || '';
+            const currentStatus = t.estado || 'Pendiente';
+
             return `
             <tr class="hover:bg-white/5 transition-colors border-b border-white/5 group">
                 <td class="p-4 font-mono text-teal-300 font-bold text-base tracking-wide">${formatPhoneNumber(t.numero)}</td>
                 <td class="p-4 text-gray-400 text-xs uppercase tracking-wide">${t.direccion}</td>
                 <td class="p-4 text-gray-300 text-sm font-medium">${t.propietario}</td>
-                <td class="p-4 text-sm text-gray-200">${pubName}</td>
-                <td class="p-4">
-                    <div class="flex items-center gap-3">
-                        <span class="${statusColor} font-medium flex items-center gap-2">
-                             <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
-                             ${t.estado}
-                        </span>
-                        ${t.estado === 'Revisita' ? `
-                            <button onclick="window.handleDevolver('${t.id}')" title="Devolver registro" class="text-teal-400 hover:text-teal-200 p-1.5 rounded-full hover:bg-teal-500/10 transition-colors">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" /></svg>
-                            </button>` : ''}
-                    </div>
+                <td class="p-2">
+                     <select onchange="window.updatePhoneStatus('${t.id}', '${currentStatus}', this.value)" 
+                        class="w-full bg-black/30 border border-white/10 rounded px-2 py-1 text-sm text-gray-200 focus:border-teal-500 outline-none cursor-pointer hover:bg-black/50 transition-colors">
+                        <option value="" class="bg-gray-900 text-gray-500">Sin asignar</option>
+                        ${publicadores.map(p =>
+                `<option value="${p.id}" ${p.id === currentPubId ? 'selected' : ''} class="bg-gray-900">${p.nombre}</option>`
+            ).join('')}
+                    </select>
                 </td>
-                <td class="p-4 text-right">
-                    <button onclick="window.openEditPhone('${t.id}', '${t.estado}', '${t.publicador_asignado || ''}')" 
-                        class="bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 px-4 py-1.5 rounded-lg text-xs font-medium border border-blue-500/20 transition-all hover:shadow-[0_0_10px_rgba(59,130,246,0.1)] group-hover:border-blue-500/40">
-                        Editar
-                    </button>
+                <td class="p-2">
+                    <select onchange="window.updatePhoneStatus('${t.id}', this.value, '${currentPubId}')" 
+                        class="w-full bg-black/30 border border-white/10 rounded px-2 py-1 text-sm font-medium focus:border-teal-500 outline-none cursor-pointer hover:bg-black/50 transition-colors ${getStatusColor(currentStatus)}">
+                         ${estados.map(st =>
+                `<option value="${st}" ${st === currentStatus ? 'selected' : ''} class="bg-gray-900 text-gray-200">${st}</option>`
+            ).join('')}
+                    </select>
                 </td>
             </tr>
-        `}).join('');
+        `;
+        }).join('');
     };
 
     render(); // Initial render
