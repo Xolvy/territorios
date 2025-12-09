@@ -372,13 +372,14 @@ const renderTelefonosTab = async (container) => {
                 <button id="btn-csv" class="bg-white/10 px-4 py-2 rounded-lg text-sm border border-white/10 hover:bg-white/20 transition-colors whitespace-nowrap">📂 CSV</button>
             </div>
             
-            <div class="flex gap-2">
-                <select id="filter-publisher" class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-300 focus:border-teal-500 outline-none">
+            <div class="flex gap-2 flex-wrap">
+                <input type="text" id="search-number" placeholder="Buscar número..." class="w-full md:w-auto flex-1 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-300 focus:border-teal-500 outline-none">
+                <select id="filter-publisher" class="w-full md:w-auto flex-1 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-300 focus:border-teal-500 outline-none">
                     <option value="">Todos los Publicadores</option>
                     <option value="Sin asignar">Sin asignar</option>
                     ${publicadores.map(p => `<option value="${p.nombre}">${p.nombre}</option>`).join('')}
                 </select>
-                <select id="filter-status" class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-300 focus:border-teal-500 outline-none">
+                <select id="filter-status" class="w-full md:w-auto flex-1 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-300 focus:border-teal-500 outline-none">
                     <option value="">Todos los Estados</option>
                     <option value="Sin asignar">Sin asignar</option>
                     <option value="Contestaron">Contestaron</option>
@@ -411,13 +412,29 @@ const renderTelefonosTab = async (container) => {
     // Render Logic with Filtering
     const renderList = () => {
         const listContainer = document.getElementById('phone-list-container');
+        const searchVal = document.getElementById('search-number').value.toLowerCase();
         const pubFilter = document.getElementById('filter-publisher').value;
         const statusFilter = document.getElementById('filter-status').value;
 
         const filtered = telefonos.filter(t => {
-            const matchPub = !pubFilter || (pubFilter === 'Sin asignar' ? !t.asignado_a : t.asignado_a === pubFilter);
+            // Publisher Name Logic for Filtering
+            // We need to resolve the name to match the filter value (which is a name)
+            // t.asignado_a or t.publicador_asignado might be ID/email
+            const rawAssigned = t.asignado_a || t.publicador_asignado;
+            let assignedName = 'Sin asignar';
+
+            if (rawAssigned) {
+                const p = publicadores.find(pub => pub.id === rawAssigned || pub.email === rawAssigned || pub.nombre === rawAssigned);
+                if (p) assignedName = p.nombre;
+                // Validation: If no publisher found but rawAssigned exists, it might be a legacy name string. 
+                // However, for filtering against the dropdown (which has valid names), we primarily rely on resolved names.
+            }
+
+            const matchSearch = !searchVal || t.numero.toLowerCase().includes(searchVal) || (t.propietario && t.propietario.toLowerCase().includes(searchVal));
+            const matchPub = !pubFilter || (pubFilter === 'Sin asignar' ? !rawAssigned : assignedName === pubFilter);
             const matchStatus = !statusFilter || (statusFilter === 'Sin asignar' ? !t.estado : t.estado === statusFilter);
-            return matchPub && matchStatus;
+
+            return matchSearch && matchPub && matchStatus;
         });
 
         if (filtered.length === 0) {
@@ -439,7 +456,14 @@ const renderTelefonosTab = async (container) => {
                 </thead>
                 <tbody class="divide-y divide-white/5">
                 ${filtered.map(t => {
-            const assigned = t.asignado_a || '-';
+            // Resolve Publisher Name for Display
+            const rawAssigned = t.asignado_a || t.publicador_asignado;
+            let assignedDisplay = 'Sin asignar';
+            if (rawAssigned) {
+                const p = publicadores.find(pub => pub.id === rawAssigned || pub.email === rawAssigned || pub.nombre === rawAssigned);
+                assignedDisplay = p ? p.nombre : rawAssigned; // Fallback to raw if not found in list
+            }
+
             const statusColor = t.estado === 'Contestaron' ? 'text-green-400' :
                 t.estado === 'No contestan' ? 'text-orange-400' :
                     t.estado === 'No llamar' ? 'text-red-400' :
@@ -454,7 +478,7 @@ const renderTelefonosTab = async (container) => {
                         <td class="p-4 text-gray-400 text-xs uppercase">${t.direccion || '-'}</td>
                         <td class="p-4 text-gray-300 text-sm">${t.propietario || '-'}</td>
                         <td class="p-4">
-                            <span class="text-xs bg-white/5 px-2 py-1 rounded text-gray-300 border border-white/5 whitespace-nowrap">${assigned}</span>
+                            <span class="text-xs bg-white/5 px-2 py-1 rounded text-gray-300 border border-white/5 whitespace-nowrap">${assignedDisplay}</span>
                         </td>
                         <td class="p-4">
                              <span class="${statusColor} text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded bg-white/5 border border-white/5 whitespace-nowrap">${t.estado || 'Sin asignar'}</span>
@@ -477,7 +501,9 @@ const renderTelefonosTab = async (container) => {
     renderList();
 
     // Filter Listeners
+    document.getElementById('search-number').addEventListener('input', renderList);
     document.getElementById('filter-publisher').addEventListener('change', renderList);
+    document.getElementById('filter-status').addEventListener('change', renderList);
     document.getElementById('filter-status').addEventListener('change', renderList);
 
     window.deleteTelefonoAdmin = async (id) => {
