@@ -101,9 +101,11 @@ const renderAITab = async (container) => {
     const telefonos = await getTelefonos();
     const publicadores = await getPublicadores();
     const territorios = await getTerritorios();
+    const programa = await getProgramaSemanal();
+    const config = await getConfiguracion();
 
     // 2. Initialize Intelligence Engine
-    const brain = new TerritoryIntelligence(telefonos, publicadores, territorios);
+    const brain = new TerritoryIntelligence(telefonos, publicadores, territorios, programa);
 
     // 3. Generate Analysis
     const insights = brain.generateInsights();
@@ -118,30 +120,62 @@ const renderAITab = async (container) => {
 
     if (insights.length === 0) insightsDisplay = '<p class="text-gray-500 italic">No hay suficientes datos para generar insights aún.</p>';
 
+    // Gemini Section HTML
+    const geminiSection = config.gemini_key ? `
+        <div class="bg-gradient-to-br from-purple-900/20 to-black/40 rounded-xl p-6 border border-purple-500/30">
+            <h3 class="text-lg font-semibold text-purple-200 mb-4 flex items-center gap-2">
+                🤖 Consultar a Gemini AI
+            </h3>
+            <div id="gemini-chat-log" class="bg-black/50 rounded-lg p-4 h-48 overflow-y-auto mb-4 border border-white/5 text-sm space-y-3">
+                <div class="text-gray-400 italic">Hola, soy tu asistente de territorios. ¿En qué puedo ayudarte hoy?</div>
+            </div>
+            <div class="flex gap-2">
+                <input type="text" id="gemini-prompt" placeholder="Ej: ¿Qué territorios necesitan atención urgente?" 
+                    class="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white focus:border-purple-500 outline-none">
+                <button id="send-gemini" class="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg transition-colors">
+                    Enviar
+                </button>
+            </div>
+        </div>
+    ` : `
+        <div class="bg-gray-800/50 rounded-xl p-6 border border-gray-700 text-center">
+            <div class="text-4xl mb-3">🔒</div>
+            <h3 class="text-lg font-semibold text-gray-300 mb-2">IA Avanzada Desactivada</h3>
+            <p class="text-sm text-gray-400 mb-4">Para usar la inteligencia de Gemini, configura tu API Key en la pestaña de Configuración.</p>
+            <button onclick="document.querySelector('[data-tab=config]').click()" class="text-teal-400 hover:text-teal-300 underline">Ir a Configuración</button>
+        </div>
+    `;
+
     container.innerHTML = `
         <h2 class="text-xl font-bold mb-6 border-b border-white/10 pb-2 text-purple-300">Asistente Inteligente de Territorios</h2>
         
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Sección de Insights -->
-            <div class="bg-white/5 rounded-xl p-6 border border-white/10">
-                <h3 class="text-lg font-semibold text-teal-100 mb-4 flex items-center gap-2">
-                    📊 Análisis del Sistema
-                </h3>
-                <div class="space-y-4">
-                    ${insightsDisplay}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Columna Izquierda: Insights + Gemini -->
+            <div class="space-y-6">
+                 <!-- Sección de Insights -->
+                <div class="bg-white/5 rounded-xl p-6 border border-white/10">
+                    <h3 class="text-lg font-semibold text-teal-100 mb-4 flex items-center gap-2">
+                        📊 Análisis del Sistema
+                    </h3>
+                    <div class="space-y-4">
+                        ${insightsDisplay}
+                    </div>
                 </div>
+
+                <!-- Sección Gemini -->
+                ${geminiSection}
             </div>
 
-            <!-- Sección de Autosustentabilidad -->
-            <div class="bg-white/5 rounded-xl p-6 border border-white/10">
+            <!-- Columna Derecha: Autosustentabilidad -->
+            <div class="bg-white/5 rounded-xl p-6 border border-white/10 h-fit">
                 <h3 class="text-lg font-semibold text-teal-100 mb-4 flex items-center gap-2">
-                    🛠️ Mantenimiento Automático (Autosustentable)
+                    🛠️ Mantenimiento Automático
                 </h3>
                 <p class="text-xs text-gray-400 mb-4">
                     El sistema detecta y repara inconsistencias automáticamente para mantener la base de datos saludable.
                 </p>
                 
-                <div id="maintenance-log" class="bg-black/40 rounded p-4 text-xs font-mono text-gray-400 h-40 overflow-y-auto">
+                <div id="maintenance-log" class="bg-black/40 rounded p-4 text-xs font-mono text-gray-400 h-64 overflow-y-auto">
                     Esperando ejecución...
                 </div>
                 
@@ -151,6 +185,41 @@ const renderAITab = async (container) => {
             </div>
         </div>
     `;
+
+    // Listeners
+    if (config.gemini_key) {
+        document.getElementById('send-gemini').addEventListener('click', async () => {
+            const input = document.getElementById('gemini-prompt');
+            const log = document.getElementById('gemini-chat-log');
+            const prompt = input.value.trim();
+            if (!prompt) return;
+
+            // Add User Message
+            log.innerHTML += `<div class="text-right"><span class="bg-purple-600/20 text-purple-200 px-3 py-1.5 rounded-lg inline-block">${prompt}</span></div>`;
+            log.scrollTop = log.scrollHeight;
+            input.value = '';
+            input.disabled = true;
+
+            try {
+                // Add Loading
+                const loadingId = 'loading-' + Date.now();
+                log.innerHTML += `<div id="${loadingId}" class="text-left text-gray-500 text-xs animate-pulse">Escribiendo...</div>`;
+
+                const response = await brain.askGemini(config.gemini_key, prompt);
+
+                document.getElementById(loadingId).remove();
+                // Parse basic Markdown (bold) to HTML
+                const htmlResponse = response.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+                log.innerHTML += `<div class="text-left"><span class="bg-white/5 text-gray-200 px-3 py-1.5 rounded-lg inline-block border border-white/10">${htmlResponse}</span></div>`;
+            } catch (err) {
+                log.innerHTML += `<div class="text-red-400 text-xs text-center mt-2">Error: ${err.message}</div>`;
+            } finally {
+                input.disabled = false;
+                input.focus();
+                log.scrollTop = log.scrollHeight;
+            }
+        });
+    }
 
     document.getElementById('run-maintenance').addEventListener('click', async () => {
         const log = document.getElementById('maintenance-log');
@@ -169,8 +238,6 @@ const renderAITab = async (container) => {
         }
     });
 };
-
-// --- CONFIGURATION TAB ---
 
 const renderConfigTab = async (container) => {
     const config = await getConfiguracion();
@@ -234,6 +301,16 @@ const loadSubTab = async (subTab, container, config) => {
                     <span>Predicación Telefónica</span>
                     <input type="checkbox" id="check-telefonos" ${config.modulos_activos.predicacion_telefonica ? 'checked' : ''} class="w-5 h-5 accent-teal-500">
                 </div>
+
+                <div class="pt-4 mt-6 border-t border-white/10">
+                    <h3 class="font-semibold text-lg text-teal-100 mb-2">Integración IA (Gemini)</h3>
+                    <div class="p-4 bg-white/5 rounded-lg border border-white/10">
+                        <label class="block text-xs uppercase text-teal-400 mb-2">API Key (Google Gemini)</label>
+                        <input type="password" id="gemini-key" value="${config.gemini_key || ''}" class="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:border-teal-500 outline-none" placeholder="AIxa...">
+                        <p class="text-[10px] text-gray-500 mt-2">Esta clave se guarda localmente en la base de datos para habilitar el Asistente Inteligente.</p>
+                    </div>
+                </div>
+
                 <button id="save-modules" class="bg-teal-600 hover:bg-teal-500 text-white px-4 py-2 rounded-lg mt-4 w-full shadow-lg shadow-teal-500/20">Guardar Cambios</button>
             </div>
         `;
@@ -243,6 +320,7 @@ const loadSubTab = async (subTab, container, config) => {
                 programa_predicacion: document.getElementById('check-programa').checked,
                 predicacion_telefonica: document.getElementById('check-telefonos').checked
             };
+            config.gemini_key = document.getElementById('gemini-key').value;
             await saveConfiguracion(config);
             showCustomAlert("Configuración guardada");
         });

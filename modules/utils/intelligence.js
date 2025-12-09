@@ -2,10 +2,11 @@
 import { updateTelefono, updateTerritorio } from '../../data/firestore-services.js';
 
 export class TerritoryIntelligence {
-    constructor(telefonos, publicadores, territorios) {
+    constructor(telefonos, publicadores, territorios, programa) {
         this.telefonos = telefonos;
         this.publicadores = publicadores;
         this.territorios = territorios || [];
+        this.programa = programa || {};
     }
 
     /**
@@ -95,5 +96,58 @@ export class TerritoryIntelligence {
         }
 
         return insights;
+    }
+
+    /**
+     * Connects to Google Gemini API for advanced analysis
+     */
+    async askGemini(apiKey, prompt) {
+        // 1. Prepare Minified Context (Saved Tokens)
+        const context = {
+            resumen_telefonos: {
+                total: this.telefonos.length,
+                estados: this.telefonos.reduce((acc, t) => { acc[t.estado || 'Sin asignar'] = (acc[t.estado || 'Sin asignar'] || 0) + 1; return acc; }, {})
+            },
+            publicadores_nombres: this.publicadores.map(p => p.nombre),
+            territorios_mapas: this.territorios.map(t => ({ numero: t.numero, asignado_a: t.asignado_a, estado: t.estado })),
+            programa_semanal: this.programa.dias ? this.programa.dias.map(d => ({
+                dia: d.nombre,
+                asignaciones_manana: d.manana ? `Cond: ${d.manana.conductor}, Terr: ${d.manana.territorio}` : null,
+                asignaciones_tarde: d.tarde ? `Cond: ${d.tarde.conductor}, Terr: ${d.tarde.territorio}` : null,
+                asignaciones_noche: d.noche ? `Cond: ${d.noche.conductor}, Terr: ${d.noche.territorio}` : null
+            })) : "Sin programa cargado"
+        };
+
+        const systemPrompt = `
+            Actúa como el Asistente Inteligente de Territorios (IA de la Congregación).
+            Tienes acceso a los siguientes datos en JSON: ${JSON.stringify(context)}.
+            
+            REGLA CRÍTICA: Recuerda siempre que 'los territorios asignados a un publicador son los que aparecen en el programa semanal'. 
+            Si te preguntan quién tiene un territorio, revisa primero el programa_semanal.
+            
+            Responde de manera concisa, amable y útil. Usa negritas (**) para resaltar datos importantes.
+            Pregunta Usuario: ${prompt}
+        `;
+
+        // 2. Call API
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{ text: systemPrompt }]
+                }]
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+            throw new Error(data.error.message || "Error en Gemini API");
+        }
+
+        return data.candidates && data.candidates[0].content.parts[0].text ?
+            data.candidates[0].content.parts[0].text :
+            "No pude generar una respuesta. Intenta de nuevo.";
     }
 }
