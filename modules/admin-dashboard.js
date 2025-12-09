@@ -403,36 +403,50 @@ const renderTelefonosTab = async (container) => {
                 <div id="upload-progress-bar" class="bg-teal-500 h-2.5 rounded-full" style="width: 0%"></div>
             </div>
         </div>
-
         <div id="phone-list-container" class="bg-black/20 rounded-lg border border-white/5 h-[600px] overflow-y-auto relative">
             <!-- List will be rendered here -->
         </div>
     `;
 
+    // Helper for formatting
+    const formatPhoneNumber = (numero) => {
+        if (!numero) return '';
+        const cleaned = numero.toString().replace(/\D/g, '');
+        return cleaned.length === 7 ? `${cleaned.slice(0, 3)} ${cleaned.slice(3)}` : numero;
+    };
+
     // Render Logic with Filtering
     const renderList = () => {
         const listContainer = document.getElementById('phone-list-container');
-        const searchVal = document.getElementById('search-number').value.toLowerCase();
-        const pubFilter = document.getElementById('filter-publisher').value;
-        const statusFilter = document.getElementById('filter-status').value;
+        // Check if elements exist to avoid errors during tab switching
+        if (!listContainer) return;
+
+        const searchInput = document.getElementById('search-number');
+        const pubFilterInput = document.getElementById('filter-publisher');
+        const statusFilterInput = document.getElementById('filter-status');
+
+        if (!searchInput || !pubFilterInput || !statusFilterInput) return;
+
+        const searchVal = searchInput.value.toLowerCase();
+        const pubFilter = pubFilterInput.value;
+        const statusFilter = statusFilterInput.value;
 
         const filtered = telefonos.filter(t => {
             // Publisher Name Logic for Filtering
-            // We need to resolve the name to match the filter value (which is a name)
-            // t.asignado_a or t.publicador_asignado might be ID/email
             const rawAssigned = t.asignado_a || t.publicador_asignado;
             let assignedName = 'Sin asignar';
 
             if (rawAssigned) {
                 const p = publicadores.find(pub => pub.id === rawAssigned || pub.email === rawAssigned || pub.nombre === rawAssigned);
                 if (p) assignedName = p.nombre;
-                // Validation: If no publisher found but rawAssigned exists, it might be a legacy name string. 
-                // However, for filtering against the dropdown (which has valid names), we primarily rely on resolved names.
             }
 
             const matchSearch = !searchVal || t.numero.toLowerCase().includes(searchVal) || (t.propietario && t.propietario.toLowerCase().includes(searchVal));
             const matchPub = !pubFilter || (pubFilter === 'Sin asignar' ? !rawAssigned : assignedName === pubFilter);
-            const matchStatus = !statusFilter || (statusFilter === 'Sin asignar' ? !t.estado : t.estado === statusFilter);
+
+            // Status Logic: Treat 'Pendiente' or empty as 'Sin asignar'
+            const currentStatus = (t.estado === 'Pendiente' || !t.estado) ? 'Sin asignar' : t.estado;
+            const matchStatus = !statusFilter || (statusFilter === 'Sin asignar' ? currentStatus === 'Sin asignar' : currentStatus === statusFilter);
 
             return matchSearch && matchPub && matchStatus;
         });
@@ -461,27 +475,31 @@ const renderTelefonosTab = async (container) => {
             let assignedDisplay = 'Sin asignar';
             if (rawAssigned) {
                 const p = publicadores.find(pub => pub.id === rawAssigned || pub.email === rawAssigned || pub.nombre === rawAssigned);
-                assignedDisplay = p ? p.nombre : rawAssigned; // Fallback to raw if not found in list
+                assignedDisplay = p ? p.nombre : (rawAssigned === 'Pendiente' ? 'Sin asignar' : rawAssigned);
             }
 
-            const statusColor = t.estado === 'Contestaron' ? 'text-green-400' :
-                t.estado === 'No contestan' ? 'text-orange-400' :
-                    t.estado === 'No llamar' ? 'text-red-400' :
-                        t.estado === 'Revisita' ? 'text-yellow-400' :
-                            t.estado === 'Suspendido' ? 'text-orange-500' :
-                                t.estado === 'Colgaron' ? 'text-gray-400' :
-                                    t.estado === 'Testigo' ? 'text-purple-400' : 'text-gray-500';
+            // Resolve Status
+            const rawStatus = t.estado === 'Pendiente' ? '' : t.estado;
+            const displayStatus = rawStatus || 'Sin asignar';
+
+            const statusColor = displayStatus === 'Contestaron' ? 'text-green-400' :
+                displayStatus === 'No contestan' ? 'text-orange-400' :
+                    displayStatus === 'No llamar' ? 'text-red-400' :
+                        displayStatus === 'Revisita' ? 'text-yellow-400' :
+                            displayStatus === 'Suspendido' ? 'text-orange-500' :
+                                displayStatus === 'Colgaron' ? 'text-gray-400' :
+                                    displayStatus === 'Testigo' ? 'text-purple-400' : 'text-gray-500';
 
             return `
                     <tr class="hover:bg-white/5 transition-colors group">
-                        <td class="p-4 font-mono text-teal-300 font-bold tracking-wide">${t.numero}</td>
+                        <td class="p-4 font-mono text-teal-300 font-bold tracking-wide">${formatPhoneNumber(t.numero)}</td>
                         <td class="p-4 text-gray-400 text-xs uppercase">${t.direccion || '-'}</td>
                         <td class="p-4 text-gray-300 text-sm">${t.propietario || '-'}</td>
                         <td class="p-4">
                             <span class="text-xs bg-white/5 px-2 py-1 rounded text-gray-300 border border-white/5 whitespace-nowrap">${assignedDisplay}</span>
                         </td>
                         <td class="p-4">
-                             <span class="${statusColor} text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded bg-white/5 border border-white/5 whitespace-nowrap">${t.estado || 'Sin asignar'}</span>
+                             <span class="${statusColor} text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded bg-white/5 border border-white/5 whitespace-nowrap">${displayStatus}</span>
                         </td>
                         <td class="p-4 text-right">
                              <div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -520,7 +538,7 @@ const renderTelefonosTab = async (container) => {
         const estados = ['Sin asignar', 'Contestaron', 'No contestan', 'Colgaron', 'Revisita', 'No llamar', 'Suspendido', 'Testigo'];
 
         showModal(`
-                            <h3 class="text-xl font-bold mb-4 text-teal-400">Editar Registro Telefónico</h3>
+    < h3 class="text-xl font-bold mb-4 text-teal-400" > Editar Registro Telefónico</h3 >
 
                             <div class="space-y-4">
                                 <div>
@@ -556,7 +574,7 @@ const renderTelefonosTab = async (container) => {
                             </div>
 
                             <button id="update-phone" class="w-full bg-teal-600 py-2 rounded-lg text-white hover:bg-teal-500 transition-colors mt-6 font-medium shadow-lg shadow-teal-500/20">Actualizar Registro</button>
-        `, async (modal) => {
+`, async (modal) => {
             document.getElementById('update-phone').addEventListener('click', async () => {
                 await updateTelefono(id, {
                     numero: document.getElementById('edit-p-num').value,
@@ -626,8 +644,8 @@ const renderTelefonosTab = async (container) => {
                 // Update progress every 5 items or last item
                 if (i % 5 === 0 || i === total - 1) {
                     const percent = Math.round(((i + 1) / total) * 100);
-                    progressBar.style.width = `${percent}%`;
-                    progressPercent.innerText = `${percent}%`;
+                    progressBar.style.width = `${percent}% `;
+                    progressPercent.innerText = `${percent}% `;
                     progressText.innerText = `Cargando ${i + 1} de ${total}...`;
                     // Allow UI to update
                     await new Promise(r => setTimeout(r, 0));
@@ -649,7 +667,7 @@ const renderTelefonosTab = async (container) => {
 
     document.getElementById('btn-add-phone').addEventListener('click', () => {
         showModal(`
-            <h3 class="text-xl font-bold mb-4 text-teal-400">Nuevo Teléfono</h3>
+    < h3 class="text-xl font-bold mb-4 text-teal-400" > Nuevo Teléfono</h3 >
             
             <label class="block text-xs text-teal-500 mb-1">Número</label>
             <input type="text" id="new-p-num" placeholder="Ej. 0991234567" class="w-full mb-3 bg-white/5 border border-white/10 rounded p-2 text-white focus:border-teal-500 outline-none">
