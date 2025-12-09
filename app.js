@@ -72,7 +72,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 // onAuthStateChanged se encargará del render
             } catch (error) {
                 console.error("Error signing in anonymously:", error);
-                alert("Error de autenticación: " + error.message);
+                if (error.code === 'auth/admin-restricted-operation') {
+                    alert("⚠️ Configuración requerida: Debes habilitar el proveedor 'Anónimo' en la consola de Firebase Authentication.");
+                } else {
+                    alert("Error de autenticación: " + error.message);
+                }
             }
         } else {
             // Ya autenticado (quizás real o anónimo previo), forzamos refresh de vista
