@@ -426,9 +426,20 @@ const renderTelefonosTab = async (container) => {
         }
 
         listContainer.innerHTML = `
-            <div class="divide-y divide-white/10">
+            <table class="w-full text-left text-sm text-gray-300">
+                <thead class="text-teal-400 uppercase bg-black/40 text-xs tracking-wider sticky top-0 z-10 backdrop-blur-md">
+                    <tr>
+                        <th class="p-4 font-semibold">Número</th>
+                        <th class="p-4 font-semibold">Dirección</th>
+                        <th class="p-4 font-semibold">Propietario</th>
+                        <th class="p-4 font-semibold">Publicador</th>
+                        <th class="p-4 font-semibold">Estado</th>
+                        <th class="p-4 text-right">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
                 ${filtered.map(t => {
-            const assigned = t.asignado_a || 'Sin asignar';
+            const assigned = t.asignado_a || '-';
             const statusColor = t.estado === 'Contestaron' ? 'text-green-400' :
                 t.estado === 'No contestan' ? 'text-orange-400' :
                     t.estado === 'No llamar' ? 'text-red-400' :
@@ -438,23 +449,27 @@ const renderTelefonosTab = async (container) => {
                                     t.estado === 'Testigo' ? 'text-purple-400' : 'text-gray-500';
 
             return `
-                    <div class="flex justify-between items-center p-3 hover:bg-white/5 group">
-                        <div>
-                            <div class="font-mono text-teal-300 font-bold">${t.numero}</div>
-                            <div class="text-xs text-gray-400">${t.direccion || 'Sin dirección'} ${t.propietario ? `• ${t.propietario}` : ''}</div>
-                            <div class="text-xs flex gap-3 mt-1">
-                                <span class="text-gray-500 text-[10px] bg-white/5 px-2 py-0.5 rounded">Asignado: ${assigned}</span>
-                                <span class="${statusColor} text-[10px] uppercase font-bold tracking-wider">${t.estado || 'Sin asignar'}</span>
-                            </div>
-                        </div>
-                        <div class="flex gap-2">
-                                <button onclick="window.editTelefonoAdmin('${t.id}')" class="text-blue-400 p-2 hover:bg-blue-500/20 rounded opacity-0 group-hover:opacity-100 transition-opacity">✏️</button>
-                                <button onclick="window.deleteTelefonoAdmin('${t.id}')" class="text-red-400 p-2 hover:bg-red-500/20 rounded opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
-                        </div>
-                    </div>
+                    <tr class="hover:bg-white/5 transition-colors group">
+                        <td class="p-4 font-mono text-teal-300 font-bold tracking-wide">${t.numero}</td>
+                        <td class="p-4 text-gray-400 text-xs uppercase">${t.direccion || '-'}</td>
+                        <td class="p-4 text-gray-300 text-sm">${t.propietario || '-'}</td>
+                        <td class="p-4">
+                            <span class="text-xs bg-white/5 px-2 py-1 rounded text-gray-300 border border-white/5 whitespace-nowrap">${assigned}</span>
+                        </td>
+                        <td class="p-4">
+                             <span class="${statusColor} text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded bg-white/5 border border-white/5 whitespace-nowrap">${t.estado || 'Sin asignar'}</span>
+                        </td>
+                        <td class="p-4 text-right">
+                             <div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onclick="window.editTelefonoAdmin('${t.id}')" class="text-blue-400 p-1.5 hover:bg-blue-500/20 rounded transition-colors" title="Editar">✏️</button>
+                                <button onclick="window.deleteTelefonoAdmin('${t.id}')" class="text-red-400 p-1.5 hover:bg-red-500/20 rounded transition-colors" title="Eliminar">✕</button>
+                             </div>
+                        </td>
+                    </tr>
                 `;
         }).join('')}
-            </div>
+                </tbody>
+            </table>
         `;
     };
 
