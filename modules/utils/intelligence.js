@@ -1,3 +1,4 @@
+
 import { updateTelefono, updateTerritorio } from '../../data/firestore-services.js';
 
 export class TerritoryIntelligence {
@@ -48,46 +49,50 @@ export class TerritoryIntelligence {
      */
     generateInsights() {
         const insights = [];
+        const now = new Date();
+        const FOUR_MONTHS_MS = 120 * 24 * 60 * 60 * 1000;
 
-        // Analysis 1: Top Performers
-        const pubStats = {};
-        this.telefonos.forEach(t => {
-            const pub = t.asignado_a || t.publicador_asignado;
-            if (pub && pub !== 'Sin asignar') {
-                if (!pubStats[pub]) pubStats[pub] = { total: 0, completed: 0 };
-                pubStats[pub].total++;
-                if (['Contestaron', 'No llamar', 'Suspendido', 'Testigo'].includes(t.estado)) {
-                    pubStats[pub].completed++;
-                }
-            }
-        });
-
-        // Find most active
-        const activePubs = Object.entries(pubStats)
-            .sort(([, a], [, b]) => b.completed - a.completed)
-            .slice(0, 3);
-
-        if (activePubs.length > 0) {
-            const names = activePubs.map(([name]) => name).join(', ');
-            insights.push({
-                type: 'positive',
-                title: '⚡ Top Rendimiento',
-                message: `Los publicadores más efectivos esta semana son: ${names}. Considere asignarles territorios más desafiantes.`
-            });
-        }
-
-        // Analysis 2: Territory Health (Coverage)
+        // Analysis: Territory Health & Neglected Areas
         const totalNumbers = this.telefonos.length;
         const workedNumbers = this.telefonos.filter(t =>
             ['Contestaron', 'No llamar', 'Colgaron'].includes(t.estado)
         ).length;
+
+        // Identify "Neglected" Territories (Assigned long ago or never touched)
+        // Since we didn't always track dates, we use 'Sin asignar' or very old dates if available
+        let neglectedCount = 0;
+
+        // Logic: If 'ultima_fecha' exists check diff, else if assigned check assignment date
+        this.telefonos.forEach(t => {
+            if (t.estado === 'Sin asignar' || !t.estado) neglectedCount++;
+            else if (t.fecha_asignacion) {
+                const assignedDate = new Date(t.fecha_asignacion);
+                if (now - assignedDate > FOUR_MONTHS_MS) neglectedCount++;
+            }
+        });
+
         const coverage = totalNumbers ? Math.round((workedNumbers / totalNumbers) * 100) : 0;
+        const healthColor = coverage < 30 ? 'text-red-400' : 'text-green-400';
 
         insights.push({
-            type: coverage < 30 ? 'warning' : 'info',
+            type: 'info',
             title: '📊 Cobertura Telefónica',
-            message: `El territorio telefónico está cubierto al ${coverage}%. ${coverage < 30 ? 'Se recomienda priorizar la asignación de números nuevos.' : 'Buen ritmo de trabajo.'}`
+            message: `Cobertura actual: <b class="${healthColor}">${coverage}%</b>. Se han trabajado ${workedNumbers} de ${totalNumbers} números.`
         });
+
+        if (neglectedCount > 0) {
+            insights.push({
+                type: 'warning',
+                title: '⚠️ Territorios Desatendidos',
+                message: `Se detectaron <b>${neglectedCount}</b> números que no han sido trabajados recientemente o están sin asignar. <br>Se recomienda priorizar su asignación inmediata para mejorar la cobertura.`
+            });
+        } else {
+            insights.push({
+                type: 'positive',
+                title: '✅ Excelente Rotación',
+                message: `Todos los territorios se están trabajando activamente.`
+            });
+        }
 
         return insights;
     }

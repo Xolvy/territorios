@@ -1,7 +1,8 @@
 import {
     getConfiguracion, getProgramaSemanal, saveProgramaSemanal,
     getMisTelefonos, solicitarNumeros, updateTelefonoStatus, devolverTelefono,
-    getPublicadores, getConductores, addPublicador
+    getPublicadores, getConductores, addPublicador,
+    getMisTerritorios, returnTerritorio
 } from '../data/firestore-services.js';
 import { auth } from '../firebase-config.js';
 import { formatPhoneNumber, getStatusColor } from './utils/helpers.js';
@@ -18,97 +19,125 @@ export const renderConductorDashboard = (container, userEmail) => {
                 <div class="absolute inset-0 bg-teal-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
                 <div class="z-10">
                     <h1 class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-300 to-cyan-400 tracking-wide">Panel de Conductor</h1>
-                    <p id="welcome-msg" class="text-sm text-gray-400 mt-1 flex items-center gap-2">
-                        Bienvenido, <span class="text-gray-200 font-medium">${currentConductorName}</span>
+                    <p class="text-gray-400 mt-1 flex items-center gap-2">
+                        <span class="inline-block w-2 h-2 rounded-full bg-teal-500 animate-pulse"></span>
+                        Bienvenido, <span id="conductor-name-display" class="text-teal-200 font-medium">${currentConductorName}</span>
                     </p>
                 </div>
-                <div class="flex items-center gap-4 z-10">
-                    <div class="bg-black/40 border border-teal-500/30 rounded-full px-5 py-2 text-sm backdrop-blur-md shadow-lg shadow-teal-500/10">
-                        <span class="text-teal-400 font-semibold tracking-wider text-xs uppercase">Conductor</span>
-                        <span id="badge-name" class="text-white ml-2 font-medium">${currentConductorName}</span>
-                    </div>
-                    <button id="logout-btn" class="bg-red-500/10 hover:bg-red-500/30 text-red-200 px-5 py-2 rounded-full border border-red-500/20 transition-all duration-300 hover:shadow-[0_0_15px_rgba(239,68,68,0.3)]">
-                        Salir
-                    </button>
-                </div>
+                <button id="logout-btn" class="bg-red-500/10 hover:bg-red-500/30 text-red-300 px-5 py-2.5 rounded-xl border border-red-500/20 transition-all duration-300 text-sm font-medium backdrop-blur-md">
+                    Cerrar Sesión
+                </button>
             </header>
 
-            <div class="grid grid-cols-1 gap-8">
-                <!-- Dashboard Module Skeleton -->
-                <section id="module-dashboard" class="morphinglass-card p-6 hidden">
-                    <h2 class="text-xl font-bold text-teal-200 mb-6 flex items-center gap-2">
-                        <span>📊</span> Mi Dashboard
-                    </h2>
-                    <div id="dashboard-assignments" class="p-6 bg-black/20 rounded-xl border border-white/5 animate-pulse min-h-[100px] flex items-center justify-center">
-                        <div class="h-2 w-32 bg-white/10 rounded"></div>
-                    </div>
-                </section>
+            <div id="dashboard-content" class="space-y-8">
+                
+                <!-- MODULE: DASHBOARD SUMMARY -->
+                <div id="module-dashboard" class="hidden">
+                   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                       <!-- Welcome Card -->
+                       <div class="col-span-1 lg:col-span-2 morphinglass-card p-6 relative overflow-hidden">
+                           <div class="absolute top-0 right-0 p-4 opacity-10 text-9xl">👋</div>
+                           <h2 class="text-xl font-bold text-white mb-2">Resumen Semanal</h2>
+                           <p class="text-gray-400 text-sm mb-6">Aquí tienes un vistazo de tus actividades programadas.</p>
+                           
+                           <div id="dashboard-assignments" class="animate-pulse min-h-[100px] flex items-center justify-center bg-black/20 rounded-xl border border-teal-500/10">
+                               <div class="h-4 w-32 bg-teal-500/20 rounded"></div>
+                           </div>
+                       </div>
+                   </div>
+                </div>
 
-                <!-- Programa Module Skeleton -->
-                <section id="module-programa" class="morphinglass-card p-6 hidden">
-                    <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-xl font-bold text-teal-200 flex items-center gap-2">
-                            <span>📅</span> Programa de Predicación
-                        </h2>
-                        <div class="flex gap-2">
-                            <button id="export-prog-png" class="text-xs bg-teal-600/20 px-3 py-1.5 rounded-lg hover:bg-teal-600 border border-teal-500/30 transition-all text-teal-100">Exportar PNG</button>
-                            <!-- Save button hidden for conductors -->
+                <!-- MODULE: PROGRAMA -->
+                <div id="module-programa" class="hidden morphinglass-card p-6">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                        <div>
+                            <h2 class="text-xl font-bold text-teal-100 flex items-center gap-2">
+                                <span>📅</span> Programa de Predicación
+                            </h2>
+                            <p class="text-xs text-gray-400 mt-1">Horarios y salidas para la semana en curso</p>
                         </div>
-                    </div>
-                    <div id="program-table-container" class="bg-white/5 rounded-xl p-1 text-black overflow-x-auto min-h-[150px] animate-pulse">
-                        <!-- Skeleton Table -->
-                        <div class="h-8 bg-white/10 mb-2 w-full rounded"></div>
-                        <div class="h-32 bg-white/5 w-full rounded"></div>
-                    </div>
-                </section>
-
-                <!-- Telefonos Module Skeleton -->
-                <section id="module-telefonos" class="morphinglass-card p-6 hidden">
-                    <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-xl font-bold text-teal-200 flex items-center gap-2">
-                            <span>📞</span> Predicación Telefónica
-                        </h2>
-                        <div class="flex gap-3">
-                            <button id="btn-solicitar" class="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-500 hover:to-teal-600 text-white px-5 py-2 rounded-lg text-sm transition-all shadow-lg shadow-teal-500/20 font-medium tracking-wide">
-                                Solicitar números
-                            </button>
-                            <button id="btn-add-pub-temp" class="bg-white/5 hover:bg-white/10 text-white px-4 py-2 rounded-lg text-sm transition-colors border border-white/10 backdrop-blur-sm">
-                                + Publicador
-                            </button>
-                        </div>
+                        <button id="export-prog-png" class="text-xs bg-black/40 hover:bg-black/60 text-teal-300 border border-teal-500/30 px-3 py-2 rounded-lg transition-colors flex items-center gap-2">
+                            📷 Guardar como Imagen
+                        </button>
                     </div>
                     
+                    <div id="program-table-container" class="overflow-x-auto rounded-xl border border-white/5 bg-black/20 min-h-[150px] animate-pulse">
+                        <!-- Table Rendered Here -->
+                    </div>
+                </div>
+
+                <!-- MODULE: TERRITORIOS (New) -->
+                <div id="module-territorios-mapas" class="hidden morphinglass-card p-6">
+                     <div class="flex justify-between items-center mb-6">
+                        <div>
+                            <h2 class="text-xl font-bold text-teal-100 flex items-center gap-2">
+                                <span>🗺️</span> Mis Territorios Asignados
+                            </h2>
+                            <p class="text-xs text-gray-400 mt-1">Mapas asignados para predicar</p>
+                        </div>
+                    </div>
+                    <div id="mis-territorios-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div class="text-gray-500 text-sm italic col-span-full text-center py-8">Cargando territorios...</div>
+                    </div>
+                </div>
+
+                <!-- MODULE: TELEFONOS -->
+                <div id="module-telefonos" class="hidden morphinglass-card p-6">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                         <div>
+                            <h2 class="text-xl font-bold text-teal-100 flex items-center gap-2">
+                                <span>📞</span> Predicación Telefónica
+                            </h2>
+                            <p class="text-xs text-gray-400 mt-1">Gestiona los números y asigna publicadores</p>
+                        </div>
+                        <div class="flex gap-2">
+                             <button id="btn-add-pub-temp" class="text-xs bg-teal-900/40 hover:bg-teal-800/60 text-teal-300 border border-teal-500/30 px-3 py-2 rounded-lg transition-colors">
+                                + Publicador
+                            </button>
+                            <button id="btn-solicitar" class="text-xs bg-teal-600 hover:bg-teal-500 text-white px-3 py-2 rounded-lg shadow-lg shadow-teal-500/20 transition-all">
+                                + Solicitar Números
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="overflow-x-auto rounded-xl border border-white/5 bg-black/20">
                         <table class="w-full text-left text-sm text-gray-300">
-                            <thead class="text-teal-400 uppercase bg-black/40 text-xs tracking-wider">
+                            <thead class="text-xs uppercase bg-black/40 text-teal-400 font-semibold tracking-wider">
                                 <tr>
-                                    <th class="p-4 font-semibold">Número</th>
-                                    <th class="p-4 font-semibold">Dirección</th>
-                                    <th class="p-4 font-semibold">Propietario</th>
-                                    <th class="p-4 font-semibold">Publicador</th>
-                                    <th class="p-4 font-semibold">Estado</th>
+                                    <th class="p-4">Número</th>
+                                    <th class="p-4">Datos</th>
+                                    <th class="p-4">Publicador</th>
+                                    <th class="p-4">Estado</th>
+                                    <th class="p-4">Acción</th>
                                 </tr>
                             </thead>
-                            <tbody id="lista-telefonos" class="divide-y divide-white/5">
-                                <!-- Skeleton Rows -->
-                                ${[1, 2, 3].map(() => `
-                                    <tr class="animate-pulse">
-                                        <td class="p-4"><div class="h-4 w-24 bg-white/10 rounded"></div></td>
-                                        <td class="p-4"><div class="h-3 w-32 bg-white/5 rounded"></div></td>
-                                        <td class="p-4"><div class="h-3 w-20 bg-white/5 rounded"></div></td>
-                                        <td class="p-4"><div class="h-3 w-24 bg-white/5 rounded"></div></td>
-                                        <td class="p-4"><div class="h-6 w-20 bg-white/10 rounded-full"></div></td>
-                                    </tr>
-                                `).join('')}
+                            <tbody id="lista-telefonos" class="divide-y divide-white/5 font-mono text-sm">
+                                <!-- Filas -->
+                                <tr><td colspan="5" class="p-4 text-center text-gray-500 animate-pulse">Cargando...</td></tr>
                             </tbody>
                         </table>
                     </div>
-                </section>
+                </div>
+
             </div>
         </div>
+        
+        <!-- Modal Global Container -->
+        <div id="modal-container" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4"></div>
     `;
 
-    // Logout listener (always active)
+    // 2. LOGICA DE DATOS OPTIMIZADA
+    let finalEmail = userEmail;
+    if (!finalEmail || finalEmail === 'Usuario') {
+        const storedName = localStorage.getItem('selected_conductor_name');
+        if (storedName) finalEmail = storedName;
+    }
+    const finalName = localStorage.getItem('selected_conductor_name') || finalEmail || "Conductor";
+
+    // Actualizamos nombre en UI si cambia
+    const nameDisplay = document.getElementById('conductor-name-display');
+    if (nameDisplay) nameDisplay.innerText = finalName;
+
     document.getElementById('logout-btn').addEventListener('click', async () => {
         localStorage.removeItem('demo_role');
         localStorage.removeItem('selected_conductor_name');
@@ -116,39 +145,15 @@ export const renderConductorDashboard = (container, userEmail) => {
         window.location.reload();
     });
 
-    // 2. DATA FETCHING PARALELO (Promise.all)
-    // Buscamos Config y Conductores primero para habilitar módulos y header
-    Promise.all([getConfiguracion(), getConductores()])
-        .then(async ([config, conductores]) => {
-            const activeModules = config.modulos_activos;
-
-            // --- HEADER LOGIC ---
-            // Buscar conductor info real
-            let finalName = currentConductorName;
-            let finalEmail = userEmail;
-
-            const conductorMatch = conductores.find(c =>
-                c.email === userEmail || c.nombre === userEmail || c.nombre === currentConductorName
-            );
-
-            if (conductorMatch) {
-                finalName = conductorMatch.nombre;
-                finalEmail = conductorMatch.email || userEmail;
-                localStorage.setItem('selected_conductor_name', finalName);
-            }
-
-            // Update DOM with real name
-            const welcomeMsg = document.getElementById('welcome-msg');
-            if (welcomeMsg) welcomeMsg.innerHTML = `Bienvenido, <span class="text-gray-200 font-medium">${finalName}</span>`;
-            const badgeName = document.getElementById('badge-name');
-            if (badgeName) badgeName.textContent = finalName;
-
+    // 3. FETCH CONFIG & START MODULES
+    getConfiguracion()
+        .then(config => {
+            const activeModules = config.modulos_activos || { dashboard: true, programa_predicacion: true, predicacion_telefonica: true };
 
             // --- MODULE: DASHBOARD ---
             const modDash = document.getElementById('module-dashboard');
             if (activeModules.dashboard) {
                 modDash.classList.remove('hidden');
-                // Logic extracted to separate flow to not block others
                 loadDashboardAssignments(finalName, document.getElementById('dashboard-assignments'));
             }
 
@@ -184,6 +189,43 @@ export const renderConductorDashboard = (container, userEmail) => {
                 }
             }
 
+            // --- MODULE: TERRITORIOS (MAPAS) ---
+            const modMapas = document.getElementById('module-territorios-mapas');
+            if (activeModules.dashboard) { // Shown alongside dashboard
+                modMapas.classList.remove('hidden');
+                getMisTerritorios(finalName).then(territorios => {
+                    const grid = document.getElementById('mis-territorios-grid');
+                    if (territorios.length === 0) {
+                        grid.innerHTML = '<div class="text-gray-500 text-sm italic col-span-full text-center py-8">No tienes territorios asignados actualmente.</div>';
+                    } else {
+                        grid.innerHTML = territorios.map(t => `
+                            <div class="bg-black/40 border border-white/10 rounded-xl p-4 flex flex-col gap-3">
+                                <div class="bg-gray-800 h-32 rounded-lg overflow-hidden">
+                                    <img src="${t.imagen || 'https://via.placeholder.com/300x200?text=Territorio'}" class="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity">
+                                </div>
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h4 class="text-lg font-bold text-teal-200">Territorio ${t.numero}</h4>
+                                        <p class="text-xs text-gray-400">${t.manzanas || 'Sin manzanas definidas'}</p>
+                                    </div>
+                                    <span class="text-[10px] bg-teal-500/20 text-teal-300 px-2 py-1 rounded border border-teal-500/30">Asignado</span>
+                                </div>
+                                <button onclick="window.returnTerritorioUI('${t.id}', '${t.numero}')" class="mt-2 w-full bg-white/5 hover:bg-green-500/20 text-gray-300 hover:text-green-300 border border-white/10 hover:border-green-500/30 py-2 rounded-lg text-sm transition-all flex items-center justify-center gap-2">
+                                    <span>✅</span> Marcar Predicado
+                                </button>
+                            </div>
+                        `).join('');
+                    }
+                });
+
+                window.returnTerritorioUI = async (id, num) => {
+                    if (confirm(`¿Confirmas que el Territorio ${num} ha sido predicado completamente? Se devolverá al sistema.`)) {
+                        await returnTerritorio(id);
+                        window.location.reload();
+                    }
+                };
+            }
+
             // --- MODULE: TELEFONOS ---
             const modTel = document.getElementById('module-telefonos');
             if (activeModules.predicacion_telefonica) {
@@ -209,8 +251,6 @@ export const renderConductorDashboard = (container, userEmail) => {
 /* --- SUB-FUNCIONES DE RENDERIZADO (Separadas para claridad) --- */
 
 const loadDashboardAssignments = async (name, container) => {
-    // Reutilizamos la lógica del programa para no volver a pedirlo?
-    // Idealmente sí, pero por simplicidad de refactor pedimos getProgramaSemanal de nuevo (cacheado por firebase localmente)
     const programa = await getProgramaSemanal();
     const turnos = ['manana', 'tarde', 'noche'];
     const turnoLabels = { manana: '🌅 Mañana', tarde: '☀️ Tarde', noche: '🌙 Noche' };
@@ -307,13 +347,9 @@ const renderProgramTable = (programa, container, config) => {
     container.innerHTML = html;
 };
 
-
-
 const initializePhoneModule = (telefonos, publicadores, userId, tbody) => {
     // Sort publishers
     publicadores.sort((a, b) => a.nombre.localeCompare(b.nombre));
-
-
 
     // List of statuses
     const estados = ['Sin asignar', 'Contestaron', 'No contestan', 'Colgaron', 'Revisita', 'No llamar', 'Suspendido', 'Testigo'];
@@ -409,7 +445,6 @@ const initializePhoneModule = (telefonos, publicadores, userId, tbody) => {
     }
 
     // Assign GLOBAL handlers for this module instance
-    // Assign GLOBAL handlers for this module instance
     window.updatePhoneStatus = async (id, status, pubId) => {
         // Optimistic update locally first for speed
         const telIndex = telefonos.findIndex(t => t.id === id);
@@ -439,72 +474,4 @@ const initializePhoneModule = (telefonos, publicadores, userId, tbody) => {
             render();
         }
     };
-
-    // Edit Modal Implementation re-attached to window for global access from HTML strings
-    window.openEditPhone = (id, currentStatus, currentPubId) => {
-        // Status options
-        const estados = ['Pendiente', 'Contactado', 'No contestan', 'Ocupado', 'Buzón de voz', 'Número equivocado', 'No llamar'];
-
-        showModal(`
-            <h3 class="text-xl font-bold mb-6 text-teal-300 text-center">Gestionar Registro</h3>
-            
-            <div class="space-y-5">
-                 <div class="group/input">
-                    <label class="block text-teal-400 mb-1.5 text-xs font-bold uppercase tracking-wider">Publicador Asignado</label>
-                    <select id="edit-pub-select" class="w-full bg-black/40 border border-teal-500/30 rounded-lg p-3 text-white focus:border-teal-500 focus:bg-black/60 focus:ring-1 focus:ring-teal-500/50 outline-none transition-all cursor-pointer">
-                        <option value="" class="bg-gray-900 text-gray-400">Seleccionar publicador...</option>
-                        ${publicadores.map(p =>
-            `<option value="${p.id}" ${p.id === currentPubId ? 'selected' : ''} class="bg-gray-900 text-gray-200">${p.nombre}</option>`
-        ).join('')}
-                    </select>
-                </div>
-
-                <div class="group/input">
-                    <label class="block text-teal-400 mb-1.5 text-xs font-bold uppercase tracking-wider">Estado de la llamada</label>
-                    <select id="edit-status-select" class="w-full bg-black/40 border border-teal-500/30 rounded-lg p-3 text-white focus:border-teal-500 focus:bg-black/60 focus:ring-1 focus:ring-teal-500/50 outline-none transition-all cursor-pointer">
-                        ${estados.map(st =>
-            `<option value="${st}" ${st === (currentStatus || 'Pendiente') ? 'selected' : ''} class="bg-gray-900 text-gray-200">${st}</option>`
-        ).join('')}
-                    </select>
-                </div>
-            </div>
-
-            <button id="save-phone-edit" class="w-full mt-8 bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-500 hover:to-teal-400 text-white font-bold py-3 rounded-xl shadow-lg shadow-teal-500/20 transform active:scale-95 transition-all duration-200">
-                Guardar Cambios
-            </button>
-        `, (modal) => {
-            modal.querySelector('#save-phone-edit').addEventListener('click', async () => {
-                const newStatus = modal.querySelector('#edit-status-select').value;
-                const newPubId = modal.querySelector('#edit-pub-select').value;
-
-                await updatePhoneStatus(id, newStatus, newPubId);
-                modal.classList.add('hidden');
-            });
-        });
-    };
-
-
-};
-
-const showModal = (content, onOpen) => {
-    let modalContainer = document.getElementById('modal-container');
-    if (!modalContainer) {
-        modalContainer = document.createElement('div');
-        modalContainer.id = 'modal-container';
-        modalContainer.className = 'fixed inset-0 bg-black/90 backdrop-blur-md hidden flex items-center justify-center z-50 animate-fade-in';
-        document.body.appendChild(modalContainer);
-    }
-
-    modalContainer.innerHTML = `
-    <div class="morphinglass-card w-full max-w-md m-4 relative animate-scale-in bg-black/80 border border-white/10 shadow-2xl shadow-teal-900/20">
-            <button class="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors" onclick="document.getElementById('modal-container').classList.add('hidden')">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
-            <div class="p-2">
-                ${content}
-            </div>
-        </div>
-    `;
-    modalContainer.classList.remove('hidden');
-    if (onOpen) onOpen(modalContainer);
 };

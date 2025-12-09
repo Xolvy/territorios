@@ -86,6 +86,30 @@ export const deleteTerritorio = async (id) => {
     await deleteDoc(doc(db, "territorios", id));
 };
 
+export const assignTerritorio = async (id, conductorName) => {
+    await updateDoc(doc(db, "territorios", id), {
+        asignado_a: conductorName,
+        fecha_asignacion: new Date().toISOString(),
+        estado: 'Asignado'
+    });
+};
+
+export const returnTerritorio = async (id) => {
+    await updateDoc(doc(db, "territorios", id), {
+        asignado_a: null,
+        fecha_asignacion: null,
+        ultima_fecha: new Date().toISOString(),
+        estado: 'Predicado' // Marked as Preached/Completed
+    });
+};
+
+export const getMisTerritorios = async (conductorName) => {
+    // Simple query by assigned name
+    const q = query(collection(db, "territorios"), where("asignado_a", "==", conductorName));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+};
+
 // --- CONDUCTORES ---
 
 export const getConductores = async () => {
