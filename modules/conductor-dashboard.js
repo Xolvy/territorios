@@ -424,19 +424,23 @@ const initializePhoneModule = (telefonos, publicadores, userId, tbody) => {
     }
 
     // Assign GLOBAL handlers for this module instance
+    // Assign GLOBAL handlers for this module instance
     window.updatePhoneStatus = async (id, status, pubId) => {
-        await updateTelefonoStatus(id, status, pubId);
-        // Refresh local data
-        const freshTels = await getMisTelefonos(userId);
+        // Optimistic update locally first for speed
+        const telIndex = telefonos.findIndex(t => t.id === id);
+        if (telIndex !== -1) {
+            telefonos[telIndex].estado = status;
+            telefonos[telIndex].publicador_asignado = pubId;
+            render(); // Re-render with local data (colors update, item stays)
+        }
 
-        // Update local array reference
-        telefonos.length = 0;
-        telefonos.push(...freshTels);
-        render();
-
-        if (freshTels.length === 0) {
-            console.log("Lote completado. Esperando reset.");
-            tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-teal-300 font-medium animate-pulse">¡Excelente! Has completado todos tus números.</td></tr>`;
+        // Send to DB in background (awaiting to ensure consistency if needed, but UI is already updated)
+        try {
+            await updateTelefonoStatus(id, status, pubId);
+        } catch (error) {
+            console.error("Error updating status:", error);
+            // Revert on error? For now just alert
+            alert("Error al guardar cambios: " + error.message);
         }
     };
 
