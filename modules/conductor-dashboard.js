@@ -308,6 +308,17 @@ const renderProgramTable = (programa, container, config) => {
     container.innerHTML = html;
 };
 
+/* Helper for consistent status colors */
+const getStatusColor = (status) => {
+    if (status === 'Contactado') return 'text-green-400';
+    if (status === 'No contestan') return 'text-orange-400';
+    if (status === 'No llamar') return 'text-red-400';
+    if (status === 'Ocupado') return 'text-yellow-400';
+    if (status === 'Buzón de voz') return 'text-purple-400';
+    if (status === 'Número equivocado') return 'text-gray-400';
+    return 'text-gray-500';
+};
+
 const initializePhoneModule = (telefonos, publicadores, userId, tbody) => {
     // Sort publishers
     publicadores.sort((a, b) => a.nombre.localeCompare(b.nombre));
@@ -438,65 +449,49 @@ const initializePhoneModule = (telefonos, publicadores, userId, tbody) => {
     };
 
     // Edit Modal Implementation re-attached to window for global access from HTML strings
-    window.openEditPhone = (id, currentStatus, currentPub) => {
+    window.openEditPhone = (id, currentStatus, currentPubId) => {
+        // Status options
+        const estados = ['Pendiente', 'Contactado', 'No contestan', 'Ocupado', 'Buzón de voz', 'Número equivocado', 'No llamar'];
+
         showModal(`
-            <h3 class="text-xl font-bold mb-6 text-teal-300 text-center">Editar Registro</h3>
+            <h3 class="text-xl font-bold mb-6 text-teal-300 text-center">Gestionar Registro</h3>
             
-            <div class="mb-6">
-                <label class="block text-gray-400 mb-2 text-sm font-medium uppercase tracking-wider">Estado de la llamada</label>
-                <select id="edit-status" class="w-full bg-black/30 border border-teal-500/30 rounded-lg p-3 text-white focus:border-teal-500 focus:outline-none transition-colors">
-                     <option value="Sin asignar" class="text-gray-400">⚪ Sin asignar (Reset)</option>
-                    <option value="Contestaron" class="text-green-400">🟢 Contestaron (Ocultar)</option>
-                    <option value="No contestaron" class="text-blue-400">🔵 No contestaron (Ocultar)</option>
-                    <option value="Colgaron" class="text-gray-400">⚫ Colgaron (Ocultar)</option>
-                    <option value="Revisita" class="text-yellow-400">🟡 Revisita (Mantener)</option>
-                    <option value="No llamar" class="text-red-400">🔴 No llamar (Ocultar 6 meses)</option>
-                    <option value="Testigo" class="text-purple-400">🟣 Testigo (Eliminar de lista)</option>
-                    <option value="Suspendido" class="text-orange-400">🟠 Suspendido (Eliminar de lista)</option>
-                </select>
+            <div class="space-y-5">
+                 <div class="group/input">
+                    <label class="block text-teal-400 mb-1.5 text-xs font-bold uppercase tracking-wider">Publicador Asignado</label>
+                    <select id="edit-pub-select" class="w-full bg-black/40 border border-teal-500/30 rounded-lg p-3 text-white focus:border-teal-500 focus:bg-black/60 focus:ring-1 focus:ring-teal-500/50 outline-none transition-all cursor-pointer">
+                        <option value="" class="bg-gray-900 text-gray-400">Seleccionar publicador...</option>
+                        ${publicadores.map(p =>
+            `<option value="${p.id}" ${p.id === currentPubId ? 'selected' : ''} class="bg-gray-900 text-gray-200">${p.nombre}</option>`
+        ).join('')}
+                    </select>
+                </div>
+
+                <div class="group/input">
+                    <label class="block text-teal-400 mb-1.5 text-xs font-bold uppercase tracking-wider">Estado de la llamada</label>
+                    <select id="edit-status-select" class="w-full bg-black/40 border border-teal-500/30 rounded-lg p-3 text-white focus:border-teal-500 focus:bg-black/60 focus:ring-1 focus:ring-teal-500/50 outline-none transition-all cursor-pointer">
+                        ${estados.map(st =>
+            `<option value="${st}" ${st === (currentStatus || 'Pendiente') ? 'selected' : ''} class="bg-gray-900 text-gray-200">${st}</option>`
+        ).join('')}
+                    </select>
+                </div>
             </div>
 
-            <div class="mb-8">
-                <label class="block text-gray-400 mb-2 text-sm font-medium uppercase tracking-wider">Publicador Asignado</label>
-                <select id="edit-pub" class="w-full bg-black/30 border border-teal-500/30 rounded-lg p-3 text-white focus:border-teal-500 focus:outline-none transition-colors">
-                    <option value="">-- Ninguno --</option>
-                    ${publicadores.map(p => `<option value="${p.id}" ${p.id === currentPub ? 'selected' : ''}>${p.nombre}</option>`).join('')}
-                </select>
-            </div>
-
-            <div class="flex gap-3">
-                <button id="cancel-edit" class="flex-1 px-4 py-2 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-800 transition-colors">Cancelar</button>
-                <button id="save-edit" class="flex-1 bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-500 hover:to-teal-400 text-white font-bold py-2 rounded-lg shadow-lg shadow-teal-500/20 transition-all transform hover:scale-[1.02]">Guardar Cambios</button>
-            </div>
+            <button id="save-phone-edit" class="w-full mt-8 bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-500 hover:to-teal-400 text-white font-bold py-3 rounded-xl shadow-lg shadow-teal-500/20 transform active:scale-95 transition-all duration-200">
+                Guardar Cambios
+            </button>
         `, (modal) => {
-            document.getElementById('edit-status').value = currentStatus || 'Sin asignar';
+            modal.querySelector('#save-phone-edit').addEventListener('click', async () => {
+                const newStatus = modal.querySelector('#edit-status-select').value;
+                const newPubId = modal.querySelector('#edit-pub-select').value;
 
-            document.getElementById('cancel-edit').onclick = () => modal.classList.add('hidden');
-
-            document.getElementById('save-edit').onclick = async () => {
-                const newStatus = document.getElementById('edit-status').value;
-                const newPub = document.getElementById('edit-pub').value;
-
-                modal.classList.add('hidden'); // Close immediately for perceived speed
-                await window.updatePhoneStatus(id, newStatus, newPub);
-            };
+                await updatePhoneStatus(id, newStatus, newPubId);
+                modal.classList.add('hidden');
+            });
         });
     };
-};
 
-const getStatusColor = (status) => {
-    switch (status) {
-        case 'Contestaron': return 'text-green-400';
-        case 'Testigo': return 'text-purple-400';
-        case 'Revisita': return 'text-yellow-400';
-        case 'No llamar': return 'text-red-400';
-        case 'Suspendido': return 'text-orange-400';
-        case 'Colgaron': return 'text-gray-400';
-        case 'No contestaron': return 'text-blue-400';
-        case 'Sin asignar': return 'text-gray-300';
-        case 'Pendiente': return 'text-gray-300';
-        default: return 'text-gray-300';
-    }
+
 };
 
 const showModal = (content, onOpen) => {
@@ -509,14 +504,14 @@ const showModal = (content, onOpen) => {
     }
 
     modalContainer.innerHTML = `
-        <div class="morphinglass-card w-full max-w-md m-4 relative animate-scale-in bg-black/80 border border-white/10 shadow-2xl shadow-teal-900/20">
+    < div class="morphinglass-card w-full max-w-md m-4 relative animate-scale-in bg-black/80 border border-white/10 shadow-2xl shadow-teal-900/20" >
             <button class="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors" onclick="document.getElementById('modal-container').classList.add('hidden')">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
             <div class="p-2">
                 ${content}
             </div>
-        </div>
+        </div >
     `;
     modalContainer.classList.remove('hidden');
     if (onOpen) onOpen(modalContainer);
