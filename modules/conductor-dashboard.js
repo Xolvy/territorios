@@ -86,7 +86,6 @@ export const renderConductorDashboard = (container, userEmail) => {
                                     <th class="p-4 font-semibold">Propietario</th>
                                     <th class="p-4 font-semibold">Publicador</th>
                                     <th class="p-4 font-semibold">Estado</th>
-                                    <th class="p-4 text-right">Acción</th>
                                 </tr>
                             </thead>
                             <tbody id="lista-telefonos" class="divide-y divide-white/5">
@@ -98,7 +97,6 @@ export const renderConductorDashboard = (container, userEmail) => {
                                         <td class="p-4"><div class="h-3 w-20 bg-white/5 rounded"></div></td>
                                         <td class="p-4"><div class="h-3 w-24 bg-white/5 rounded"></div></td>
                                         <td class="p-4"><div class="h-6 w-20 bg-white/10 rounded-full"></div></td>
-                                        <td class="p-4"><div class="h-6 w-16 bg-white/10 rounded ml-auto"></div></td>
                                     </tr>
                                 `).join('')}
                             </tbody>
