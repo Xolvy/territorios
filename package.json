@@ -1,0 +1,25 @@
+{
+  "name": "app-territorios",
+  "version": "1.0.0",
+  "description": "[![Deploy to Firebase](https://github.com/Xolvy/conductores/actions/workflows/firebase-deploy.yml/badge.svg)](https://github.com/Xolvy/conductores/actions/workflows/firebase-deploy.yml)",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build:css": "tailwindcss -i ./src/input.css -o ./styles.css --minify"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://Xolvy@github.com/Xolvy/conductores.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Xolvy/conductores/issues"
+  },
+  "homepage": "https://github.com/Xolvy/conductores#readme",
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
+  }
+}
