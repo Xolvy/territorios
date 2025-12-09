@@ -362,59 +362,108 @@ const renderTelefonosTab = async (container) => {
     publicadores.sort((a, b) => a.nombre.localeCompare(b.nombre));
 
     container.innerHTML = `
-                            <h3 class="font-semibold text-lg text-teal-100 mb-4">Gestión de Predicación Telefónica</h3>
-                            <div class="flex gap-2 mb-4">
-                                <button id="btn-add-phone" class="bg-teal-600 px-4 py-2 rounded-lg text-sm">+ Manual</button>
-                                <input type="file" id="csv-upload" accept=".csv" class="hidden">
-                                    <button id="btn-csv" class="bg-white/10 px-4 py-2 rounded-lg text-sm border border-white/10 hover:bg-white/20">📂 Cargar CSV</button>
-                            </div>
+        <h3 class="font-semibold text-lg text-teal-100 mb-4">Gestión de Predicación Telefónica</h3>
+        
+        <!-- Controls Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+             <div class="flex gap-2">
+                <button id="btn-add-phone" class="bg-teal-600 px-4 py-2 rounded-lg text-sm hover:bg-teal-500 transition-colors whitespace-nowrap">+ Manual</button>
+                <input type="file" id="csv-upload" accept=".csv" class="hidden">
+                <button id="btn-csv" class="bg-white/10 px-4 py-2 rounded-lg text-sm border border-white/10 hover:bg-white/20 transition-colors whitespace-nowrap">📂 CSV</button>
+            </div>
+            
+            <div class="flex gap-2">
+                <select id="filter-publisher" class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-300 focus:border-teal-500 outline-none">
+                    <option value="">Todos los Publicadores</option>
+                    <option value="Sin asignar">Sin asignar</option>
+                    ${publicadores.map(p => `<option value="${p.nombre}">${p.nombre}</option>`).join('')}
+                </select>
+                <select id="filter-status" class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-300 focus:border-teal-500 outline-none">
+                    <option value="">Todos los Estados</option>
+                    <option value="Sin asignar">Sin asignar</option>
+                    <option value="Contestaron">Contestaron</option>
+                    <option value="No contestan">No contestan</option>
+                    <option value="Colgaron">Colgaron</option>
+                    <option value="Revisita">Revisita</option>
+                    <option value="No llamar">No llamar</option>
+                    <option value="Suspendido">Suspendido</option>
+                    <option value="Testigo">Testigo</option>
+                </select>
+            </div>
+        </div>
 
-                            <!-- Progress Bar Container -->
-                            <div id="upload-progress-container" class="hidden mb-4 p-4 bg-white/5 rounded-lg border border-white/10">
-                                <div class="flex justify-between text-sm text-gray-300 mb-2">
-                                    <span id="progress-text">Cargando...</span>
-                                    <span id="progress-percent">0%</span>
-                                </div>
-                                <div class="w-full bg-black/50 rounded-full h-2.5">
-                                    <div id="upload-progress-bar" class="bg-teal-500 h-2.5 rounded-full" style="width: 0%"></div>
-                                </div>
-                            </div>
+        <!-- Progress Bar Container -->
+        <div id="upload-progress-container" class="hidden mb-4 p-4 bg-white/5 rounded-lg border border-white/10">
+            <div class="flex justify-between text-sm text-gray-300 mb-2">
+                <span id="progress-text">Cargando...</span>
+                <span id="progress-percent">0%</span>
+            </div>
+            <div class="w-full bg-black/50 rounded-full h-2.5">
+                <div id="upload-progress-bar" class="bg-teal-500 h-2.5 rounded-full" style="width: 0%"></div>
+            </div>
+        </div>
 
-                            <div class="bg-black/20 rounded-lg border border-white/5 h-[600px] overflow-y-auto">
-                                ${telefonos.length === 0 ?
-            '<div class="p-8 text-center text-gray-500">No hay teléfonos registrados</div>' :
-            `<div class="divide-y divide-white/10">
-                    ${telefonos.map(t => {
-                const assigned = t.asignado_a || 'Sin asignar';
-                const statusColor = t.estado === 'Contestaron' ? 'text-green-400' :
-                    t.estado === 'No contestan' ? 'text-orange-400' :
-                        t.estado === 'No llamar' ? 'text-red-400' :
-                            t.estado === 'Revisita' ? 'text-yellow-400' :
-                                t.estado === 'Suspendido' ? 'text-orange-500' :
-                                    t.estado === 'Colgaron' ? 'text-gray-400' :
-                                        t.estado === 'Testigo' ? 'text-purple-400' : 'text-gray-500';
+        <div id="phone-list-container" class="bg-black/20 rounded-lg border border-white/5 h-[600px] overflow-y-auto relative">
+            <!-- List will be rendered here -->
+        </div>
+    `;
 
-                return `
-                        <div class="flex justify-between items-center p-3 hover:bg-white/5 group">
-                            <div>
-                                <div class="font-mono text-teal-300 font-bold">${t.numero}</div>
-                                <div class="text-xs text-gray-400">${t.direccion || 'Sin dirección'} ${t.propietario ? `• ${t.propietario}` : ''}</div>
-                                <div class="text-xs flex gap-3 mt-1">
-                                    <span class="text-gray-500 text-[10px] bg-white/5 px-2 py-0.5 rounded">Asignado: ${assigned}</span>
-                                    <span class="${statusColor} text-[10px] uppercase font-bold tracking-wider">${t.estado || 'Sin asignar'}</span>
-                                </div>
-                            </div>
-                            <div class="flex gap-2">
-                                 <button onclick="window.editTelefonoAdmin('${t.id}')" class="text-blue-400 p-2 hover:bg-blue-500/20 rounded opacity-0 group-hover:opacity-100 transition-opacity">✏️</button>
-                                 <button onclick="window.deleteTelefonoAdmin('${t.id}')" class="text-red-400 p-2 hover:bg-red-500/20 rounded opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
+    // Render Logic with Filtering
+    const renderList = () => {
+        const listContainer = document.getElementById('phone-list-container');
+        const pubFilter = document.getElementById('filter-publisher').value;
+        const statusFilter = document.getElementById('filter-status').value;
+
+        const filtered = telefonos.filter(t => {
+            const matchPub = !pubFilter || (pubFilter === 'Sin asignar' ? !t.asignado_a : t.asignado_a === pubFilter);
+            const matchStatus = !statusFilter || (statusFilter === 'Sin asignar' ? !t.estado : t.estado === statusFilter);
+            return matchPub && matchStatus;
+        });
+
+        if (filtered.length === 0) {
+            listContainer.innerHTML = '<div class="p-8 text-center text-gray-500">No se encontraron registros coinciden con los filtros</div>';
+            return;
+        }
+
+        listContainer.innerHTML = `
+            <div class="divide-y divide-white/10">
+                ${filtered.map(t => {
+            const assigned = t.asignado_a || 'Sin asignar';
+            const statusColor = t.estado === 'Contestaron' ? 'text-green-400' :
+                t.estado === 'No contestan' ? 'text-orange-400' :
+                    t.estado === 'No llamar' ? 'text-red-400' :
+                        t.estado === 'Revisita' ? 'text-yellow-400' :
+                            t.estado === 'Suspendido' ? 'text-orange-500' :
+                                t.estado === 'Colgaron' ? 'text-gray-400' :
+                                    t.estado === 'Testigo' ? 'text-purple-400' : 'text-gray-500';
+
+            return `
+                    <div class="flex justify-between items-center p-3 hover:bg-white/5 group">
+                        <div>
+                            <div class="font-mono text-teal-300 font-bold">${t.numero}</div>
+                            <div class="text-xs text-gray-400">${t.direccion || 'Sin dirección'} ${t.propietario ? `• ${t.propietario}` : ''}</div>
+                            <div class="text-xs flex gap-3 mt-1">
+                                <span class="text-gray-500 text-[10px] bg-white/5 px-2 py-0.5 rounded">Asignado: ${assigned}</span>
+                                <span class="${statusColor} text-[10px] uppercase font-bold tracking-wider">${t.estado || 'Sin asignar'}</span>
                             </div>
                         </div>
-                    `;
-            }).join('')}
-                 </div>`
-        }
-                            </div>
-                            `;
+                        <div class="flex gap-2">
+                                <button onclick="window.editTelefonoAdmin('${t.id}')" class="text-blue-400 p-2 hover:bg-blue-500/20 rounded opacity-0 group-hover:opacity-100 transition-opacity">✏️</button>
+                                <button onclick="window.deleteTelefonoAdmin('${t.id}')" class="text-red-400 p-2 hover:bg-red-500/20 rounded opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
+                        </div>
+                    </div>
+                `;
+        }).join('')}
+            </div>
+        `;
+    };
+
+    // Initial Render
+    renderList();
+
+    // Filter Listeners
+    document.getElementById('filter-publisher').addEventListener('change', renderList);
+    document.getElementById('filter-status').addEventListener('change', renderList);
 
     window.deleteTelefonoAdmin = async (id) => {
         showCustomConfirm('¿Eliminar este registro?', async () => {
