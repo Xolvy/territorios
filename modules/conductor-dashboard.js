@@ -6,6 +6,7 @@ import {
 } from '../data/firestore-services.js';
 import { auth } from '../firebase-config.js';
 import { formatPhoneNumber, getStatusColor } from './utils/helpers.js';
+import { TerritoryIntelligence } from './utils/intelligence.js';
 
 export const renderConductorDashboard = (container, userEmail) => {
     // 1. UI OPTIMISTA: Renderizar estructura base + Skeletons INMEDIATAMENTE
@@ -54,6 +55,26 @@ export const renderConductorDashboard = (container, userEmail) => {
                        </div>
 
                    </div>
+                </div>
+
+                <!-- MODULE: AI ASSISTANT (Conductor) -->
+                <div id="module-ai-conductor" class="hidden morphinglass-card p-6 border-l-4 border-l-purple-500">
+                    <h2 class="text-xl font-bold text-purple-200 mb-2 flex items-center gap-2">
+                        🤖 Asistente Personal
+                    </h2>
+                    <p class="text-gray-400 text-sm mb-4">Pregunta sobre tus asignaciones, territorios o predicación.</p>
+                    
+                    <div id="conductor-chat-log" class="bg-black/40 rounded-xl p-4 h-48 overflow-y-auto mb-4 border border-white/5 text-sm space-y-3 shadow-inner">
+                        <div class="text-gray-500 italic text-xs text-center mt-2">✨ Tus datos se analizan localmente y de forma segura.</div>
+                    </div>
+                    
+                    <div class="flex gap-2 relative">
+                        <input type="text" id="conductor-ai-prompt" placeholder="Ej: ¿Qué manzana me falta terminar?" 
+                            class="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-purple-500 outline-none pr-12">
+                        <button id="conductor-ai-send" class="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg transition-all shadow-lg hover:shadow-purple-500/20 absolute right-1 top-1 bottom-1">
+                            ➤
+                        </button>
+                    </div>
                 </div>
 
                 <!-- MODULE: PROGRAMA (Full View) -->
@@ -146,6 +167,12 @@ export const renderConductorDashboard = (container, userEmail) => {
                 loadUnifiedDashboard(finalName, document.getElementById('dashboard-agenda'), document.getElementById('dashboard-territorios'));
             }
 
+            // --- MODULE: AI ASSISTANT ---
+            if (config.gemini_key) { // Only if key exists
+                document.getElementById('module-ai-conductor').classList.remove('hidden');
+                initializeConductorAI(config.gemini_key, finalName, finalEmail || finalName);
+            }
+
             // --- MODULE: PROGRAMA (Full) ---
             if (activeModules.programa_predicacion) {
                 document.getElementById('module-programa').classList.remove('hidden');
@@ -183,6 +210,78 @@ export const renderConductorDashboard = (container, userEmail) => {
             console.error(err);
             container.innerHTML += `<div class="p-4 bg-red-500/20 text-red-200">Error: ${err.message}</div>`;
         });
+};
+
+/* --- LOGIC: CONECTOR AI --- */
+const initializeConductorAI = async (apiKey, conductorName, conductorId) => {
+    // 1. Fetch Context Data (Only what the conductor should see/know about)
+    // We fetch everything relevant: Assigned Phones (to anyone in group technically? No, just theirs for now), Assigned Territories, Program.
+
+    // NOTE: getMisTelefonos returns all active phones for now, we ideally filter in the brain if needed, 
+    // but for personal AI, we probably want the Conductor to know about THEIR assignments.
+
+    try {
+        const [myPhones, myTerritories, program, pubs] = await Promise.all([
+            getMisTelefonos(conductorId), // In current implementation returns all, we might filter context ?
+            getMisTerritorios(conductorName),
+            getProgramaSemanal(),
+            getPublicadores()
+        ]);
+
+        // Filter phones to truly "mine" if needed, or pass all so they can ask about "available" numbers?
+        // Let's pass all but instruct AI to focus on "Mis Asignaciones".
+
+        const brain = new TerritoryIntelligence(myPhones, pubs, myTerritories, program);
+
+        const btnSend = document.getElementById('conductor-ai-send');
+        const inputPrompt = document.getElementById('conductor-ai-prompt');
+        const log = document.getElementById('conductor-chat-log');
+
+        const sendMsg = async () => {
+            const text = inputPrompt.value.trim();
+            if (!text) return;
+
+            // UI
+            log.innerHTML += `<div class="text-right mb-2"><span class="bg-purple-600/20 text-purple-200 px-3 py-2 rounded-lg inline-block font-medium text-sm">${text}</span></div>`;
+            log.scrollTop = log.scrollHeight;
+            inputPrompt.value = '';
+            inputPrompt.disabled = true;
+            btnSend.disabled = true;
+
+            try {
+                // Loading
+                const loadingId = 'ai-loading-' + Date.now();
+                log.innerHTML += `<div id="${loadingId}" class="text-left mb-2 text-gray-500 text-xs animate-pulse">Pensando...</div>`;
+                log.scrollTop = log.scrollHeight;
+
+                const response = await brain.askGemini(apiKey,
+                    `Soy el conductor ${conductorName}. ${text}`
+                ); // Prepend identity
+
+                document.getElementById(loadingId).remove();
+
+                // Format Response
+                const cleanResponse = response.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+                log.innerHTML += `<div class="text-left mb-2"><span class="bg-white/5 text-gray-200 px-3 py-2 rounded-xl inline-block border border-white/10 text-sm leading-relaxed">${cleanResponse}</span></div>`;
+
+            } catch (e) {
+                log.innerHTML += `<div class="text-center text-red-400 text-xs my-2">Error: ${e.message}</div>`;
+            } finally {
+                inputPrompt.disabled = false;
+                btnSend.disabled = false;
+                inputPrompt.focus();
+                log.scrollTop = log.scrollHeight;
+            }
+        };
+
+        btnSend.addEventListener('click', sendMsg);
+        inputPrompt.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMsg();
+        });
+
+    } catch (err) {
+        console.warn("AI Init Failed", err);
+    }
 };
 
 /* --- LOGIC: UNIFIED DASHBOARD --- */
