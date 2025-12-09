@@ -8,6 +8,7 @@ import {
     getProgramaSemanal, saveProgramaSemanal
 } from '../data/firestore-services.js';
 import { formatPhoneNumber, getStatusColor } from './utils/helpers.js';
+import { TerritoryIntelligence } from './utils/intelligence.js';
 import { auth } from '../firebase-config.js';
 
 export const renderAdminDashboard = async (container) => {
@@ -38,6 +39,11 @@ export const renderAdminDashboard = async (container) => {
                     <button class="tab-btn text-left p-3 rounded-lg hover:bg-white/5 transition-colors text-gray-300" data-tab="programa">
                         📅 Programa Semanal
                     </button>
+                    <div class="mt-4 pt-4 border-t border-white/10">
+                         <button class="tab-btn w-full text-left p-3 rounded-lg hover:bg-teal-500/10 transition-colors text-purple-300 font-medium animate-pulse" data-tab="ai">
+                            🧠 Asistente IA
+                        </button>
+                    </div>
                 </nav>
 
                 <!-- Content -->
@@ -85,7 +91,83 @@ const loadTab = async (tabName) => {
         await renderTelefonosTab(contentDiv);
     } else if (tabName === 'programa') {
         await renderProgramaTab(contentDiv);
+    } else if (tabName === 'ai') {
+        await renderAITab(contentDiv);
     }
+};
+
+const renderAITab = async (container) => {
+    // 1. Fetch Data State
+    const telefonos = await getTelefonos();
+    const publicadores = await getPublicadores();
+    const territorios = await getTerritorios();
+
+    // 2. Initialize Intelligence Engine
+    const brain = new TerritoryIntelligence(telefonos, publicadores, territorios);
+
+    // 3. Generate Analysis
+    const insights = brain.generateInsights();
+
+    // 4. Render UI
+    let insightsDisplay = insights.map(i => `
+        <div class="p-4 rounded-lg bg-black/20 border border-white/5 mb-3">
+            <h4 class="font-bold ${i.type === 'positive' ? 'text-green-400' : 'text-blue-400'} mb-1">${i.title}</h4>
+            <p class="text-sm text-gray-300">${i.message}</p>
+        </div>
+    `).join('');
+
+    if (insights.length === 0) insightsDisplay = '<p class="text-gray-500 italic">No hay suficientes datos para generar insights aún.</p>';
+
+    container.innerHTML = `
+        <h2 class="text-xl font-bold mb-6 border-b border-white/10 pb-2 text-purple-300">Asistente Inteligente de Territorios</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Sección de Insights -->
+            <div class="bg-white/5 rounded-xl p-6 border border-white/10">
+                <h3 class="text-lg font-semibold text-teal-100 mb-4 flex items-center gap-2">
+                    📊 Análisis del Sistema
+                </h3>
+                <div class="space-y-4">
+                    ${insightsDisplay}
+                </div>
+            </div>
+
+            <!-- Sección de Autosustentabilidad -->
+            <div class="bg-white/5 rounded-xl p-6 border border-white/10">
+                <h3 class="text-lg font-semibold text-teal-100 mb-4 flex items-center gap-2">
+                    🛠️ Mantenimiento Automático (Autosustentable)
+                </h3>
+                <p class="text-xs text-gray-400 mb-4">
+                    El sistema detecta y repara inconsistencias automáticamente para mantener la base de datos saludable.
+                </p>
+                
+                <div id="maintenance-log" class="bg-black/40 rounded p-4 text-xs font-mono text-gray-400 h-40 overflow-y-auto">
+                    Esperando ejecución...
+                </div>
+                
+                <button id="run-maintenance" class="w-full mt-4 bg-purple-600/80 hover:bg-purple-600 text-white rounded-lg py-2 text-sm transition-colors border border-purple-500/50">
+                    Ejecutar Diagnóstico y Reparación
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('run-maintenance').addEventListener('click', async () => {
+        const log = document.getElementById('maintenance-log');
+        log.innerHTML = '<span class="text-yellow-500">Ejecutando escaneo del sistema...</span><br>';
+
+        try {
+            const report = await brain.runAutoMaintenence();
+            if (report.actions.length > 0) {
+                log.innerHTML += report.actions.map(a => `<span class="text-green-400">✓ ${a}</span>`).join('<br>');
+                log.innerHTML += `<br><span class="text-white">Operación completada. Se repararon ${report.fixedIds.length} registros.</span>`;
+            } else {
+                log.innerHTML += '<span class="text-green-500">✓ Sistema saludable. No se encontraron inconsistencias.</span>';
+            }
+        } catch (e) {
+            log.innerHTML += `<span class="text-red-500">Error: ${e.message}</span>`;
+        }
+    });
 };
 
 // --- CONFIGURATION TAB ---
