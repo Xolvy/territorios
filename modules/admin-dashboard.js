@@ -331,6 +331,7 @@ const loadSubTab = async (subTab, container, config) => {
 
     } else if (subTab === 'conductores') {
         const conductores = await getConductores();
+        conductores.sort((a, b) => a.nombre.localeCompare(b.nombre));
         renderListCRUD(container, 'Conductores', conductores, ['nombre', 'telefono'], async (data) => {
             await addConductor(data);
         }, async (id) => {
@@ -340,6 +341,7 @@ const loadSubTab = async (subTab, container, config) => {
         });
     } else if (subTab === 'publicadores') {
         const publicadores = await getPublicadores();
+        publicadores.sort((a, b) => a.nombre.localeCompare(b.nombre));
         renderListCRUD(container, 'Publicadores', publicadores, ['nombre'], async (data) => {
             await addPublicador(data);
         }, async (id) => {
@@ -612,6 +614,7 @@ const renderListCRUD = (container, title, items, fields, onAdd, onDelete, onEdit
 const renderPredicacionTab = async (container) => {
     const data = await getPredicacionPublica();
     const publicadores = await getPublicadores();
+    publicadores.sort((a, b) => a.nombre.localeCompare(b.nombre));
     const config = await getConfiguracion();
 
     container.innerHTML = `

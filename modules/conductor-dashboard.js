@@ -309,6 +309,9 @@ const renderProgramTable = (programa, container, config) => {
 };
 
 const initializePhoneModule = (telefonos, publicadores, userId, tbody) => {
+    // Sort publishers
+    publicadores.sort((a, b) => a.nombre.localeCompare(b.nombre));
+
     // Helper format
     const formatPhoneNumber = (numero) => {
         if (!numero) return '';
