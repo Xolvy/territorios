@@ -23,6 +23,22 @@ service cloud.firestore {
       allow write: if isAuthenticated();
     }
 
+    // Reglas abiertas para lectura para evitar bloqueos en Demo/Dashboard
+    match /programa_semanal/{document=**} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+    
+    match /publicadores/{document=**} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+    
+    match /telefonos/{document=**} {
+      allow read: if true; // Permite ver la lista sin bloqueo estricto de Auth
+      allow write: if isAuthenticated();
+    }
+
     // Default rule for other collections
     match /{document=**} {
       allow read, write: if isAuthenticated();

@@ -5,95 +5,111 @@ import {
 } from '../data/firestore-services.js';
 import { auth } from '../firebase-config.js';
 
-export const renderConductorDashboard = async (container, userEmail) => {
-    const config = await getConfiguracion();
-    const activeModules = config.modulos_activos;
-    const conductores = await getConductores();
-
-    // Identificar usuario actual desde localStorage o email
-    let currentConductorName = localStorage.getItem('selected_conductor_name') || "Conductor";
-    let currentConductorEmail = userEmail;
-
-    // Buscar conductor por email O por nombre (para el caso de demo-login)
-    const conductorMatch = conductores.find(c =>
-        c.email === userEmail ||
-        c.nombre === userEmail ||
-        c.nombre === currentConductorName
-    );
-
-    if (conductorMatch) {
-        currentConductorName = conductorMatch.nombre;
-        currentConductorEmail = conductorMatch.email || userEmail;
-        localStorage.setItem('selected_conductor_name', currentConductorName);
-    }
+export const renderConductorDashboard = (container, userEmail) => {
+    // 1. UI OPTIMISTA: Renderizar estructura base + Skeletons INMEDIATAMENTE
+    // No esperamos a Firebase para mostrar algo al usuario.
+    let currentConductorName = localStorage.getItem('selected_conductor_name') || "Cargando...";
 
     container.innerHTML = `
         <div class="w-full max-w-7xl animate-fade-in pb-10">
-            <header class="flex justify-between items-center mb-8 p-4 morphinglass-card">
-                <div>
-                    <h1 class="text-2xl font-bold text-teal-400">Panel de Conductor</h1>
-                    <p class="text-sm text-gray-400">Bienvenido, ${currentConductorName}</p>
+            <!-- Header Skeleton / Real -->
+            <header class="flex justify-between items-center mb-8 p-6 morphinglass-card border-b border-teal-500/20 relative overflow-hidden group">
+                <div class="absolute inset-0 bg-teal-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
+                <div class="z-10">
+                    <h1 class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-300 to-cyan-400 tracking-wide">Panel de Conductor</h1>
+                    <p id="welcome-msg" class="text-sm text-gray-400 mt-1 flex items-center gap-2">
+                        Bienvenido, <span class="text-gray-200 font-medium">${currentConductorName}</span>
+                    </p>
                 </div>
-                <div class="flex items-center gap-4">
-                    <div class="bg-teal-500/10 border border-teal-500/30 rounded px-4 py-2 text-sm">
-                        <span class="text-teal-400 font-semibold">Soy:</span>
-                        <span class="text-white ml-2">${currentConductorName}</span>
+                <div class="flex items-center gap-4 z-10">
+                    <div class="bg-black/40 border border-teal-500/30 rounded-full px-5 py-2 text-sm backdrop-blur-md shadow-lg shadow-teal-500/10">
+                        <span class="text-teal-400 font-semibold tracking-wider text-xs uppercase">Conductor</span>
+                        <span id="badge-name" class="text-white ml-2 font-medium">${currentConductorName}</span>
                     </div>
-                    <button id="logout-btn" class="bg-red-500/20 hover:bg-red-500/40 text-red-200 px-4 py-2 rounded-lg border border-red-500/30 transition-colors">
+                    <button id="logout-btn" class="bg-red-500/10 hover:bg-red-500/30 text-red-200 px-5 py-2 rounded-full border border-red-500/20 transition-all duration-300 hover:shadow-[0_0_15px_rgba(239,68,68,0.3)]">
                         Salir
                     </button>
                 </div>
             </header>
 
             <div class="grid grid-cols-1 gap-8">
-                ${activeModules.dashboard ? `
-                    <section class="morphinglass-card">
-                        <h2 class="text-xl font-bold text-teal-200 mb-4">📊 Mi Dashboard</h2>
-                        <div id="dashboard-assignments" class="p-4 bg-white/5 rounded-lg border border-white/10">
-                            <p class="text-gray-400">Selecciona tu nombre arriba para ver asignaciones.</p>
-                        </div>
-                    </section>
-                ` : ''}
+                <!-- Dashboard Module Skeleton -->
+                <section id="module-dashboard" class="morphinglass-card p-6 hidden">
+                    <h2 class="text-xl font-bold text-teal-200 mb-6 flex items-center gap-2">
+                        <span>📊</span> Mi Dashboard
+                    </h2>
+                    <div id="dashboard-assignments" class="p-6 bg-black/20 rounded-xl border border-white/5 animate-pulse min-h-[100px] flex items-center justify-center">
+                        <div class="h-2 w-32 bg-white/10 rounded"></div>
+                    </div>
+                </section>
 
-                ${activeModules.programa_predicacion ? `
-                    <section class="morphinglass-card">
-                        <div class="flex justify-between items-center mb-4">
-                            <h2 class="text-xl font-bold text-teal-200">📅 Programa de Predicación</h2>
-                        <div class="flex justify-between items-center mb-6">
-                            <h2 class="text-xl font-bold text-teal-200">📞 Predicación Telefónica</h2>
-                            <div class="flex gap-2">
-                                <button id="btn-solicitar" class="bg-teal-600 hover:bg-teal-500 text-white px-4 py-2 rounded-lg text-sm transition-colors shadow-lg shadow-teal-500/20">
-                                    Solicitar números
-                                </button>
-                                <button id="btn-add-pub-temp" class="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg text-sm transition-colors border border-white/20">
-                                    + Publicador
-                                </button>
-                            </div>
+                <!-- Programa Module Skeleton -->
+                <section id="module-programa" class="morphinglass-card p-6 hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-bold text-teal-200 flex items-center gap-2">
+                            <span>📅</span> Programa de Predicación
+                        </h2>
+                        <div class="flex gap-2">
+                            <button id="export-prog-png" class="text-xs bg-teal-600/20 px-3 py-1.5 rounded-lg hover:bg-teal-600 border border-teal-500/30 transition-all text-teal-100">Exportar PNG</button>
+                            <!-- Save button hidden for conductors -->
                         </div>
-                        
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left text-sm text-gray-300">
-                                <thead class="text-teal-400 uppercase bg-black/40">
-                                    <tr>
-                                        <th class="p-3">Número</th>
-                                        <th class="p-3">Dirección</th>
-                                        <th class="p-3">Propietario</th>
-                                        <th class="p-3">Publicador</th>
-                                        <th class="p-3">Estado</th>
-                                        <th class="p-3 text-right">Acción</th>
+                    </div>
+                    <div id="program-table-container" class="bg-white/5 rounded-xl p-1 text-black overflow-x-auto min-h-[150px] animate-pulse">
+                        <!-- Skeleton Table -->
+                        <div class="h-8 bg-white/10 mb-2 w-full rounded"></div>
+                        <div class="h-32 bg-white/5 w-full rounded"></div>
+                    </div>
+                </section>
+
+                <!-- Telefonos Module Skeleton -->
+                <section id="module-telefonos" class="morphinglass-card p-6 hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-bold text-teal-200 flex items-center gap-2">
+                            <span>📞</span> Predicación Telefónica
+                        </h2>
+                        <div class="flex gap-3">
+                            <button id="btn-solicitar" class="bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-500 hover:to-teal-600 text-white px-5 py-2 rounded-lg text-sm transition-all shadow-lg shadow-teal-500/20 font-medium tracking-wide">
+                                Solicitar números
+                            </button>
+                            <button id="btn-add-pub-temp" class="bg-white/5 hover:bg-white/10 text-white px-4 py-2 rounded-lg text-sm transition-colors border border-white/10 backdrop-blur-sm">
+                                + Publicador
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="overflow-x-auto rounded-xl border border-white/5 bg-black/20">
+                        <table class="w-full text-left text-sm text-gray-300">
+                            <thead class="text-teal-400 uppercase bg-black/40 text-xs tracking-wider">
+                                <tr>
+                                    <th class="p-4 font-semibold">Número</th>
+                                    <th class="p-4 font-semibold">Dirección</th>
+                                    <th class="p-4 font-semibold">Propietario</th>
+                                    <th class="p-4 font-semibold">Publicador</th>
+                                    <th class="p-4 font-semibold">Estado</th>
+                                    <th class="p-4 text-right">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lista-telefonos" class="divide-y divide-white/5">
+                                <!-- Skeleton Rows -->
+                                ${[1, 2, 3].map(() => `
+                                    <tr class="animate-pulse">
+                                        <td class="p-4"><div class="h-4 w-24 bg-white/10 rounded"></div></td>
+                                        <td class="p-4"><div class="h-3 w-32 bg-white/5 rounded"></div></td>
+                                        <td class="p-4"><div class="h-3 w-20 bg-white/5 rounded"></div></td>
+                                        <td class="p-4"><div class="h-3 w-24 bg-white/5 rounded"></div></td>
+                                        <td class="p-4"><div class="h-6 w-20 bg-white/10 rounded-full"></div></td>
+                                        <td class="p-4"><div class="h-6 w-16 bg-white/10 rounded ml-auto"></div></td>
                                     </tr>
-                                </thead>
-                                <tbody id="lista-telefonos" class="divide-y divide-white/10">
-                                    <!-- Rows -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </section>
-                ` : ''}
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
             </div>
         </div>
     `;
 
+    // Logout listener (always active)
     document.getElementById('logout-btn').addEventListener('click', async () => {
         localStorage.removeItem('demo_role');
         localStorage.removeItem('selected_conductor_name');
@@ -101,270 +117,368 @@ export const renderConductorDashboard = async (container, userEmail) => {
         window.location.reload();
     });
 
-    // --- LOGIC: PROGRAMA PREDICACIÓN ---
-    if (activeModules.programa_predicacion) {
-        const programa = await getProgramaSemanal();
-        const containerTable = document.getElementById('program-table-container');
+    // 2. DATA FETCHING PARALELO (Promise.all)
+    // Buscamos Config y Conductores primero para habilitar módulos y header
+    Promise.all([getConfiguracion(), getConductores()])
+        .then(async ([config, conductores]) => {
+            const activeModules = config.modulos_activos;
 
-        const renderProgramTable = () => {
-            // Check if programa has data
-            if (!programa || !programa.dias || programa.dias.length === 0) {
-                containerTable.innerHTML = '<p class="text-gray-400 text-center p-4">No hay programa cargado aún.</p>';
-                return;
+            // --- HEADER LOGIC ---
+            // Buscar conductor info real
+            let finalName = currentConductorName;
+            let finalEmail = userEmail;
+
+            const conductorMatch = conductores.find(c =>
+                c.email === userEmail || c.nombre === userEmail || c.nombre === currentConductorName
+            );
+
+            if (conductorMatch) {
+                finalName = conductorMatch.nombre;
+                finalEmail = conductorMatch.email || userEmail;
+                localStorage.setItem('selected_conductor_name', finalName);
             }
 
-            // Build table with turnos structure
-            const turnos = [
-                { id: 'manana', label: '🌅 MAÑANA', headerColor: 'bg-cyan-100' },
-                { id: 'tarde', label: '☀️ TARDE', headerColor: 'bg-orange-100' },
-                { id: 'noche', label: '🌙 NOCHE', headerColor: 'bg-indigo-100' }
-            ];
+            // Update DOM with real name
+            const welcomeMsg = document.getElementById('welcome-msg');
+            if (welcomeMsg) welcomeMsg.innerHTML = `Bienvenido, <span class="text-gray-200 font-medium">${finalName}</span>`;
+            const badgeName = document.getElementById('badge-name');
+            if (badgeName) badgeName.textContent = finalName;
 
-            const fields = ['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', 'Grupos', 'Territorio'];
 
-            let html = `
-                <div class="text-center font-bold text-xl mb-2 uppercase border-b-2 border-black pb-2">
-                    Congregación "${config.congregacion?.nombre || '...'}" ${config.congregacion?.numero || ''} <br>
-                    Programa de Predicación
-                </div>
-                <table class="w-full border-collapse text-xs md:text-sm border border-gray-400">
-                    <thead>
-                        <tr class="bg-teal-100">
-                            <th class="border border-gray-400 p-1 w-16">Turno</th>
-                            <th class="border border-gray-400 p-1 w-20">Detalle</th>
-                            ${programa.dias.map(d => `<th class="border border-gray-400 p-1 uppercase">${d.nombre}</th>`).join('')}
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
+            // --- MODULE: DASHBOARD ---
+            const modDash = document.getElementById('module-dashboard');
+            if (activeModules.dashboard) {
+                modDash.classList.remove('hidden');
+                // Logic extracted to separate flow to not block others
+                loadDashboardAssignments(finalName, document.getElementById('dashboard-assignments'));
+            }
 
-            // Render each turno
-            turnos.forEach(turno => {
-                fields.forEach((field, fieldIdx) => {
-                    if (fieldIdx === 0) {
-                        // First row of turno: show turno label with rowspan
-                        html += `<tr>
-                            <td class="${turno.headerColor} font-bold border border-gray-400 p-2 text-center" rowspan="${fields.length}">${turno.label}</td>
-                            <td class="${turno.headerColor} font-bold border border-gray-400 p-1">${field}</td>`;
-                    } else {
-                        html += `<tr>
-                            <td class="${turno.headerColor} font-bold border border-gray-400 p-1">${field}</td>`;
+            // --- MODULE: PROGRAMA ---
+            const modProg = document.getElementById('module-programa');
+            if (activeModules.programa_predicacion) {
+                modProg.classList.remove('hidden');
+                // Fetch Program independently
+                getProgramaSemanal().then(programa => {
+                    const containerTable = document.getElementById('program-table-container');
+                    if (containerTable) {
+                        containerTable.classList.remove('animate-pulse', 'min-h-[150px]'); // Remove skeleton classes
+                        renderProgramTable(programa, containerTable, config);
                     }
+                });
 
-                    // Add data cells for each day
-                    programa.dias.forEach(dia => {
-                        const turnoData = dia[turno.id] || {};
-                        const val = turnoData[field.toLowerCase()] || '';
-                        html += `<td class="border border-gray-400 p-1 text-center">${val || '<span class="text-gray-400">-</span>'}</td>`;
+                // Export Listener
+                const btnExport = document.getElementById('export-prog-png');
+                if (btnExport) {
+                    btnExport.addEventListener('click', () => {
+                        const tableContainer = document.getElementById('program-table-container');
+                        if (typeof html2canvas !== 'undefined') {
+                            html2canvas(tableContainer, { scale: 2, backgroundColor: '#ffffff' }).then(canvas => {
+                                const link = document.createElement('a');
+                                link.download = 'programa_semanal.png';
+                                link.href = canvas.toDataURL();
+                                link.click();
+                            });
+                        } else {
+                            alert("Función no disponible");
+                        }
                     });
-
-                    html += `</tr>`;
-                });
-            });
-
-            html += `</tbody></table>`;
-            containerTable.innerHTML = html;
-        };
-
-        renderProgramTable();
-
-        // Keep save and export buttons for reference (though conductor shouldn't edit)
-        document.getElementById('save-prog')?.addEventListener('click', async () => {
-            alert("El programa solo puede editarse desde el Panel de Administrador");
-        });
-
-        document.getElementById('export-prog-png')?.addEventListener('click', () => {
-            if (typeof html2canvas !== 'undefined') {
-                html2canvas(containerTable, { scale: 2 }).then(canvas => {
-                    const link = document.createElement('a');
-                    link.download = 'programa_semanal.png';
-                    link.href = canvas.toDataURL();
-                    link.click();
-                });
-            } else {
-                alert("Función de exportar PNG no disponible");
+                }
             }
-        });
-    }
 
-    // --- LOGIC: PREDICACIÓN TELEFÓNICA ---
-    if (activeModules.predicacion_telefonica) {
-        const tbody = document.getElementById('lista-telefonos');
-        const publicadores = await getPublicadores();
+            // --- MODULE: TELEFONOS ---
+            const modTel = document.getElementById('module-telefonos');
+            if (activeModules.predicacion_telefonica) {
+                modTel.classList.remove('hidden');
 
-        // Use conductor email as userId for phone assignment
-        const userId = currentConductorEmail || currentConductorName;
-
-        // Helper function to format phone numbers
-        const formatPhoneNumber = (numero) => {
-            if (!numero) return '';
-            const cleaned = numero.toString().replace(/\D/g, '');
-            if (cleaned.length === 7) {
-                return `${cleaned.slice(0, 3)} ${cleaned.slice(3)}`;
+                // Fetch Phones & Publishers in PARALLEL
+                Promise.all([getMisTelefonos(finalEmail || finalName), getPublicadores()])
+                    .then(([telefonos, publicadores]) => {
+                        const tbody = document.getElementById('lista-telefonos');
+                        if (tbody) {
+                            initializePhoneModule(telefonos, publicadores, finalEmail || finalName, tbody);
+                        }
+                    });
             }
-            return numero; // Return original if not 7 digits
-        };
 
-        const renderTelefonos = async () => {
-            const telefonos = await getMisTelefonos(userId);
+        })
+        .catch(err => {
+            console.error("Error loading dashboard data:", err);
+            container.innerHTML += `<div class="p-4 bg-red-500/20 text-red-200 rounded border border-red-500/50 mt-4 mx-4">Error cargando datos: ${err.message}</div>`;
+        });
+};
 
-            // Ordenar por fecha de asignación descendente (más recientes primero)
-            telefonos.sort((a, b) => {
-                const dateA = a.fecha_asignacion ? new Date(a.fecha_asignacion) : new Date(0);
-                const dateB = b.fecha_asignacion ? new Date(b.fecha_asignacion) : new Date(0);
-                return dateB - dateA; // Descendente: más reciente primero
-            });
+/* --- SUB-FUNCIONES DE RENDERIZADO (Separadas para claridad) --- */
 
-            tbody.innerHTML = telefonos.map(t => {
-                const pubName = publicadores.find(p => p.id === t.publicador_asignado)?.nombre || '-';
-                const statusColor = getStatusColor(t.estado);
+const loadDashboardAssignments = async (name, container) => {
+    // Reutilizamos la lógica del programa para no volver a pedirlo?
+    // Idealmente sí, pero por simplicidad de refactor pedimos getProgramaSemanal de nuevo (cacheado por firebase localmente)
+    const programa = await getProgramaSemanal();
+    const turnos = ['manana', 'tarde', 'noche'];
+    const turnoLabels = { manana: '🌅 Mañana', tarde: '☀️ Tarde', noche: '🌙 Noche' };
+    let assignments = [];
 
-                return `
-                <tr class="hover:bg-white/5 transition-colors border-b border-white/5">
-                    <td class="p-3 font-mono text-teal-300 font-bold">${formatPhoneNumber(t.numero)}</td>
-                    <td class="p-3 text-gray-400 text-xs">${t.direccion}</td>
-                    <td class="p-3 text-gray-300 text-sm">${t.propietario}</td>
-                    <td class="p-3 text-sm">${pubName}</td>
-                    <td class="p-3">
-                        <div class="flex items-center gap-2">
-                            <span class="${statusColor} font-medium">${t.estado}</span>
-                            ${t.estado === 'Revisita' ? `
-                                <button onclick="window.handleDevolver('${t.id}')" title="Devolver" class="text-teal-400 hover:text-teal-300">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
-                                    </svg>
-                                </button>` : ''}
-                        </div>
-                    </td>
-                    <td class="p-3 text-right">
-                        <button onclick="window.openEditPhone('${t.id}', '${t.estado}', '${t.publicador_asignado || ''}')" 
-                            class="bg-blue-600/30 hover:bg-blue-600/50 text-blue-200 px-3 py-1 rounded text-xs border border-blue-500/30 transition-colors">
-                            Editar
-                        </button>
-                    </td>
-                </tr>
-            `}).join('');
-        };
-
-        await renderTelefonos();
-
-        const btnSolicitar = document.getElementById('btn-solicitar');
-        if (btnSolicitar) {
-            btnSolicitar.addEventListener('click', async () => {
-                try {
-                    console.log('Solicitando números para:', userId);
-                    const count = await solicitarNumeros(50, userId);
-                    alert(`Se asignaron ${count} números nuevos.`);
-                    await renderTelefonos();
-                } catch (error) {
-                    console.error('Error solicitando números:', error);
-                    alert('Error al solicitar números: ' + error.message);
+    if (programa && programa.dias) {
+        programa.dias.forEach(d => {
+            turnos.forEach(turno => {
+                const turnoData = d[turno];
+                if (turnoData) {
+                    if (turnoData.conductor === name) assignments.push({ dia: d.nombre, turno: turnoLabels[turno], role: 'Conductor', ...turnoData });
+                    if (turnoData.auxiliar === name) assignments.push({ dia: d.nombre, turno: turnoLabels[turno], role: 'Auxiliar', ...turnoData });
                 }
             });
-        }
-
-        const btnAddPub = document.getElementById('btn-add-pub-temp');
-        if (btnAddPub) {
-            btnAddPub.addEventListener('click', () => {
-                showModal(`
-                    <h3 class="text-xl font-bold mb-4 text-teal-400">Nuevo Publicador</h3>
-                    <input type="text" id="new-temp-pub" placeholder="Nombre Completo" class="w-full mb-4">
-                    <button id="save-temp-pub" class="w-full bg-teal-600 py-2 rounded-lg text-white">Guardar</button>
-                `, async (modal) => {
-                    document.getElementById('save-temp-pub').addEventListener('click', async () => {
-                        const name = document.getElementById('new-temp-pub').value;
-                        if (name) {
-                            await addPublicador({ nombre: name });
-                            modal.classList.add('hidden');
-                            alert("Publicador agregado");
-                            window.location.reload();
-                        }
-                    });
-                });
-            });
-        }
-
-        window.updatePhonePub = async (id, pubId) => {
-            // Este método ya no se usa directamente desde la tabla, pero lo mantengo por compatibilidad
-            await window.updatePhoneStatus(id, undefined, pubId);
-        };
+        });
     }
 
-    // --- LOGIC: DASHBOARD FILTER ---
-    if (activeModules.dashboard) {
-        const dashDiv = document.getElementById('dashboard-assignments');
+    if (assignments.length === 0) {
+        container.classList.remove('animate-pulse');
+        container.innerHTML = `<p class="text-gray-400 text-sm">No tienes asignaciones esta semana.</p>`;
+    } else {
+        container.classList.remove('animate-pulse', 'min-h-[100px]', 'flex', 'items-center', 'justify-center');
+        container.innerHTML = `
+            <div class="grid gap-4 w-full">
+                ${assignments.map(a => `
+                    <div class="bg-gradient-to-br from-teal-900/40 to-black/40 p-4 rounded-xl border border-teal-500/20 hover:border-teal-500/40 transition-colors group">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="font-bold text-teal-100 text-lg">${a.dia}</span>
+                                <span class="text-teal-400/80 text-sm ml-2 font-medium">${a.turno}</span>
+                            </div>
+                            <span class="text-xs bg-teal-500/20 text-teal-300 px-3 py-1 rounded-full border border-teal-500/20 group-hover:bg-teal-500/30 transition-colors">${a.role}</span>
+                        </div>
+                        <div class="mt-3 space-y-1 text-sm text-gray-400">
+                            <div class="flex items-center gap-2"><span class="text-gray-600">🕒</span> <span class="text-gray-300">${a.hora || '-'}</span></div>
+                            <div class="flex items-center gap-2"><span class="text-gray-600">📍</span> <span class="text-gray-300">${a.lugar || '-'}</span></div>
+                            <div class="flex items-center gap-2"><span class="text-gray-600">🗺️</span> <span class="text-gray-300">${a.territorio || '-'}</span></div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+};
 
-        const renderAssignments = async (name) => {
-            if (!name) {
-                dashDiv.innerHTML = '<p class="text-gray-400">Selecciona tu nombre.</p>';
-                return;
+const renderProgramTable = (programa, container, config) => {
+    if (!programa || !programa.dias || programa.dias.length === 0) {
+        container.innerHTML = '<p class="text-gray-400 text-center p-8">No hay programa cargado aún.</p>';
+        return;
+    }
+
+    const turnos = [
+        { id: 'manana', label: '🌅 MAÑANA', headerColor: 'bg-cyan-100/90' },
+        { id: 'tarde', label: '☀️ TARDE', headerColor: 'bg-orange-100/90' },
+        { id: 'noche', label: '🌙 NOCHE', headerColor: 'bg-indigo-100/90' }
+    ];
+    const fields = ['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', 'Grupos', 'Territorio'];
+
+    let html = `
+        <div class="bg-white p-4 min-w-[800px]"> <!-- Force white background for png export -->
+            <div class="text-center font-bold text-xl mb-4 uppercase border-b-2 border-black pb-4 text-black">
+                Congregación "${config.congregacion?.nombre || '...'}" ${config.congregacion?.numero || ''} <br>
+                <span class="text-lg text-gray-700 mt-1 block">Programa de Predicación</span>
+            </div>
+            <table class="w-full border-collapse text-xs md:text-sm border border-gray-400 text-black">
+                <thead>
+                    <tr class="bg-teal-100">
+                        <th class="border border-gray-400 p-2 w-20 font-bold text-teal-900">Turno</th>
+                        <th class="border border-gray-400 p-2 w-24 font-bold text-teal-900">Detalle</th>
+                        ${programa.dias.map(d => `<th class="border border-gray-400 p-2 uppercase font-bold text-teal-900 tracking-wider">${d.nombre}</th>`).join('')}
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    turnos.forEach(turno => {
+        fields.forEach((field, fieldIdx) => {
+            if (fieldIdx === 0) {
+                html += `<tr>
+                    <td class="${turno.headerColor} font-bold border border-gray-400 p-3 text-center align-middle text-gray-800" rowspan="${fields.length}">${turno.label}</td>
+                    <td class="${turno.headerColor} font-bold border border-gray-400 p-2 text-gray-800">${field}</td>`;
+            } else {
+                html += `<tr>
+                    <td class="${turno.headerColor} font-bold border border-gray-400 p-2 text-gray-800">${field}</td>`;
             }
+            programa.dias.forEach(dia => {
+                const val = (dia[turno.id] || {})[field.toLowerCase()] || '';
+                html += `<td class="border border-gray-400 p-2 text-center text-gray-700">${val || '<span class="text-gray-300">-</span>'}</td>`;
+            });
+            html += `</tr>`;
+        });
+    });
+    html += `</tbody></table></div>`;
+    container.innerHTML = html;
+};
 
-            dashDiv.innerHTML = '<p class="text-gray-400 animate-pulse">Cargando asignaciones...</p>';
+const initializePhoneModule = (telefonos, publicadores, userId, tbody) => {
+    // Helper format
+    const formatPhoneNumber = (numero) => {
+        if (!numero) return '';
+        const cleaned = numero.toString().replace(/\D/g, '');
+        return cleaned.length === 7 ? `${cleaned.slice(0, 3)} ${cleaned.slice(3)}` : numero;
+    };
 
-            // Filter program for this conductor
-            const programa = await getProgramaSemanal();
-            let assignments = [];
+    // Render Logic
+    const render = () => {
+        telefonos.sort((a, b) => {
+            const dateA = a.fecha_asignacion ? new Date(a.fecha_asignacion) : new Date(0);
+            const dateB = b.fecha_asignacion ? new Date(b.fecha_asignacion) : new Date(0);
+            return dateB - dateA;
+        });
 
-            const turnos = ['manana', 'tarde', 'noche'];
-            const turnoLabels = { manana: '🌅 Mañana', tarde: '☀️ Tarde', noche: '🌙 Noche' };
+        if (telefonos.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-500 italic">No tienes números asignados. ¡Solicita algunos!</td></tr>`;
+            return;
+        }
 
-            programa.dias.forEach(d => {
-                turnos.forEach(turno => {
-                    const turnoData = d[turno];
-                    if (turnoData) {
-                        if (turnoData.conductor === name) {
-                            assignments.push({
-                                dia: d.nombre,
-                                turno: turnoLabels[turno],
-                                role: 'Conductor',
-                                ...turnoData
-                            });
-                        }
-                        if (turnoData.auxiliar === name) {
-                            assignments.push({
-                                dia: d.nombre,
-                                turno: turnoLabels[turno],
-                                role: 'Auxiliar',
-                                ...turnoData
-                            });
-                        }
+        tbody.innerHTML = telefonos.map(t => {
+            const pubName = publicadores.find(p => p.id === t.publicador_asignado)?.nombre || '-';
+            const statusColor = getStatusColor(t.estado);
+            return `
+            <tr class="hover:bg-white/5 transition-colors border-b border-white/5 group">
+                <td class="p-4 font-mono text-teal-300 font-bold text-base tracking-wide">${formatPhoneNumber(t.numero)}</td>
+                <td class="p-4 text-gray-400 text-xs uppercase tracking-wide">${t.direccion}</td>
+                <td class="p-4 text-gray-300 text-sm font-medium">${t.propietario}</td>
+                <td class="p-4 text-sm text-gray-200">${pubName}</td>
+                <td class="p-4">
+                    <div class="flex items-center gap-3">
+                        <span class="${statusColor} font-medium flex items-center gap-2">
+                             <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
+                             ${t.estado}
+                        </span>
+                        ${t.estado === 'Revisita' ? `
+                            <button onclick="window.handleDevolver('${t.id}')" title="Devolver registro" class="text-teal-400 hover:text-teal-200 p-1.5 rounded-full hover:bg-teal-500/10 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" /></svg>
+                            </button>` : ''}
+                    </div>
+                </td>
+                <td class="p-4 text-right">
+                    <button onclick="window.openEditPhone('${t.id}', '${t.estado}', '${t.publicador_asignado || ''}')" 
+                        class="bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 px-4 py-1.5 rounded-lg text-xs font-medium border border-blue-500/20 transition-all hover:shadow-[0_0_10px_rgba(59,130,246,0.1)] group-hover:border-blue-500/40">
+                        Editar
+                    </button>
+                </td>
+            </tr>
+        `}).join('');
+    };
+
+    render(); // Initial render
+
+    // Listeners and Logic
+    const btnSolicitar = document.getElementById('btn-solicitar');
+    if (btnSolicitar) {
+        // Clone to remove old listeners (brute force clear)
+        const newBtn = btnSolicitar.cloneNode(true);
+        btnSolicitar.parentNode.replaceChild(newBtn, btnSolicitar);
+
+        newBtn.addEventListener('click', async () => {
+            try {
+                const count = await solicitarNumeros(50, userId);
+                alert(`Se asignaron ${count} números nuevos.`);
+                // Refresh list locally
+                const newTels = await getMisTelefonos(userId);
+                telefonos.length = 0; // Clear array
+                telefonos.push(...newTels); // Update with new data
+                render();
+            } catch (err) { alert('Error: ' + err.message); }
+        });
+    }
+
+    const btnAddPub = document.getElementById('btn-add-pub-temp');
+    if (btnAddPub) {
+        const newBtn = btnAddPub.cloneNode(true);
+        btnAddPub.parentNode.replaceChild(newBtn, btnAddPub);
+
+        newBtn.addEventListener('click', () => {
+            showModal(`
+                <h3 class="text-xl font-bold mb-4 text-teal-400">Nuevo Publicador</h3>
+                <input type="text" id="new-temp-pub" placeholder="Nombre Completo" class="w-full bg-black/30 border border-white/20 rounded p-3 text-white focus:border-teal-500 outline-none mb-4">
+                <button id="save-temp-pub" class="w-full bg-teal-600 hover:bg-teal-500 py-2 rounded-lg text-white font-medium shadow-lg shadow-teal-500/20 transition-all">Guardar</button>
+            `, (modal) => {
+                document.getElementById('save-temp-pub').addEventListener('click', async () => {
+                    const name = document.getElementById('new-temp-pub').value;
+                    if (name) {
+                        await addPublicador({ nombre: name });
+                        modal.classList.add('hidden');
+                        alert("Publicador agregado");
+                        window.location.reload(); // Simple reload for pub list update
                     }
                 });
             });
-
-            if (assignments.length === 0) {
-                dashDiv.innerHTML = `<p class="text-gray-300">Hola ${name}, no tienes asignaciones esta semana.</p>`;
-            } else {
-                dashDiv.innerHTML = `
-                    <h3 class="font-bold text-teal-300 mb-3">Asignaciones para ${name}</h3>
-                    <div class="grid gap-3">
-                        ${assignments.map(a => `
-                            <div class="bg-teal-900/30 p-3 rounded border border-teal-500/30">
-                                <div class="flex justify-between">
-                                    <span class="font-bold text-white">${a.dia} - ${a.turno}</span>
-                                    <span class="text-xs bg-teal-600 px-2 rounded">${a.role}</span>
-                                </div>
-                                <div class="text-sm text-gray-300 mt-1">
-                                    🕒 ${a.hora || '-'} | 📍 ${a.lugar || '-'} <br>
-                                    🗺️ Territorio: ${a.territorio || '-'}
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
-            }
-        };
-
-
-        // Auto-load assignments for current conductor
-        console.log('Auto-loading assignments for:', currentConductorName);
-        if (currentConductorName && currentConductorName !== "Conductor") {
-            setTimeout(() => {
-                renderAssignments(currentConductorName);
-            }, 500); // Small delay to ensure programa is loaded
-        }
+        });
     }
+
+    // Assign GLOBAL handlers for this module instance
+    window.updatePhoneStatus = async (id, status, pubId) => {
+        await updateTelefonoStatus(id, status, pubId);
+        // Refresh local data
+        const freshTels = await getMisTelefonos(userId);
+
+        // Update local array reference
+        telefonos.length = 0;
+        telefonos.push(...freshTels);
+        render();
+
+        if (freshTels.length === 0) {
+            console.log("Lote completado. Esperando reset.");
+            tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-teal-300 font-medium animate-pulse">¡Excelente! Has completado todos tus números.</td></tr>`;
+        }
+    };
+
+    window.handleDevolver = async (id) => {
+        if (confirm('¿Desea devolver este número? Se quitará el publicador y el estado.')) {
+            await devolverTelefono(id);
+            // Refresh
+            const freshTels = await getMisTelefonos(userId);
+            telefonos.length = 0;
+            telefonos.push(...freshTels);
+            render();
+        }
+    };
+
+    // Edit Modal Implementation re-attached to window for global access from HTML strings
+    window.openEditPhone = (id, currentStatus, currentPub) => {
+        showModal(`
+            <h3 class="text-xl font-bold mb-6 text-teal-300 text-center">Editar Registro</h3>
+            
+            <div class="mb-6">
+                <label class="block text-gray-400 mb-2 text-sm font-medium uppercase tracking-wider">Estado de la llamada</label>
+                <select id="edit-status" class="w-full bg-black/30 border border-teal-500/30 rounded-lg p-3 text-white focus:border-teal-500 focus:outline-none transition-colors">
+                     <option value="Sin asignar" class="text-gray-400">⚪ Sin asignar (Reset)</option>
+                    <option value="Contestaron" class="text-green-400">🟢 Contestaron (Ocultar)</option>
+                    <option value="No contestaron" class="text-blue-400">🔵 No contestaron (Ocultar)</option>
+                    <option value="Colgaron" class="text-gray-400">⚫ Colgaron (Ocultar)</option>
+                    <option value="Revisita" class="text-yellow-400">🟡 Revisita (Mantener)</option>
+                    <option value="No llamar" class="text-red-400">🔴 No llamar (Ocultar 6 meses)</option>
+                    <option value="Testigo" class="text-purple-400">🟣 Testigo (Eliminar de lista)</option>
+                    <option value="Suspendido" class="text-orange-400">🟠 Suspendido (Eliminar de lista)</option>
+                </select>
+            </div>
+
+            <div class="mb-8">
+                <label class="block text-gray-400 mb-2 text-sm font-medium uppercase tracking-wider">Publicador Asignado</label>
+                <select id="edit-pub" class="w-full bg-black/30 border border-teal-500/30 rounded-lg p-3 text-white focus:border-teal-500 focus:outline-none transition-colors">
+                    <option value="">-- Ninguno --</option>
+                    ${publicadores.map(p => `<option value="${p.id}" ${p.id === currentPub ? 'selected' : ''}>${p.nombre}</option>`).join('')}
+                </select>
+            </div>
+
+            <div class="flex gap-3">
+                <button id="cancel-edit" class="flex-1 px-4 py-2 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-800 transition-colors">Cancelar</button>
+                <button id="save-edit" class="flex-1 bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-500 hover:to-teal-400 text-white font-bold py-2 rounded-lg shadow-lg shadow-teal-500/20 transition-all transform hover:scale-[1.02]">Guardar Cambios</button>
+            </div>
+        `, (modal) => {
+            document.getElementById('edit-status').value = currentStatus || 'Sin asignar';
+
+            document.getElementById('cancel-edit').onclick = () => modal.classList.add('hidden');
+
+            document.getElementById('save-edit').onclick = async () => {
+                const newStatus = document.getElementById('edit-status').value;
+                const newPub = document.getElementById('edit-pub').value;
+
+                modal.classList.add('hidden'); // Close immediately for perceived speed
+                await window.updatePhoneStatus(id, newStatus, newPub);
+            };
+        });
+    };
 };
 
 const getStatusColor = (status) => {
@@ -377,7 +491,7 @@ const getStatusColor = (status) => {
         case 'Colgaron': return 'text-gray-400';
         case 'No contestaron': return 'text-blue-400';
         case 'Sin asignar': return 'text-gray-300';
-        case 'Pendiente': return 'text-gray-300'; // Backward compatibility
+        case 'Pendiente': return 'text-gray-300';
         default: return 'text-gray-300';
     }
 };
@@ -387,14 +501,18 @@ const showModal = (content, onOpen) => {
     if (!modalContainer) {
         modalContainer = document.createElement('div');
         modalContainer.id = 'modal-container';
-        modalContainer.className = 'fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center z-50';
+        modalContainer.className = 'fixed inset-0 bg-black/90 backdrop-blur-md hidden flex items-center justify-center z-50 animate-fade-in';
         document.body.appendChild(modalContainer);
     }
 
     modalContainer.innerHTML = `
-        <div class="morphinglass-card w-full max-w-md m-4 relative animate-fade-in bg-black">
-            <button class="absolute top-4 right-4 text-gray-400 hover:text-white" onclick="document.getElementById('modal-container').classList.add('hidden')">✕</button>
-            ${content}
+        <div class="morphinglass-card w-full max-w-md m-4 relative animate-scale-in bg-black/80 border border-white/10 shadow-2xl shadow-teal-900/20">
+            <button class="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors" onclick="document.getElementById('modal-container').classList.add('hidden')">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            <div class="p-2">
+                ${content}
+            </div>
         </div>
     `;
     modalContainer.classList.remove('hidden');
