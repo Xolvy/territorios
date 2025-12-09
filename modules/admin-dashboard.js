@@ -32,7 +32,7 @@ export const renderAdminDashboard = async (container) => {
                         📢 Predicación Pública
                     </button>
                     <button class="tab-btn text-left p-3 rounded-lg hover:bg-white/5 transition-colors text-gray-300" data-tab="telefonos">
-                        📞 Teléfonos
+                        📞 Predicación Telefónica
                     </button>
                     <button class="tab-btn text-left p-3 rounded-lg hover:bg-white/5 transition-colors text-gray-300" data-tab="programa">
                         📅 Programa Semanal
@@ -358,8 +358,11 @@ const loadSubTab = async (subTab, container, config) => {
 
 const renderTelefonosTab = async (container) => {
     const telefonos = await getTelefonos();
+    const publicadores = await getPublicadores();
+    publicadores.sort((a, b) => a.nombre.localeCompare(b.nombre));
+
     container.innerHTML = `
-                            <h3 class="font-semibold text-lg text-teal-100 mb-4">Base de Datos de Teléfonos</h3>
+                            <h3 class="font-semibold text-lg text-teal-100 mb-4">Gestión de Predicación Telefónica</h3>
                             <div class="flex gap-2 mb-4">
                                 <button id="btn-add-phone" class="bg-teal-600 px-4 py-2 rounded-lg text-sm">+ Manual</button>
                                 <input type="file" id="csv-upload" accept=".csv" class="hidden">
@@ -381,26 +384,36 @@ const renderTelefonosTab = async (container) => {
                                 ${telefonos.length === 0 ?
             '<div class="p-8 text-center text-gray-500">No hay teléfonos registrados</div>' :
             `<div class="divide-y divide-white/10">
-                    ${telefonos.map(t => `
+                    ${telefonos.map(t => {
+                const assigned = t.asignado_a || 'Sin asignar';
+                const statusColor = t.estado === 'Contactado' ? 'text-green-400' :
+                    t.estado === 'No contestan' ? 'text-orange-400' :
+                        t.estado === 'No llamar' ? 'text-red-400' : 'text-gray-500';
+
+                return `
                         <div class="flex justify-between items-center p-3 hover:bg-white/5 group">
                             <div>
                                 <div class="font-mono text-teal-300 font-bold">${t.numero}</div>
                                 <div class="text-xs text-gray-400">${t.direccion || 'Sin dirección'} ${t.propietario ? `• ${t.propietario}` : ''}</div>
-                                <div class="text-xs text-gray-600">Estado: ${t.estado || 'Nuevo'}</div>
+                                <div class="text-xs flex gap-3 mt-1">
+                                    <span class="text-gray-500 text-[10px] bg-white/5 px-2 py-0.5 rounded">Asignado: ${assigned}</span>
+                                    <span class="${statusColor} text-[10px] uppercase font-bold tracking-wider">${t.estado || 'Pendiente'}</span>
+                                </div>
                             </div>
                             <div class="flex gap-2">
                                  <button onclick="window.editTelefonoAdmin('${t.id}')" class="text-blue-400 p-2 hover:bg-blue-500/20 rounded opacity-0 group-hover:opacity-100 transition-opacity">✏️</button>
                                  <button onclick="window.deleteTelefonoAdmin('${t.id}')" class="text-red-400 p-2 hover:bg-red-500/20 rounded opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
                             </div>
                         </div>
-                    `).join('')}
+                    `;
+            }).join('')}
                  </div>`
         }
                             </div>
                             `;
 
     window.deleteTelefonoAdmin = async (id) => {
-        showCustomConfirm('¿Eliminar este teléfono?', async () => {
+        showCustomConfirm('¿Eliminar este registro?', async () => {
             await deleteTelefono(id);
             renderTelefonosTab(container);
         });
@@ -409,25 +422,54 @@ const renderTelefonosTab = async (container) => {
     window.editTelefonoAdmin = async (id) => {
         const t = telefonos.find(x => x.id === id);
         if (!t) return;
+
+        const estados = ['Pendiente', 'Contactado', 'No contestan', 'Ocupado', 'Buzón de voz', 'Número equivocado', 'No llamar'];
+
         showModal(`
-                            <h3 class="text-xl font-bold mb-4 text-teal-400">Editar Teléfono</h3>
+                            <h3 class="text-xl font-bold mb-4 text-teal-400">Editar Registro Telefónico</h3>
 
-                            <label class="block text-xs text-teal-500 mb-1">Número</label>
-                            <input type="text" id="edit-p-num" value="${t.numero}" class="w-full mb-3 bg-white/5 border border-white/10 rounded p-2 text-white focus:border-teal-500 outline-none">
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-xs text-teal-500 mb-1">Número</label>
+                                    <input type="text" id="edit-p-num" value="${t.numero}" class="w-full bg-white/5 border border-white/10 rounded p-2 text-white focus:border-teal-500 outline-none font-mono">
+                                </div>
 
-                                <label class="block text-xs text-teal-500 mb-1">Dirección</label>
-                                <input type="text" id="edit-p-dir" value="${t.direccion || ''}" class="w-full mb-3 bg-white/5 border border-white/10 rounded p-2 text-white focus:border-teal-500 outline-none">
+                                <div>
+                                    <label class="block text-xs text-teal-500 mb-1">Nombre Propietario</label>
+                                    <input type="text" id="edit-p-prop" value="${t.propietario || ''}" class="w-full bg-white/5 border border-white/10 rounded p-2 text-white focus:border-teal-500 outline-none">
+                                </div>
 
-                                    <label class="block text-xs text-teal-500 mb-1">Propietario</label>
-                                    <input type="text" id="edit-p-prop" value="${t.propietario || ''}" class="w-full mb-4 bg-white/5 border border-white/10 rounded p-2 text-white focus:border-teal-500 outline-none">
+                                <div>
+                                    <label class="block text-xs text-teal-500 mb-1">Dirección</label>
+                                    <input type="text" id="edit-p-dir" value="${t.direccion || ''}" class="w-full bg-white/5 border border-white/10 rounded p-2 text-white focus:border-teal-500 outline-none">
+                                </div>
 
-                                        <button id="update-phone" class="w-full bg-teal-600 py-2 rounded-lg text-white hover:bg-teal-500 transition-colors">Actualizar</button>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-xs text-teal-500 mb-1">Asignado a (Publicador)</label>
+                                        <select id="edit-p-pub" class="w-full bg-white/5 border border-white/10 rounded p-2 text-white focus:border-teal-500 outline-none cursor-pointer">
+                                            <option value="" class="bg-gray-900 text-gray-400">Sin asignar</option>
+                                            ${publicadores.map(p => `<option value="${p.nombre}" ${t.asignado_a === p.nombre ? 'selected' : ''} class="bg-gray-900">${p.nombre}</option>`).join('')}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs text-teal-500 mb-1">Estado</label>
+                                        <select id="edit-p-estado" class="w-full bg-white/5 border border-white/10 rounded p-2 text-white focus:border-teal-500 outline-none cursor-pointer">
+                                            ${estados.map(st => `<option value="${st}" ${t.estado === st ? 'selected' : ''} class="bg-gray-900">${st}</option>`).join('')}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button id="update-phone" class="w-full bg-teal-600 py-2 rounded-lg text-white hover:bg-teal-500 transition-colors mt-6 font-medium shadow-lg shadow-teal-500/20">Actualizar Registro</button>
         `, async (modal) => {
             document.getElementById('update-phone').addEventListener('click', async () => {
                 await updateTelefono(id, {
                     numero: document.getElementById('edit-p-num').value,
                     direccion: document.getElementById('edit-p-dir').value,
-                    propietario: document.getElementById('edit-p-prop').value
+                    propietario: document.getElementById('edit-p-prop').value,
+                    asignado_a: document.getElementById('edit-p-pub').value,
+                    estado: document.getElementById('edit-p-estado').value
                 });
                 modal.classList.add('hidden');
                 renderTelefonosTab(container);
