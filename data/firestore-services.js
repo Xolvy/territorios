@@ -143,29 +143,9 @@ export const updatePublicador = async (id, data) => {
 // --- TELEFONOS ---
 
 export const getMisTelefonos = async (conductorQuery) => {
-    // For now we get ALL and filter in memory or we can do a compound query?
-    // Firestore simple query:
+    // Return all for client-side filtering as dataset is small or implement query if needed
     const querySnapshot = await getDocs(collection(db, "telefonos"));
-
-    // Filter logic:
-    // If user is a 'Publicador', they see numbers assigned to their ID.
-    // If user is a 'Conductor', they might see... wait, users are usually conductors here?
-    // Let's assume 'conductorQuery' matches 'publicador_asignado' (ID) OR 'asignado_a' (Name legacy)
-
-    // We'll return all for client-side filtering if simpler or implement better query later.
-    // Actually, let's just return all and filter in JS for now as dataset is small.
-    // OPTIMIZATION: Filter by 'estado' != 'Suspendido'
-
-    const all = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    // Filter logic moved to client or:
-    // This function is named "getMisTelefonos", so let's filter:
-
-    // NOTE: In the previous conversations, we were passing the User's Name or Email.
-    // The 'telefonos' collection has 'publicador_asignado' which is an ID, and sometimes 'asignado_a' (legacy name).
-    // We need to resolve the publicador ID from the name if possible, but that's expensive here.
-    // So we return ALL active numbers for the Dashboard to filter/display or manage.
-
-    return all;
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 };
 
 export const getTelefonos = async () => {
@@ -178,8 +158,7 @@ export const addTelefono = async (telefono) => {
 };
 
 export const solicitarNumeros = async (cantidad, userId) => {
-    // Simple algorithm: Find X numbers 'Sin asignar', assign to userId
-    const q = query(collection(db, "telefonos"), where("estado", "==", "Sin asignar")); // Limit not supported in basic query builder easily without order
+    const q = query(collection(db, "telefonos"), where("estado", "==", "Sin asignar"));
     const snapshot = await getDocs(q);
 
     let count = 0;
@@ -233,11 +212,9 @@ export const devolverTelefono = async (id) => {
     });
 };
 
-
 // --- PREDICACION PUBLICA ---
 
 export const getPredicacionPublica = async () => {
-    // Single doc singleton
     const querySnapshot = await getDocs(collection(db, "predicacion_publica"));
     if (querySnapshot.empty) return { dias: [] };
     return { id: querySnapshot.docs[0].id, ...querySnapshot.docs[0].data() };
@@ -266,5 +243,24 @@ export const saveProgramaSemanal = async (data) => {
         await updateDoc(doc(db, "programa_semanal", current.id), data);
     } else {
         await addDoc(collection(db, "programa_semanal"), data);
+    }
+};
+
+// --- PERMISOS ---
+
+export const getPermisosUsuario = async (email) => {
+    if (!email) return null;
+    try {
+        // 1. Check existing Conductores
+        const q = query(collection(db, "conductores"), where("email", "==", email));
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+            const data = snapshot.docs[0].data();
+            return { role: data.role || 'Conductor', ...data };
+        }
+        return null; // Handle Admin elsewhere or return null
+    } catch (e) {
+        console.error("Error getting permissions:", e);
+        return null;
     }
 };
