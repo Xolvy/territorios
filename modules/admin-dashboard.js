@@ -688,7 +688,7 @@ const renderPredicacionTab = async (container) => {
                                                                 <thead>
                                                                     <tr class="bg-gradient-to-r from-teal-900/40 to-black/40 text-teal-100 uppercase text-xs tracking-wider">
                                                                         <th class="p-4 font-semibold border-b border-white/10">Día</th>
-                                                                        <th class="p-4 font-semibold border-b border-white/10">Hora</th>
+                                                                        <th class="p-4 font-semibold border-b border-white/10 text-center">Horario</th>
                                                                         <th class="p-4 font-semibold border-b border-white/10">Lugar</th>
                                                                         <th class="p-4 font-semibold border-b border-white/10 w-1/5">Publicador</th>
                                                                         <th class="p-4 font-semibold border-b border-white/10 w-1/5">Compañero</th>
@@ -726,9 +726,17 @@ const renderPredicacionTab = async (container) => {
                                                         </select>
                                                     </td>
                                                     <td class="p-2">
-                                                        <input type="time" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-gray-200 focus:outline-none focus:border-teal-500 transition-all font-mono"
-                                                            value="${row.hora || ''}"
-                                                            onchange="updateRow(${index}, 'hora', this.value)">
+                                                        <div class="flex items-center gap-1">
+                                                            <input type="time" class="w-24 bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-gray-200 focus:outline-none focus:border-teal-500 transition-all font-mono text-center text-xs"
+                                                                value="${row.hora || ''}"
+                                                                title="Hora Inicio"
+                                                                onchange="updateRow(${index}, 'hora', this.value)">
+                                                            <span class="text-gray-500">-</span>
+                                                            <input type="time" class="w-24 bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-gray-200 focus:outline-none focus:border-teal-500 transition-all font-mono text-center text-xs"
+                                                                value="${row.hora_fin || ''}"
+                                                                title="Hora Fin"
+                                                                onchange="updateRow(${index}, 'hora_fin', this.value)">
+                                                        </div>
                                                     </td>
                                                     <td class="p-2">
                                                         <div class="relative w-full h-full group/select">
@@ -783,7 +791,7 @@ const renderPredicacionTab = async (container) => {
 
     document.getElementById('add-row-btn').addEventListener('click', async () => {
         data.asignaciones = data.asignaciones || [];
-        data.asignaciones.push({ dia: 'Lunes', hora: '10:00', lugar: 'Parque', publicador: '', companero: '' });
+        data.asignaciones.push({ dia: 'Lunes', hora: '08:00', hora_fin: '10:00', lugar: 'Parque', publicador: '', companero: '' });
         await savePredicacionPublica(data);
         renderRows(); // Re-render to show new row
         // Scroll to bottom
