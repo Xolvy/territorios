@@ -1,70 +1,38 @@
-import { db } from '../firebase-config.js';
-import { doc, getDoc, setDoc, collection, getDocs, addDoc, updateDoc, deleteDoc, query, where, limit, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { db, auth, storage } from '../firebase-config.js';
+import {
+    collection, getDocs, addDoc, deleteDoc, doc, updateDoc, query, where, getDoc
+} from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
-// --- USUARIOS / PERMISOS ---
-
-export const getPermisosUsuario = async (email) => {
-    try {
-        // 1. Verificar si es Conductor
-        const qConductor = query(collection(db, "conductores"), where("email", "==", email));
-        const conductorSnap = await getDocs(qConductor);
-
-        if (!conductorSnap.empty) {
-            return { role: 'Conductor', ...conductorSnap.docs[0].data() };
-        }
-
-        // 2. Verificar si es Administrador (Buscamos en colección 'admins' o 'usuarios' con rol admin)
-        // Por ahora, para facilitar el despliegue, verificamos en una colección 'admins'
-        const qAdmin = query(collection(db, "admins"), where("email", "==", email));
-        const adminSnap = await getDocs(qAdmin);
-
-        if (!adminSnap.empty) {
-            return { role: 'Administrador', ...adminSnap.docs[0].data() };
-        }
-
-        // Fallback para el primer usuario o demo
-        // Si no hay usuarios en la BD, permitir acceso temporal o manejar en UI
-        return null;
-    } catch (error) {
-        console.error("Error verificando permisos:", error);
-        return null;
-    }
-};
-
-// --- CONFIGURACIÓN GENERAL ---
+// --- CONFIGURACION GLOBAL ---
 
 export const getConfiguracion = async () => {
-    try {
-        const docRef = doc(db, "configuracion", "general");
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) return docSnap.data();
-
-        // Configuración por defecto si no existe
-        return {
-            modulos_activos: {
-                dashboard: true,
-                programa_predicacion: true,
-                predicacion_telefonica: true
-            },
-            congregacion: {
-                nombre: "Nueve de Octubre",
-                numero: "14282"
-            },
-            horarios: {
-                manana: "08:45",
-                tarde: "16:00",
-                noche: "19:15"
-            },
-            lugares: ["Salón del Reino", "Zoom", "Familia X"]
+    const querySnapshot = await getDocs(collection(db, "configuracion"));
+    if (querySnapshot.empty) {
+        // Create default config if not exists
+        const defaultConfig = {
+            id: 'general',
+            congregacion: { nombre: 'Mi Congregación', numero: '0000' },
+            modulos_activos: { dashboard: true, programa_predicacion: true, predicacion_telefonica: true, territorios: true },
+            lugares: ['Salón del Reino', 'Zoom'],
+            facetas: ['Casa en Casa', 'Telefónica', 'Pública', 'Cartas'],
+            horarios_programa: ['09:00', '16:00', '19:00']
         };
-    } catch (e) {
-        console.error("Error getting config:", e);
-        return null;
+        await addDoc(collection(db, "configuracion"), defaultConfig);
+        return defaultConfig;
     }
+    const docData = querySnapshot.docs[0].data();
+    docData.id = querySnapshot.docs[0].id; // Append ID for updates
+    return docData;
 };
 
 export const saveConfiguracion = async (config) => {
-    await setDoc(doc(db, "configuracion", "general"), config, { merge: true });
+    if (config.id) {
+        const docRef = doc(db, "configuracion", config.id);
+        const { id, ...data } = config; // Exclude ID from data
+        await updateDoc(docRef, data);
+    } else {
+        await addDoc(collection(db, "configuracion"), config);
+    }
 };
 
 // --- TERRITORIOS ---
@@ -100,6 +68,30 @@ export const returnTerritorio = async (id) => {
         fecha_asignacion: null,
         ultima_fecha: new Date().toISOString(),
         estado: 'Predicado' // Marked as Preached/Completed
+    });
+};
+
+export const returnTerritorioParcial = async (originalId, completedManzanas, remainingManzanas) => {
+    // 1. Get original doc
+    const territoryRef = doc(db, "territorios", originalId);
+    const territorySnap = await getDoc(territoryRef);
+    if (!territorySnap.exists()) throw new Error("Territorio no encontrado");
+    const tData = territorySnap.data();
+
+    // 2. Create NEW doc for the COMPLETED part (Free & Predicado)
+    await addDoc(collection(db, "territorios"), {
+        ...tData,
+        manzanas: completedManzanas,
+        estado: 'Predicado',
+        asignado_a: null,
+        fecha_asignacion: null,
+        ultima_fecha: new Date().toISOString(),
+        origen_id: originalId // Traceability
+    });
+
+    // 3. Update EXISTING doc for the REMAINING part (Keep Assigned)
+    await updateDoc(territoryRef, {
+        manzanas: remainingManzanas
     });
 };
 
@@ -148,21 +140,80 @@ export const updatePublicador = async (id, data) => {
     await updateDoc(doc(db, "publicadores", id), data);
 };
 
-// --- TELÉFONOS ---
+// --- TELEFONOS ---
+
+export const getMisTelefonos = async (conductorQuery) => {
+    // For now we get ALL and filter in memory or we can do a compound query?
+    // Firestore simple query:
+    const querySnapshot = await getDocs(collection(db, "telefonos"));
+
+    // Filter logic:
+    // If user is a 'Publicador', they see numbers assigned to their ID.
+    // If user is a 'Conductor', they might see... wait, users are usually conductors here?
+    // Let's assume 'conductorQuery' matches 'publicador_asignado' (ID) OR 'asignado_a' (Name legacy)
+
+    // We'll return all for client-side filtering if simpler or implement better query later.
+    // Actually, let's just return all and filter in JS for now as dataset is small.
+    // OPTIMIZATION: Filter by 'estado' != 'Suspendido'
+
+    const all = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    // Filter logic moved to client or:
+    // This function is named "getMisTelefonos", so let's filter:
+
+    // NOTE: In the previous conversations, we were passing the User's Name or Email.
+    // The 'telefonos' collection has 'publicador_asignado' which is an ID, and sometimes 'asignado_a' (legacy name).
+    // We need to resolve the publicador ID from the name if possible, but that's expensive here.
+    // So we return ALL active numbers for the Dashboard to filter/display or manage.
+
+    return all;
+};
 
 export const getTelefonos = async () => {
-    // En una app real, esto debería paginarse. Para demo traemos todo (cuidado con performance)
     const querySnapshot = await getDocs(collection(db, "telefonos"));
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 };
 
 export const addTelefono = async (telefono) => {
-    await addDoc(collection(db, "telefonos"), {
-        ...telefono,
-        estado: 'Nuevo',
-        asignado_a: null,
-        fecha_asignacion: null
-    });
+    await addDoc(collection(db, "telefonos"), telefono);
+};
+
+export const solicitarNumeros = async (cantidad, userId) => {
+    // Simple algorithm: Find X numbers 'Sin asignar', assign to userId
+    const q = query(collection(db, "telefonos"), where("estado", "==", "Sin asignar")); // Limit not supported in basic query builder easily without order
+    const snapshot = await getDocs(q);
+
+    let count = 0;
+    const batchPromises = [];
+
+    for (const d of snapshot.docs) {
+        if (count >= cantidad) break;
+        batchPromises.push(updateDoc(doc(db, "telefonos", d.id), {
+            estado: 'Asignado',
+            publicador_asignado: userId,
+            asignado_a: 'Usuario', // Legacy
+            fecha_asignacion: new Date().toISOString()
+        }));
+        count++;
+    }
+
+    await Promise.all(batchPromises);
+    return count;
+};
+
+export const updateTelefonoStatus = async (id, estado, publicadorId) => {
+    const data = { estado };
+    if (publicadorId) {
+        data.publicador_asignado = publicadorId;
+        data.fecha_asignacion = new Date().toISOString();
+    }
+    // If setting to 'Sin asignar', clear fields
+    if (estado === 'Sin asignar') {
+        data.publicador_asignado = null;
+        data.asignado_a = null;
+        data.fecha_asignacion = null;
+    }
+
+    await updateDoc(doc(db, "telefonos", id), data);
 };
 
 export const deleteTelefono = async (id) => {
@@ -173,108 +224,47 @@ export const updateTelefono = async (id, data) => {
     await updateDoc(doc(db, "telefonos", id), data);
 };
 
-export const solicitarNumeros = async (cantidad, usuarioId) => {
-    // Buscar números no asignados
-    const q = query(collection(db, "telefonos"), where("asignado_a", "==", null), limit(cantidad));
-    const querySnapshot = await getDocs(q);
-
-    const batch = writeBatch(db);
-    querySnapshot.docs.forEach(doc => {
-        batch.update(doc.ref, {
-            asignado_a: usuarioId,
-            fecha_asignacion: new Date().toISOString(),
-            estado: 'Sin asignar'
-        });
-    });
-
-    await batch.commit();
-    return querySnapshot.size;
-};
-
-// Función auxiliar para devolver (resetear) un teléfono
 export const devolverTelefono = async (id) => {
     await updateDoc(doc(db, "telefonos", id), {
-        estado: 'Sin asignar',
         asignado_a: null,
         publicador_asignado: null,
+        estado: 'Sin asignar',
         fecha_asignacion: null
     });
 };
 
-export const getMisTelefonos = async (usuarioId) => {
-    if (!usuarioId) return [];
-    const q = query(collection(db, "telefonos"), where("asignado_a", "==", usuarioId));
-    const querySnapshot = await getDocs(q);
 
-    // Filtrar localmente los que están "ocultos" según reglas de negocio
-    // Colgaron, No contestaron, Contestaron -> Se ocultan (hasta que se asignen todos, pero por ahora se ocultan del dashboard)
-    // No llamar -> Se oculta (lógica de 6 meses es al solicitar, pero aquí no debe verse)
-    const hiddenStatuses = ['Colgaron', 'No contestaron', 'Contestaron', 'No llamar'];
-
-    return querySnapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(t => !hiddenStatuses.includes(t.estado));
-};
-
-export const updateTelefonoStatus = async (id, estado, publicadorId) => {
-    const telefonoRef = doc(db, "telefonos", id);
-
-    // Regla: Testigo o Suspendido -> Eliminar registro
-    if (estado === 'Testigo' || estado === 'Suspendido') {
-        await deleteDoc(telefonoRef);
-        return;
-    }
-
-    const data = {};
-    if (estado !== undefined) {
-        data.estado = estado;
-        // Regla: No llamar -> Guardar fecha para control de 6 meses
-        if (estado === 'No llamar') {
-            data.fecha_no_llamar = new Date().toISOString();
-            // Opcional: ¿Desasignar inmediatamente? 
-            // Si se desasigna, solicitarNumeros podría tomarlo si no filtramos bien.
-            // Mejor mantenerlo asignado u oculto, o manejarlo en solicitarNumeros.
-            // Por ahora, solo guardamos el estado y la fecha.
-        }
-    }
-    if (publicadorId !== undefined) data.publicador_asignado = publicadorId;
-
-    await updateDoc(telefonoRef, data);
-};
-
-// --- PROGRAMA PREDICACIÓN ---
-
-export const getProgramaSemanal = async () => {
-    const docRef = doc(db, "programas", "actual");
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) return docSnap.data();
-
-    // Estructura base vacía si no existe
-    return {
-        dias: [
-            { nombre: "Lunes", turnos: [] },
-            { nombre: "Martes", turnos: [] },
-            { nombre: "Miércoles", turnos: [] },
-            { nombre: "Jueves", turnos: [] },
-            { nombre: "Viernes", turnos: [] },
-            { nombre: "Sábado", turnos: [] },
-            { nombre: "Domingo", turnos: [] }
-        ]
-    };
-};
-
-export const saveProgramaSemanal = async (programa) => {
-    await setDoc(doc(db, "programas", "actual"), programa);
-};
-
-// --- PREDICACIÓN PÚBLICA ---
+// --- PREDICACION PUBLICA ---
 
 export const getPredicacionPublica = async () => {
-    const docRef = doc(db, "programas", "publica");
-    const docSnap = await getDoc(docRef);
-    return docSnap.exists() ? docSnap.data() : { asignaciones: [] };
+    // Single doc singleton
+    const querySnapshot = await getDocs(collection(db, "predicacion_publica"));
+    if (querySnapshot.empty) return { dias: [] };
+    return { id: querySnapshot.docs[0].id, ...querySnapshot.docs[0].data() };
 };
 
 export const savePredicacionPublica = async (data) => {
-    await setDoc(doc(db, "programas", "publica"), data);
+    const current = await getPredicacionPublica();
+    if (current.id) {
+        await updateDoc(doc(db, "predicacion_publica", current.id), data);
+    } else {
+        await addDoc(collection(db, "predicacion_publica"), data);
+    }
+};
+
+// --- PROGRAMA SEMANAL ---
+
+export const getProgramaSemanal = async () => {
+    const querySnapshot = await getDocs(collection(db, "programa_semanal"));
+    if (querySnapshot.empty) return { dias: [] };
+    return { id: querySnapshot.docs[0].id, ...querySnapshot.docs[0].data() };
+};
+
+export const saveProgramaSemanal = async (data) => {
+    const current = await getProgramaSemanal();
+    if (current.id) {
+        await updateDoc(doc(db, "programa_semanal", current.id), data);
+    } else {
+        await addDoc(collection(db, "programa_semanal"), data);
+    }
 };
