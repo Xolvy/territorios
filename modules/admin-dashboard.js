@@ -7,7 +7,7 @@ import {
     getPredicacionPublica, savePredicacionPublica,
     getProgramaSemanal, saveProgramaSemanal
 } from '../data/firestore-services.js?v=3.1';
-import { formatPhoneNumber, getStatusColor } from './utils/helpers.js';
+import { formatPhoneNumber, getStatusColor, showNotification } from './utils/helpers.js';
 import { TerritoryIntelligence } from './utils/intelligence.js';
 import { auth } from '../firebase-config.js';
 
@@ -1116,16 +1116,8 @@ const showModal = (content, onOpen) => {
 // --- CUSTOM DIALOGS ---
 
 const showCustomAlert = (message) => {
-    showModal(`
-        <div class="text-center p-4">
-             <div class="text-4xl mb-4 text-teal-400">ℹ️</div>
-             <h3 class="text-xl font-bold text-teal-400 mb-2">Información</h3>
-             <p class="text-gray-300 mb-6 text-sm">${message}</p>
-             <button id="alert-ok" class="bg-teal-600 hover:bg-teal-500 text-white px-6 py-2 rounded-lg w-full">Aceptar</button>
-        </div>
-    `, (modal) => {
-        modal.querySelector('#alert-ok').addEventListener('click', () => modal.classList.add('hidden'));
-    });
+    const type = message.toLowerCase().includes('error') ? 'error' : 'success';
+    showNotification(message, type);
 };
 
 const showCustomConfirm = (message, onConfirm) => {

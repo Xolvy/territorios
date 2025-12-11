@@ -4,34 +4,9 @@ import {
     addPublicador, getPublicadores, getTelefonos, updateTelefono, addTelefono,
     getPermisosUsuario // Just in case
 } from '../data/firestore-services.js?v=3.1';
-import { formatPhoneNumber, getStatusColor } from './utils/helpers.js';
+import { formatPhoneNumber, getStatusColor, showNotification } from './utils/helpers.js';
 
-// --- Notification Helper ---
-const showNotification = (message, type = 'success') => {
-    let banner = document.getElementById('app-notification-banner');
-    if (!banner) {
-        banner = document.createElement('div');
-        banner.id = 'app-notification-banner';
-        banner.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-50 transition-all duration-500 transform -translate-y-20 opacity-0';
-        banner.innerHTML = `
-            <div class="bg-gray-900/90 backdrop-blur-md text-white px-6 py-4 rounded-xl shadow-2xl border border-teal-500/30 flex items-center gap-4 min-w-[300px]">
-                <div class="bg-teal-500/20 p-2 rounded-full text-teal-300 icon-container">🔔</div>
-                <div class="flex-1">
-                    <h4 class="font-bold text-sm text-teal-100 title">Notificación</h4>
-                    <p class="text-xs text-gray-400 message"></p>
-                </div>
-                <button onclick="this.closest('#app-notification-banner').classList.add('-translate-y-20', 'opacity-0')" class="text-gray-500 hover:text-white transition-colors">✕</button>
-            </div>
-        `;
-        document.body.appendChild(banner);
-    }
-    const content = banner.querySelector('.message');
-    content.textContent = message;
-    banner.querySelector('.icon-container').textContent = type === 'error' ? '⚠️' : (type === 'warning' ? '⚠️' : '🔔');
 
-    requestAnimationFrame(() => banner.classList.remove('-translate-y-20', 'opacity-0'));
-    setTimeout(() => banner.classList.add('-translate-y-20', 'opacity-0'), 4000);
-};
 
 export const renderConductorDashboard = async (container, nameOrEmail) => {
     // Determine display name (if email is passed, we might want to show name, but for now use what's passed)
