@@ -48,6 +48,26 @@ export class TerritoryIntelligence {
                 report.fixedIds.push(t.id);
                 report.actions.push(`Limpiado asignación fantasma del número ${t.numero} (Tenía a: ${assignedTo} pero estado 'Sin asignar').`);
             }
+
+            // 3. Fix Swapped Data (CSV Upload Error: Name in Number field)
+            const valNum = t.numero || '';
+            const valProp = t.propietario || '';
+
+            // Check if 'numero' has letters (is a name) AND 'propietario' is digits (is a phone)
+            // Phone regex: allows digits, spaces, dashes, min 6 chars
+            const looksLikePhone = (str) => /^[\d\s-]{6,}$/.test(str.trim());
+            // Name regex: has at least one letter
+            const hasLetters = (str) => /[a-zA-Z]/.test(str);
+
+            if (hasLetters(valNum) && looksLikePhone(valProp)) {
+                // SWAP THEM
+                await updateTelefono(t.id, {
+                    numero: valProp,
+                    propietario: valNum
+                });
+                report.fixedIds.push(t.id);
+                report.actions.push(`Corregido datos invertidos: ${valNum} ahora es el Propietario.`);
+            }
         }
 
         return report;
@@ -68,14 +88,23 @@ export class TerritoryIntelligence {
             ['Contestaron', 'No llamar', 'Colgaron'].includes(t.estado)
         ).length;
 
-        // Identify "Neglected" Territories (Assigned long ago or never touched)
-        let neglectedCount = 0;
+        // Identify "Neglected" Physical Territories (Maps)
+        // Criteria: Not currently assigned AND (Never preached OR Last preached > 4 months ago)
+        let neglectedTerritoriesCount = 0;
+        const totalTerritorios = this.territorios.length;
 
-        this.telefonos.forEach(t => {
-            if (t.estado === 'Sin asignar' || !t.estado) neglectedCount++;
-            else if (t.fecha_asignacion) {
-                const assignedDate = new Date(t.fecha_asignacion);
-                if (now - assignedDate > FOUR_MONTHS_MS) neglectedCount++;
+        this.territorios.forEach(t => {
+            const isAssigned = t.asignado_a && t.estado === 'Asignado';
+            if (!isAssigned) {
+                // It is not assigned, check when was the last time
+                if (!t.ultima_fecha) {
+                    neglectedTerritoriesCount++; // Never preached
+                } else {
+                    const lastDate = new Date(t.ultima_fecha);
+                    if (now - lastDate > FOUR_MONTHS_MS) {
+                        neglectedTerritoriesCount++; // Old
+                    }
+                }
             }
         });
 
@@ -88,17 +117,17 @@ export class TerritoryIntelligence {
             message: `Cobertura actual: <b class="${healthColor}">${coverage}%</b>. Se han trabajado ${workedNumbers} de ${totalNumbers} números.`
         });
 
-        if (neglectedCount > 0) {
+        if (neglectedTerritoriesCount > 0) {
             insights.push({
                 type: 'warning',
-                title: '⚠️ Territorios Desatendidos',
-                message: `Se detectaron <b>${neglectedCount}</b> números que no han sido trabajados recientemente o están sin asignar. <br>Se recomienda priorizar su asignación inmediata para mejorar la cobertura.`
+                title: '⚠️ Territorios Físicos Desatendidos',
+                message: `Se detectaron <b>${neglectedTerritoriesCount}</b> de ${totalTerritorios} territorios (mapas) que no tienen asignación actual ni se han predicado recientemente (4 meses).`
             });
         } else {
             insights.push({
                 type: 'positive',
-                title: '✅ Excelente Rotación',
-                message: `Todos los territorios se están trabajando activamente.`
+                title: '✅ Territorios al Día',
+                message: `¡Excelente trabajo! Los ${totalTerritorios} territorios físicos se están cubriendo regularmente.`
             });
         }
 
