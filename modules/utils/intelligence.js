@@ -36,6 +36,18 @@ export class TerritoryIntelligence {
                 report.fixedIds.push(t.id);
                 report.actions.push(`Desasignado número ${t.numero} de publicador inexistente (${assignedTo}).`);
             }
+
+            // 2. Fix Ghost Assignments (Has User but says 'Sin asignar')
+            // Strategy: trust the STATUS. If status is 'Sin asignar', the user field should be empty.
+            if (assignedTo && assignedTo !== 'Sin asignar' && t.estado === 'Sin asignar') {
+                await updateTelefono(t.id, {
+                    publicador_asignado: null,
+                    asignado_a: null,
+                    fecha_asignacion: null
+                });
+                report.fixedIds.push(t.id);
+                report.actions.push(`Limpiado asignación fantasma del número ${t.numero} (Tenía a: ${assignedTo} pero estado 'Sin asignar').`);
+            }
         }
 
         return report;

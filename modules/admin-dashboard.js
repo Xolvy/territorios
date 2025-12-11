@@ -614,9 +614,9 @@ const renderTelefonosTab = async (container) => {
             <table class="w-full text-left text-sm text-gray-300">
                 <thead class="text-teal-400 uppercase bg-black/40 text-xs tracking-wider sticky top-0 z-10 backdrop-blur-md">
                     <tr>
-                        <th class="p-4 font-semibold">Número</th>
-                        <th class="p-4 font-semibold">Dirección</th>
                         <th class="p-4 font-semibold">Propietario</th>
+                        <th class="p-4 font-semibold">Dirección</th>
+                        <th class="p-4 font-semibold">Número</th>
                         <th class="p-4 font-semibold">Publicador</th>
                         <th class="p-4 font-semibold">Estado</th>
                         <th class="p-4 text-right">Acciones</th>
@@ -636,11 +636,20 @@ const renderTelefonosTab = async (container) => {
             const displayStatus = (!t.estado || t.estado === 'Pendiente') ? 'Sin asignar' : t.estado;
             const statusColor = getStatusColor(displayStatus);
 
+            // Custom Phone Format: XXX XXXX (for 7 digits)
+            let phoneDisplay = t.numero || '';
+            const cleanNum = phoneDisplay.replace(/\D/g, '');
+            if (cleanNum.length === 7) {
+                phoneDisplay = `${cleanNum.slice(0, 3)} ${cleanNum.slice(3)}`;
+            } else {
+                phoneDisplay = formatPhoneNumber(phoneDisplay); // Fallback to existing formatter
+            }
+
             return `
                     <tr class="hover:bg-white/5 transition-colors group">
-                        <td class="p-4 font-mono text-teal-300 font-bold tracking-wide">${formatPhoneNumber(t.numero)}</td>
+                        <td class="p-4 text-gray-300 text-sm font-bold uppercase tracking-wide">${t.propietario || '-'}</td>
                         <td class="p-4 text-gray-400 text-xs uppercase">${t.direccion || '-'}</td>
-                        <td class="p-4 text-gray-300 text-sm">${t.propietario || '-'}</td>
+                        <td class="p-4 font-mono text-teal-300 text-base tracking-wider">${phoneDisplay}</td>
                         <td class="p-4">
                             <span class="text-xs bg-white/5 px-2 py-1 rounded text-gray-300 border border-white/5 whitespace-nowrap">${assignedDisplay}</span>
                         </td>

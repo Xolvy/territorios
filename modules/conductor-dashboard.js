@@ -362,10 +362,10 @@ const initializePhoneModule = (telefonos, publicadores, userId, tbody) => {
                         numero: num,
                         propietario: name || '',
                         direccion: '',
-                        estado: 'Sin asignar', // Initially unassigned or 'Pendiente'
-                        publicador_asignado: userId, // Auto-assign to me since I added it manually?
-                        asignado_a: userId,
-                        fecha_asignacion: new Date().toISOString()
+                        estado: 'Sin asignar', // Correct: Born free for anyone to take
+                        publicador_asignado: null,
+                        asignado_a: null,
+                        fecha_asignacion: null
                     });
                     alert("Contacto agregado correctamente.");
                     window.location.reload();
