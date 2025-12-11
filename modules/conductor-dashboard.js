@@ -6,6 +6,33 @@ import {
 } from '../data/firestore-services.js?v=3.1';
 import { formatPhoneNumber, getStatusColor } from './utils/helpers.js';
 
+// --- Notification Helper ---
+const showNotification = (message, type = 'success') => {
+    let banner = document.getElementById('app-notification-banner');
+    if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'app-notification-banner';
+        banner.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-50 transition-all duration-500 transform -translate-y-20 opacity-0';
+        banner.innerHTML = `
+            <div class="bg-gray-900/90 backdrop-blur-md text-white px-6 py-4 rounded-xl shadow-2xl border border-teal-500/30 flex items-center gap-4 min-w-[300px]">
+                <div class="bg-teal-500/20 p-2 rounded-full text-teal-300 icon-container">🔔</div>
+                <div class="flex-1">
+                    <h4 class="font-bold text-sm text-teal-100 title">Notificación</h4>
+                    <p class="text-xs text-gray-400 message"></p>
+                </div>
+                <button onclick="this.closest('#app-notification-banner').classList.add('-translate-y-20', 'opacity-0')" class="text-gray-500 hover:text-white transition-colors">✕</button>
+            </div>
+        `;
+        document.body.appendChild(banner);
+    }
+    const content = banner.querySelector('.message');
+    content.textContent = message;
+    banner.querySelector('.icon-container').textContent = type === 'error' ? '⚠️' : (type === 'warning' ? '⚠️' : '🔔');
+
+    requestAnimationFrame(() => banner.classList.remove('-translate-y-20', 'opacity-0'));
+    setTimeout(() => banner.classList.add('-translate-y-20', 'opacity-0'), 4000);
+};
+
 export const renderConductorDashboard = async (container, nameOrEmail) => {
     // Determine display name (if email is passed, we might want to show name, but for now use what's passed)
     const displayName = nameOrEmail;
@@ -75,8 +102,8 @@ export const renderConductorDashboard = async (container, nameOrEmail) => {
     `;
 
     document.getElementById('logout-btn').addEventListener('click', () => {
-        // Simple logout for demo
         localStorage.removeItem('demo_role');
+        localStorage.removeItem('user_email');
         window.location.reload();
     });
 
@@ -84,23 +111,21 @@ export const renderConductorDashboard = async (container, nameOrEmail) => {
     loadUnifiedDashboard(displayName, document.getElementById('calendar-container'), document.getElementById('territorios-container'));
 
     // Initialize Phone Module
-    // Fetch data specifically for this user or all (filtered client side)
-    try {
+    const refreshPhones = async () => {
         const allPhones = await getTelefonos();
-        // Filter phones: Assigned to me, OR assigned to 'Usuario' (legacy) if I am a generic user, 
-        // OR simply pass all and let the component filter? 
-        // initializePhoneModule expects ALL phones usually if it handles filtering, or just mine.
-        // Let's pass filtering for "My Phones".
         // Logic: assigned_to == displayName OR publicador_asignado == displayName
-        const myPhones = allPhones.filter(t =>
+        return allPhones.filter(t =>
             t.publicador_asignado === displayName ||
             t.asignado_a === displayName
         );
+    };
 
+    try {
+        const myPhones = await refreshPhones();
         const publicadores = await getPublicadores();
 
-        // Ensure we pass a valid userId/Name
-        initializePhoneModule(myPhones, publicadores, displayName, document.getElementById('phone-tbody'));
+        // Ensure we pass a valid userId/Name and the refresh callback
+        initializePhoneModule(myPhones, publicadores, displayName, document.getElementById('phone-tbody'), refreshPhones);
 
     } catch (e) {
         console.error("Error loading phones:", e);
@@ -285,7 +310,8 @@ window.openProgressModal = (id, numero, manzanasStr) => {
     }
 };
 
-const initializePhoneModule = (telefonos, publicadores, userId, tbody) => {
+const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refreshCallback) => {
+    let telefonos = initialPhones; // Mutable state for AJAX updates
     publicadores.sort((a, b) => a.nombre.localeCompare(b.nombre));
     const estados = ['Sin asignar', 'Contestaron', 'No contestan', 'Colgaron', 'Revisita', 'No llamar', 'Suspendido', 'Testigo'];
 
@@ -334,14 +360,21 @@ const initializePhoneModule = (telefonos, publicadores, userId, tbody) => {
             try {
                 const count = await solicitarNumeros(10, userId); // Only 10 at a time for safety
                 if (count > 0) {
-                    alert(`¡Se te han asignado ${count} números nuevos!`);
-                    // Refresh
-                    // Ideally we would fetch just new ones, but reloading page is safer/easier to sync
-                    window.location.reload();
+                    showNotification(`¡Se te han asignado ${count} números nuevos!`);
+                    // AJAX Refresh
+                    if (refreshCallback) {
+                        telefonos = await refreshCallback();
+                        render();
+                    } else {
+                        window.location.reload();
+                    }
                 } else {
-                    alert("No hay números disponibles para asignar por ahora.");
+                    showNotification("No hay números disponibles para asignar por ahora.", "warning");
                 }
-            } catch (err) { alert('Error: ' + err.message); }
+            } catch (err) {
+                console.error(err);
+                showNotification('Error: ' + err.message, "error");
+            }
             finally {
                 btn.disabled = false;
                 btn.textContent = "+ Solicitar";
@@ -362,16 +395,20 @@ const initializePhoneModule = (telefonos, publicadores, userId, tbody) => {
                         numero: num,
                         propietario: name || '',
                         direccion: '',
-                        estado: 'Sin asignar', // Correct: Born free for anyone to take
+                        estado: 'Sin asignar',
                         publicador_asignado: null,
                         asignado_a: null,
                         fecha_asignacion: null
                     });
-                    alert("Contacto agregado correctamente.");
-                    window.location.reload();
+                    showNotification("Contacto agregado correctamente.");
+                    // Refresh
+                    if (refreshCallback) {
+                        telefonos = await refreshCallback();
+                        render();
+                    }
                 } catch (e) {
                     console.error(e);
-                    alert("Error al guardar: " + e.message);
+                    showNotification("Error al guardar: " + e.message, "error");
                 }
             }
         });

@@ -1408,10 +1408,51 @@ const renderProgramaTab = async (container) => {
         btn.disabled = true;
         try {
             await saveProgramaSemanal(programa);
-            showCustomAlert("Programa semanal actualizado exitosamente.");
+
+            // AUTO-ASSIGN TERRITORIES LOGIC
+            // 1. Reset all territories to 'Libre' first? No, that's dangerous if we only edit one day.
+            // Better: Find ALL territories mentioned in this NEW program.
+            const mentionedTerritories = new Set();
+            const turnos = ['manana', 'tarde', 'noche'];
+
+            programa.dias.forEach(d => {
+                turnos.forEach(t => {
+                    const tData = d[t];
+                    if (tData && tData.territorio && tData.conductor) {
+                        // Parse numbers from string like "10, 12 (Mz 1)"
+                        // Simple regex to find standalone numbers
+                        const matches = tData.territorio.match(/\b\d+\b/g);
+                        if (matches) {
+                            matches.forEach(num => mentionedTerritories.add({
+                                numero: num,
+                                conductor: tData.conductor
+                            }));
+                        }
+                    }
+                });
+            });
+
+            // 2. Update Firestore for each mentioned territory
+            // We need to match 'Número' to ID. We have 'territorios' array available in scope.
+            const updates = [];
+            mentionedTerritories.forEach(mt => {
+                const tObj = territorios.find(t => t.numero == mt.numero);
+                if (tObj) {
+                    // Check if already assigned to him to avoid write costs? 
+                    // Let's just update to be safe and ensure latest date.
+                    updates.push(assignTerritorio(tObj.id, mt.conductor));
+                }
+            });
+
+            if (updates.length > 0) {
+                await Promise.all(updates);
+                console.log(`Auto-assigned ${updates.length} territories.`);
+            }
+
+            showCustomAlert("Programa guardado y territorios asignados.");
         } catch (e) {
             console.error(e);
-            showCustomAlert("Error al guardar el programa.");
+            showCustomAlert("Error al guardar: " + e.message);
         } finally {
             btn.innerHTML = originalText;
             btn.disabled = false;
