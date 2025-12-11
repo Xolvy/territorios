@@ -3,18 +3,29 @@ name: Deploy to Firebase Hosting
 on:
   push:
     branches:
-      - main  # Se despliega automáticamente cuando haces push a main
-  workflow_dispatch:  # También permite deploy manual desde GitHub
+      - main
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout código
+      - name: Checkout Code
         uses: actions/checkout@v4
-      
-      - name: Deploy a Firebase Hosting
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build CSS
+        run: npm run build:css
+
+      - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'

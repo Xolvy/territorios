@@ -1,7 +1,7 @@
 import { db, auth, storage } from '../firebase-config.js';
 import {
     collection, getDocs, addDoc, deleteDoc, doc, updateDoc, query, where, getDoc
-} from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // --- CONFIGURACION GLOBAL ---
 
