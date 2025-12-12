@@ -1,9 +1,10 @@
+import { auth } from '../firebase-config.js';
 import {
     getProgramaSemanal, getMisTerritorios, returnTerritorio,
     returnTerritorioParcial, solicitarNumeros, updateTelefonoStatus,
     addPublicador, getPublicadores, getTelefonos, updateTelefono, addTelefono,
     getPermisosUsuario // Just in case
-} from '../data/firestore-services.js?v=3.1';
+} from '../data/firestore-services.js?v=3.3';
 import { formatPhoneNumber, getStatusColor, showNotification } from './utils/helpers.js';
 
 
@@ -13,7 +14,7 @@ export const renderConductorDashboard = async (container, nameOrEmail) => {
     const displayName = nameOrEmail;
 
     container.innerHTML = `
-        <div class="animate-fade-in pb-20 w-fit md:w-full">
+        <div class="animate-fade-in pb-20 w-full">
             <header class="flex justify-between items-center mb-6 p-4 morphinglass-card sticky top-0 z-20 backdrop-blur-md">
                 <div>
                     <h1 class="text-2xl font-bold text-teal-400">Hola, ${displayName.split('@')[0]}</h1>
@@ -24,9 +25,9 @@ export const renderConductorDashboard = async (container, nameOrEmail) => {
                 </button>
             </header>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <!-- Agenda Semanal -->
-                <div class="lg:col-span-3">
+                <div class="lg:col-span-2">
                     <h3 class="text-lg font-bold text-teal-100 mb-3 px-2 flex items-center gap-2">
                         📅 Tu Agenda Semanal
                     </h3>
@@ -37,7 +38,7 @@ export const renderConductorDashboard = async (container, nameOrEmail) => {
                 </div>
 
                 <!-- Mis Territorios -->
-                <div class="lg:col-span-2">
+                <div class="lg:col-span-1">
                     <h3 class="text-lg font-bold text-teal-100 mb-3 px-2 flex items-center gap-2">
                         🗺️ Mis Territorios
                     </h3>
@@ -58,6 +59,15 @@ export const renderConductorDashboard = async (container, nameOrEmail) => {
                     
                     <div class="overflow-x-auto max-h-[500px] overflow-y-auto custom-scrollbar">
                         <table class="w-full text-left text-xs mb-4">
+                            <thead class="bg-white/5 text-gray-400 font-bold uppercase tracking-wider sticky top-0 backdrop-blur-md z-10">
+                                <tr>
+                                    <th class="p-3">Teléfono</th>
+                                    <th class="p-3">Propietario</th>
+                                    <th class="p-3">Dirección</th>
+                                    <th class="p-3">Asignado a</th>
+                                    <th class="p-3 text-center">Estado</th>
+                                </tr>
+                            </thead>
                             <tbody id="phone-tbody" class="divide-y divide-white/5">
                                  <!-- Phone rows -->
                             </tbody>
@@ -73,13 +83,14 @@ export const renderConductorDashboard = async (container, nameOrEmail) => {
         </div>
         
         <!-- Modal Container (Reused) -->
-        <div id="modal-container" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4"></div>
-    `;
+    <div id="modal-container" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4"></div>
+`;
 
-    document.getElementById('logout-btn').addEventListener('click', () => {
+    document.getElementById('logout-btn').addEventListener('click', async () => {
         localStorage.removeItem('demo_role');
         localStorage.removeItem('user_email');
-        window.location.reload();
+        await auth.signOut();
+        // window.location.reload(); // Not strictly necessary if auth state change handles it, but good for clean slate
     });
 
     // Initialize Sub-Modules
@@ -127,7 +138,7 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer)
         }
 
         agendaContainer.innerHTML = assignments.length > 0 ? assignments.map(a => `
-             <div class="bg-gradient-to-br from-teal-900/40 to-black/40 p-4 rounded-xl border border-teal-500/20 hover:border-teal-400/50 transition-colors">
+    <div class="bg-gradient-to-br from-teal-900/40 to-black/40 p-4 rounded-xl border border-teal-500/20 hover:border-teal-400/50 transition-colors">
                 <div class="flex justify-between items-start">
                     <div>
                         <span class="font-bold text-teal-100 block text-lg">${a.dia}</span> 
@@ -140,7 +151,7 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer)
                     <span class="flex items-center gap-2"><span class="opacity-50">🗺️</span> Territorio ${a.territorio || '?'}</span>
                 </div>
             </div>
-        `).join('') : '<div class="col-span-full p-6 text-center text-gray-500 bg-white/5 rounded-xl border border-white/5 italic">No tienes asignaciones esta semana.</div>';
+    `).join('') : '<div class="col-span-full p-6 text-center text-gray-500 bg-white/5 rounded-xl border border-white/5 italic">No tienes asignaciones esta semana.</div>';
     });
 
     // 2. Load Territories (Parallel)
@@ -151,7 +162,7 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer)
         } else {
             document.getElementById('no-territories-msg').classList.add('hidden');
             territoriosContainer.innerHTML = territorios.map(t => `
-                <div class="bg-gradient-to-b from-black/40 to-black/60 border border-white/10 rounded-xl p-4 flex flex-col gap-3 group hover:border-teal-500/30 transition-all">
+    <div class="bg-gradient-to-b from-black/40 to-black/60 border border-white/10 rounded-xl p-4 flex flex-col gap-3 group hover:border-teal-500/30 transition-all">
                     <!-- Image Thumbnail with Click-to-Zoom -->
                     <div class="bg-gray-800 h-40 rounded-lg overflow-hidden relative cursor-pointer shadow-lg" onclick="window.viewMap('${t.imagen}')">
                         <img src="${t.imagen || 'https://via.placeholder.com/300x200?text=Sin+Mapa'}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-all transform group-hover:scale-105 duration-500">
@@ -175,7 +186,7 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer)
                         </button>
                     </div>
                 </div>
-            `).join('');
+    `).join('');
         }
     });
 };
@@ -186,7 +197,7 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer)
 window.viewMap = (url) => {
     const modal = document.getElementById('modal-container');
     modal.innerHTML = `
-        <div class="relative max-w-5xl w-full p-4 animate-scale-in">
+    <div class="relative max-w-5xl w-full p-4 animate-scale-in">
              <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="absolute top-4 right-4 m-2 text-white/80 hover:text-white bg-black/50 rounded-full p-2 z-10 transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -194,7 +205,7 @@ window.viewMap = (url) => {
              </button>
              <img src="${url}" class="w-full h-auto max-h-[85vh] object-contain rounded-xl shadow-2xl border border-white/20 bg-black">
         </div>
-    `;
+`;
     modal.classList.remove('hidden');
 };
 
@@ -204,7 +215,7 @@ window.openProgressModal = (id, numero, manzanasStr) => {
 
     // Checkbox generation
     const checkboxHtml = manzanas.length > 0 ? `
-        <div class="mb-2 text-xs text-gray-400 uppercase tracking-wider font-bold">Selecciona las manzanas terminadas:</div>
+    <div class="mb-2 text-xs text-gray-400 uppercase tracking-wider font-bold">Selecciona las manzanas terminadas:</div>
         <div class="grid grid-cols-2 gap-2 mb-4 max-h-48 overflow-y-auto bg-black/20 p-3 rounded-lg border border-white/10 custom-scrollbar">
             ${manzanas.map((m, idx) => `
                 <label class="flex items-center space-x-3 text-sm text-gray-200 cursor-pointer hover:bg-white/5 p-2 rounded transition-colors select-none">
@@ -213,27 +224,28 @@ window.openProgressModal = (id, numero, manzanasStr) => {
                 </label>
             `).join('')}
         </div>
-    ` : `<p class="text-sm text-gray-400 italic mb-4 bg-white/5 p-4 rounded border border-white/5">Este territorio no tiene manzanas definidas. Se devolverá completo si continúas.</p>`;
+` : `<p class="text-sm text-gray-400 italic mb-4 bg-white/5 p-4 rounded border border-white/5">Este territorio no tiene manzanas definidas. Se devolverá completo si continúas.</p>`;
 
     const modal = document.getElementById('modal-container');
     modal.innerHTML = `
-        <div class="bg-gray-900/95 backdrop-blur-xl border border-white/10 rounded-2xl p-6 max-w-md w-full shadow-2xl relative animate-fade-in-up">
+    <div class="bg-gray-900/95 backdrop-blur-xl border border-white/10 rounded-2xl p-6 max-w-md w-full shadow-2xl relative animate-fade-in-up">
             <h3 class="text-xl font-bold text-teal-100 mb-2">Reportar Territorio ${numero}</h3>
             <p class="text-sm text-gray-400 mb-6">Ayuda a mantener el mapa actualizado para todos.</p>
             
             ${checkboxHtml}
 
-            <div class="flex flex-col gap-3 mt-2">
-                <button id="btn-return-partial" class="hidden w-full bg-teal-600 hover:bg-teal-500 text-white py-3 rounded-xl font-bold transition-all shadow-lg shadow-teal-900/20 active:scale-95">
-                    Liberar Seleccionadas
-                </button>
-                <button id="btn-return-all" class="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white py-3 rounded-xl font-bold transition-all shadow-lg shadow-teal-900/20 active:scale-95">
-                     🎉 Marcar TODO como Terminado
-                </button>
-                <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="w-full text-gray-400 hover:text-white py-2 text-sm mt-2">
-                    Cancelar
-                </button>
-            </div>
+<div class="flex flex-col gap-3 mt-2">
+    <button id="btn-return-partial" class="hidden w-full bg-teal-600 hover:bg-teal-500 text-white py-3 rounded-xl font-bold transition-all shadow-lg shadow-teal-900/20 active:scale-95">
+        Liberar Seleccionadas
+    </button>
+    <button id="btn-return-all" class="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white py-3 rounded-xl font-bold transition-all shadow-lg shadow-teal-900/20 active:scale-95">
+        🎉 Marcar TODO como Terminado
+    </button>
+    <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="w-full text-gray-400 hover:text-white py-2 text-sm mt-2">
+        Cancelar
+    </button>
+</div>
+</div>
         </div>
     `;
     modal.classList.remove('hidden');
@@ -274,7 +286,7 @@ window.openProgressModal = (id, numero, manzanasStr) => {
             const remaining = manzanas.filter(m => !selected.includes(m));
 
             // Nice confirmation
-            const msg = `Resumen:\n- Terminadas: ${selected.join(', ')}\n- Pendientes: ${remaining.join(', ')}\n\n¿Proceder?`;
+            const msg = `Resumen: \n - Terminadas: ${selected.join(', ')} \n - Pendientes: ${remaining.join(', ')} \n\n¿Proceder ? `;
 
             if (confirm(msg)) {
                 await returnTerritorioParcial(id, selected.join(', '), remaining.join(', '));
@@ -289,6 +301,50 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
     let telefonos = initialPhones; // Mutable state for AJAX updates
     publicadores.sort((a, b) => a.nombre.localeCompare(b.nombre));
     const estados = ['Sin asignar', 'Contestaron', 'No contestan', 'Colgaron', 'Revisita', 'No llamar', 'Suspendido', 'Testigo'];
+
+    window.updatePhoneAssignment = async (id, newPub) => {
+        const telIndex = telefonos.findIndex(t => t.id === id);
+        if (telIndex !== -1) {
+            telefonos[telIndex].publicador_asignado = newPub === 'Sin asignar' ? null : newPub;
+            // If assigning, set status to Asignado if it was Sin asignar
+            if (newPub !== 'Sin asignar' && (telefonos[telIndex].estado === 'Sin asignar' || !telefonos[telIndex].estado)) {
+                telefonos[telIndex].estado = 'Asignado';
+            }
+            if (newPub === 'Sin asignar') {
+                telefonos[telIndex].estado = 'Sin asignar';
+            }
+            render();
+        }
+
+        if (!newPub || newPub === 'Sin asignar') {
+            await updateTelefono(id, {
+                publicador_asignado: null,
+                asignado_a: null,
+                estado: 'Sin asignar',
+                fecha_asignacion: null
+            });
+        } else {
+            const currentTel = telefonos.find(t => t.id === id);
+            const newStatus = (currentTel && currentTel.estado === 'Sin asignar') ? 'Asignado' : (currentTel ? currentTel.estado : 'Asignado');
+
+            await updateTelefono(id, {
+                publicador_asignado: newPub,
+                asignado_a: newPub,
+                fecha_asignacion: new Date().toISOString(),
+                estado: newStatus
+            });
+        }
+    };
+
+    window.updatePhoneStatus = async (id, status) => {
+        const telIndex = telefonos.findIndex(t => t.id === id);
+        if (telIndex !== -1) {
+            telefonos[telIndex].estado = status;
+            render();
+        }
+        // Pass null for pubId to avoid overwriting/resetting assignment date implicitly
+        await updateTelefonoStatus(id, status, null);
+    };
 
     const render = () => {
         telefonos.sort((a, b) => {
@@ -308,11 +364,18 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
             const currentStatus = t.estado || 'Sin asignar';
             return `
             <tr class="hover:bg-white/5 transition-colors border-b border-white/5 group">
-                <td class="p-3 font-mono text-teal-300 font-bold text-sm tracking-wide whitespace-nowrap">${formatPhoneNumber(t.numero)}</td>
+                <td class="p-3 font-mono text-teal-300 font-medium text-sm tracking-wide whitespace-nowrap">${formatPhoneNumber(t.numero)}</td>
+                <td class="p-3 text-gray-300 text-sm font-bold truncate max-w-[150px]">${t.propietario || '-'}</td>
                 <td class="p-3 text-gray-400 text-[10px] uppercase tracking-wide truncate max-w-[100px]">${t.direccion || '-'}</td>
-                <td class="p-3 text-gray-300 text-sm font-medium truncate max-w-[100px]">${t.propietario || '-'}</td>
                 <td class="p-2">
-                    <select onchange="window.updatePhoneStatus('${t.id}', this.value, '${currentPubId}')" 
+                    <select onchange="window.updatePhoneAssignment('${t.id}', this.value)" 
+                        class="w-full bg-black/30 border border-white/10 rounded px-2 py-1 text-xs font-medium focus:border-teal-500 outline-none cursor-pointer hover:bg-black/50 transition-colors text-teal-200">
+                        <option value="Sin asignar" class="bg-gray-900 text-gray-400">Sin asignar</option>
+                        ${publicadores.map(p => `<option value="${p.nombre}" ${p.nombre === currentPubId ? 'selected' : ''} class="bg-gray-900">${p.nombre}</option>`).join('')}
+                    </select>
+                </td>
+                <td class="p-2 text-center">
+                    <select onchange="window.updatePhoneStatus('${t.id}', this.value)" 
                         class="w-full bg-black/30 border border-white/10 rounded px-2 py-1 text-xs font-medium focus:border-teal-500 outline-none cursor-pointer hover:bg-black/50 transition-colors ${getStatusColor(currentStatus)}">
                          ${estados.map(st => `<option value="${st}" ${st === currentStatus ? 'selected' : ''} class="bg-gray-900 text-gray-200">${st}</option>`).join('')}
                     </select>
@@ -389,13 +452,5 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
         });
     }
 
-    window.updatePhoneStatus = async (id, status, pubId) => {
-        // Optimistic UI update
-        const telIndex = telefonos.findIndex(t => t.id === id);
-        if (telIndex !== -1) {
-            telefonos[telIndex].estado = status;
-            render();
-        }
-        await updateTelefonoStatus(id, status, pubId);
-    };
+
 };

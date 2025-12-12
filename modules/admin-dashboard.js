@@ -6,7 +6,7 @@ import {
     getTelefonos, addTelefono, deleteTelefono, updateTelefono,
     getPredicacionPublica, savePredicacionPublica,
     getProgramaSemanal, saveProgramaSemanal
-} from '../data/firestore-services.js?v=3.1';
+} from '../data/firestore-services.js?v=3.3';
 import { formatPhoneNumber, getStatusColor, showNotification } from './utils/helpers.js';
 import { TerritoryIntelligence } from './utils/intelligence.js';
 import { auth } from '../firebase-config.js';
@@ -693,7 +693,7 @@ const renderTelefonosTab = async (container) => {
         const estados = ['Sin asignar', 'Contestaron', 'No contestan', 'Colgaron', 'Revisita', 'No llamar', 'Suspendido', 'Testigo'];
 
         showModal(`
-    < h3 class="text-xl font-bold mb-4 text-teal-400" > Editar Registro Telefónico</h3 >
+    <h3 class="text-xl font-bold mb-4 text-teal-400">Editar Registro Telefónico</h3>
 
                             <div class="space-y-4">
                                 <div>
@@ -822,7 +822,7 @@ const renderTelefonosTab = async (container) => {
 
     document.getElementById('btn-add-phone').addEventListener('click', () => {
         showModal(`
-    < h3 class="text-xl font-bold mb-4 text-teal-400" > Nuevo Teléfono</h3 >
+    <h3 class="text-xl font-bold mb-4 text-teal-400">Nuevo Teléfono</h3>
             
             <label class="block text-xs text-teal-500 mb-1">Número</label>
             <input type="text" id="new-p-num" placeholder="Ej. 0991234567" class="w-full mb-3 bg-white/5 border border-white/10 rounded p-2 text-white focus:border-teal-500 outline-none">

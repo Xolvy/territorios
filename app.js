@@ -1,9 +1,9 @@
 import { auth } from './firebase-config.js';
 import { onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { renderLogin } from './modules/login.js?v=3.1';
-import { renderAdminDashboard } from './modules/admin-dashboard.js?v=3.1';
-import { renderConductorDashboard } from './modules/conductor-dashboard.js?v=3.1';
-import { getPermisosUsuario } from './data/firestore-services.js?v=3.1';
+import { renderLogin } from './modules/login.js?v=3.3';
+import { renderAdminDashboard } from './modules/admin-dashboard.js?v=3.3';
+import { renderConductorDashboard } from './modules/conductor-dashboard.js?v=3.3';
+import { getPermisosUsuario } from './data/firestore-services.js?v=3.3';
 
 // Estado global simple para demo
 let currentUserRole = null;
@@ -30,6 +30,13 @@ document.addEventListener('DOMContentLoaded', () => {
             // Si es anónimo, confiamos en el localStorage para el rol/identidad (Lógica Conductor sin pass)
             if (user.isAnonymous) {
                 const storedRole = localStorage.getItem('demo_role');
+
+                // Si no hay rol guardado (ej. usuario hizo logout limpieza), cerramos la sesión anónima real
+                if (!storedRole) {
+                    auth.signOut();
+                    return;
+                }
+
                 const storedName = localStorage.getItem('selected_conductor_name');
                 if (storedRole === 'Conductor') {
                     renderConductorDashboard(appContainer, storedName || 'Conductor');

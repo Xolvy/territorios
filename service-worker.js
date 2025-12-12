@@ -1,4 +1,4 @@
-const CACHE_NAME = 'app-territorios-v3.1';
+const CACHE_NAME = 'app-territorios-v3.2';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
@@ -13,7 +13,7 @@ const ASSETS_TO_CACHE = [
     '/public/icon-512.png',
     '/data/firestore-services.js',
     '/firebase-config.js',
-    'https://cdn.tailwindcss.com',
+
     'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap',
     'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
     'https://html2canvas.hertzen.com/dist/html2canvas.min.js'
