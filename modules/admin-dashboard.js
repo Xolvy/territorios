@@ -6,7 +6,7 @@ import {
     getTelefonos, addTelefono, deleteTelefono, updateTelefono,
     getPredicacionPublica, savePredicacionPublica,
     getProgramaSemanal, saveProgramaSemanal
-} from '../data/firestore-services.js?v=3.3';
+} from '../data/firestore-services.js?v=3.4';
 import { formatPhoneNumber, getStatusColor, showNotification } from './utils/helpers.js';
 import { TerritoryIntelligence } from './utils/intelligence.js';
 import { auth } from '../firebase-config.js';
@@ -619,6 +619,7 @@ const renderTelefonosTab = async (container) => {
                         <th class="p-4 font-semibold">Número</th>
                         <th class="p-4 font-semibold">Publicador</th>
                         <th class="p-4 font-semibold">Estado</th>
+                        <th class="p-4 font-semibold">Comentarios</th>
                         <th class="p-4 text-right">Acciones</th>
                     </tr>
                 </thead>
@@ -655,6 +656,9 @@ const renderTelefonosTab = async (container) => {
                         </td>
                         <td class="p-4">
                              <span class="${statusColor} text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded bg-white/5 border border-white/5 whitespace-nowrap">${displayStatus}</span>
+                        </td>
+                        <td class="p-4">
+                            <span class="text-xs text-gray-500 italic truncate max-w-[150px] block" title="${t.comentario || ''}">${t.comentario || '-'}</span>
                         </td>
                         <td class="p-4 text-right">
                              <div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">

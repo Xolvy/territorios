@@ -4,7 +4,7 @@ import {
     returnTerritorioParcial, solicitarNumeros, updateTelefonoStatus,
     addPublicador, getPublicadores, getTelefonos, updateTelefono, addTelefono,
     getPermisosUsuario // Just in case
-} from '../data/firestore-services.js?v=3.3';
+} from '../data/firestore-services.js?v=3.4';
 import { formatPhoneNumber, getStatusColor, showNotification } from './utils/helpers.js';
 
 
@@ -66,6 +66,7 @@ export const renderConductorDashboard = async (container, nameOrEmail) => {
                                     <th class="p-3">Dirección</th>
                                     <th class="p-3">Asignado a</th>
                                     <th class="p-3 text-center">Estado</th>
+                                    <th class="p-3">Comentarios</th>
                                 </tr>
                             </thead>
                             <tbody id="phone-tbody" class="divide-y divide-white/5">
@@ -346,6 +347,34 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
         await updateTelefonoStatus(id, status, null);
     };
 
+    window.updatePhoneComment = async (id, comment, inputElement) => {
+        // Find local logic
+        const telIndex = telefonos.findIndex(t => t.id === id);
+        if (telIndex !== -1) {
+            telefonos[telIndex].comentario = comment;
+            // We don't re-render here to avoid losing focus or cursor position if we used 'input' event, 
+            // but since we use 'blur' it's fine. However, no need to re-render the whole table for this.
+        }
+
+        // Visual Feedback
+        const originalBorder = inputElement.classList.contains('border-teal-500');
+        inputElement.classList.add('border-teal-500', 'bg-teal-900/20');
+
+        try {
+            await updateTelefono(id, { comentario: comment });
+
+            // Success animation
+            setTimeout(() => {
+                inputElement.classList.remove('bg-teal-900/20');
+                if (!originalBorder) inputElement.classList.remove('border-teal-500');
+            }, 1000);
+        } catch (e) {
+            console.error("Error saving comment:", e);
+            inputElement.classList.add('border-red-500');
+            showNotification("Error al guardar comentario", "error");
+        }
+    };
+
     const render = () => {
         telefonos.sort((a, b) => {
             // Sort by assigned date descending, then number
@@ -379,6 +408,13 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
                         class="w-full bg-black/30 border border-white/10 rounded px-2 py-1 text-xs font-medium focus:border-teal-500 outline-none cursor-pointer hover:bg-black/50 transition-colors ${getStatusColor(currentStatus)}">
                          ${estados.map(st => `<option value="${st}" ${st === currentStatus ? 'selected' : ''} class="bg-gray-900 text-gray-200">${st}</option>`).join('')}
                     </select>
+                </td>
+                <td class="p-2">
+                    <input type="text" 
+                        value="${t.comentario || ''}" 
+                        onblur="window.updatePhoneComment('${t.id}', this.value, this)"
+                        placeholder="Escribir nota..." 
+                        class="w-full bg-transparent border-b border-white/10 focus:border-teal-500 text-gray-300 text-xs py-1 px-2 focus:bg-black/20 outline-none transition-all placeholder-gray-600">
                 </td>
             </tr>
         `;
