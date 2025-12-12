@@ -1527,7 +1527,7 @@ const renderProgramaTab = async (container) => {
 
             if (updates.length > 0) {
                 await Promise.all(updates);
-                console.log(`Auto - assigned ${ updates.length } territories.`);
+                console.log("Auto - assigned " + updates.length + " territories.");
             }
 
             showCustomAlert("Programa guardado y territorios asignados.");
