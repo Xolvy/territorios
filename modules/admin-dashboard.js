@@ -1346,7 +1346,8 @@ const renderProgramaTab = async (container) => {
                             <th class="p-4 font-bold sticky left-0 bg-[#0f1115] z-20 border-b border-white/10">Día</th>
                             <th class="p-4 font-bold min-w-[300px] border-b border-white/10 border-l border-white/5 text-center text-cyan-400">🌅 Mañana</th>
                             <th class="p-4 font-bold min-w-[300px] border-b border-white/10 border-l border-white/5 text-center text-orange-400">☀️ Tarde</th>
-                            <th class="p-4 font-bold min-w-[300px] border-b border-white/10 border-l border-white/5 text-center text-indigo-400">🌙 Noche / Zoom</th>
+                            <th class="p-4 font-bold min-w-[300px] border-b border-white/10 border-l border-white/5 text-center text-indigo-400">🌙 Noche</th>
+                            <th class="p-4 font-bold min-w-[300px] border-b border-white/10 border-l border-white/5 text-center text-emerald-400">📹 Zoom</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-white/5 bg-black/20">
@@ -1363,12 +1364,15 @@ const renderProgramaTab = async (container) => {
                 </td>`;
 
             // Turns Columns
-            ['manana', 'tarde', 'noche'].forEach(turnoId => {
+            ['manana', 'tarde', 'noche', 'zoom'].forEach(turnoId => {
                 const turnoConfig = turnos.find(t => t.id === turnoId) || {}; // fallback
-                // Special handling for Noche/Zoom split? For now just show Noche fields + Zoom fields if applicable?
-                // The data model has 'noche' and 'zoom' keys separately sometimes? 
-                // In previous code 'zoom' was a separate row. Let's combine Noche & Zoom visually if needed, 
-                // or just stick to the 3 main ones. If 'zoom' exists in data, we can append it.
+
+                // Logic: Zoom only shows on Tuesday (Martes)
+                if (turnoId === 'zoom' && dia.nombre !== 'Martes') {
+                    html += `<td class="p-3 border-l border-white/5 align-top"></td>`;
+                    return;
+                }
+                // Zoom on Tuesday corresponds intuitively to Morning time usually, but in data model it's a separate key 'zoom'.
 
                 if (!dia[turnoId]) dia[turnoId] = {};
                 const data = dia[turnoId];
@@ -1376,10 +1380,13 @@ const renderProgramaTab = async (container) => {
                 // Fields to show for this cell
                 // We use a mini-form layout inside the cell
 
-                const accent = turnoId === 'manana' ? 'cyan' : turnoId === 'tarde' ? 'orange' : 'indigo';
+                const accent = turnoId === 'manana' ? 'cyan' :
+                    turnoId === 'tarde' ? 'orange' :
+                        turnoId === 'noche' ? 'indigo' : 'emerald';
 
                 const cardColor = turnoId === 'manana' ? 'hover:border-cyan-500/30' :
-                    turnoId === 'tarde' ? 'hover:border-orange-500/30' : 'hover:border-indigo-500/30';
+                    turnoId === 'tarde' ? 'hover:border-orange-500/30' :
+                        turnoId === 'noche' ? 'hover:border-indigo-500/30' : 'hover:border-emerald-500/30';
 
                 html += `<td class="p-3 border-l border-white/5 align-top">
                     <div class="flex flex-col gap-2 p-2 rounded-lg border border-transparent ${cardColor} transition-all">
@@ -1397,9 +1404,12 @@ const renderProgramaTab = async (container) => {
                                     onclick="window.openTerritorySelector(${dayIndex}, '${turnoId}', this)"
                                     data-current="${safeVal}">${val || '<span class="text-gray-600 italic">Asignar Territorio</span>'}</button>`;
                     } else if (field === 'Grupos') {
+                        // Show "Groups" ONLY in Sunday
+                        if (dia.nombre !== 'Domingo') return;
+
                         // Sunday logic
                         let toggleBtn = '';
-                        if (dia.nombre === 'Domingo' && turnoId === 'manana') {
+                        if (turnoId === 'manana') {
                             const isCongregationMode = data['lugar'] === 'Salón del Reino';
                             toggleBtn = `<div class="flex justify-end mb-1"><button class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded ${isCongregationMode ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30' : 'bg-gray-700/50 text-gray-400 border border-white/5'}" 
                                 onclick="window.toggleSundayMorningMode(${dayIndex}, '${turnoId}')">
