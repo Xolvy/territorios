@@ -4,7 +4,7 @@ import {
     returnTerritorioParcial, solicitarNumeros, updateTelefonoStatus,
     addPublicador, getPublicadores, getTelefonos, updateTelefono, addTelefono,
     getPermisosUsuario // Just in case
-} from '../data/firestore-services.js?v=3.4';
+} from '../data/firestore-services.js?v=3.5';
 import { formatPhoneNumber, getStatusColor, showNotification } from './utils/helpers.js';
 
 
@@ -38,7 +38,7 @@ export const renderConductorDashboard = async (container, nameOrEmail) => {
                 </div>
 
                 <!-- Mis Territorios -->
-                <div class="lg:col-span-1">
+                <div class="lg:col-span-2">
                     <h3 class="text-lg font-bold text-teal-100 mb-3 px-2 flex items-center gap-2">
                         🗺️ Mis Territorios
                     </h3>
@@ -51,7 +51,7 @@ export const renderConductorDashboard = async (container, nameOrEmail) => {
                 </div>
 
                 <!-- Predicacion Telefonica -->
-                <div class="lg:col-span-1 morphinglass-card h-fit">
+                <div class="lg:col-span-2 morphinglass-card h-fit">
                     <h3 class="text-lg font-bold text-teal-100 mb-4 flex justify-between items-center">
                         📞 Telefónica
                         <button id="btn-solicitar" class="text-xs bg-teal-600 px-2 py-1 rounded text-white hover:bg-teal-500 transition-colors">+ Solicitar</button>
