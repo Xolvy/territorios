@@ -1544,7 +1544,7 @@ const renderProgramaTab = async (container) => {
 /* --- Group Selection Modal --- */
 const showGroupSelectionModal = (currentValue, onSave) => {
     // 12 Fixed Groups (can be dynamic if needed)
-    const groups = Array.from({ length: 12 }, (_, i) => ({ id: `g${ i + 1 } `, label: `Grupo ${ i + 1 } ` }));
+    const groups = Array.from({ length: 12 }, (_, i) => ({ id: 'g' + (i + 1), label: 'Grupo ' + (i + 1) }));
 
     // Parse current state
     const selectedLabels = new Set();
@@ -1552,7 +1552,7 @@ const showGroupSelectionModal = (currentValue, onSave) => {
 
     if (!isTodos && currentValue) {
         groups.forEach(g => {
-            if (currentValue.includes(g.label) || currentValue.match(new RegExp(`\\b${ g.label.replace('Grupo ', '') } \\b`))) {
+            if (currentValue.includes(g.label) || currentValue.match(new RegExp('\\b' + g.label.replace('Grupo ', '') + '\\b'))) {
                 selectedLabels.add(g.label);
             }
         });
