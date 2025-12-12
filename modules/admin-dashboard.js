@@ -1197,35 +1197,46 @@ const renderProgramaTab = async (container) => {
         Grupos: ['Todos', 'Grupos 1 y 5', 'Grupos 2 y 6', 'Grupos 3 y 4', ...Array.from({ length: 12 }, (_, i) => `Grupo ${i + 1}`)]
     };
 
-    // 2. Setup Container Structure with Navigation
-    container.innerHTML = `
-        <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-6 gap-6">
-            <div>
-                <h2 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-teal-200 to-teal-400">📅 Programa de Predicación</h2>
-                <p class="text-gray-400 text-sm">Organiza las salidas de servicio de la semana</p>
-            </div>
-
-            <div class="flex flex-col sm:flex-row items-center gap-4 w-full xl:w-auto bg-black/40 p-1.5 rounded-2xl border border-white/5">
-                <div class="flex items-center gap-2 bg-[#0f1115] rounded-xl px-2 py-1 border border-white/5 shadow-inner">
-                    <button id="prev-week" class="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors group">
-                        <span class="group-hover:-translate-x-0.5 transition-transform block">◀</span>
-                    </button>
-                    <div class="text-center px-2 min-w-[140px]">
-                        <span class="block text-[10px] text-teal-500 font-bold uppercase tracking-widest leading-none mb-1">Semana</span>
-                        <span id="week-range-label" class="text-gray-200 font-bold text-sm block leading-none whitespace-nowrap">Cargando...</span>
-                    </div>
-                    <button id="next-week" class="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors group">
-                        <span class="group-hover:translate-x-0.5 transition-transform block">▶</span>
-                    </button>
-                    <button id="reset-today" class="hidden ml-2 text-[10px] bg-teal-500/10 text-teal-400 px-2 py-1 rounded border border-teal-500/20 hover:bg-teal-500/20 transition-colors">Hoy</button>
+    // 2. Setup Container Structure        // Initial Controls
+    const controlsHtml = `
+            <div class="flex items-center justify-between mb-6 bg-black/40 p-4 rounded-xl border border-white/5 backdrop-blur-md shadow-lg">
+                 <div>
+                    <h2 class="text-2xl font-bold text-teal-400 flex items-center gap-3">
+                        <span class="p-2 bg-teal-500/10 rounded-lg border border-teal-500/20">📅</span> 
+                        Programa Semanal
+                    </h2>
+                    <p class="text-gray-400 text-xs mt-1 ml-14">Organiza las salidas de servicio de la semana</p>
                 </div>
                 
-                <button id="save-admin-prog" class="w-full sm:w-auto group relative px-6 py-2.5 bg-gradient-to-r from-teal-600 to-teal-500 rounded-xl text-white font-semibold shadow-lg shadow-teal-500/20 hover:shadow-teal-500/40 hover:scale-[1.02] transition-all duration-300">
-                    <span class="relative flex items-center justify-center gap-2">💾 Guardar</span>
-                </button>
-            </div>
-        </div>
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center bg-black/60 rounded-lg p-1 border border-white/10 shadow-inner">
+                        <button id="prev-week" class="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-md transition-all active:scale-95" title="Semana Anterior">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                        </button>
+                        <span id="range-label" class="mx-3 text-sm font-mono text-teal-300 min-w-[140px] text-center font-bold tracking-wide">
+                            Cargando...
+                        </span>
+                        <button id="next-week" class="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-md transition-all active:scale-95" title="Siguiente Semana">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                        </button>
+                    </div>
 
+                    <button id="export-png" class="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 px-4 rounded-lg shadow-lg hover:shadow-purple-500/30 transition-all active:scale-95 border border-purple-400/20 group">
+                        <span class="group-hover:rotate-12 transition-transform">📷</span> <span class="hidden sm:inline">Imagen</span>
+                    </button>
+
+                    <button id="btn-reset-today" class="hidden px-3 py-1.5 text-xs font-bold text-white bg-blue-600/80 hover:bg-blue-500 rounded-lg border border-blue-400/30 shadow-lg shadow-blue-500/20 transition-all uppercase tracking-wider">
+                        Hoy
+                    </button>
+                    
+                    <button id="save-admin-prog" class="flex items-center gap-2 bg-teal-600 hover:bg-teal-500 text-white font-bold py-2 px-6 rounded-lg shadow-lg hover:shadow-teal-500/30 transition-all active:scale-95 border border-teal-400/20">
+                        💾 <span class="hidden sm:inline">Guardar</span>
+                    </button>
+                </div>
+            </div>
+        `;
+    container.innerHTML = `
+        ${controlsHtml}
         <div class="space-y-1 relative">
             <div id="prog-loading-overlay" class="absolute inset-0 bg-black/60 z-50 backdrop-blur-sm flex items-center justify-center hidden rounded-xl">
                  <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
@@ -1239,8 +1250,8 @@ const renderProgramaTab = async (container) => {
 
     const tableContainer = document.getElementById('admin-prog-table');
     const loadingOverlay = document.getElementById('prog-loading-overlay');
-    const rangeLabel = document.getElementById('week-range-label');
-    const btnResetToday = document.getElementById('reset-today');
+    const rangeLabel = document.getElementById('range-label'); // Changed from week-range-label
+    const btnResetToday = document.getElementById('btn-reset-today'); // Changed from reset-today
 
     // Load Logic
     const loadWeekData = async () => {
@@ -1464,99 +1475,6 @@ const renderProgramaTab = async (container) => {
                     /* ... */
                     html += `
                         <div class="grid grid-cols-[24px_1fr] items-center gap-1.5 group/field hover:bg-white/[0.02] -mx-2 px-2 py-0.5 rounded transition-colors">
-                             <div class="flex items-center justify-center w-6 h-6 rounded-md bg-white/5 text-gray-400 group-hover/field:text-${accent}-300 group-hover/field:bg-${accent}-900/20 transition-all text-xs border border-white/5 shadow-sm">
-                                ${icon}
-                            </div>
-                            <div class="w-full min-w-0">${inputHtml}</div>
-                        </div>
-                     `;
-                });
-
-                html += `</div></td>`;
-            });
-
-            html += `</tr>`;
-        });
-
-        html += `</tbody></table></div>`;
-
-        tableContainer.innerHTML = html;
-        bindTableEvents();
-    };
-
-    const bindTableEvents = () => {
-        tableContainer.querySelectorAll('select, input').forEach(input => {
-            input.addEventListener('change', (e) => {
-                const dayIdx = e.target.dataset.day;
-                const turno = e.target.dataset.turno;
-                const field = e.target.dataset.field;
-                if (!programa.dias[dayIdx][turno]) programa.dias[dayIdx][turno] = {};
-                programa.dias[dayIdx][turno][field] = e.target.value;
-            });
-        });
-    };
-
-    // Helper: Sunday Toggle
-    window.toggleSundayMorningMode = (dayIdx, turnoId) => {
-        if (!programa.dias[dayIdx][turnoId]) programa.dias[dayIdx][turnoId] = {};
-        const currentLugar = programa.dias[dayIdx][turnoId]['lugar'] || '';
-
-        // Logic: if currently Salón del Reino, switch to Empty/Custom. Else switch to Salón del Reino.
-        if (currentLugar === 'Salón del Reino') {
-            programa.dias[dayIdx][turnoId]['lugar'] = '';
-            programa.dias[dayIdx][turnoId]['grupos'] = '';
-            programa.dias[dayIdx][turnoId]['hora'] = '';
-            // Allow user to fill in specific groups
-            showCustomAlert("Modo: Grupos / Personalizado activado");
-        } else {
-            programa.dias[dayIdx][turnoId]['lugar'] = 'Salón del Reino';
-            programa.dias[dayIdx][turnoId]['grupos'] = 'Todos';
-            programa.dias[dayIdx][turnoId]['hora'] = '09:15';
-            showCustomAlert("Modo: Congregación (Todos) activado");
-        }
-        renderTable(); // Re-render to reflect changes
-    };
-
-    // Helper: Group selector opener
-    window.openGroupSelector = (dayIdx, turnoId, btnElement) => {
-        const currentVal = programa.dias[dayIdx][turnoId]['grupos'] || '';
-        showGroupSelectionModal(currentVal, (newVal) => {
-            if (!programa.dias[dayIdx][turnoId]) programa.dias[dayIdx][turnoId] = {};
-            programa.dias[dayIdx][turnoId]['grupos'] = newVal;
-            renderTable(); // Re-render to reflect changes
-        });
-    };
-
-    // Helper: Territory selector opener
-    window.openTerritorySelector = (dayIdx, turnoId, btnElement) => {
-        const currentVal = programa.dias[dayIdx][turnoId]['territorio'] || '';
-        showTerritorySelectionModal(currentVal, territorios, (newVal) => {
-            if (!programa.dias[dayIdx][turnoId]) programa.dias[dayIdx][turnoId] = {};
-            programa.dias[dayIdx][turnoId]['territorio'] = newVal;
-            renderTable(); // Re-render to reflect changes easily
-        });
-    };
-
-    // Helper Icons
-    function getFieldIcon(f) {
-        const icons = { 'Lugar': '📍', 'Hora': '⏰', 'Conductor': '👤', 'Auxiliar': '🤝', 'Faceta': '🏷️', 'Territorio': '🗺️', 'Grupos': '👥' };
-        return icons[f] || '•';
-    }
-
-    // Initial Render
-    loadWeekData();
-
-    // Event Listeners for Navigation
-    document.getElementById('prev-week').addEventListener('click', () => {
-        currentWeekStart.setDate(currentWeekStart.getDate() - 7);
-        loadWeekData();
-    });
-
-    document.getElementById('next-week').addEventListener('click', () => {
-        currentWeekStart.setDate(currentWeekStart.getDate() + 7);
-        loadWeekData();
-    });
-
     document.getElementById('reset-today').addEventListener('click', () => {
         currentWeekStart = getMonday(new Date());
         loadWeekData();
@@ -1609,7 +1527,7 @@ const renderProgramaTab = async (container) => {
 
             if (updates.length > 0) {
                 await Promise.all(updates);
-                console.log(`Auto-assigned ${updates.length} territories.`);
+                console.log(`Auto - assigned ${ updates.length } territories.`);
             }
 
             showCustomAlert("Programa guardado y territorios asignados.");
@@ -1626,7 +1544,7 @@ const renderProgramaTab = async (container) => {
 /* --- Group Selection Modal --- */
 const showGroupSelectionModal = (currentValue, onSave) => {
     // 12 Fixed Groups (can be dynamic if needed)
-    const groups = Array.from({ length: 12 }, (_, i) => ({ id: `g${i + 1}`, label: `Grupo ${i + 1}` }));
+    const groups = Array.from({ length: 12 }, (_, i) => ({ id: `g${ i + 1 } `, label: `Grupo ${ i + 1 } ` }));
 
     // Parse current state
     const selectedLabels = new Set();
@@ -1634,14 +1552,14 @@ const showGroupSelectionModal = (currentValue, onSave) => {
 
     if (!isTodos && currentValue) {
         groups.forEach(g => {
-            if (currentValue.includes(g.label) || currentValue.match(new RegExp(`\\b${g.label.replace('Grupo ', '')}\\b`))) {
+            if (currentValue.includes(g.label) || currentValue.match(new RegExp(`\\b${ g.label.replace('Grupo ', '') } \\b`))) {
                 selectedLabels.add(g.label);
             }
         });
     }
 
     const render = () => `
-        <div class="flex flex-col h-[400px]">
+                        < div class="flex flex-col h-[400px]" >
             <header class="mb-4 border-b border-white/10 pb-2">
                 <h3 class="text-xl font-bold text-teal-400">Seleccionar Grupos de Predicación</h3>
                 <p class="text-xs text-gray-500">Selecciona uno o varios grupos para este turno.</p>
@@ -1666,7 +1584,7 @@ const showGroupSelectionModal = (currentValue, onSave) => {
                  <button id="btn-cancel-groups" class="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors">Cancelar</button>
                  <button id="btn-save-groups" class="px-6 py-2 bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-500 hover:to-teal-400 text-white rounded-lg font-medium shadow-lg shadow-teal-500/20">Confirmar</button>
             </div>
-        </div>
+        </div >
     `;
 
     showModal(render(), (modal) => {
@@ -1701,10 +1619,10 @@ const showGroupSelectionModal = (currentValue, onSave) => {
                     const nums = selected.map(s => s.replace('Grupo ', '')).sort((a, b) => a - b);
                     // Format nicer: "Grupos 1, 2 y 3"
                     if (nums.length === 1) {
-                        onSave(`Grupo ${nums[0]}`);
+                        onSave(`Grupo ${ nums[0] } `);
                     } else {
                         const last = nums.pop();
-                        onSave(`Grupos ${nums.join(', ')} y ${last}`);
+                        onSave(`Grupos ${ nums.join(', ') } y ${ last } `);
                     }
                 }
             }
@@ -1733,7 +1651,7 @@ const showTerritorySelectionModal = (currentValue, allTerritories, onSave) => {
             // Precise matching for "Territory Number" to avoid "1" matching "10"
             // Typically "1, 2, 4 (Mz..)"
             // Regex: Word boundary check
-            const regex = new RegExp(`\\b${t.numero}\\b`);
+            const regex = new RegExp(`\\b${ t.numero } \\b`);
             if (regex.test(normVal)) {
                 selectionState[t.id].selected = true;
 
@@ -1752,7 +1670,7 @@ const showTerritorySelectionModal = (currentValue, allTerritories, onSave) => {
 
     const renderModalContent = () => {
         return `
-            <div class="flex flex-col h-[600px] text-left">
+    < div class="flex flex-col h-[600px] text-left" >
                 <header class="mb-4 border-b border-white/10 pb-2">
                     <h3 class="text-xl font-bold text-teal-400">Seleccionar Territorios</h3>
                     <p class="text-xs text-gray-500">Marca los territorios para este turno. Expande para seleccionar manzanas específicas.</p>
@@ -1800,8 +1718,8 @@ const showTerritorySelectionModal = (currentValue, allTerritories, onSave) => {
                     <button class="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors" onclick="document.getElementById('modal-container').classList.add('hidden')">Cancelar</button>
                     <button class="px-6 py-2 bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-500 hover:to-teal-400 text-white rounded-lg font-medium shadow-lg shadow-teal-500/20" id="confirm-terr-selection">Confirmar Selección</button>
                 </div>
-            </div>
-        `;
+            </div >
+    `;
     };
 
     showModal(renderModalContent(), (modal) => {
@@ -1813,7 +1731,7 @@ const showTerritorySelectionModal = (currentValue, allTerritories, onSave) => {
                 const tId = e.target.value;
                 selectionState[tId].selected = e.target.checked;
 
-                const mDiv = document.getElementById(`manzanas-${tId}`);
+                const mDiv = document.getElementById(`manzanas - ${ tId } `);
                 if (mDiv) {
                     if (e.target.checked) {
                         mDiv.classList.remove('hidden');
@@ -1822,7 +1740,7 @@ const showTerritorySelectionModal = (currentValue, allTerritories, onSave) => {
                         mDiv.classList.add('hidden');
                         // Clear selected manzanas if unchecking territory?
                         // selectionState[tId].manzanas = [];
-                        // container.querySelectorAll(`.manzana-check[data-tid="${tId}"]`).forEach(mc => mc.checked = false);
+                        // container.querySelectorAll(`.manzana - check[data - tid="${tId}"]`).forEach(mc => mc.checked = false);
                     }
                 }
             });
@@ -1849,7 +1767,7 @@ const showTerritorySelectionModal = (currentValue, allTerritories, onSave) => {
                 if (s.selected) {
                     let str = t.numero;
                     if (s.manzanas.length > 0) {
-                        str += ` (${s.manzanas.join(', ')})`;
+                        str += ` (${ s.manzanas.join(', ') })`;
                     }
                     parts.push(str);
                 }
