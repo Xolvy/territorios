@@ -4,7 +4,7 @@ import {
     returnTerritorioParcial, solicitarNumeros, updateTelefonoStatus,
     addPublicador, getPublicadores, getTelefonos, updateTelefono, addTelefono,
     getPermisosUsuario // Just in case
-} from '../data/firestore-services.js?v=3.5';
+} from '../data/firestore-services.js?v=3.6';
 import { formatPhoneNumber, getStatusColor, showNotification } from './utils/helpers.js';
 
 
@@ -57,7 +57,7 @@ export const renderConductorDashboard = async (container, nameOrEmail) => {
                         <button id="btn-solicitar" class="text-xs bg-teal-600 px-2 py-1 rounded text-white hover:bg-teal-500 transition-colors">+ Solicitar</button>
                     </h3>
                     
-                    <div class="overflow-x-auto max-h-[500px] overflow-y-auto custom-scrollbar">
+                    <div class="overflow-x-auto">
                         <table class="w-full text-left text-xs mb-4">
                             <thead class="bg-white/5 text-gray-400 font-bold uppercase tracking-wider sticky top-0 backdrop-blur-md z-10">
                                 <tr>
