@@ -1434,8 +1434,8 @@ const renderProgramaTab = async (container) => {
                                     <span class="opacity-0 group-hover/btn:opacity-100 transition-opacity text-${accent}-400">✏️</span>
                                     </button>`;
                     } else if (field === 'Grupos') {
-                        // Show "Groups" ONLY in Sunday Morning
-                        if (dia.nombre !== 'Domingo' || turnoId !== 'manana') return;
+                        // Show "Groups" ONLY in Sunday (All turns: Mañana, Tarde, Noche)
+                        if (dia.nombre !== 'Domingo') return;
 
                         // Sunday logic
                         let toggleBtn = '';
