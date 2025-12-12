@@ -1347,28 +1347,28 @@ const renderProgramaTab = async (container) => {
                     <table class="w-full text-left border-collapse">
                     <thead>
                         <tr class="sticky top-0 z-30 bg-[#0f1115]/95 backdrop-blur-xl border-b border-white/10 text-xs font-bold uppercase tracking-widest text-gray-400 shadow-md">
-                            <th class="p-4 sticky left-0 bg-[#0f1115] z-40 border-b border-white/10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.5)]">
+                            <th class="p-3 sticky left-0 bg-[#0f1115] z-40 border-b border-white/10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.5)]">
                                 <span class="bg-gradient-to-r from-gray-200 to-gray-400 bg-clip-text text-transparent">Día</span>
                             </th>
-                            <th class="p-4 min-w-[220px] text-center border-l border-white/5 relative overflow-hidden group/th">
+                            <th class="p-3 min-w-[160px] text-center border-l border-white/5 relative overflow-hidden group/th">
                                 <div class="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-50"></div>
                                 <span class="bg-gradient-to-r from-cyan-200 to-cyan-400 bg-clip-text text-transparent relative z-10 flex items-center justify-center gap-2">
                                     <span class="text-lg">🌅</span> Mañana
                                 </span>
                             </th>
-                            <th class="p-4 min-w-[220px] text-center border-l border-white/5 relative overflow-hidden group/th">
+                            <th class="p-3 min-w-[160px] text-center border-l border-white/5 relative overflow-hidden group/th">
                                 <div class="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-orange-500 to-transparent opacity-50"></div>
                                 <span class="bg-gradient-to-r from-orange-200 to-orange-400 bg-clip-text text-transparent relative z-10 flex items-center justify-center gap-2">
                                     <span class="text-lg">☀️</span> Tarde
                                 </span>
                             </th>
-                            <th class="p-4 min-w-[220px] text-center border-l border-white/5 relative overflow-hidden group/th">
+                            <th class="p-3 min-w-[160px] text-center border-l border-white/5 relative overflow-hidden group/th">
                                 <div class="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-50"></div>
                                 <span class="bg-gradient-to-r from-indigo-200 to-indigo-400 bg-clip-text text-transparent relative z-10 flex items-center justify-center gap-2">
                                     <span class="text-lg">🌙</span> Noche
                                 </span>
                             </th>
-                            <th class="p-4 min-w-[220px] text-center border-l border-white/5 relative overflow-hidden group/th">
+                            <th class="p-3 min-w-[160px] text-center border-l border-white/5 relative overflow-hidden group/th">
                                 <div class="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-500 to-transparent opacity-50"></div>
                                 <span class="bg-gradient-to-r from-emerald-200 to-emerald-400 bg-clip-text text-transparent relative z-10 flex items-center justify-center gap-2">
                                     <span class="text-lg">📹</span> Zoom
@@ -1415,7 +1415,7 @@ const renderProgramaTab = async (container) => {
                     turnoId === 'tarde' ? 'hover:bg-orange-500/[0.03] hover:shadow-[inset_0_0_20px_rgba(249,115,22,0.05)]' :
                         turnoId === 'noche' ? 'hover:bg-indigo-500/[0.03] hover:shadow-[inset_0_0_20px_rgba(99,102,241,0.05)]' : 'hover:bg-emerald-500/[0.03] hover:shadow-[inset_0_0_20px_rgba(16,185,129,0.05)]';
 
-                html += `<td class="p-3 border-l border-white/5 align-top transition-colors duration-300 ${cardColor}">
+                html += `<td class="p-2 border-l border-white/5 align-top transition-colors duration-300 ${cardColor}">
                     <div class="flex flex-col gap-3 h-full">
                 `;
 
