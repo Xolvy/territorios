@@ -1339,27 +1339,54 @@ const renderProgramaTab = async (container) => {
         // Let's Pivot: Rows = Days (Lunes...Domingo). Columns = Mañana, Tarde, Noche.
 
         let html = `
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-separate border-spacing-0 shadow-2xl rounded-xl overflow-hidden">
+            <div class="overflow-hidden rounded-2xl shadow-2xl border border-white/5 bg-[#0f1115] relative group/table">
+                <!-- Background decoration -->
+                <div class="absolute inset-0 bg-gradient-to-br from-teal-900/5 to-purple-900/5 pointer-events-none"></div>
+                
+                <div class="overflow-x-auto relative z-10 scrollbar-thin scrollbar-thumb-teal-900/50 scrollbar-track-transparent">
+                    <table class="w-full text-left border-collapse">
                     <thead>
-                        <tr class="sticky top-0 z-30 bg-black/60 backdrop-blur-xl text-gray-400 border-b border-white/10 text-xs uppercase tracking-wider">
-                            <th class="p-4 font-bold sticky left-0 bg-[#0f1115] z-20 border-b border-white/10">Día</th>
-                            <th class="p-4 font-bold min-w-[300px] border-b border-white/10 border-l border-white/5 text-center text-cyan-400">🌅 Mañana</th>
-                            <th class="p-4 font-bold min-w-[300px] border-b border-white/10 border-l border-white/5 text-center text-orange-400">☀️ Tarde</th>
-                            <th class="p-4 font-bold min-w-[300px] border-b border-white/10 border-l border-white/5 text-center text-indigo-400">🌙 Noche</th>
-                            <th class="p-4 font-bold min-w-[300px] border-b border-white/10 border-l border-white/5 text-center text-emerald-400">📹 Zoom</th>
+                        <tr class="sticky top-0 z-30 bg-[#0f1115]/95 backdrop-blur-xl border-b border-white/10 text-xs font-bold uppercase tracking-widest text-gray-400 shadow-md">
+                            <th class="p-4 sticky left-0 bg-[#0f1115] z-40 border-b border-white/10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.5)]">
+                                <span class="bg-gradient-to-r from-gray-200 to-gray-400 bg-clip-text text-transparent">Día</span>
+                            </th>
+                            <th class="p-4 min-w-[220px] text-center border-l border-white/5 relative overflow-hidden group/th">
+                                <div class="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-50"></div>
+                                <span class="bg-gradient-to-r from-cyan-200 to-cyan-400 bg-clip-text text-transparent relative z-10 flex items-center justify-center gap-2">
+                                    <span class="text-lg">🌅</span> Mañana
+                                </span>
+                            </th>
+                            <th class="p-4 min-w-[220px] text-center border-l border-white/5 relative overflow-hidden group/th">
+                                <div class="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-orange-500 to-transparent opacity-50"></div>
+                                <span class="bg-gradient-to-r from-orange-200 to-orange-400 bg-clip-text text-transparent relative z-10 flex items-center justify-center gap-2">
+                                    <span class="text-lg">☀️</span> Tarde
+                                </span>
+                            </th>
+                            <th class="p-4 min-w-[220px] text-center border-l border-white/5 relative overflow-hidden group/th">
+                                <div class="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-50"></div>
+                                <span class="bg-gradient-to-r from-indigo-200 to-indigo-400 bg-clip-text text-transparent relative z-10 flex items-center justify-center gap-2">
+                                    <span class="text-lg">🌙</span> Noche
+                                </span>
+                            </th>
+                            <th class="p-4 min-w-[220px] text-center border-l border-white/5 relative overflow-hidden group/th">
+                                <div class="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-500 to-transparent opacity-50"></div>
+                                <span class="bg-gradient-to-r from-emerald-200 to-emerald-400 bg-clip-text text-transparent relative z-10 flex items-center justify-center gap-2">
+                                    <span class="text-lg">📹</span> Zoom
+                                </span>
+                            </th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-white/5 bg-black/20">
+                    <tbody class="divide-y divide-white/5">
         `;
 
         programa.dias.forEach((dia, dayIndex) => {
-            html += `<tr class="group hover:bg-white/5 transition-colors">
+            html += `<tr class="group/row hover:bg-white/[0.02] transition-colors">
                 <!-- Day Column -->
-                <td class="p-4 font-bold text-teal-100 sticky left-0 bg-[#0f1115] z-10 border-r border-white/10 group-hover:bg-[#15181e] transition-colors">
-                    <div class="flex flex-col items-center justify-center h-full gap-1">
-                        <span class="text-lg">${dia.nombre.substring(0, 3)}</span>
-                        <span class="text-[10px] text-gray-500 uppercase tracking-widest">${dia.nombre}</span>
+                <td class="p-4 font-bold text-teal-100 sticky left-0 bg-[#0f1115] z-20 border-r border-white/10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.5)] group-hover/row:bg-[#15181e] transition-colors">
+                    <div class="flex flex-col items-center justify-center h-full gap-1.5 relative">
+                        <div class="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-8 bg-teal-500/50 rounded-r-full"></div>
+                        <span class="text-xl font-black tracking-tight bg-gradient-to-br from-white to-gray-500 bg-clip-text text-transparent">${dia.nombre.substring(0, 3)}</span>
+                        <span class="text-[9px] text-gray-500 uppercase tracking-[0.2em] font-medium">${dia.nombre}</span>
                     </div>
                 </td>`;
 
@@ -1384,12 +1411,12 @@ const renderProgramaTab = async (container) => {
                     turnoId === 'tarde' ? 'orange' :
                         turnoId === 'noche' ? 'indigo' : 'emerald';
 
-                const cardColor = turnoId === 'manana' ? 'hover:border-cyan-500/30' :
-                    turnoId === 'tarde' ? 'hover:border-orange-500/30' :
-                        turnoId === 'noche' ? 'hover:border-indigo-500/30' : 'hover:border-emerald-500/30';
+                const cardColor = turnoId === 'manana' ? 'hover:bg-cyan-500/[0.03] hover:shadow-[inset_0_0_20px_rgba(6,182,212,0.05)]' :
+                    turnoId === 'tarde' ? 'hover:bg-orange-500/[0.03] hover:shadow-[inset_0_0_20px_rgba(249,115,22,0.05)]' :
+                        turnoId === 'noche' ? 'hover:bg-indigo-500/[0.03] hover:shadow-[inset_0_0_20px_rgba(99,102,241,0.05)]' : 'hover:bg-emerald-500/[0.03] hover:shadow-[inset_0_0_20px_rgba(16,185,129,0.05)]';
 
-                html += `<td class="p-3 border-l border-white/5 align-top">
-                    <div class="flex flex-col gap-2 p-2 rounded-lg border border-transparent ${cardColor} transition-all">
+                html += `<td class="p-3 border-l border-white/5 align-top transition-colors duration-300 ${cardColor}">
+                    <div class="flex flex-col gap-3 h-full">
                 `;
 
                 // Render fields
@@ -1400,48 +1427,54 @@ const renderProgramaTab = async (container) => {
 
                     if (field === 'Territorio') {
                         const safeVal = (val || '').replace(/"/g, '&quot;');
-                        inputHtml = `<button class="w-full text-left text-xs bg-black/30 text-gray-300 py-1.5 px-2 rounded border border-white/5 hover:border-white/20 truncate font-mono transition-colors"
+                        inputHtml = `<button class="w-full relative group/btn flex items-center justify-between text-xs bg-black/40 hover:bg-black/60 text-gray-300 py-2 px-3 rounded-lg border border-white/5 hover:border-${accent}-500/30 shadow-sm transition-all duration-200"
                                     onclick="window.openTerritorySelector(${dayIndex}, '${turnoId}', this)"
-                                    data-current="${safeVal}">${val || '<span class="text-gray-600 italic">Asignar Territorio</span>'}</button>`;
+                                    data-current="${safeVal}">
+                                    <span class="truncate font-mono ${val ? `text-${accent}-300 font-medium` : 'text-gray-500 italic'}">${val || 'Asignar'}</span>
+                                    <span class="opacity-0 group-hover/btn:opacity-100 transition-opacity text-${accent}-400">✏️</span>
+                                    </button>`;
                     } else if (field === 'Grupos') {
-                        // Show "Groups" ONLY in Sunday
-                        if (dia.nombre !== 'Domingo') return;
+                        // Show "Groups" ONLY in Sunday Morning
+                        if (dia.nombre !== 'Domingo' || turnoId !== 'manana') return;
 
                         // Sunday logic
                         let toggleBtn = '';
-                        if (turnoId === 'manana') {
-                            const isCongregationMode = data['lugar'] === 'Salón del Reino';
-                            toggleBtn = `<div class="flex justify-end mb-1"><button class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded ${isCongregationMode ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30' : 'bg-gray-700/50 text-gray-400 border border-white/5'}" 
-                                onclick="window.toggleSundayMorningMode(${dayIndex}, '${turnoId}')">
-                                ${isCongregationMode ? '🏛️ Salón' : '👥 Grupos'}
-                            </button></div>`;
-                        }
+                        const isCongregationMode = data['lugar'] === 'Salón del Reino';
+                        toggleBtn = `<div class="flex justify-end mb-1"><button class="text-[9px] uppercase font-bold tracking-wider px-2 py-1 rounded-md shadow-sm transition-all ${isCongregationMode ? 'bg-yellow-500/10 text-yellow-300 border border-yellow-500/30 hover:bg-yellow-500/20' : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'}" 
+                            onclick="window.toggleSundayMorningMode(${dayIndex}, '${turnoId}')">
+                            ${isCongregationMode ? '🏛️ Salón' : '👥 Grupos'}
+                        </button></div>`;
 
                         const safeVal = (val || '').replace(/"/g, '&quot;');
                         inputHtml = `${toggleBtn}
-                         <button class="w-full text-left text-xs bg-black/30 text-gray-300 py-1.5 px-2 rounded border border-white/5 hover:border-white/20 truncate transition-colors"
+                         <button class="w-full relative group/btn flex items-center justify-between text-xs bg-black/40 hover:bg-black/60 text-gray-300 py-2 px-3 rounded-lg border border-white/5 hover:border-${accent}-500/30 shadow-sm transition-all duration-200"
                                     onclick="window.openGroupSelector(${dayIndex}, '${turnoId}', this)"
-                                    data-current="${safeVal}">${val || '<span class="text-gray-600 italic">Seleccionar Grupos</span>'}</button>`;
+                                    data-current="${safeVal}">
+                                    <span class="truncate ${val ? `text-${accent}-300 font-medium` : 'text-gray-500 italic'}">${val || 'Seleccionar'}</span>
+                                    <span class="opacity-0 group-hover/btn:opacity-100 transition-opacity text-${accent}-400">✏️</span>
+                                    </button>`;
                     } else {
                         // Selects
                         const opts = options[field] || [];
                         inputHtml = `<div class="relative group/sel">
-                            <select class="w-full bg-transparent text-gray-300 text-xs py-1 pl-1 pr-6 border-b border-white/10 focus:border-${accent}-500 outline-none cursor-pointer appearance-none transition-all hover:bg-white/5 rounded-sm"
+                            <select class="w-full bg-black/40 hover:bg-black/60 text-gray-300 text-xs py-2 pl-3 pr-8 rounded-lg border border-white/5 focus:border-${accent}-500/50 appearance-none transition-all shadow-sm focus:shadow-[0_0_0_2px_rgba(0,0,0,0.5)] outline-none cursor-pointer"
                                 data-day="${dayIndex}" data-turno="${turnoId}" data-field="${field.toLowerCase()}">
                                 <option value="" class="bg-[#1a1c23]">-</option>
                                 ${opts.map(o => `<option value="${o}" ${val === o ? 'selected' : ''} class="bg-[#1a1c23]">${o}</option>`).join('')}
                                 ${val && !opts.includes(val) ? `<option value="${val}" selected class="bg-[#1a1c23] text-amber-500">${val}*</option>` : ''}
                             </select>
-                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-1 text-gray-600 group-hover/sel:text-${accent}-400 transition-colors">
-                                <svg class="fill-current h-3 w-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2.5 text-gray-600 group-hover/sel:text-${accent}-400 transition-colors">
+                                <svg class="fill-current h-3 w-3 drop-shadow-sm" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
                             </div>
                          </div>`;
                     }
-
+                    /* ... */
                     html += `
-                        <div class="grid grid-cols-[20px_1fr] items-center gap-2">
-                            <span class="text-gray-600 text-[10px]" title="${field}">${icon}</span>
-                            ${inputHtml}
+                        <div class="grid grid-cols-[24px_1fr] items-center gap-1.5 group/field hover:bg-white/[0.02] -mx-2 px-2 py-0.5 rounded transition-colors">
+                             <div class="flex items-center justify-center w-6 h-6 rounded-md bg-white/5 text-gray-400 group-hover/field:text-${accent}-300 group-hover/field:bg-${accent}-900/20 transition-all text-xs border border-white/5 shadow-sm">
+                                ${icon}
+                            </div>
+                            <div class="w-full min-w-0">${inputHtml}</div>
                         </div>
                      `;
                 });
