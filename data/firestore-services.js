@@ -1,6 +1,6 @@
 import { db, auth, storage } from '../firebase-config.js';
 import {
-    collection, getDocs, addDoc, deleteDoc, doc, updateDoc, query, where, getDoc
+    collection, getDocs, addDoc, deleteDoc, doc, updateDoc, query, where, getDoc, setDoc, orderBy, limit
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // --- CONFIGURACION GLOBAL ---
@@ -231,18 +231,36 @@ export const savePredicacionPublica = async (data) => {
 
 // --- PROGRAMA SEMANAL ---
 
-export const getProgramaSemanal = async () => {
-    const querySnapshot = await getDocs(collection(db, "programa_semanal"));
-    if (querySnapshot.empty) return { dias: [] };
+export const getProgramaSemanal = async (weekId) => {
+    if (weekId) {
+        const docRef = doc(db, "programa_semanal", weekId);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            return { id: docSnap.id, ...docSnap.data() };
+        }
+        return null; // Not found
+    }
+
+    // Fallback: Get the most recent one or default
+    // We order by ID (if ID is YYYY-MM-DD, it works chronologically) or just get the first one.
+    // If we migrate to ID-based, the old docs usually had auto-IDs.
+    const querySnapshot = await getDocs(query(collection(db, "programa_semanal"), limit(1)));
+    if (querySnapshot.empty) return null;
     return { id: querySnapshot.docs[0].id, ...querySnapshot.docs[0].data() };
 };
 
-export const saveProgramaSemanal = async (data) => {
-    const current = await getProgramaSemanal();
-    if (current.id) {
-        await updateDoc(doc(db, "programa_semanal", current.id), data);
+export const saveProgramaSemanal = async (data, weekId) => {
+    if (weekId) {
+        // Use setDoc to create or overwrite the document with the specific week ID
+        await setDoc(doc(db, "programa_semanal", weekId), data);
     } else {
-        await addDoc(collection(db, "programa_semanal"), data);
+        // Legacy support or fallback
+        const current = await getProgramaSemanal();
+        if (current && current.id) {
+            await updateDoc(doc(db, "programa_semanal", current.id), data);
+        } else {
+            await addDoc(collection(db, "programa_semanal"), data);
+        }
     }
 };
 

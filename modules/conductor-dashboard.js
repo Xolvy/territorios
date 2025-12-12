@@ -4,7 +4,7 @@ import {
     returnTerritorioParcial, solicitarNumeros, updateTelefonoStatus,
     addPublicador, getPublicadores, getTelefonos, updateTelefono, addTelefono,
     getPermisosUsuario // Just in case
-} from '../data/firestore-services.js?v=3.9';
+} from '../data/firestore-services.js?v=3.10';
 import { formatPhoneNumber, getStatusColor, showNotification } from './utils/helpers.js';
 
 
@@ -120,8 +120,26 @@ export const renderConductorDashboard = async (container, nameOrEmail) => {
 };
 
 const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer) => {
+    // Helper: Determine Current Week ID
+    const getMonday = (d) => {
+        d = new Date(d);
+        const day = d.getDay();
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+        return new Date(d.setDate(diff));
+    };
+
+    // Timezone-safe date formatting (YYYY-MM-DD)
+    const getSafeDateId = (d) => {
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    const currentWeekId = getSafeDateId(getMonday(new Date()));
+
     // 1. Load Agenda (Parallel)
-    getProgramaSemanal().then(programa => {
+    getProgramaSemanal(currentWeekId).then(programa => {
         const turnos = ['manana', 'tarde', 'noche'];
         const turnoLabels = { manana: '🌅 Mañana', tarde: '☀️ Tarde', noche: '🌙 Noche' };
         let assignments = [];

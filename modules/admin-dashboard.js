@@ -6,7 +6,7 @@ import {
     getTelefonos, addTelefono, deleteTelefono, updateTelefono,
     getPredicacionPublica, savePredicacionPublica,
     getProgramaSemanal, saveProgramaSemanal
-} from '../data/firestore-services.js?v=3.9';
+} from '../data/firestore-services.js?v=3.10';
 import { formatPhoneNumber, getStatusColor, showNotification } from './utils/helpers.js';
 import { TerritoryIntelligence } from './utils/intelligence.js';
 import { auth } from '../firebase-config.js';
@@ -1144,12 +1144,42 @@ const showCustomConfirm = (message, onConfirm) => {
     });
 };
 const renderProgramaTab = async (container) => {
-    // 1. Fetch Data Once
-    const programa = await getProgramaSemanal();
-    const territorios = await getTerritorios();
-    const config = await getConfiguracion();
-    const conductores = await getConductores();
-    const publicadores = await getPublicadores();
+    // Helpers
+    const getMonday = (d) => {
+        d = new Date(d);
+        const day = d.getDay();
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+        return new Date(d.setDate(diff));
+    };
+
+    const formatDateId = (date) => {
+        const d = new Date(date);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    const formatDisplayDateRange = (date) => {
+        const start = new Date(date);
+        const end = new Date(date);
+        end.setDate(end.getDate() + 6);
+        const options = { month: 'short', day: 'numeric' };
+        return `${start.toLocaleDateString('es-ES', options)} - ${end.toLocaleDateString('es-ES', options)}`;
+    };
+
+    let currentWeekStart = getMonday(new Date());
+    let programa = { dias: [] };
+
+    // 1. Fetch Metadata Once
+    const territoriesPromise = getTerritorios();
+    const configPromise = getConfiguracion();
+    const conductorsPromise = getConductores();
+    const publishersPromise = getPublicadores();
+
+    const [territorios, config, conductores, publicadores] = await Promise.all([
+        territoriesPromise, configPromise, conductorsPromise, publishersPromise
+    ]);
 
     // Sort lists
     territorios.sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true, sensitivity: 'base' }));
@@ -1167,27 +1197,98 @@ const renderProgramaTab = async (container) => {
         Grupos: ['Todos', 'Grupos 1 y 5', 'Grupos 2 y 6', 'Grupos 3 y 4', ...Array.from({ length: 12 }, (_, i) => `Grupo ${i + 1}`)]
     };
 
-    // 2. Setup Container Structure
+    // 2. Setup Container Structure with Navigation
     container.innerHTML = `
-        <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+        <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-6 gap-6">
             <div>
                 <h2 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-teal-200 to-teal-400">📅 Programa de Predicación</h2>
                 <p class="text-gray-400 text-sm">Organiza las salidas de servicio de la semana</p>
             </div>
-            <button id="save-admin-prog" class="group relative px-6 py-2.5 bg-gradient-to-r from-teal-600 to-teal-500 rounded-xl text-white font-semibold shadow-lg shadow-teal-500/20 hover:shadow-teal-500/40 hover:scale-[1.02] transition-all duration-300">
-                <span class="relative flex items-center gap-2">💾 Guardar Cambios</span>
-            </button>
+
+            <div class="flex flex-col sm:flex-row items-center gap-4 w-full xl:w-auto bg-black/40 p-1.5 rounded-2xl border border-white/5">
+                <div class="flex items-center gap-2 bg-[#0f1115] rounded-xl px-2 py-1 border border-white/5 shadow-inner">
+                    <button id="prev-week" class="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors group">
+                        <span class="group-hover:-translate-x-0.5 transition-transform block">◀</span>
+                    </button>
+                    <div class="text-center px-2 min-w-[140px]">
+                        <span class="block text-[10px] text-teal-500 font-bold uppercase tracking-widest leading-none mb-1">Semana</span>
+                        <span id="week-range-label" class="text-gray-200 font-bold text-sm block leading-none whitespace-nowrap">Cargando...</span>
+                    </div>
+                    <button id="next-week" class="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors group">
+                        <span class="group-hover:translate-x-0.5 transition-transform block">▶</span>
+                    </button>
+                    <button id="reset-today" class="hidden ml-2 text-[10px] bg-teal-500/10 text-teal-400 px-2 py-1 rounded border border-teal-500/20 hover:bg-teal-500/20 transition-colors">Hoy</button>
+                </div>
+                
+                <button id="save-admin-prog" class="w-full sm:w-auto group relative px-6 py-2.5 bg-gradient-to-r from-teal-600 to-teal-500 rounded-xl text-white font-semibold shadow-lg shadow-teal-500/20 hover:shadow-teal-500/40 hover:scale-[1.02] transition-all duration-300">
+                    <span class="relative flex items-center justify-center gap-2">💾 Guardar</span>
+                </button>
+            </div>
         </div>
 
-        <div class="space-y-1">
-            <div class="overflow-x-auto rounded-xl border border-white/10 shadow-2xl bg-[#0f1115] scrollbar-thin scrollbar-thumb-teal-900 scrollbar-track-black" id="admin-prog-table">
+        <div class="space-y-1 relative">
+            <div id="prog-loading-overlay" class="absolute inset-0 bg-black/60 z-50 backdrop-blur-sm flex items-center justify-center hidden rounded-xl">
+                 <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
+            </div>
+            <div class="overflow-x-auto rounded-xl border border-white/10 shadow-2xl bg-[#0f1115] scrollbar-thin scrollbar-thumb-teal-900 scrollbar-track-black min-h-[400px]" id="admin-prog-table">
                 <!-- Table will be injected here -->
             </div>
-            <p class="text-[10px] text-gray-500 text-right px-2">* Los cambios se sincronizan en tiempo real con los dispositivos de los conductores.</p>
+            <p class="text-[10px] text-gray-500 text-right px-2">* Los cambios se guardan por semana específica.</p>
         </div>
     `;
 
     const tableContainer = document.getElementById('admin-prog-table');
+    const loadingOverlay = document.getElementById('prog-loading-overlay');
+    const rangeLabel = document.getElementById('week-range-label');
+    const btnResetToday = document.getElementById('reset-today');
+
+    // Load Logic
+    const loadWeekData = async () => {
+        loadingOverlay.classList.remove('hidden');
+        const weekId = formatDateId(currentWeekStart);
+
+        // Update UI info
+        rangeLabel.textContent = formatDisplayDateRange(currentWeekStart);
+
+        // Check if current week is selected to show "Hoy" button or highlight
+        const todayMonday = getMonday(new Date()); // Strip time
+        todayMonday.setHours(0, 0, 0, 0);
+        const viewingMonday = new Date(currentWeekStart);
+        viewingMonday.setHours(0, 0, 0, 0);
+
+        if (viewingMonday.getTime() !== todayMonday.getTime()) {
+            btnResetToday.classList.remove('hidden');
+        } else {
+            btnResetToday.classList.add('hidden');
+        }
+
+        try {
+            const data = await getProgramaSemanal(weekId);
+            if (data && data.dias && data.dias.length > 0) {
+                programa = data;
+            } else {
+                // Initialize default
+                programa = {
+                    id: weekId,
+                    dias: [
+                        { nombre: 'Lunes', manana: {}, tarde: {}, noche: {} },
+                        { nombre: 'Martes', manana: {}, tarde: {}, noche: {} },
+                        { nombre: 'Miércoles', manana: {}, tarde: {}, noche: {} },
+                        { nombre: 'Jueves', manana: {}, tarde: {}, noche: {} },
+                        { nombre: 'Viernes', manana: {}, tarde: {}, noche: {} },
+                        { nombre: 'Sábado', manana: {}, tarde: {}, noche: {} },
+                        { nombre: 'Domingo', manana: {}, tarde: {}, noche: {} }
+                    ]
+                };
+            }
+            renderTable();
+        } catch (error) {
+            console.error(error);
+            showCustomAlert("Error cargando semana: " + error.message);
+        } finally {
+            loadingOverlay.classList.add('hidden');
+        }
+    };
 
     // 3. Render Logic Function
     const renderTable = () => {
@@ -1226,110 +1327,123 @@ const renderProgramaTab = async (container) => {
             }
         ];
 
+        // Grid Layout: 3 Columns of cards (Morning, Afternoon, Night/Zoom mixed or stacked)
+        // Or grouped by Day? Users usually plan by Turn across the week, or by Day?
+        // Let's trying grouping by TURN across the week, but using Cards instead of a big table.
+        // Actually, the user asked for "more stylized and ordered".
+        // A clean vertical list of days, where each day has the 3 turns clearly separated?
+
+        // Let's try: A tabular view but with much cleaner UI. 
+        // Rows = Days. Cols = Turns.  (Standard Calendar View)
+        // Previous view was Rows = Fields, Cols = Days. That was "transposed" and maybe confusing.
+        // Let's Pivot: Rows = Days (Lunes...Domingo). Columns = Mañana, Tarde, Noche.
+
         let html = `
-            <table class="w-full border-collapse text-left whitespace-nowrap">
-                <thead>
-                    <tr class="bg-black/60 backdrop-blur-md text-gray-400 border-b border-white/10 text-[10px] uppercase tracking-wider sticky top-0 z-30">
-                        <th class="p-3 font-bold w-24 sticky left-0 bg-[#0f1115] z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.8)]">Detalle</th>
-                        ${programa.dias.map(d => `<th class="p-3 font-bold min-w-[130px] text-center">${d.nombre}</th>`).join('')}
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-white/5">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-separate border-spacing-0 shadow-2xl rounded-xl overflow-hidden">
+                    <thead>
+                        <tr class="sticky top-0 z-30 bg-black/60 backdrop-blur-xl text-gray-400 border-b border-white/10 text-xs uppercase tracking-wider">
+                            <th class="p-4 font-bold sticky left-0 bg-[#0f1115] z-20 border-b border-white/10">Día</th>
+                            <th class="p-4 font-bold min-w-[300px] border-b border-white/10 border-l border-white/5 text-center text-cyan-400">🌅 Mañana</th>
+                            <th class="p-4 font-bold min-w-[300px] border-b border-white/10 border-l border-white/5 text-center text-orange-400">☀️ Tarde</th>
+                            <th class="p-4 font-bold min-w-[300px] border-b border-white/10 border-l border-white/5 text-center text-indigo-400">🌙 Noche / Zoom</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-white/5 bg-black/20">
         `;
 
-        turnos.forEach(turno => {
-            html += `
-                <tr class="${turno.headerColor}">
-                    <td class="py-1.5 px-3 font-bold text-[11px] tracking-widest sticky left-0 z-20 backdrop-blur-md shadow-[2px_0_5px_-2px_rgba(0,0,0,0.8)] bg-inherit" colspan="${programa.dias.length + 1}">
-                        ${turno.label}
-                    </td>
-                </tr>
-            `;
+        programa.dias.forEach((dia, dayIndex) => {
+            html += `<tr class="group hover:bg-white/5 transition-colors">
+                <!-- Day Column -->
+                <td class="p-4 font-bold text-teal-100 sticky left-0 bg-[#0f1115] z-10 border-r border-white/10 group-hover:bg-[#15181e] transition-colors">
+                    <div class="flex flex-col items-center justify-center h-full gap-1">
+                        <span class="text-lg">${dia.nombre.substring(0, 3)}</span>
+                        <span class="text-[10px] text-gray-500 uppercase tracking-widest">${dia.nombre}</span>
+                    </div>
+                </td>`;
 
-            turno.fields.forEach(field => {
-                html += `<tr class="${turno.rowColor} hover:bg-white/5 transition-colors group/row">
-                    <td class="p-2.5 font-medium text-gray-400 text-[11px] border-r border-white/5 sticky left-0 bg-[#0f1115] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.8)] group-hover/row:bg-[#15181e] transition-colors">
-                         <div class="flex items-center gap-2">
-                            <span class="opacity-70 group-hover/row:opacity-100 ${turno.accent}">${getFieldIcon(field)}</span> 
-                            <span class="group-hover/row:text-white transition-colors">${field.toUpperCase()}</span>
-                         </div>
-                    </td>`;
+            // Turns Columns
+            ['manana', 'tarde', 'noche'].forEach(turnoId => {
+                const turnoConfig = turnos.find(t => t.id === turnoId) || {}; // fallback
+                // Special handling for Noche/Zoom split? For now just show Noche fields + Zoom fields if applicable?
+                // The data model has 'noche' and 'zoom' keys separately sometimes? 
+                // In previous code 'zoom' was a separate row. Let's combine Noche & Zoom visually if needed, 
+                // or just stick to the 3 main ones. If 'zoom' exists in data, we can append it.
 
-                programa.dias.forEach((dia, dayIndex) => {
-                    if (!dia[turno.id]) dia[turno.id] = {};
-                    const val = dia[turno.id][field.toLowerCase()] || '';
-                    let cellContent = '';
+                if (!dia[turnoId]) dia[turnoId] = {};
+                const data = dia[turnoId];
 
-                    // FIELD LOGIC
+                // Fields to show for this cell
+                // We use a mini-form layout inside the cell
+
+                const accent = turnoId === 'manana' ? 'cyan' : turnoId === 'tarde' ? 'orange' : 'indigo';
+
+                const cardColor = turnoId === 'manana' ? 'hover:border-cyan-500/30' :
+                    turnoId === 'tarde' ? 'hover:border-orange-500/30' : 'hover:border-indigo-500/30';
+
+                html += `<td class="p-3 border-l border-white/5 align-top">
+                    <div class="flex flex-col gap-2 p-2 rounded-lg border border-transparent ${cardColor} transition-all">
+                `;
+
+                // Render fields
+                turnoConfig.fields.forEach(field => {
+                    const val = data[field.toLowerCase()] || '';
+                    const icon = getFieldIcon(field);
+                    let inputHtml = '';
+
                     if (field === 'Territorio') {
                         const safeVal = (val || '').replace(/"/g, '&quot;');
-                        cellContent = `
-                            <div class="relative w-full h-full">
-                                <button class="w-full text-left text-[10px] text-gray-300 py-2 px-2 rounded hover:bg-white/10 border border-transparent hover:border-white/10 truncate font-mono transition-colors focus:outline-none focus:border-${turno.accent.split('-')[1]}-500/50"
-                                    onclick="window.openTerritorySelector(${dayIndex}, '${turno.id}', this)"
-                                    data-current="${safeVal}"
-                                >
-                                   ${val || '<span class="text-gray-600">-</span>'}
-                                </button>
-                            </div>
-                        `;
+                        inputHtml = `<button class="w-full text-left text-xs bg-black/30 text-gray-300 py-1.5 px-2 rounded border border-white/5 hover:border-white/20 truncate font-mono transition-colors"
+                                    onclick="window.openTerritorySelector(${dayIndex}, '${turnoId}', this)"
+                                    data-current="${safeVal}">${val || '<span class="text-gray-600 italic">Asignar Territorio</span>'}</button>`;
                     } else if (field === 'Grupos') {
-                        // Sunday Morning Toggle Logic
+                        // Sunday logic
                         let toggleBtn = '';
-                        if (dia.nombre === 'Domingo' && turno.id === 'manana') {
-                            const isCongregationMode = dia[turno.id]['lugar'] === 'Salón del Reino';
-                            toggleBtn = `
-                                <button class="absolute top-1/2 -translate-y-1/2 right-1 p-1 z-10 rounded ${isCongregationMode ? 'text-yellow-400 bg-yellow-400/10' : 'text-gray-500 hover:text-white'}" 
-                                    onclick="window.toggleSundayMorningMode(${dayIndex}, '${turno.id}')"
-                                    title="Alternar: Congregación (Salón) / Predicación por Grupos">
-                                    ⚡
-                                </button>
-                             `;
+                        if (dia.nombre === 'Domingo' && turnoId === 'manana') {
+                            const isCongregationMode = data['lugar'] === 'Salón del Reino';
+                            toggleBtn = `<div class="flex justify-end mb-1"><button class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded ${isCongregationMode ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30' : 'bg-gray-700/50 text-gray-400 border border-white/5'}" 
+                                onclick="window.toggleSundayMorningMode(${dayIndex}, '${turnoId}')">
+                                ${isCongregationMode ? '🏛️ Salón' : '👥 Grupos'}
+                            </button></div>`;
                         }
 
                         const safeVal = (val || '').replace(/"/g, '&quot;');
-                        cellContent = `
-                            <div class="relative w-full h-full group/input">
-                                <button class="w-full text-left text-[10px] text-gray-300 py-2 px-2 rounded hover:bg-white/10 border border-transparent hover:border-white/10 truncate font-mono transition-colors focus:outline-none focus:border-${turno.accent.split('-')[1]}-500/50"
-                                    onclick="window.openGroupSelector(${dayIndex}, '${turno.id}', this)"
-                                    data-current="${safeVal}"
-                                >
-                                   ${val || '<span class="text-gray-600">-</span>'}
-                                </button>
-                                ${toggleBtn}
-                            </div>
-                        `;
+                        inputHtml = `${toggleBtn}
+                         <button class="w-full text-left text-xs bg-black/30 text-gray-300 py-1.5 px-2 rounded border border-white/5 hover:border-white/20 truncate transition-colors"
+                                    onclick="window.openGroupSelector(${dayIndex}, '${turnoId}', this)"
+                                    data-current="${safeVal}">${val || '<span class="text-gray-600 italic">Seleccionar Grupos</span>'}</button>`;
                     } else {
-                        // Standard Dropdown
-                        let selectHtml = `<div class="relative w-full h-full group/select">
-                            <select class="w-full bg-transparent text-gray-300 text-[11px] py-1.5 pl-2 pr-5 border border-transparent rounded hover:bg-white/5 hover:border-white/10 focus:bg-black/40 focus:border-${turno.accent.split('-')[1]}-500/50 outline-none cursor-pointer appearance-none transition-all text-center font-medium"
-                                data-day="${dayIndex}"
-                                data-turno="${turno.id}"
-                                data-field="${field.toLowerCase()}">
-                                <option value="" class="bg-[#1a1c23] text-gray-600">-</option>`;
-
+                        // Selects
                         const opts = options[field] || [];
-                        opts.forEach(opt => {
-                            const isSelected = val === opt ? 'selected' : '';
-                            selectHtml += `<option value="${opt}" ${isSelected} class="bg-[#1a1c23] text-gray-200">${opt}</option>`;
-                        });
-
-                        if (val && !opts.includes(val)) {
-                            selectHtml += `<option value="${val}" selected class="bg-[#1a1c23] text-amber-500">${val}*</option>`;
-                        }
-
-                        selectHtml += `</select>
-                        </div>`;
-                        cellContent = selectHtml;
+                        inputHtml = `<div class="relative group/sel">
+                            <select class="w-full bg-transparent text-gray-300 text-xs py-1 pl-1 pr-6 border-b border-white/10 focus:border-${accent}-500 outline-none cursor-pointer appearance-none transition-all hover:bg-white/5 rounded-sm"
+                                data-day="${dayIndex}" data-turno="${turnoId}" data-field="${field.toLowerCase()}">
+                                <option value="" class="bg-[#1a1c23]">-</option>
+                                ${opts.map(o => `<option value="${o}" ${val === o ? 'selected' : ''} class="bg-[#1a1c23]">${o}</option>`).join('')}
+                                ${val && !opts.includes(val) ? `<option value="${val}" selected class="bg-[#1a1c23] text-amber-500">${val}*</option>` : ''}
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-1 text-gray-600 group-hover/sel:text-${accent}-400 transition-colors">
+                                <svg class="fill-current h-3 w-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
+                            </div>
+                         </div>`;
                     }
 
-                    html += `<td class="p-1 border-r border-white/5 last:border-0 relative">${cellContent}</td>`;
+                    html += `
+                        <div class="grid grid-cols-[20px_1fr] items-center gap-2">
+                            <span class="text-gray-600 text-[10px]" title="${field}">${icon}</span>
+                            ${inputHtml}
+                        </div>
+                     `;
                 });
-                html += `</tr>`;
+
+                html += `</div></td>`;
             });
+
+            html += `</tr>`;
         });
 
-        html += `</tbody></table>`;
+        html += `</tbody></table></div>`;
+
         tableContainer.innerHTML = html;
         bindTableEvents();
     };
@@ -1394,7 +1508,23 @@ const renderProgramaTab = async (container) => {
     }
 
     // Initial Render
-    renderTable();
+    loadWeekData();
+
+    // Event Listeners for Navigation
+    document.getElementById('prev-week').addEventListener('click', () => {
+        currentWeekStart.setDate(currentWeekStart.getDate() - 7);
+        loadWeekData();
+    });
+
+    document.getElementById('next-week').addEventListener('click', () => {
+        currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+        loadWeekData();
+    });
+
+    document.getElementById('reset-today').addEventListener('click', () => {
+        currentWeekStart = getMonday(new Date());
+        loadWeekData();
+    });
 
     // Init Save Button
     document.getElementById('save-admin-prog').addEventListener('click', async () => {
@@ -1403,7 +1533,8 @@ const renderProgramaTab = async (container) => {
         btn.innerHTML = '<span class="animate-pulse">⏳ Guardando...</span>';
         btn.disabled = true;
         try {
-            await saveProgramaSemanal(programa);
+            const weekId = formatDateId(currentWeekStart);
+            await saveProgramaSemanal(programa, weekId);
 
             // AUTO-ASSIGN TERRITORIES LOGIC
             // 1. Reset all territories to 'Libre' first? No, that's dangerous if we only edit one day.
@@ -1480,7 +1611,7 @@ const showGroupSelectionModal = (currentValue, onSave) => {
                 <p class="text-xs text-gray-500">Selecciona uno o varios grupos para este turno.</p>
             </header>
             
-            <div class="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+            <div class="flex-1 overflow-y-auto space-y-2 pr-2">
                 <label class="flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 cursor-pointer border border-transparent hover:border-teal-500/30 transition-all ${isTodos ? 'bg-teal-900/20 border-teal-500/50' : ''}">
                      <input type="checkbox" id="chk-todos-groups" class="accent-teal-500 w-5 h-5" ${isTodos ? 'checked' : ''}>
                      <span class="text-white font-bold">Todos</span>
