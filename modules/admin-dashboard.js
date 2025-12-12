@@ -1648,22 +1648,9 @@ const showTerritorySelectionModal = (currentValue, allTerritories, onSave) => {
     if (currentValue) {
         const normVal = currentValue;
         allTerritories.forEach(t => {
-            // Precise matching for "Territory Number" to avoid "1" matching "10"
-            // Typically "1, 2, 4 (Mz..)"
-            // Regex: Word boundary check
-            const regex = new RegExp(`\\b${ t.numero } \\b`);
+            const regex = new RegExp('\\\\b' + t.numero + '\\\\b');
             if (regex.test(normVal)) {
                 selectionState[t.id].selected = true;
-
-                // Check partials: "(Mz 1, Mz 2)" or "Mz.1" associated with this?
-                // Since the string is flat like "4 (Mz 1, Mz 2)", we can check if parens follow the number.
-                // This is advanced but let's try a simple includes check for now if the number is unique.
-                // Better: just check if any of its manzanas are in the string?
-                // Risk: Mz.1 exists in T1 and T4.
-
-                // If we find the number, check the immediate following parenthesis group?
-                // Simplification: We don't restore partial checkboxes perfectly from text yet.
-                // We just select the territory. User re-selects partials if needed.
             }
         });
     }
@@ -1735,12 +1722,8 @@ const showTerritorySelectionModal = (currentValue, allTerritories, onSave) => {
                 if (mDiv) {
                     if (e.target.checked) {
                         mDiv.classList.remove('hidden');
-                        // Animation maybe?
                     } else {
                         mDiv.classList.add('hidden');
-                        // Clear selected manzanas if unchecking territory?
-                        // selectionState[tId].manzanas = [];
-                        // container.querySelectorAll(`.manzana - check[data - tid="${tId}"]`).forEach(mc => mc.checked = false);
                     }
                 }
             });
