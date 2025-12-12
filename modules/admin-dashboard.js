@@ -6,7 +6,7 @@ import {
     getTelefonos, addTelefono, deleteTelefono, updateTelefono,
     getPredicacionPublica, savePredicacionPublica,
     getProgramaSemanal, saveProgramaSemanal
-} from '../data/firestore-services.js?v=3.10';
+} from '../data/firestore-services.js?v=3.11';
 import { formatPhoneNumber, getStatusColor, showNotification } from './utils/helpers.js';
 import { TerritoryIntelligence } from './utils/intelligence.js';
 import { auth } from '../firebase-config.js';
@@ -1559,7 +1559,7 @@ const showGroupSelectionModal = (currentValue, onSave) => {
     }
 
     const render = () => `
-                        <div class="flex flex-col h-[400px]" >
+                        < div class="flex flex-col h-[400px]" >
             <header class="mb-4 border-b border-white/10 pb-2">
                 <h3 class="text-xl font-bold text-teal-400">Seleccionar Grupos de Predicación</h3>
                 <p class="text-xs text-gray-500">Selecciona uno o varios grupos para este turno.</p>
@@ -1584,7 +1584,7 @@ const showGroupSelectionModal = (currentValue, onSave) => {
                  <button id="btn-cancel-groups" class="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors">Cancelar</button>
                  <button id="btn-save-groups" class="px-6 py-2 bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-500 hover:to-teal-400 text-white rounded-lg font-medium shadow-lg shadow-teal-500/20">Confirmar</button>
             </div>
-        </div>
+        </div >
     `;
 
     showModal(render(), (modal) => {
@@ -1657,7 +1657,7 @@ const showTerritorySelectionModal = (currentValue, allTerritories, onSave) => {
 
     const renderModalContent = () => {
         return `
-    <div class="flex flex-col h-[600px] text-left" >
+    < div class="flex flex-col h-[600px] text-left" >
                 <header class="mb-4 border-b border-white/10 pb-2">
                     <h3 class="text-xl font-bold text-teal-400">Seleccionar Territorios</h3>
                     <p class="text-xs text-gray-500">Marca los territorios para este turno. Expande para seleccionar manzanas específicas.</p>
@@ -1705,7 +1705,7 @@ const showTerritorySelectionModal = (currentValue, allTerritories, onSave) => {
                     <button class="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors" onclick="document.getElementById('modal-container').classList.add('hidden')">Cancelar</button>
                     <button class="px-6 py-2 bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-500 hover:to-teal-400 text-white rounded-lg font-medium shadow-lg shadow-teal-500/20" id="confirm-terr-selection">Confirmar Selección</button>
                 </div>
-            </div>
+            </div >
     `;
     };
 

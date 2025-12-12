@@ -1,9 +1,9 @@
 import { auth } from './firebase-config.js';
 import { onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { renderLogin } from './modules/login.js?v=3.10';
-import { renderAdminDashboard } from './modules/admin-dashboard.js?v=3.10';
-import { renderConductorDashboard } from './modules/conductor-dashboard.js?v=3.10';
-import { getPermisosUsuario } from './data/firestore-services.js?v=3.10';
+import { renderLogin } from './modules/login.js?v=3.11';
+import { renderAdminDashboard } from './modules/admin-dashboard.js?v=3.11';
+import { renderConductorDashboard } from './modules/conductor-dashboard.js?v=3.11';
+import { getPermisosUsuario } from './data/firestore-services.js?v=3.11';
 
 // Estado global simple para demo
 let currentUserRole = null;

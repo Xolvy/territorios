@@ -4,7 +4,7 @@ import {
     returnTerritorioParcial, solicitarNumeros, updateTelefonoStatus,
     addPublicador, getPublicadores, getTelefonos, updateTelefono, addTelefono,
     getPermisosUsuario // Just in case
-} from '../data/firestore-services.js?v=3.10';
+} from '../data/firestore-services.js?v=3.11';
 import { formatPhoneNumber, getStatusColor, showNotification } from './utils/helpers.js';
 
 
