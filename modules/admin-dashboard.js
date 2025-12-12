@@ -1343,7 +1343,7 @@ const renderProgramaTab = async (container) => {
                 <!-- Background decoration -->
                 <div class="absolute inset-0 bg-gradient-to-br from-teal-900/5 to-purple-900/5 pointer-events-none"></div>
                 
-                <div class="overflow-x-auto relative z-10 scrollbar-thin scrollbar-thumb-teal-900/50 scrollbar-track-transparent">
+                <div class="overflow-x-auto relative z-10 [&::-webkit-scrollbar]:hidden" style="scrollbar-width: none; -ms-overflow-style: none;">
                     <table class="w-full text-left border-collapse">
                     <thead>
                         <tr class="sticky top-0 z-30 bg-[#0f1115]/95 backdrop-blur-xl border-b border-white/10 text-xs font-bold uppercase tracking-widest text-gray-400 shadow-md">
