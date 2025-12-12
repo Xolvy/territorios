@@ -6,7 +6,7 @@ import {
     getTelefonos, addTelefono, deleteTelefono, updateTelefono,
     getPredicacionPublica, savePredicacionPublica,
     getProgramaSemanal, saveProgramaSemanal
-} from '../data/firestore-services.js?v=3.7';
+} from '../data/firestore-services.js?v=3.8';
 import { formatPhoneNumber, getStatusColor, showNotification } from './utils/helpers.js';
 import { TerritoryIntelligence } from './utils/intelligence.js';
 import { auth } from '../firebase-config.js';
