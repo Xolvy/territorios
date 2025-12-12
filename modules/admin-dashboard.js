@@ -1619,10 +1619,10 @@ const showGroupSelectionModal = (currentValue, onSave) => {
                     const nums = selected.map(s => s.replace('Grupo ', '')).sort((a, b) => a - b);
                     // Format nicer: "Grupos 1, 2 y 3"
                     if (nums.length === 1) {
-                        onSave(`Grupo ${ nums[0] } `);
+                        onSave('Grupo ' + nums[0]);
                     } else {
                         const last = nums.pop();
-                        onSave(`Grupos ${ nums.join(', ') } y ${ last } `);
+                        onSave('Grupos ' + nums.join(', ') + ' y ' + last);
                     }
                 }
             }
