@@ -1438,15 +1438,8 @@ const renderProgramaTab = async (container) => {
                         if (dia.nombre !== 'Domingo') return;
 
                         // Sunday logic
-                        let toggleBtn = '';
-                        const isCongregationMode = data['lugar'] === 'Salón del Reino';
-                        toggleBtn = `<div class="flex justify-end mb-1"><button class="text-[9px] uppercase font-bold tracking-wider px-2 py-1 rounded-md shadow-sm transition-all ${isCongregationMode ? 'bg-yellow-500/10 text-yellow-300 border border-yellow-500/30 hover:bg-yellow-500/20' : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'}" 
-                            onclick="window.toggleSundayMorningMode(${dayIndex}, '${turnoId}')">
-                            ${isCongregationMode ? '🏛️ Salón' : '👥 Grupos'}
-                        </button></div>`;
-
                         const safeVal = (val || '').replace(/"/g, '&quot;');
-                        inputHtml = `${toggleBtn}
+                        inputHtml = `
                          <button class="w-full relative group/btn flex items-center justify-between text-xs bg-black/40 hover:bg-black/60 text-gray-300 py-2 px-3 rounded-lg border border-white/5 hover:border-${accent}-500/30 shadow-sm transition-all duration-200"
                                     onclick="window.openGroupSelector(${dayIndex}, '${turnoId}', this)"
                                     data-current="${safeVal}">
