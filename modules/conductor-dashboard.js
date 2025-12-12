@@ -4,7 +4,7 @@ import {
     returnTerritorioParcial, solicitarNumeros, updateTelefonoStatus,
     addPublicador, getPublicadores, getTelefonos, updateTelefono, addTelefono,
     getPermisosUsuario // Just in case
-} from '../data/firestore-services.js?v=3.6';
+} from '../data/firestore-services.js?v=3.7';
 import { formatPhoneNumber, getStatusColor, showNotification } from './utils/helpers.js';
 
 
@@ -15,7 +15,7 @@ export const renderConductorDashboard = async (container, nameOrEmail) => {
 
     container.innerHTML = `
         <div class="animate-fade-in pb-20 w-full">
-            <header class="flex justify-between items-center mb-6 p-4 morphinglass-card sticky top-0 z-20 backdrop-blur-md">
+            <header class="flex justify-between items-center mb-6 p-4 morphinglass-card">
                 <div>
                     <h1 class="text-2xl font-bold text-teal-400">Hola, ${displayName.split('@')[0]}</h1>
                     <p class="text-sm text-gray-400">Panel de Conductor</p>
@@ -59,7 +59,7 @@ export const renderConductorDashboard = async (container, nameOrEmail) => {
                     
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-xs mb-4">
-                            <thead class="bg-white/5 text-gray-400 font-bold uppercase tracking-wider sticky top-0 backdrop-blur-md z-10">
+                            <thead class="bg-gray-900 text-gray-400 font-bold uppercase tracking-wider sticky top-0 z-30 shadow-2xl">
                                 <tr>
                                     <th class="p-3">Teléfono</th>
                                     <th class="p-3">Propietario</th>
