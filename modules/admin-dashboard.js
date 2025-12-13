@@ -1475,6 +1475,35 @@ const renderProgramaTab = async (container) => {
                     /* ... */
                     html += `
                         <div class="grid grid-cols-[24px_1fr] items-center gap-1.5 group/field hover:bg-white/[0.02] -mx-2 px-2 py-0.5 rounded transition-colors">
+                             <div class="text-center text-gray-600 group-hover/field:text-teal-500/50 transition-colors pt-1">
+                                <span class="text-sm">${icon}</span>
+                             </div>
+                             ${inputHtml}
+                        </div>`;
+                }); // End fields loop
+
+                html += `</div></td>`;
+            }); // End turnos loop
+
+            html += `</tr>`;
+        }); // End dias loop
+
+        html += `</tbody></table></div></div>`;
+
+        tableContainer.innerHTML = html;
+        loadingOverlay.classList.add('hidden');
+
+        // Add Change Listeners
+        tableContainer.querySelectorAll('select').forEach(sel => {
+            sel.addEventListener('change', (e) => {
+                const day = parseInt(e.target.dataset.day);
+                const turn = e.target.dataset.turno;
+                const fld = e.target.dataset.field;
+                if (!programa.dias[day][turn]) programa.dias[day][turn] = {};
+                programa.dias[day][turn][fld] = e.target.value;
+            });
+        });
+    };
     document.getElementById('reset-today').addEventListener('click', () => {
         currentWeekStart = getMonday(new Date());
         loadWeekData();
@@ -1718,7 +1747,7 @@ const showTerritorySelectionModal = (currentValue, allTerritories, onSave) => {
                 const tId = e.target.value;
                 selectionState[tId].selected = e.target.checked;
 
-                const mDiv = document.getElementById(`manzanas - ${ tId } `);
+                const mDiv = document.getElementById(`manzanas - ${tId} `);
                 if (mDiv) {
                     if (e.target.checked) {
                         mDiv.classList.remove('hidden');
@@ -1750,7 +1779,7 @@ const showTerritorySelectionModal = (currentValue, allTerritories, onSave) => {
                 if (s.selected) {
                     let str = t.numero;
                     if (s.manzanas.length > 0) {
-                        str += ` (${ s.manzanas.join(', ') })`;
+                        str += ` (${s.manzanas.join(', ')})`;
                     }
                     parts.push(str);
                 }
