@@ -1504,7 +1504,7 @@ const renderProgramaTab = async (container) => {
             });
         });
     };
-    document.getElementById('reset-today').addEventListener('click', () => {
+    document.getElementById('btn-reset-today').addEventListener('click', () => {
         currentWeekStart = getMonday(new Date());
         loadWeekData();
     });
