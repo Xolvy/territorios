@@ -1301,6 +1301,19 @@ const renderProgramaTab = async (container) => {
         }
     };
 
+    const getFieldIcon = (field) => {
+        switch (field) {
+            case 'Lugar': return '📍';
+            case 'Hora': return '⏰';
+            case 'Conductor': return '👤';
+            case 'Auxiliar': return '👥';
+            case 'Faceta': return '🏷️';
+            case 'Grupos': return '👥';
+            case 'Territorio': return '🗺️';
+            default: return '🔹';
+        }
+    };
+
     // 3. Render Logic Function
     const renderTable = () => {
         const turnos = [
