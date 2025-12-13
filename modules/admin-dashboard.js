@@ -1568,6 +1568,20 @@ const renderProgramaTab = async (container) => {
             btn.disabled = false;
         }
     });
+
+    // Next/Prev Week Handlers
+    document.getElementById('prev-week').addEventListener('click', () => {
+        currentWeekStart.setDate(currentWeekStart.getDate() - 7);
+        loadWeekData();
+    });
+
+    document.getElementById('next-week').addEventListener('click', () => {
+        currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+        loadWeekData();
+    });
+
+    // Initial Load
+    loadWeekData();
 };
 
 /* --- Group Selection Modal --- */
