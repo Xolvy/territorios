@@ -5,6 +5,7 @@
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "npm run build:css",
     "build:css": "tailwindcss -i ./src/input.css -o ./styles.css --minify"
   },
   "repository": {
@@ -20,6 +21,8 @@
   },
   "homepage": "https://github.com/Xolvy/conductores#readme",
   "devDependencies": {
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.31",
     "tailwindcss": "^3.4.17"
   }
 }

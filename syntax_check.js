@@ -1,14 +1,15 @@
 const fs = require('fs');
-const files = ['modules/admin-dashboard.js', 'modules/login.js', 'modules/conductor-dashboard.js', 'app.js'];
+const acorn = require('./node_modules/acorn/dist/acorn.js');
 
-files.forEach(f => {
-    try {
-        const c = fs.readFileSync(f, 'utf8');
-        const backticks = (c.match(/`/g) || []).length;
-        const openBraces = (c.match(/\{/g) || []).length;
-        const closeBraces = (c.match(/\}/g) || []).length;
-        console.log(`${f}: Backticks=${backticks} (${backticks % 2 === 0 ? 'OK' : 'ODD!'}), Braces=${openBraces}/${closeBraces}`);
-    } catch (e) {
-        console.error(`Error reading ${f}: ${e.message}`);
-    }
-});
+const code = fs.readFileSync('modules/admin-dashboard.js', 'utf8');
+
+try {
+    acorn.parse(code, { ecmaVersion: 2022, sourceType: 'module' });
+    console.log("Syntax is valid.");
+} catch (e) {
+    console.log(`Syntax Error at line ${e.loc.line}, column ${e.loc.column}: ${e.message}`);
+    // Show context
+    const lines = code.split('\n');
+    const line = lines[e.loc.line - 1];
+    console.log(`Code: ${line}`);
+}

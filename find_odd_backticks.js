@@ -1,15 +1,30 @@
 const fs = require('fs');
-const content = fs.readFileSync('modules/admin-dashboard.js', 'utf8');
-const lines = content.split('\n');
+const code = fs.readFileSync('modules/admin-dashboard.js', 'utf8');
 
-lines.forEach((line, i) => {
-    // Remove comments roughly
-    let clean = line.replace(/\/\/.*$/, '');
-    // This doesn't handle /* */ or strings with //
+let backtickCount = 0;
+let lastBacktickIndex = -1;
 
-    // Count backticks
-    const count = (clean.match(/`/g) || []).length;
-    if (count % 2 !== 0) {
-        console.log(`Line ${i + 1} has ODD backticks (${count}): ${clean.trim()}`);
+for (let i = 0; i < code.length; i++) {
+    if (code[i] === '`') {
+        // Simple heuristic: ignore escaped backticks (not perfect but helpful)
+        if (i > 0 && code[i - 1] === '\\') continue;
+
+        backtickCount++;
+        lastBacktickIndex = i;
     }
-});
+}
+
+console.log(`Total Backticks: ${backtickCount}`);
+if (backtickCount % 2 !== 0) {
+    console.log("ODD NUMBER OF BACKTICKS DETECTED!");
+    // Find context of the last one
+    const context = code.substring(Math.max(0, lastBacktickIndex - 50), Math.min(code.length, lastBacktickIndex + 50));
+    console.log(`Context around last backtick (Index ${lastBacktickIndex}):`);
+    console.log(context);
+
+    // Find line number
+    const lines = code.substring(0, lastBacktickIndex).split('\n');
+    console.log(`Line Number: ${lines.length}`);
+} else {
+    console.log("Backticks are balanced (by count check).");
+}

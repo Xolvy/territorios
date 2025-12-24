@@ -6,14 +6,14 @@ export const formatPhoneNumber = (numero) => {
 
 export const getStatusColor = (status) => {
     const s = status || 'Sin asignar'; // Default fallback
-    if (s === 'Contestaron') return 'text-green-400';
-    if (s === 'No contestan') return 'text-orange-400';
-    if (s === 'No llamar') return 'text-red-400';
-    if (s === 'Colgaron') return 'text-gray-400';
-    if (s === 'Revisita') return 'text-yellow-400';
-    if (s === 'Suspendido') return 'text-orange-500';
-    if (s === 'Testigo') return 'text-purple-400';
-    if (s === 'Pendiente' || s === 'Sin asignar') return 'text-gray-500';
+    if (s === 'Contestaron') return 'text-green-600 dark:text-green-400';
+    if (s === 'No contestan') return 'text-orange-600 dark:text-orange-400';
+    if (s === 'No llamar') return 'text-red-600 dark:text-red-400';
+    if (s === 'Colgaron') return 'text-gray-600 dark:text-gray-400';
+    if (s === 'Revisita') return 'text-yellow-600 dark:text-yellow-400';
+    if (s === 'Suspendido') return 'text-orange-700 dark:text-orange-500';
+    if (s === 'Testigo') return 'text-purple-600 dark:text-purple-400';
+    if (s === 'Pendiente' || s === 'Sin asignar') return 'text-gray-500 dark:text-gray-500';
     return 'text-gray-500';
 };
 
@@ -62,4 +62,16 @@ export const showNotification = (message, type = 'success') => {
 
     const tid = setTimeout(() => banner.classList.add('-translate-y-20', 'opacity-0'), 4000);
     banner.dataset.timeoutId = tid;
+};
+
+export const formatMapUrl = (url) => {
+    if (!url) return '';
+    // Handle Google Drive
+    if (url.includes('drive.google.com')) {
+        const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
+        if (match && match[1]) {
+            return `https://drive.google.com/uc?export=view&id=${match[1]}`;
+        }
+    }
+    return url;
 };

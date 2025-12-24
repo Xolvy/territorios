@@ -2,12 +2,49 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom Styles from styles.css */
-:root {
-    --color-verde-azul-claro: rgba(0, 150, 136, 0.6);
-    --color-verde-azul-oscuro: rgba(3, 37, 72, 0.7);
-    --color-negro-transparente: rgba(0, 0, 0, 0.9);
-    --blur-intensity: 12px;
+@layer base {
+    :root {
+        /* Light Mode Defaults (Teal/Slate Theme) */
+        --bg-grad-1: #f0fdfa; /* Teal 50 */
+        --bg-grad-2: #e0f2f1; /* Teal 100 variant */
+        --bg-grad-3: #ffffff;
+        
+        --glass-bg: rgba(255, 255, 255, 0.65);
+        --glass-border: rgba(0, 150, 136, 0.15);
+        --glass-shadow: rgba(0, 150, 136, 0.05);
+        
+        --text-main: #0f172a; /* Slate 900 */
+        --text-muted: #64748b; /* Slate 500 */
+        
+        --input-bg: rgba(255, 255, 255, 0.8);
+        --input-border: rgba(148, 163, 184, 0.4);
+        --input-text: #0f172a;
+        --input-bg-focus: rgba(255, 255, 255, 1);
+        
+        --highlight-color: #009688; /* Teal 500 */
+        --blur-intensity: 16px;
+    }
+
+    .dark {
+        /* Dark Mode Overrides (Original Design) */
+        --bg-grad-1: rgba(3, 37, 72, 0.7);
+        --bg-grad-2: rgba(0, 0, 0, 0.9);
+        --bg-grad-3: #000000;
+        
+        --glass-bg: rgba(255, 255, 255, 0.05);
+        --glass-border: rgba(255, 255, 255, 0.1);
+        --glass-shadow: rgba(0, 0, 0, 0.5);
+        
+        --text-main: #ffffff;
+        --text-muted: #9ca3af; /* Gray 400 */
+        
+        --input-bg: rgba(0, 0, 0, 0.3);
+        --input-border: rgba(255, 255, 255, 0.1);
+        --input-text: #ffffff;
+        --input-bg-focus: rgba(0, 0, 0, 0.5);
+        
+        --blur-intensity: 12px;
+    }
 }
 
 body {
@@ -15,44 +52,46 @@ body {
     padding: 0;
     min-height: 100vh;
     background: linear-gradient(135deg, 
-                var(--color-verde-azul-oscuro) 0%, 
-                var(--color-negro-transparente) 70%, 
-                #000000 100%);
+                var(--bg-grad-1) 0%, 
+                var(--bg-grad-2) 70%, 
+                var(--bg-grad-3) 100%);
     background-size: cover;
     background-attachment: fixed;
+    color: var(--text-main);
+    transition: background 0.5s ease, color 0.5s ease;
 }
 
 /* Base del efecto GlassMorphin */
 .morphinglass-card {
-    background: rgba(255, 255, 255, 0.05); /* Más sutil para 2026 */
+    background: var(--glass-bg);
     backdrop-filter: blur(var(--blur-intensity));
     -webkit-backdrop-filter: blur(var(--blur-intensity));
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
-    border-radius: 24px; /* Bordes más redondeados */
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 8px 32px 0 var(--glass-shadow);
+    border-radius: 24px;
     padding: 24px;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .morphinglass-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 12px 40px 0 rgba(0, 150, 136, 0.1); /* Glow sutil verde */
-    border-color: rgba(0, 150, 136, 0.3);
+    box-shadow: 0 12px 40px 0 rgba(0, 150, 136, 0.15);
+    border-color: var(--highlight-color);
 }
 
 /* Inputs y botones */
 input, select, textarea {
-    background: rgba(0, 0, 0, 0.3) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    color: white !important;
+    background: var(--input-bg) !important;
+    border: 1px solid var(--input-border) !important;
+    color: var(--input-text) !important;
     backdrop-filter: blur(5px);
     transition: all 0.3s ease;
 }
 
 input:focus, select:focus, textarea:focus {
     outline: none;
-    border-color: var(--color-verde-azul-claro) !important;
-    background: rgba(0, 0, 0, 0.5) !important;
+    border-color: var(--highlight-color) !important;
+    background: var(--input-bg-focus) !important;
     box-shadow: 0 0 15px rgba(0, 150, 136, 0.2);
 }
 
@@ -61,7 +100,7 @@ input:focus, select:focus, textarea:focus {
     width: 8px;
 }
 ::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.3); 
+    background: transparent; 
 }
 ::-webkit-scrollbar-thumb {
     background: rgba(0, 150, 136, 0.3); 

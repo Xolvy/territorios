@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Adding Admins</title>
+</head>
+
+<body>
+    <h1>Adding Admins...</h1>
+    <div id="status">Running...</div>
+    <script type="module">
+        import { auth, db } from './firebase-config.js';
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { collection, addDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const newAdmins = [
+            { email: 'tefo94@gmail.com', nombre: 'Tefo', role: 'Administrador' },
+            { email: 'borutogamer0312@gmail.com', nombre: 'BorutoGamer', role: 'Administrador' }
+        ];
+
+        const statusDiv = document.getElementById('status');
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                statusDiv.innerHTML = `Authenticated as ${user.email}. Adding admins...`;
+                await addAdmins();
+            } else {
+                statusDiv.innerHTML = "ERROR: Not authenticated. Please login on the main page first.";
+            }
+        });
+
+        async function addAdmins() {
+            try {
+                const colRef = collection(db, 'conductores');
+                let log = '';
+
+                for (const admin of newAdmins) {
+                    const q = query(colRef, where("email", "==", admin.email));
+                    const snap = await getDocs(q);
+
+                    if (snap.empty) {
+                        await addDoc(colRef, admin);
+                        log += `<p>✅ Added ${admin.email}</p>`;
+                    } else {
+                        log += `<p>⚠️ ${admin.email} already exists.</p>`;
+                    }
+                }
+                statusDiv.innerHTML = "DONE<br>" + log;
+            } catch (e) {
+                statusDiv.innerHTML = "ERROR: " + e.message;
+                console.error(e);
+            }
+        }
+    </script>
+</body>
+
+</html>
