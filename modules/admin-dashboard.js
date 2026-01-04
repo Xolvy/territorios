@@ -7,14 +7,15 @@ import {
     getPredicacionPublica, savePredicacionPublica,
     getProgramaSemanal, saveProgramaSemanal, rebuildHistoryFromSchedule, runSystemDiagnosticsAndRepair, deleteProgramaSemanal,
     getRecursos, addRecurso, deleteRecurso, updateRecurso, restoreSystemBackup,
-    getCampanas, saveCampana, deleteCampana
-} from '../data/firestore-services.js?v=2.4.0';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=2.4.0';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=2.4.0';
-import { renderHistoryTab } from './report-s13.js?v=2.4.0';
-import { renderAnalyticsView } from './analytics-view.js?v=2.4.0';
-import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=2.4.0';
-import { auth } from '/firebase-config.js?v=2.4.0';
+    getCampanas, saveCampana, deleteCampana,
+    getGroupsConfig, saveGroupsConfig
+} from '../data/firestore-services.js?v=2.5.1';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=2.5.1';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=2.5.1';
+import { renderHistoryTab } from './report-s13.js?v=2.5.1';
+import { renderAnalyticsView } from './analytics-view.js?v=2.5.1';
+import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=2.5.1';
+import { auth } from '/firebase-config.js?v=2.5.1';
 
 // --- Global UI Helpers ---
 const showCustomAlert = (message) => {
@@ -1557,7 +1558,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
     } else if (subTab === 'congregacion') {
         container.innerHTML = `
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fade-in-up" >
-                < !--Datos Generales Card-- >
+                <!-- Datos Generales Card -->
                 <div class="morphinglass-card p-6 rounded-2xl border border-black/10 dark:border-white/10 shadow-2xl relative overflow-hidden group">
                     <div class="absolute inset-0 bg-gradient-to-br from-teal-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                     <div class="relative z-10 space-y-6">
@@ -1581,7 +1582,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                     </div>
                 </div>
 
-                <!--Horarios y Lugares Card-- >
+                <!-- Horarios y Lugares Card -->
     <div class="morphinglass-card p-6 rounded-2xl border border-black/10 dark:border-white/10 shadow-2xl relative overflow-hidden group">
         <div class="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
         <div class="relative z-10 space-y-6">

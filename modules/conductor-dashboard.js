@@ -1,4 +1,4 @@
-import { auth } from '/firebase-config.js?v=2.4.0';
+import { auth } from '/firebase-config.js?v=2.5.1';
 import {
     getProgramaSemanal, getMisTerritorios, returnTerritorio,
     returnTerritorioParcial, solicitarNumeros, releaseUnusedTelefonos, updateTelefonoStatus,
@@ -6,10 +6,10 @@ import {
     getConductores, updateConductor,
     getPermisosUsuario, getTerritorios, getConfiguracion,
     getRecursos // Added Resources
-} from '../data/firestore-services.js?v=2.4.0';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl } from './utils/helpers.js?v=2.4.0';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=2.4.0';
-import { MapViewer } from './map-viewer.js?v=2.4.0';
+} from '../data/firestore-services.js?v=2.5.1';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl } from './utils/helpers.js?v=2.5.1';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=2.5.1';
+import { MapViewer } from './map-viewer.js?v=2.5.1';
 
 
 
@@ -578,7 +578,7 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer)
     renderAISection(name);
 
     // 5. Misión de Rescate (Rescue Mode)
-    renderRescueSection(document.getElementById('ayudas-container'), name, territories);
+    renderRescueSection(document.getElementById('ayudas-container'), name, allTerritorios);
 
     // GEOFENCING Logic
     if ("geolocation" in navigator) {
