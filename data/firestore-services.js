@@ -1,7 +1,23 @@
-import { db, auth, storage } from '../firebase-config.js?v=5.0.2';
+import { db, auth, storage } from '/firebase-config.js?v=2.4.0';
 import {
-    collection, getDocs, addDoc, deleteDoc, doc, updateDoc, query, where, getDoc, setDoc, orderBy, limit, Timestamp
+    collection, getDocs, addDoc, deleteDoc, doc, updateDoc, query, where, getDoc, setDoc, orderBy, limit, Timestamp, writeBatch,
+    enableIndexedDbPersistence
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+// --- PERSISTENCE (Offline-First) ---
+// Note: firebase-config.js already uses persistentLocalCache which is the modern recommended way.
+// We explicitly try enableIndexedDbPersistence as a secondary layer if needed for compatibility.
+try {
+    enableIndexedDbPersistence(db).catch((err) => {
+        if (err.code == 'failed-precondition') {
+            console.warn("Multiple tabs open, persistence can only be enabled in one tab at a time.");
+        } else if (err.code == 'unimplemented') {
+            console.warn("The current browser doesn't support all of the features needed to enable persistence");
+        }
+    });
+} catch (e) {
+    // Already enabled or modern SDK handles via localCache
+}
 
 // --- CONFIGURACIÓN GLOBAL (5.1) ---
 
@@ -41,16 +57,24 @@ export const saveGlobalSettings = async (settings) => {
 
 // --- HISTORIAL & REPORTING ---
 
-const logAssignment = async (territorioData, conductorName) => {
+const logAssignment = async (territorioData, conductorName, details = {}) => {
     try {
         await addDoc(collection(db, "historial_territorios"), {
-            territorio_id: territorioData.id, // Store ID if needed for linking
+            territorio_id: territorioData.id,
             numero: territorioData.numero,
             conductor: conductorName,
-            fecha_asignacion: new Date().toISOString(),
-            fecha_entrega: null, // Open
+            auxiliar: details.auxiliar || null,
+            lugar: details.lugar || details.Lugar || null,
+            hora: details.hora || details.Hora || null,
+            faceta: details.faceta || details.Faceta || null,
+            campana: details.campana || null,
+            turno: details.turno || null,
+            fecha_asignacion: details.fecha_asignacion || new Date().toISOString(),
+            fecha_salida: details.fecha_salida || null,
+            fecha_entrega: null,
             estado: 'Asignado',
-            timestamp: Timestamp.now() // For sorting
+            timestamp: Timestamp.now(),
+            observaciones: details.observaciones || null
         });
     } catch (e) {
         console.error("Error logging assignment history:", e);
@@ -89,45 +113,17 @@ const logReturn = async (territorioId, fechaEntrega, status = 'Completado', nota
     }
 };
 
-export const getHistorialReport = async (startDate, endDate) => {
-    // Firestore querying by date range on string ISOs is okay-ish for simple needs, 
-    // but better to fetch all and filter or use Timestamp if possible.
-    // For this demo, fetching all history and filtering in JS is safer for flexibility 
-    // unless dataset is huge.
-
-    // Optimización: Si la collección crece, necesitar índices compuestos. 
-    // Por ahora traemos todo 'historial_territorios' (o los últimos 1000?).
-    // Vamos a traer todo, asumiendo base de datos manejable para app de congregación.
-
+export const getHistorialReport = async () => {
+    // Fetch all history to allow calculating "Last Completion Date" even before report range
     const q = query(collection(db, "historial_territorios"), orderBy("timestamp", "desc"));
     const snapshot = await getDocs(q);
-
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999); // Include full end day
-
-    return snapshot.docs
-        .map(d => ({ id: d.id, ...d.data() }))
-        .filter(item => {
-            // Filter logic: 
-            // We want assignments that overlap with the range or happened within it?
-            // "Solicito exporte desde X a Y". Usually means "Active or Completed in this range".
-            // Let's rely on fecha_asignacion for simplicity, or if it was completed in range.
-
-            const fAsig = new Date(item.fecha_asignacion);
-            const fEntr = item.fecha_entrega ? new Date(item.fecha_entrega) : null;
-
-            // Case 1: Assigned within range
-            if (fAsig >= start && fAsig <= end) return true;
-
-            // Case 2: Returned within range (even if assigned before)
-            if (fEntr && fEntr >= start && fEntr <= end) return true;
-
-            return false;
-        });
+    return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 };
 
+
+
 export const getTerritoryHistory = async (territoryId) => {
+
     // Determine if territoryId is an ID or a Number. History stores 'territorio_id' (doc ID) and 'numero'.
     // If we pass ID, query by ID. If number, query by number (more robust for S-13 if ID changes?)
     // History logs 'territorio_id'.
@@ -141,6 +137,22 @@ export const getTerritoryHistory = async (territoryId) => {
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 };
 
+export const addHistoryRecord = async (data) => {
+    // Ensure timestamp is present for sorting
+    if (!data.timestamp) {
+        data.timestamp = Timestamp.fromDate(new Date(data.fecha_asignacion || new Date()));
+    }
+    await addDoc(collection(db, "historial_territorios"), data);
+};
+
+export const updateHistoryRecord = async (id, data) => {
+    await updateDoc(doc(db, "historial_territorios", id), data);
+};
+
+export const deleteHistoryRecord = async (id) => {
+    await deleteDoc(doc(db, "historial_territorios", id));
+};
+
 // --- RECOVERY TOOL ---
 
 
@@ -151,24 +163,26 @@ export const getTerritoryHistory = async (territoryId) => {
 
 export const getSystemVersion = async () => {
     try {
-        const docRef = doc(db, "configuracion", "system_version");
+        const docRef = doc(db, "configuracion", "version_control");
         const snap = await getDoc(docRef);
         if (snap.exists()) {
-            return snap.data().version;
+            return snap.data().latestVersion;
         }
-        // If separate doc doesn't exist, check inside general config
-        const config = await getConfiguracion();
-        return config.app_version || '1.0.0';
+        return '1.0.0';
     } catch (e) {
         console.warn("Could not fetch system version", e);
-        return null; // Fail safe
+        return null;
     }
 };
 
-export const setSystemVersion = async (version) => {
+export const setSystemVersion = async (version, force = true) => {
     try {
-        const docRef = doc(db, "configuracion", "system_version");
-        await setDoc(docRef, { version }, { merge: true });
+        const docRef = doc(db, "configuracion", "version_control");
+        await setDoc(docRef, {
+            latestVersion: version,
+            forceUpdate: force,
+            updatedAt: Timestamp.now()
+        }, { merge: true });
         return true;
     } catch (e) {
         console.error("Error setting system version:", e);
@@ -186,7 +200,8 @@ export const getConfiguracion = async () => {
             modulos_activos: { dashboard: true, programa_predicacion: true, predicacion_telefonica: true, territorios: true },
             lugares: ['Salón del Reino', 'Zoom'],
             facetas: ['Casa en Casa', 'Telefónica', 'Pública', 'Cartas'],
-            horarios_programa: ['09:00', '16:00', '19:00']
+            horarios_programa: ['08:45', '09:00', '09:15', '14:00', '16:00', '19:00', '21:15'],
+            jornadas: { manana: '🌅 Mañana', tarde: '☀️ Tarde', noche: '🌙 Noche' }
         };
         await addDoc(collection(db, "configuracion"), defaultConfig);
         return defaultConfig;
@@ -225,22 +240,33 @@ export const deleteTerritorio = async (id) => {
     await deleteDoc(doc(db, "territorios", id));
 };
 
-export const assignTerritorio = async (id, conductorName) => {
-    await updateDoc(doc(db, "territorios", id), {
+export const assignTerritorio = async (id, conductorName, details = {}) => {
+    const updateData = {
         asignado_a: conductorName,
-        fecha_asignacion: new Date().toISOString(),
-        estado: 'Asignado'
-    });
-    // Log History
-    // Need number. We could fetch it or pass it. 
-    // To save specific read, we can just fire-and-forget a fetch inside log?
-    // Let's do a quick read before update in normal flow? 
-    // Actually, 'addTerritorio' isn't used for assign. 
-    // 'assignTerritorio' does an update. We need the data.
-    // Optimization: Just read it.
-    getDoc(doc(db, "territorios", id)).then(snap => {
-        if (snap.exists()) logAssignment({ id, ...snap.data() }, conductorName);
-    });
+        fecha_asignacion: details.fecha_asignacion || new Date().toISOString(),
+        fecha_salida: details.fecha_salida || null,
+        estado: 'Asignado',
+        auxiliar: details.auxiliar || null,
+        lugar: details.lugar || null,
+        hora: details.hora || null,
+        faceta: details.faceta || null,
+        turno: details.turno || null,
+        campana: details.campana || null,
+        manzanas_asignadas: details.manzanas || null
+    };
+
+    await updateDoc(doc(db, "territorios", id), updateData);
+
+    const snap = await getDoc(doc(db, "territorios", id));
+    if (snap.exists()) {
+        const fullData = { id, ...snap.data() };
+        await logAssignment(fullData, conductorName, details);
+
+        // Auto-Sync to Weekly Program if a date is provided
+        if (details.fecha_asignacion) {
+            await syncAssignmentToWeeklyProgram(fullData, conductorName, details);
+        }
+    }
 };
 
 export const assignTerritorioParcial = async (originalId, manzanasToAssign, conductorName) => {
@@ -305,15 +331,43 @@ export const assignTerritorioParcial = async (originalId, manzanasToAssign, cond
 // S-13 tracks by "Number". If 1A and 1B exist, they are different rows usually.
 // I won't overengineer partials yet.
 
-export const returnTerritorio = async (id, notes, customDate) => {
+export const returnTerritorio = async (id, notes, customDate, status = 'Completado') => {
     const dateToUse = customDate ? new Date(customDate).toISOString() : new Date().toISOString();
     await updateDoc(doc(db, "territorios", id), {
         asignado_a: null,
         fecha_asignacion: null,
-        ultima_fecha: dateToUse, // Use custom date if provided
-        estado: 'Predicado' // Marked as Preached/Completed
+        auxiliar: null,
+        lugar: null,
+        hora: null,
+        faceta: null,
+        turno: null,
+        ultima_fecha: dateToUse,
+        estado: status === 'Perdido' ? 'Extraviado' : 'Predicado'
     });
-    await logReturn(id, dateToUse, 'Completado', notes);
+    await logReturn(id, dateToUse, status, notes);
+};
+
+export const returnTerritorioMultiple = async (ids, notes, customDate, status = 'Completado') => {
+    const batch = writeBatch(db);
+    const dateToUse = customDate ? new Date(customDate).toISOString() : new Date().toISOString();
+
+    for (const id of ids) {
+        batch.update(doc(db, "territorios", id), {
+            asignado_a: null,
+            fecha_asignacion: null,
+            auxiliar: null,
+            lugar: null,
+            hora: null,
+            faceta: null,
+            turno: null,
+            ultima_fecha: dateToUse,
+            estado: status === 'Perdido' ? 'Extraviado' : 'Predicado'
+        });
+        // Note: logReturn is async and uses queries, so we can't batch it easily without more complex logic.
+        // We'll call it individually which is fine for small batches.
+        await logReturn(id, dateToUse, status, notes);
+    }
+    await batch.commit();
 };
 
 export const transferTerritory = async (territoryId, newConductor, manzanasToAssign) => {
@@ -421,9 +475,10 @@ export const cancelarAsignacion = async (id) => {
     }
 };
 
-export const updateAssignmentData = async (id, newDate, newConductor, newStatus) => {
+export const updateAssignmentData = async (id, newDate, newDateSalida, newConductor, newStatus) => {
     const updateData = {};
     if (newDate) updateData.fecha_asignacion = newDate;
+    if (newDateSalida !== undefined) updateData.fecha_salida = newDateSalida;
     if (newConductor) updateData.asignado_a = newConductor;
     if (newStatus) updateData.estado = newStatus;
 
@@ -442,6 +497,7 @@ export const updateAssignmentData = async (id, newDate, newConductor, newStatus)
         if (!snapshot.empty) {
             const histData = {};
             if (newDate) histData.fecha_asignacion = newDate;
+            if (newDateSalida !== undefined) histData.fecha_salida = newDateSalida;
             if (newConductor) histData.conductor = newConductor;
             if (newStatus) histData.estado = newStatus; // Also track status correction in history?
             await updateDoc(doc(db, "historial_territorios", snapshot.docs[0].id), histData);
@@ -461,20 +517,21 @@ export const getMisTerritorios = async (conductorName) => {
 // --- CONDUCTORES ---
 
 export const getConductores = async () => {
-    const querySnapshot = await getDocs(collection(db, "conductores"));
+    const q = query(collection(db, "publicadores"), where("es_conductor", "==", true));
+    const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 };
 
 export const addConductor = async (conductor) => {
-    await addDoc(collection(db, "conductores"), conductor);
+    await addDoc(collection(db, "publicadores"), { ...conductor, es_conductor: true });
 };
 
 export const deleteConductor = async (id) => {
-    await deleteDoc(doc(db, "conductores", id));
+    await deleteDoc(doc(db, "publicadores", id));
 };
 
 export const updateConductor = async (id, data) => {
-    await updateDoc(doc(db, "conductores", id), data);
+    await updateDoc(doc(db, "publicadores", id), data);
 };
 
 // --- PUBLICADORES ---
@@ -496,6 +553,68 @@ export const updatePublicador = async (id, data) => {
     await updateDoc(doc(db, "publicadores", id), data);
 };
 
+// --- MIGRATION & UNIFIED PERSONNEL ---
+
+/**
+ * Migrates existing data from 'conductores' to 'publicadores' if not already done.
+ */
+export const migrateConductoresToPublicadores = async () => {
+    try {
+        const conductoresSnap = await getDocs(collection(db, "conductores"));
+        const publicadoresSnap = await getDocs(collection(db, "publicadores"));
+
+        const existingPublicadores = publicadoresSnap.docs.map(d => d.data().nombre.toLowerCase());
+        const batch = writeBatch(db);
+        let count = 0;
+
+        for (const condDoc of conductoresSnap.docs) {
+            const condData = condDoc.data();
+            if (!existingPublicadores.includes(condData.nombre.toLowerCase())) {
+                const newRef = doc(collection(db, "publicadores"));
+                batch.set(newRef, {
+                    nombre: condData.nombre,
+                    telefono: condData.telefono || "",
+                    es_conductor: true,
+                    genero: "Hombre", // Default for old conductors (manual fix later)
+                    grupo: 1, // Default
+                    privilegios: ["Conductor"],
+                    disponibilidad: condData.disponibilidad || {},
+                    migrated_at: Timestamp.now()
+                });
+                count++;
+            }
+        }
+
+        if (count > 0) {
+            await batch.commit();
+            console.log(`✅ Migrated ${count} conductors to the unified directory.`);
+        }
+    } catch (e) {
+        console.error("Migration error:", e);
+    }
+};
+
+// --- GROUPS CONFIGURATION ---
+
+export const getGroupsConfig = async () => {
+    const snap = await getDoc(doc(db, "configuracion", "grupos"));
+    if (snap.exists()) return snap.data().list || [];
+
+    // Default 6 groups if none exist
+    const defaults = Array.from({ length: 6 }, (_, i) => ({
+        id: i + 1,
+        nombre: `Grupo ${i + 1}`,
+        lider: "",
+        asistente: "",
+        casa_salida: ""
+    }));
+    return defaults;
+};
+
+export const saveGroupsConfig = async (groups) => {
+    await setDoc(doc(db, "configuracion", "grupos"), { list: groups });
+};
+
 // --- TELEFONOS ---
 
 export const getMisTelefonos = async (conductorQuery) => {
@@ -513,42 +632,191 @@ export const addTelefono = async (telefono) => {
     await addDoc(collection(db, "telefonos"), telefono);
 };
 
-export const solicitarNumeros = async (cantidad, userId) => {
-    const q = query(collection(db, "telefonos"), where("estado", "==", "Sin asignar"));
+export const solicitarNumeros = async (cantidad = 30, userId) => {
+    // 1. Fetch all processed records vs total to check cycle
+    // (Optimization: We handle specific picking here)
+
+    // Only pick numbers that are 'Sin asignar' and DO NOT have a solicitor or current publisher
+    // Status MUST be 'Sin asignar' (means blank/not assigned)
+    const q = query(collection(db, "telefonos"),
+        where("estado", "==", "Sin asignar"),
+        where("publicador_asignado", "==", null)
+    );
     const snapshot = await getDocs(q);
 
     let count = 0;
     const batchPromises = [];
 
+    // Filter out 'No llamar' that are still within 6 months
+    const now = new Date();
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(now.getMonth() - 6);
+
     for (const d of snapshot.docs) {
         if (count >= cantidad) break;
-        batchPromises.push(updateDoc(doc(db, "telefonos", d.id), {
-            estado: 'Asignado',
-            publicador_asignado: userId,
-            asignado_a: 'Usuario', // Legacy
-            fecha_asignacion: new Date().toISOString()
-        }));
-        count++;
+        const data = d.data();
+
+        // Check 'No llamar' timer
+        if (data.ultimo_estado === 'No llamar') {
+            const lastDate = data.fecha_ultimo_estado ? new Date(data.fecha_ultimo_estado) : new Date(0);
+            if (lastDate > sixMonthsAgo) continue; // Skip if it's been less than 6 months
+        }
+
+        // Extra safety check for requested_by (solicitado_por)
+        if (!data.solicitado_por) {
+            batchPromises.push(updateDoc(doc(db, "telefonos", d.id), {
+                solicitado_por: userId,
+                publicador_asignado: null,
+                asignado_a: null,
+                fecha_asignacion: new Date().toISOString()
+            }));
+            count++;
+        }
     }
 
     await Promise.all(batchPromises);
     return count;
 };
 
-export const updateTelefonoStatus = async (id, estado, publicadorId) => {
-    const data = { estado };
-    if (publicadorId) {
-        data.publicador_asignado = publicadorId;
-        data.fecha_asignacion = new Date().toISOString();
+// Check if all 1124 (or total) records are processed and reset cycle
+export const checkAndResetTelephoneCycle = async () => {
+    try {
+        const snapshot = await getDocs(collection(db, "telefonos"));
+        const total = snapshot.docs.length;
+        if (total === 0) return false;
+
+        // Count those that have a status DIFFERENT from 'Sin asignar' 
+        // OR have been assigned previously in this cycle.
+        // Actually, requirement says: "una vez que todos tengan un estado registrado, todos los registros se pondrán en blanco"
+        const recordsWithStatus = snapshot.docs.filter(d => {
+            const st = d.data().estado;
+            return st && st !== 'Sin asignar';
+        });
+
+        if (recordsWithStatus.length === total) {
+            console.log("🚀 Telephone Cycle Complete! Resetting all records...");
+            const batch = writeBatch(db);
+            const now = new Date().toISOString();
+
+            snapshot.docs.forEach(d => {
+                const data = d.data();
+                const currentStatus = data.estado;
+
+                // Rules:
+                // Contestaron, No contestan, Colgaron -> Sin asignar, clear publisher
+                // Observations kept internally for Admin with date
+
+                if (['Contestaron', 'No contestan', 'Colgaron'].includes(currentStatus)) {
+                    batch.update(doc(db, "telefonos", d.id), {
+                        estado: 'Sin asignar',
+                        publicador_asignado: null,
+                        asignado_a: null,
+                        solicitado_por: null,
+                        fecha_asignacion: null,
+                        // Preserve historical observations
+                        ultima_observacion_ciclo: data.comentario || '',
+                        fecha_ultimo_ciclo: now
+                    });
+                } else if (currentStatus === 'Revisita') {
+                    // Keep Revisita until manually returned (Requirement: "hasta que se marque como Devuelto")
+                    // We don't reset it here.
+                } else if (currentStatus === 'No llamar') {
+                    // "permanecerá oculto por 6 meses, después de ese tiempo el estado pasará a ser Sin asignar"
+                    // This is handled in solicitarNumeros filter, but let's mark it for clarity
+                    batch.update(doc(db, "telefonos", d.id), {
+                        ultimo_estado: 'No llamar',
+                        estado: 'Sin asignar',
+                        fecha_ultimo_estado: now,
+                        publicador_asignado: null,
+                        asignado_a: null,
+                        solicitado_por: null
+                    });
+                }
+            });
+
+            await batch.commit();
+            return true;
+        }
+        return false;
+    } catch (e) {
+        console.error("Error in cycle reset:", e);
+        return false;
     }
-    // If setting to 'Sin asignar', clear fields
+};
+
+export const logSessionSummary = async (summary) => {
+    try {
+        await addDoc(collection(db, "resumenes_sesion_telefonia"), {
+            ...summary,
+            timestamp: Timestamp.now(),
+            fecha: new Date().toISOString()
+        });
+    } catch (e) {
+        console.error("Error logging session summary:", e);
+    }
+};
+
+export const getSessionSummaries = async () => {
+    try {
+        const q = query(collection(db, "resumenes_sesion_telefonia"), orderBy("timestamp", "desc"), limit(50));
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (e) {
+        console.error("Error getting session summaries:", e);
+        return [];
+    }
+};
+
+// Release numbers that were requested but never assigned or worked on
+export const releaseUnusedTelefonos = async (userId) => {
+    const q = query(collection(db, "telefonos"),
+        where("solicitado_por", "==", userId),
+        where("estado", "==", "Sin asignar"),
+        where("publicador_asignado", "==", null)
+    );
+    const snapshot = await getDocs(q);
+    const batchPromises = [];
+
+    snapshot.docs.forEach(d => {
+        batchPromises.push(updateDoc(doc(db, "telefonos", d.id), {
+            solicitado_por: null,
+            asignado_a: null,
+            publicador_asignado: null,
+            fecha_asignacion: null
+        }));
+    });
+
+    await Promise.all(batchPromises);
+};
+
+export const updateTelefonoStatus = async (id, estado, publicadorName, comentario = null) => {
+    const data = { estado };
+    if (publicadorName) {
+        data.asignado_a = publicadorName;
+        data.publicador_asignado = publicadorName;
+    }
+    if (comentario !== null) {
+        data.comentario = comentario;
+    }
+
+    // Rules for Deletion: Suspendido, Testigo
+    if (estado === 'Suspendido' || estado === 'Testigo') {
+        await deleteDoc(doc(db, "telefonos", id));
+        return;
+    }
+
+    // Requirement: If status is 'Sin asignar', assignment MUST be cleared
     if (estado === 'Sin asignar') {
         data.publicador_asignado = null;
         data.asignado_a = null;
         data.fecha_asignacion = null;
+        data.solicitado_por = null;
     }
 
     await updateDoc(doc(db, "telefonos", id), data);
+
+    // After update, check if cycle is complete
+    await checkAndResetTelephoneCycle();
 };
 
 export const deleteTelefono = async (id) => {
@@ -572,8 +840,11 @@ export const devolverTelefono = async (id) => {
 
 export const getPredicacionPublica = async () => {
     const querySnapshot = await getDocs(collection(db, "predicacion_publica"));
-    if (querySnapshot.empty) return { dias: [] };
-    return { id: querySnapshot.docs[0].id, ...querySnapshot.docs[0].data() };
+    if (querySnapshot.empty) return { asignaciones: [] };
+    const data = querySnapshot.docs[0].data();
+    // Migración legacy si es necesario
+    if (data.dias && !data.asignaciones) data.asignaciones = data.dias;
+    return { id: querySnapshot.docs[0].id, ...data };
 };
 
 export const savePredicacionPublica = async (data) => {
@@ -586,6 +857,117 @@ export const savePredicacionPublica = async (data) => {
 };
 
 // --- PROGRAMA SEMANAL ---
+
+// --- HELPER: Sync Hub Assignment to Weekly Program ---
+export const syncAssignmentToWeeklyProgram = async (territoryData, conductorName, details) => {
+    try {
+        const date = new Date(details.fecha_asignacion);
+        if (isNaN(date.getTime())) return;
+
+        // Get Monday of that week
+        const d = new Date(date);
+        const day = d.getDay();
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+        d.setDate(diff);
+        d.setHours(0, 0, 0, 0);
+        const weekId = d.toISOString().split('T')[0];
+
+        // Day of week (0=Monday, 6=Sunday)
+        let dayIdx = date.getDay();
+        dayIdx = dayIdx === 0 ? 6 : dayIdx - 1;
+
+        // Turn
+        const turno = details.turno || 'manana';
+
+        // Get current week or initialize
+        let prog = await getProgramaSemanal(weekId);
+        if (!prog) {
+            prog = {
+                id: weekId,
+                dias: [
+                    { nombre: 'Lunes', manana: {}, tarde: {}, noche: {} },
+                    { nombre: 'Martes', manana: {}, tarde: {}, noche: {} },
+                    { nombre: 'Miércoles', manana: {}, tarde: {}, noche: {} },
+                    { nombre: 'Jueves', manana: {}, tarde: {}, noche: {} },
+                    { nombre: 'Viernes', manana: {}, tarde: {}, noche: {} },
+                    { nombre: 'Sábado', manana: {}, tarde: {}, noche: {} },
+                    { nombre: 'Domingo', manana: {}, tarde: {}, noche: {} }
+                ]
+            };
+        }
+
+        // Initialize day turn if missing
+        if (!prog.dias[dayIdx]) prog.dias[dayIdx] = { nombre: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'][dayIdx] };
+        if (!prog.dias[dayIdx][turno]) prog.dias[dayIdx][turno] = {};
+
+        // Update fields (Supports multiple blocks for Sundays)
+        const t = prog.dias[dayIdx][turno];
+
+        if (details.blocks && details.blocks.length > 0) {
+            // Sunday Split Logic: Concatenate blocks or store as array if view supports it
+            // For now, we concatenate for the "Read-Only" simplified view
+            t.territorio = details.blocks.map(b => b.territorio || territoryData.numero).join(' / ');
+            t.conductor = details.blocks.map(b => b.conductor).join(' / ');
+            t.auxiliar = details.blocks.map(b => b.auxiliar || '-').join(' / ');
+            t.grupos = details.blocks.map(b => b.grupos || '-').join(' | ');
+        } else {
+            t.territorio = territoryData.numero;
+            t.conductor = conductorName;
+            t.auxiliar = details.auxiliar || '';
+            if (details.grupos) t.grupos = details.grupos;
+        }
+
+        t.lugar = details.lugar || t.lugar || '';
+        t.hora = details.hora || t.hora || '';
+        t.faceta = details.faceta || t.faceta || '';
+        if (details.campana) t.campana = details.campana;
+
+        // Save
+        await setDoc(doc(db, "programa_semanal", weekId), prog);
+        console.log(`Synced territory ${territoryData.numero} to Program ${weekId}`);
+    } catch (e) {
+        console.error("Error syncing to weekly program:", e);
+    }
+};
+
+// --- CAMPAIGNS ---
+export const getCampanas = async () => {
+    const snap = await getDoc(doc(db, "configuracion", "campanas"));
+    return snap.exists() ? snap.data().list || [] : [];
+};
+
+export const saveCampana = async (name) => {
+    const list = await getCampanas();
+    if (!list.includes(name)) {
+        list.push(name);
+        await setDoc(doc(db, "configuracion", "campanas"), { list });
+    }
+};
+
+export const deleteCampana = async (name) => {
+    const list = await getCampanas();
+    const newList = list.filter(c => c !== name);
+    await setDoc(doc(db, "configuracion", "campanas"), { list: newList });
+};
+
+/**
+ * Gets historical assignments within a date range.
+ * Useful for smart motors and dashboard summaries.
+ */
+export const getAssignmentsByDate = async (startDate, endDate) => {
+    try {
+        const q = query(
+            collection(db, "historial_territorios"),
+            where("fecha_asignacion", ">=", startDate),
+            where("fecha_asignacion", "<=", endDate)
+        );
+        const snap = await getDocs(q);
+        return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (e) {
+        console.error("Error in getAssignmentsByDate:", e);
+        return [];
+    }
+};
 
 export const getProgramaSemanal = async (weekId) => {
     if (weekId) {
@@ -708,13 +1090,39 @@ export const saveProgramaSemanal = async (weekId, data) => {
 export const getPermisosUsuario = async (email) => {
     if (!email) return null;
     try {
+        // Try the new unified publicadores directory first
+        const qPub = query(collection(db, "publicadores"), where("telefono", "==", email)); // Note: App uses 'email' param but often passes phone
+        const snapPub = await getDocs(qPub);
+
+        // Secondary check by email if the above fails (assuming email field exists)
+        let snap = snapPub;
+        if (snap.empty) {
+            const qEmail = query(collection(db, "publicadores"), where("email", "==", email));
+            snap = await getDocs(qEmail);
+        }
+
+        if (!snap.empty) {
+            const data = snap.docs[0].data();
+            const isAdmin = data.privilegios?.includes('Administrador');
+
+            // They need to be either a conductor or an admin to access anything beyond basic public view
+            if (data.es_conductor || isAdmin) {
+                return {
+                    role: isAdmin ? 'Administrador' : 'Conductor',
+                    ...data,
+                    id: snap.docs[0].id
+                };
+            }
+        }
+
+        // Fallback for legacy conductors
         const q = query(collection(db, "conductores"), where("email", "==", email));
         const snapshot = await getDocs(q);
         if (!snapshot.empty) {
             const data = snapshot.docs[0].data();
             return { role: data.role || 'Conductor', ...data };
         }
-        return null; // Handle Admin elsewhere or return null
+        return null;
     } catch (e) {
         console.error("Error getting permissions:", e);
         return null;
@@ -760,8 +1168,8 @@ export const runSystemDiagnosticsAndRepair = async () => {
         let dirty = false;
 
         // Determine real 'assigned' vs 'ghost'
-        const hasPubId = t.publicador_asignado && t.publicador_asignado !== 'Usuario';
-        const hasPubName = t.asignado_a && t.asignado_a !== 'Usuario' && t.asignado_a !== 'Sin asignar';
+        const hasPubId = t.publicador_asignado && t.publicador_asignado !== 'Usuario' && t.publicador_asignado !== '';
+        const hasPubName = t.asignado_a && t.asignado_a !== 'Usuario' && t.asignado_a !== 'Sin asignar' && t.asignado_a !== '';
 
         // CASE 1: Assigned to "Usuario" (Ghost)
         if (t.asignado_a === 'Usuario' || t.publicador_asignado === 'Usuario') {
@@ -831,3 +1239,79 @@ export const deleteRecurso = async (id) => {
 export const updateRecurso = async (id, data) => {
     await updateDoc(doc(db, "recursos", id), data);
 };
+
+// --- RESTORE SYSTEM BACKUP (Batch Write) ---
+export const restoreSystemBackup = async (data, onProgress) => {
+    if (!data) throw new Error("No data provided for restore");
+
+    const collections = [
+        { key: 'territorios', name: 'territorios' },
+        { key: 'conductores', name: 'conductores' },
+        { key: 'telefonos', name: 'telefonos' },
+        { key: 'publicadores', name: 'publicadores' },
+        { key: 'historial', name: 'historial_territorios' }
+    ];
+
+    let totalOps = 0;
+    collections.forEach(c => {
+        if (data[c.key]) totalOps += data[c.key].length;
+    });
+
+    if (data.config) totalOps += 1;
+    if (data.programa) totalOps += 1;
+
+    let executedOps = 0;
+    const reportProgress = (msg) => {
+        if (onProgress) onProgress(msg, Math.floor((executedOps / totalOps) * 100));
+    };
+
+    // 1. Restore Collections
+    for (const colDef of collections) {
+        const items = data[colDef.key];
+        if (!items || !Array.isArray(items)) continue;
+
+        reportProgress(`Restaurando ${colDef.key}...`);
+
+        // Firestore batches are limited to 500 operations
+        for (let i = 0; i < items.length; i += 500) {
+            const batch = writeBatch(db);
+            const chunk = items.slice(i, i + 500);
+
+            chunk.forEach(item => {
+                const { id, ...cleanData } = item;
+                const docRef = id ? doc(db, colDef.name, id) : doc(collection(db, colDef.name));
+                batch.set(docRef, cleanData, { merge: true });
+                executedOps++;
+            });
+
+            await batch.commit();
+            reportProgress(`Procesados ${executedOps}/${totalOps} registros...`);
+        }
+    }
+
+    // 2. Restore Config
+    if (data.config) {
+        reportProgress(`Restaurando configuración...`);
+        const { id, ...configData } = data.config;
+        await setDoc(doc(db, "configuracion", id || "general"), configData, { merge: true });
+        executedOps++;
+        reportProgress(`Configuración restaurada.`);
+    }
+
+    // 3. Restore Programa (If exists in backup)
+    if (data.programa) {
+        reportProgress(`Restaurando programa actual...`);
+        const { id, ...progData } = data.programa;
+        if (id) {
+            await setDoc(doc(db, "programa_semanal", id), progData, { merge: true });
+        }
+        executedOps++;
+    }
+
+    reportProgress(`✅ Restauración completada con éxito (${executedOps} operaciones).`, 100);
+    return executedOps;
+};
+
+
+
+

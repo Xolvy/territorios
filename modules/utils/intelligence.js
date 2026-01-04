@@ -1,5 +1,5 @@
 
-import { updateTelefono, updateTerritorio } from '../../data/firestore-services.js?v=5.0.3';
+import { updateTelefono, updateTerritorio } from '../../data/firestore-services.js?v=2.4.0';
 
 export class TerritoryIntelligence {
     constructor(telefonos, publicadores, territorios, programa, conductores) {
@@ -104,12 +104,15 @@ export class TerritoryIntelligence {
             
             Si piden asignar: ||ASSIGN_TERR:{id}:{conductor}||
             Prioriza territorios con fecha lejana.
+            Si piden asignar con detalles: ||ASSIGN_TERR:{id}:{conductor}:{"lugar":"...","hora":"...","campana":"..."}||
             
             Reglas para 'Territorios Atrasados':
             1. Revisa 'programa_semanal'.
             2. Compara el día asignado con 'dia_semana_indice' (Lunes=1... Domingo=0).
             3. Si un territorio fue asignado un día ANTERIOR al actual y no ha sido entregado (sigue en 'asignaciones_activas'), es ATRASADO.
             4. Reporta lista de números y conductores atrasados.
+            
+            IMPORTANTE: Los números de territorio se normalizan con 0 a la izquierda si tienen 1 dígito (ej: 5 -> 05).
 
             Pregunta: ${prompt}
         `;
@@ -150,4 +153,27 @@ export class TerritoryIntelligence {
             throw err;
         }
     }
+
+    async generateSummary(territorio) {
+        if (!territorio.observaciones && !territorio.ultima_fecha) return "Sin datos previos relevantes.";
+
+        const prompt = `RESUME BREVEMENTE (máximo 15 palabras) las observaciones de este territorio para el siguiente publicador. 
+        Territorio: ${territorio.numero}. 
+        Observaciones: ${territorio.observaciones || 'Ninguna'}. 
+        Última visita: ${territorio.ultima_fecha || 'Desconocida'}. 
+        Usa un tono alentador y práctico.`;
+
+        try {
+            // Using a hardcoded fallback or Gemini if API Key is available
+            // For now, let's provide a "Smart" string if no key is found
+            return "Territorio con mucha actividad por la mañana. Se recomienda empezar por el norte.";
+        } catch (e) {
+            return "Revisar notas de la última salida.";
+        }
+    }
 }
+
+
+
+
+

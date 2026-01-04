@@ -13,6 +13,7 @@ export const getStatusColor = (status) => {
     if (s === 'Revisita') return 'text-yellow-600 dark:text-yellow-400';
     if (s === 'Suspendido') return 'text-orange-700 dark:text-orange-500';
     if (s === 'Testigo') return 'text-purple-600 dark:text-purple-400';
+    if (s === 'Asignado') return 'text-teal-600 dark:text-teal-400';
     if (s === 'Pendiente' || s === 'Sin asignar') return 'text-gray-500 dark:text-gray-500';
     return 'text-gray-500';
 };
@@ -74,4 +75,74 @@ export const formatMapUrl = (url) => {
         }
     }
     return url;
+};
+
+/**
+ * Generates a simple Excel-compatible XLS (XML) file from an array of objects
+ */
+export const generatePlainXLS = (data, fileName) => {
+    if (!data || data.length === 0) return;
+
+    // Headers
+    const headers = Object.keys(data[0]);
+
+    // Create XML structure for Excel (SpreadsheetML)
+    let xml = `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:html="http://www.w3.org/TR/REC-html40">
+ <Styles>
+  <Style ss:ID="sHeader">
+   <Font ss:Bold="1" ss:Color="#FFFFFF"/>
+   <Interior ss:Color="#0D9488" ss:Pattern="Solid"/>
+  </Style>
+ </Styles>
+ <Worksheet ss:Name="Reporte">
+  <Table>`;
+
+    // Header Row
+    xml += '<Row ss:StyleID="sHeader">';
+    headers.forEach(h => {
+        xml += `<Cell><Data ss:Type="String">${h}</Data></Cell>`;
+    });
+    xml += '</Row>';
+
+    // Data Rows
+    data.forEach(item => {
+        xml += '<Row>';
+        headers.forEach(h => {
+            const val = item[h] || '';
+            xml += `<Cell><Data ss:Type="String">${val}</Data></Cell>`;
+        });
+        xml += '</Row>';
+    });
+
+    xml += `  </Table>
+ </Worksheet>
+</Workbook>`;
+
+    const blob = new Blob([xml], { type: 'application/vnd.ms-excel' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${fileName}.xls`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+};
+
+/**
+ * Checks if the browser is online and shows a notification if not.
+ * @returns {boolean} True if online, false otherwise.
+ */
+export const ensureOnline = () => {
+    if (!navigator.onLine) {
+        showNotification("⚠️ Acción no disponible sin conexión a Internet.", "warning");
+        return false;
+    }
+    return true;
 };

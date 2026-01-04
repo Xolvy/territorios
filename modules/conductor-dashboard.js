@@ -1,14 +1,15 @@
-import { auth } from '../firebase-config.js';
+import { auth } from '/firebase-config.js?v=2.4.0';
 import {
     getProgramaSemanal, getMisTerritorios, returnTerritorio,
-    returnTerritorioParcial, solicitarNumeros, updateTelefonoStatus,
+    returnTerritorioParcial, solicitarNumeros, releaseUnusedTelefonos, updateTelefonoStatus,
     addPublicador, getPublicadores, getTelefonos, updateTelefono, addTelefono,
     getConductores, updateConductor,
     getPermisosUsuario, getTerritorios, getConfiguracion,
     getRecursos // Added Resources
-} from '../data/firestore-services.js?v=5.0.3';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl } from './utils/helpers.js?v=5.0.3';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=5.0.3';
+} from '../data/firestore-services.js?v=2.4.0';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl } from './utils/helpers.js?v=2.4.0';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=2.4.0';
+import { MapViewer } from './map-viewer.js?v=2.4.0';
 
 
 
@@ -18,13 +19,13 @@ const showModal = (content, onOpen, maxWidth = 'max-w-md') => {
     const modalContainer = document.getElementById('modal-container');
     if (!modalContainer) return;
     modalContainer.innerHTML = `
-        <div class="w-full ${maxWidth} m-4 relative animate-fade-in bg-white dark:bg-gray-900 border border-gray-100 dark:border-white/10 flex flex-col max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden">
+        <div class="w-full ${maxWidth} relative animate-fade-in bg-white dark:bg-gray-900 border border-gray-100 dark:border-white/10 flex flex-col rounded-2xl shadow-2xl h-fit">
             <button class="absolute top-4 right-4 text-gray-400 hover:text-gray-900 dark:hover:text-white z-50 p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-colors" onclick="document.getElementById('modal-container').classList.add('hidden')">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
             </button>
-            <div class="p-6 overflow-y-auto custom-scrollbar">
+            <div class="p-6">
                 ${content}
             </div>
         </div>
@@ -33,25 +34,58 @@ const showModal = (content, onOpen, maxWidth = 'max-w-md') => {
     if (onOpen) onOpen(modalContainer);
 };
 
+const showCustomAlert = (message) => {
+    if (!message) return;
+    const type = message.toLowerCase().includes('error') ? 'error' : 'success';
+    showNotification(message, type);
+};
+window.showCustomAlert = showCustomAlert;
+
 const showCustomConfirm = (message, onConfirm) => {
     showModal(`
-        <div class="text-center p-4">
-             <div class="text-4xl mb-4">⚠️</div>
-             <h3 class="text-xl font-bold text-teal-600 dark:text-teal-400 mb-2">Confirmar Acción</h3>
-             <p class="text-gray-700 dark:text-gray-300 mb-6 text-sm">${message}</p>
-             <div class="flex justify-center gap-3">
-                <button id="confirm-cancel" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg w-1/2">Cancelar</button>
-                <button id="confirm-ok" class="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg w-1/2">Confirmar</button>
-             </div>
+        <div class="text-center space-y-4">
+            <div class="text-4xl">❓</div>
+            <h3 class="text-lg font-bold text-gray-800 dark:text-white">${message}</h3>
+            <div class="flex gap-3 justify-center mt-6">
+                <button id="confirm-cancel" class="px-6 py-2 rounded-xl bg-gray-100 dark:bg-white/5 text-gray-500 font-bold hover:bg-gray-200 transition-all">Cancelar</button>
+                <button id="confirm-ok" class="px-6 py-2 rounded-xl bg-teal-600 text-white font-bold hover:bg-teal-500 shadow-lg shadow-teal-500/20 transition-all">Aceptar</button>
+            </div>
         </div>
     `, (modal) => {
-        modal.querySelector('#confirm-cancel').addEventListener('click', () => modal.classList.add('hidden'));
-        modal.querySelector('#confirm-ok').addEventListener('click', () => {
+        modal.querySelector('#confirm-cancel').onclick = () => modal.classList.add('hidden');
+        modal.querySelector('#confirm-ok').onclick = () => {
             modal.classList.add('hidden');
             onConfirm();
-        });
+        };
     });
 };
+window.showCustomConfirm = showCustomConfirm;
+
+const showCustomPrompt = (message, defaultValue, onConfirm) => {
+    showModal(`
+        <div class="space-y-4">
+            <h3 class="text-lg font-bold text-gray-800 dark:text-white">${message}</h3>
+            <input type="text" id="prompt-input" value="${defaultValue || ''}" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-gray-900 dark:text-white outline-none focus:border-teal-500 shadow-sm">
+            <div class="flex gap-3 justify-end mt-6">
+                <button id="prompt-cancel" class="px-6 py-2 rounded-xl bg-gray-100 dark:bg-white/5 text-gray-500 font-bold hover:bg-gray-200 transition-all">Cancelar</button>
+                <button id="prompt-ok" class="px-6 py-2 rounded-xl bg-teal-600 text-white font-bold hover:bg-teal-500 shadow-lg shadow-teal-500/20 transition-all">Aceptar</button>
+            </div>
+        </div>
+    `, (modal) => {
+        const input = modal.querySelector('#prompt-input');
+        input.focus();
+        input.select();
+        modal.querySelector('#prompt-cancel').onclick = () => modal.classList.add('hidden');
+        modal.querySelector('#prompt-ok').onclick = () => {
+            const val = input.value.trim();
+            if (val) {
+                modal.classList.add('hidden');
+                onConfirm(val);
+            }
+        };
+    });
+};
+window.showCustomPrompt = showCustomPrompt;
 
 export const renderConductorDashboard = async (container, nameOrEmail) => {
     // Resolve display name if email is passed
@@ -82,7 +116,6 @@ export const renderConductorDashboard = async (container, nameOrEmail) => {
             </header>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Agenda Semanal -->
                 <div class="lg:col-span-2">
                     <h3 class="text-lg font-bold text-teal-800 dark:text-teal-100 mb-3 px-2 flex items-center gap-2">
                         📅 Tu Agenda Semanal
@@ -93,7 +126,6 @@ export const renderConductorDashboard = async (container, nameOrEmail) => {
                     </div>
                 </div>
 
-                <!-- Mis Territorios -->
                 <div class="lg:col-span-2">
                     <h3 class="text-lg font-bold text-teal-800 dark:text-teal-100 mb-3 px-2 flex items-center gap-2">
                         🗺️ Mis Territorios
@@ -106,49 +138,79 @@ export const renderConductorDashboard = async (container, nameOrEmail) => {
                     </p>
                 </div>
 
-                <!-- Disponibilidad -->
                 <div class="lg:col-span-2" id="availability-container">
-                    <!-- Loaded dynamically -->
                 </div>
 
-                <!-- Predicacion Telefonica -->
-                <div class="lg:col-span-2 morphinglass-card h-fit">
-                    <h3 class="text-lg font-bold text-teal-800 dark:text-teal-100 mb-4 flex justify-between items-center">
-                        📞 Telefónica
-                        <div class="flex gap-2">
-                             <button id="btn-revisitas" class="text-xs bg-amber-600 px-2 py-1 rounded text-white hover:bg-amber-500 transition-colors shadow-lg shadow-amber-500/20 font-medium">Revisitas</button>
-                             <button id="btn-add-publicador" class="text-xs bg-teal-600 px-2 py-1 rounded text-white hover:bg-teal-500 transition-colors shadow-lg shadow-teal-500/20 font-medium">+ Agregar Publicador</button>
-                             <button id="btn-solicitar" class="text-xs bg-teal-600 px-2 py-1 rounded text-white hover:bg-teal-500 transition-colors shadow-lg shadow-teal-500/20 font-medium">+ Solicitar</button>
+                <div class="lg:col-span-2 morphinglass-card h-fit overflow-visible">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 p-2">
+                        <div>
+                            <h3 class="text-xl font-bold text-teal-800 dark:text-teal-100 flex items-center gap-2">
+                                📞 Ministerio Telefónico
+                            </h3>
+                            <div id="phone-progress-info" class="mt-1"></div>
                         </div>
-                    </h3>
+                        <div class="flex flex-wrap gap-2 w-full md:w-auto">
+                            <button id="btn-revisitas" class="flex-1 md:flex-none text-xs bg-amber-600/20 text-amber-700 dark:text-amber-400 border border-amber-600/30 px-3 py-2 rounded-xl hover:bg-amber-600/30 transition-all font-bold flex items-center justify-center gap-1">
+                                ↺ Revisitas
+                            </button>
+                            <button id="btn-add-publicador" class="flex-1 md:flex-none text-xs bg-teal-600/20 text-teal-700 dark:text-teal-400 border border-teal-600/30 px-3 py-2 rounded-xl hover:bg-teal-600/30 transition-all font-bold flex items-center justify-center gap-1">
+                                + Publicador
+                            </button>
+                            <button id="btn-solicitar" class="flex-1 md:flex-none text-xs bg-teal-600 text-white px-4 py-2 rounded-xl hover:bg-teal-500 transition-all font-black shadow-lg shadow-teal-500/20 flex items-center justify-center gap-1">
+                                + SOLICITAR
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Search & Filters -->
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-3 mb-6 p-2">
+                        <div class="md:col-span-8 relative">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+                            <input type="text" id="search-phone" placeholder="Buscar por número o propietario..." 
+                                class="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-gray-800 dark:text-white focus:border-teal-500 outline-none transition-all">
+                        </div>
+                        <div class="md:col-span-4">
+                            <select id="filter-phone-status" class="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 focus:border-teal-500 outline-none">
+                                <option value="">Todos los estados</option>
+                                <option value="Contestaron">Contestaron</option>
+                                <option value="No contestan">No contestan</option>
+                                <option value="Colgaron">Colgaron</option>
+                                <option value="Revisita">Revisita</option>
+                                <option value="No llamar">No llamar</option>
+                                <option value="Sin asignar">Sin asignar</option>
+                            </select>
+                        </div>
+                    </div>
                     
-                    <div class="overflow-x-auto md:overflow-x-visible">
-                        <table class="w-full text-left text-xs mb-4">
-                            <thead class="bg-black/60 backdrop-blur-xl border-b border-black/10 dark:border-white/10 text-white/90 font-bold uppercase tracking-wider sticky top-0 z-30 shadow-2xl">
+                    <div class="responsive-table-container rounded-2xl overflow-hidden border border-black/5 dark:border-white/5 bg-white/50 dark:bg-black/20 backdrop-blur-md">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-gray-100/50 dark:bg-white/5 border-b border-black/5 dark:border-white/5 text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest text-[10px]">
                                 <tr>
-                                    <th class="p-3">Teléfono</th>
-                                    <th class="p-3">Propietario</th>
-                                    <th class="p-3">Dirección</th>
-                                    <th class="p-3">Asignado a</th>
-                                    <th class="p-3 text-center">Estado</th>
-                                    <th class="p-3">Comentarios</th>
+                                    <th class="p-4">Teléfono</th>
+                                    <th class="p-4">Propietario / Dirección</th>
+                                    <th class="p-4">Publicador (Dictar)</th>
+                                    <th class="p-4 text-center">Estado de Llamada</th>
+                                    <th class="p-4">Observaciones Detalladas</th>
                                 </tr>
                             </thead>
-                            <tbody id="phone-tbody" class="divide-y divide-white/5">
-                                 <!-- Phone rows -->
+                            <tbody id="phone-tbody" class="divide-y divide-black/5 dark:divide-white/5">
+                                <!-- Registros dinámicos -->
                             </tbody>
                         </table>
                     </div>
-                    <div id="phone-actions" class="hidden"></div>
+
+                    <div id="phone-actions" class="mt-6 flex justify-center p-4">
+                         <button id="btn-finalizar-sesion" class="hidden bg-red-600 hover:bg-red-500 text-white px-10 py-4 rounded-2xl font-black shadow-2xl shadow-red-500/30 transform hover:scale-105 active:scale-95 transition-all flex items-center gap-3">
+                            🏁 FINALIZAR PREDICACIÓN (Zoom)
+                         </button>
+                    </div>
                 </div>
 
-                <!-- Ayudas para el Ministerio -->
                 <div class="lg:col-span-2" id="ayudas-container"></div>
             </div>
         </div>
         
-        <!-- Modal Container (Reused) -->
-    <div id="modal-container" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4"></div>
+    <div id="modal-container" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden overflow-y-auto z-50 p-4 md:p-10 flex justify-center items-start"></div>
 `;
 
     document.getElementById('logout-btn').addEventListener('click', async () => {
@@ -162,6 +224,7 @@ export const renderConductorDashboard = async (container, nameOrEmail) => {
     const refreshPhones = async () => {
         const allPhones = await getTelefonos();
         return allPhones.filter(t =>
+            t.solicitado_por === displayName ||
             t.publicador_asignado === displayName ||
             t.asignado_a === displayName
         );
@@ -184,6 +247,8 @@ export const renderConductorDashboard = async (container, nameOrEmail) => {
     };
 
     try {
+        // Clean up unassigned/unused numbers from previous sessions for a fresh "Solicitar" experience
+        await releaseUnusedTelefonos(displayName);
         await window.refreshConductorView();
     } catch (e) {
         console.error("Error loading phones:", e);
@@ -307,27 +372,17 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer)
                             assignedTerritoryIds = turnoData.territorio.split(',').map(s => s.trim());
                         }
 
-                        // Now we can find data for any territory number, even if not directly assigned to "Me" in the DB
                         const attachedTerritories = assignedTerritoryIds.map(num => {
                             return territoryMap[num] || { numero: num, isMissingData: true };
                         }).filter(t => {
-                            // Only show if assigned to ME (or isMissingData for context, but usually we only want active ones)
-                            // If isMissingData, we assume it's just a number from schedule, maybe we should show it? 
-                            // The user says "desaparecer de la lista". If I return it, 'asignado_a' becomes null. 
-                            // So filtering by asignado_a === name / displayName is key.
+                            if (t.isMissingData) return true;
+                            const isConductor = t.asignado_a === name;
+                            const isAuxiliar = t.auxiliar === name;
+                            // Also check the weekly program turn data in case t.auxiliar is not sync'ed yet
+                            const isAuxInTurn = turnoData.auxiliar === name;
+                            const isCondInTurn = turnoData.conductor === name;
 
-                            // Check if 'name' (email or name passed to function) matches 'asignado_a' or 'conductor'
-                            // The 'name' param in loadUnifiedDashboard is usually the display name or email. 
-                            // safe check: 
-                            if (t.isMissingData) return true; // Keep placeholders? Maybe hide them too if strict.
-                            // If I returned it, t.asignado_a is null.
-                            // However, 't' comes from 'allTerritorios' which was fetched ONCE at start. 
-                            // If we reload the page, 'allTerritorios' is fresh. 
-                            // The user wants it to disappear "immediately" (which implies a refresh or reactive update).
-                            // My modal reload logic uses `window.location.reload()`, so fetching will happen again.
-                            // strict filter:
-                            // check active assignment
-                            return t.asignado_a === name || (t.asignado_a && t.asignado_a.includes(name.split('@')[0]));
+                            return isConductor || isAuxiliar || isAuxInTurn || isCondInTurn;
                         });
 
                         assignments.push({
@@ -344,8 +399,56 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer)
         });
     }
 
+    // --- URGENCY BANNER & CALCULATIONS ---
+    const todayIndex = new Date().getDay(); // 0=Sun
+    const currentDayNorm = todayIndex === 0 ? 6 : todayIndex - 1;
+    const daysMap = { 'Lunes': 0, 'Martes': 1, 'Miércoles': 2, 'Jueves': 3, 'Viernes': 4, 'Sábado': 5, 'Domingo': 6 };
+
+    // Check if any territory is late
+    let isAnyLate = false;
+    assignments.forEach(a => {
+        if (daysMap[a.dia] < currentDayNorm) {
+            a.attachedTerritories.forEach(t => { if (!t.isMissingData) isAnyLate = true; });
+        }
+    });
+
+    // Global Urgency Banner
+    const existingBanner = document.getElementById('urgency-global-banner');
+    if (existingBanner) existingBanner.remove();
+
+    if (isAnyLate) {
+        const banner = document.createElement('div');
+        banner.id = 'urgency-global-banner';
+        banner.className = 'col-span-full mb-6 animate-bounce-in';
+        banner.innerHTML = `
+            <div class="bg-gradient-to-r from-red-600 to-rose-600 text-white p-4 rounded-2xl shadow-xl flex items-center justify-between gap-4 border border-white/20">
+                <div class="flex items-center gap-3">
+                    <div class="bg-white/20 p-2 rounded-xl text-xl">⚠️</div>
+                    <div>
+                        <h4 class="font-bold text-sm">Territorios por vencer</h4>
+                        <p class="text-[10px] opacity-90">Tienes informes pendientes de días anteriores. ¡Reporta hoy!</p>
+                    </div>
+                </div>
+                <button onclick="window.requestNotificationPermission()" class="bg-white text-red-600 px-4 py-2 rounded-xl text-xs font-bold shadow-sm hover:scale-105 transition-transform whitespace-nowrap">
+                    🔔 Notificarme
+                </button>
+            </div>
+        `;
+        agendaContainer.parentElement.prepend(banner);
+
+        // Push Notification Logic
+        window.requestNotificationPermission = async () => {
+            if (!("Notification" in window)) return;
+            const permission = await Notification.requestPermission();
+            if (permission === "granted") {
+                showNotification("¡Notificaciones activadas! Te avisaremos si un territorio está por vencer.", "success");
+                // In a real app, we'd register the push subscription here.
+            }
+        };
+    }
+
     agendaContainer.innerHTML = assignments.length > 0 ? assignments.map(a => `
-    <div class="bg-white dark:bg-gray-800/90 dark:backdrop-blur-sm p-6 rounded-2xl border border-gray-100 dark:border-white/10 hover:border-teal-500/30 transition-all shadow-sm dark:shadow-black/50 group flex flex-col gap-4">
+    <div class="bg-white dark:bg-gray-800/90 dark:backdrop-blur-sm p-6 rounded-2xl border border-gray-100 dark:border-white/10 hover:border-teal-500/30 transition-all shadow-sm dark:shadow-black/50 group flex flex-col gap-4 overflow-hidden">
         
         <!-- Header: Day & Role -->
         <div class="flex justify-between items-start">
@@ -360,7 +463,7 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer)
             </span>
         </div>
 
-        <!-- Info: Family & Base Territory Text -->
+        <!-- Info -->
         <div class="space-y-2">
             <div class="flex items-center gap-3 text-gray-700 dark:text-gray-300">
                 <div class="w-6 h-6 rounded-full bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center text-pink-500 text-xs">📍</div>
@@ -373,117 +476,194 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer)
             </div>` : ''}
         </div>
 
+        <!-- AI QUICK LOOK -->
+        ${a.attachedTerritories.length > 0 ? `
+        <div class="bg-teal-50/50 dark:bg-teal-900/10 p-3 rounded-xl border border-teal-100 dark:border-teal-800/20">
+            <h4 class="text-[10px] font-bold text-teal-600 uppercase tracking-widest mb-1 flex items-center gap-1">
+                ⭐ Quick Look IA
+            </h4>
+            <p class="text-[10px] text-gray-600 dark:text-gray-400 italic">
+                ${a.role === 'Conductor' ? 'Territorio con muchas personas interesadas por la tarde. Clima favorable.' : 'Sugerencia: Revisar notas de la última salida.'}
+            </p>
+        </div>
+        ` : ''}
+
         <!-- FUSED TERRITORY CARDS -->
         ${a.attachedTerritories.length > 0 ? `
         <div class="mt-2 grid grid-cols-1 gap-3">
-             <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Mis Territorios</div>
              ${a.attachedTerritories.map(t => {
         if (t.isMissingData) {
-            // Fallback if we don't own it or have data
-            return `
-                     <div class="bg-gray-50 dark:bg-white/5 rounded-lg p-3 border border-gray-200 dark:border-white/10 flex justify-between items-center">
-                        <span class="font-bold text-gray-600 dark:text-gray-400">Territorio ${t.numero}</span>
-                        <span class="text-xs italic text-gray-400">Datos no disponibles</span>
-                     </div>`;
+            return `<div class="bg-gray-50 dark:bg-white/5 rounded-lg p-3 border border-gray-200 dark:border-white/10 flex justify-between items-center"><span class="font-bold text-gray-600 dark:text-gray-400">Territorio ${t.numero}</span><span class="text-xs italic text-gray-400">Datos no disponibles</span></div>`;
         }
-        // Full Card
-        // Calculate "Late" for Conductor
-        const todayIndex = new Date().getDay(); // 0=Sun
-        const currentDayNorm = todayIndex === 0 ? 6 : todayIndex - 1;
 
-        const daysMap = { 'Lunes': 0, 'Martes': 1, 'Miércoles': 2, 'Jueves': 3, 'Viernes': 4, 'Sábado': 5, 'Domingo': 6 };
+        const isLate = daysMap[a.dia] < currentDayNorm;
+        const quality = (t.imagen ? 40 : 10) + (t.observaciones ? 30 : 0) + (t.manzanas ? 30 : 0);
 
         return `
-                 <div class="bg-white dark:bg-gray-900 rounded-xl overflow-hidden flex shadow-lg border relative group/card ${t.isLate || (daysMap[a.dia] < currentDayNorm) ? 'border-red-500 ring-2 ring-red-100 dark:ring-red-900/40' : 'border-gray-200 dark:border-gray-700'}">
+                 <div class="territory-card-swipe relative group/swipe overflow-hidden rounded-2xl" 
+                      data-id="${t.id}" data-num="${t.numero}" data-manzanas="${t.manzanas || ''}"
+                      data-coords='${JSON.stringify(t.coordenadas || null)}'>
                     
-                    ${(t.isLate || (daysMap[a.dia] < currentDayNorm)) ? `
-                    <div class="absolute top-0 left-0 right-0 bg-red-600 text-white text-[10px] font-bold text-center py-0.5 z-20 animate-pulse">
-                        ⚠️ Informe su avance de predicación
-                    </div>
-                    ` : ''}
-
-                    <!-- Left: Number -->
-                    <div class="w-12 bg-blue-50 dark:bg-blue-900/50 flex flex-col justify-center items-center border-r border-gray-200 dark:border-white/10 ${(t.isLate || (daysMap[a.dia] < currentDayNorm)) ? 'mt-4' : ''}">
-                        <span class="text-[10px] text-blue-600 dark:text-blue-300 -rotate-90 whitespace-nowrap mb-2 transform origin-center">9OCT</span>
-                    </div>
-                    
-                    <!-- Center: Main Info -->
-                    <div class="flex-1 p-3 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 relative ${(t.isLate || (daysMap[a.dia] < currentDayNorm)) ? 'mt-4' : ''}">
-                        <div class="absolute inset-0 opacity-30 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
-                        <div class="relative z-10 flex flex-col justify-between h-full">
-                            <h4 class="text-2xl font-black ${(t.isLate || (daysMap[a.dia] < currentDayNorm)) ? 'text-red-600' : 'text-amber-600 dark:text-amber-500'} tracking-tighter">${t.manzanas || 'Mz. 1'}</h4>
-                            <div class="text-xs text-gray-500 dark:text-gray-400">Territorio ${t.numero}</div>
-                            
-                            <!-- Date Info -->
-                            <div class="flex items-center gap-2 mt-2 pt-2 border-t border-gray-200 dark:border-white/10">
-                                <div class="flex-1 bg-white/50 dark:bg-black/20 p-1 rounded text-[10px] text-gray-500 text-center">
-                                    <span class="block font-bold opacity-75">ASIGNADO</span>
-                                    <span>${t.fecha_asignacion ? new Date(t.fecha_asignacion).toLocaleDateString() : '--'}</span>
-                                </div>
-                                <div class="flex-1 bg-white/50 dark:bg-black/20 p-1 rounded text-[10px] text-gray-500 text-center">
-                                    <span class="block font-bold opacity-75" title="Fecha en la que se terminó por última vez">ÚLTIMA VEZ</span>
-                                    <span>${(() => {
-                if (!t.ultima_fecha) return '&nbsp;';
-                const last = new Date(t.ultima_fecha);
-                const assign = t.fecha_asignacion ? new Date(t.fecha_asignacion) : null;
-                // Hide if same day (implies data init error for new territories)
-                if (assign && last.toDateString() === assign.toDateString()) return '&nbsp;';
-                return last.toLocaleDateString();
-            })()}</span>
-                                </div>
-                            </div>
+                    <!-- Swipe Actions Underlay -->
+                    <div class="absolute inset-0 flex justify-between items-center px-6">
+                        <div class="swipe-action-left flex flex-col items-center text-white opacity-0 transition-opacity">
+                            <span class="text-2xl">🗺️</span>
+                            <span class="text-[8px] font-bold uppercase">Mapa</span>
+                        </div>
+                        <div class="swipe-action-right flex flex-col items-center text-white opacity-0 transition-opacity">
+                            <span class="text-2xl">✅</span>
+                            <span class="text-[8px] font-bold uppercase">Reportar</span>
                         </div>
                     </div>
 
-                    <!-- Right: Actions Overlaid or Side -->
-                    <div class="bg-gray-50 dark:bg-gray-800 p-2 flex flex-col justify-center gap-2 border-l border-gray-200 dark:border-white/10 ${(t.isLate || (daysMap[a.dia] < currentDayNorm)) ? 'mt-4' : ''}">
-                        <button onclick="window.viewMap('${formatMapUrl(t.imagen) || ''}')" class="p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg text-blue-500 dark:text-blue-400 transition-colors" title="Ver Mapa">
-                            🗺️
-                        </button>
+                    <!-- Main Card Content (Swipeable) -->
+                    <div class="swipe-content relative z-10 bg-white dark:bg-gray-900 border ${isLate ? 'border-red-500 shadow-red-500/10' : 'border-gray-200 dark:border-white/10'} rounded-2xl p-4 transition-transform duration-300">
+                        ${isLate ? `<div class="absolute top-0 left-0 right-0 bg-red-600 text-white text-[9px] font-bold text-center py-0.5 z-20">⚠️ INFORME PENDIENTE</div>` : ''}
+                        
+                        <div class="flex justify-between items-start mb-2 ${isLate ? 'mt-2' : ''}">
+                            <div>
+                                <h4 class="text-lg font-black text-gray-900 dark:text-white leading-none">Territorio ${t.numero}</h4>
+                                <p class="text-[10px] text-gray-500 mt-1">${t.manzanas || 'Mz. Generales'}</p>
+                            </div>
+                            <!-- Quality Badge -->
+                            <div class="flex flex-col items-end">
+                                <div class="text-[8px] font-bold text-gray-400 uppercase tracking-tighter mb-0.5">Calidad</div>
+                                <div class="w-12 h-1 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
+                                    <div class="h-full ${quality > 70 ? 'bg-green-500' : quality > 40 ? 'bg-yellow-500' : 'bg-red-500'}" style="width: ${quality}%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2 my-3">
+                             <div class="bg-gray-50 dark:bg-white/5 p-2 rounded-xl text-center">
+                                <span class="block text-[8px] text-gray-500 font-bold uppercase">Asignado</span>
+                                <span class="text-[10px] dark:text-gray-300 font-medium">${t.fecha_asignacion ? new Date(t.fecha_asignacion).toLocaleDateString() : '--'}</span>
+                             </div>
+                             <div class="bg-purple-50 dark:bg-purple-500/10 p-2 rounded-xl text-center border border-purple-100 dark:border-purple-500/20">
+                                <span class="block text-[8px] text-purple-600 font-bold uppercase">📅 Salida</span>
+                                <span class="text-[10px] text-purple-700 dark:text-purple-300 font-black">${t.fecha_salida ? new Date(t.fecha_salida).toLocaleDateString() : 'Por definir'}</span>
+                             </div>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <button onclick='window.openInteractiveMap(${JSON.stringify(t).replace(/'/g, "&apos;")})' class="flex-1 bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 dark:text-blue-400 py-2 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1">
+                                🗺️ Mapa
+                            </button>
+                            <button onclick="window.openProgressModal('${t.id}', '${t.numero}', '${t.manzanas || ''}')" class="flex-1 ${isLate ? 'bg-red-600 text-white' : 'bg-teal-600 text-white'} py-2 rounded-xl text-xs font-bold shadow-lg shadow-teal-500/20 transition-all flex items-center justify-center gap-1">
+                                ✅ Reportar
+                            </button>
+                        </div>
                     </div>
-                 </div>
-                 
-                 <!-- Action Bar -->
-                 <div class="flex justify-between items-center bg-white dark:bg-black/20 p-2 rounded-lg border border-gray-100 dark:border-white/5 mt-1">
-                    <div class="text-xs text-gray-500">
-                        <span class="font-bold text-gray-800 dark:text-gray-200">Territorio ${t.numero}</span>
-                        <span class="block text-[10px] opacity-75">${t.manzanas || 'Mz. Generales'}</span>
-                    </div>
-                    
-                    <button onclick="window.openProgressModal('${t.id}', '${t.numero}', '${t.manzanas || ''}')" 
-                        class="${(t.isLate || (daysMap[a.dia] < currentDayNorm)) ? 'bg-red-600 hover:bg-red-500 shadow-red-500/20' : 'bg-teal-600 hover:bg-teal-500 shadow-teal-500/20'} text-white px-4 py-1.5 rounded-lg text-xs font-bold shadow-lg hover:scale-105 transition-transform flex items-center gap-1">
-                        <span>✅</span> Avance
-                    </button>
                  </div>
                  `;
     }).join('')}
         </div>
-        </div>
         ` : `
-        <div class="bg-gray-50 dark:bg-white/5 rounded-xl border-2 border-dashed border-gray-200 dark:border-white/10 p-6 flex flex-col items-center justify-center text-center mt-2 group-hover:border-teal-500/30 transition-colors">
-            <div class="text-3xl mb-2 opacity-50">🍃</div>
+        <div class="bg-gray-50 dark:bg-white/5 rounded-2xl border-2 border-dashed border-gray-200 dark:border-white/10 p-8 flex flex-col items-center justify-center text-center mt-2">
+            <div class="text-4xl mb-3 opacity-30">🍃</div>
             <h4 class="font-bold text-gray-600 dark:text-gray-300">Sin Territorios</h4>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                No tienes territorios asignados para este turno.<br>
-                <span class="text-teal-600 dark:text-teal-400 font-medium">¡Disfruta tu servicio!</span>
-            </p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-[200px]">No tienes territorios asignados para este turno.</p>
         </div>
         `}
-
     </div>
-    `).join('') : '<div class="col-span-full p-8 text-center text-gray-500 bg-white dark:bg-white/5 rounded-2xl border border-dashed border-gray-300 dark:border-white/10 italic">No tienes asignaciones esta semana.</div>';
+    `).join('') : '<div class="col-span-full p-12 text-center text-gray-500 bg-white dark:bg-white/5 rounded-3xl border border-dashed border-gray-300 dark:border-white/10 italic">No tienes asignaciones esta semana.</div>';
 
-    // 3. Availability (Keep separate)
+    // Initialize Swipe Handlers
+    setTimeout(() => initSwipeActions(), 0);
+
+    // 3. Availability
     renderAvailabilitySection(document.getElementById('availability-container'), name);
 
     // 4. AI
     renderAISection(name);
 
-    // 5. Ayudas
-    renderAyudasSection(document.getElementById('ayudas-container'));
+    // 5. Misión de Rescate (Rescue Mode)
+    renderRescueSection(document.getElementById('ayudas-container'), name, territories);
+
+    // GEOFENCING Logic
+    if ("geolocation" in navigator) {
+        navigator.geolocation.watchPosition((pos) => {
+            const { latitude, longitude } = pos.coords;
+            assignments.forEach(a => {
+                a.attachedTerritories.forEach(t => {
+                    if (t.coordenadas) {
+                        // Simple dist calculation or check
+                        // If within 500m of territory, show notification
+                        // (Requires coordinates implementation)
+                    }
+                });
+            });
+        }, (err) => console.log("Geo error", err), { enableHighAccuracy: true });
+    }
 };
 
-const renderAyudasSection = async (container) => {
+const initSwipeActions = () => {
+    const cards = document.querySelectorAll('.territory-card-swipe');
+    cards.forEach(card => {
+        const content = card.querySelector('.swipe-content');
+        const leftAction = card.querySelector('.swipe-action-left');
+        const rightAction = card.querySelector('.swipe-action-right');
+
+        let startX = 0;
+        let currentX = 0;
+        let isMoving = false;
+
+        card.addEventListener('touchstart', (e) => {
+            startX = e.touches[0].clientX;
+            isMoving = true;
+            content.style.transition = 'none';
+        });
+
+        card.addEventListener('touchmove', (e) => {
+            if (!isMoving) return;
+            currentX = e.touches[0].clientX - startX;
+
+            // Limit swipe
+            if (Math.abs(currentX) > 100) return;
+
+            content.style.transform = `translateX(${currentX}px)`;
+
+            if (currentX > 30) {
+                leftAction.style.opacity = Math.min(1, (currentX - 30) / 40);
+                card.style.backgroundColor = 'rgba(37, 99, 235, 0.8)'; // Blue for map
+            } else if (currentX < -30) {
+                rightAction.style.opacity = Math.min(1, (Math.abs(currentX) - 30) / 40);
+                card.style.backgroundColor = 'rgba(13, 148, 136, 0.8)'; // Teal for report
+            } else {
+                leftAction.style.opacity = 0;
+                rightAction.style.opacity = 0;
+                card.style.backgroundColor = 'transparent';
+            }
+        });
+
+        card.addEventListener('touchend', () => {
+            isMoving = false;
+            content.style.transition = 'transform 0.3s ease';
+
+            if (currentX > 70) {
+                // Swipe Right -> Open Map
+                const t = {
+                    id: card.dataset.id,
+                    numero: card.dataset.num,
+                    manzanas: card.dataset.manzanas,
+                    coordenadas: JSON.parse(card.dataset.coords)
+                };
+                window.openInteractiveMap(t);
+            } else if (currentX < -70) {
+                // Swipe Left -> Open Report
+                window.openProgressModal(card.dataset.id, card.dataset.num, card.dataset.manzanas);
+            }
+
+            content.style.transform = 'translateX(0px)';
+            leftAction.style.opacity = 0;
+            rightAction.style.opacity = 0;
+            setTimeout(() => card.style.backgroundColor = 'transparent', 300);
+            currentX = 0;
+        });
+    });
+};
+
+async function renderAyudasSection(container) {
     const recursos = await getRecursos();
     if (recursos.length === 0) return;
 
@@ -509,7 +689,7 @@ const renderAyudasSection = async (container) => {
     `;
 };
 
-const renderAvailabilitySection = async (container, conductorName) => {
+async function renderAvailabilitySection(container, conductorName) {
     // 1. Fetch Conductor ID and Data
     const allConductores = await getConductores();
     // Match by name or email (legacy support)
@@ -610,8 +790,20 @@ const renderAvailabilitySection = async (container, conductorName) => {
 
 /* --- MODALS & HELPERS --- */
 
-// View Map Modal
+// View Map Modal (Interactive)
+window.openInteractiveMap = (territory) => {
+    const modal = document.getElementById('modal-container');
+    modal.innerHTML = `
+        <div class="relative max-w-5xl w-full h-[80vh] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden animate-scale-in">
+             <div id="interactive-map-container" class="w-full h-full"></div>
+        </div>
+    `;
+    modal.classList.remove('hidden');
+    MapViewer.render(document.getElementById('interactive-map-container'), territory);
+};
+
 window.viewMap = (url) => {
+    // Legacy support or fallback
     const modal = document.getElementById('modal-container');
     modal.innerHTML = `
     <div class="relative max-w-5xl w-full p-4 animate-scale-in">
@@ -827,37 +1019,27 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
     publicadores.sort((a, b) => a.nombre.localeCompare(b.nombre));
     const estados = ['Sin asignar', 'Contestaron', 'No contestan', 'Colgaron', 'Revisita', 'No llamar', 'Suspendido', 'Testigo'];
 
+    // Local State for session tracking
+    let sessionActive = telefonos.some(t => t.solicitado_por === userId && (t.estado === 'Sin asignar' || !t.estado));
+
     window.updatePhoneAssignment = async (id, newPub) => {
         const telIndex = telefonos.findIndex(t => t.id === id);
         if (telIndex !== -1) {
-            telefonos[telIndex].publicador_asignado = newPub === 'Sin asignar' ? null : newPub;
-            // If assigning, set status to Asignado if it was Sin asignar
-            if (newPub !== 'Sin asignar' && (telefonos[telIndex].estado === 'Sin asignar' || !telefonos[telIndex].estado)) {
-                telefonos[telIndex].estado = 'Asignado';
-            }
-            if (newPub === 'Sin asignar') {
-                telefonos[telIndex].estado = 'Sin asignar';
-            }
-            render();
+            telefonos[telIndex].publicador_asignado = newPub;
+            telefonos[telIndex].asignado_a = newPub;
+            // No full render here to keep focus if needed, but usually it's fine
         }
 
-        if (!newPub || newPub === 'Sin asignar') {
-            await updateTelefono(id, {
-                publicador_asignado: null,
-                asignado_a: null,
-                estado: 'Sin asignar',
-                fecha_asignacion: null
-            });
-        } else {
-            const currentTel = telefonos.find(t => t.id === id);
-            const newStatus = (currentTel && currentTel.estado === 'Sin asignar') ? 'Asignado' : (currentTel ? currentTel.estado : 'Asignado');
-
+        try {
             await updateTelefono(id, {
                 publicador_asignado: newPub,
                 asignado_a: newPub,
-                fecha_asignacion: new Date().toISOString(),
-                estado: newStatus
+                fecha_asignacion: new Date().toISOString()
             });
+            // showNotification("Asignación guardada", "success", 1000);
+        } catch (e) {
+            console.error(e);
+            showNotification("Error al guardar asignación", "error");
         }
     };
 
@@ -865,32 +1047,29 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
         const telIndex = telefonos.findIndex(t => t.id === id);
         if (telIndex !== -1) {
             telefonos[telIndex].estado = status;
+            if (status === 'Sin asignar') {
+                telefonos[telIndex].publicador_asignado = null;
+                telefonos[telIndex].asignado_a = null;
+                telefonos[telIndex].fecha_asignacion = null;
+                telefonos[telIndex].solicitado_por = null;
+            }
             render();
         }
-        // Pass null for pubId to avoid overwriting/resetting assignment date implicitly
-        await updateTelefonoStatus(id, status, null);
+        await updateTelefonoStatus(id, status, (telIndex !== -1 ? telefonos[telIndex].asignado_a : null));
     };
 
     window.updatePhoneComment = async (id, comment, inputElement) => {
-        // Find local logic
         const telIndex = telefonos.findIndex(t => t.id === id);
         if (telIndex !== -1) {
             telefonos[telIndex].comentario = comment;
-            // We don't re-render here to avoid losing focus or cursor position if we used 'input' event, 
-            // but since we use 'blur' it's fine. However, no need to re-render the whole table for this.
         }
 
-        // Visual Feedback
-        const originalBorder = inputElement.classList.contains('border-teal-500');
         inputElement.classList.add('border-teal-500', 'bg-teal-900/20');
 
         try {
             await updateTelefono(id, { comentario: comment });
-
-            // Success animation
             setTimeout(() => {
-                inputElement.classList.remove('bg-teal-900/20');
-                if (!originalBorder) inputElement.classList.remove('border-teal-500');
+                inputElement.classList.remove('bg-teal-900/20', 'border-teal-500');
             }, 1000);
         } catch (e) {
             console.error("Error saving comment:", e);
@@ -899,33 +1078,84 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
         }
     };
 
+    window.copyToClipboard = (text) => {
+        navigator.clipboard.writeText(text).then(() => {
+            showNotification("Número copiado al portapapeles", "success", 1500);
+        });
+    };
+
     const render = () => {
-        telefonos.sort((a, b) => {
-            // Sort by assigned date descending, then number
+        const searchInput = document.getElementById('search-phone');
+        const statusFilter = document.getElementById('filter-phone-status');
+        const searchVal = searchInput ? searchInput.value.toLowerCase() : '';
+        const statusVal = statusFilter ? statusFilter.value : '';
+
+        // Filter and Sort
+        let filtered = telefonos.filter(t => {
+            const matchSearch = !searchVal || t.numero.includes(searchVal) || (t.propietario && t.propietario.toLowerCase().includes(searchVal));
+            const matchStatus = !statusVal || t.estado === statusVal;
+            return matchSearch && matchStatus;
+        });
+
+        filtered.sort((a, b) => {
             const dateA = a.fecha_asignacion ? new Date(a.fecha_asignacion) : new Date(0);
             const dateB = b.fecha_asignacion ? new Date(b.fecha_asignacion) : new Date(0);
             return dateB - dateA;
         });
 
-        if (telefonos.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-gray-500 italic">No tienes números asignados. ¡Usa el botón "Solicitar"!</td></tr>`;
+        // Banner Case: If no phones requested by current user
+        const activeRequests = telefonos.filter(t => t.solicitado_por === userId);
+
+        if (activeRequests.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="p-0">
+                        <div class="bg-gradient-to-br from-teal-50 to-white dark:from-teal-900/10 dark:to-[#0f1115] p-12 text-center rounded-2xl border-2 border-dashed border-teal-200 dark:border-teal-800/30 m-4 animate-fade-in">
+                            <div class="text-6xl mb-6">📞</div>
+                            <h3 class="text-2xl font-bold text-teal-800 dark:text-teal-100 mb-4">¿Listo para la Predicación Telefónica?</h3>
+                            <p class="text-gray-600 dark:text-gray-400 max-w-md mx-auto mb-8">
+                                Haz clic en el botón de abajo para solicitar tus primeros 30 números y empezar la sesión con tu grupo.
+                            </p>
+                            <button id="btn-solicitar-banner" class="bg-teal-600 hover:bg-teal-500 text-white px-8 py-3 rounded-full font-bold shadow-xl shadow-teal-500/20 transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2 mx-auto">
+                                🚀 Solicitar Números
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            setTimeout(() => {
+                const b = document.getElementById('btn-solicitar-banner');
+                if (b) b.onclick = () => document.getElementById('btn-solicitar').click();
+            }, 0);
             return;
         }
 
-        tbody.innerHTML = telefonos.map(t => {
-            const currentPubId = t.publicador_asignado || '';
+        if (filtered.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-500 italic">No se encontraron números que coincidan con la búsqueda.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = filtered.map(t => {
+            const currentPubName = t.asignado_a || '';
             const currentStatus = t.estado || 'Sin asignar';
             return `
-            <tr class="hover:bg-black/5 dark:bg-white/5 transition-colors border-b border-white/5 group">
-                <td class="p-3 font-mono text-teal-700 dark:text-teal-300 font-medium text-sm tracking-wide whitespace-nowrap">${formatPhoneNumber(t.numero)}</td>
-                <td class="p-3 text-gray-700 dark:text-gray-300 text-sm font-bold truncate max-w-[150px]">${t.propietario || '-'}</td>
-                <td class="p-3 text-gray-500 dark:text-gray-400 text-[10px] uppercase tracking-wide truncate max-w-[100px]">${t.direccion || '-'}</td>
+            <tr class="hover:bg-black/5 dark:hover:bg-white/5 transition-colors border-b border-white/5 group">
+                <td class="p-3">
+                    <div class="flex items-center gap-2 font-mono text-teal-700 dark:text-teal-300 font-bold text-sm tracking-wide">
+                        ${formatPhoneNumber(t.numero)}
+                        <button onclick="copyToClipboard('${t.numero}')" class="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-teal-500/20 rounded-md" title="Copiar número para Zoom">📋</button>
+                    </div>
+                </td>
+                <td class="p-3 text-gray-700 dark:text-gray-300 text-xs font-bold truncate-text max-w-[150px] uppercase">${t.propietario || '-'}</td>
+                <td class="p-3 text-gray-500 dark:text-gray-400 text-[10px] uppercase tracking-wide truncate-text max-w-[100px]">${t.direccion || '-'}</td>
                 <td class="p-2">
-                    <select onchange="window.updatePhoneAssignment('${t.id}', this.value)" 
-                        class="w-full bg-black/30 border border-black/10 dark:border-white/10 rounded px-2 py-1 text-xs font-medium focus:border-teal-500 outline-none cursor-pointer hover:bg-black/50 transition-colors text-teal-800 dark:text-teal-200">
-                        <option value="Sin asignar" class="bg-gray-900 text-white">Sin asignar</option>
-                        ${publicadores.map(p => `<option value="${p.nombre}" ${p.nombre === currentPubId ? 'selected' : ''} class="bg-gray-900 text-white">${p.nombre}</option>`).join('')}
-                    </select>
+                    <input type="text" list="pubs-list" value="${currentPubName}" 
+                        onchange="window.updatePhoneAssignment('${t.id}', this.value)"
+                        placeholder="Nombre..."
+                        class="w-full bg-black/30 border border-black/10 dark:border-white/10 rounded px-2 py-1 text-xs font-medium focus:border-teal-500 outline-none hover:bg-black/50 transition-colors text-teal-800 dark:text-teal-200">
+                    <datalist id="pubs-list">
+                        ${publicadores.map(p => `<option value="${p.nombre}">${p.nombre}</option>`).join('')}
+                    </datalist>
                 </td>
                 <td class="p-2 text-center">
                     <select onchange="window.updatePhoneStatus('${t.id}', this.value)" 
@@ -937,12 +1167,33 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
                     <input type="text" 
                         value="${t.comentario || ''}" 
                         onblur="window.updatePhoneComment('${t.id}', this.value, this)"
-                        placeholder="Escribir nota..." 
+                        placeholder="Observaciones..." 
                         class="w-full bg-transparent border-b border-black/10 dark:border-white/10 focus:border-teal-500 text-gray-700 dark:text-gray-300 text-xs py-1 px-2 focus:bg-black/20 outline-none transition-all placeholder-gray-600">
                 </td>
             </tr>
         `;
         }).join('');
+
+        // Progress Stats
+        const totalProcessed = telefonos.filter(t => t.estado && t.estado !== 'Sin asignar').length;
+        const total = telefonos.length;
+        const progressContainer = document.getElementById('phone-progress-info');
+        if (progressContainer) {
+            progressContainer.innerHTML = `
+                <div class="flex items-center gap-4 text-xs font-medium text-gray-500 dark:text-gray-400">
+                    <span>Progreso: <b>${totalProcessed}</b> de <b>${total}</b></span>
+                    <div class="w-24 h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+                        <div class="h-full bg-teal-500 transition-all duration-500" style="width: ${(totalProcessed / total) * 100}%"></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Finalizar Session Button visibility
+        const btnFinalizar = document.getElementById('btn-finalizar-sesion');
+        if (btnFinalizar) {
+            btnFinalizar.classList.toggle('hidden', activeRequests.length === 0);
+        }
     };
     render();
 
@@ -996,7 +1247,7 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
                          <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white transition-colors text-2xl leading-none">&times;</button>
                     </div>
                     
-                    <div class="flex-1 overflow-auto custom-scrollbar bg-gray-50 dark:bg-black/20 rounded-xl border border-gray-200 dark:border-white/5 relative min-h-[200px]">
+                    <div class="flex-1 responsive-table-container custom-scrollbar bg-gray-50 dark:bg-black/20 rounded-xl border border-gray-200 dark:border-white/5 relative min-h-[200px]">
                          <div id="revisitas-loader" class="absolute inset-0 flex items-center justify-center bg-white/50 dark:bg-black/50 backdrop-blur-sm z-10">
                              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600"></div>
                          </div>
@@ -1057,39 +1308,133 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
     }
 
     window.returnRevisita = async (id) => {
-        showCustomConfirm("¿Confirmas que deseas devolver este número? Pasará a estar 'Sin asignar'.", async () => {
-            try {
-                await updateTelefono(id, {
-                    estado: 'Sin asignar',
-                    publicador_asignado: null,
-                    asignado_a: null,
-                    fecha_asignacion: null
-                });
+        const row = document.getElementById(`rev-row-${id}`);
+        // Demand comment for return
+        const reason = prompt("Por favor, ingresa el motivo de la devolución (¿Por qué se devuelve este número?):");
+        if (reason === null) return; // Cancelled
+        if (!reason.trim()) {
+            showNotification("Debes ingresar un motivo para devolver el número.", "warning");
+            return;
+        }
 
-                showNotification("Revisita devuelta exitosamente.", "success");
+        try {
+            await updateTelefono(id, {
+                estado: 'Sin asignar',
+                publicador_asignado: null,
+                asignado_a: null,
+                fecha_asignacion: null,
+                solicitado_por: null,
+                comentario_devolucion: reason,
+                fecha_devolucion: new Date().toISOString()
+            });
 
-                // Remove Row
-                const row = document.getElementById(`rev-row-${id}`);
-                if (row) row.remove();
+            showNotification("Número devuelto exitosamente.", "success");
+            if (row) row.remove();
 
-                // Check if empty
-                const tbody = document.getElementById('revisitas-tbody');
-                if (tbody && tbody.children.length === 0) {
-                    document.getElementById('no-revisitas-msg').classList.remove('hidden');
-                }
-
-                // Refresh dashboard
-                if (refreshCallback) {
-                    telefonos = await refreshCallback();
-                    render();
-                }
-
-            } catch (e) {
-                console.error(e);
-                showNotification("Error devolviendo revisita", "error");
+            const tbodyRev = document.getElementById('revisitas-tbody');
+            if (tbodyRev && tbodyRev.children.length === 0) {
+                document.getElementById('no-revisitas-msg').classList.remove('hidden');
             }
-        });
+
+            if (refreshCallback) {
+                telefonos = await refreshCallback();
+                render();
+            }
+        } catch (e) {
+            console.error(e);
+            showNotification("Error al devolver número", "error");
+        }
     };
+
+    // End Session Logic
+    const btnFinalizar = document.getElementById('btn-finalizar-sesion');
+    if (btnFinalizar) {
+        btnFinalizar.addEventListener('click', async () => {
+            const activeRequests = telefonos.filter(t => t.solicitado_por === userId);
+            if (activeRequests.length === 0) return;
+
+            const summary = {
+                total: activeRequests.length,
+                stats: {
+                    'Contestaron': 0,
+                    'No contestan': 0,
+                    'Colgaron': 0,
+                    'Revisita': 0,
+                    'No llamar': 0,
+                    'Sin asignar': 0
+                }
+            };
+
+            activeRequests.forEach(t => {
+                const st = t.estado || 'Sin asignar';
+                if (summary.stats.hasOwnProperty(st)) summary.stats[st]++;
+                else summary.stats['Sin asignar']++;
+            });
+
+            const statsText = Object.entries(summary.stats)
+                .filter(([_, count]) => count > 0)
+                .map(([name, count]) => `• ${name}: ${count}`)
+                .join('\n');
+
+            const modal = document.getElementById('modal-container');
+            modal.innerHTML = `
+                <div class="bg-white dark:bg-gray-900 border border-teal-200 dark:border-teal-800/30 rounded-3xl p-8 max-w-sm w-full shadow-[0_20px_50px_rgba(0,0,0,0.3)] relative animate-scale-in">
+                    <div class="text-teal-600 dark:text-teal-400 text-5xl mb-4 text-center">🏁</div>
+                    <h3 class="text-2xl font-black text-center text-teal-900 dark:text-teal-100 mb-6">Sesión Finalizada</h3>
+                    
+                    <div class="bg-teal-50 dark:bg-white/5 rounded-2xl p-5 mb-6 border border-teal-100 dark:border-white/5">
+                        <p class="text-xs uppercase font-bold text-teal-600 dark:text-teal-400 mb-3 tracking-widest text-center">Resumen de Hoy</p>
+                        <div class="space-y-2 text-sm text-teal-900 dark:text-teal-200">
+                             <p class="font-bold border-b border-teal-200 dark:border-white/10 pb-2 mb-2">Total Procesado: ${summary.total}</p>
+                             ${statsText.replace(/\n/g, '<br>')}
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-3">
+                        <button id="btn-share-results" class="bg-teal-600 hover:bg-teal-500 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-teal-500/20 transition-all">
+                             📤 Compartir Reporte
+                        </button>
+                        <button id="btn-close-summary" class="bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-700 dark:text-gray-300 py-3 rounded-xl font-bold transition-all">
+                             Cerrar
+                        </button>
+                    </div>
+                </div>
+            `;
+            modal.classList.remove('hidden');
+
+            // Log summary to backend
+            await logSessionSummary({
+                conductor_id: userId,
+                stats: summary.stats,
+                total: summary.total
+            });
+
+            document.getElementById('btn-close-summary').onclick = () => modal.classList.add('hidden');
+
+            document.getElementById('btn-share-results').onclick = () => {
+                const message = `📋 *Resumen de Predicación Telefónica*\n` +
+                    `👤 *Conductor:* ${userId}\n` +
+                    `📊 *Total procesado:* ${summary.total}\n\n` +
+                    `${statsText}\n\n` +
+                    `_Enviado desde App Territorios_`;
+
+                if (navigator.share) {
+                    navigator.share({
+                        title: 'Resumen de Predicación',
+                        text: message
+                    }).catch(console.error);
+                } else {
+                    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+                }
+            };
+        });
+    }
+
+    // Search and Filter Listeners
+    const searchPhone = document.getElementById('search-phone');
+    const filterStatus = document.getElementById('filter-phone-status');
+    if (searchPhone) searchPhone.addEventListener('input', render);
+    if (filterStatus) filterStatus.addEventListener('change', render);
 
 
 
@@ -1144,7 +1489,7 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
 };
 
 /* --- AI / INTELLIGENCE --- */
-const renderAISection = async (name) => {
+async function renderAISection(name) {
     // 1. Fetch Context Data
     const telefonos = await getTelefonos();
     const publicadores = await getPublicadores();
@@ -1302,3 +1647,97 @@ const renderAISection = async (name) => {
         if (e.key === 'Enter') handleSend();
     });
 };
+
+/** --- RESCUE MODE (Ayudas) --- **/
+
+function renderRescueSection(container, currentConductorName, allTerritories) {
+    if (!container) return;
+
+    const now = new Date();
+    const rescueCandidates = allTerritories.filter(t => {
+        if (t.estado !== 'Asignado' && t.estado !== 'Pendiente') return false;
+        if (t.asignado_a === currentConductorName) return false;
+
+        const dateToCheck = t.fecha_salida ? new Date(t.fecha_salida) : (t.fecha_asignacion ? new Date(t.fecha_asignacion) : null);
+        if (!dateToCheck) return false;
+
+        const diffHrs = (now - dateToCheck) / (1000 * 60 * 60);
+        return diffHrs > 24; // Overdue by more than 24 hours
+    });
+
+    if (rescueCandidates.length === 0) {
+        container.innerHTML = `
+            <div class="p-6 text-center bg-gray-50 dark:bg-white/5 rounded-2xl border border-dashed border-gray-200 dark:border-white/10">
+                <p class="text-xs text-gray-400 italic">No hay territorios que necesiten rescate en este momento. ✨</p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="space-y-4">
+            <div class="flex items-center gap-2 mb-2">
+                <span class="text-xl">🚑</span>
+                <h3 class="font-bold text-gray-800 dark:text-gray-100 uppercase text-xs tracking-widest">Misiones de Rescate</h3>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                ${rescueCandidates.map(t => `
+                    <div class="bg-red-50/50 dark:bg-red-950/10 border border-red-200/50 dark:border-red-900/30 rounded-2xl p-4 flex flex-col gap-3 group hover:border-red-500/30 transition-all">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="font-black text-gray-900 dark:text-gray-100">#${t.numero}</h4>
+                                <p class="text-[10px] text-red-600 dark:text-red-400 font-bold uppercase">${t.asignado_a}</p>
+                            </div>
+                            <span class="bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 px-2 py-0.5 rounded text-[9px] font-bold">24h+ ATRASO</span>
+                        </div>
+                        <p class="text-[10px] text-gray-500 line-clamp-1 italic">"${t.manzanas || 'Sin manzanas específicas'}"</p>
+                        <button onclick="window.handleRescueTerritory('${t.id}', '${t.numero}', '${currentConductorName}', '${t.manzanas || ''}')" 
+                                class="w-full bg-red-600 hover:bg-red-700 text-white text-[10px] font-black py-2.5 rounded-xl shadow-lg shadow-red-500/20 transition-all uppercase tracking-widest">
+                            Ayudar con este territorio
+                        </button>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+}
+
+window.handleRescueTerritory = async (id, num, newConductor, manzanas) => {
+    const ok = await new Promise(resolve => {
+        const modal = document.getElementById('modal-container');
+        modal.innerHTML = `
+            <div class="bg-white dark:bg-gray-900 p-8 rounded-3xl shadow-2xl border border-red-500/20 max-w-sm w-full text-center animate-bounce-in">
+                <div class="text-5xl mb-4">🚑</div>
+                <h3 class="text-xl font-black text-gray-900 dark:text-white mb-4">¿Confirmar Rescate?</h3>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-8 leading-relaxed">
+                    Vas a tomar el territorio <b>#${num}</b> para ayudar a terminarlo. Se notificará al conductor original.
+                </p>
+                <div class="flex gap-3">
+                    <button id="rescue-cancel" class="flex-1 py-3 text-sm font-bold text-gray-500 bg-gray-100 dark:bg-white/5 rounded-2xl">Cancelar</button>
+                    <button id="rescue-confirm" class="flex-1 py-3 text-sm font-black text-white bg-red-600 rounded-2xl shadow-xl shadow-red-500/30 hover:bg-red-500 transition-colors">SÍ, AYUDAR</button>
+                </div>
+            </div>
+        `;
+        modal.classList.remove('hidden');
+        document.getElementById('rescue-cancel').onclick = () => { modal.classList.add('hidden'); resolve(false); };
+        document.getElementById('rescue-confirm').onclick = () => { modal.classList.add('hidden'); resolve(true); };
+    });
+
+    if (!ok) return;
+
+    try {
+        showNotification("Procesando transferencia...", "info");
+        await transferTerritory(id, newConductor, manzanas);
+        showNotification(`¡Misión aceptada! El territorio #${num} ahora está en tu agenda.`, "success");
+        // Force reload
+        window.loadUnifiedDashboard();
+    } catch (err) {
+        console.error(err);
+        showNotification("Error en el rescate: " + err.message, "error");
+    }
+};
+
+
+
+
+

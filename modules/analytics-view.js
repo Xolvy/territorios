@@ -1,4 +1,4 @@
-import { getTerritorios, getConductores, getGlobalSettings } from '../data/firestore-services.js?v=5.0.3';
+import { getTerritorios, getConductores, getGlobalSettings, getHistorialReport } from '../data/firestore-services.js?v=2.4.0';
 
 export const renderAnalyticsView = async (container) => {
     // 1. Fetch settings FIRST to use in the template
@@ -25,9 +25,7 @@ export const renderAnalyticsView = async (container) => {
                 </button>
             </header>
 
-            <!-- KPI Cards -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <!-- KPI 1 -->
                 <div class="bg-white dark:bg-[#181a1f] p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 relative overflow-hidden group">
                     <div class="absolute right-0 top-0 w-24 h-24 bg-teal-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
                     <h3 class="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Total Territorios</h3>
@@ -35,7 +33,6 @@ export const renderAnalyticsView = async (container) => {
                     <div class="text-xs text-teal-600 mt-2 font-medium">Cobertura Global</div>
                 </div>
                 
-                <!-- KPI 2 -->
                 <div class="bg-white dark:bg-[#181a1f] p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 relative overflow-hidden group">
                     <div class="absolute right-0 top-0 w-24 h-24 bg-blue-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
                     <h3 class="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Asignados</h3>
@@ -43,7 +40,6 @@ export const renderAnalyticsView = async (container) => {
                     <div class="text-xs text-blue-500 mt-2 font-medium" id="stat-assigned-pct">0% del total</div>
                 </div>
 
-                <!-- KPI 3 -->
                 <div class="bg-white dark:bg-[#181a1f] p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 relative overflow-hidden group">
                     <div class="absolute right-0 top-0 w-24 h-24 bg-purple-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
                     <h3 class="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Conductores</h3>
@@ -51,7 +47,6 @@ export const renderAnalyticsView = async (container) => {
                     <div class="text-xs text-purple-500 mt-2 font-medium">Activos en servicio</div>
                 </div>
 
-                <!-- KPI 4 -->
                 <div class="bg-white dark:bg-[#181a1f] p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 relative overflow-hidden group">
                     <div class="absolute right-0 top-0 w-24 h-24 bg-red-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
                     <h3 class="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Atrasados (>${settings?.expiration_days ? Math.round(settings.expiration_days / 30) : 4}m)</h3>
@@ -60,9 +55,7 @@ export const renderAnalyticsView = async (container) => {
                 </div>
             </div>
 
-            <!-- Charts Section -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-96">
-                <!-- Status Chart -->
                 <div class="bg-white dark:bg-[#181a1f] p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 flex flex-col">
                     <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100 mb-6">Estado de Territorios</h3>
                     <div class="flex-1 relative">
@@ -70,16 +63,14 @@ export const renderAnalyticsView = async (container) => {
                     </div>
                 </div>
 
-                 <!-- Top Conductors / Activity -->
                 <div class="lg:col-span-2 bg-white dark:bg-[#181a1f] p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 flex flex-col">
-                    <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100 mb-6">Conductores con Más Asignaciones Activas</h3>
+                    <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100 mb-6 font-primary">Frecuencia de Trabajo por Territorio</h3>
                     <div class="flex-1 relative">
-                        <canvas id="chart-conductors"></canvas>
+                        <canvas id="chart-territories"></canvas>
                     </div>
                 </div>
             </div>
 
-            <!-- Suggestions / Late Table -->
             <div class="bg-white dark:bg-[#181a1f] rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 overflow-hidden flex-1 flex flex-col min-h-[300px]">
                 <div class="p-6 border-b border-black/5 dark:border-white/5 flex justify-between items-center">
                     <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100">🚫 Territorios que requieren atención inmediata</h3>
@@ -96,14 +87,13 @@ export const renderAnalyticsView = async (container) => {
                             </tr>
                         </thead>
                         <tbody id="late-table-body" class="divide-y divide-gray-100 dark:divide-white/5 text-sm">
-                            <!-- Populated JS -->
                         </tbody>
                     </table>
                 </div>
             </div>
             
             <div class="text-center text-xs text-gray-400 py-4">
-                App Territorios v5.0.3 Ready • Powered by Antigravity
+                App Territorios v2.3.1 Oficial • Powered by Antigravity
             </div>
         </div>
     `;
@@ -111,9 +101,10 @@ export const renderAnalyticsView = async (container) => {
     // Load Data
     const loadData = async () => {
         try {
-            const [territorios, conductores] = await Promise.all([
+            const [territorios, conductores, historial] = await Promise.all([
                 getTerritorios(),
-                getConductores()
+                getConductores(),
+                getHistorialReport()
             ]);
 
             // Reuse settings fetched at top
@@ -170,27 +161,40 @@ export const renderAnalyticsView = async (container) => {
                 }
             });
 
-            // Render Chart 2: Top Active Conductors
-            // Count assignments per conductor
-            const condMap = {};
-            assigned.forEach(t => {
-                const name = t.asignado_a || 'Desconocido';
-                condMap[name] = (condMap[name] || 0) + 1;
+            // Render Chart 2: Most Worked Territories
+            // Count completions per territory
+            const terrFreqMap = {};
+            historial.forEach(entry => {
+                if (entry.estado === 'Completado' && entry.numero) {
+                    const num = entry.numero.toString().trim();
+                    terrFreqMap[num] = (terrFreqMap[num] || 0) + 1;
+                }
             });
-            // Sort top 7
-            const sortedCond = Object.entries(condMap)
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, 7);
 
-            const ctxCond = document.getElementById('chart-conductors').getContext('2d');
-            new Chart(ctxCond, {
+            // If history is empty, maybe count assignments (even if not yet completed)
+            if (Object.keys(terrFreqMap).length === 0) {
+                historial.forEach(entry => {
+                    if (entry.numero) {
+                        const num = entry.numero.toString().trim();
+                        terrFreqMap[num] = (terrFreqMap[num] || 0) + 1;
+                    }
+                });
+            }
+
+            // Sort top 10
+            const sortedTerrFreq = Object.entries(terrFreqMap)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10);
+
+            const ctxTerr = document.getElementById('chart-territories').getContext('2d');
+            new Chart(ctxTerr, {
                 type: 'bar',
                 data: {
-                    labels: sortedCond.map(x => x[0]),
+                    labels: sortedTerrFreq.map(x => `Terr. ${x[0]}`),
                     datasets: [{
-                        label: 'Asignaciones Activas',
-                        data: sortedCond.map(x => x[1]),
-                        backgroundColor: '#3b82f6',
+                        label: 'Veces Trabajado',
+                        data: sortedTerrFreq.map(x => x[1]),
+                        backgroundColor: '#0f766e', // Teal color for consistency
                         borderRadius: 6,
                         barThickness: 20
                     }]
@@ -199,11 +203,20 @@ export const renderAnalyticsView = async (container) => {
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
-                        y: { beginAtZero: true, grid: { display: false } },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(0,0,0,0.05)' },
+                            ticks: { precision: 0 }
+                        },
                         x: { grid: { display: false } }
                     },
                     plugins: {
-                        legend: { display: false }
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => `Trabajado ${context.raw} veces`
+                            }
+                        }
                     }
                 }
             });
@@ -240,3 +253,8 @@ export const renderAnalyticsView = async (container) => {
         renderAnalyticsView(container);
     });
 };
+
+
+
+
+

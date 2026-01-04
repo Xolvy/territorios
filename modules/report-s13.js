@@ -1,5 +1,5 @@
-import { getHistorialReport, rebuildHistoryFromSchedule } from '../data/firestore-services.js?v=5.0.3';
-import { showNotification } from './utils/helpers.js?v=5.0.3';
+import { getHistorialReport, rebuildHistoryFromSchedule, getConfiguracion } from '../data/firestore-services.js?v=2.4.0';
+import { showNotification, generatePlainXLS } from './utils/helpers.js?v=2.4.0';
 
 export const renderHistoryTab = (container) => {
     container.innerHTML = `
@@ -13,12 +13,10 @@ export const renderHistoryTab = (container) => {
                         Genera reportes detallados para el formulario S-13.
                     </p>
                 </div>
-                <!-- Controls -->
                 <div class="flex flex-wrap items-end gap-3 bg-black/5 dark:bg-white/5 p-3 rounded-xl border border-black/10 dark:border-white/10">
                     <div>
                          <label class="block text-xs uppercase text-gray-500 mb-1 font-bold">Año Servicio</label>
                          <select id="report-year-select" class="bg-black/10 dark:bg-black/40 border border-white/10 rounded-lg px-2 py-1 text-sm text-gray-800 dark:text-gray-200 focus:border-blue-500 outline-none font-bold">
-                            <!-- Populated via JS -->
                          </select>
                     </div>
                     <div>
@@ -33,7 +31,10 @@ export const renderHistoryTab = (container) => {
                         Generar Vista Previa
                     </button>
                     <button id="btn-export-s13-pdf" class="hidden bg-red-600 hover:bg-red-500 text-white px-4 py-1.5 rounded-lg shadow-lg shadow-red-500/20 text-sm font-bold transition-all h-fit self-end flex items-center gap-2">
-                        <span>📄</span> Exportar PDF
+                        <span>📄</span> PDF
+                    </button>
+                    <button id="btn-export-s13-excel" class="hidden bg-green-700 hover:bg-green-600 text-white px-4 py-1.5 rounded-lg shadow-lg shadow-green-500/20 text-sm font-bold transition-all h-fit self-end flex items-center gap-2">
+                        <span>📊</span> EXCEL
                     </button>
                     <!-- Tools -->
                     <button id="btn-rebuild-history" class="text-gray-400 hover:text-white p-2 rounded-lg transition-colors h-fit self-end" title="Recuperar historial desde Programa Semanal">
@@ -128,10 +129,30 @@ export const renderHistoryTab = (container) => {
         loader.classList.remove('hidden');
 
         try {
-            const historyData = await getHistorialReport(start, end);
+            const allHistory = await getHistorialReport();
+
+            // Filter data for the preview range
+            const startMs = new Date(start).getTime();
+            const endObj = new Date(end);
+            endObj.setHours(23, 59, 59, 999);
+            const endMs = endObj.getTime();
+
+            const historyInRange = allHistory.filter(item => {
+                const fAsig = new Date(item.fecha_asignacion).getTime();
+                const fEntr = item.fecha_entrega ? new Date(item.fecha_entrega).getTime() : null;
+                return (fAsig >= startMs && fAsig <= endMs) || (fEntr && fEntr >= startMs && fEntr <= endMs);
+            });
+
+            const config = await getConfiguracion();
+            const congregationName = config?.congregacion?.nombre || 'Mi Congregación';
             const yearLabel = document.getElementById('report-year-select').value;
-            renderReport(historyData, start, end, yearLabel);
+
+            renderReport(historyInRange, allHistory, start, end, yearLabel, congregationName);
             document.getElementById('btn-export-s13-pdf').classList.remove('hidden');
+            document.getElementById('btn-export-s13-excel').classList.remove('hidden');
+
+            // Save current data for excel export
+            window._currentS13Data = historyInRange;
         } catch (e) {
             console.error(e);
             showNotification("Error generando reporte: " + e.message, "error");
@@ -187,6 +208,33 @@ export const renderHistoryTab = (container) => {
         }
     });
 
+    document.getElementById('btn-export-s13-excel').addEventListener('click', () => {
+        const data = window._currentS13Data;
+        if (!data || data.length === 0) return;
+
+        // Create a flat list: if multiple numbers were assigned together, split them
+        const flatList = [];
+        data.forEach(item => {
+            const nums = item.numero.toString().split(',').map(n => n.trim());
+            nums.forEach(num => {
+                flatList.push({
+                    'Territorio': num,
+                    'Conductor': item.conductor || '-',
+                    'Fecha Asignación': formatDateShort(item.fecha_asignacion),
+                    'Fecha Devolución': formatDateShort(item.fecha_entrega),
+                    'Estado': item.estado || '-',
+                    'Observaciones': item.observaciones || '-'
+                });
+            });
+        });
+
+        // Numerical Sort by Territory
+        flatList.sort((a, b) => a.Territorio.localeCompare(b.Territorio, undefined, { numeric: true }));
+
+        generatePlainXLS(flatList, `Listado_Asignaciones_S13_${document.getElementById('report-start').value}`);
+        showNotification("Excel generado con éxito. 📊");
+    });
+
     // Rebuild Listener
     document.getElementById('btn-rebuild-history').addEventListener('click', async () => {
         const runRebuild = async () => {
@@ -203,68 +251,34 @@ export const renderHistoryTab = (container) => {
             }
         };
 
-        if (window.showCustomConfirm) {
-            window.showCustomConfirm("¿Deseas analizar todos los Programas Semanales antiguos para reconstruir el historial de asignaciones?\n\nEsto es útil si no ves datos de semanas anteriores.", runRebuild);
-        } else {
-            if (confirm("¿Deseas analizar todos los Programas Semanales antiguos para reconstruir el historial de asignaciones?")) {
-                runRebuild();
-            }
-        }
+        window.showCustomConfirm("¿Deseas analizar todos los Programas Semanales antiguos para reconstruir el historial de asignaciones?\n\nEsto es útil si no ves datos de semanas anteriores.", runRebuild);
     });
 };
 
 // --- LOGIC ENGINE ---
 
-const renderReport = (data, startDate, endDate, yearLabel) => {
+const renderReport = (dataInRange, allHistory, startDate, endDate, yearLabel, congregationName) => {
     const container = document.getElementById('report-preview');
     container.innerHTML = '';
 
-    // 1. Group by Territory Number
-    // Use a Map for sorting numerically
+    // 1. Group by Territory Number (Numerical Sort)
     const territoriesMap = new Map();
 
-    data.forEach(item => {
-        const num = item.numero.toString().split(' ')[0].replace(',', ''); // Basic number extraction and comma removal
-        if (!territoriesMap.has(num)) {
-            territoriesMap.set(num, []);
-        }
-        territoriesMap.get(num).push(item);
+    dataInRange.forEach(item => {
+        if (!item.numero) return;
+        // Split territory numbers if they are comma-separated (e.g. "1, 2")
+        const nums = item.numero.toString().split(',').map(n => n.trim().padStart(2, '0'));
+        nums.forEach(num => {
+            if (!territoriesMap.has(num)) territoriesMap.set(num, []);
+            territoriesMap.get(num).push({ ...item, numero: num });
+        });
     });
 
-    // Sort Keys (Territory Numbers)
     const sortedKeys = Array.from(territoriesMap.keys()).sort((a, b) =>
         a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
     );
 
-    // 2. Pagination State
-    // We need to fit territories into pages.
-    // Each page has 20 Rows.
-    // Each Row corresponds to ONE Territory, strictly?
-    // User says: "si hubiera una quinta asignación... se deberá desbordar el texto a una siguiente hoja".
-    // This implies S-13 format is: Row X = Territory X always.
-    // If Territory 1 has 5 assignments, and the sheet holds 4 per row.
-    // We need a "Sheet 2" where Row 1 (Territory 1) has assignment 5.
-
-    // So, we don't just flow territories. We flow "Columns of Assignments".
-    // We need to determine the Maximum Depth of assignments for ANY territory.
-    // e.g. Max assignments found is 7.
-    // Sheet 1 holds Assigns 1-4.
-    // Sheet 2 holds Assigns 5-8.
-
-    // BUT we also have vertical limit (20 territories per sheet).
-    // So if we have 50 territories.
-    // Sheet A1: Terr 1-20, Assigns 1-4
-    // Sheet A2: Terr 1-20, Assigns 5-8 (Only if needed)
-    // Sheet B1: Terr 21-40, Assigns 1-4
-    // Sheet B2: Terr 21-40, Assigns 5-8 (Only if needed)
-
-    // Algorithm:
-    // Chunk territories into groups of 20.
-    // For each chunk (Group of Territories):
-    //    Calculate Max Assignments in this group.
-    //    Determine how many "Assignment Sheets" needed (ceil(max / 4)).
-    //    Generate Sheets.
-
+    // 2. Pagination State (Image shows 22 rows per page)
     let pageHtmls = [];
     const TERR_PER_PAGE = 22;
     const ASSIGNS_PER_PAGE = 4;
@@ -272,34 +286,33 @@ const renderReport = (data, startDate, endDate, yearLabel) => {
     for (let i = 0; i < sortedKeys.length; i += TERR_PER_PAGE) {
         const terrChunkKeys = sortedKeys.slice(i, i + TERR_PER_PAGE);
 
-        // Find max assignments in this chunk
+        // Calculate Max Assignments across this chunk to see if we need multiple HORIZONTAL pages
         let maxAssigns = 0;
         terrChunkKeys.forEach(k => {
-            if (territoriesMap.get(k).length > maxAssigns) maxAssigns = territoriesMap.get(k).length;
+            const count = territoriesMap.get(k).length;
+            if (count > maxAssigns) maxAssigns = count;
         });
-
-        if (maxAssigns === 0) maxAssigns = 1; // At least one sheet
+        if (maxAssigns === 0) maxAssigns = 1;
 
         const sheetsNeeded = Math.ceil(maxAssigns / ASSIGNS_PER_PAGE);
 
         for (let s = 0; s < sheetsNeeded; s++) {
-            // Generate Sheet
-            // s=0 -> indices 0-3
-            // s=1 -> indices 4-7
             const assignStartIndex = s * ASSIGNS_PER_PAGE;
-
             pageHtmls.push(generateS13PageHtmlTable(
                 terrChunkKeys,
                 territoriesMap,
+                allHistory, // Pass all history to find "Last Completion"
+                startDate,
                 assignStartIndex,
                 ASSIGNS_PER_PAGE,
-                yearLabel // Explicit Year passed
+                yearLabel,
+                congregationName
             ));
         }
     }
 
     if (pageHtmls.length === 0) {
-        container.innerHTML = '<div class="text-gray-500 mt-20">No hay datos en este rango.</div>';
+        container.innerHTML = '<div class="text-gray-500 mt-20 text-center flex flex-col items-center"><span class="text-4xl mb-4">📭</span>No hay asignaciones registradas en este rango.</div>';
         return;
     }
 
@@ -443,13 +456,15 @@ const generateS13PageHtmlLegacy = (keys, map, assignOffset, limit, year) => {
     `;
 };
 
-const generateS13PageHtmlTable = (keys, map, assignOffset, limit, year) => {
-    // New Table-Based Implementation for Pixel-Perfect PDF
+const generateS13PageHtmlTable = (keys, map, allHistory, reportStartDate, assignOffset, limit, year, congregation) => {
     const formatDateShort = (isoStr) => {
         if (!isoStr) return '';
         const d = new Date(isoStr);
-        return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
+        // Correct for UTC if needed, but local is usually what user expects for "DD/MM/YYYY"
+        return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
     };
+
+    const reportStartMs = new Date(reportStartDate).getTime();
 
     let rowsHtml = '';
     const ROWS_PER_PAGE = 22;
@@ -460,6 +475,23 @@ const generateS13PageHtmlTable = (keys, map, assignOffset, limit, year) => {
 
         // Sort: Date Ascending
         assignments.sort((a, b) => new Date(a.fecha_asignacion) - new Date(b.fecha_asignacion));
+
+        // Calculate "Last Completion Date" (Última fecha en que se completó)
+        // Find latest fecha_entrega in allHistory for this territory number that is BEFORE reportStartMs
+        let lastCompletionDate = '';
+        if (key) {
+            const previousCompletions = allHistory
+                .filter(h => {
+                    if (!h.numero || !h.fecha_entrega) return false;
+                    const hNum = h.numero.toString().trim().padStart(2, '0');
+                    return hNum === key && new Date(h.fecha_entrega).getTime() < reportStartMs;
+                })
+                .sort((a, b) => new Date(b.fecha_entrega).getTime() - new Date(a.fecha_entrega).getTime());
+
+            if (previousCompletions.length > 0) {
+                lastCompletionDate = formatDateShort(previousCompletions[0].fecha_entrega);
+            }
+        }
 
         // Slice for this sheet
         const slice = assignments.slice(assignOffset, assignOffset + limit);
@@ -477,7 +509,7 @@ const generateS13PageHtmlTable = (keys, map, assignOffset, limit, year) => {
                         <div class="flex flex-col h-[10mm]">
                             <!-- Name -->
                             <div class="h-[50%] w-full flex items-end justify-center border-b border-black">
-                                <span class="text-[9px] font-bold text-gray-900 truncate px-1 leading-tight pb-0.5 w-full text-center font-roboto">
+                                <span class="text-[9px] font-bold text-gray-900 truncate px-1 leading-tight pb-0.5 w-full text-center font-roboto uppercase">
                                     ${assign.conductor || '-'}
                                 </span>
                             </div>
@@ -505,7 +537,7 @@ const generateS13PageHtmlTable = (keys, map, assignOffset, limit, year) => {
         rowsHtml += `
             <tr class="h-[10mm]">
                 <td class="border border-black text-center font-bold text-sm bg-gray-50/10 w-[12mm]">${key || ''}</td>
-                <td class="border border-black bg-gray-100/30 w-[25mm]"></td>
+                <td class="border border-black bg-gray-100/10 w-[25mm] text-center text-[9px] font-bold">${lastCompletionDate}</td>
                 ${colsHtml}
             </tr>
         `;
@@ -516,7 +548,7 @@ const generateS13PageHtmlTable = (keys, map, assignOffset, limit, year) => {
             
             <!-- Header -->
             <div class="text-center mb-1">
-                <h1 class="text-2xl font-bold uppercase tracking-wide" style="font-family: 'Arial', sans-serif;">Registro de Asignación de Territorio</h1>
+                <h1 class="text-2xl font-bold uppercase tracking-wider" style="font-family: 'Arial', sans-serif;">Registro de Asignación de Territorio</h1>
             </div>
             
             <div class="flex items-end gap-3 mb-2 px-1">
@@ -538,20 +570,20 @@ const generateS13PageHtmlTable = (keys, map, assignOffset, limit, year) => {
                         <col style="width: 38mm;"> <!-- Assign 4 -->
                     </colgroup>
                     <thead>
-                        <tr class="bg-gray-200 text-[8px] font-bold text-center uppercase tracking-tight h-[12mm]">
+                        <tr class="bg-gray-100 dark:bg-gray-100 text-[8px] font-black text-center uppercase tracking-tight h-[12mm]">
                             <td class="border border-black p-1 align-middle">Terr.<br>n.º</td>
-                            <td class="border border-black p-1 align-middle leading-tight">Última fecha<br>en que se<br>completó*</td>
+                            <td class="border border-black p-1 align-middle leading-tight bg-gray-50/50">Última fecha<br>en que se<br>completó*</td>
                             
                             <!-- Assignment Headers Grouped -->
                             ${Array(4).fill(0).map(() => `
                                 <td class="border border-black p-0 align-top">
                                     <div class="flex flex-col h-full">
-                                        <div class="border-b border-black py-1 bg-gray-300">Asignado a</div>
+                                        <div class="border-b border-black py-1 bg-gray-200">Asignado a</div>
                                         <div class="flex flex-1 h-full">
-                                            <div class="w-1/2 border-r border-black flex items-center justify-center bg-gray-200 px-0.5 leading-none py-1 h-full">
+                                            <div class="w-1/2 border-r border-black flex items-center justify-center bg-gray-50 px-0.5 leading-none py-1 h-full">
                                                 Fecha de<br>entrega
                                             </div>
-                                            <div class="w-1/2 flex items-center justify-center bg-gray-200 px-0.5 leading-none py-1 h-full">
+                                            <div class="w-1/2 flex items-center justify-center bg-gray-50 px-0.5 leading-none py-1 h-full">
                                                 Fecha de<br>devolución
                                             </div>
                                         </div>
@@ -564,18 +596,23 @@ const generateS13PageHtmlTable = (keys, map, assignOffset, limit, year) => {
                         ${rowsHtml}
                     </tbody>
                 </table>
-                 <!-- Footer Filler -->
-                 <div class="flex-1 bg-white"></div>
             </div>
 
             <!-- Footnote -->
-            <div class="mt-2 text-[9px] font-medium pl-1 text-gray-700">
-                ** Cuando comience una nueva página, anote en esta columna la última fecha en que los territorios se completaron.
+            <div class="mt-2 text-[9px] font-medium pl-1 text-gray-700 italic">
+                * Cuando comience una nueva página, anote en esta columna la última fecha en que los territorios se completaron.
             </div>
             <div class="flex justify-between items-end mt-1 px-1">
-                 <div class="text-[9px] font-bold text-gray-900">S-13 1/22</div>
-                 <div class="text-[8px] text-gray-400">App Territorios JW</div>
+                 <div class="flex flex-col">
+                    <div class="text-[9px] font-bold text-gray-900">S-13 1/22</div>
+                 </div>
+                 <div class="text-[10px] font-bold text-gray-800 uppercase">${congregation}</div>
             </div>
         </div>
     `;
 };
+
+
+
+
+

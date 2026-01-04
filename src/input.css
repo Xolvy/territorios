@@ -110,6 +110,37 @@ input:focus, select:focus, textarea:focus {
     background: rgba(0, 150, 136, 0.6); 
 }
 
+/* Horizontal Scroll for Mobile Tabs */
+.custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 150, 136, 0.3) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    height: 4px;
+    width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(0, 150, 136, 0.3);
+    border-radius: 10px;
+}
+
+/* Mobile specific overrides */
+@media (max-width: 640px) {
+    #app-container {
+        padding: 0.75rem !important;
+    }
+    
+    .morphinglass-card {
+        padding: 1rem !important;
+        border-radius: 1rem !important;
+    }
+    
+    h1 { font-size: 1.5rem !important; }
+    h2 { font-size: 1.25rem !important; }
+}
+
 /* Animaciones */
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }

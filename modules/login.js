@@ -1,16 +1,21 @@
-import { auth } from '../firebase-config.js';
+import { auth } from '/firebase-config.js?v=2.4.0';
 import { GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getConductores } from '../data/firestore-services.js?v=5.0.2';
+import { getPublicadores, getConfiguracion } from '../data/firestore-services.js?v=2.4.0';
 
 export const renderLogin = (container) => {
     renderSelection(container);
 };
 
-const renderSelection = (container) => {
+const renderSelection = async (container) => {
+    const config = await getConfiguracion();
+    const congLabel = config.congregacion?.nombre && config.congregacion?.numero
+        ? `Congregación ${config.congregacion.nombre} ${config.congregacion.numero}`
+        : "Congregación 14282";
+
     container.innerHTML = `
         <div class="morphinglass-card w-full max-w-md animate-fade-in text-center">
             <h2 class="text-3xl font-bold mb-6 text-teal-600 dark:text-teal-400">Acceso al Sistema</h2>
-            <p class="mb-8 text-gray-600 dark:text-gray-300">Congregación 14282</p>
+            <p class="mb-8 text-gray-600 dark:text-gray-300">${congLabel}</p>
             
             <div class="flex flex-col gap-4">
                 <button id="btn-admin" class="bg-teal-600 hover:bg-teal-500 text-white font-bold py-4 px-6 rounded-lg transition-all transform hover:scale-105 shadow-lg shadow-teal-500/30 flex items-center justify-center gap-3">
@@ -112,28 +117,32 @@ const renderConductorSelection = async (container) => {
     document.getElementById('btn-back-c').addEventListener('click', () => renderSelection(container));
 
     try {
-        const conductores = await getConductores();
+        const people = await getPublicadores();
+        const conductors = people.filter(p => p.es_conductor);
 
         // Ordenar alfabéticamente por nombre
-        conductores.sort((a, b) => a.nombre.localeCompare(b.nombre));
+        conductors.sort((a, b) => a.nombre.localeCompare(b.nombre));
 
         const listContainer = document.getElementById('conductores-list');
         const searchInput = document.getElementById('conductor-search');
 
-        if (conductores.length === 0) {
-            listContainer.innerHTML = '<p class="text-yellow-400">No hay conductores registrados.</p>';
+        if (conductors.length === 0) {
+            listContainer.innerHTML = '<p class="text-yellow-400">No hay conductores autorizados registrados.</p>';
             return;
         }
 
         listContainer.innerHTML = '';
-        conductores.forEach(c => {
+        conductors.forEach(c => {
             const btn = document.createElement('button');
             btn.className = 'w-full text-left p-4 rounded-lg bg-white/60 dark:bg-white/5 hover:bg-white/80 dark:hover:bg-white/10 border border-black/5 dark:border-white/10 hover:border-teal-500/50 transition-all group conductor-item';
             btn.dataset.name = c.nombre.toLowerCase(); // For easier filtering
             btn.innerHTML = `
                 <div class="flex items-center justify-between">
-                    <span class="font-medium text-gray-700 dark:text-gray-200 group-hover:text-teal-700 dark:group-hover:text-white">${c.nombre}</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500 group-hover:text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div>
+                        <span class="font-bold text-gray-800 dark:text-gray-100 group-hover:text-teal-600 dark:group-hover:text-teal-400 block">${c.nombre}</span>
+                        <span class="text-[10px] text-gray-500 font-mono">${c.telefono || 'Sin teléfono'}</span>
+                    </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 group-hover:text-teal-500 group-hover:translate-x-1 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                     </svg>
                 </div>
@@ -142,7 +151,7 @@ const renderConductorSelection = async (container) => {
                 // Dispatch login event
                 const event = new CustomEvent('demo-login', {
                     detail: {
-                        email: c.email || c.nombre, // Use email if available, else name as ID
+                        email: c.telefono || c.nombre, // Use Phone as ID (International Format)
                         role: 'Conductor'
                     }
                 });
@@ -171,3 +180,8 @@ const renderConductorSelection = async (container) => {
         document.getElementById('conductores-list').innerHTML = `<p class="text-red-400">Error al cargar: ${error.message}</p>`;
     }
 };
+
+
+
+
+

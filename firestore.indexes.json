@@ -1,4 +1,23 @@
 {
-    "indexes": [],
+    "indexes": [
+        {
+            "collectionGroup": "historial_territorios",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "territorio_id",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "estado",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "timestamp",
+                    "order": "DESCENDING"
+                }
+            ]
+        }
+    ],
     "fieldOverrides": []
 }
