@@ -4577,9 +4577,7 @@ const renderConfigTab = async (container, initialSubTab = 'reglas', appVersion) 
                     <button data-subtab="territorios" class="sub-tab-btn whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
                         Territorios
                     </button>
-                    <button data-subtab="telefonos" class="sub-tab-btn whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                        Teléfonos
-                    </button>
+
                     <button data-subtab="campanas" class="sub-tab-btn whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
                         Campañas
                     </button>
@@ -4625,8 +4623,7 @@ const renderConfigTab = async (container, initialSubTab = 'reglas', appVersion) 
             await loadSubTab('grupos', subContent, config, appVersion);
         } else if (targetSub === 'territorios') {
             await loadSubTab('territorios', subContent, config, appVersion);
-        } else if (targetSub === 'telefonos') {
-            await renderTelefonosTab(subContent);
+
         } else if (targetSub === 'campanas') {
             await loadSubTab('campanas', subContent, config, appVersion);
         } else if (targetSub === 'mantenimiento') {

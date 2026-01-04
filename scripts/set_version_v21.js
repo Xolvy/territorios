@@ -17,10 +17,10 @@ const db = getFirestore(app);
 async function setVersion() {
     try {
         await setDoc(doc(db, "configuracion", "version_control"), {
-            latestVersion: "2.5.0",
+            latestVersion: "2.5.1",
             forceUpdate: true
         });
-        console.log("✅ Firestore version updated to 2.5.0");
+        console.log("✅ Firestore version updated to 2.5.1");
     } catch (e) {
         console.error("❌ Error:", e);
     }
