@@ -1,18 +1,18 @@
-import { auth, db } from '/firebase-config.js?v=2.5.3';
+import { auth, db } from '/firebase-config.js?v=2.5.5';
 import { onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { renderLogin } from './modules/login.js?v=2.5.4';
-import { renderAdminDashboard } from './modules/admin-dashboard.js?v=2.5.4';
-import { renderConductorDashboard } from './modules/conductor-dashboard.js?v=2.5.4';
-import { getPermisosUsuario, getSystemVersion, migrateConductoresToPublicadores } from './data/firestore-services.js?v=2.5.4';
-import { showNotification } from './modules/utils/helpers.js?v=2.5.4';
-import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js?v=2.5.4';
+import { renderLogin } from './modules/login.js?v=2.5.5';
+import { renderAdminDashboard } from './modules/admin-dashboard.js?v=2.5.5';
+import { renderConductorDashboard } from './modules/conductor-dashboard.js?v=2.5.5';
+import { getPermisosUsuario, getSystemVersion, migrateConductoresToPublicadores } from './data/firestore-services.js?v=2.5.5';
+import { showNotification } from './modules/utils/helpers.js?v=2.5.5';
+import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js?v=2.5.5';
 
 // Init Theme
 initTheme();
 document.body.appendChild(createThemeToggle());
 
-const APP_VERSION = '2.5.4';
+const APP_VERSION = '2.5.5';
 
 // --- SUCCESS CONFIRMATION AFTER UPDATE ---
 const checkUpdateSuccess = () => {

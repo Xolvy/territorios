@@ -9,13 +9,13 @@ import {
     getRecursos, addRecurso, deleteRecurso, updateRecurso, restoreSystemBackup,
     getCampanas, saveCampana, deleteCampana,
     getGroupsConfig, saveGroupsConfig
-} from '../data/firestore-services.js?v=2.5.4';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=2.5.4';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=2.5.4';
-import { renderHistoryTab } from './report-s13.js?v=2.5.4';
-import { renderAnalyticsView } from './analytics-view.js?v=2.5.4';
-import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=2.5.4';
-import { auth } from '/firebase-config.js?v=2.5.4';
+} from '../data/firestore-services.js?v=2.5.5';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=2.5.5';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=2.5.5';
+import { renderHistoryTab } from './report-s13.js?v=2.5.5';
+import { renderAnalyticsView } from './analytics-view.js?v=2.5.5';
+import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=2.5.5';
+import { auth } from '/firebase-config.js?v=2.5.5';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }) : '';
 
