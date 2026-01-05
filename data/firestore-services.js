@@ -1198,14 +1198,18 @@ export const runSystemDiagnosticsAndRepair = async () => {
         }
 
         // CASE 3: Status Inconsistency (Has assignment but Status says Free)
+        // User Request: If discrepancy exists (Publisher set but Status free), RESET both to Unassigned.
         if ((hasPubId || hasPubName) && (t.estado === 'Sin asignar' || !t.estado || t.estado === 'Pendiente')) {
-            updates.estado = 'Asignado';
+            updates.asignado_a = null;
+            updates.publicador_asignado = null;
+            updates.estado = 'Sin asignar';
+            updates.fecha_asignacion = null;
             dirty = true;
-            report.details.push(`Phone ${t.numero}: Corrected status to 'Asignado'`);
+            report.details.push(`Phone ${t.numero}: Reset to 'Sin asignar' due to missing status (was assigned to ${t.asignado_a})`);
         }
 
         // CASE 4: Ghost Assignment (Status says Asignado, but no user)
-        if (t.estado === 'Asignado' && !hasPubId && !hasPubName) {
+        if ((t.estado === 'Asignado' || t.estado === 'Asignada') && !hasPubId && !hasPubName) {
             updates.estado = 'Sin asignar';
             updates.fecha_asignacion = null;
             dirty = true;

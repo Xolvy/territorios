@@ -9,13 +9,15 @@ import {
     getRecursos, addRecurso, deleteRecurso, updateRecurso, restoreSystemBackup,
     getCampanas, saveCampana, deleteCampana,
     getGroupsConfig, saveGroupsConfig
-} from '../data/firestore-services.js?v=2.5.1';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=2.5.1';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=2.5.1';
-import { renderHistoryTab } from './report-s13.js?v=2.5.1';
-import { renderAnalyticsView } from './analytics-view.js?v=2.5.1';
-import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=2.5.1';
-import { auth } from '/firebase-config.js?v=2.5.1';
+} from '../data/firestore-services.js?v=2.5.4';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=2.5.4';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=2.5.4';
+import { renderHistoryTab } from './report-s13.js?v=2.5.4';
+import { renderAnalyticsView } from './analytics-view.js?v=2.5.4';
+import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=2.5.4';
+import { auth } from '/firebase-config.js?v=2.5.4';
+
+const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }) : '';
 
 // --- Global UI Helpers ---
 const showCustomAlert = (message) => {
@@ -1780,12 +1782,12 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                         </h4>
                         
                         <div class="space-y-4 mb-8">
-                            <button id="btn-run-maintenance" class="w-full flex items-center justify-between p-4 bg-white dark:bg-black/20 rounded-xl border border-gray-100 dark:border-white/5 group hover:border-blue-500/50 transition-all text-left">
+                            <button id="btn-smart-repair" class="w-full flex items-center justify-between p-4 bg-white dark:bg-black/20 rounded-xl border border-amber-500/30 group hover:border-amber-500 transition-all text-left shadow-lg shadow-amber-500/10">
                                 <div>
-                                    <p class="font-bold text-gray-700 dark:text-gray-300 text-sm">Corregir Teléfonos</p>
-                                    <p class="text-[10px] text-gray-400">Normaliza estados y vinculaciones</p>
+                                    <p class="font-bold text-amber-600 dark:text-amber-400 text-sm">Reparación Inteligente (Teléfonos)</p>
+                                    <p class="text-[10px] text-gray-400">Analiza y corrige discrepancias de estados y asignaciones.</p>
                                 </div>
-                                <span class="text-blue-500 group-hover:translate-x-1 transition-transform">→</span>
+                                <span class="text-amber-500 group-hover:scale-110 transition-transform text-lg">✨</span>
                             </button>
                             
                             <button id="btn-fix-territories" class="w-full flex items-center justify-between p-4 bg-white dark:bg-black/20 rounded-xl border border-gray-100 dark:border-white/5 group hover:border-teal-500/50 transition-all text-left">
@@ -1794,14 +1796,6 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                                     <p class="text-[10px] text-gray-400">Corrige formatos de numeración</p>
                                 </div>
                                 <span class="text-teal-500 group-hover:translate-x-1 transition-transform">→</span>
-                            </button>
-
-                            <button id="btn-fix-phones-status" class="w-full flex items-center justify-between p-4 bg-white dark:bg-black/20 rounded-xl border border-amber-500/30 group hover:border-amber-500 transition-all text-left">
-                                <div>
-                                    <p class="font-bold text-amber-600 dark:text-amber-400 text-sm">Reparar Estados Telefonía</p>
-                                    <p class="text-[10px] text-gray-400">Corrige errores de "ASIGNADO" sin publicador</p>
-                                </div>
-                                <span class="text-amber-500 group-hover:translate-x-1 transition-transform">🔧</span>
                             </button>
                         </div>
 
@@ -1935,12 +1929,27 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
             });
         });
 
-        // 6. Proactive Fixes
-        bind('btn-run-maintenance', async (btn) => {
+        // 6. Proactive Fixes (Consolidated)
+        bind('btn-smart-repair', async (btn) => {
             const original = btn.innerHTML;
-            btn.innerHTML = '⏳ Procesando...';
+            btn.innerHTML = '<div class="flex items-center gap-2"><span class="animate-spin">⏳</span> Analizando...</div>';
+
             const report = await runSystemDiagnosticsAndRepair();
-            showCustomAlert(`✅ Diagnóstico: \n - Teléfonos reparados: ${report.fixedPhones} \n - Historial sincronizado: ${report.rebuiltHistory} `);
+
+            let msg = `✅ Reparación Inteligente Completada\n\n`;
+            msg += `- Historial sincronizado: ${report.rebuiltHistory}\n`;
+            msg += `- Teléfonos corregidos: ${report.fixedPhones}\n`;
+
+            if (report.details && report.details.length > 0) {
+                // Show sample details if many
+                const detailsToShow = report.details.slice(0, 5).map(d => `• ${d}`).join('\n');
+                msg += `\nDetalles:\n${detailsToShow}`;
+                if (report.details.length > 5) msg += `\n... y ${report.details.length - 5} más.`;
+            } else {
+                msg += `\nSistema estable. No se encontraron errores críticos.`;
+            }
+
+            showCustomAlert(msg);
             btn.innerHTML = original;
         });
 
@@ -1956,14 +1965,6 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                 }
             }
             showCustomAlert(`✅ Normalización terminada.${fixed} cambios realizados.`);
-            btn.innerHTML = original;
-        });
-
-        bind('btn-fix-phones-status', async (btn) => {
-            const original = btn.innerHTML;
-            btn.innerHTML = '⏳ Corrigiendo...';
-            const report = await runSystemDiagnosticsAndRepair();
-            showCustomAlert(`✅ Reparación completada.\nRegistros corregidos: ${report.fixedPhones} \n\nLos registros que estaban como "Asignados" pero no tenían un publicador real han sido liberados.`);
             btn.innerHTML = original;
         });
     } else if (subTab === 'territorios') {
@@ -2242,7 +2243,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
 
             showModal(`
                 <h3 class="text-2xl font-black mb-6 text-teal-600 dark:text-teal-400">${isEdit ? 'Editar Registro' : 'Nuevo Registro'}</h3>
-                <div class="space-y-5 max-h-[75vh] overflow-y-auto px-1 custom-scrollbar">
+                <div class="space-y-5 px-1">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-[10px] font-black uppercase text-gray-400 mb-1 ml-1">Nombre Completo</label>
@@ -2264,19 +2265,14 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                         <div>
                             <label class="block text-[10px] font-black uppercase text-gray-400 mb-1 ml-1">Grupo</label>
                             <select id="p-group" class="w-full bg-white dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-sm font-bold focus:border-teal-500 outline-none">
+                                <option value="0" ${!person?.grupo || person?.grupo === 0 ? 'selected' : ''}>Sin asignar</option>
                                 ${Array.from({ length: 6 }, (_, i) => `<option value="${i + 1}" ${person?.grupo == (i + 1) ? 'selected' : ''}>Grupo ${i + 1}</option>`).join('')}
                             </select>
                         </div>
                     </div>
                     <div>
                         <label class="block text-[10px] font-black uppercase text-gray-400 mb-2 ml-1">Privilegios / Roles</label>
-                        <div class="flex flex-wrap gap-2">
-                            ${privs.map(pr => `
-                                <label class="flex items-center gap-2 px-3 py-2 bg-black/5 dark:bg-white/5 rounded-xl border border-white/5 cursor-pointer hover:bg-teal-500/10 transition-colors">
-                                    <input type="checkbox" class="p-priv accent-teal-500 w-4 h-4" value="${pr}" ${person?.privilegios?.includes(pr) ? 'checked' : ''}>
-                                    <span class="text-xs font-bold text-gray-600 dark:text-gray-300">${pr}</span>
-                                </label>
-                            `).join('')}
+                        <div id="privs-container" class="flex flex-wrap gap-2">
                         </div>
                     </div>
                     <div class="p-4 bg-teal-500/5 rounded-2xl border border-teal-500/10">
@@ -2306,6 +2302,27 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                 </div>
                 <button id="save-person" class="btn-premium w-full py-4 rounded-2xl mt-8 uppercase tracking-widest font-black text-xs shadow-2xl">Confirmar Registro</button>
             `, (modal) => {
+                const genderSelect = modal.querySelector('#p-gender');
+                const privsContainer = modal.querySelector('#privs-container');
+
+                const updatePrivsList = () => {
+                    const gender = genderSelect.value;
+                    const malePrivs = ['Superintendente de Circuito', 'Anciano', 'Siervo ministerial', 'Conductor', 'Administrador'];
+                    const femalePrivs = [];
+                    const currentPrivs = person?.privilegios || [];
+                    const list = gender === 'Hombre' ? malePrivs : femalePrivs;
+
+                    privsContainer.innerHTML = list.map(pr => `
+                        <label class="flex items-center gap-2 px-3 py-2 bg-black/5 dark:bg-white/5 rounded-xl border border-white/5 cursor-pointer hover:bg-teal-500/10 transition-colors">
+                            <input type="checkbox" class="p-priv accent-teal-500 w-4 h-4" value="${pr}" ${currentPrivs.includes(pr) ? 'checked' : ''}>
+                            <span class="text-xs font-bold text-gray-600 dark:text-gray-300">${pr}</span>
+                        </label>
+                    `).join('');
+                };
+
+                genderSelect.addEventListener('change', updatePrivsList);
+                updatePrivsList();
+
                 const isCondCheck = modal.querySelector('#p-is-cond');
                 const availGrid = modal.querySelector('#p-avail-grid');
                 isCondCheck.addEventListener('change', () => {
@@ -2380,14 +2397,14 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                             </div>
                             <div class="space-y-4">
                                 <div class="bg-black/5 dark:bg-black/20 p-3 rounded-2xl border border-white/5">
-                                    <label class="block text-[8px] font-black uppercase text-teal-600/60 mb-1 tracking-widest">Capitán / Líder</label>
+                                    <label class="block text-[8px] font-black uppercase text-teal-600/60 mb-1 tracking-widest">Superintendente de Grupo</label>
                                     <select id="leader-${g.id}" class="w-full bg-transparent text-xs font-bold text-gray-700 dark:text-gray-200 outline-none cursor-pointer">
                                         <option value="">Sin asignar</option>
                                         ${publicadores.map(p => `<option value="${p.nombre}" ${g.lider === p.nombre ? 'selected' : ''}>${p.nombre}</option>`).join('')}
                                     </select>
                                 </div>
                                 <div class="bg-black/5 dark:bg-black/20 p-3 rounded-2xl border border-white/5">
-                                    <label class="block text-[8px] font-black uppercase text-teal-600/60 mb-1 tracking-widest">Asistente</label>
+                                    <label class="block text-[8px] font-black uppercase text-teal-600/60 mb-1 tracking-widest">Auxiliar</label>
                                     <select id="assistant-${g.id}" class="w-full bg-transparent text-xs font-bold text-gray-700 dark:text-gray-200 outline-none cursor-pointer">
                                         <option value="">Sin asignar</option>
                                         ${publicadores.map(p => `<option value="${p.nombre}" ${g.asistente === p.nombre ? 'selected' : ''}>${p.nombre}</option>`).join('')}

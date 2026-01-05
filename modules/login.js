@@ -1,6 +1,6 @@
-import { auth } from '/firebase-config.js?v=2.5.1';
+import { auth } from '/firebase-config.js?v=2.5.4';
 import { GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getPublicadores, getConfiguracion } from '../data/firestore-services.js?v=2.5.1';
+import { getPublicadores, getConfiguracion } from '../data/firestore-services.js?v=2.5.4';
 
 export const renderLogin = (container) => {
     renderSelection(container);

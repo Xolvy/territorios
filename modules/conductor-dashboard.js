@@ -1,4 +1,4 @@
-import { auth } from '/firebase-config.js?v=2.5.1';
+import { auth } from '/firebase-config.js?v=2.5.4';
 import {
     getProgramaSemanal, getMisTerritorios, returnTerritorio,
     returnTerritorioParcial, solicitarNumeros, releaseUnusedTelefonos, updateTelefonoStatus,
@@ -6,10 +6,10 @@ import {
     getConductores, updateConductor,
     getPermisosUsuario, getTerritorios, getConfiguracion,
     getRecursos // Added Resources
-} from '../data/firestore-services.js?v=2.5.1';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl } from './utils/helpers.js?v=2.5.1';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=2.5.1';
-import { MapViewer } from './map-viewer.js?v=2.5.1';
+} from '../data/firestore-services.js?v=2.5.4';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl } from './utils/helpers.js?v=2.5.4';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=2.5.4';
+import { MapViewer } from './map-viewer.js?v=2.5.4';
 
 
 
@@ -92,7 +92,7 @@ export const renderConductorDashboard = async (container, nameOrEmail) => {
     let displayName = nameOrEmail;
     try {
         const allC = await getConductores();
-        const found = allC.find(c => c.email === nameOrEmail || c.nombre === nameOrEmail);
+        const found = allC.find(c => c.email === nameOrEmail || c.nombre === nameOrEmail || (c.telefono && c.telefono.replace(/\s+/g, '') === nameOrEmail.replace(/\s+/g, '')));
         if (found) displayName = found.nombre;
     } catch (err) {
         console.error("Error resolving name:", err);
@@ -1239,7 +1239,7 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
         newBtn.addEventListener('click', async () => {
             const modal = document.getElementById('modal-container');
             modal.innerHTML = `
-                <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-2xl p-6 max-w-4xl w-full shadow-2xl relative animate-fade-in-up max-h-[90vh] flex flex-col">
+                <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-2xl p-6 max-w-4xl w-full shadow-2xl relative animate-fade-in-up flex flex-col">
                     <div class="flex justify-between items-center mb-4">
                          <h3 class="text-xl font-bold text-amber-600 dark:text-amber-500 flex items-center gap-2">
                             <span>↺</span> Revisitas Pendientes
@@ -1247,17 +1247,17 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
                          <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white transition-colors text-2xl leading-none">&times;</button>
                     </div>
                     
-                    <div class="flex-1 responsive-table-container custom-scrollbar bg-gray-50 dark:bg-black/20 rounded-xl border border-gray-200 dark:border-white/5 relative min-h-[200px]">
-                         <div id="revisitas-loader" class="absolute inset-0 flex items-center justify-center bg-white/50 dark:bg-black/50 backdrop-blur-sm z-10">
+                    <div class="bg-gray-50 dark:bg-black/20 rounded-xl border border-gray-200 dark:border-white/5 relative">
+                         <div id="revisitas-loader" class="absolute inset-0 flex items-center justify-center bg-white/50 dark:bg-black/50 backdrop-blur-sm z-10 p-8">
                              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600"></div>
                          </div>
                          <table class="w-full text-left text-sm">
-                            <thead class="bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 font-bold uppercase text-xs sticky top-0 z-0">
+                            <thead class="bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 font-bold uppercase text-xs">
                                 <tr>
                                     <th class="p-3">Teléfono</th>
                                     <th class="p-3">Propietario</th>
-                                    <th class="p-3">Dirección</th>
-                                    <th class="p-3">Publicador</th>
+                                    <th class="p-3 hidden sm:table-cell">Dirección</th>
+                                    <th class="p-3 hidden sm:table-cell">Publicador</th>
                                     <th class="p-3 text-right">Acción</th>
                                 </tr>
                             </thead>
