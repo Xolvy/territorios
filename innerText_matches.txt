@@ -1,0 +1,14 @@
+1079:                 selectAll.innerText = someUnchecked ? 'Desmarcar Todos' : 'Marcar Todos';
+1342:         title.innerText = 'MAPA DE TERRITORIOS';
+2365:                     const original = btn.innerText;
+2366:                     btn.innerText = 'GUARDANDO...';
+2381:                         btn.innerText = original; btn.disabled = false;
+2393:                         btn.innerText = original; btn.disabled = false;
+2943:                 progressPercent.innerText = `${percent}% `;
+2944:                 progressText.innerText = `Cargando ${i + 1} de ${total}...`;
+2950:         progressText.innerText = "Completado";
+2952:         progressPercent.innerText = "100%";
+3587:             if (label1) label1.innerText = rangeText;
+3588:             if (label2) label2.innerText = rangeText;
+4109:                     btn.innerText = "Guardando...";
+4167:                         btn.innerText = "Error";

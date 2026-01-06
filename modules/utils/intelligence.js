@@ -1,5 +1,5 @@
 
-import { updateTelefono, updateTerritorio } from '../../data/firestore-services.js?v=2.5.1';
+import { updateTelefono, updateTerritorio } from '../../data/firestore-services.js?v=3.0.0';
 
 export class TerritoryIntelligence {
     constructor(telefonos, publicadores, territorios, programa, conductores) {
@@ -154,22 +154,35 @@ export class TerritoryIntelligence {
         }
     }
 
-    async generateSummary(territorio) {
-        if (!territorio.observaciones && !territorio.ultima_fecha) return "Sin datos previos relevantes.";
+    async performFullAudit(apiKey) {
+        if (!apiKey) throw new Error("API Key requerida para auditoría IA");
 
-        const prompt = `RESUME BREVEMENTE (máximo 15 palabras) las observaciones de este territorio para el siguiente publicador. 
-        Territorio: ${territorio.numero}. 
-        Observaciones: ${territorio.observaciones || 'Ninguna'}. 
-        Última visita: ${territorio.ultima_fecha || 'Desconocida'}. 
-        Usa un tono alentador y práctico.`;
+        const dataSnapshot = {
+            telefonos_totales: this.telefonos.length,
+            publicadores_activos: this.publicadores.length,
+            territorios_estado: this.territorios.map(t => ({ num: t.numero, est: t.estado, cond: t.asignado_a })),
+            programa_actual: this.programa,
+            posibles_duplicados_tel: this.telefonos.filter((t, i, self) => self.findIndex(x => x.numero === t.numero) !== i).slice(0, 5),
+            telefonos_sin_estado: this.telefonos.filter(t => !t.estado || t.estado === 'Sin asignar' && t.publicador_asignado).length
+        };
 
-        try {
-            // Using a hardcoded fallback or Gemini if API Key is available
-            // For now, let's provide a "Smart" string if no key is found
-            return "Territorio con mucha actividad por la mañana. Se recomienda empezar por el norte.";
-        } catch (e) {
-            return "Revisar notas de la última salida.";
-        }
+        const auditPrompt = `
+            Actúa como un Auditor de Datos Senior. Analiza este snapshot: ${JSON.stringify(dataSnapshot)}.
+            Busca inconsistencias, riesgos y sugerencias. Responde con un informe estructurado con ###.
+        `;
+
+        return await this.askGemini(apiKey, auditPrompt);
+    }
+
+    async predictAssignments(apiKey) {
+        const prompt = `Analiza los territorios disponibles y recomienda los 3 mejores para asignar en la próxima salida grupal, explicando por qué (ej: tiempo sin trabajar, zona geográfica).`;
+        return await this.askGemini(apiKey, prompt);
+    }
+
+    async summarizeNotes(apiKey, notes) {
+        if (!notes || notes.length === 0) return "Sin notas para resumir.";
+        const prompt = `Resume estas observaciones de predicación de forma muy breve y amigable: ${JSON.stringify(notes)}`;
+        return await this.askGemini(apiKey, prompt);
     }
 }
 

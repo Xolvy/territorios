@@ -13,7 +13,7 @@ Aplicación web para la gestión de territorios y predicación.
 ## 📋 Características
 
 - **Dashboard de Administrador**: Gestión completa de territorios, conductores y publicadores
-- **Programa de Predicación**: Asignación y seguimiento de actividades de predicación
+- **Programa Semanal**: Asignación y seguimiento de actividades de predicación
 - **Gestión de Territorios**: CRUD completo de territorios con mapas
 - **Predicación Telefónica**: Sistema de gestión de llamadas telefónicas
 - **Autenticación**: Sistema de login con roles (Administrador/Conductor)

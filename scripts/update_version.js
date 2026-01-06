@@ -1,6 +1,6 @@
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { initializeApp } from "firebase/app";
+import { getFirestore, doc, setDoc } from "firebase/firestore";
+import { getAuth, signInAnonymously } from "firebase/auth";
 
 const firebaseConfig = {
     apiKey: "AIzaSyDrgpMp04uuFRz61vNIOzD9CCPl8p_wDL0",
@@ -13,16 +13,21 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
 
 async function setVersion() {
     try {
+        await signInAnonymously(auth);
+        console.log("🔓 Authenticated anonymously");
         await setDoc(doc(db, "configuracion", "version_control"), {
-            latestVersion: "2.6.0",
+            latestVersion: "3.0.0",
             forceUpdate: true
         });
-        console.log("✅ Firestore version updated to 2.6.0");
+        console.log("✅ Firestore version updated to 3.0.0");
+        process.exit(0);
     } catch (e) {
         console.error("❌ Error:", e);
+        process.exit(1);
     }
 }
 

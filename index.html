@@ -12,9 +12,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Congregación 14282 - PWA</title>
-    <link rel="icon" type="image/svg+xml" href="/public/favicon.svg">
-    <link rel="apple-touch-icon" href="/public/icon-192.svg">
-    <link rel="stylesheet" href="/styles.css?v=2.5.5">
+    <link rel="icon" type="image/svg+xml" href="public/favicon.svg">
+    <link rel="apple-touch-icon" href="public/icon-192.svg">
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="./styles.css?v=3.0.0">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Leaflet Infrastructure -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -22,16 +23,16 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
+    <!-- PDF & Canvas Exports (S-13) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body class="font-sans antialiased selection:bg-teal-500 selection:text-white">
     <main id="app-container" class="w-full h-full flex flex-col items-center justify-center min-h-screen p-4">
         <!-- Dynamic Content -->
     </main>
-    <script type="module" src="/app.js?v=2.5.5"></script>
+    <script type="module" src="./app.js?v=3.0.0"></script>
 </body>
 
 </html>

@@ -1,0 +1,20 @@
+
+> app-territorios@2.6.0 build
+> vite build
+
+[36mvite v7.3.0 [32mbuilding client environment for production...[36m[39m
+transforming...
+[32mÔ£ô[39m 13 modules transformed.
+Ô£ù Build failed in 250ms
+error during build:
+[commonjs--resolver] Missing "./lib/anime.es.js" specifier in "animejs" package
+    at e (file:///D:/_CODE/app-territorios/node_modules/vite/dist/node/chunks/config.js:6651:8)
+    at n (file:///D:/_CODE/app-territorios/node_modules/vite/dist/node/chunks/config.js:6663:14)
+    at o (file:///D:/_CODE/app-territorios/node_modules/vite/dist/node/chunks/config.js:6691:10)
+    at resolveExportsOrImports (file:///D:/_CODE/app-territorios/node_modules/vite/dist/node/chunks/config.js:32826:45)
+    at resolveDeepImport (file:///D:/_CODE/app-territorios/node_modules/vite/dist/node/chunks/config.js:32840:22)
+    at tryNodeResolve (file:///D:/_CODE/app-territorios/node_modules/vite/dist/node/chunks/config.js:32715:70)
+    at Object.handler (file:///D:/_CODE/app-territorios/node_modules/vite/dist/node/chunks/config.js:32554:16)
+    at Object.handler (file:///D:/_CODE/app-territorios/node_modules/vite/dist/node/chunks/config.js:33705:13)
+    at file:///D:/_CODE/app-territorios/node_modules/rollup/dist/es/shared/node-entry.js:22522:40
+    at async PluginDriver.hookFirstAndGetPlugin (file:///D:/_CODE/app-territorios/node_modules/rollup/dist/es/shared/node-entry.js:22404:28)

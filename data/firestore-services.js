@@ -1,23 +1,11 @@
-import { db, auth, storage } from '/firebase-config.js?v=2.4.0';
+import { db, auth, storage } from '../firebase-config.js';
 import {
     collection, getDocs, addDoc, deleteDoc, doc, updateDoc, query, where, getDoc, setDoc, orderBy, limit, Timestamp, writeBatch,
-    enableIndexedDbPersistence
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    enableIndexedDbPersistence, arrayUnion
+} from "firebase/firestore";
 
 // --- PERSISTENCE (Offline-First) ---
-// Note: firebase-config.js already uses persistentLocalCache which is the modern recommended way.
-// We explicitly try enableIndexedDbPersistence as a secondary layer if needed for compatibility.
-try {
-    enableIndexedDbPersistence(db).catch((err) => {
-        if (err.code == 'failed-precondition') {
-            console.warn("Multiple tabs open, persistence can only be enabled in one tab at a time.");
-        } else if (err.code == 'unimplemented') {
-            console.warn("The current browser doesn't support all of the features needed to enable persistence");
-        }
-    });
-} catch (e) {
-    // Already enabled or modern SDK handles via localCache
-}
+// Configured in firebase-config.js via persistentLocalCache
 
 // --- CONFIGURACIÓN GLOBAL (5.1) ---
 
@@ -52,6 +40,42 @@ export const saveGlobalSettings = async (settings) => {
     } catch (e) {
         console.error("Error saving global settings:", e);
         throw e;
+    }
+};
+
+// --- DIFFUSION SYSTEM ---
+export const saveDiffusionMessage = async (message, type = 'info') => {
+    try {
+        const docRef = doc(db, "configuracion", "diffusion_active");
+        if (message) {
+            await setDoc(docRef, {
+                content: message,
+                type: type,
+                timestamp: Timestamp.now(),
+                active: true
+            });
+        } else {
+            // Deactivate
+            await updateDoc(docRef, { active: false });
+        }
+        return true;
+    } catch (e) {
+        console.error("Error saving diffusion message:", e);
+        throw e;
+    }
+};
+
+export const getDiffusionMessage = async () => {
+    try {
+        const docRef = doc(db, "configuracion", "diffusion_active");
+        const snap = await getDoc(docRef);
+        if (snap.exists() && snap.data().active) {
+            return snap.data();
+        }
+        return null;
+    } catch (e) {
+        console.error("Error fetching diffusion message:", e);
+        return null;
     }
 };
 
@@ -475,14 +499,21 @@ export const cancelarAsignacion = async (id) => {
     }
 };
 
-export const updateAssignmentData = async (id, newDate, newDateSalida, newConductor, newStatus) => {
-    const updateData = {};
-    if (newDate) updateData.fecha_asignacion = newDate;
-    if (newDateSalida !== undefined) updateData.fecha_salida = newDateSalida;
-    if (newConductor) updateData.asignado_a = newConductor;
-    if (newStatus) updateData.estado = newStatus;
+export const updateAssignmentData = async (id, updates = {}) => {
+    const territoryUpdate = {};
+    if (updates.fecha_asignacion) territoryUpdate.fecha_asignacion = updates.fecha_asignacion;
+    if (updates.fecha_salida !== undefined) territoryUpdate.fecha_salida = updates.fecha_salida;
+    if (updates.asignado_a) territoryUpdate.asignado_a = updates.asignado_a;
+    if (updates.estado) territoryUpdate.estado = updates.estado;
+    if (updates.auxiliar !== undefined) territoryUpdate.auxiliar = updates.auxiliar;
+    if (updates.faceta !== undefined) territoryUpdate.faceta = updates.faceta;
+    if (updates.hora !== undefined) territoryUpdate.hora = updates.hora;
+    if (updates.turno !== undefined) territoryUpdate.turno = updates.turno;
+    if (updates.lugar !== undefined) territoryUpdate.lugar = updates.lugar;
+    if (updates.campana !== undefined) territoryUpdate.campana = updates.campana;
+    if (updates.grupos !== undefined) territoryUpdate.grupos = updates.grupos;
 
-    await updateDoc(doc(db, "territorios", id), updateData);
+    await updateDoc(doc(db, "territorios", id), territoryUpdate);
 
     // Update History as well if exists
     try {
@@ -495,12 +526,19 @@ export const updateAssignmentData = async (id, newDate, newDateSalida, newConduc
         );
         const snapshot = await getDocs(q);
         if (!snapshot.empty) {
-            const histData = {};
-            if (newDate) histData.fecha_asignacion = newDate;
-            if (newDateSalida !== undefined) histData.fecha_salida = newDateSalida;
-            if (newConductor) histData.conductor = newConductor;
-            if (newStatus) histData.estado = newStatus; // Also track status correction in history?
-            await updateDoc(doc(db, "historial_territorios", snapshot.docs[0].id), histData);
+            const histUpdate = {};
+            if (updates.fecha_asignacion) histUpdate.fecha_asignacion = updates.fecha_asignacion;
+            if (updates.fecha_salida !== undefined) histUpdate.fecha_salida = updates.fecha_salida;
+            if (updates.asignado_a) histUpdate.conductor = updates.asignado_a;
+            if (updates.estado) histUpdate.estado = updates.estado;
+            if (updates.auxiliar !== undefined) histUpdate.auxiliar = updates.auxiliar;
+            if (updates.faceta !== undefined) histUpdate.faceta = updates.faceta;
+            if (updates.hora !== undefined) histUpdate.hora = updates.hora;
+            if (updates.turno !== undefined) histUpdate.turno = updates.turno;
+            if (updates.lugar !== undefined) histUpdate.lugar = updates.lugar;
+            if (updates.campana !== undefined) histUpdate.campana = updates.campana;
+
+            await updateDoc(doc(db, "historial_territorios", snapshot.docs[0].id), histUpdate);
         }
     } catch (e) {
         console.error("Error updating history:", e);
@@ -795,8 +833,14 @@ export const updateTelefonoStatus = async (id, estado, publicadorName, comentari
         data.asignado_a = publicadorName;
         data.publicador_asignado = publicadorName;
     }
-    if (comentario !== null) {
+    if (comentario !== null && comentario.trim().length > 0) {
         data.comentario = comentario;
+        // Append to history
+        data.comentarios_historial = arrayUnion({
+            nota: comentario,
+            fecha: new Date().toISOString(),
+            publicador: publicadorName || 'Anónimo'
+        });
     }
 
     // Rules for Deletion: Suspendido, Testigo
@@ -861,19 +905,21 @@ export const savePredicacionPublica = async (data) => {
 // --- HELPER: Sync Hub Assignment to Weekly Program ---
 export const syncAssignmentToWeeklyProgram = async (territoryData, conductorName, details) => {
     try {
-        const date = new Date(details.fecha_asignacion);
+        // Primary date for the week is the service date (fecha_salida), fallback to assignment date
+        const dateStr = details.fecha_salida || details.fecha_asignacion;
+        const date = new Date(dateStr.split('T')[0] + 'T12:00:00Z');
         if (isNaN(date.getTime())) return;
 
         // Get Monday of that week
         const d = new Date(date);
-        const day = d.getDay();
-        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-        d.setDate(diff);
-        d.setHours(0, 0, 0, 0);
+        const day = d.getUTCDay();
+        const diff = d.getUTCDate() - (day === 0 ? 6 : day - 1);
+        d.setUTCDate(diff);
+        d.setUTCHours(12, 0, 0, 0);
         const weekId = d.toISOString().split('T')[0];
 
         // Day of week (0=Monday, 6=Sunday)
-        let dayIdx = date.getDay();
+        let dayIdx = date.getUTCDay();
         dayIdx = dayIdx === 0 ? 6 : dayIdx - 1;
 
         // Turn
@@ -911,7 +957,16 @@ export const syncAssignmentToWeeklyProgram = async (territoryData, conductorName
             t.auxiliar = details.blocks.map(b => b.auxiliar || '-').join(' / ');
             t.grupos = details.blocks.map(b => b.grupos || '-').join(' | ');
         } else {
-            t.territorio = territoryData.numero;
+            // Concatenate territory if already exists in this slot
+            if (t.territorio && t.territorio !== territoryData.numero && t.territorio.length > 0) {
+                const parts = t.territorio.split(' / ').map(p => p.trim());
+                if (!parts.includes(territoryData.numero)) {
+                    t.territorio = [...parts, territoryData.numero].join(' / ');
+                }
+            } else {
+                t.territorio = territoryData.numero;
+            }
+
             t.conductor = conductorName;
             t.auxiliar = details.auxiliar || '';
             if (details.grupos) t.grupos = details.grupos;
@@ -1142,45 +1197,65 @@ export const rebuildHistoryFromSchedule = async () => {
 };
 
 // --- SYSTEM DIAGNOSTICS & REPAIR ---
-export const runSystemDiagnosticsAndRepair = async () => {
+export const runSystemDiagnosticsAndRepair = async (onProgress) => {
     const report = {
         rebuiltHistory: 0,
         fixedPhones: 0,
         details: []
     };
 
+    const reportProgress = (msg, pc) => {
+        if (onProgress) onProgress(msg, pc);
+    };
+
     // 1. Rebuild History
+    reportProgress("Sincronizando historial S-13...", 10);
     report.rebuiltHistory = await rebuildHistoryFromSchedule();
 
     // 2. Fix Phone Assignments
+    reportProgress("🔍 Iniciando escaneo profundo de la base de datos...", 32);
     const allPhones = await getDocs(collection(db, "telefonos"));
+
+    reportProgress("👤 Indexando tabla de publicadores para validación cruzada...", 35);
     const allPubs = await getDocs(collection(db, "publicadores"));
     const pubsMap = {};
     allPubs.forEach(d => {
         const p = d.data();
         pubsMap[d.id] = p.nombre;
-        pubsMap[p.nombre] = d.id; // bidirectional for checks
+        pubsMap[p.nombre] = d.id;
     });
 
+    const total = allPhones.docs.length;
+    reportProgress(`📡 Analizando integridad de ${total} registros telefónicos...`, 38);
+    let count = 0;
+    let batch = writeBatch(db);
+    let batchCount = 0;
+
     for (const d of allPhones.docs) {
+        count++;
+        if (count % 100 === 0) {
+            reportProgress(`⚙️ Procesando bloque de datos (${count}/${total})...`, 40 + Math.floor((count / total) * 55));
+        }
+
         const t = d.data();
         let updates = {};
         let dirty = false;
+
+        // Normalize status
+        const rawStatus = (t.estado || '').trim();
+        const status = rawStatus.toLowerCase();
 
         // Determine real 'assigned' vs 'ghost'
         const hasPubId = t.publicador_asignado && t.publicador_asignado !== 'Usuario' && t.publicador_asignado !== '';
         const hasPubName = t.asignado_a && t.asignado_a !== 'Usuario' && t.asignado_a !== 'Sin asignar' && t.asignado_a !== '';
 
-        // CASE 1: Assigned to "Usuario" (Ghost)
+        // CASE 1: Assigned to "Usuario" (Ghost) - This happens if something crashed during assignment
         if (t.asignado_a === 'Usuario' || t.publicador_asignado === 'Usuario') {
-            // Try to rescue: Do we have a mismatch? 
-            // e.g. publicador_asignado=ID but asignado_a=Usuario
             if (hasPubId && pubsMap[t.publicador_asignado]) {
                 updates.asignado_a = pubsMap[t.publicador_asignado];
                 dirty = true;
                 report.details.push(`Phone ${t.numero}: Fixed name 'Usuario' -> '${updates.asignado_a}'`);
             } else {
-                // No valid ID. Must unassign.
                 updates.asignado_a = null;
                 updates.publicador_asignado = null;
                 updates.estado = 'Sin asignar';
@@ -1197,31 +1272,68 @@ export const runSystemDiagnosticsAndRepair = async () => {
             report.details.push(`Phone ${t.numero}: Synced name '${t.asignado_a}' -> '${updates.asignado_a}'`);
         }
 
-        // CASE 3: Status Inconsistency (Has assignment but Status says Free)
-        // User Request: If discrepancy exists (Publisher set but Status free), RESET both to Unassigned.
-        if ((hasPubId || hasPubName) && (t.estado === 'Sin asignar' || !t.estado || t.estado === 'Pendiente')) {
+        // CASE 3: Status Inconsistency (Has assignment but Status says Free or is missing)
+        // Check for "sin asignar", "", null, undefined or "pendiente" (if shouldn't be)
+        const isFreeStatus = status === 'sin asignar' || status === '' || status === 'pendiente';
+        if ((hasPubId || hasPubName) && isFreeStatus) {
             updates.asignado_a = null;
             updates.publicador_asignado = null;
             updates.estado = 'Sin asignar';
             updates.fecha_asignacion = null;
             dirty = true;
-            report.details.push(`Phone ${t.numero}: Reset to 'Sin asignar' due to missing status (was assigned to ${t.asignado_a})`);
+            report.details.push(`Phone ${t.numero}: Reset due to status mismatch (was '${rawStatus}' but assigned to ${t.asignado_a})`);
         }
 
-        // CASE 4: Ghost Assignment (Status says Asignado, but no user)
-        if ((t.estado === 'Asignado' || t.estado === 'Asignada') && !hasPubId && !hasPubName) {
+        // CASE 4: Ghost Assignment (Valid Status, but no publisher)
+        const hasActiveStatus = status !== 'sin asignar' && status !== '';
+        if (hasActiveStatus && !hasPubId && !hasPubName) {
+            updates.asignado_a = null;
+            updates.publicador_asignado = null;
             updates.estado = 'Sin asignar';
             updates.fecha_asignacion = null;
             dirty = true;
-            report.details.push(`Phone ${t.numero}: Corrected status to 'Sin asignar' (No user)`);
+            report.details.push(`Phone ${t.numero}: Reset (Status was '${rawStatus}' but no user assigned)`);
+        }
+
+        // CASE 5: "Asignado" is an invalid status for telephony (legacy or error)
+        if (status === 'asignado') {
+            updates.asignado_a = null;
+            updates.publicador_asignado = null;
+            updates.estado = 'Sin asignar';
+            updates.fecha_asignacion = null;
+            dirty = true;
+            report.details.push(`Phone ${t.numero}: Invalid status 'Asignado' reset to 'Sin asignar'`);
+        }
+
+        // EXTRA CASE: Case normalization (Pendiente)
+        if (rawStatus === 'PENDIENTE') {
+            updates.estado = 'Pendiente';
+            dirty = true;
         }
 
         if (dirty) {
-            await updateDoc(doc(db, "telefonos", d.id), updates);
+            batch.update(doc(db, "telefonos", d.id), updates);
             report.fixedPhones++;
+            batchCount++;
+
+            if (batchCount >= 500) {
+                await batch.commit();
+                batch = writeBatch(db);
+                batchCount = 0;
+            }
         }
     }
 
+    if (batchCount > 0) {
+        await batch.commit();
+    }
+
+    reportProgress("🧹 Depurando referencias huérfanas y normalizando estados...", 95);
+    if (report.fixedPhones > 0) {
+        reportProgress(`✨ Optimización completa: ${report.fixedPhones} inconsistencias corregidas.`, 100);
+    } else {
+        reportProgress("💎 Integridad de datos al 100%. No se requirieron parches.", 100);
+    }
     return report;
 };
 

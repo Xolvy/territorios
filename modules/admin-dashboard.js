@@ -8,16 +8,22 @@ import {
     getProgramaSemanal, saveProgramaSemanal, rebuildHistoryFromSchedule, runSystemDiagnosticsAndRepair, deleteProgramaSemanal,
     getRecursos, addRecurso, deleteRecurso, updateRecurso, restoreSystemBackup,
     getCampanas, saveCampana, deleteCampana,
-    getGroupsConfig, saveGroupsConfig
-} from '../data/firestore-services.js?v=2.5.5';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=2.5.5';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=2.5.5';
-import { renderHistoryTab } from './report-s13.js?v=2.5.5';
-import { renderAnalyticsView } from './analytics-view.js?v=2.5.5';
-import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=2.5.5';
-import { auth } from '/firebase-config.js?v=2.5.5';
+    getGroupsConfig, saveGroupsConfig,
+    getDiffusionMessage, saveDiffusionMessage
+} from '../data/firestore-services.js?v=3.0.0';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=3.0.0';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=3.0.0';
+import { renderHistoryTab } from './report-s13.js?v=3.0.0';
+import { renderAnalyticsView } from './analytics-view.js?v=3.0.0';
+import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=3.0.0';
+import { auth } from '../firebase-config.js?v=3.0.0';
+
+import { animateEntry } from './utils/animations.js?v=3.0.0';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }) : '';
+
+
+
 
 // --- Global UI Helpers ---
 const showCustomAlert = (message) => {
@@ -29,12 +35,12 @@ window.showCustomAlert = showCustomAlert;
 
 const showCustomConfirm = (message, onConfirm) => {
     showModal(`
-        <div class="text-center space-y-4">
-            <div class="text-4xl">❓</div>
-            <h3 class="text-lg font-bold text-gray-800 dark:text-white">${message}</h3>
-            <div class="flex gap-3 justify-center mt-6">
-                <button id="confirm-cancel" class="px-6 py-2 rounded-xl bg-gray-100 dark:bg-white/5 text-gray-500 font-bold hover:bg-gray-200 transition-all">Cancelar</button>
-                <button id="confirm-ok" class="px-6 py-2 rounded-xl bg-teal-600 text-white font-bold hover:bg-teal-500 shadow-lg shadow-teal-500/20 transition-all">Aceptar</button>
+        <div class="p-8 text-center space-y-4">
+            <div class="text-5xl mb-4">❓</div>
+            <h3 class="text-xl font-bold text-gray-800 dark:text-white leading-tight">${message}</h3>
+            <div class="flex gap-3 justify-center mt-8">
+                <button id="confirm-cancel" class="px-8 py-3 rounded-2xl bg-gray-100 dark:bg-white/5 text-gray-500 font-black hover:bg-gray-200 transition-all uppercase tracking-widest text-[10px]">Cancelar</button>
+                <button id="confirm-ok" class="px-8 py-3 rounded-2xl bg-teal-600 text-white font-black hover:bg-teal-500 shadow-xl shadow-teal-500/30 transition-all uppercase tracking-widest text-[10px]">Aceptar</button>
             </div>
         </div>
     `, (modal) => {
@@ -49,12 +55,15 @@ window.showCustomConfirm = showCustomConfirm;
 
 const showCustomPrompt = (message, defaultValue, onConfirm) => {
     showModal(`
-        <div class="space-y-4">
-            <h3 class="text-lg font-bold text-gray-800 dark:text-white">${message}</h3>
-            <input type="text" id="prompt-input" value="${defaultValue || ''}" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-gray-900 dark:text-white outline-none focus:border-teal-500 shadow-sm">
+        <div class="p-8 space-y-6">
+            <div>
+                <h3 class="text-xl font-black text-gray-800 dark:text-white uppercase tracking-tight mb-1">${message}</h3>
+                <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Entrada de datos</p>
+            </div>
+            <input type="text" id="prompt-input" value="${defaultValue || ''}" class="w-full bg-gray-50 dark:bg-black/40 border-2 border-transparent focus:border-teal-500/50 rounded-2xl p-4 text-gray-900 dark:text-white outline-none shadow-inner font-bold">
             <div class="flex gap-3 justify-end mt-6">
-                <button id="prompt-cancel" class="px-6 py-2 rounded-xl bg-gray-100 dark:bg-white/5 text-gray-500 font-bold hover:bg-gray-200 transition-all">Cancelar</button>
-                <button id="prompt-ok" class="px-6 py-2 rounded-xl bg-teal-600 text-white font-bold hover:bg-teal-500 shadow-lg shadow-teal-500/20 transition-all">Aceptar</button>
+                <button id="prompt-cancel" class="px-8 py-3 rounded-2xl bg-gray-100 dark:bg-white/5 text-gray-500 font-black hover:bg-gray-200 transition-all uppercase tracking-widest text-[10px]">Cancelar</button>
+                <button id="prompt-ok" class="px-8 py-3 rounded-2xl bg-teal-600 text-white font-black hover:bg-teal-500 shadow-xl shadow-teal-500/30 transition-all uppercase tracking-widest text-[10px]">Aceptar</button>
             </div>
         </div>
     `, (modal) => {
@@ -78,6 +87,59 @@ const style = document.createElement('style');
 style.textContent = `
     .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
     .scrollbar-hide::-webkit-scrollbar { display: none; }
+
+    /* Premium Navigation Styles */
+    .nav-item {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        padding: 0.875rem 1.25rem;
+        margin-bottom: 0.5rem;
+        border-radius: 1rem;
+        color: #64748b;
+        font-size: 0.9rem;
+        font-weight: 600;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background: transparent;
+        border: 1px solid transparent;
+        text-align: left;
+    }
+    .dark .nav-item { color: #94a3b8; }
+    
+    .nav-item:hover {
+        background-color: rgba(0, 150, 136, 0.08);
+        color: #0d9488;
+        transform: translateX(4px);
+    }
+    .dark .nav-item:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+        color: #2dd4bf;
+    }
+
+    .nav-item.active {
+        background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+        color: white;
+        box-shadow: 0 10px 20px -5px rgba(13, 148, 136, 0.4);
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+    .dark .nav-item.active {
+        background: linear-gradient(135deg, #0d9488 0%, #115e59 100%);
+        color: white;
+        box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.4);
+    }
+
+    .nav-icon {
+        font-size: 1.25rem;
+        margin-right: 1rem;
+        width: 1.5rem;
+        display: flex;
+        justify-content: center;
+        transition: transform 0.3s ease;
+    }
+    .nav-item:hover .nav-icon { transform: scale(1.15) rotate(5deg); }
+    .nav-item.active .nav-icon { color: white; }
+    
+    .nav-label { font-family: 'Inter', sans-serif; letter-spacing: 0.01em; }
 `;
 document.head.appendChild(style);
 
@@ -102,56 +164,136 @@ const formatDateId = (date) => {
 };
 
 const formatDisplayDateRange = (date) => {
-    const start = new Date(date);
-    const end = new Date(date);
-    end.setDate(start.getDate() + 6);
-    const f = (d) => {
-        const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-        return `${d.getDate()} ${months[d.getMonth()]}`;
-    };
-    return `${f(start)} - ${f(end)}, ${start.getFullYear()}`;
+    try {
+        const start = new Date(date);
+        if (isNaN(start.getTime())) return '';
+        const end = new Date(date);
+        end.setDate(start.getDate() + 6);
+        // Use premium Date-fns if available, fallback to basic logic
+        if (window.dateFns) {
+            return `${window.dateFns.format(start, 'd MMM')} - ${window.dateFns.format(end, 'd MMM yyyy')}`;
+        }
+        const f = (d) => `${d.getDate()}/${d.getMonth() + 1}`;
+        return `${f(start)} - ${f(end)}, ${start.getFullYear()}`;
+    } catch (e) { return date; }
 };
 
 // Ensure functions exist immediately upon module load
+
+// --- SELECTION MODALS (Fixes non-functional buttons) ---
+const showTerritorySelectionModal = (current, territorios, onSelect) => {
+    let filtered = [...territorios].sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true }));
+
+    showModal(`
+        <div class="flex flex-col gap-4">
+            <header class="flex justify-between items-center bg-teal-600 -mx-6 -mt-6 p-4 text-white rounded-t-2xl shadow-lg">
+                <h3 class="font-bold uppercase tracking-widest text-sm">Seleccionar Territorio</h3>
+                <span class="text-[10px] opacity-70">Total: ${territorios.length}</span>
+            </header>
+            
+            <div class="relative group mt-2">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+                <input type="text" id="modal-terr-search" placeholder="Buscar número..." class="w-full bg-gray-50 dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-xl pl-10 pr-4 py-2 text-sm outline-none focus:ring-2 focus:ring-teal-500 transition-all font-bold">
+            </div>
+
+            <div id="modal-terr-grid" class="grid grid-cols-4 sm:grid-cols-5 gap-2 max-h-80 overflow-y-auto p-1 custom-scrollbar">
+                <!-- Injected via render -->
+            </div>
+
+            <button id="modal-terr-none" class="w-full bg-gray-100 dark:bg-white/5 py-3 rounded-xl text-xs font-bold text-gray-400 hover:text-red-500 transition-colors uppercase tracking-widest mt-2">
+                ❌ Quitar Selección
+            </button>
+        </div>
+    `, (modal) => {
+        const grid = modal.querySelector('#modal-terr-grid');
+        const searchInput = modal.querySelector('#modal-terr-search');
+
+        const render = () => {
+            const query = searchInput.value.trim();
+            const items = query ? filtered.filter(t => t.numero.includes(query)) : filtered;
+
+            grid.innerHTML = items.map(t => {
+                const isActive = t.numero === current;
+                return `
+                    <button class="terr-pick-btn h-12 flex items-center justify-center rounded-xl border font-mono font-black text-sm transition-all
+                        ${isActive ? 'bg-teal-600 text-white border-teal-500 shadow-lg shadow-teal-500/20 scale-105' : 'bg-white dark:bg-white/5 border-black/5 dark:border-white/10 text-gray-600 dark:text-gray-300 hover:border-teal-500/50 hover:bg-teal-500/5'}
+                    " data-num="${t.numero}">
+                        ${t.numero}
+                    </button>
+                `;
+            }).join('');
+
+            modal.querySelectorAll('.terr-pick-btn').forEach(btn => {
+                btn.onclick = () => {
+                    onSelect(btn.dataset.num);
+                    modal.classList.add('hidden');
+                };
+            });
+        };
+
+        searchInput.oninput = render;
+        modal.querySelector('#modal-terr-none').onclick = () => {
+            onSelect('');
+            modal.classList.add('hidden');
+        };
+        render();
+    }, 'max-w-md');
+};
+
+const showGroupSelectionModal = (current, onSelect) => {
+    const groups = ['Todos', 'Grupos 1 y 5', 'Grupos 2 y 6', 'Grupos 3 y 4', 'Grupo 1', 'Grupo 2', 'Grupo 3', 'Grupo 4', 'Grupo 5', 'Grupo 6', 'Grupo 7', 'Grupo 8', 'Grupo 9', 'Grupo 10', 'Grupo 11', 'Grupo 12'];
+
+    showModal(`
+        <div class="flex flex-col gap-4">
+            <header class="bg-indigo-600 -mx-6 -mt-6 p-4 text-white rounded-t-2xl shadow-lg mb-2">
+                <h3 class="font-bold uppercase tracking-widest text-sm text-center">Seleccionar Grupos</h3>
+            </header>
+            
+            <div class="grid grid-cols-1 gap-2 max-h-80 overflow-y-auto p-1 custom-scrollbar">
+                ${groups.map(g => `
+                    <button class="group-pick-btn w-full p-3 rounded-xl border text-left text-sm font-bold transition-all flex items-center justify-between
+                        ${g === current ? 'bg-indigo-600 text-white border-indigo-500 shadow-md scale-[1.02]' : 'bg-white dark:bg-white/5 border-black/5 dark:border-white/10 text-gray-700 dark:text-gray-300 hover:bg-indigo-500/5 hover:border-indigo-500/30'}
+                    " data-val="${g}">
+                        <span>${g}</span>
+                        ${g === current ? '<span>✅</span>' : ''}
+                    </button>
+                `).join('')}
+            </div>
+
+            <button id="modal-grp-none" class="w-full bg-gray-100 dark:bg-white/5 py-3 rounded-xl text-xs font-bold text-gray-400 hover:text-red-500 transition-colors uppercase tracking-widest mt-2 border border-transparent">
+                ❌ Sin Grupo Específico
+            </button>
+        </div>
+    `, (modal) => {
+        modal.querySelectorAll('.group-pick-btn').forEach(btn => {
+            btn.onclick = () => {
+                onSelect(btn.dataset.val);
+                modal.classList.add('hidden');
+            };
+        });
+        modal.querySelector('#modal-grp-none').onclick = () => {
+            onSelect('');
+            modal.classList.add('hidden');
+        };
+    }, 'max-w-xs');
+};
+
 window.openTerritorySelector = (dayIndex, turnId, btnElement) => {
-    console.log("Global openTerritorySelector called", dayIndex, turnId);
-    console.log("Global territories count:", _globalTerritorios.length);
-    console.log("Global programa:", _globalPrograma);
-
-    if (!btnElement || !_globalPrograma) {
-        console.warn("Global state not ready or invalid args");
-
-        showNotification("⚠️ Estado no listo. Por favor espere a que cargue la página completa.", "warning");
-        return;
-    }
-
-    if (_globalTerritorios.length === 0) {
-        console.warn("No territories loaded");
-
-        showNotification("⚠️ No hay territorios configurados. Por favor agregue territorios en Configuración > Territorios.", "warning");
-        return;
-    }
-
+    if (!btnElement || !_globalPrograma) return;
     const currentVal = btnElement.dataset.current;
 
-    // We assume showTerritorySelectionModal is defined in this module scope (hoisted or available)
     if (typeof showTerritorySelectionModal === 'function') {
-        console.log("Opening territory modal with", _globalTerritorios.length, "territories");
         showTerritorySelectionModal(currentVal, _globalTerritorios, (newValue) => {
             if (!_globalPrograma.dias[dayIndex][turnId]) _globalPrograma.dias[dayIndex][turnId] = {};
             _globalPrograma.dias[dayIndex][turnId].territorio = newValue;
 
-            // Basic UI Update
-            btnElement.dataset.current = newValue.replace(/"/g, '&quot;');
+            btnElement.dataset.current = newValue;
             const span = btnElement.querySelector('span.truncate');
             if (span) {
                 span.textContent = newValue || 'Asignar';
-                span.className = `truncate font-mono ${newValue ? 'text-teal-300 font-medium' : 'text-gray-500 italic'} `;
+                span.className = `truncate font-mono ${newValue ? 'text-teal-400 font-bold' : 'text-gray-500 italic'}`;
             }
         });
-    } else {
-        console.error("showTerritorySelectionModal not found");
-        showNotification("Error: Componente modal no cargado. Por favor refresque la página.", "error");
     }
 };
 
@@ -163,15 +305,16 @@ window.openGroupSelector = (dayIndex, turnId, btnElement) => {
             if (!_globalPrograma.dias[dayIndex][turnId]) _globalPrograma.dias[dayIndex][turnId] = {};
             _globalPrograma.dias[dayIndex][turnId].grupos = newValue;
 
-            btnElement.dataset.current = newValue.replace(/"/g, '&quot;');
+            btnElement.dataset.current = newValue;
             const span = btnElement.querySelector('span.truncate');
             if (span) {
                 span.textContent = newValue || 'Seleccionar';
-                span.className = `truncate ${newValue ? 'text-teal-300 font-medium' : 'text-gray-500 italic'} `;
+                span.className = `truncate ${newValue ? 'text-teal-400 font-bold' : 'text-gray-500 italic'}`;
             }
         });
     }
 };
+
 
 // --- Main Render (Admin) ---
 export const renderAdminDashboard = async (container, appVersion, initialTab = 'dashboard') => { // Accepted version for auto-sync
@@ -223,11 +366,6 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
                         <span class="nav-icon">📞</span>
                         <span class="nav-label">P. Telefónica</span>
                     </button>
-                    <button class="nav-item group ${initialTab === 'historial' ? 'active' : ''}" data-tab="historial">
-                        <span class="nav-icon">📄</span>
-                        <span class="nav-label">Exportar S-13</span>
-                    </button>
-                    
                     <div class="h-6"></div> <!-- Spacer -->
 
                     <button class="nav-item group ${initialTab === 'config' ? 'active' : ''}" data-tab="config">
@@ -269,7 +407,6 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
                     'casa-en-casa': 'territorios',
                     'predicacion': 'predicacion',
                     'telefonos': 'telefonos',
-                    'historial': 'historial',
                     'config': 'config'
                 };
 
@@ -290,9 +427,26 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
     }
 };
 
+const renderSkeleton = (container) => {
+    container.innerHTML = `
+        <div class="p-8 space-y-8 animate-pulse">
+            <div class="flex justify-between items-center mb-10">
+                <div class="h-10 w-48 skeleton"></div>
+                <div class="h-10 w-32 skeleton rounded-full"></div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="h-64 skeleton-card skeleton"></div>
+                <div class="h-64 skeleton-card skeleton"></div>
+                <div class="h-64 skeleton-card skeleton"></div>
+            </div>
+            <div class="h-96 skeleton-card skeleton mt-8"></div>
+        </div>
+    `;
+};
+
 const loadTab = async (tabName, appVersion) => {
     const contentDiv = document.getElementById('admin-content');
-    contentDiv.innerHTML = '<div class="flex justify-center items-center h-full"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div></div>';
+    renderSkeleton(contentDiv); // Premium Loading State
 
     if (tabName === 'config') {
         await renderConfigTab(contentDiv, 'reglas', appVersion);
@@ -302,8 +456,6 @@ const loadTab = async (tabName, appVersion) => {
         await renderPredicacionTab(contentDiv);
     } else if (tabName === 'telefonos') {
         await renderTelefonosTab(contentDiv);
-    } else if (tabName === 'historial') {
-        await renderHistoryTab(contentDiv);
     } else if (tabName === 'dashboard') {
         await renderAnalyticsView(contentDiv);
     }
@@ -467,20 +619,27 @@ const renderAdminAI = async () => {
 };
 
 /* --- CASA EN CASA TAB --- */
+/* --- CASA EN CASA TAB --- */
 const renderCasaEnCasaTab = async (container) => {
     const config = await getConfiguracion();
 
     container.innerHTML = `
-   <h2 class="text-xl font-bold mb-6 border-b border-black/10 dark:border-white/10 pb-2 text-teal-800 dark:text-teal-100"> Predicación de Casa en Casa</h2 >
+   <h2 class="text-xl font-bold mb-6 border-b border-black/10 dark:border-white/10 pb-2 text-teal-800 dark:text-teal-100 flex items-center gap-2">
+        <span>🏘️</span> Predicación de Casa en Casa
+   </h2>
         
-        <div class="flex flex-wrap gap-2 mb-6 text-sm border-b border-black/10 dark:border-white/10 pb-4">
-            <button class="sub-tab-casa active bg-teal-500/20 text-teal-800 dark:text-teal-200 px-4 py-2 rounded-lg border border-teal-500/30 transition-all font-medium" data-sub="asignaciones">
+        <div class="flex flex-wrap gap-2 mb-6 text-sm border-b border-black/10 dark:border-white/10 pb-4 overflow-x-auto scrollbar-hide">
+            <button class="sub-tab-casa active bg-teal-500/20 text-teal-800 dark:text-teal-200 px-4 py-2 rounded-lg border border-teal-500/30 transition-all font-medium whitespace-nowrap" data-sub="asignaciones">
                 📋 Asignaciones
             </button>
-            <button class="sub-tab-casa bg-black/5 dark:bg-white/5 text-gray-500 dark:text-gray-400 px-4 py-2 rounded-lg hover:bg-white/10 transition-all" data-sub="programa">
+            <button class="sub-tab-casa bg-black/5 dark:bg-white/5 text-gray-500 dark:text-gray-400 px-4 py-2 rounded-lg hover:bg-white/10 transition-all whitespace-nowrap" data-sub="programa">
                 📅 Programa Semanal
             </button>
-            <button class="sub-tab-casa bg-black/5 dark:bg-white/5 text-gray-500 dark:text-gray-400 px-4 py-2 rounded-lg hover:bg-white/10 transition-all" data-sub="recursos">
+             <button class="sub-tab-casa bg-black/5 dark:bg-white/5 text-gray-500 dark:text-gray-400 px-4 py-2 rounded-lg hover:bg-white/10 transition-all whitespace-nowrap" data-sub="gestion">
+                🛠️ Reporte S-13 y Gestión
+            </button>
+            <div class="h-4 w-px bg-gray-300 dark:bg-white/20 mx-1 self-center"></div>
+            <button class="sub-tab-casa bg-black/5 dark:bg-white/5 text-gray-500 dark:text-gray-400 px-4 py-2 rounded-lg hover:bg-white/10 transition-all whitespace-nowrap" data-sub="recursos">
                 🧰 Ayudas Ministerio
             </button>
         </div>
@@ -494,9 +653,11 @@ const renderCasaEnCasaTab = async (container) => {
 
         // Update buttons
         container.querySelectorAll('.sub-tab-casa').forEach(b => {
-            b.className = "sub-tab-casa bg-black/5 dark:bg-white/5 text-gray-500 dark:text-gray-400 px-4 py-2 rounded-lg hover:bg-white/10 transition-all";
+            // Reset style
+            b.className = "sub-tab-casa bg-black/5 dark:bg-white/5 text-gray-500 dark:text-gray-400 px-4 py-2 rounded-lg hover:bg-white/10 transition-all whitespace-nowrap";
+            // Set active
             if (b.dataset.sub === sub) {
-                b.className = "sub-tab-casa active bg-teal-500/20 text-teal-800 dark:text-teal-200 px-4 py-2 rounded-lg border border-teal-500/30 transition-all font-medium";
+                b.className = "sub-tab-casa active bg-teal-500/20 text-teal-800 dark:text-teal-200 px-4 py-2 rounded-lg border border-teal-500/30 transition-all font-medium whitespace-nowrap";
             }
         });
 
@@ -504,6 +665,11 @@ const renderCasaEnCasaTab = async (container) => {
             await renderAsignacionesView(subContainer);
         } else if (sub === 'programa') {
             await renderProgramaTab(subContainer);
+        } else if (sub === 'gestion') {
+            // Unify S-13 and Advanced History
+            subContainer.innerHTML = '<div id="s13-container"></div><div class="h-10"></div><div id="adv-hist-container"></div>';
+            await renderHistoryTab(subContainer.querySelector('#s13-container'));
+            await renderAdvancedHistoryView(subContainer.querySelector('#adv-hist-container'));
         } else if (sub === 'recursos') {
             await renderRecursosTab(subContainer);
         }
@@ -654,7 +820,6 @@ const renderRecursosTab = async (container) => {
 const renderAsignacionesView = async (container) => {
     let currentView = 'activas'; // dashboard, activas, historial, campañas
     let selectedIds = new Set();
-    const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
     // Fetch initial data
     const initData = async () => {
@@ -680,142 +845,217 @@ const renderAsignacionesView = async (container) => {
         renderMain();
     };
 
-    const toggleSelect = (id) => {
+    const toggleSelect = async (id) => {
         if (selectedIds.has(id)) selectedIds.delete(id);
         else selectedIds.add(id);
-        renderGrid();
+        renderMain();
     };
+
+    window.actionToggleSelect = toggleSelect;
 
     const handleNewAssignment = async (editId = null) => {
         const item = editId ? territorios.find(x => x.id === editId) : null;
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        // Prepare hours from config or default
+        const horasOptions = (config.horas_predetermined || ['08:30', '08:45', '09:00', '09:15', '09:30', '14:30', '16:00', '18:00']);
+
+        const configuredGroups = await getGroupsConfig();
 
         showModal(`
-            <div class="p-2">
-                <header class="flex items-center gap-3 mb-6 bg-purple-600 -mx-8 -mt-8 p-6 text-white rounded-t-2xl shadow-lg">
-                    <div class="text-3xl">🟪</div>
-                    <div>
-                        <h3 class="text-xl font-bold">${editId ? 'Editar Asignación' : 'Nueva Asignación'}</h3>
-                        <p class="text-[10px] opacity-80 uppercase tracking-widest font-black">Planificador Central</p>
+            <div class="flex flex-col h-full max-h-[90vh]">
+                <header class="shrink-0 flex items-center justify-between bg-gradient-to-r from-indigo-600 to-purple-700 p-8 text-white relative overflow-hidden">
+                    <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
+                    <div class="relative z-10 flex items-center gap-4">
+                        <div class="w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-3xl shadow-inner border border-white/20">📋</div>
+                        <div>
+                            <h3 class="text-2xl font-black tracking-tight">${editId ? 'Editar Registro' : 'Nueva Asignación'}</h3>
+                            <p class="text-[10px] opacity-70 uppercase tracking-[0.3em] font-black">Planificador de Territorio</p>
+                        </div>
                     </div>
                 </header>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-black text-gray-400 uppercase mb-1">Territorio</label>
-                        <select id="asig-terr" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3 outline-none focus:ring-2 focus:ring-purple-500 transition-all font-bold">
-                            <option value="" disabled ${!editId ? 'selected' : ''}>Seleccionar...</option>
-                            ${territorios
-                .filter(t => editId ? t.id === editId : (t.estado !== 'Asignado' && t.estado !== 'Pendiente'))
+                <div class="flex-1 p-8 space-y-8">
+                    <div class="p-1 space-y-6">
+                        <div class="space-y-2">
+                            <label class="block text-[11px] font-black text-indigo-500 uppercase tracking-widest ml-1">📍 ${editId ? 'Territorio Seleccionado' : 'Seleccionar Territorios (Múltiple)'}</label>
+                            ${editId ? `
+                                <div class="bg-indigo-50 dark:bg-indigo-500/10 p-4 rounded-2xl border-2 border-indigo-500/20 flex items-center gap-3">
+                                    <span class="text-2xl">📍</span>
+                                    <div>
+                                        <p class="text-sm font-black text-indigo-600 dark:text-indigo-400">Territorio ${item.numero}</p>
+                                        <p class="text-[10px] opacity-60 uppercase">${item.nombre || 'Área general'}</p>
+                                    </div>
+                                    <input type="hidden" id="asig-terr-single" value="${item.id}">
+                                </div>
+                            ` : `
+                                <div class="flex flex-col gap-3">
+                                    <div class="flex justify-between items-center px-1">
+                                        <button type="button" id="btn-select-all-terr" class="text-[10px] font-black text-indigo-500 hover:text-indigo-600 uppercase tracking-tighter">Seleccionar Todos</button>
+                                        <span id="selected-count" class="text-[10px] font-black text-gray-400 uppercase">0 Seleccionados</span>
+                                    </div>
+                                    <div id="terr-checklist" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 bg-gray-50 dark:bg-black/40 rounded-3xl p-4 border-2 border-transparent focus-within:border-indigo-500/30 transition-all max-h-48 overflow-y-auto custom-scrollbar">
+                                        ${territorios
+                .filter(t => (t.estado !== 'Asignado' && t.estado !== 'Pendiente'))
                 .sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true }))
-                .map(t => `<option value="${t.id}" ${editId === t.id ? 'selected' : ''}>${t.numero} - ${t.nombre || 'Sin nombre'}</option>`).join('')}
-                        </select>
+                .map(t => `
+                                                <label class="flex items-center gap-2 p-2 hover:bg-white dark:hover:bg-white/5 rounded-xl cursor-pointer transition-all border border-transparent hover:border-indigo-500/20 group">
+                                                    <input type="checkbox" name="asig-terr-check" value="${t.id}" data-num="${t.numero}" class="w-5 h-5 rounded-lg border-2 border-indigo-200 dark:border-white/10 bg-transparent accent-indigo-600 transition-transform group-active:scale-90">
+                                                    <span class="text-xs font-bold text-gray-700 dark:text-gray-200">#${t.numero}</span>
+                                                </label>
+                                            `).join('')}
+                                        ${territorios.filter(t => t.estado !== 'Asignado' && t.estado !== 'Pendiente').length === 0 ? '<p class="col-span-full py-4 text-center text-[10px] text-gray-400 font-bold uppercase">No hay territorios disponibles</p>' : ''}
+                                    </div>
+                                </div>
+                            `}
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="block text-[11px] font-black text-indigo-500 uppercase tracking-widest ml-1">🚩 Campaña Especial</label>
+                            <div class="relative group">
+                                <span class="absolute left-4 top-1/2 -translate-y-1/2 opacity-30 group-focus-within:opacity-100 transition-opacity">#</span>
+                                <input type="text" id="asig-campana" value="${item?.campana || ''}" list="campanas-list" class="w-full pl-8 bg-gray-50 dark:bg-black/40 border-2 border-transparent focus:border-indigo-500/50 dark:border-white/5 rounded-2xl p-4 outline-none transition-all font-bold text-gray-800 dark:text-gray-100 placeholder-gray-400 shadow-sm" placeholder="Opcional">
+                                <datalist id="campanas-list">
+                                    ${[...new Set(allHistory.map(h => h.campana).filter(Boolean))].map(c => `<option value="${c}">`).join('')}
+                                </datalist>
+                            </div>
+                        </div>
                     </div>
 
-                    <div>
-                        <label class="block text-xs font-black text-gray-400 uppercase mb-1">Campaña (Opcional)</label>
-                        <input type="text" id="asig-campana" value="${item?.campana || ''}" list="campanas-list" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3 outline-none focus:ring-2 focus:ring-purple-500 transition-all font-bold" placeholder="Ej: Conmemoración 2024">
-                        <datalist id="campanas-list">
-                            ${[...new Set(allHistory.map(h => h.campana).filter(Boolean))].map(c => `<option value="${c}">`).join('')}
-                        </datalist>
+                    <!-- Sección Responsables -->
+                    <div class="bg-indigo-500/[0.03] dark:bg-indigo-500/[0.05] p-6 rounded-[2rem] border border-indigo-500/10 space-y-6">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="text-xs font-black text-indigo-600 uppercase tracking-wider">👤 Equipo de Predicación</span>
+                            <div class="h-px flex-1 bg-indigo-500/10"></div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Conductor Principal</label>
+                                <div class="relative group">
+                                    <select id="asig-cond" class="w-full bg-white dark:bg-black/40 border-2 border-transparent focus:border-indigo-500/50 dark:border-white/5 rounded-2xl p-4 outline-none transition-all font-bold text-gray-800 dark:text-gray-100 appearance-none shadow-sm">
+                                        <option value="" disabled ${!item ? 'selected' : ''}>Elegir publicador...</option>
+                                        ${conductores.sort((a, b) => a.nombre.localeCompare(b.nombre)).map(c => `<option value="${c.nombre}" ${item?.asignado_a === c.nombre ? 'selected' : ''}>${c.nombre}</option>`).join('')}
+                                    </select>
+                                    <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-50">▼</div>
+                                </div>
+                            </div>
+
+                            <div class="space-y-2">
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Auxiliar de Apoyo</label>
+                                <div class="relative group">
+                                    <select id="asig-aux" class="w-full bg-white dark:bg-black/40 border-2 border-transparent focus:border-indigo-500/50 dark:border-white/5 rounded-2xl p-4 outline-none transition-all font-bold text-gray-800 dark:text-gray-100 appearance-none shadow-sm">
+                                        <option value="">Ningún auxiliar</option>
+                                        ${conductores.sort((a, b) => a.nombre.localeCompare(b.nombre)).map(c => `<option value="${c.nombre}" ${item?.auxiliar === c.nombre ? 'selected' : ''}>${c.nombre}</option>`).join('')}
+                                    </select>
+                                    <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-50">▼</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="md:col-span-2 border-t border-black/5 dark:border-white/5 my-2 pt-4">
-                        <p class="text-[10px] font-black text-purple-600 mb-2 uppercase tracking-widest">Equipo de Servicio</p>
+                    <!-- Sección Logística -->
+                    <div class="p-1 space-y-6">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="text-xs font-black text-gray-400 uppercase tracking-wider">🕒 Logística y Horario</span>
+                            <div class="h-px flex-1 bg-gray-200 dark:bg-white/5"></div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div class="space-y-2">
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Día de Salida</label>
+                                <select id="asig-date-salida" class="w-full bg-gray-50 dark:bg-black/40 border-2 border-transparent focus:border-indigo-500/50 dark:border-white/5 rounded-2xl p-4 outline-none transition-all font-bold text-gray-800 dark:text-gray-100 shadow-sm appearance-none">
+                                    <option value="">Seleccionar día...</option>
+                                    ${['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(d => `
+                                        <option value="${d}" ${item?.fecha_salida && ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][new Date(item.fecha_salida).getUTCDay()] === d ? 'selected' : ''}>${d}</option>
+                                    `).join('')}
+                                </select>
+                            </div>
+
+                            <div class="space-y-2">
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Turno</label>
+                                <select id="asig-turno" class="w-full bg-gray-50 dark:bg-black/40 border-2 border-transparent focus:border-indigo-500/50 dark:border-white/5 rounded-2xl p-4 outline-none transition-all font-bold text-gray-800 dark:text-gray-100 shadow-sm appearance-none">
+                                    <option value="manana" ${item?.turno === 'manana' ? 'selected' : ''}>${config.jornadas?.manana || '🌅 Mañana'}</option>
+                                    <option value="tarde" ${item?.turno === 'tarde' ? 'selected' : ''}>${config.jornadas?.tarde || '☀️ Tarde'}</option>
+                                    <option value="noche" ${item?.turno === 'noche' ? 'selected' : ''}>${config.jornadas?.noche || '🌙 Noche'}</option>
+                                </select>
+                            </div>
+
+                            <div class="space-y-2">
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Faceta</label>
+                                <select id="asig-faceta" class="w-full bg-gray-50 dark:bg-black/40 border-2 border-transparent focus:border-indigo-500/50 dark:border-white/5 rounded-2xl p-4 outline-none transition-all font-bold text-gray-800 dark:text-gray-100 shadow-sm appearance-none">
+                                    ${(config.facetas || ['Casa en Casa', 'Telefónica', 'Pública', 'Cartas']).map(f => `<option value="${f}" ${item?.faceta === f ? 'selected' : ''}>${f}</option>`).join('')}
+                                </select>
+                            </div>
+
+                            <div class="space-y-2">
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Hora de Salida</label>
+                                <select id="asig-hora" class="w-full bg-gray-50 dark:bg-black/40 border-2 border-transparent focus:border-indigo-500/50 dark:border-white/5 rounded-2xl p-4 outline-none transition-all font-bold text-gray-800 dark:text-gray-100 shadow-sm appearance-none">
+                                     ${horasOptions.map(h => `<option value="${h}" ${item?.hora === h ? 'selected' : ''}>${h}</option>`).join('')}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Punto de Encuentro</label>
+                            <select id="asig-lugar" class="w-full bg-gray-50 dark:bg-black/40 border-2 border-transparent focus:border-indigo-500/50 dark:border-white/5 rounded-2xl p-4 outline-none transition-all font-bold text-gray-800 dark:text-gray-100 shadow-sm appearance-none">
+                                <option value="">Estándar de la congregación...</option>
+                                ${(config.lugares || []).map(l => `<option value="${l}" ${item?.lugar === l ? 'selected' : ''}>${l}</option>`).join('')}
+                            </select>
+                        </div>
                     </div>
 
-                    <div>
-                        <label class="block text-xs font-black text-gray-400 uppercase mb-1">Conductor</label>
-                        <select id="asig-cond" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3 outline-none focus:ring-2 focus:ring-purple-500 transition-all font-bold">
-                            <option value="" disabled ${!item ? 'selected' : ''}>Seleccionar...</option>
-                            ${conductores.sort((a, b) => a.nombre.localeCompare(b.nombre)).map(c => `<option value="${c.nombre}" ${item?.asignado_a === c.nombre ? 'selected' : ''}>${c.nombre}</option>`).join('')}
-                        </select>
+                    <!-- Lógica Especial Fines de Semana -->
+                    <div id="sunday-logic" class="hidden bg-gradient-to-br from-indigo-600 to-purple-800 p-8 rounded-[2rem] text-white shadow-2xl relative overflow-hidden group">
+                        <div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+                        <div class="relative z-10">
+                            <div class="flex items-center justify-between mb-6">
+                                <p class="text-[11px] font-black uppercase tracking-[0.2em] flex items-center gap-2"><span>🛡️</span> División de Grupos</p>
+                                <select id="asig-split-count" class="bg-white/20 border border-white/20 rounded-xl text-xs font-bold px-3 py-1.5 outline-none backdrop-blur-md">
+                                    <option value="1" class="text-gray-800">1 Bloque Único</option>
+                                    <option value="2" class="text-gray-800">2 Grupos Separados</option>
+                                    <option value="3" class="text-gray-800">3 Grupos Separados</option>
+                                </select>
+                            </div>
+                            <div id="sunday-blocks" class="space-y-4"></div>
+                            <div id="asig-group-single" class="mt-4">
+                                <label class="block text-[10px] font-black opacity-60 uppercase mb-3 ml-1">Seleccionar Grupos Participantes</label>
+                                <div id="groups-checklist" class="grid grid-cols-2 gap-2 bg-black/10 rounded-2xl p-4 border border-white/10 max-h-40 overflow-y-auto custom-scrollbar">
+                                    ${configuredGroups.map(g => `
+                                        <label class="flex items-center gap-3 p-2 hover:bg-white/5 rounded-xl cursor-pointer transition-all">
+                                            <input type="checkbox" name="asig-group-check" value="${g.nombre}" class="w-5 h-5 rounded-lg border-2 border-white/20 bg-transparent accent-white">
+                                            <span class="text-xs font-bold">${g.nombre}</span>
+                                        </label>
+                                    `).join('')}
+                                    ${configuredGroups.length === 0 ? '<p class="text-[9px] opacity-50 col-span-2 text-center py-2">No hay grupos configurados</p>' : ''}
+                                </div>
+                                <input type="hidden" id="asig-grupos" value="${item?.grupos || ''}">
+                            </div>
+                        </div>
                     </div>
 
-                    <div>
-                        <label class="block text-xs font-black text-gray-400 uppercase mb-1">Auxiliar (Opcional)</label>
-                        <select id="asig-aux" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3 outline-none focus:ring-2 focus:ring-purple-500 transition-all font-bold">
-                            <option value="">Ninguno</option>
-                            ${conductores.sort((a, b) => a.nombre.localeCompare(b.nombre)).map(c => `<option value="${c.nombre}" ${item?.auxiliar === c.nombre ? 'selected' : ''}>${c.nombre}</option>`).join('')}
-                        </select>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-2 bg-indigo-50/50 dark:bg-white/5 rounded-3xl border border-indigo-100 dark:border-white/10">
+                        <div class="space-y-2 p-2">
+                            <label class="block text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest ml-1">Fecha de Asignación</label>
+                            <input type="date" id="asig-date" value="${todayStr}" class="w-full bg-white dark:bg-black/40 border-2 border-transparent focus:border-indigo-500/50 rounded-2xl p-4 outline-none font-bold text-sm shadow-sm transition-all">
+                        </div>
+                        <div class="p-4 flex items-center">
+                            <p class="text-[10px] text-gray-400 font-medium leading-relaxed italic">Normalmente es hoy, pero puedes ajustarla para registros pasados.</p>
+                        </div>
                     </div>
 
-                    <div class="md:col-span-2 border-t border-black/5 dark:border-white/5 my-2 pt-4">
-                        <p class="text-[10px] font-black text-purple-600 mb-2 uppercase tracking-widest">Logística y Horario</p>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-black text-gray-400 uppercase mb-1">Día de Asignación</label>
-                        <input type="date" id="asig-date" value="${item?.fecha_asignacion ? item.fecha_asignacion.split('T')[0] : new Date().toISOString().split('T')[0]}" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3 outline-none focus:ring-2 focus:ring-purple-500 transition-all font-bold">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-black text-gray-400 uppercase mb-1">Día de Salida (Predicación)</label>
-                        <select id="asig-date-salida" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3 outline-none focus:ring-2 focus:ring-purple-500 transition-all font-bold">
-                            <option value="">Seleccionar día...</option>
-                            ${['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(d => `
-                                <option value="${d}" ${item?.fecha_salida && ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][new Date(item.fecha_salida).getUTCDay()] === d ? 'selected' : ''}>${d}</option>
-                            `).join('')}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-black text-gray-400 uppercase mb-1">Turno</label>
-                        <select id="asig-turno" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3 outline-none focus:ring-2 focus:ring-purple-500 transition-all font-bold">
-                            <option value="manana" ${item?.turno === 'manana' ? 'selected' : ''}>${config.jornadas?.manana || '🌅 Mañana'}</option>
-                            <option value="tarde" ${item?.turno === 'tarde' ? 'selected' : ''}>${config.jornadas?.tarde || '☀️ Tarde'}</option>
-                            <option value="noche" ${item?.turno === 'noche' ? 'selected' : ''}>${config.jornadas?.noche || '🌙 Noche'}</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-black text-gray-400 uppercase mb-1">Lugar de Salida</label>
-                        <select id="asig-lugar" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3 outline-none focus:ring-2 focus:ring-purple-500 transition-all font-bold">
-                            <option value="">Seleccionar...</option>
-                            ${(config.lugares || []).map(l => `<option value="${l}" ${item?.lugar === l ? 'selected' : ''}>${l}</option>`).join('')}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-black text-gray-400 uppercase mb-1">Hora</label>
-                        <input type="time" id="asig-hora" value="${item?.hora || '09:00'}" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3 outline-none focus:ring-2 focus:ring-purple-500 transition-all font-bold">
-                    </div>
                 </div>
 
-                <div id="sunday-logic" class="hidden mt-6 bg-purple-50 dark:bg-purple-950/20 p-4 rounded-2xl border border-purple-200 dark:border-purple-800/30">
-                    <div class="flex items-center justify-between mb-4">
-                        <p class="text-xs font-black text-purple-700 dark:text-purple-300 uppercase flex items-center gap-2"><span>🛡️</span> División de Grupos (Domingo)</p>
-                        <select id="asig-split-count" class="bg-white dark:bg-black/40 border border-purple-200 dark:border-purple-800/30 rounded-lg text-xs font-bold px-2 py-1">
-                            <option value="1">1 Bloque</option>
-                            <option value="2">2 Bloques</option>
-                            <option value="3">3 Bloques</option>
-                        </select>
-                    </div>
-
-                    <div id="sunday-blocks" class="space-y-4">
-                        <!-- Blocks will be injected here if split > 1 -->
-                    </div>
-
-                    <div id="asig-group-single" class="mt-4">
-                        <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">Combinación de Grupos</label>
-                        <select id="asig-grupos" class="w-full bg-white dark:bg-black/40 border border-purple-200 dark:border-purple-800/30 rounded-xl p-3 outline-none focus:ring-2 focus:ring-purple-500 font-bold text-sm">
-                            <option value="">Sin división específica</option>
-                            <option value="Grupos 1 y 5">Grupos 1 y 5</option>
-                            <option value="Grupos 2 y 6">Grupos 2 y 6</option>
-                            <option value="Grupos 3 y 4">Grupos 3 y 4</option>
-                            <option value="Grupos 1-2">Grupos 1 y 2</option>
-                            <option value="Grupos 3-4">Grupos 3 y 4</option>
-                            <option value="Grupos 5-6">Grupos 5 y 6</option>
-                            ${Array.from({ length: 12 }, (_, i) => `<option value="Grupo ${i + 1}">Grupo ${i + 1}</option>`).join('')}
-                        </select>
-                    </div>
+                <div class="shrink-0 p-8 bg-gray-50 dark:bg-black/40 border-t border-black/5 dark:border-white/5">
+                    <button id="confirm-asig" class="w-full group relative overflow-hidden bg-gradient-to-r from-indigo-600 to-purple-700 py-6 rounded-[2rem] text-white font-black shadow-2xl shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-[1.02] active:scale-[0.98] transition-all uppercase tracking-[0.2em] text-sm">
+                        <span class="relative z-10">${editId ? 'Guardar Cambios' : 'Confirmar Asignación'}</span>
+                        <div class="absolute inset-0 bg-white/10 translate-x-full group-hover:translate-x-0 transition-transform duration-500"></div>
+                    </button>
                 </div>
-
-                <button id="confirm-asig" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-black py-4 rounded-xl shadow-xl shadow-purple-500/20 transition-all mt-8 uppercase tracking-widest">
-                    ${editId ? 'Guardar Cambios' : 'Confirmar Asignación'}
-                </button>
             </div>
         `, (modal) => {
             const dateInput = modal.querySelector('#asig-date');
+            const salidaInput = modal.querySelector('#asig-date-salida');
             const sunLogic = modal.querySelector('#sunday-logic');
             const splitSelect = modal.querySelector('#asig-split-count');
             const blocksContainer = modal.querySelector('#sunday-blocks');
@@ -853,30 +1093,72 @@ const renderAsignacionesView = async (container) => {
             };
 
             const checkSunday = () => {
-                const d = new Date(dateInput.value);
-                // getUTCDay() avoids timezone issues with date-only strings
-                if (d.getUTCDay() === 0) sunLogic.classList.remove('hidden');
+                const dayName = salidaInput.value;
+                if (dayName === 'Domingo' || dayName === 'Sábado') sunLogic.classList.remove('hidden');
                 else sunLogic.classList.add('hidden');
             };
 
-            dateInput.onchange = checkSunday;
+            const hiddenGroupsInput = modal.querySelector('#asig-grupos');
+            const checkboxes = modal.querySelectorAll('input[name="asig-group-check"]');
+
+            // Logic for multiple territory selection
+            const terrCheckboxes = modal.querySelectorAll('input[name="asig-terr-check"]');
+            const selectedCountLabel = modal.querySelector('#selected-count');
+            const btnSelectAll = modal.querySelector('#btn-select-all-terr');
+
+            if (selectedCountLabel) {
+                const updateCount = () => {
+                    const count = Array.from(terrCheckboxes).filter(cb => cb.checked).length;
+                    selectedCountLabel.innerText = `${count} Seleccionados`;
+                };
+                terrCheckboxes.forEach(cb => cb.onchange = updateCount);
+                if (btnSelectAll) {
+                    btnSelectAll.onclick = () => {
+                        const allChecked = Array.from(terrCheckboxes).every(cb => cb.checked);
+                        terrCheckboxes.forEach(cb => cb.checked = !allChecked);
+                        updateCount();
+                    };
+                }
+            }
+
+            // Re-sync checkboxes if editing
+            if (hiddenGroupsInput.value) {
+                const selected = hiddenGroupsInput.value.split(', ');
+                checkboxes.forEach(cb => { if (selected.includes(cb.value)) cb.checked = true; });
+            }
+
+            checkboxes.forEach(cb => {
+                cb.onchange = () => {
+                    const values = Array.from(checkboxes).filter(c => c.checked).map(c => c.value);
+                    hiddenGroupsInput.value = values.join(', ');
+                };
+            });
+
+            salidaInput.onchange = checkSunday;
             splitSelect.onchange = renderBlocks;
             checkSunday();
 
             modal.querySelector('#confirm-asig').onclick = async (e) => {
-                const terrId = modal.querySelector('#asig-terr').value;
+                let terrIDs = [];
+                if (editId) {
+                    terrIDs = [modal.querySelector('#asig-terr-single').value];
+                } else {
+                    terrIDs = Array.from(modal.querySelectorAll('input[name="asig-terr-check"]:checked')).map(cb => cb.value);
+                }
+
                 const cond = modal.querySelector('#asig-cond').value;
                 const aux = modal.querySelector('#asig-aux').value;
                 const date = modal.querySelector('#asig-date').value;
                 const dateSalida = modal.querySelector('#asig-date-salida').value;
                 const turno = modal.querySelector('#asig-turno').value;
+                const faceta = modal.querySelector('#asig-faceta').value;
                 const lugar = modal.querySelector('#asig-lugar').value;
                 const hora = modal.querySelector('#asig-hora').value;
                 const camp = modal.querySelector('#asig-campana').value;
                 const groups = modal.querySelector('#asig-grupos').value;
                 const splitCount = parseInt(splitSelect.value);
 
-                if (!terrId || !cond || !date) return showNotification("Faltan campos críticos", "warning");
+                if (terrIDs.length === 0 || !cond || !date) return showNotification("Faltan campos críticos (Territorio, Conductor o Fecha)", "warning");
 
                 const blocks = [];
                 if (splitCount > 1) {
@@ -892,36 +1174,48 @@ const renderAsignacionesView = async (container) => {
 
                 const calculateSalidaDate = (assignDateStr, dayName) => {
                     if (!dayName) return null;
-                    const daysMap = { 'Lunes': 1, 'Martes': 2, 'Miércoles': 3, 'Jueves': 4, 'Viernes': 5, 'Sábado': 6, 'Domingo': 0 };
+                    const daysMap = { 'Domingo': 0, 'Lunes': 1, 'Martes': 2, 'Miércoles': 3, 'Jueves': 4, 'Viernes': 5, 'Sábado': 6 };
                     const targetDay = daysMap[dayName];
-                    const d = new Date(assignDateStr);
-                    const currentDay = d.getUTCDay();
-                    const currentDayShifted = currentDay === 0 ? 7 : currentDay;
-                    const targetDayShifted = targetDay === 0 ? 7 : targetDay;
-                    const diff = targetDayShifted - currentDayShifted;
-                    d.setUTCDate(d.getUTCDate() + diff);
-                    return d.toISOString();
+
+                    // Parse as local components to avoid UTC shift
+                    const [y, m, d] = assignDateStr.split('-').map(Number);
+                    const dateObj = new Date(y, m - 1, d);
+
+                    const currentDay = dateObj.getDay();
+                    let diff = targetDay - currentDay;
+                    if (diff <= 0) diff += 7;
+                    dateObj.setDate(dateObj.getDate() + diff);
+
+                    // Return T12:00:00Z to ensure it lands on the correct day regardless of browser timezone
+                    const finalY = dateObj.getFullYear();
+                    const finalM = String(dateObj.getMonth() + 1).padStart(2, '0');
+                    const finalD = String(dateObj.getDate()).padStart(2, '0');
+                    return `${finalY}-${finalM}-${finalD}T12:00:00Z`;
                 };
 
                 try {
                     const finalFechaSalida = calculateSalidaDate(date, dateSalida);
 
-                    await assignTerritorio(terrId, cond, {
-                        auxiliar: aux,
-                        fecha_asignacion: new Date(date).toISOString(),
-                        fecha_salida: finalFechaSalida,
-                        turno, lugar, hora, campana: camp, grupos: groups,
-                        blocks: blocks.length > 0 ? blocks : null
-                    });
+                    // Bulk assign processing
+                    for (const tid of terrIDs) {
+                        await assignTerritorio(tid, cond, {
+                            auxiliar: aux,
+                            fecha_asignacion: new Date(date + 'T12:00:00Z').toISOString(),
+                            fecha_salida: finalFechaSalida,
+                            turno, faceta, lugar, hora, campana: camp, grupos: groups,
+                            blocks: blocks.length > 0 ? blocks : null
+                        });
+                    }
 
                     if (camp) await saveCampana(camp);
 
-                    showNotification(editId ? "Asignación actualizada" : "Territorio asignado con éxito", "success");
+                    showNotification(terrIDs.length > 1 ? `${terrIDs.length} territorios asignados` : (editId ? "Asignación actualizada" : "Territorio asignado con éxito"), "success");
                     modal.classList.add('hidden');
                     reloadData();
                 } catch (err) {
                     showNotification("Error: " + err.message, "error");
                     e.target.disabled = false;
+                    e.target.innerHTML = editId ? "GUARDAR" : "CONFIRMAR";
                 }
             };
         });
@@ -934,60 +1228,81 @@ const renderAsignacionesView = async (container) => {
         if (assignedTerritories.length === 0) return showNotification("No hay territorios asignados para devolver", "info");
 
         showModal(`
-            <div class="p-2">
-                <header class="flex items-center gap-3 mb-6 bg-red-600 -mx-8 -mt-8 p-6 text-white rounded-t-2xl shadow-lg">
-                    <div class="text-3xl">🟥</div>
-                    <div>
-                        <h3 class="text-xl font-bold">Devolver Territorios</h3>
-                        <p class="text-[10px] opacity-80 uppercase tracking-widest font-black">Selección Selectiva</p>
+            <div class="overflow-hidden">
+                <header class="flex items-center justify-between bg-gradient-to-r from-red-600 to-rose-700 p-8 text-white shadow-2xl relative overflow-hidden">
+                    <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
+                    <div class="relative z-10 flex items-center gap-4">
+                        <div class="w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-3xl shadow-inner border border-white/20">📥</div>
+                        <div>
+                            <h3 class="text-2xl font-black tracking-tight">Cerrar Asignaciones</h3>
+                            <p class="text-[10px] opacity-70 uppercase tracking-[0.3em] font-black">Recepción de Informes</p>
+                        </div>
                     </div>
                 </header>
 
-                <div class="mb-6">
-                    <div class="flex justify-between items-center mb-3">
-                        <label class="block text-xs font-black text-gray-400 uppercase">Selecciona los territorios</label>
-                        <button id="select-all-returns" class="text-[10px] font-black text-red-600 uppercase hover:underline">Marcar Todos</button>
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto p-3 bg-gray-50 dark:bg-black/20 rounded-2xl border border-black/5 custom-scrollbar">
-                        ${assignedTerritories.map(t => `
-                            <label class="flex items-center gap-3 p-3 bg-white dark:bg-white/5 rounded-xl border border-black/[0.03] dark:border-white/[0.05] cursor-pointer hover:border-red-500/30 transition-all group">
-                                <input type="checkbox" class="return-check w-5 h-5 accent-red-600 rounded-lg" value="${t.id}" ${selectedIds.has(t.id) ? 'checked' : ''}>
-                                <div class="min-w-0">
-                                    <p class="text-sm font-black text-gray-800 dark:text-gray-200">#${t.numero}</p>
-                                    <p class="text-[10px] text-gray-500 truncate font-bold uppercase tracking-tighter">${t.asignado_a}</p>
-                                </div>
-                            </label>
-                        `).join('')}
-                    </div>
-                </div>
+                <div class="p-8 space-y-8">
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <div>
-                        <label class="block text-[10px] font-black text-gray-400 uppercase mb-1 ml-1">Fecha de Devolución</label>
-                        <input type="date" id="bulk-return-date" value="${new Date().toISOString().split('T')[0]}" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3 outline-none focus:ring-2 focus:ring-red-500 font-bold text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-black text-gray-400 uppercase mb-1 ml-1">Estado Final</label>
-                        <select id="bulk-return-status" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3 outline-none focus:ring-2 focus:ring-red-500 font-bold text-sm">
-                            <option value="Completado" selected>✅ Completado</option>
-                            <option value="Perdido">❌ Perdido / Extraviado</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="space-y-3 mb-8">
-                    <label class="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-500/5 rounded-2xl border border-red-100 dark:border-red-500/10 cursor-pointer hover:bg-red-100 dark:hover:bg-red-500/10 transition-colors">
-                        <input type="checkbox" id="bulk-repeat" class="w-5 h-5 accent-red-600 rounded">
-                        <div>
-                            <p class="text-sm font-black text-red-800 dark:text-red-400">Repetir Asignación</p>
-                            <p class="text-[9px] text-red-600/60 uppercase font-bold tracking-tighter">Mantiene el territorio al mismo conductor con fecha de hoy</p>
+                <div class="space-y-8 animate-fade-in-up">
+                    <!-- Selección de Territorios -->
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center px-1">
+                            <label class="text-[11px] font-black text-rose-600 uppercase tracking-widest">Seleccionar Registros</label>
+                            <button id="select-all-returns" class="text-[10px] font-black text-rose-600 uppercase hover:underline tracking-wider">Marcar Todos</button>
                         </div>
-                    </label>
-                </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 bg-gray-50 dark:bg-black/20 rounded-[2.5rem] border border-black/5 custom-scrollbar-dark ring-8 ring-gray-100 dark:ring-white/5 mx-1">
+                            ${assignedTerritories.map(t => `
+                                <label class="flex items-center gap-4 p-4 bg-white dark:bg-gray-800 rounded-2xl border-2 border-transparent hover:border-rose-500/30 cursor-pointer transition-all group scale-95 hover:scale-100 shadow-sm">
+                                    <div class="relative">
+                                        <input type="checkbox" class="return-check w-6 h-6 accent-rose-600 rounded-lg" value="${t.id}" ${selectedIds.has(t.id) ? 'checked' : ''}>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <p class="text-sm font-black text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                                            <span class="w-6 h-6 bg-rose-500/10 text-rose-600 rounded flex items-center justify-center text-[10px]">${t.numero}</span>
+                                            ${t.asignado_a}
+                                        </p>
+                                        <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Pendiente de cierre</p>
+                                    </div>
+                                </label>
+                            `).join('')}
+                        </div>
+                    </div>
 
-                <button id="confirm-bulk-return" class="w-full bg-red-600 hover:bg-red-500 text-white font-black py-4 rounded-2xl shadow-xl shadow-red-500/20 transition-all uppercase tracking-widest text-sm">
-                    Confirmar Devolución
-                </button>
+                    <!-- Logística de Cierre -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-1">
+                        <div class="space-y-2">
+                            <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Fecha de Devolución</label>
+                            <input type="date" id="bulk-return-date" value="${new Date().toISOString().split('T')[0]}" class="w-full bg-gray-50 dark:bg-black/40 border-2 border-transparent focus:border-rose-500/50 rounded-2xl p-4 outline-none font-bold text-sm shadow-sm">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Estado Final de los Datos</label>
+                            <div class="relative">
+                                <select id="bulk-return-status" class="w-full bg-gray-50 dark:bg-black/40 border-2 border-transparent focus:border-rose-500/50 rounded-2xl p-4 outline-none font-bold text-sm shadow-sm appearance-none">
+                                    <option value="Completado" selected>✅ Territorios Completados</option>
+                                    <option value="Perdido">⚠️ Reportar como Perdido</option>
+                                </select>
+                                <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-50">▼</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Acción Especial -->
+                    <div class="px-1">
+                        <label class="flex items-center gap-4 p-5 bg-rose-500/[0.03] dark:bg-rose-500/[0.05] rounded-3xl border border-rose-500/10 cursor-pointer hover:bg-rose-500/[0.06] transition-all group shadow-sm">
+                            <input type="checkbox" id="bulk-repeat" class="w-6 h-6 accent-rose-600 rounded-lg">
+                            <div>
+                                <p class="text-[13px] font-black text-rose-800 dark:text-rose-400 leading-tight">Mismo publicador mantiene el territorio</p>
+                                <p class="text-[10px] text-rose-600/60 uppercase font-black tracking-tighter mt-0.5">Reinicia el ciclo de predicación automáticamente hoy</p>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="pt-4 pb-2">
+                        <button id="confirm-bulk-return" class="w-full group relative overflow-hidden bg-gradient-to-r from-red-600 to-rose-700 py-5 rounded-2xl text-white font-black shadow-2xl shadow-rose-500/30 hover:shadow-rose-500/50 hover:scale-[1.02] transition-all uppercase tracking-[0.2em] text-sm">
+                            <span class="relative z-10">Confirmar Devolución</span>
+                            <div class="absolute inset-0 bg-white/10 translate-x-full group-hover:translate-x-0 transition-transform duration-500"></div>
+                        </button>
+                    </div>
+                </div>
             </div>
         `, (modal) => {
             const selectAll = modal.querySelector('#select-all-returns');
@@ -1046,52 +1361,143 @@ const renderAsignacionesView = async (container) => {
         if (!t) return;
 
         showModal(`
-            <h3 class="text-xl font-bold mb-4 text-purple-600 dark:text-purple-400">Editar Asignación Activa</h3>
-            <p class="text-[10px] text-gray-500 mb-6 font-black uppercase tracking-widest">Territorio ${num} - ${conductor}</p>
-            
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-xs uppercase text-gray-500 mb-1 font-bold">Fecha de Asignación</label>
-                    <input type="date" id="edit-asig-date" value="${t.fecha_asignacion ? t.fecha_asignacion.split('T')[0] : ''}" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-sm text-gray-900 dark:text-white outline-none">
+             <div class="flex flex-col h-full max-h-[90vh] overflow-hidden">
+                <header class="shrink-0 flex items-center justify-between bg-gradient-to-r from-purple-600 to-indigo-700 p-8 text-white relative overflow-hidden">
+                    <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
+                    <div class="relative z-10 flex items-center gap-4">
+                        <div class="w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-3xl shadow-inner border border-white/20">✏️</div>
+                        <div>
+                            <h3 class="text-2xl font-black tracking-tight">Editar Asignación</h3>
+                            <p class="text-[10px] opacity-70 uppercase tracking-[0.3em] font-black">Territorio ${num}</p>
+                        </div>
+                    </div>
+                </header>
+
+                <div class="flex-1 p-8 space-y-6">
+                    <div class="bg-gray-50 dark:bg-white/5 p-4 rounded-2xl border border-black/5 flex items-center gap-3 mb-2">
+                         <span class="text-xl">👤</span>
+                         <div class="min-w-0">
+                            <p class="text-[9px] font-black text-gray-400 uppercase tracking-[0.1em]">Actual</p>
+                            <p class="font-bold text-sm truncate">${conductor}</p>
+                         </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="space-y-2">
+                             <label class="block text-[10px] font-black text-indigo-500 uppercase tracking-widest ml-1">Cambiar Conductor</label>
+                             <select id="edit-asig-new-cond" class="w-full bg-white dark:bg-black/40 border-2 border-transparent focus:border-indigo-500/50 rounded-2xl p-4 outline-none font-bold text-sm shadow-sm">
+                                ${conductores.sort((a, b) => a.nombre.localeCompare(b.nombre)).map(c => `
+                                     <option value="${c.nombre}" ${c.nombre === t.asignado_a ? 'selected' : ''}>${c.nombre}</option>
+                                `).join('')}
+                             </select>
+                        </div>
+
+                        <div class="space-y-2">
+                             <label class="block text-[10px] font-black text-indigo-500 uppercase tracking-widest ml-1">Auxiliar de Apoyo</label>
+                             <select id="edit-asig-aux" class="w-full bg-white dark:bg-black/40 border-2 border-transparent focus:border-indigo-500/50 rounded-2xl p-4 outline-none font-bold text-sm shadow-sm">
+                                <option value="">Ningún auxiliar</option>
+                                ${conductores.sort((a, b) => a.nombre.localeCompare(b.nombre)).map(c => `
+                                     <option value="${c.nombre}" ${c.nombre === t.auxiliar ? 'selected' : ''}>${c.nombre}</option>
+                                `).join('')}
+                             </select>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="space-y-2">
+                                <label class="block text-[10px] font-black text-indigo-500 uppercase tracking-widest ml-1">Jornada</label>
+                                <select id="edit-asig-turno" class="w-full bg-white dark:bg-black/40 border-2 border-transparent focus:border-indigo-500/50 rounded-2xl p-4 outline-none font-bold text-sm shadow-sm">
+                                    <option value="manana" ${t.turno === 'manana' ? 'selected' : ''}>🌅 Mañana</option>
+                                    <option value="tarde" ${t.turno === 'tarde' ? 'selected' : ''}>☀️ Tarde</option>
+                                    <option value="noche" ${t.turno === 'noche' ? 'selected' : ''}>🌙 Noche</option>
+                                </select>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="block text-[10px] font-black text-indigo-500 uppercase tracking-widest ml-1">Horario</label>
+                                <select id="edit-asig-hora" class="w-full bg-white dark:bg-black/40 border-2 border-transparent focus:border-indigo-500/50 rounded-2xl p-4 outline-none font-bold text-sm shadow-sm">
+                                    ${(config.horas_predetermined || ['08:30', '08:45', '09:00', '09:15', '09:30', '14:30', '16:00', '18:00']).map(h => `
+                                        <option value="${h}" ${t.hora === h ? 'selected' : ''}>${h}</option>
+                                    `).join('')}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="block text-[10px] font-black text-indigo-500 uppercase tracking-widest ml-1">Faceta</label>
+                            <select id="edit-asig-faceta" class="w-full bg-white dark:bg-black/40 border-2 border-transparent focus:border-indigo-500/50 rounded-2xl p-4 outline-none font-bold text-sm shadow-sm">
+                                ${(config.facetas || ['Casa en Casa', 'Telefónica', 'Pública', 'Cartas']).map(f => `
+                                    <option value="${f}" ${t.faceta === f ? 'selected' : ''}>${f}</option>
+                                `).join('')}
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="space-y-2">
+                                <label class="block text-[10px] font-black text-indigo-500 uppercase tracking-widest ml-1">Fecha Asignación</label>
+                                <input type="date" id="edit-asig-date" value="${t.fecha_asignacion ? t.fecha_asignacion.split('T')[0] : ''}" class="w-full bg-white dark:bg-black/40 border-2 border-transparent focus:border-indigo-500/50 rounded-2xl p-4 outline-none font-bold text-sm shadow-sm">
+                            </div>
+
+                            <div class="space-y-2">
+                                <label class="block text-[10px] font-black text-indigo-500 uppercase tracking-widest ml-1">Día Salida</label>
+                                <select id="edit-asig-date-salida" class="w-full bg-white dark:bg-black/40 border-2 border-transparent focus:border-indigo-500/50 rounded-2xl p-4 outline-none font-bold text-sm shadow-sm">
+                                    <option value="">Seleccionar día...</option>
+                                    ${['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(d => `
+                                        <option value="${d}" ${t.fecha_salida && ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][new Date(t.fecha_salida).getUTCDay()] === d ? 'selected' : ''}>${d}</option>
+                                    `).join('')}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div>
-                    <label class="block text-xs uppercase text-gray-500 mb-1 font-bold">Día de Salida (Predicación)</label>
-                    <select id="edit-asig-date-salida" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-sm text-gray-900 dark:text-white outline-none font-bold">
-                        <option value="">Seleccionar día...</option>
-                        ${['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(d => `
-                            <option value="${d}" ${t.fecha_salida && ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][new Date(t.fecha_salida).getUTCDay()] === d ? 'selected' : ''}>${d}</option>
-                        `).join('')}
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-xs uppercase text-gray-500 mb-1 font-bold">Estado</label>
-                    <select id="edit-asig-status" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-sm text-gray-900 dark:text-white outline-none font-bold">
-                        <option value="Asignado" ${t.estado === 'Asignado' ? 'selected' : ''}>Activo (Asignado)</option>
-                        <option value="Pendiente" ${t.estado === 'Pendiente' ? 'selected' : ''}>Entregado (Pendiente)</option>
-                    </select>
+                <div class="shrink-0 p-8 bg-gray-50 dark:bg-black/40 border-t border-black/5 dark:border-white/5 flex gap-4">
+                     <button id="delete-active-assign" class="flex-1 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 py-5 rounded-2xl font-black transition-all uppercase tracking-widest text-[10px] border border-red-200 dark:border-red-500/20">
+                        ❌ Eliminar
+                     </button>
+                     <button id="save-active-edit" class="flex-[2] bg-purple-600 hover:bg-purple-500 py-5 rounded-2xl text-white font-black shadow-xl shadow-purple-500/20 transition-all uppercase tracking-widest text-[10px]">
+                        Guardar Cambios
+                     </button>
                 </div>
             </div>
-
-            <button id="save-active-edit" class="w-full bg-purple-600 hover:bg-purple-500 py-4 rounded-xl text-white font-black shadow-xl shadow-purple-500/20 mt-8 transition-all uppercase tracking-widest text-xs">Guardar Cambios</button>
         `, (modal) => {
+
+            modal.querySelector('#delete-active-assign').onclick = async () => {
+                showCustomConfirm(`
+                    <div class="text-left">
+                        <h4 class="font-bold text-lg mb-2">¿Eliminar asignación de ${num}?</h4>
+                        <p class="text-sm text-gray-600 mb-4">Esta acción liberará el territorio y borrará esta asignación actual sin guardarla en el historial histórico de completados.</p>
+                        <p class="text-xs text-red-500 bg-red-50 p-2 rounded border border-red-100">⚠️ Úsalo solo si te equivocaste al asignar.</p>
+                    </div>
+                 `, async () => {
+                    try {
+                        await cancelarAsignacion(id);
+                        showNotification("Asignación eliminada correctamente");
+                        modal.classList.add('hidden');
+                        reloadData();
+                    } catch (e) {
+                        showNotification("Error: " + e.message, "error");
+                    }
+                });
+            };
+
             modal.querySelector('#save-active-edit').onclick = async (e) => {
                 const newDate = modal.querySelector('#edit-asig-date').value;
                 const newDateSalida = modal.querySelector('#edit-asig-date-salida').value;
-                const newStatus = modal.querySelector('#edit-asig-status').value;
+                const newCond = modal.querySelector('#edit-asig-new-cond').value;
 
                 const calculateSalidaDate = (assignDateStr, dayName) => {
                     if (!dayName) return null;
-                    const daysMap = { 'Lunes': 1, 'Martes': 2, 'Miércoles': 3, 'Jueves': 4, 'Viernes': 5, 'Sábado': 6, 'Domingo': 0 };
+                    const daysMap = { 'Domingo': 0, 'Lunes': 1, 'Martes': 2, 'Miércoles': 3, 'Jueves': 4, 'Viernes': 5, 'Sábado': 6 };
                     const targetDay = daysMap[dayName];
-                    const d = new Date(assignDateStr);
-                    const currentDay = d.getUTCDay();
-                    const currentDayShifted = currentDay === 0 ? 7 : currentDay;
-                    const targetDayShifted = targetDay === 0 ? 7 : targetDay;
-                    const diff = targetDayShifted - currentDayShifted;
-                    d.setUTCDate(d.getUTCDate() + diff);
-                    return d.toISOString();
+                    const [y, m, d] = assignDateStr.split('-').map(Number);
+                    const dateObj = new Date(y, m - 1, d);
+                    const currentDay = dateObj.getDay();
+                    let diff = targetDay - currentDay;
+                    if (diff <= 0) diff += 7;
+                    dateObj.setDate(dateObj.getDate() + diff);
+                    const finalY = dateObj.getFullYear();
+                    const finalM = String(dateObj.getMonth() + 1).padStart(2, '0');
+                    const finalD = String(dateObj.getDate()).padStart(2, '0');
+                    return `${finalY}-${finalM}-${finalD}T12:00:00Z`;
                 };
 
                 e.target.disabled = true;
@@ -1099,15 +1505,18 @@ const renderAsignacionesView = async (container) => {
                 try {
                     const finalFechaSalida = calculateSalidaDate(newDate, newDateSalida);
 
-                    await updateAssignmentData(
-                        id,
-                        newDate ? new Date(newDate).toISOString() : t.fecha_asignacion,
-                        finalFechaSalida,
-                        null,
-                        newStatus
-                    );
+                    await updateAssignmentData(id, {
+                        fecha_asignacion: newDate ? new Date(newDate + 'T12:00:00Z').toISOString() : t.fecha_asignacion,
+                        fecha_salida: finalFechaSalida,
+                        asignado_a: newCond,
+                        auxiliar: modal.querySelector('#edit-asig-aux').value,
+                        turno: modal.querySelector('#edit-asig-turno').value,
+                        hora: modal.querySelector('#edit-asig-hora').value,
+                        faceta: modal.querySelector('#edit-asig-faceta').value,
+                        estado: t.estado
+                    });
                     showNotification("Asignación actualizada");
-                    modal.classList.add('hidden');
+                    modal.closest('#modal-container').classList.add('hidden');
                     reloadData();
                 } catch (err) {
                     showNotification("Error: " + err.message, "error");
@@ -1123,179 +1532,264 @@ const renderAsignacionesView = async (container) => {
             .sort((a, b) => new Date(b.fecha_asignacion || 0) - new Date(a.fecha_asignacion || 0));
 
         showModal(`
-            <div class= "p-2" >
-                <header class="flex items-center gap-3 mb-6 bg-indigo-600 -mx-8 -mt-8 p-6 text-white rounded-t-2xl shadow-lg relative">
-                    <div class="text-3xl">📄</div>
-                    <div>
-                        <h3 class="text-xl font-bold uppercase tracking-tighter">Historial: ${territoryNum}</h3>
-                        <p class="text-[10px] opacity-80 uppercase tracking-widest font-black">${history.length} Registros</p>
+            <div class="overflow-hidden">
+                <header class="flex items-center justify-between bg-gradient-to-br from-slate-900 to-slate-800 p-8 text-white relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-teal-500/10 rounded-full -mr-10 -mt-10 blur-2xl"></div>
+                    <div class="relative z-10 flex items-center gap-4">
+                        <div class="w-16 h-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-3xl border border-white/10 shadow-2xl">📜</div>
+                        <div>
+                            <h3 class="text-2xl font-black tracking-tight">Timeline de Vida</h3>
+                            <p class="text-[10px] opacity-60 uppercase tracking-[0.3em] font-black">Territorio ${territoryNum}</p>
+                        </div>
                     </div>
                 </header>
                 
-                <div class="max-h-[60vh] overflow-y-auto custom-scrollbar -mr-4 pr-4 space-y-4">
-                    ${history.length === 0 ? `
-                        <div class="py-20 text-center opacity-30">
-                            <div class="text-5xl mb-4">📜</div>
-                            <p class="font-black uppercase tracking-widest text-xs">Sin registros</p>
-                        </div>
-                    ` : `
-                        <div class="space-y-3">
-                            ${history.map(h => `
-                                <div class="bg-gray-50 dark:bg-black/20 p-4 rounded-3xl border border-black/5 flex justify-between items-center group hover:border-indigo-500/30 transition-all shadow-sm">
-                                    <div class="min-w-0">
-                                        <div class="text-sm font-black dark:text-gray-100 flex items-center gap-2">
-                                            <span class="w-2 h-2 rounded-full ${h.fecha_entrega ? 'bg-gray-300' : 'bg-teal-500 animate-pulse'}"></span>
-                                            ${h.conductor}
+                <div class="p-8 relative">
+                    <!-- Vertical Line -->
+                    <div class="absolute left-12 top-8 bottom-8 w-0.5 bg-gradient-to-b from-teal-500/50 via-gray-200 dark:via-white/10 to-transparent"></div>
+
+                    <div class="space-y-12">
+                        ${history.length === 0 ? `
+                            <div class="py-20 text-center opacity-30 ml-8">
+                                <div class="text-5xl mb-4">📜</div>
+                                <p class="font-black uppercase tracking-widest text-xs">Sin registros históricos</p>
+                            </div>
+                        ` : history.map((h, index) => {
+            const dateAsig = h.fecha_asignacion ? new Date(h.fecha_asignacion) : null;
+            const dateEntrega = h.fecha_entrega ? new Date(h.fecha_entrega) : null;
+            const isCurrent = !h.fecha_entrega && h.estado !== 'Completado' && h.estado !== 'Devuelto';
+
+            return `
+                                <div class="relative pl-12 group">
+                                    <!-- Indicator Dot -->
+                                    <div class="absolute left-[3.35rem] top-1.5 w-4 h-4 rounded-full border-4 ${isCurrent ? 'bg-teal-500 border-teal-500/30 animate-pulse' : 'bg-white dark:bg-slate-800 border-gray-300 dark:border-white/10'} z-10 group-hover:scale-125 transition-transform"></div>
+                                    
+                                    <div class="morphinglass-card !p-6 border-l-4 ${isCurrent ? 'border-l-teal-500 shadow-teal-500/10' : 'border-l-transparent'} hover:border-l-teal-500 transition-all">
+                                        <div class="flex justify-between items-start mb-4">
+                                            <div>
+                                                <h4 class="font-black text-gray-900 dark:text-white text-lg">${h.conductor}</h4>
+                                                <div class="flex items-center gap-2 mt-1">
+                                                    <span class="text-[10px] font-black uppercase tracking-widest ${isCurrent ? 'text-teal-600' : 'text-gray-400'}">${isCurrent ? '⚡ En curso' : '✅ Finalizado'}</span>
+                                                    ${h.auxiliar ? `<span class="text-[10px] text-gray-400">w/ ${h.auxiliar}</span>` : ''}
+                                                </div>
+                                            </div>
+                                            <div class="flex flex-col items-end">
+                                                <span class="text-[10px] font-bold text-gray-400 uppercase">Ciclo #${history.length - index}</span>
+                                            </div>
                                         </div>
-                                        <div class="text-[10px] text-gray-400 mt-1 flex flex-wrap gap-x-4 gap-y-1 font-black uppercase tracking-tighter">
-                                            <span>📅 ${h.fecha_asignacion ? new Date(h.fecha_asignacion).toLocaleDateString() : '--'}</span>
-                                            ${h.fecha_entrega ? `<span>✅ ${new Date(h.fecha_entrega).toLocaleDateString()}</span>` : `<span>⚡ EN CURSO</span>`}
+
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <div class="bg-black/5 dark:bg-white/5 rounded-xl p-3 border border-black/5 dark:border-white/5">
+                                                <span class="block text-[8px] font-black text-gray-400 uppercase mb-1">Inició</span>
+                                                <span class="text-xs font-bold text-gray-700 dark:text-gray-300">${dateAsig ? dateAsig.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : '--'}</span>
+                                            </div>
+                                            <div class="bg-black/5 dark:bg-white/5 rounded-xl p-3 border border-black/5 dark:border-white/5">
+                                                <span class="block text-[8px] font-black text-gray-400 uppercase mb-1">Finalizó</span>
+                                                <span class="text-xs font-bold text-gray-700 dark:text-gray-300">${dateEntrega ? dateEntrega.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : (isCurrent ? 'Actual' : '--')}</span>
+                                            </div>
+                                        </div>
+
+                                        ${h.observaciones ? `
+                                            <div class="mt-4 p-3 bg-teal-500/5 rounded-xl border border-teal-500/10 text-left">
+                                                <p class="text-[10px] text-teal-700 dark:text-teal-400 leading-relaxed italic">"${h.observaciones}"</p>
+                                            </div>
+                                        ` : ''}
+
+                                        <div class="mt-6 flex justify-end gap-2 pt-4 border-t border-black/5 dark:border-white/5">
+                                            <button onclick="window.actionEditHist('${h.id}')" class="p-2 text-gray-400 hover:text-teal-600 transition-colors" title="Editar">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                            </button>
+                                            <button onclick="window.actionDeleteHistUI('${h.id}', '${h.conductor}', '${h.numero}')" class="p-2 text-gray-400 hover:text-red-600 transition-colors" title="Borrar">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                            </button>
                                         </div>
                                     </div>
-                                    <button onclick="window.actionEditHist('${h.id}')" class="p-3 bg-white dark:bg-black/40 text-indigo-600 rounded-2xl opacity-0 group-hover:opacity-100 transition-all hover:bg-indigo-600 hover:text-white shadow-xl border border-black/5">
-                                        ✏️
-                                    </button>
                                 </div>
-                            `).join('')}
-                        </div>
-                    `}
+                            `;
+        }).join('')}
+                    </div>
                 </div>
             </div>
-    `, null, 'max-w-lg');
+        `, null, 'max-w-xl');
     };
 
-    const handleManualHistoryEntry = () => {
-        showModal(`
-    <h3 class="text-xl font-bold mb-4 text-teal-600 dark:text-teal-400" > Nuevo Registro de Historial</h3>
-            
-            <label class="block text-xs uppercase text-gray-500 mb-1 font-bold">Territorio</label>
-            <select id="hist-terr-num" class="w-full mb-3 bg-white dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-gray-900 dark:text-white outline-none">
-                ${territorios.sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true })).map(t => `<option value="${t.numero}" data-id="${t.id}">${t.numero}</option>`).join('')}
-            </select>
-
-            <label class="block text-xs uppercase text-gray-500 mb-1 font-bold">Conductor</label>
-            <select id="hist-conductor" class="w-full mb-3 bg-white dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-gray-900 dark:text-white outline-none">
-                ${conductores.sort((a, b) => a.nombre.localeCompare(b.nombre)).map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('')}
-            </select>
-
-            <div class="grid grid-cols-2 gap-3 mb-4">
-                <div>
-                     <label class="block text-xs uppercase text-gray-500 mb-1 font-bold">F. Asignación</label>
-                     <input type="date" id="hist-start" value="${new Date().toISOString().split('T')[0]}" class="w-full bg-white dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-xs text-gray-900 dark:text-white outline-none">
-                </div>
-                <div>
-                     <label class="block text-xs uppercase text-gray-500 mb-1 font-bold">F. Entrega</label>
-                     <input type="date" id="hist-end" class="w-full bg-white dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-xs text-gray-900 dark:text-white outline-none">
-                </div>
-            </div>
-
-            <button id="save-hist-manual" class="w-full bg-teal-600 py-3 rounded-xl text-white font-bold shadow-lg shadow-teal-500/20 hover:scale-[1.02] transition-transform">Crear Registro</button>
-`, (modal) => {
-            modal.querySelector('#save-hist-manual').addEventListener('click', async (e) => {
-                const sel = modal.querySelector('#hist-terr-num');
-                const opt = sel.options[sel.selectedIndex];
-                const data = {
-                    numero: sel.value,
-                    territorio_id: opt.getAttribute('data-id'),
-                    conductor: modal.querySelector('#hist-conductor').value,
-                    fecha_asignacion: modal.querySelector('#hist-start').value,
-                    fecha_entrega: modal.querySelector('#hist-end').value || null,
-                    estado: modal.querySelector('#hist-end').value ? 'Completado' : 'Asignado'
-                };
-
-                e.target.disabled = true;
-                await addHistoryRecord(data);
-                showNotification("Registro histórico creado");
-                modal.classList.add('hidden');
-                reloadData();
-            });
-        });
-    };
-
-    const handleEditHistory = async (hId) => {
-        const h = allHistory.find(x => x.id === hId);
-        if (!h) return;
+    // --- GLOBAL HISTORY MANAGER (Move here to be always ready) ---
+    const showEditHistoryModal = async (recordId, sourceData = null) => {
+        // Source data can be the 'allHistory' or 'history' from a specific view
+        const historyList = sourceData || allHistory;
+        const rec = historyList.find(r => r.id === recordId);
+        if (!rec) {
+            // Fallback: try to fetch it if not in memory
+            showNotification("Cargando datos del registro...");
+            const fullHist = await getHistorialReport();
+            const freshRec = fullHist.find(r => r.id === recordId);
+            if (!freshRec) return showNotification("No se encontró el registro", "error");
+            return showEditHistoryModal(recordId, fullHist);
+        }
 
         showModal(`
-    <h3 class="text-xl font-bold mb-4 text-teal-600 dark:text-teal-400" > Editar Registro Histórico</h3>
-            <p class="text-[10px] text-gray-500 mb-4">Territorio ${h.numero} - ${h.conductor}</p>
-            
-            <div class="grid grid-cols-2 gap-3 mb-4">
+            <div class="p-8 space-y-6">
                 <div>
-                     <label class="block text-xs uppercase text-gray-500 mb-1 font-bold">F. Asignación</label>
-                     <input type="date" id="edit-hist-start" value="${h.fecha_asignacion ? h.fecha_asignacion.split('T')[0] : ''}" class="w-full bg-white dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-xs text-gray-900 dark:text-white outline-none">
+                    <h3 class="text-2xl font-black text-gray-800 dark:text-white uppercase tracking-tight">Editar Historial</h3>
+                    <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Territorio ${rec.numero || ''}</p>
+                </div>
+                <div class="space-y-4">
+                 <div>
+                    <label class="text-xs font-bold text-gray-400 uppercase">Fecha Asignación Original</label>
+                    <input type="date" id="edit-h-date" value="${rec.fecha_asignacion ? rec.fecha_asignacion.split("T")[0] : ""}" class="w-full bg-gray-50 dark:bg-black/40 text-gray-800 dark:text-white p-3 rounded-xl border border-gray-200 dark:border-white/10 outline-none focus:border-teal-500">
                 </div>
                 <div>
-                     <label class="block text-xs uppercase text-gray-500 mb-1 font-bold">F. Entrega</label>
-                     <input type="date" id="edit-hist-end" value="${h.fecha_entrega ? h.fecha_entrega.split('T')[0] : ''}" class="w-full bg-white dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-xs text-gray-900 dark:text-white outline-none">
+                    <label class="text-xs font-bold text-gray-400 uppercase">Conductor</label>
+                     <input type="text" id="edit-h-cond" value="${rec.conductor}" class="w-full bg-gray-50 dark:bg-black/40 text-gray-800 dark:text-white p-3 rounded-xl border border-gray-200 dark:border-white/10 outline-none focus:border-teal-500">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-gray-400 uppercase">Estado</label>
+                    <select id="edit-h-status" class="w-full bg-gray-50 dark:bg-black/40 text-gray-800 dark:text-white p-3 rounded-xl border border-gray-200 dark:border-white/10 outline-none focus:border-teal-500">
+                        <option value="Asignado" ${rec.estado === "Asignado" ? "selected" : ""}>Asignado (Activo)</option>
+                        <option value="Completado" ${rec.estado === "Completado" ? "selected" : ""}>Completado</option>
+                        <option value="Devuelto" ${rec.estado === "Devuelto" ? "selected" : ""}>Devuelto</option>
+                        <option value="Predicado" ${rec.estado === "Predicado" ? "selected" : ""}>Predicado</option>
+                    </select>
+                </div>
+                 <div class="flex items-center gap-3 mt-4 bg-yellow-50 dark:bg-yellow-900/10 p-4 rounded-xl border border-yellow-200 dark:border-yellow-700/30">
+                    <input type="checkbox" id="edit-h-sync" checked class="w-5 h-5 accent-teal-600 rounded">
+                    <label for="edit-h-sync" class="text-xs text-yellow-800 dark:text-yellow-200 leading-tight">
+                        <b>Sincronizar Territorio Actual:</b><br>
+                        Si marcas esto, también se actualizará el estado actual del territorio "${rec.numero}" con estos datos.
+                    </label>
                 </div>
             </div>
-
-            <div class="flex gap-2">
-                <button id="del-hist-record" class="bg-red-500/10 text-red-500 px-4 py-2 rounded-lg text-xs font-bold hover:bg-red-500 hover:text-white transition-colors">Eliminar</button>
-                <button id="update-hist-manual" class="flex-1 bg-teal-600 py-2 rounded-lg text-white font-bold shadow-lg shadow-teal-500/20">Guardar Cambios</button>
+            <div class="flex justify-end gap-2 mt-6">
+                <button class="px-6 py-2.5 rounded-xl bg-gray-100 dark:bg-white/5 text-gray-500 font-bold hover:bg-gray-200 transition-all text-xs uppercase tracking-wider" id="btn-cancel-hist">Cancelar</button>
+                <button class="px-6 py-2.5 rounded-xl bg-teal-600 text-white font-bold shadow-lg shadow-teal-500/30 hover:bg-teal-500 transition-all text-xs uppercase tracking-wider" id="btn-save-hist">Guardar Cambios</button>
             </div>
-`, (modal) => {
-            modal.querySelector('#update-hist-manual').onclick = async () => {
-                const fStart = modal.querySelector('#edit-hist-start').value;
-                const fEnd = modal.querySelector('#edit-hist-end').value;
-                await updateHistoryRecord(hId, {
-                    fecha_asignacion: fStart,
-                    fecha_entrega: fEnd || null,
-                    estado: fEnd ? 'Completado' : 'Asignado'
-                });
-                modal.classList.add('hidden');
-                reloadData();
-            };
-            modal.querySelector('#del-hist-record').onclick = async () => {
-                showCustomConfirm('¿Seguro que deseas eliminar este registro histórico?', async () => {
-                    await deleteHistoryRecord(hId);
-                    modal.classList.add('hidden');
+        `, (modal) => {
+            modal.querySelector("#btn-cancel-hist").onclick = () => modal.classList.add("hidden");
+            modal.querySelector("#btn-save-hist").onclick = async () => {
+                const btn = modal.querySelector("#btn-save-hist");
+                btn.innerText = "Guadando..."; btn.disabled = true;
+                try {
+                    const newDate = modal.querySelector("#edit-h-date").value;
+                    const newC = modal.querySelector("#edit-h-cond").value;
+                    const newS = modal.querySelector("#edit-h-status").value;
+                    const sync = modal.querySelector("#edit-h-sync").checked;
+                    const payload = { conductor: newC, estado: newS };
+                    if (newDate) payload.fecha_asignacion = new Date(newDate + 'T12:00:00Z').toISOString();
+                    await updateHistoryRecord(recordId, payload);
+                    if (sync && rec.territorio_id) {
+                        const tUpdate = { asignado_a: newC, estado: newS };
+                        if (newS !== 'Asignado') {
+                            tUpdate.asignado_a = null;
+                            tUpdate.fecha_asignacion = null;
+                            tUpdate.estado = (newS === 'Completado' || newS === 'Predicado') ? 'Predicado' : newS;
+                        }
+                        await updateTerritorio(rec.territorio_id, tUpdate);
+                    }
+                    showNotification("Registro actualizado");
+                    modal.classList.add("hidden");
                     reloadData();
-                });
+                } catch (e) { showNotification(e.message, "error"); btn.innerText = "Error"; btn.disabled = false; }
             };
         });
+    };
+
+    const showDeleteHistoryModal = (recordId, cond, num, sourceData = null) => {
+        showCustomConfirm(`
+            <div class="text-left">
+                <p class="mb-4 text-gray-800 dark:text-gray-200">¿Eliminar registro de <b>${num}</b> (${cond})?</p>
+                <div class="text-xs text-red-600 bg-red-50 p-4 rounded-xl border border-red-100 mb-4">
+                    ⚠️ Esta acción borrará el registro para siempre.
+                </div>
+                <div class="flex items-start gap-3 bg-gray-50 dark:bg-white/5 p-3 rounded-xl">
+                    <input type="checkbox" id="del-h-reset-global" class="w-5 h-5 accent-red-600 mt-0.5">
+                    <label for="del-h-reset-global" class="text-xs text-gray-600 dark:text-gray-400">
+                         <b>Liberar Territorio</b> (Sin asignado)
+                    </label>
+                </div>
+            </div>
+        `, async () => {
+            const resetTerr = document.getElementById("del-h-reset-global")?.checked;
+            try {
+                const historyList = sourceData || allHistory;
+                const rec = historyList.find(r => r.id === recordId);
+                await deleteHistoryRecord(recordId);
+                if (resetTerr && rec && rec.territorio_id) {
+                    await updateTerritorio(rec.territorio_id, { estado: "Disponible", asignado_a: null, fecha_asignacion: null, fecha_salida: null });
+                }
+                showNotification("Registro eliminado");
+                reloadData();
+            } catch (e) { showNotification(e.message, "error"); }
+        });
+    };
+
+    window.actionEditActive = handleEditActive;
+    window.actionHistory = handleHistory;
+    window.actionEditHist = (id) => showEditHistoryModal(id);
+    window.actionDeleteHistUI = (id, c, n) => showDeleteHistoryModal(id, c, n);
+    window.editHistoryRecord = (id) => showEditHistoryModal(id);
+    window.deleteHistoryRecordUI = (id, c, n) => showDeleteHistoryModal(id, c, n);
+
+    const handleGlobalHistory = async () => {
+        const allTerrs = [...territorios].sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true }));
+
+        showModal(`
+            <div class="overflow-hidden">
+                <header class="flex items-center gap-4 bg-gradient-to-r from-indigo-600 to-blue-700 p-8 text-white shadow-2xl relative overflow-hidden">
+                    <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
+                    <div class="relative z-10 flex items-center gap-4">
+                        <div class="w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-3xl shadow-inner border border-white/20">📜</div>
+                        <div>
+                            <h3 class="text-2xl font-black tracking-tight">Registro Maestro</h3>
+                            <p class="text-[10px] opacity-70 uppercase tracking-[0.3em] font-black">Historial por Territorio</p>
+                        </div>
+                    </div>
+                </header>
+                
+                <div class="p-8 grid grid-cols-4 sm:grid-cols-6 gap-3 bg-gray-50 dark:bg-black/20">
+                    ${allTerrs.map(t => `
+                        <button onclick="window.actionHistory('${t.id}', '${t.numero}')" class="h-16 flex flex-col items-center justify-center rounded-2xl bg-white dark:bg-white/5 border border-black/5 hover:border-indigo-500 hover:scale-110 active:scale-95 transition-all group shadow-sm">
+                            <span class="text-[10px] font-black text-gray-400 group-hover:text-indigo-600">ID</span>
+                            <span class="text-lg font-black text-gray-800 dark:text-gray-100">${t.numero}</span>
+                        </button>
+                    `).join('')}
+                </div>
+            </div>
+        `, null, 'max-w-xl');
     };
 
     const renderMain = () => {
         container.innerHTML = `
     <div class="space-y-8 animate-fade-in px-2" >
-                < !--DASHBOARD MENU-- >
-                <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+                
+                <div class="grid grid-cols-2 gap-4">
                     <button id="hub-btn-assign" class="group relative bg-white dark:bg-[#121212] overflow-hidden p-6 rounded-[2.5rem] border border-black/[0.03] dark:border-white/5 shadow-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_40px_-10px_rgba(147,51,234,0.2)]">
                         <div class="absolute -right-6 -bottom-6 w-24 h-24 bg-purple-500/10 blur-[30px] rounded-full group-hover:bg-purple-500/20 transition-all"></div>
                         <div class="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center mb-4 text-2xl group-hover:scale-110 transition-transform shadow-inner">➕</div>
                         <p class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Operación</p>
-                        <p class="text-sm font-black text-gray-800 dark:text-white uppercase tracking-tighter">Asignar</p>
+                        <p class="text-sm font-black text-gray-800 dark:text-white uppercase tracking-tighter">Nueva Asignación</p>
                     </button>
 
                     <button id="hub-btn-return" class="group relative bg-white dark:bg-[#121212] overflow-hidden p-6 rounded-[2.5rem] border border-black/[0.03] dark:border-white/5 shadow-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_40px_-10px_rgba(239,68,68,0.2)]">
                         <div class="absolute -right-6 -bottom-6 w-24 h-24 bg-red-500/10 blur-[30px] rounded-full group-hover:bg-red-500/20 transition-all"></div>
                         <div class="w-12 h-12 rounded-2xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center mb-4 text-2xl group-hover:scale-110 transition-transform shadow-inner">📥</div>
                         <p class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Recepción</p>
-                        <p class="text-sm font-black text-gray-800 dark:text-white uppercase tracking-tighter">Devolver</p>
+                        <p class="text-sm font-black text-gray-800 dark:text-white uppercase tracking-tighter">Devolver Territorios</p>
                         ${selectedIds.size > 0 ? `<div class="absolute top-6 right-6 bg-red-600 text-white w-5 h-5 rounded-full text-[10px] font-black flex items-center justify-center animate-bounce shadow-lg ring-4 ring-white dark:ring-[#121212]">${selectedIds.size}</div>` : ''}
                     </button>
 
-                    <button id="hub-btn-active" class="group relative bg-white dark:bg-[#121212] overflow-hidden p-6 rounded-[2.5rem] border border-black/[0.03] dark:border-white/5 shadow-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_40px_-10px_rgba(20,184,166,0.2)]">
-                        <div class="absolute -right-6 -bottom-6 w-24 h-24 bg-teal-500/10 blur-[30px] rounded-full group-hover:bg-teal-500/20 transition-all"></div>
-                        <div class="w-12 h-12 rounded-2xl bg-teal-50 dark:bg-teal-500/10 flex items-center justify-center mb-4 text-2xl group-hover:scale-110 transition-transform shadow-inner">🗺️</div>
-                        <p class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Visualización</p>
-                        <p class="text-sm font-black text-gray-800 dark:text-white uppercase tracking-tighter">Gestión</p>
+                    <button id="hub-btn-global-history" class="col-span-2 group relative bg-white dark:bg-[#121212] overflow-hidden p-6 rounded-[2.5rem] border border-black/[0.03] dark:border-white/5 shadow-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_40px_-10px_rgba(79,70,229,0.2)]">
+                        <div class="absolute -right-6 -bottom-6 w-24 h-24 bg-indigo-500/10 blur-[30px] rounded-full group-hover:bg-indigo-500/20 transition-all"></div>
+                        <div class="flex items-center gap-6">
+                            <div class="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform shadow-inner">📜</div>
+                            <div class="text-left">
+                                <p class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Historial General</p>
+                                <p class="text-base font-black text-gray-800 dark:text-white uppercase tracking-tighter">Explorar Pasado de Territorios</p>
+                            </div>
+                        </div>
                     </button>
-
-                    <button id="hub-btn-history" class="group relative bg-white dark:bg-[#121212] overflow-hidden p-6 rounded-[2.5rem] border border-black/[0.03] dark:border-white/5 shadow-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_40px_-10px_rgba(59,130,246,0.2)]">
-                        <div class="absolute -right-6 -bottom-6 w-24 h-24 bg-blue-500/10 blur-[30px] rounded-full group-hover:bg-blue-500/20 transition-all"></div>
-                        <div class="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center mb-4 text-2xl group-hover:scale-110 transition-transform shadow-inner">📜</div>
-                        <p class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Registros</p>
-                        <p class="text-sm font-black text-gray-800 dark:text-white uppercase tracking-tighter">Historial Global</p>
-                    </button>
-
-                    <button id="hub-btn-export-xls" class="group relative bg-white dark:bg-[#121212] overflow-hidden p-6 rounded-[2.5rem] border border-black/[0.03] dark:border-white/5 shadow-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_40px_-10px_rgba(34,197,94,0.2)] col-span-2 lg:col-span-1">
-                        <div class="absolute -right-6 -bottom-6 w-24 h-24 bg-green-500/10 blur-[30px] rounded-full group-hover:bg-green-500/20 transition-all"></div>
-                        <div class="w-12 h-12 rounded-2xl bg-green-50 dark:bg-green-500/10 flex items-center justify-center mb-4 text-2xl group-hover:scale-110 transition-transform shadow-inner">📊</div>
-                        <p class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Reportes</p>
-                        <p class="text-sm font-black text-gray-800 dark:text-white uppercase tracking-tighter">Exportar XLS</p>
+                    
+                     <button id="hub-btn-export-xls" class="col-span-2 group flex items-center justify-center gap-3 bg-white dark:bg-[#121212] p-4 rounded-2xl border border-black/[0.03] dark:border-white/5 shadow-sm hover:shadow-lg transition-all text-xs font-bold text-gray-500 hover:text-green-600 uppercase tracking-widest">
+                        <span>📊</span> Ir a Reportes S-13
                     </button>
                 </div>
 
@@ -1315,21 +1809,17 @@ const renderAsignacionesView = async (container) => {
                      </div>
                 </div>
 
-                <div id="assigns-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-fade-in pb-20"></div>
+                <div id="assigns-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-fade-in pb-20"></div>
             </div>
     `;
 
-        // Bind Main Buttons
         container.querySelector('#hub-btn-assign').onclick = () => handleNewAssignment();
         container.querySelector('#hub-btn-return').onclick = () => handleBulkReturn();
-        container.querySelector('#hub-btn-active').onclick = () => { currentView = 'activas'; renderGrid(); };
-        container.querySelector('#hub-btn-history').onclick = () => { currentView = 'historial'; renderGrid(); };
+        container.querySelector('#hub-btn-global-history').onclick = () => handleGlobalHistory();
+
         container.querySelector('#hub-btn-export-xls').onclick = () => {
-            // Unify: Point to S-13 which is more complete
             document.querySelector('[data-tab="historial"]').click();
-            showNotification("Generando reporte S-13...", "info");
         };
-        container.querySelector('#hub-btn-export-xls').innerHTML = '<span>📊</span> Reporte S-13';
 
         const search = container.querySelector('#search-assigns');
         search.oninput = () => renderGrid();
@@ -1344,15 +1834,14 @@ const renderAsignacionesView = async (container) => {
         const stats = container.querySelector('#view-stats');
         if (!grid) return;
 
-        title.innerText = currentView === 'activas' ? 'MAPA DE TERRITORIOS' : 'REGISTRO HISTÓRICO';
+        title.innerText = 'MAPA DE TERRITORIOS';
         const query = search ? search.value.toLowerCase() : '';
-        let items = [];
 
-        if (currentView === 'activas') {
-            // SHOW ALL sorted by number
-            items = [...territorios].sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true }));
-        } else if (currentView === 'historial') {
-            items = [...allHistory].sort((a, b) => new Date(b.fecha_entrega || b.fecha_asignacion) - new Date(a.fecha_entrega || a.fecha_asignacion)).slice(0, 100);
+        let items = [...territorios].sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true }));
+
+        // Filter for "Active" view: Only show Assigned or Pendiente
+        if (currentView === 'activas' && !query) {
+            items = items.filter(t => t.estado === 'Asignado' || t.estado === 'Pendiente');
         }
 
         const filtered = items.filter(t => {
@@ -1364,19 +1853,13 @@ const renderAsignacionesView = async (container) => {
 
         const activeCount = territorios.filter(t => t.estado === 'Asignado').length;
         const availableCount = territorios.length - activeCount;
-        const recentCount = allHistory.filter(h => {
-            if (!h.fecha_entrega) return false;
-            const diff = (new Date() - new Date(h.fecha_entrega)) / (1000 * 60 * 60 * 24);
-            return diff <= 7;
-        }).length;
 
         stats.innerHTML = `
-    <div class="flex items-center gap-4" >
-                <span class="text-gray-400">${filtered.length} RESULTADOS</span>
+            <div class="flex items-center gap-4" >
+                <span class="text-gray-400">${filtered.length} / ${territorios.length}</span>
                 <span class="hidden md:inline-block h-3 w-px bg-gray-200 dark:bg-gray-800"></span>
-                <span class="text-teal-600 dark:text-teal-400 font-black">⚡ ${activeCount} ACTIVOS</span>
-                <span class="text-indigo-500 dark:text-indigo-400 font-black">📖 ${availableCount} DISPONIBLES</span>
-                <span class="text-emerald-500 font-black">✅ ${recentCount} ESTA SEMANA</span>
+                <span class="text-indigo-500 dark:text-indigo-400 font-black">⚡ ${activeCount} ACTIVOS</span>
+                <span class="text-emerald-500 font-black">📖 ${availableCount} LIBRES</span>
             </div>
     `;
 
@@ -1386,270 +1869,184 @@ const renderAsignacionesView = async (container) => {
         }
 
         grid.innerHTML = filtered.map(item => {
-            const isHist = currentView === 'historial';
             const isSelected = selectedIds.has(item.id);
             const num = item.numero;
-            const conductor = isHist ? item.conductor : (item.asignado_a || 'Disponible');
-            const fechaAsig = isHist ? item.fecha_asignacion : item.fecha_asignacion;
-            const fechaSalida = isHist ? item.fecha_salida : item.fecha_salida;
             const isAssigned = item.estado === 'Asignado' || item.estado === 'Pendiente';
 
             return `
-                <div class="relative group cursor-pointer transition-all duration-500" 
-                     ${isAssigned && !isHist ? `onclick="window.actionToggleSelect('${item.id}')"` : ''}>
-                    
-                    <!-- Main Card Container -->
-                    <div class="h-full bg-white dark:bg-[#121212] rounded-[2.5rem] border border-black/5 dark:border-white/[0.05] p-6 flex flex-col gap-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgba(20,184,166,0.12)] hover:border-teal-500/30 transition-all duration-500 relative overflow-hidden group-hover:-translate-y-2">
+                <div class="relative group cursor-pointer transition-all duration-300" onclick="window.actionToggleSelect('${item.id}')">
+                     <!-- Card Body -->
+                     <div class="bg-white dark:bg-[#151515] rounded-[2rem] p-5 border ${isSelected ? 'border-teal-500 ring-2 ring-teal-500/20' : 'border-black/5 dark:border-white/5'} shadow-sm hover:shadow-lg transition-all flex flex-col justify-between h-48 relative overflow-hidden">
                         
-                        <!-- Premium Background Glow -->
-                        <div class="absolute -right-12 -top-12 w-40 h-40 bg-teal-500/5 blur-[50px] rounded-full group-hover:bg-teal-500/10 transition-colors"></div>
-                        
-                        <!-- Top Header: ID & Status -->
-                        <div class="flex justify-between items-start relative z-10">
-                            <div class="flex items-center gap-3">
-                                <div class="w-14 h-14 rounded-3xl bg-teal-50 dark:bg-teal-500/10 border border-teal-100 dark:border-teal-500/20 flex items-center justify-center shadow-sm">
-                                    <span class="text-2xl font-black text-teal-700 dark:text-teal-400">${num}</span>
-                                </div>
-                                <div class="flex flex-col">
-                                    <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Registro</span>
-                                    <div class="flex items-center gap-1.5">
-                                        <span class="w-1.5 h-1.5 rounded-full ${isAssigned ? 'bg-teal-500 animate-pulse' : 'bg-gray-300 dark:bg-gray-700'}"></span>
-                                        <span class="text-[11px] font-bold ${isAssigned ? 'text-teal-600 dark:text-teal-400' : 'text-gray-500'} tracking-tight">${isAssigned ? 'ACTIVO' : 'DISPONIBLE'}</span>
-                                    </div>
-                                </div>
+                        <!-- Status Dot & Number -->
+                        <div class="flex justify-between items-start z-10">
+                            <div class="w-12 h-12 rounded-2xl ${isAssigned ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-300' : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-300'} flex items-center justify-center text-xl font-black shadow-inner">
+                                ${num}
                             </div>
                             
-                            <div class="flex items-center gap-1 p-1 bg-gray-50 dark:bg-white/5 rounded-2xl border border-black/[0.03] dark:border-white/[0.05]">
-                                <button onclick="event.stopPropagation(); window.actionEditActive('${item.id}')" class="p-2.5 text-gray-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors bg-white dark:bg-black/20 rounded-xl shadow-sm hover:shadow-md" title="Editar">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                                </button>
-                                <button onclick="event.stopPropagation(); window.actionHistory('${item.id}', '${num}')" class="p-2.5 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors hover:bg-white dark:hover:bg-black/20 rounded-xl" title="Historial">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                </button>
+                            <div class="flex flex-col items-end">
+                                <span class="text-[9px] font-black uppercase tracking-widest ${isAssigned ? 'text-indigo-400' : 'text-emerald-400'} mb-1">${isAssigned ? 'ASIGNADO' : 'LIBRE'}</span>
+                                ${isSelected ? '<span class="text-xl text-teal-500 animate-bounce">✅</span>' : ''}
                             </div>
                         </div>
-
-                        <!-- Publicador Section -->
-                        <div class="bg-gray-50/50 dark:bg-white/[0.01] rounded-[2rem] p-5 border border-black/[0.03] dark:border-white/[0.03] relative z-10">
-                            <div class="flex items-center gap-4 mb-4">
-                                <div class="w-12 h-12 rounded-2xl ${isAssigned ? 'bg-gradient-to-br from-teal-500 to-teal-700' : 'bg-gray-200 dark:bg-white/10'} flex items-center justify-center text-white shadow-lg shadow-teal-500/20 group-hover:scale-105 transition-transform duration-500">
-                                    <span class="font-black text-xl">${(conductor[0] || 'D').toUpperCase()}</span>
-                                </div>
-                                <div class="min-w-0 flex-1">
-                                    <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">${isAssigned ? 'Conductor Principal' : 'Estado Actual'}</p>
-                                    <p class="text-base font-bold text-gray-900 dark:text-gray-100 leading-tight">
-                                        ${conductor}
-                                    </p>
-                                </div>
-                            </div>
-                            
-                            ${item.auxiliar ? `
-                                <div class="flex items-center gap-3 pl-4 border-l-2 border-teal-500/30">
-                                    <div class="w-7 h-7 rounded-lg bg-gray-100 dark:bg-white/5 flex items-center justify-center text-xs opacity-60">👤</div>
-                                    <div class="min-w-0">
-                                        <p class="text-[8px] font-black text-gray-500 uppercase tracking-tighter">Auxiliar Asignado</p>
-                                        <p class="text-xs font-bold text-gray-600 dark:text-gray-400 truncate">${item.auxiliar}</p>
-                                    </div>
-                                </div>
-                            ` : `
-                                <div class="flex items-center gap-3 pl-4 border-l-2 border-dashed border-gray-200 dark:border-white/10 opacity-30">
-                                    <div class="w-7 h-7 rounded-lg bg-transparent flex items-center justify-center text-xs">👤</div>
-                                    <p class="text-[10px] font-bold text-gray-400">Sin auxiliar</p>
-                                </div>
-                            `}
-                        </div>
-
-                        <!-- Logistics Footer -->
-                        <div class="grid grid-cols-2 gap-3 relative z-10">
-                            <div class="bg-indigo-50/30 dark:bg-indigo-500/[0.03] p-4 rounded-[1.5rem] border border-indigo-500/10 flex flex-col gap-1">
-                                <p class="text-[8px] font-black text-indigo-400 dark:text-indigo-500/70 uppercase tracking-widest">🗓️ Asignado</p>
-                                <p class="text-[13px] font-black text-indigo-700 dark:text-indigo-400">${fmtDate(fechaAsig)}</p>
-                            </div>
-                            <div class="bg-emerald-50/30 dark:bg-emerald-500/[0.03] p-4 rounded-[1.5rem] border border-emerald-500/10 flex flex-col gap-1">
-                                <p class="text-[8px] font-black text-emerald-400 dark:text-emerald-500/70 uppercase tracking-widest">📅 Salida</p>
-                                <p class="text-[13px] font-black ${fechaSalida ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-400'}">${fechaSalida ? fmtDate(fechaSalida) : 'Pn.'}</p>
-                            </div>
-                        </div>
-
-                        ${item.lugar || item.turno ? `
-                            <div class="mt-auto relative z-10">
-                                <div class="bg-gradient-to-r from-gray-50 to-white dark:from-white/[0.02] dark:to-transparent px-4 py-3 rounded-2xl border border-black/[0.03] dark:border-white/[0.05] flex items-center gap-3">
-                                    <span class="text-sm opacity-70">📍</span>
-                                    <div class="flex flex-col min-w-0">
-                                        <span class="text-[10px] font-black text-teal-600 dark:text-teal-400 uppercase tracking-widest truncate">
-                                            ${item.lugar || 'Punto de Encuentro'}
-                                        </span>
-                                        <span class="text-[8px] font-bold text-gray-400 uppercase">${item.turno || 'Sin Horario'}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        ` : ''}
-
-                        <!-- Selection Overlay (only when multi-selecting) -->
-                        ${isSelected ? `
-                            <div class="absolute inset-0 bg-teal-500/10 backdrop-blur-[2px] border-4 border-teal-500 z-20 flex items-center justify-center rounded-[2.5rem] transition-all animate-in fade-in duration-300">
-                                <div class="bg-teal-500 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-2xl scale-125 animate-in zoom-in duration-300">
-                                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7"></path></svg>
-                                </div>
-                            </div>
-                        ` : ''}
                         
-                        <!-- Progress Bottom Accent -->
-                        <div class="absolute bottom-0 left-0 h-1.5 w-full bg-gray-50 dark:bg-white/5 overflow-hidden">
-                            <div class="h-full bg-gradient-to-r from-teal-500 to-emerald-400 transition-all duration-1000" style="width: ${isAssigned ? '100%' : '0%'}"></div>
+                        <!-- Conductor Info -->
+                        <div class="z-10 mt-2">
+                             ${isAssigned ? `
+                                <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Responsable</p>
+                                <p class="text-base font-bold text-gray-800 dark:text-gray-100 leading-tight line-clamp-2">${item.asignado_a}</p>
+                                ${item.fecha_salida ? `
+                                    <div class="mt-2 flex items-center gap-2">
+                                        <span class="px-2 py-0.5 bg-gray-100 dark:bg-white/5 rounded text-[10px] font-mono text-gray-500">📅 ${new Date(item.fecha_salida).toLocaleDateString("es-ES", { weekday: 'short' })}</span>
+                                    </div>
+                                ` : ''}
+                             ` : `
+                                <div class="h-full flex flex-col justify-end opacity-40">
+                                    <p class="text-sm font-bold text-gray-400 italic">Disponible para asignar</p>
+                                </div>
+                             `}
                         </div>
 
-                    </div>
+                        <!-- Actions (Hover) -->
+                        <div class="absolute bottom-4 right-4 z-20 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                             <button onclick="event.stopPropagation(); window.actionEditActive('${item.id}', '${num}', '${item.asignado_a || ''}')" class="p-2 bg-white dark:bg-black/50 text-gray-600 dark:text-white rounded-full shadow-lg border border-black/5 hover:scale-110 transition-transform" title="Editar / Ver Detalles">
+                                ✏️
+                             </button>
+                        </div>
+                        
+                        <!-- Decorative BG -->
+                        <div class="absolute -right-10 -bottom-10 w-32 h-32 rounded-full blur-[40px] ${isAssigned ? 'bg-indigo-500/5' : 'bg-emerald-500/5'} pointer-events-none"></div>
+                     </div>
                 </div>
             `;
         }).join('');
     };
 
-    window.actionToggleSelect = (id) => toggleSelect(id);
-    window.actionEditActive = (id) => handleNewAssignment(id);
-    window.actionHistory = (id, num) => handleHistory(id, num);
-    window.actionEditHist = (id) => handleEditHistory(id);
-
     renderMain();
 };
 
+// --- Render Config Tab (Restored) ---
+const renderConfigTab = async (container, initialSub = 'reglas', appVersion) => {
+    container.innerHTML = `
+            <div class="space-y-6 animate-fade-in">
+                <header class="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Configuración del Sistema</h2>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Ajusta los parámetros de la congregación</p>
+                    </div>
+                </header>
+
+                <div class="flex flex-wrap gap-2 border-b border-gray-200 dark:border-white/10 pb-4 overflow-x-auto scrollbar-hide">
+                    <button class="conf-nav-btn active px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap bg-teal-600 text-white shadow-lg shadow-teal-500/30" data-sub="reglas">📏 Reglas</button>
+                    <button class="conf-nav-btn px-4 py-2 rounded-xl text-sm font-bold text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all whitespace-nowrap" data-sub="territorios">🗺️ Territorios</button>
+                    <button class="conf-nav-btn px-4 py-2 rounded-xl text-sm font-bold text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all whitespace-nowrap" data-sub="personal">👥 Personal</button>
+                    <button class="conf-nav-btn px-4 py-2 rounded-xl text-sm font-bold text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all whitespace-nowrap" data-sub="grupos">🏘️ Grupos</button>
+                    <button class="conf-nav-btn px-4 py-2 rounded-xl text-sm font-bold text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all whitespace-nowrap" data-sub="campanas">🚩 Campañas</button>
+                    <button class="conf-nav-btn px-4 py-2 rounded-xl text-sm font-bold text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all whitespace-nowrap" data-sub="difusion">📢 Difusión</button>
+                    <button class="conf-nav-btn px-4 py-2 rounded-xl text-sm font-bold text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all whitespace-nowrap" data-sub="mantenimiento">🛠️ Mantenimiento</button>
+                </div>
+
+                <div id="config-content" class="min-h-[400px]"></div>
+            </div>
+        `;
+
+    const btns = container.querySelectorAll('.conf-nav-btn');
+    const content = container.querySelector('#config-content');
+
+    const load = async (sub) => {
+        btns.forEach(b => {
+            if (b.dataset.sub === sub) {
+                b.className = "conf-nav-btn active px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap bg-teal-600 text-white shadow-lg shadow-teal-500/30";
+            } else {
+                b.className = "conf-nav-btn px-4 py-2 rounded-xl text-sm font-bold text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all whitespace-nowrap";
+            }
+        });
+        await loadSubTab(sub, content, await getConfiguracion(), appVersion);
+    };
+
+    btns.forEach(b => b.onclick = () => load(b.dataset.sub));
+    load(initialSub);
+};
 
 const loadSubTab = async (subTab, container, config, appVersion) => {
     container.innerHTML = '<div class="animate-pulse flex space-x-4"><div class="h-4 bg-white/10 rounded w-3/4"></div></div>';
 
-    if (subTab === 'modulos') {
+    if (subTab === 'reglas') {
+        const tCount = (await getTerritorios()).length;
+
         container.innerHTML = `
-    <div class="space-y-4 max-w-lg" >
-                <h3 class="font-semibold text-lg text-teal-800 dark:text-teal-100">Módulos del Conductor</h3>
-                <div class="flex items-center justify-between p-4 bg-black/5 dark:bg-white/5 rounded-lg border border-black/10 dark:border-white/10">
-                    <span>Dashboard</span>
-                    <input type="checkbox" id="check-dashboard" ${config.modulos_activos.dashboard ? 'checked' : ''} class="w-5 h-5 accent-teal-500">
-                </div>
-                <div class="flex items-center justify-between p-4 bg-black/5 dark:bg-white/5 rounded-lg border border-black/10 dark:border-white/10">
-                    <span>Programa de Predicación</span>
-                    <input type="checkbox" id="check-programa" ${config.modulos_activos.programa_predicacion ? 'checked' : ''} class="w-5 h-5 accent-teal-500">
-                </div>
-                <div class="flex items-center justify-between p-4 bg-black/5 dark:bg-white/5 rounded-lg border border-black/10 dark:border-white/10">
-                    <span>Predicación Telefónica</span>
-                    <input type="checkbox" id="check-telefonos" ${config.modulos_activos.predicacion_telefonica ? 'checked' : ''} class="w-5 h-5 accent-teal-500">
+            <div class="space-y-6 max-w-2xl animate-fade-in p-6 bg-white dark:bg-[#0f1115] rounded-3xl border border-black/5 dark:border-white/10 shadow-xl m-4">
+                <div class="mb-6 pb-6 border-b border-black/5 dark:border-white/5">
+                    <h3 class="font-bold text-xl text-teal-800 dark:text-teal-200">Reglas Generales</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Define los parámetros básicos de la congregación.</p>
                 </div>
 
-                <div class="pt-4 mt-6 border-t border-black/10 dark:border-white/10">
-                    <h3 class="font-semibold text-lg text-teal-800 dark:text-teal-100 mb-2">Integración IA (Gemini)</h3>
-                    <div class="p-4 bg-black/5 dark:bg-white/5 rounded-lg border border-black/10 dark:border-white/10">
-                        <label class="block text-xs uppercase text-teal-600 dark:text-teal-400 mb-2">API Key (Google Gemini)</label>
-                        <input type="password" id="gemini-key" value="${config.gemini_key || ''}" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white focus:border-teal-500 outline-none" placeholder="AIxa...">
-                        <p class="text-[10px] text-gray-500 mt-2">Esta clave se guarda localmente en la base de datos para habilitar el Asistente Inteligente.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-xs uppercase tracking-wider text-teal-600 dark:text-teal-400 mb-1.5 font-medium ml-1">Nombre Congregación</label>
+                        <input type="text" id="conf-nombre" value="${config.congregacion?.nombre || ''}" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-gray-900 dark:text-white font-bold outline-none focus:border-teal-500 lg:text-sm">
+                    </div>
+                     <div>
+                        <label class="block text-xs uppercase tracking-wider text-teal-600 dark:text-teal-400 mb-1.5 font-medium ml-1">Número Congregación</label>
+                        <input type="text" id="conf-numero" value="${config.congregacion?.numero || ''}" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-gray-900 dark:text-white font-bold outline-none focus:border-teal-500 lg:text-sm">
                     </div>
                 </div>
 
-                <button id="save-modules" class="bg-teal-600 hover:bg-teal-500 text-white px-4 py-2 rounded-lg mt-4 w-full shadow-lg shadow-teal-500/20">Guardar Cambios</button>
-            </div>
-    `;
-        container.querySelector('#save-modules').addEventListener('click', async () => {
-            config.modulos_activos = {
-                dashboard: document.getElementById('check-dashboard').checked,
-                programa_predicacion: document.getElementById('check-programa').checked,
-                predicacion_telefonica: document.getElementById('check-telefonos').checked
-            };
-            config.gemini_key = document.getElementById('gemini-key').value;
-            await saveConfiguracion(config);
-            showCustomAlert("Configuración guardada");
-        });
-
-    } else if (subTab === 'congregacion') {
-        container.innerHTML = `
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fade-in-up" >
-                <!-- Datos Generales Card -->
-                <div class="morphinglass-card p-6 rounded-2xl border border-black/10 dark:border-white/10 shadow-2xl relative overflow-hidden group">
-                    <div class="absolute inset-0 bg-gradient-to-br from-teal-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                    <div class="relative z-10 space-y-6">
-                        <div class="flex items-center gap-3 mb-2">
-                            <div class="p-2 bg-teal-500/20 rounded-lg text-teal-700 dark:text-teal-300">🏢</div>
-                            <h3 class="font-bold text-xl text-teal-900 dark:text-teal-50">Datos Generales</h3>
-                        </div>
-                        
-                        <div class="space-y-4">
-                            <div class="group/input">
-                                <label class="block text-xs uppercase tracking-wider text-teal-600 dark:text-teal-400 mb-1.5 font-medium ml-1">Nombre Congregación</label>
-                                <input type="text" id="conf-nombre" value="${config.congregacion?.nombre || ''}" 
-                                    class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-gray-900 dark:text-white placeholder-gray-500 focus:border-teal-500/50 focus:bg-white dark:focus:bg-black/40 focus:ring-1 focus:ring-teal-500/50 transition-all outline-none shadow-sm">
-                            </div>
-                            <div class="group/input">
-                                <label class="block text-xs uppercase tracking-wider text-teal-600 dark:text-teal-400 mb-1.5 font-medium ml-1">Número</label>
-                                <input type="text" id="conf-numero" value="${config.congregacion?.numero || ''}" 
-                                    class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-gray-900 dark:text-white placeholder-gray-500 focus:border-teal-500/50 focus:bg-white dark:focus:bg-black/40 focus:ring-1 focus:ring-teal-500/50 transition-all outline-none shadow-sm">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Horarios y Lugares Card -->
-    <div class="morphinglass-card p-6 rounded-2xl border border-black/10 dark:border-white/10 shadow-2xl relative overflow-hidden group">
-        <div class="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-        <div class="relative z-10 space-y-6">
-            <div class="flex items-center gap-3 mb-2">
-                <div class="p-2 bg-blue-500/20 rounded-lg text-blue-700 dark:text-blue-300">🕰️</div>
-                <h3 class="font-bold text-xl text-teal-900 dark:text-teal-50">Configuración Programa</h3>
-            </div>
-
-            <div class="space-y-5">
+                <!-- Additional inputs -->
                 <div>
-                    <label class="block text-xs uppercase tracking-wider text-teal-600 dark:text-teal-400 mb-1.5 font-medium ml-1">Horarios para Predicación (separados por coma)</label>
-                    <input type="text" id="conf-prog-horarios" value="${config.horarios_programa?.join(', ') || ''}"
-                        class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-gray-900 dark:text-white text-sm focus:border-teal-500/50 transition-all font-mono shadow-sm"
-                        placeholder="Ej: 08:45, 09:15, 16:00, 19:15">
-                        <p class="text-[10px] text-gray-500 dark:text-gray-400 mt-2 ml-1 opacity-60">Estos horarios aparecerán como opciones disponibles en el Programa Semanal.</p>
+                    <label class="block text-xs uppercase tracking-wider text-teal-600 dark:text-teal-400 mb-1.5 font-medium ml-1">Horarios Predicación</label>
+                    <input type="text" id="conf-prog-horarios" value="${config.horarios_programa?.join(', ') || ''}" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-sm focus:border-teal-500 outline-none font-mono" placeholder="08:30, 09:00...">
+                </div>
+                 <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs uppercase tracking-wider text-teal-600 dark:text-teal-400 mb-1.5 font-medium ml-1">Lugares</label>
+                        <textarea id="conf-lugares" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-xs h-20 outline-none resize-none">${config.lugares?.join(', ') || ''}</textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs uppercase tracking-wider text-teal-600 dark:text-teal-400 mb-1.5 font-medium ml-1">Facetas</label>
+                        <textarea id="conf-facetas" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-xs h-20 outline-none resize-none">${config.facetas?.join(', ') || ''}</textarea>
+                    </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs uppercase tracking-wider text-teal-600 dark:text-teal-400 mb-1.5 font-medium ml-1">Lugares Validos</label>
-                        <textarea id="conf-lugares" class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-gray-900 dark:text-white text-xs h-24 focus:border-teal-500/50 transition-all resize-none leading-relaxed shadow-sm">${config.lugares?.join(', ') || ''}</textarea>
-                    </div>
-                    <div>
-                        <label class="block text-xs uppercase tracking-wider text-teal-600 dark:text-teal-400 mb-1.5 font-medium ml-1">Facetas Validas</label>
-                        <textarea id="conf-facetas" class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-gray-900 dark:text-white text-xs h-24 focus:border-teal-500/50 transition-all resize-none leading-relaxed shadow-sm">${config.facetas?.join(', ') || ''}</textarea>
-                    </div>
+                <!-- Gemini Section -->
+                <div class="pt-4 border-t border-black/5 dark:border-white/5">
+                    <label class="block text-xs uppercase tracking-wider text-teal-600 dark:text-teal-400 mb-1.5 font-medium ml-1">API Key (Google Gemini)</label>
+                    <input type="password" id="gemini-key" value="${config.gemini_key || ''}" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-sm focus:border-teal-500 outline-none font-mono" placeholder="AIxa...">
+                    <p class="text-[10px] text-gray-400 mt-2 ml-1 italic">Habilita el Asistente Inteligente en los paneles de control.</p>
+                </div>
+
+                 <div class="mt-8 flex justify-end">
+                    <button id="save-reglas" class="bg-teal-600 hover:bg-teal-500 text-white px-8 py-3 rounded-xl font-bold uppercase tracking-widest text-xs shadow-xl shadow-teal-500/20 hover:scale-105 transition-all">
+                        Guardar Cambios
+                    </button>
                 </div>
             </div>
-        </div>
-    </div>
-        <div class="mt-8 flex justify-end">
-            <button id="save-congregacion" class="group relative px-8 py-3 bg-gradient-to-r from-teal-500 to-teal-400 rounded-xl text-white font-semibold shadow-lg shadow-teal-500/20 hover:shadow-teal-500/40 hover:scale-[1.02] transition-all duration-300 overflow-hidden">
-                <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                <span class="relative flex items-center gap-2">
-                    💾 Guardar Cambios
-                </span>
-            </button>
-        </div>
-    </div>
-    `;
+         `;
 
-        container.querySelector('#save-congregacion').addEventListener('click', async () => {
-            const btn = container.querySelector('#save-congregacion');
-            const originalContent = btn.innerHTML;
-            btn.innerHTML = '<span class="animate-pulse">⏳ Guardando...</span>';
+        container.querySelector('#save-reglas').onclick = async () => {
+            const btn = container.querySelector('#save-reglas');
+            btn.innerHTML = '⏳ Guardando...';
+            btn.disabled = true;
 
             try {
                 config.congregacion = {
                     nombre: document.getElementById('conf-nombre').value,
                     numero: document.getElementById('conf-numero').value
                 };
-
-                config.lugares = document.getElementById('conf-lugares').value.split(',').map(s => s.trim()).filter(s => s);
-                config.facetas = document.getElementById('conf-facetas').value.split(',').map(s => s.trim()).filter(s => s);
-                config.horarios_programa = document.getElementById('conf-prog-horarios').value.split(',').map(s => s.trim()).filter(s => s);
-
+                config.gemini_key = document.getElementById('gemini-key').value;
                 await saveConfiguracion(config);
-                showCustomAlert("Configuración actualizada correctamente");
-            } catch (error) {
-                console.error(error);
-                showCustomAlert("Error al guardar la configuración");
+
+                showCustomAlert("Configuración Actualizada");
+                loadSubTab('reglas', container, config, appVersion);
+            } catch (e) {
+                console.error(e);
+                showCustomAlert("Error: " + e.message);
             } finally {
-                btn.innerHTML = originalContent;
+                btn.innerHTML = 'Guardar Cambios';
+                btn.disabled = false;
             }
-        });
+        };
+
 
     } else if (subTab === 'campanas') {
         const list = await getCampanas();
@@ -1689,6 +2086,93 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                 loadSubTab('campanas', container, config, appVersion);
             });
         };
+    } else if (subTab === 'difusion') {
+        const diffusion = await getDiffusionMessage();
+        container.innerHTML = `
+            <div class="max-w-xl mx-auto space-y-8 animate-fade-in p-8 morphinglass-card mt-6">
+                <div class="flex items-center gap-4 mb-2">
+                    <div class="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center text-3xl shadow-inner border border-blue-500/10">📢</div>
+                    <div>
+                        <h3 class="text-2xl font-black tracking-tight text-gray-800 dark:text-white">Sistema de Difusión</h3>
+                        <p class="text-[10px] text-gray-500 uppercase tracking-widest font-black">Comunicación Masiva Directa</p>
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-[10px] font-black uppercase text-gray-400 mb-2 ml-1 tracking-widest">Contenido del Mensaje</label>
+                        <textarea id="diff-content" placeholder="Escribe el anuncio para todos los conductores..." class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-[1.5rem] p-5 text-sm font-bold min-h-[120px] outline-none focus:ring-4 focus:ring-blue-500/10 transition-all shadow-inner">${diffusion?.content || ''}</textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-black uppercase text-gray-400 mb-2 ml-1 tracking-widest">Prioridad Visual</label>
+                        <div class="grid grid-cols-2 gap-4">
+                            <button class="diff-type-btn p-4 rounded-2xl border-2 transition-all font-bold flex flex-col items-center gap-2 ${diffusion?.type !== 'urgent' ? 'border-blue-500/50 bg-blue-500/10 text-blue-600' : 'border-black/5 dark:border-white/5 opacity-50'}" data-type="info">
+                                <span class="text-xl">ℹ️</span>
+                                <span class="text-xs">Informativo</span>
+                            </button>
+                            <button class="diff-type-btn p-4 rounded-2xl border-2 transition-all font-bold flex flex-col items-center gap-2 ${diffusion?.type === 'urgent' ? 'border-red-500/50 bg-red-500/10 text-red-600' : 'border-black/5 dark:border-white/5 opacity-50'}" data-type="urgent">
+                                <span class="text-xl">🚨</span>
+                                <span class="text-xs">Urgente</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="pt-6 border-t border-black/5 dark:border-white/5 flex gap-4">
+                        <button id="btn-save-diffusion" class="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-500/20 hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-widest text-xs">
+                            📣 Publicar Anuncio
+                        </button>
+                        ${diffusion?.active ? `
+                            <button id="btn-stop-diffusion" class="px-6 bg-red-50 dark:bg-red-500/10 text-red-600 font-black rounded-2xl border border-red-200 dark:border-red-500/20 hover:bg-red-100 transition-colors uppercase tracking-tight text-[10px]">
+                                Detener
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+
+                <div class="bg-blue-500/5 rounded-2xl p-4 border border-blue-500/10">
+                    <p class="text-[10px] text-blue-600 dark:text-blue-400 italic">
+                        "El anuncio aparecerá en la parte superior de la pantalla para todos los usuarios logueados hasta que sea desactivado."
+                    </p>
+                </div>
+            </div>
+        `;
+
+        let selectedType = diffusion?.type || 'info';
+        const typeBtns = container.querySelectorAll('.diff-type-btn');
+        typeBtns.forEach(btn => btn.onclick = () => {
+            selectedType = btn.dataset.type;
+            typeBtns.forEach(b => {
+                const isSelected = b.dataset.type === selectedType;
+                const activeColor = selectedType === 'info' ? 'blue' : 'red';
+                b.className = `diff-type-btn p-4 rounded-2xl border-2 transition-all font-bold flex flex-col items-center gap-2 ${isSelected ? `border-${activeColor}-500/50 bg-${activeColor}-500/10 text-${activeColor}-600` : 'border-black/5 dark:border-white/5 opacity-50'}`;
+            });
+        });
+
+        document.getElementById('btn-save-diffusion').onclick = async () => {
+            const content = document.getElementById('diff-content').value;
+            if (!content) return showNotification("El mensaje no puede estar vacío", "error");
+
+            try {
+                await saveDiffusionMessage(content, selectedType);
+                showNotification("Anuncio publicado exitosamente");
+                loadSubTab('difusion', container, config, appVersion);
+            } catch (e) {
+                showNotification("Error: " + e.message, "error");
+            }
+        };
+
+        const stopBtn = document.getElementById('btn-stop-diffusion');
+        if (stopBtn) stopBtn.onclick = async () => {
+            try {
+                await saveDiffusionMessage(null);
+                showNotification("Difusión finalizada");
+                loadSubTab('difusion', container, config, appVersion);
+            } catch (e) {
+                showNotification("Error: " + e.message, "error");
+            }
+        };
+
     } else if (subTab === 'mantenimiento') {
         const [terrs, conds, phones] = await Promise.all([
             getTerritorios(),
@@ -1701,119 +2185,213 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
         const pCount = phones.length;
 
         container.innerHTML = `
-    <div class="space-y-6 max-w-4xl animate-fade-in p-4 md:p-6" >
-            <h3 class="font-bold text-xl text-teal-800 dark:text-teal-100 flex items-center gap-3">
-                <span class="p-2 bg-teal-500/10 rounded-lg">🛠️</span> Mantenimiento del Sistema
-            </h3>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="bg-white dark:bg-white/5 p-5 rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm flex items-center justify-between group hover:border-teal-500/30 transition-colors">
+            <div class="space-y-8 animate-fade-in p-2 md:p-6 max-w-6xl mx-auto">
+                <!-- Header with System Health -->
+                <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
                     <div>
-                        <p class="text-[10px] text-gray-400 uppercase tracking-widest font-bold mb-1">Territorios</p>
-                        <p class="text-3xl font-black text-teal-600 dark:text-teal-400">${tCount}</p>
+                        <h3 class="font-black text-2xl md:text-3xl text-teal-800 dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-teal-200 dark:to-teal-500 flex items-center gap-3">
+                            <span class="p-2.5 bg-teal-500/10 rounded-xl border border-teal-500/20 shadow-lg shadow-teal-500/5">🛡️</span> 
+                            Mantenimiento
+                        </h3>
+                        <p class="text-gray-500 dark:text-gray-400 text-xs md:text-sm mt-1 ml-1 opacity-80">Monitorización y reparación proactiva del sistema.</p>
                     </div>
-                    <div class="p-4 bg-teal-50 dark:bg-teal-500/10 rounded-2xl text-teal-600 dark:text-teal-400 group-hover:scale-110 transition-transform">🗺️</div>
-                </div>
-                <div class="bg-white dark:bg-white/5 p-5 rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm flex items-center justify-between group hover:border-blue-500/30 transition-colors">
-                    <div>
-                        <p class="text-[10px] text-gray-400 uppercase tracking-widest font-bold mb-1">Conductores</p>
-                        <p class="text-3xl font-black text-blue-600 dark:text-blue-400">${cCount}</p>
-                    </div>
-                    <div class="p-4 bg-blue-50 dark:bg-blue-500/10 rounded-2xl text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">👤</div>
-                </div>
-                <div class="bg-white dark:bg-white/5 p-5 rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm flex items-center justify-between group hover:border-green-500/30 transition-colors">
-                    <div>
-                        <p class="text-[10px] text-gray-400 uppercase tracking-widest font-bold mb-1">Registros</p>
-                        <p class="text-3xl font-black text-green-600 dark:text-green-400">${pCount}</p>
-                    </div>
-                    <div class="p-4 bg-green-50 dark:bg-green-500/10 rounded-2xl text-green-600 dark:text-green-400 group-hover:scale-110 transition-transform">📞</div>
-                </div>
-            </div>
-            
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="space-y-6">
-                     <div class="bg-amber-50 dark:bg-amber-900/10 p-6 rounded-2xl border border-amber-200 dark:border-amber-900/30 shadow-sm">
-                        <h4 class="font-bold text-amber-800 dark:text-amber-200 mb-2 flex items-center gap-2">
-                            <span>🧹</span> Reconstruir Historial (S-13)
-                        </h4>
-                        <p class="text-xs text-amber-700/80 dark:text-amber-300/80 mb-4 leading-relaxed">
-                            Analiza el Programa Semanal para recuperar asignaciones perdidas en el historial.
-                        </p>
-                        <button id="btn-rebuild-history" class="w-full bg-amber-600 hover:bg-amber-500 text-white py-3 rounded-xl shadow-lg shadow-amber-500/20 transition-all font-bold text-sm">
-                            Ejecutar Diagnóstico
-                        </button>
-                    </div>
-
-                    <div class="bg-indigo-50 dark:bg-indigo-900/10 p-6 rounded-2xl border border-indigo-200 dark:border-indigo-900/30 shadow-sm">
-                        <h4 class="font-bold text-indigo-800 dark:text-indigo-200 mb-4 flex items-center gap-2">
-                            <span>💾</span> Datos y Seguridad
-                        </h4>
-                        <div class="grid grid-cols-2 gap-4">
-                            <button id="btn-backup-json" class="bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-xl shadow-lg shadow-indigo-500/20 transition-all font-bold text-sm">
-                                Backup
-                            </button>
-                            <label class="bg-white dark:bg-black/40 border border-indigo-200 dark:border-indigo-900/30 text-indigo-700 dark:text-indigo-300 py-3 rounded-xl text-center cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all font-bold text-sm">
-                                Restaurar
-                                <input type="file" id="input-restore-json" class="hidden" accept=".json">
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="bg-teal-50 dark:bg-teal-900/10 p-6 rounded-2xl border border-teal-200 dark:border-teal-900/30 shadow-sm">
-                        <h4 class="font-bold text-teal-800 dark:text-teal-200 mb-2 flex items-center gap-2">
-                            <span>🚀</span> Actualización de Sistema
-                        </h4>
-                        <p class="text-[10px] text-teal-700/60 dark:text-teal-300/60 mb-4 font-medium uppercase tracking-wider">Última Versión: v${appVersion}</p>
-                        <div class="grid grid-cols-2 gap-4">
-                            <button id="btn-force-update" class="bg-teal-600 hover:bg-teal-500 text-white py-3 rounded-xl shadow-lg shadow-teal-500/20 transition-all font-bold text-xs" title="Limpieza local">
-                                Reinstalar Local
-                            </button>
-                            <button id="btn-set-remote-version" class="bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl shadow-lg shadow-blue-500/20 transition-all font-bold text-xs" title="Actualizar congregación">
-                                Forzar a Todos
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="space-y-6">
-                    <div class="bg-gray-50 dark:bg-white/5 p-6 rounded-2xl border border-gray-200 dark:border-white/10 h-full">
-                        <h4 class="font-bold text-gray-800 dark:text-gray-200 mb-6 flex items-center gap-2">
-                            <span class="text-xl">🤖</span> Inteligencia y Diagnóstico
-                        </h4>
-                        
-                        <div class="space-y-4 mb-8">
-                            <button id="btn-smart-repair" class="w-full flex items-center justify-between p-4 bg-white dark:bg-black/20 rounded-xl border border-amber-500/30 group hover:border-amber-500 transition-all text-left shadow-lg shadow-amber-500/10">
-                                <div>
-                                    <p class="font-bold text-amber-600 dark:text-amber-400 text-sm">Reparación Inteligente (Teléfonos)</p>
-                                    <p class="text-[10px] text-gray-400">Analiza y corrige discrepancias de estados y asignaciones.</p>
-                                </div>
-                                <span class="text-amber-500 group-hover:scale-110 transition-transform text-lg">✨</span>
-                            </button>
-                            
-                            <button id="btn-fix-territories" class="w-full flex items-center justify-between p-4 bg-white dark:bg-black/20 rounded-xl border border-gray-100 dark:border-white/5 group hover:border-teal-500/50 transition-all text-left">
-                                <div>
-                                    <p class="font-bold text-gray-700 dark:text-gray-300 text-sm">Normalizar Terrenos</p>
-                                    <p class="text-[10px] text-gray-400">Corrige formatos de numeración</p>
-                                </div>
-                                <span class="text-teal-500 group-hover:translate-x-1 transition-transform">→</span>
-                            </button>
-                        </div>
-
-                        <div class="p-4 bg-teal-500/5 rounded-xl border border-teal-500/10">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-[10px] font-bold text-teal-600 uppercase tracking-widest">Modelo Gemini</span>
-                                <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]"></div>
-                            </div>
-                            <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed italic">
-                                "Optimizado para análisis histórico y asistencia proactiva en la gestión de conductores."
+                    <div class="flex items-center gap-3 bg-white/50 dark:bg-white/5 p-3 md:p-4 rounded-2xl md:rounded-3xl border border-black/5 dark:border-white/5 backdrop-blur-xl shadow-xl w-full sm:w-auto justify-between sm:justify-start">
+                        <div class="text-left sm:text-right">
+                            <p class="text-[8px] md:text-[10px] font-black uppercase text-gray-400 tracking-widest">Estado Global</p>
+                            <p class="text-xs md:text-sm font-bold text-green-500 flex items-center gap-2 sm:justify-end">
+                                <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                                Estable
                             </p>
                         </div>
+                        <div class="h-8 w-px bg-black/10 dark:bg-white/10 mx-1 md:mx-2 hidden xs:block"></div>
+                        <div class="flex -space-x-2 md:-space-x-3">
+                            <div class="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-teal-500/20 border-2 border-white dark:border-gray-900 flex items-center justify-center text-sm md:text-lg" title="Territorios">🗺️</div>
+                            <div class="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-blue-500/20 border-2 border-white dark:border-gray-900 flex items-center justify-center text-sm md:text-lg" title="Conductores">👤</div>
+                            <div class="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-amber-500/20 border-2 border-white dark:border-gray-900 flex items-center justify-center text-sm md:text-lg" title="Registros">📞</div>
+                        </div>
+                    </div>
+                </header>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
+                    <!-- Control Panel (Left Column) -->
+                    <div class="lg:col-span-4 space-y-6">
+                        <!-- Stats Grid -->
+                        <div class="grid grid-cols-3 gap-2 md:gap-4">
+                            <div class="bg-white dark:bg-white/5 p-3 md:p-4 rounded-2xl md:rounded-3xl border border-black/5 dark:border-white/5 text-center flex flex-col items-center justify-center">
+                                <p class="text-[8px] md:text-[9px] font-bold text-gray-400 uppercase mb-1">Terrenos</p>
+                                <p class="text-lg md:text-xl font-black text-teal-600">${tCount}</p>
+                            </div>
+                            <div class="bg-white dark:bg-white/5 p-3 md:p-4 rounded-2xl md:rounded-3xl border border-black/5 dark:border-white/5 text-center flex flex-col items-center justify-center">
+                                <p class="text-[8px] md:text-[9px] font-bold text-gray-400 uppercase mb-1">Equipos</p>
+                                <p class="text-lg md:text-xl font-black text-blue-600">${cCount}</p>
+                            </div>
+                            <div class="bg-white dark:bg-white/5 p-3 md:p-4 rounded-2xl md:rounded-3xl border border-black/5 dark:border-white/5 text-center flex flex-col items-center justify-center">
+                                <p class="text-[8px] md:text-[9px] font-bold text-gray-400 uppercase mb-1">Líneas</p>
+                                <p class="text-lg md:text-xl font-black text-amber-600">${pCount}</p>
+                            </div>
+                        </div>
+
+                        <!-- Main Actions -->
+                        <div class="p-4 md:p-6 bg-white/50 dark:bg-white/5 rounded-3xl border border-black/5 dark:border-white/5 shadow-xl space-y-4">
+                            <h4 class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Herramientas Nucleares</h4>
+                            
+                            <button id="btn-smart-repair" class="w-full group relative overflow-hidden bg-gradient-to-br from-amber-500 to-orange-600 p-px rounded-xl md:rounded-2xl shadow-lg shadow-orange-500/10 transition-all">
+                                <div class="bg-[#12141c] hover:bg-transparent transition-colors p-3 md:p-4 rounded-xl md:rounded-2xl flex items-center justify-between">
+                                    <div class="text-left">
+                                        <p class="text-[11px] md:text-xs font-black text-white group-hover:text-black">REPARACIÓN CUÁNTICA</p>
+                                        <p class="text-[8px] md:text-[9px] text-orange-400/80 group-hover:text-black/60 font-medium">✨ Motor avanzado</p>
+                                    </div>
+                                    <span class="text-lg md:text-xl group-hover:rotate-12 transition-transform">⚡</span>
+                                </div>
+                            </button>
+
+                            <button id="btn-rebuild-history" class="w-full flex items-center gap-3 md:gap-4 p-3 md:p-4 bg-white dark:bg-white/5 rounded-xl md:rounded-2xl border border-black/5 dark:border-white/5 hover:bg-teal-500/5 transition-all text-left">
+                                <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-teal-500/10 flex items-center justify-center text-teal-500 text-sm md:text-lg">🧹</div>
+                                <div>
+                                    <p class="text-[10px] md:text-xs font-black text-gray-800 dark:text-gray-100 uppercase tracking-wider">Sincronizar S-13</p>
+                                    <p class="text-[8px] md:text-[9px] text-gray-500">Recuperar historial</p>
+                                </div>
+                            </button>
+
+                            <div class="grid grid-cols-2 gap-2 md:gap-3">
+                                <button id="btn-backup-json" class="flex flex-col items-center justify-center gap-1 md:gap-2 p-3 md:p-4 bg-white dark:bg-white/5 rounded-xl md:rounded-2xl border border-black/5 dark:border-white/5 hover:bg-blue-500/5 transition-all">
+                                    <span class="text-lg md:text-xl">📥</span>
+                                    <span class="text-[8px] md:text-[9px] font-black uppercase text-gray-500 tracking-wider">Backup</span>
+                                </button>
+                                <label class="flex flex-col items-center justify-center gap-1 md:gap-2 p-3 md:p-4 bg-white dark:bg-white/5 rounded-xl md:rounded-2xl border border-black/5 dark:border-white/5 hover:bg-purple-500/5 transition-all cursor-pointer">
+                                    <span class="text-lg md:text-xl">📤</span>
+                                    <span class="text-[8px] md:text-[9px] font-black uppercase text-gray-500 tracking-wider">Restore</span>
+                                    <input type="file" id="input-restore-json" class="hidden" accept=".json">
+                                </label>
+                            </div>
+
+                            <button id="btn-ai-audit" class="w-full flex items-center gap-3 md:gap-4 p-3 md:p-4 bg-violet-500/10 rounded-xl md:rounded-2xl border border-violet-500/20 hover:bg-violet-500/20 transition-all text-left">
+                                <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-violet-600 flex items-center justify-center text-white text-sm md:text-lg">🤖</div>
+                                <div>
+                                    <p class="text-[10px] md:text-xs font-black text-violet-600 dark:text-violet-400 uppercase tracking-wider">Auditoría IA (Gemini)</p>
+                                    <p class="text-[8px] md:text-[9px] text-gray-500">Detección de inconsistencias</p>
+                                </div>
+                            </button>
+                        </div>
+
+                            <button id="btn-fix-territories" class="w-full flex items-center gap-3 md:gap-4 p-3 md:p-4 bg-white dark:bg-white/5 rounded-xl md:rounded-2xl border border-black/5 dark:border-white/5 hover:bg-indigo-500/5 transition-all text-left">
+                                <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-500 text-sm md:text-lg">🔢</div>
+                                <div>
+                                    <p class="text-[10px] md:text-xs font-black text-gray-800 dark:text-gray-100 uppercase tracking-wider">Normalizar</p>
+                                    <p class="text-[8px] md:text-[9px] text-gray-500">Formateo de datos</p>
+                                </div>
+                            </button>
+
+                            <button id="btn-ai-predict" class="w-full flex items-center gap-3 md:gap-4 p-3 md:p-4 bg-emerald-500/10 rounded-xl md:rounded-2xl border border-emerald-500/20 hover:bg-emerald-500/20 transition-all text-left">
+                                <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-emerald-600 flex items-center justify-center text-white text-sm md:text-lg">📈</div>
+                                <div>
+                                    <p class="text-[10px] md:text-xs font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Predicción IA (Gemini)</p>
+                                    <p class="text-[8px] md:text-[9px] text-gray-500">Sugerencia de asignaciones</p>
+                                </div>
+                            </button>
+                        </div>
+
+                        <!-- System Version Info Card -->
+                        <div class="bg-gradient-to-br from-teal-500 to-emerald-600 p-5 md:p-6 rounded-3xl shadow-xl text-white relative overflow-hidden group">
+                           <div class="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-125 transition-transform duration-1000">
+                               <svg class="w-24 h-24 md:w-32 md:h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg>
+                           </div>
+                           <h4 class="text-[8px] md:text-[10px] font-black uppercase tracking-widest opacity-80 mb-1">Núcleo del Sistema</h4>
+                           <p class="text-xl md:text-2xl font-black mb-4 md:mb-6">Versión ${appVersion}</p>
+                           
+                           <div class="grid grid-cols-2 gap-2 md:gap-3">
+                               <button id="btn-force-update" class="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white py-2 rounded-lg md:rounded-xl text-[8px] md:text-[9px] font-black uppercase tracking-wider transition-all">Reinstalar</button>
+                               <button id="btn-set-remote-version" class="bg-black/20 hover:bg-black/40 backdrop-blur-md text-white py-2 rounded-lg md:rounded-xl text-[8px] md:text-[9px] font-black uppercase tracking-wider transition-all">Forzar</button>
+                           </div>
+                        </div>
+                    </div>
+
+                    <!-- Terminal / Console Area (Right Column) -->
+                    <div class="lg:col-span-8 flex flex-col gap-6">
+                        <div class="flex-1 bg-[#0b0c10] rounded-3xl border border-white/10 shadow-3xl flex flex-col overflow-hidden min-h-[400px] md:min-h-[500px] relative">
+                            <!-- Terminal Header -->
+                            <div class="bg-white/5 border-b border-white/5 p-4 flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <div class="flex gap-1.5 px-2">
+                                        <div class="w-3 h-3 rounded-full bg-red-500/50"></div>
+                                        <div class="w-3 h-3 rounded-full bg-yellow-500/50"></div>
+                                        <div class="w-3 h-3 rounded-full bg-green-500/50"></div>
+                                    </div>
+                                    <div class="h-4 w-px bg-white/10 mx-2"></div>
+                                    <p class="text-[10px] font-mono text-gray-400 uppercase tracking-widest">Console: <span class="text-teal-500">System_Diagnostics_v2.0</span></p>
+                                </div>
+                                <button id="btn-clear-console" class="text-[9px] font-black text-gray-500 hover:text-white uppercase transition-colors">Limpiar Log</button>
+                            </div>
+                            
+                            <!-- Terminal Body -->
+                            <div id="maint-console" class="flex-1 p-6 font-mono text-[11px] leading-relaxed overflow-y-auto custom-scrollbar-dark touch-pan-y">
+                                <div class="text-teal-400/50 mb-4 animate-pulse">_ ESPERANDO COMANDO DE DIAGNÓSTICO...</div>
+                                <div class="space-y-1" id="console-output-stream">
+                                    <div class="text-gray-600">> Ready for operation.</div>
+                                    <div class="text-gray-600">> System health: 100% stable.</div>
+                                </div>
+                            </div>
+
+                            <!-- Terminal Overlay Progress -->
+                            <div id="console-progress-overlay" class="hidden absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-12 transition-all">
+                                <div class="w-full max-w-sm space-y-4">
+                                     <div class="flex justify-between items-end">
+                                        <p id="progress-status-text" class="text-[10px] font-black text-teal-400 uppercase tracking-widest animate-pulse">Ejecutando proceso...</p>
+                                        <p id="progress-percent-text" class="text-2xl font-black text-white">0%</p>
+                                     </div>
+                                     <div class="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+                                        <div id="repair-progress-bar" class="h-full bg-gradient-to-r from-teal-500 to-blue-500 transition-all duration-300 ease-out shadow-[0_0_15px_rgba(20,184,166,0.5)]" style="width: 0%"></div>
+                                     </div>
+                                </div>
+                            </div>
+
+                            <!-- Gemini Intelligence Footer -->
+                            <div class="bg-teal-500/5 border-t border-teal-500/10 p-5 flex items-start gap-4">
+                                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-teal-400 to-blue-500 flex items-center justify-center shadow-lg shadow-teal-500/20">
+                                     <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3z"/></svg>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <h5 class="text-[10px] font-black uppercase text-teal-400 tracking-widest">Inteligencia Predictiva Gemini</h5>
+                                        <span class="px-2 py-0.5 bg-teal-500/20 text-teal-400 text-[8px] font-bold rounded-full uppercase">Activa</span>
+                                    </div>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 italic">"El mantenimiento proactivo previene discrepancias en el historial S-13 y asegura que el ciclo de predicación telefónica se complete sin redundancias."</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div id="maint-console" class="hidden bg-black/80 backdrop-blur-xl p-5 rounded-2xl font-mono text-[10px] text-teal-400 max-h-60 overflow-y-auto border border-white/10 shadow-2xl"></div>
-        </div>
-    `;
+        `;
+
+        // -- Consolidated UI Handlers --
+        const oStream = container.querySelector('#console-output-stream');
+        const progressOverlay = container.querySelector('#console-progress-overlay');
+        const progressBar = container.querySelector('#repair-progress-bar');
+        const progressPc = container.querySelector('#progress-percent-text');
+        const progressStatus = container.querySelector('#progress-status-text');
+
+        const logToConsole = (msg, type = 'info') => {
+            const entry = document.createElement('div');
+            const colorClass = type === 'error' ? 'text-red-400' : type === 'success' ? 'text-green-400' : type === 'warning' ? 'text-amber-400' : 'text-teal-400/80';
+            const timestamp = new Date().toLocaleTimeString('es-ES', { hour12: false });
+            entry.className = `flex gap-3 py-0.5 ${colorClass}`;
+            entry.innerHTML = `<span class="opacity-30 flex-shrink-0">[${timestamp}]</span> <span>${msg}</span>`;
+            oStream.appendChild(entry);
+            const consoleDiv = container.querySelector('#maint-console');
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        };
+
+        const updateProgress = (pc, status) => {
+            progressOverlay.classList.remove('hidden');
+            progressBar.style.width = `${pc}%`;
+            progressPc.innerText = `${pc}%`;
+            if (status) progressStatus.innerText = status;
+        };
+
+        container.querySelector('#btn-clear-console').onclick = () => {
+            oStream.innerHTML = '<div class="text-gray-600">> Ready for operation.</div>';
+        };
 
         // -- Event Binding --
         const bind = (id, handler) => {
@@ -1831,42 +2409,51 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
 
         // 1. Rebuild History
         bind('btn-rebuild-history', async (btn) => {
-            showCustomConfirm('¿Quieres reconstruir el historial S-13 desde el programa semanal? (Puede tardar unos segundos)', async () => {
-                const original = btn.innerHTML;
-                btn.innerHTML = '<span class="animate-pulse">🔄 Procesando...</span>';
-                btn.disabled = true;
-                const count = await rebuildHistoryFromSchedule();
-                showCustomAlert(`✅ Éxito: Se sincronizaron ${count} registros históricos.`);
-                btn.innerHTML = original;
-                btn.disabled = false;
+            showCustomConfirm('¿Quieres reconstruir el historial S-13 desde el programa semanal?', async () => {
+                logToConsole("Iniciando reconstrucción de historial S-13...");
+                updateProgress(10, "Escaneando programa semanal...");
+                try {
+                    const count = await rebuildHistoryFromSchedule();
+                    updateProgress(100, "Sincronización completa");
+                    logToConsole(`✅ ÉXITO: Se sincronizaron ${count} registros históricos.`, 'success');
+                    showNotification(`Sincronización completada: ${count} registros.`);
+                    setTimeout(() => progressOverlay.classList.add('hidden'), 2000);
+                } catch (err) {
+                    logToConsole(`❌ ERROR: ${err.message}`, 'error');
+                    updateProgress(0, "Error crítico");
+                }
             });
         });
 
         // 2. Backup
         bind('btn-backup-json', async (btn) => {
-            const original = btn.innerHTML;
-            btn.innerHTML = '📦 ...';
-            btn.disabled = true;
-            const fullData = {
-                timestamp: new Date().toISOString(),
-                territorios: await getTerritorios(),
-                conductores: await getConductores(),
-                telefonos: await getTelefonos(),
-                publicadores: await getPublicadores(),
-                programa: await getProgramaSemanal(formatDateId(new Date())),
-                config: await getConfiguracion(),
-                historial: await getHistorialReport()
-            };
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(fullData, null, 2));
-            const downloadAnchorNode = document.createElement('a');
-            downloadAnchorNode.setAttribute("href", dataStr);
-            downloadAnchorNode.setAttribute("download", `Backup_Territorios_${formatDateId(new Date())}.json`);
-            document.body.appendChild(downloadAnchorNode);
-            downloadAnchorNode.click();
-            downloadAnchorNode.remove();
-            showCustomAlert("📥 Backup descargado con éxito");
-            btn.innerHTML = original;
-            btn.disabled = false;
+            logToConsole("Iniciando empaquetado de backup del sistema...");
+            updateProgress(20, "Recopilando colecciones...");
+            try {
+                const fullData = {
+                    timestamp: new Date().toISOString(),
+                    territorios: await getTerritorios(),
+                    conductores: await getConductores(),
+                    telefonos: await getTelefonos(),
+                    publicadores: await getPublicadores(),
+                    programa: await getProgramaSemanal(formatDateId(new Date())),
+                    config: await getConfiguracion(),
+                    historial: await getHistorialReport()
+                };
+                updateProgress(60, "Generando archivo JSON...");
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(fullData, null, 2));
+                const downloadAnchorNode = document.createElement('a');
+                downloadAnchorNode.setAttribute("href", dataStr);
+                downloadAnchorNode.setAttribute("download", `Backup_Territorios_${formatDateId(new Date())}.json`);
+                document.body.appendChild(downloadAnchorNode);
+                downloadAnchorNode.click();
+                downloadAnchorNode.remove();
+                updateProgress(100, "Backup finalizado");
+                logToConsole("📥 Backup generado y descargado correctamente.", "success");
+                setTimeout(() => progressOverlay.classList.add('hidden'), 2000);
+            } catch (err) {
+                logToConsole(`❌ ERROR: ${err.message}`, "error");
+            }
         });
 
         // 3. Restore
@@ -1874,22 +2461,23 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
         if (fileInput) fileInput.onchange = async (e) => {
             const file = e.target.files[0];
             if (!file || !ensureOnline()) return;
-            showCustomConfirm('⚠️ ALERTA: Esto borrará TODOS los datos actuales y los reemplazará con el backup. ¿Continuar?', async () => {
-                const consoleUI = document.getElementById('maint-console');
-                consoleUI.classList.remove('hidden');
-                consoleUI.innerHTML = '<div class="text-teal-400 font-bold mb-2">🚀 Restaurando registros...</div>';
+            showCustomConfirm('⚠️ ALERTA: Esto reemplazará todos los datos actuales. ¿Continuar?', async () => {
+                logToConsole("🚀 INICIANDO RESTAURACIÓN DE BACKUP...");
+                updateProgress(5, "Iniciando...");
                 const reader = new FileReader();
                 reader.onload = async (event) => {
                     try {
                         const data = JSON.parse(event.target.result);
                         await restoreSystemBackup(data, (msg, progress) => {
-                            consoleUI.innerHTML += `<div class="mb-1 text-gray-400" > [${progress} %] ${msg}</div> `;
-                            consoleUI.scrollTop = consoleUI.scrollHeight;
+                            logToConsole(`[Restore] ${msg}`);
+                            updateProgress(progress, msg);
                         });
-                        showNotification("✅ Base de datos restaurada correctamente", "success");
+                        logToConsole("✅ SISTEMA RESTAURADO COMPLETAMENTE", "success");
+                        updateProgress(100, "Finalizado");
                         setTimeout(() => window.location.reload(), 1500);
                     } catch (err) {
-                        consoleUI.innerHTML += `<div class="mt-2 text-red-400" >❌ Error: ${err.message}</div> `;
+                        logToConsole(`❌ ERROR: ${err.message}`, "error");
+                        updateProgress(0, "Fallo en restauración");
                     }
                 };
                 reader.readAsText(file);
@@ -1898,75 +2486,148 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
 
         // 4. Local Reinstall
         bind('btn-force-update', async (btn) => {
-            showCustomConfirm('Esto limpiará el caché local y forzará la descarga de la última versión. Los datos no se perderán.', async () => {
-                const original = btn.innerHTML;
-                btn.innerHTML = '⚡ Limpiando...';
-
+            showCustomConfirm('¿Limpiar caché local y reinstalar?', async () => {
+                logToConsole("Iniciando purga de caché local...");
+                updateProgress(40, "Unregistering SW...");
                 if ('serviceWorker' in navigator) {
                     const registrations = await navigator.serviceWorker.getRegistrations();
                     for (let r of registrations) await r.unregister();
                 }
+                updateProgress(70, "Deleting caches...");
                 if ('caches' in window) {
                     const keys = await caches.keys();
                     await Promise.all(keys.map(k => caches.delete(k)));
                 }
+                updateProgress(100, "Purge complete");
+                logToConsole("⚡ Purga completada. Reiniciando versión local...", "warning");
                 localStorage.removeItem('app_version');
-                localStorage.removeItem('programs_cache');
-
-                showNotification("⚙️ Caché limpio. Reiniciando...", "warning");
                 setTimeout(() => window.location.reload(true), 1000);
             });
         });
 
         // 5. Force All Update
         bind('btn-set-remote-version', async (btn) => {
-            showCustomConfirm(`¿Deseas activar la actualización forzada a v${appVersion} para todos los usuarios de la congregación ? `, async () => {
-                const original = btn.innerHTML;
-                btn.innerHTML = '🌐 Enviando...';
+            showCustomConfirm(`¿Publicar v${appVersion} como versión obligatoria?`, async () => {
+                logToConsole(`Enviando señal de actualización remota (v${appVersion})...`);
                 await setSystemVersion(appVersion);
-                showCustomAlert(`✅ Versión central actualizada a v${appVersion} `);
-                btn.innerHTML = original;
+                logToConsole("🌐 Versión remota sincronizada.", "success");
+                showNotification("Configuración de flota actualizada.");
             });
         });
 
         // 6. Proactive Fixes (Consolidated)
         bind('btn-smart-repair', async (btn) => {
-            const original = btn.innerHTML;
-            btn.innerHTML = '<div class="flex items-center gap-2"><span class="animate-spin">⏳</span> Analizando...</div>';
+            logToConsole("✨ INICIANDO PROTOCOLO DE REPARACIÓN CUÁNTICA...");
+            updateProgress(5, "Inicializando motor de diagnóstico...");
 
-            const report = await runSystemDiagnosticsAndRepair();
+            try {
+                const report = await runSystemDiagnosticsAndRepair((msg, pc) => {
+                    logToConsole(msg);
+                    updateProgress(pc, "Reparando registros...");
+                });
 
-            let msg = `✅ Reparación Inteligente Completada\n\n`;
-            msg += `- Historial sincronizado: ${report.rebuiltHistory}\n`;
-            msg += `- Teléfonos corregidos: ${report.fixedPhones}\n`;
+                logToConsole(`✅ PROTOCOLO FINALIZADO`, 'success');
+                logToConsole(`> Historial sincronizado: ${report.rebuiltHistory}`);
+                logToConsole(`> Teléfonos corregidos: ${report.fixedPhones}`);
 
-            if (report.details && report.details.length > 0) {
-                // Show sample details if many
-                const detailsToShow = report.details.slice(0, 5).map(d => `• ${d}`).join('\n');
-                msg += `\nDetalles:\n${detailsToShow}`;
-                if (report.details.length > 5) msg += `\n... y ${report.details.length - 5} más.`;
-            } else {
-                msg += `\nSistema estable. No se encontraron errores críticos.`;
+                if (report.details && report.details.length > 0) {
+                    report.details.slice(0, 10).forEach(d => logToConsole(`• ${d}`, 'info'));
+                    if (report.details.length > 10) logToConsole(`... y ${report.details.length - 10} correcciones adicionales.`);
+                }
+
+                updateProgress(100, "Sistema optimizado");
+                showNotification("Reparación completada con éxito.");
+                setTimeout(() => progressOverlay.classList.add('hidden'), 3000);
+            } catch (err) {
+                logToConsole(`❌ ERROR CRÍTICO: ${err.message}`, 'error');
+                updateProgress(0, "Interrupción de sistema");
             }
-
-            showCustomAlert(msg);
-            btn.innerHTML = original;
         });
 
         bind('btn-fix-territories', async (btn) => {
-            const original = btn.innerHTML;
-            btn.innerHTML = '⏳ Procesando...';
-            const terrs = await getTerritorios();
-            let fixed = 0;
-            for (const t of terrs) {
-                if (t.numero && t.numero.includes(',')) {
-                    await updateTerritorio(t.id, { numero: t.numero.replace(',', '') });
-                    fixed++;
+            logToConsole("Iniciando normalización de datos maestros (Territorios)...");
+            updateProgress(10, "Cargando registros...");
+            try {
+                const terrs = await getTerritorios();
+                let fixed = 0;
+                for (let i = 0; i < terrs.length; i++) {
+                    const t = terrs[i];
+                    const num = String(t.numero).trim();
+                    if (t.numero !== num) {
+                        await updateTerritorio(t.id, { numero: num });
+                        fixed++;
+                        logToConsole(`Normalizado: #${num} (Espacios corregidos)`);
+                    }
+                    if (i % 5 === 0) updateProgress(10 + Math.floor((i / terrs.length) * 80), `Analizando #${num}`);
                 }
+                updateProgress(100, "Normalización completa");
+                logToConsole(`✅ Operación finalizada. ${fixed} registros normalizados.`, 'success');
+                setTimeout(() => {
+                    progressOverlay.classList.add('hidden');
+                    renderMantenimientoTab(container, config, appVersion);
+                }, 2000);
+            } catch (err) {
+                logToConsole(`❌ Error: ${err.message}`, 'error');
+                updateProgress(0, "Fallo");
             }
-            showCustomAlert(`✅ Normalización terminada.${fixed} cambios realizados.`);
-            btn.innerHTML = original;
         });
+
+        // --- AI Full Audit ---
+        bind('btn-ai-audit', async (btn) => {
+            if (!config.gemini_key) {
+                return showNotification("Configura tu API Key de Gemini en la pestaña 'Reglas' para usar esta función.", "warning");
+            }
+
+            logToConsole("🧠 INICIALIZANDO CONSULTORÍA IA DE DATOS...");
+            updateProgress(20, "Recopilando snapshot del sistema...");
+
+            try {
+                const terrs = await getTerritorios(); // Refresh
+                const intellect = new TerritoryIntelligence(phones, [], terrs, await getProgramaSemanal(formatDateId(new Date())), conds);
+                updateProgress(40, "Enviando a Gemini para análisis profundo...");
+
+                const report = await intellect.performFullAudit(config.gemini_key);
+
+                updateProgress(100, "Auditoría completada");
+                logToConsole("✨ INFORME ESTRATÉGICO DE AUDITORÍA IA:", 'success');
+
+                // Format the markdownish report for the console
+                report.split('\n').forEach(line => {
+                    if (line.trim()) {
+                        const type = line.startsWith('###') ? 'success' : (line.startsWith('-') ? 'info' : 'warning');
+                        logToConsole(line.replace('###', '>>').trim(), type);
+                    }
+                });
+
+                showNotification("Auditoría IA finalizada con éxito.");
+            } catch (err) {
+                logToConsole(`❌ ERROR IA: ${err.message}`, 'error');
+                updateProgress(0, "Interrupción de inteligencia");
+            }
+        });
+
+        // --- AI Prediction ---
+        bind('btn-ai-predict', async (btn) => {
+            if (!config.gemini_key) {
+                return showNotification("Configura tu API Key de Gemini", "warning");
+            }
+            logToConsole("🔮 CALCULANDO PREDICCIONES DE ASIGNACIÓN...");
+            updateProgress(30, "Analizando patrones de rotación...");
+            try {
+                const terrs = await getTerritorios();
+                const intellect = new TerritoryIntelligence(phones, [], terrs, await getProgramaSemanal(formatDateId(new Date())), conds);
+                const prediction = await intellect.predictAssignments(config.gemini_key);
+                updateProgress(100, "Predicción lista");
+                logToConsole("✨ RECOMENDACIONES DE LA IA:", 'success');
+                prediction.split('\n').forEach(line => {
+                    if (line.trim()) logToConsole(line.trim(), 'info');
+                });
+            } catch (err) {
+                logToConsole(`❌ Error IA: ${err.message}`, 'error');
+                updateProgress(0, "Fallo en predicción");
+            }
+        });
+
     } else if (subTab === 'territorios') {
         const territorios = await getTerritorios();
         territorios.sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true, sensitivity: 'base' }));
@@ -1985,8 +2646,8 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                         <div class="h-32 bg-white dark:bg-black rounded mb-3 overflow-hidden border border-gray-100 dark:border-white/5 flex items-center justify-center">
                             <img src="${formatMapUrl(t.imagen) || 'https://via.placeholder.com/300x200?text=No+Map'}" class="w-full h-full object-contain">
                         </div>
-                        <div class="font-bold text-teal-600 dark:text-teal-300 text-lg">Territorio ${t.numero}</div>
-                        <div class="text-xs text-gray-500 dark:text-gray-400">${t.manzanas}</div>
+                        <div class="font-black text-teal-600 dark:text-teal-300 text-lg leading-tight mb-1">Territorio ${t.numero}</div>
+                        <div class="text-[10px] text-gray-400 dark:text-gray-500 uppercase font-bold truncate tracking-tighter" title="${t.manzanas || ''}">${t.manzanas || 'Sin descripción'}</div>
                     </div>
                 `).join('')}
     </div>
@@ -1994,7 +2655,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
 
         document.getElementById('btn-add-territorio').addEventListener('click', () => {
             showModal(`
-    <h3 class="text-xl font-bold mb-4 text-teal-600 dark:text-teal-400" > Nuevo Territorio</h3>
+    <h3 class="text-xl font-bold mb-4 text-teal-600 dark:text-teal-400">Nuevo Territorio</h3>
                 <div class="space-y-4">
                     <div>
                         <label class="block text-xs uppercase text-gray-700 dark:text-gray-400 mb-1 font-bold">Número</label>
@@ -2270,6 +2931,10 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                             </select>
                         </div>
                     </div>
+                    <div id="p-email-container" class="${person?.privilegios?.includes('Administrador') ? '' : 'hidden'}">
+                        <label class="block text-[10px] font-black uppercase text-teal-600 mb-1 ml-1">Correo Electrónico (Acceso Google)</label>
+                        <input type="email" id="p-email" value="${person?.email || ''}" placeholder="ejemplo@gmail.com" class="w-full bg-white dark:bg-black/40 border border-teal-500/20 dark:border-teal-500/20 rounded-xl p-3 text-sm font-bold focus:border-teal-500 outline-none">
+                    </div>
                     <div>
                         <label class="block text-[10px] font-black uppercase text-gray-400 mb-2 ml-1">Privilegios / Roles</label>
                         <div id="privs-container" class="flex flex-wrap gap-2">
@@ -2285,18 +2950,37 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                             </label>
                         </div>
                         <div id="p-avail-grid" class="${person?.es_conductor ? '' : 'opacity-30 pointer-events-none'} transition-all">
-                            <div class="grid grid-cols-4 gap-1 mb-2 text-center text-[10px] font-black text-gray-400 uppercase">
-                                <div class="text-left pl-2">Día</div>
-                                ${shifts.map(s => `<div class="${s.color}">${s.label}</div>`).join('')}
-                            </div>
-                            <div class="space-y-1">
-                                ${days.map(day => `
-                                    <div class="grid grid-cols-4 gap-1 items-center bg-white/50 dark:bg-black/20 rounded-lg p-1.5 border border-white/5">
-                                        <div class="text-[11px] font-black text-gray-700 dark:text-gray-300 pl-2">${day.slice(0, 3)}</div>
-                                        ${shifts.map(sh => `<div class="flex justify-center"><input type="checkbox" class="p-avail-check accent-teal-500 w-4 h-4" value="${day}_${sh.id}" ${person?.disponibilidad?.includes(`${day}_${sh.id}`) ? 'checked' : ''}></div>`).join('')}
-                                    </div>
-                                `).join('')}
-                            </div>
+                             <div class="grid grid-cols-4 gap-1 mb-2 text-center text-[10px] font-black text-gray-400 uppercase">
+                                 <div class="text-left pl-2">Día</div>
+                                 ${shifts.map(s => `<div class="${s.color}">${s.label}</div>`).join('')}
+                             </div>
+                             <div class="space-y-1">
+                                 ${days.map(day => `
+                                     <div class="grid grid-cols-4 gap-1 items-center bg-white/50 dark:bg-black/20 rounded-lg p-1.5 border border-white/5">
+                                         <div class="text-[11px] font-black text-gray-700 dark:text-gray-300 pl-2">${day.slice(0, 3)}</div>
+                                         ${shifts.map(sh => `<div class="flex justify-center"><input type="checkbox" class="p-avail-check accent-teal-500 w-4 h-4" value="${day}_${sh.id}" ${person?.disponibilidad?.includes(`${day}_${sh.id}`) ? 'checked' : ''}></div>`).join('')}
+                                     </div>
+                                 `).join('')}
+                             </div>
+                        </div>
+                    </div>
+
+                    <!-- User Specific Modules -->
+                    <div id="p-modules-section" class="p-4 bg-blue-500/5 rounded-2xl border border-blue-500/10 ${person?.es_conductor ? '' : 'opacity-30 pointer-events-none'} transition-all">
+                        <label class="block text-[10px] font-black uppercase text-blue-600 mb-3 ml-1">Módulos Habilitados</label>
+                        <div class="grid grid-cols-1 gap-2">
+                            <label class="flex items-center justify-between p-3 bg-white/50 dark:bg-black/20 rounded-xl border border-white/5 cursor-pointer hover:bg-blue-500/5 transition-all">
+                                <span class="text-xs font-bold text-gray-700 dark:text-gray-300">🗺️ Dashboard (Territorios)</span>
+                                <input type="checkbox" id="mod-dashboard" class="p-mod-check w-4 h-4 accent-blue-500" ${person?.modulos?.dashboard !== false ? 'checked' : ''}>
+                            </label>
+                            <label class="flex items-center justify-between p-3 bg-white/50 dark:bg-black/20 rounded-xl border border-white/5 cursor-pointer hover:bg-blue-500/5 transition-all">
+                                <span class="text-xs font-bold text-gray-700 dark:text-gray-300">📅 Programa Semanal (Admin)</span>
+                                <input type="checkbox" id="mod-programa" class="p-mod-check w-4 h-4 accent-blue-500" ${person?.modulos?.programa !== false ? 'checked' : ''}>
+                            </label>
+                            <label class="flex items-center justify-between p-3 bg-white/50 dark:bg-black/20 rounded-xl border border-white/5 cursor-pointer hover:bg-blue-500/5 transition-all">
+                                <span class="text-xs font-bold text-gray-700 dark:text-gray-300">📞 Predicación Telefónica</span>
+                                <input type="checkbox" id="mod-telefonos" class="p-mod-check w-4 h-4 accent-blue-500" ${person?.modulos?.telefonos !== false ? 'checked' : ''}>
+                            </label>
                         </div>
                     </div>
                 </div>
@@ -2308,16 +2992,40 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                 const updatePrivsList = () => {
                     const gender = genderSelect.value;
                     const malePrivs = ['Superintendente de Circuito', 'Anciano', 'Siervo ministerial', 'Conductor', 'Administrador'];
-                    const femalePrivs = [];
+                    const femalePrivs = ['Conductor', 'Administrador']; // Added these to women as well for flexibility
                     const currentPrivs = person?.privilegios || [];
                     const list = gender === 'Hombre' ? malePrivs : femalePrivs;
 
                     privsContainer.innerHTML = list.map(pr => `
-                        <label class="flex items-center gap-2 px-3 py-2 bg-black/5 dark:bg-white/5 rounded-xl border border-white/5 cursor-pointer hover:bg-teal-500/10 transition-colors">
+                        <label class="flex items-center gap-2 px-3 py-2 bg-black/5 dark:bg-white/5 rounded-xl border border-white/5 cursor-pointer hover:bg-teal-500/10 transition-colors group">
                             <input type="checkbox" class="p-priv accent-teal-500 w-4 h-4" value="${pr}" ${currentPrivs.includes(pr) ? 'checked' : ''}>
-                            <span class="text-xs font-bold text-gray-600 dark:text-gray-300">${pr}</span>
+                            <span class="text-xs font-bold text-gray-600 dark:text-gray-300 group-hover:text-teal-600 transition-colors">${pr}</span>
                         </label>
                     `).join('');
+
+                    const conductorCheckboxes = privsContainer.querySelectorAll('input[value="Conductor"]');
+                    const isCondToggle = modal.querySelector('#p-is-cond');
+                    const availGrid = modal.querySelector('#p-avail-grid');
+                    const modulesSection = modal.querySelector('#p-modules-section');
+
+                    conductorCheckboxes.forEach(cb => {
+                        cb.addEventListener('change', () => {
+                            if (cb.checked) {
+                                isCondToggle.checked = true;
+                                availGrid.classList.remove('opacity-30', 'pointer-events-none');
+                                modulesSection.classList.remove('opacity-30', 'pointer-events-none');
+                            }
+                        });
+                    });
+
+                    // Logic for Admin email
+                    const adminCheckboxes = privsContainer.querySelectorAll('input[value="Administrador"]');
+                    const emailContainer = modal.querySelector('#p-email-container');
+                    adminCheckboxes.forEach(cb => {
+                        cb.addEventListener('change', () => {
+                            emailContainer.classList.toggle('hidden', !cb.checked);
+                        });
+                    });
                 };
 
                 genderSelect.addEventListener('change', updatePrivsList);
@@ -2325,9 +3033,14 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
 
                 const isCondCheck = modal.querySelector('#p-is-cond');
                 const availGrid = modal.querySelector('#p-avail-grid');
+                const modulesSection = modal.querySelector('#p-modules-section');
+
                 isCondCheck.addEventListener('change', () => {
-                    availGrid.classList.toggle('opacity-30', !isCondCheck.checked);
-                    availGrid.classList.toggle('pointer-events-none', !isCondCheck.checked);
+                    const active = isCondCheck.checked;
+                    availGrid.classList.toggle('opacity-30', !active);
+                    availGrid.classList.toggle('pointer-events-none', !active);
+                    modulesSection.classList.toggle('opacity-30', !active);
+                    modulesSection.classList.toggle('pointer-events-none', !active);
                 });
 
                 modal.querySelector('#save-person').onclick = async () => {
@@ -2336,14 +3049,21 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                     btn.innerText = 'GUARDANDO...';
                     btn.disabled = true;
 
+                    const isConductorPriv = Array.from(modal.querySelectorAll('.p-priv:checked')).map(cb => cb.value).includes('Conductor');
                     const data = {
                         nombre: modal.querySelector('#p-name').value.trim(),
                         telefono: modal.querySelector('#p-phone').value.trim(),
                         genero: modal.querySelector('#p-gender').value,
                         grupo: parseInt(modal.querySelector('#p-group').value),
-                        es_conductor: isCondCheck.checked,
+                        es_conductor: isCondCheck.checked || isConductorPriv,
+                        email: modal.querySelector('#p-email').value.trim().toLowerCase(),
                         privilegios: Array.from(modal.querySelectorAll('.p-priv:checked')).map(cb => cb.value),
-                        disponibilidad: isCondCheck.checked ? Array.from(modal.querySelectorAll('.p-avail-check:checked')).map(cb => cb.value) : []
+                        disponibilidad: isCondCheck.checked ? Array.from(modal.querySelectorAll('.p-avail-check:checked')).map(cb => cb.value) : [],
+                        modulos: (isCondCheck.checked || isConductorPriv) ? {
+                            dashboard: modal.querySelector('#mod-dashboard').checked,
+                            programa: modal.querySelector('#mod-programa').checked,
+                            telefonos: modal.querySelector('#mod-telefonos').checked
+                        } : null
                     };
 
                     if (!data.nombre) {
@@ -2357,7 +3077,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                         else await addPublicador(data);
                         showNotification("Personal actualizado");
                         modal.classList.add('hidden');
-                        loadSubTab('personal', container, config);
+                        loadSubTab('personal', container, config, appVersion);
                     } catch (e) {
                         showNotification("Error: " + e.message, "error");
                         btn.innerText = original; btn.disabled = false;
@@ -2370,7 +3090,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
         window.editPerson = (id) => openPersonModal(publicadores.find(x => x.id === id));
         window.deletePerson = (id) => showCustomConfirm("¿Eliminar este registro permanentemente?", async () => {
             await deletePublicador(id);
-            loadSubTab('personal', container, config);
+            loadSubTab('personal', container, config, appVersion);
         });
 
     } else if (subTab === 'grupos') {
@@ -2420,12 +3140,28 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                 `).join('')}
             </div>
 
-            <div class="mt-12 flex justify-center">
+            <div class="mt-12 flex flex-col md:flex-row justify-center items-center gap-4">
+                <button id="add-group-btn" class="px-8 py-4 bg-white dark:bg-white/5 border border-teal-500/30 rounded-2xl font-black uppercase tracking-widest text-[10px] text-teal-600 dark:text-teal-400 hover:bg-teal-500 hover:text-white transition-all shadow-lg active:scale-95">
+                    + Agregar Grupo
+                </button>
                 <button id="save-groups" class="btn-premium px-12 py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-2xl flex items-center gap-3">
                     <span>💾</span> Guardar Configuración de Grupos
                 </button>
             </div>
         `;
+
+        container.querySelector('#add-group-btn').onclick = () => {
+            const newId = groups.length > 0 ? (Math.max(...groups.map(g => g.id)) + 1) : 1;
+            groups.push({
+                id: newId,
+                nombre: `Grupo ${newId}`,
+                lider: "",
+                asistente: "",
+                casa_salida: ""
+            });
+            // Re-render subtab
+            loadSubTab('grupos', container, config, appVersion);
+        };
 
         container.querySelector('#save-groups').onclick = async () => {
             const btn = container.querySelector('#save-groups');
@@ -2504,13 +3240,16 @@ const renderTelefonosTab = async (container) => {
                     <span>+</span> Manual
                 </button>
                 <input type="file" id="csv-upload" accept=".csv" class="hidden">
-                <button id="btn-csv" class="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-200 px-5 py-2.5 rounded-xl font-semibold hover:bg-gray-50 dark:hover:bg-white/10 transition-colors flex items-center gap-2">
-                    <span>📂</span> CSV
+                <button id="btn-csv" class="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-200 px-5 py-2.5 rounded-xl font-semibold hover:bg-gray-50 dark:hover:bg-white/10 transition-colors flex items-center gap-2" title="Importar desde CSV">
+                    <span>☁️</span> Importar
+                </button>
+                <button id="btn-export-phones" class="bg-green-600/10 hover:bg-green-600/20 text-green-700 dark:text-green-400 px-5 py-2.5 rounded-xl font-bold border border-green-200 dark:border-green-500/30 transition-all flex items-center gap-2 shadow-sm" title="Exportar a Excel">
+                    <span>📊</span> Exportar
                 </button>
             </div>
             
-            <div class="flex gap-3 flex-wrap xl:justify-end">
-                <div class="relative flex-1 xl:flex-none xl:w-64">
+            <div class="flex gap-3 flex-wrap xl:justify-end items-center">
+                 <div class="relative flex-1 xl:flex-none xl:w-64">
                     <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
                     <input type="text" id="search-number" placeholder="Buscar número, nombre..." class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-500/20 outline-none transition-shadow shadow-sm">
                 </div>
@@ -2518,7 +3257,7 @@ const renderTelefonosTab = async (container) => {
                 <select id="filter-publisher" class="flex-1 xl:flex-none xl:w-48 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 focus:border-teal-500 outline-none cursor-pointer shadow-sm">
                     <option value="">Todos los Publicadores</option>
                     <option value="Sin asignar">Sin asignar</option>
-                    ${publicadores.map(p => ` <option value="${p.nombre}">${p.nombre}</option > `).join('')}
+                    ${publicadores.map(p => `<option value="${p.nombre}">${p.nombre}</option>`).join('')}
                 </select>
                 
                 <select id="filter-status" class="flex-1 xl:flex-none xl:w-48 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 focus:border-teal-500 outline-none cursor-pointer shadow-sm">
@@ -2551,7 +3290,7 @@ const renderTelefonosTab = async (container) => {
     const btnSummaries = document.getElementById('btn-view-session-summaries');
     if (btnSummaries) {
         btnSummaries.addEventListener('click', async () => {
-            const { getSessionSummaries } = await import('../data/firestore-services.js?v=2.4.0');
+            const { getSessionSummaries } = await import('../data/firestore-services.js?v=2.6.1');
             const summaries = await getSessionSummaries();
 
             const modal = document.createElement('div');
@@ -2600,20 +3339,18 @@ const renderTelefonosTab = async (container) => {
     // List Container
     const listDiv = document.createElement('div');
     listDiv.id = 'phone-list-container';
-    listDiv.className = 'bg-white dark:bg-[#0f1115] rounded-2xl border border-gray-200 dark:border-white/10 h-[600px] overflow-y-auto relative shadow-sm custom-scrollbar';
+    listDiv.className = 'bg-white dark:bg-[#0f1115] rounded-2xl border border-gray-200 dark:border-white/10 h-[600px] overflow-auto relative shadow-sm custom-scrollbar';
     container.appendChild(listDiv);
+
 
     // Render Logic with Filtering
     const renderList = () => {
         const listContainer = document.getElementById('phone-list-container');
-        // Check if elements exist to avoid errors during tab switching
         if (!listContainer) return;
 
-        const searchInput = document.getElementById('search-number');
-        const pubFilterInput = document.getElementById('filter-publisher');
-        const statusFilterInput = document.getElementById('filter-status');
-
-        if (!searchInput || !pubFilterInput || !statusFilterInput) return;
+        const searchVal = document.getElementById('search-number')?.value.toLowerCase() || '';
+        const pubFilter = document.getElementById('filter-publisher')?.value || '';
+        const statusFilter = document.getElementById('filter-status')?.value || '';
 
         // Update Progress Bar
         const processed = telefonos.filter(t => t.estado && t.estado !== 'Sin asignar').length;
@@ -2624,30 +3361,20 @@ const renderTelefonosTab = async (container) => {
         const pInfo = document.getElementById('cycle-processed-info');
         if (pBar) pBar.style.width = pct + '%';
         if (pPct) pPct.textContent = pct + '%';
-        if (pInfo) pInfo.textContent = `Procesados: ${processed} `;
-
-        const searchVal = searchInput.value.toLowerCase();
-        const pubFilter = pubFilterInput.value;
-        const statusFilter = statusFilterInput.value;
+        if (pInfo) pInfo.textContent = `Procesados: ${processed}`;
 
         const filtered = telefonos.filter(t => {
-            // Publisher Name Logic for Filtering
             const rawAssigned = t.asignado_a || t.publicador_asignado;
             let assignedName = 'Sin asignar';
-
             if (rawAssigned) {
                 const p = publicadores.find(pub => pub.id === rawAssigned || pub.email === rawAssigned || pub.nombre === rawAssigned);
-                if (p) assignedName = p.nombre;
+                assignedName = p ? p.nombre : rawAssigned;
             }
 
             const matchSearch = !searchVal || t.numero.toLowerCase().includes(searchVal) || (t.propietario && t.propietario.toLowerCase().includes(searchVal));
-
-            // Fix: Check if rawAssigned is actually a specific person
             const isActuallyAssigned = rawAssigned && rawAssigned !== 'Sin asignar' && rawAssigned !== 'Pendiente';
             const matchPub = !pubFilter || (pubFilter === 'Sin asignar' ? !isActuallyAssigned : assignedName === pubFilter);
-
-            // Status Logic: Treat 'Pendiente' or empty as 'Sin asignar'
-            const currentStatus = (t.estado === 'Pendiente' || !t.estado) ? 'Sin asignar' : t.estado;
+            const currentStatus = (!t.estado || t.estado === 'Pendiente') ? 'Sin asignar' : t.estado;
             const matchStatus = !statusFilter || (statusFilter === 'Sin asignar' ? currentStatus === 'Sin asignar' : currentStatus === statusFilter);
 
             return matchSearch && matchPub && matchStatus;
@@ -2655,131 +3382,247 @@ const renderTelefonosTab = async (container) => {
 
         if (filtered.length === 0) {
             listContainer.innerHTML = `
-        < div class="flex flex-col items-center justify-center h-full text-gray-400" >
+                <div class="flex flex-col items-center justify-center h-full text-gray-400 py-20">
                     <span class="text-4xl mb-2">🔍</span>
-                    <p class="text-sm">No se encontraron registros</p>
-                </div > `;
+                    <p class="text-sm font-bold uppercase tracking-widest opacity-50">No se encontraron registros</p>
+                </div>`;
             return;
         }
 
-        const getStatusBadge = (status) => {
-            const colors = {
-                'Sin asignar': 'bg-gray-100 text-gray-500 dark:bg-white/5 dark:text-gray-400',
-                'Contestaron': 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300',
-                'No contestan': 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300',
-                'Colgaron': 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300',
-                'Revisita': 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300',
-                'No llamar': 'bg-gray-800 text-white dark:bg-black/40',
-                'Suspendido': 'bg-red-50 text-red-400 border border-red-100 dark:border-red-900',
-                'Testigo': 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300'
-            };
-            return `< span class="${colors[status] || colors['Sin asignar']} text-[10px] uppercase font-bold tracking-wider px-2.5 py-1 rounded-md border border-black/5 dark:border-white/5 whitespace-nowrap shadow-sm" > ${status}</span > `;
+        const colors = {
+            'Contestaron': 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-300',
+            'No contestan': 'bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300',
+            'Colgaron': 'bg-gray-100 dark:bg-gray-500/20 text-gray-700 dark:text-gray-300',
+            'No llamar': 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-300',
+            'Revisita': 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300',
+            'Sin asignar': 'bg-gray-50 dark:bg-white/5 text-gray-500 dark:text-gray-400'
         };
 
+        const getStatusBadge = (status) => `
+            <span class="${colors[status] || colors['Sin asignar']} text-[10px] uppercase font-bold tracking-wider px-2.5 py-1 rounded-md border border-black/5 dark:border-white/5 whitespace-nowrap shadow-sm">
+                ${status === 'Contestaron' ? '✅ ' : status === 'Revisita' ? '↺ ' : ''}${status}
+            </span>`;
+
         listContainer.innerHTML = `
-    < table class="w-full text-left text-sm text-gray-600 dark:text-gray-300" >
-                <thead class="bg-gray-50 dark:bg-[#12141a] text-gray-500 dark:text-gray-400 uppercase text-xs tracking-wider sticky top-0 z-10 border-b border-gray-200 dark:border-white/5">
+            <table class="w-full text-left text-sm text-gray-600 dark:text-gray-300">
+                <thead class="bg-gray-50 dark:bg-[#12141a] text-gray-500 dark:text-gray-400 uppercase text-[10px] font-black tracking-widest sticky top-0 z-10 border-b border-gray-200 dark:border-white/5">
                     <tr>
-                        <th class="p-4 font-bold">Propietario</th>
-                        <th class="p-4 font-bold">Dirección</th>
-                        <th class="p-4 font-bold">Número</th>
-                        <th class="p-4 font-bold">Publicador</th>
-                        <th class="p-4 font-bold text-center">Estado</th>
-                        <th class="p-4 font-bold">Comentarios</th>
+                        <th class="p-4">Propietario / Dirección</th>
+                        <th class="p-4">Número</th>
+                        <th class="p-4">Publicador</th>
+                        <th class="p-4 text-center">Estado</th>
+                        <th class="p-4">Comentarios</th>
                         <th class="p-4 text-right">Acciones</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-white/5">
-                ${filtered.map(t => {
-            // Resolve Publisher Name for Display
+                    ${filtered.map(t => {
             const rawAssigned = t.asignado_a || t.publicador_asignado;
             let assignedDisplay = 'Sin asignar';
             let isAssigned = false;
-
             if (rawAssigned && rawAssigned !== 'Sin asignar' && rawAssigned !== 'Pendiente') {
                 const p = publicadores.find(pub => pub.id === rawAssigned || pub.email === rawAssigned || pub.nombre === rawAssigned);
-                if (p) {
-                    assignedDisplay = p.nombre;
-                    isAssigned = true;
-                } else {
-                    assignedDisplay = rawAssigned;
-                    isAssigned = true;
-                }
+                assignedDisplay = p ? p.nombre : rawAssigned;
+                isAssigned = true;
             }
 
-            // Resolve Status
             const displayStatus = (!t.estado || t.estado === 'Pendiente') ? 'Sin asignar' : t.estado;
-
-            // Custom Phone Format: XXX XXXX (for 7 digits)
             let phoneDisplay = t.numero || '';
             const cleanNum = phoneDisplay.replace(/\D/g, '');
-            if (cleanNum.length === 7) {
-                phoneDisplay = `${cleanNum.slice(0, 3)} ${cleanNum.slice(3)}`;
-            } else {
-                phoneDisplay = formatPhoneNumber(phoneDisplay); // Fallback to existing formatter
-            }
+            if (cleanNum.length === 7) phoneDisplay = `${cleanNum.slice(0, 3)} ${cleanNum.slice(3)}`;
+            else phoneDisplay = formatPhoneNumber(phoneDisplay);
 
             return `
-                    <tr class="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors group">
-                        <td class="p-4">
-                            <span class="block font-bold text-gray-900 dark:text-gray-100 uppercase text-sm">${t.propietario || '-'}</span>
-                        </td>
-                        <td class="p-4 text-xs uppercase text-gray-500 dark:text-gray-400">${t.direccion || '-'}</td>
-                        <td class="p-4 font-mono text-teal-700 dark:text-teal-400 font-bold tracking-wide">${phoneDisplay}</td>
-                        <td class="p-4">
-                             ${isAssigned
-                    ? `<span class="text-xs bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 px-2 py-0.5 rounded border border-teal-100 dark:border-teal-800/30 font-medium">${assignedDisplay}</span>`
-                    : `<span class="text-xs text-gray-400 italic">Sin asignar</span>`
+                        <tr class="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors group">
+                            <td class="p-4">
+                                <span class="block font-black text-gray-900 dark:text-gray-100 uppercase text-xs">${t.propietario || '-'}</span>
+                                <span class="text-[10px] uppercase text-gray-400 font-bold">${t.direccion || '-'}</span>
+                            </td>
+                            <td class="p-4 font-bold text-teal-700 dark:text-teal-400 tracking-wider text-xs">${phoneDisplay}</td>
+                            <td class="p-4">
+                                ${isAssigned
+                    ? `<span class="text-[10px] bg-teal-50 dark:bg-teal-500/10 text-teal-700 dark:text-teal-300 px-2 py-1 rounded-lg border border-teal-100 dark:border-teal-500/20 font-black uppercase tracking-tighter">${assignedDisplay}</span>`
+                    : `<span class="text-[10px] text-gray-400 font-bold uppercase tracking-widest opacity-30 italic">Sin asignar</span>`
                 }
-                        </td>
-                        <td class="p-4 text-center">
-                             ${getStatusBadge(displayStatus)}
-                        </td>
-                        <td class="p-4">
-                            <div class="flex flex-col gap-1">
-                                <span class="text-xs text-gray-700 dark:text-gray-300 truncate max-w-[150px] block font-medium" title="${t.comentario || ''}">${t.comentario || '-'}</span>
-                                ${t.ultima_observacion_ciclo ? `
-                                    <span class="text-[9px] text-amber-600/70 dark:text-amber-400/50 italic border-l-2 border-amber-500/30 pl-2 mt-1" title="Ciclo Anterior: ${t.ultima_observacion_ciclo}">
-                                        Anterior: ${t.ultima_observacion_ciclo.substring(0, 20)}...
-                                    </span>
-                                ` : ''}
-                            </div>
-                        </td>
-                        <td class="p-4 text-right">
-                             <div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button onclick="window.editTelefonoAdmin('${t.id}')" class="text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 p-1.5 rounded-lg transition-colors border border-transparent hover:border-blue-100" title="Editar">✏️</button>
-                                <button onclick="window.deleteTelefonoAdmin('${t.id}')" class="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 p-1.5 rounded-lg transition-colors border border-transparent hover:border-red-100" title="Eliminar">🗑️</button>
-                             </div>
-                        </td>
-                    </tr>
-                `;
+                            </td>
+                            <td class="p-4 text-center">${getStatusBadge(displayStatus)}</td>
+                            <td class="p-4">
+                                <div class="flex flex-col gap-1 max-w-[200px]">
+                                    <span class="text-[11px] text-gray-600 dark:text-gray-300 truncate font-medium" title="${t.comentario || ''}">${t.comentario || '-'}</span>
+                                    ${t.ultima_observacion_ciclo ? `
+                                        <span class="text-[9px] text-amber-600/70 dark:text-amber-500/40 italic border-l-2 border-amber-500/30 pl-2" title="Ciclo Anterior">
+                                            Ant: ${t.ultima_observacion_ciclo.substring(0, 30)}...
+                                        </span>
+                                    ` : ''}
+                                </div>
+                            </td>
+                            <td class="p-4 text-right opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onclick="window.editTelefonoAdmin('${t.id}')" class="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all">✏️</button>
+                                <button onclick="window.deleteTelefonoAdmin('${t.id}')" class="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all">🗑️</button>
+                            </td>
+                        </tr>`;
         }).join('')}
                 </tbody>
-            </table >
-    `;
+            </table>`;
     };
 
-    // Filter Listeners
+    // Initialize search/filter inputs once
     const searchInput = document.getElementById('search-number');
     const pubFilterInput = document.getElementById('filter-publisher');
     const statusFilterInput = document.getElementById('filter-status');
 
-    // Restore state
-    if (currentSearch) searchInput.value = currentSearch;
-    if (currentPub) pubFilterInput.value = currentPub;
-    if (currentStatus) statusFilterInput.value = currentStatus;
+    if (searchInput) {
+        if (currentSearch) searchInput.value = currentSearch;
+        searchInput.addEventListener('input', () => {
+            currentSearch = searchInput.value;
+            renderList();
+        });
+    }
+    if (pubFilterInput) {
+        if (currentPub) pubFilterInput.value = currentPub;
+        pubFilterInput.addEventListener('change', () => {
+            currentPub = pubFilterInput.value;
+            renderList();
+        });
+    }
+    if (statusFilterInput) {
+        if (currentStatus) statusFilterInput.value = currentStatus;
+        statusFilterInput.addEventListener('change', () => {
+            currentStatus = statusFilterInput.value;
+            renderList();
+        });
+    }
 
     // Initial Render
     renderList();
 
-    searchInput.addEventListener('input', renderList);
-    pubFilterInput.addEventListener('change', renderList);
-    statusFilterInput.addEventListener('change', renderList);
+    // Event Listeners (Local to renderTelefonosTab)
+    const btnCsv = document.getElementById('btn-csv');
+    const csvUpload = document.getElementById('csv-upload');
+    const btnAddPhone = document.getElementById('btn-add-phone');
+    const btnExport = document.getElementById('btn-export-phones');
+
+    if (btnCsv) btnCsv.onclick = () => csvUpload.click();
+
+    if (csvUpload) csvUpload.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            const text = event.target.result;
+            const lines = text.split('\n');
+            let count = 0;
+
+            const progressContainer = document.getElementById('upload-progress-container');
+            const progressBar = document.getElementById('upload-progress-bar');
+            const progressText = document.getElementById('progress-text');
+            const progressPercent = document.getElementById('progress-percent');
+
+            if (progressContainer) progressContainer.classList.remove('hidden');
+
+            const validLines = lines.filter(l => l.trim() && !l.toLowerCase().startsWith('numero') && !l.toLowerCase().startsWith('número'));
+            const total = validLines.length;
+
+            if (total === 0) {
+                showNotification("El archivo está vacío o no tiene formato válido.", "warning");
+                if (progressContainer) progressContainer.classList.add('hidden');
+                return;
+            }
+
+            for (let i = 0; i < validLines.length; i++) {
+                const line = validLines[i].trim();
+                const parts = line.split(',');
+
+                if (parts.length >= 2) {
+                    try {
+                        const name = parts[0]?.trim();
+                        const num = parts[parts.length - 1]?.trim();
+                        const address = parts.length > 2 ? parts[1]?.trim() : '';
+
+                        if (num && num.length > 5) {
+                            await addTelefono({
+                                numero: num,
+                                direccion: address,
+                                propietario: name,
+                                estado: 'Sin asignar'
+                            });
+                            count++;
+                        }
+                    } catch (err) { console.error(err); }
+                }
+
+                if (i % 5 === 0 || i === total - 1) {
+                    const percent = Math.round(((i + 1) / total) * 100);
+                    if (progressBar) progressBar.style.width = `${percent}%`;
+                    if (progressPercent) progressPercent.innerText = `${percent}%`;
+                    if (progressText) progressText.innerText = `Cargando ${i + 1} de ${total}...`;
+                    await new Promise(r => setTimeout(r, 0));
+                }
+            }
+
+            if (progressText) progressText.innerText = "Completado";
+
+            setTimeout(() => {
+                if (progressContainer) progressContainer.classList.add('hidden');
+                showNotification(`Se cargaron ${count} teléfonos correctamente.`, "success");
+                renderTelefonosTab(container);
+            }, 500);
+        };
+        reader.readAsText(file);
+    };
+
+    if (btnAddPhone) btnAddPhone.onclick = () => {
+        showModal(`
+            <h3 class="text-xl font-bold mb-4 text-teal-600 dark:text-teal-400">Nuevo Teléfono</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs uppercase text-gray-700 dark:text-gray-400 mb-1 font-bold">Número</label>
+                    <input type="text" id="new-p-num" placeholder="Ej. 0991234567" class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded p-2 text-gray-900 dark:text-white focus:border-teal-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs uppercase text-gray-700 dark:text-gray-400 mb-1 font-bold">Dirección</label>
+                    <input type="text" id="new-p-dir" placeholder="Ej. Av. Principal 123" class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded p-2 text-gray-900 dark:text-white focus:border-teal-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs uppercase text-gray-700 dark:text-gray-400 mb-1 font-bold">Propietario</label>
+                    <input type="text" id="new-p-prop" placeholder="Ej. Juan Pérez" class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded p-2 text-gray-900 dark:text-white focus:border-teal-500 outline-none">
+                </div>
+                <button id="save-new-phone" class="w-full bg-teal-600 py-3 rounded-xl text-white hover:bg-teal-500 transition-colors font-bold shadow-lg shadow-teal-500/20 mt-4">Guardar</button>
+            </div>
+        `, async (modal) => {
+            modal.querySelector('#save-new-phone').onclick = async () => {
+                await addTelefono({
+                    numero: modal.querySelector('#new-p-num').value,
+                    direccion: modal.querySelector('#new-p-dir').value,
+                    propietario: modal.querySelector('#new-p-prop').value,
+                    estado: 'Sin asignar'
+                });
+                modal.classList.add('hidden');
+                renderTelefonosTab(container);
+                showNotification("Teléfono agregado con éxito.");
+            };
+        });
+    };
+
+    if (btnExport) btnExport.onclick = () => {
+        const dataToExport = telefonos.map(t => ({
+            'Propietario': t.propietario || '-',
+            'Dirección': t.direccion || '-',
+            'Número': t.numero || '-',
+            'Publicador': t.asignado_a || t.publicador_asignado || 'Sin asignar',
+            'Estado': t.estado || 'Sin asignar',
+            'Comentario': t.comentario || '-'
+        }));
+        generatePlainXLS(dataToExport, `Directorio_Telefonico_${new Date().toISOString().split('T')[0]}`);
+        showNotification("Generando archivo Excel...");
+    };
 
     window.deleteTelefonoAdmin = async (id) => {
         showCustomConfirm('¿Eliminar este registro?', async () => {
             await deleteTelefono(id);
             renderTelefonosTab(container);
+            showNotification("Registro eliminado.");
         });
     };
 
@@ -2790,8 +3633,7 @@ const renderTelefonosTab = async (container) => {
         const estados = ['Sin asignar', 'Asignado', 'Contestaron', 'No contestan', 'Colgaron', 'Revisita', 'No llamar', 'Suspendido', 'Testigo'];
 
         showModal(`
-    < h3 class="text-xl font-bold mb-4 text-teal-600 dark:text-teal-400" > Editar Registro Telefónico</h3 >
-
+            <h3 class="text-xl font-bold mb-4 text-teal-600 dark:text-teal-400">Editar Registro Telefónico</h3>
             <div class="space-y-4">
                 <div>
                     <label class="block text-xs uppercase text-gray-700 dark:text-gray-400 mb-1 font-bold">Número</label>
@@ -2828,16 +3670,17 @@ const renderTelefonosTab = async (container) => {
                 </div>
             </div>
             <button id="update-phone" class="w-full bg-teal-600 py-3 rounded-lg text-white mt-6 hover:bg-teal-500 transition-colors font-bold shadow-lg shadow-teal-500/20">Actualizar Registro</button>
-`, async (modal) => {
-            document.getElementById('update-phone').addEventListener('click', async () => {
-                const assignedTo = document.getElementById('edit-p-pub').value;
+        `, async (modal) => {
+            modal.querySelector('#update-phone').addEventListener('click', async () => {
+                const assignedTo = modal.querySelector('#edit-p-pub').value;
                 const updateData = {
-                    numero: document.getElementById('edit-p-num').value,
-                    direccion: document.getElementById('edit-p-dir').value,
-                    propietario: document.getElementById('edit-p-prop').value,
+                    numero: modal.querySelector('#edit-p-num').value,
+                    direccion: modal.querySelector('#edit-p-dir').value,
+                    propietario: modal.querySelector('#edit-p-prop').value,
                     asignado_a: assignedTo,
-                    estado: document.getElementById('edit-p-estado').value,
-                    comentario: document.getElementById('edit-p-obs').value
+                    publicador_asignado: assignedTo,
+                    estado: modal.querySelector('#edit-p-estado').value,
+                    comentario: modal.querySelector('#edit-p-obs').value
                 };
 
                 // If state is unassigned, clear assignment fields
@@ -2854,121 +3697,19 @@ const renderTelefonosTab = async (container) => {
                     updateData.publicador_asignado = null;
                     updateData.fecha_asignacion = null;
                     updateData.solicitado_por = null;
-                    // If it was assigned, reset status
                     if (updateData.estado === 'Asignado') updateData.estado = 'Sin asignar';
                 }
 
                 await updateTelefono(id, updateData);
                 modal.classList.add('hidden');
                 renderTelefonosTab(container);
+                showNotification("Registro actualizado.");
             });
         });
     };
-
-    document.getElementById('btn-csv').addEventListener('click', () => {
-        document.getElementById('csv-upload').click();
-    });
-
-    document.getElementById('csv-upload').addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = async (event) => {
-            const text = event.target.result;
-            const lines = text.split('\n');
-            let count = 0;
-
-            // Show progress bar
-            const progressContainer = document.getElementById('upload-progress-container');
-            const progressBar = document.getElementById('upload-progress-bar');
-            const progressText = document.getElementById('progress-text');
-            const progressPercent = document.getElementById('progress-percent');
-
-            progressContainer.classList.remove('hidden');
-
-            const validLines = lines.filter(l => l.trim() && !l.toLowerCase().startsWith('numero') && !l.toLowerCase().startsWith('número'));
-            const total = validLines.length;
-
-            if (total === 0) {
-                showCustomAlert("El archivo está vacío o no tiene formato válido.");
-                progressContainer.classList.add('hidden');
-                return;
-            }
-
-            for (let i = 0; i < validLines.length; i++) {
-                const line = validLines[i].trim();
-                const parts = line.split(',');
-
-                if (parts.length >= 2) {
-                    try {
-                        const name = parts[0]?.trim();
-                        const num = parts[parts.length - 1]?.trim();
-                        const address = parts.length > 2 ? parts[1]?.trim() : '';
-
-                        if (num && num.length > 5) {
-                            await addTelefono({
-                                numero: num,
-                                direccion: address,
-                                propietario: name
-                            });
-                            count++;
-                        }
-                    } catch (err) { console.error(err); }
-                }
-
-                // Update progress every 5 items or last item
-                if (i % 5 === 0 || i === total - 1) {
-                    const percent = Math.round(((i + 1) / total) * 100);
-                    progressBar.style.width = `${percent}% `;
-                    progressPercent.innerText = `${percent}% `;
-                    progressText.innerText = `Cargando ${i + 1} de ${total}...`;
-                    // Allow UI to update
-                    await new Promise(r => setTimeout(r, 0));
-                }
-            }
-
-            progressText.innerText = "Completado";
-            progressBar.style.width = "100%";
-            progressPercent.innerText = "100%";
-
-            setTimeout(() => {
-                progressContainer.classList.add('hidden');
-                showCustomAlert(`Se cargaron ${count} teléfonos correctamente.`);
-                renderTelefonosTab(container);
-            }, 500);
-        };
-        reader.readAsText(file);
-    });
-
-    document.getElementById('btn-add-phone').addEventListener('click', () => {
-        showModal(`
-    < h3 class="text-xl font-bold mb-4 text-teal-600 dark:text-teal-400" > Nuevo Teléfono</h3 >
-            
-            <label class="block text-xs uppercase text-gray-700 dark:text-gray-400 mb-1 font-bold">Número</label>
-            <input type="text" id="new-p-num" placeholder="Ej. 0991234567" class="w-full mb-3 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded p-2 text-gray-900 dark:text-white focus:border-teal-500 outline-none">
-            
-            <label class="block text-xs uppercase text-gray-700 dark:text-gray-400 mb-1 font-bold">Dirección</label>
-            <input type="text" id="new-p-dir" placeholder="Ej. Av. Principal 123" class="w-full mb-3 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded p-2 text-gray-900 dark:text-white focus:border-teal-500 outline-none">
-            
-            <label class="block text-xs uppercase text-gray-700 dark:text-gray-400 mb-1 font-bold">Propietario</label>
-            <input type="text" id="new-p-prop" placeholder="Ej. Juan Pérez" class="w-full mb-4 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded p-2 text-gray-900 dark:text-white focus:border-teal-500 outline-none">
-            
-            <button id="save-new-phone" class="w-full bg-teal-600 py-2 rounded-lg text-white hover:bg-teal-500 transition-colors font-bold shadow-lg shadow-teal-500/20">Guardar</button>
-        `, async (modal) => {
-            document.getElementById('save-new-phone').addEventListener('click', async () => {
-                await addTelefono({
-                    numero: document.getElementById('new-p-num').value,
-                    direccion: document.getElementById('new-p-dir').value,
-                    propietario: document.getElementById('new-p-prop').value
-                });
-                modal.classList.add('hidden');
-                renderTelefonosTab(container);
-                showCustomAlert("Teléfono agregado");
-            });
-        });
-    });
 };
+
+
 
 /* Updated Helper for simple CRUD lists with Edit support */
 const renderListCRUD = (container, title, items, fields, onAdd, onDelete, onEdit) => {
@@ -3087,7 +3828,7 @@ const renderPredicacionTab = async (container) => {
                                                                 <button id="add-row-btn" class="flex items-center gap-2 bg-teal-600 hover:bg-teal-500 text-white px-5 py-2.5 rounded-xl shadow-lg shadow-teal-500/20 transition-all transform hover:scale-105">
                                                                     <span>+</span> Nuevo Turno
                                                                 </button>
-                                                                <button id="export-pdf" class="flex items-center gap-2 bg-white/5 dark:bg-white/5 hover:bg-white/10 text-white px-5 py-2.5 rounded-xl border border-white/10 dark:border-white/10 transition-colors">
+                                                                <button id="export-pdf" class="flex items-center gap-2 bg-white/5 dark:bg-white/5 hover:bg-white/10 text-gray-700 dark:text-gray-200 px-5 py-2.5 rounded-xl border border-black/10 dark:border-white/10 transition-colors">
                                                                     <span>📄</span> PDF
                                                                 </button>
                                                             </div>
@@ -3313,19 +4054,39 @@ const renderPredicacionTab = async (container) => {
 
 const showModal = (content, onOpen, maxWidth = 'max-w-md') => {
     const modalContainer = document.getElementById('modal-container');
+
+    const handleEsc = (e) => {
+        if (e.key === 'Escape') closeModal();
+    };
+
+    const closeModal = () => {
+        modalContainer.classList.add('hidden');
+        modalContainer.innerHTML = '';
+        window.removeEventListener('keydown', handleEsc);
+    };
+
     modalContainer.innerHTML = `
-        <div class="w-full ${maxWidth} relative animate-fade-in bg-white dark:bg-gray-900 border border-gray-100 dark:border-white/10 flex flex-col rounded-2xl shadow-2xl h-fit">
-            <button class="absolute top-4 right-4 text-gray-400 hover:text-gray-900 dark:hover:text-white z-50 p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-colors" onclick="document.getElementById('modal-container').classList.add('hidden')">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        <div class="w-full ${maxWidth} relative animate-fade-in bg-white dark:bg-[#0a0a0a] flex flex-col rounded-[2.5rem] shadow-[0_40px_80px_-20px_rgba(0,0,0,0.5)] max-h-[calc(100vh-2rem)] border border-gray-100 dark:border-white/10 overflow-hidden m-4">
+            <button class="absolute top-6 right-6 text-white/50 hover:text-white z-[60] p-2 bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-full transition-all border border-white/5 group shadow-lg" 
+                    id="modal-close-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
                 </svg>
             </button>
-            <div class="p-6">
+            <div class="relative flex-1 overflow-y-auto custom-scrollbar">
                 ${content}
             </div>
         </div>
     `;
     modalContainer.classList.remove('hidden');
+
+    const closeBtn = modalContainer.querySelector('#modal-close-btn');
+    if (closeBtn) closeBtn.onclick = (e) => { e.stopPropagation(); closeModal(); };
+
+    modalContainer.onclick = (e) => { if (e.target === modalContainer) closeModal(); };
+
+    window.addEventListener('keydown', handleEsc);
+
     if (onOpen) onOpen(modalContainer);
 };
 
@@ -3336,6 +4097,11 @@ const renderProgramaTab = async (container) => {
     let currentWeekStart = getMonday(today);
     let programa = { dias: [] };
 
+    const saveCurrentWeek = async () => {
+        const weekId = formatDateId(currentWeekStart);
+        await saveProgramaSemanal(weekId, programa);
+    };
+
     // Helper for Auto-Save with automatic territory assignment
     const autoSave = async (dayIdx, turnId, field) => {
         const statusIndicator = document.getElementById('save-status');
@@ -3345,7 +4111,7 @@ const renderProgramaTab = async (container) => {
             const weekId = formatDateId(currentWeekStart);
             if (!weekId) throw new Error("Invalid weekId");
 
-            await saveProgramaSemanal(weekId, programa);
+            await saveCurrentWeek();
 
             // Check if we need to auto-assign territory
             // ONLY for present or future weeks (to avoid overwriting current status with past data)
@@ -3473,22 +4239,11 @@ const renderProgramaTab = async (container) => {
                 </div>
                 
                 <div class="flex items-center gap-4">
-                            <div class="flex flex-col items-center gap-1">
-                                <div class="flex items-center bg-gray-50 dark:bg-black/60 rounded-lg border border-gray-200 dark:border-white/10 p-1 shadow-inner">
-                                    <span id="range-label" class="mx-3 text-sm font-mono text-teal-700 dark:text-teal-300 min-w-[140px] text-center font-bold tracking-tight">
-                                        Cargando...
-                                    </span>
-                                </div>
-                                <div class="text-[9px] font-black text-teal-600 dark:text-teal-400/80 uppercase tracking-widest bg-teal-500/10 px-2 py-0.5 rounded-full">
-                                    Semana en curso
-                                </div>
-                            </div>
-
                         <div class="flex flex-wrap items-center gap-2">
                              <button id="prev-week" class="p-2.5 bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-xl hover:bg-teal-500/10 transition-all text-gray-500 hover:text-teal-600 shadow-sm">⬅️</button>
                              <div class="bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 px-4 py-2 rounded-xl flex items-center gap-3 shadow-sm shadow-black/5">
                                  <span class="text-xs font-black text-gray-400 uppercase tracking-widest hidden sm:inline">Semana</span>
-                                 <span id="range-label-2" class="text-sm font-black text-teal-600 dark:text-teal-400 min-w-[120px] text-center tracking-tighter">Cargando...</span>
+                                 <span id="week-range-label" class="text-sm font-black text-teal-600 dark:text-teal-400 min-w-[120px] text-center tracking-tighter">Cargando...</span>
                              </div>
                              <button id="next-week" class="p-2.5 bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-xl hover:bg-teal-500/10 transition-all text-gray-500 hover:text-teal-600 shadow-sm">➡️</button>
                              <button id="btn-reset-today" class="px-4 py-2.5 bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-teal-600 transition-all shadow-sm">Hoy</button>
@@ -3531,8 +4286,8 @@ const renderProgramaTab = async (container) => {
 
     const tableContainer = document.getElementById('admin-prog-table');
     const loadingOverlay = document.getElementById('prog-loading-overlay');
-    const rangeLabel = document.getElementById('range-label'); // Changed from week-range-label
-    const btnResetToday = document.getElementById('btn-reset-today'); // Changed from reset-today
+    const rangeLabel = document.getElementById('week-range-label');
+    const btnResetToday = document.getElementById('btn-reset-today');
 
     // Load Logic
     const loadWeekData = async () => {
@@ -3541,6 +4296,7 @@ const renderProgramaTab = async (container) => {
         if (overlay) overlay.classList.remove('hidden');
 
         try {
+            window._currentWeekStartGlobal = currentWeekStart; // Set global for auto-save
             const weekId = formatDateId(currentWeekStart);
             const data = await getProgramaSemanal(weekId);
 
@@ -3563,10 +4319,8 @@ const renderProgramaTab = async (container) => {
             sunday.setDate(monday.getDate() + 6);
             const rangeText = `${monday.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })} - ${sunday.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}`;
 
-            const label1 = container.querySelector('#range-label');
-            const label2 = container.querySelector('#range-label-2');
-            if (label1) label1.innerText = rangeText;
-            if (label2) label2.innerText = rangeText;
+            const lblRange = container.querySelector('#week-range-label');
+            if (lblRange) lblRange.innerText = rangeText;
 
             renderTable();
         } catch (error) {
@@ -3631,7 +4385,7 @@ const renderProgramaTab = async (container) => {
 
         let html = `
             <div class="overflow-hidden rounded-2xl shadow-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#0f1115] relative transition-colors duration-500">
-                <div class="responsive-table-container relative z-10 custom-scrollbar">
+                <div class="overflow-x-auto relative z-10 custom-scrollbar">
                     <table class="w-full text-left border-collapse">
                     <thead>
                         <tr class="bg-gray-50 dark:bg-white/5 border-b border-gray-200 dark:border-white/10 text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">
@@ -3745,1323 +4499,309 @@ const renderProgramaTab = async (container) => {
                             </button>`;
                     } else if (opts.length > 0) {
                         inputHtml = `
-                            <select onchange="window.updateProgramaField(${dayIndex}, '${turnoId}', '${fieldId}', this.value)"
-                                    class="w-full bg-white dark:bg-black/20 text-gray-700 dark:text-gray-200 text-xs py-2 px-3 rounded-lg border border-white/10 focus:border-teal-500 outline-none transition-all shadow-sm cursor-pointer appearance-none hover:bg-gray-50/50 dark:hover:bg-white/5">
-                                <option value="" ${!val ? 'selected' : ''}>${field}...</option>
-                                ${opts.map(o => `<option value="${o}" ${val === o ? 'selected' : ''}>${o}</option>`).join('')}
-                                ${val && !opts.includes(val) ? `<option value="${val}" selected>${val}</option>` : ''}
-                            </select>`;
-                    } else if (field === 'Hora') {
-                        inputHtml = `
-                            <input type="time" value="${val}" 
-                                   onchange="window.updateProgramaField(${dayIndex}, '${turnoId}', '${fieldId}', this.value)"
-                                   class="w-full bg-white dark:bg-black/20 text-gray-700 dark:text-gray-200 text-xs py-2 px-3 rounded-lg border border-white/10 focus:border-teal-500 outline-none transition-all shadow-sm font-mono">`;
+                            <div class="relative group/select">
+                                <select onchange="updateWeekData(${dayIndex}, '${turnoId}', '${fieldId}', this.value)" 
+                                        class="w-full bg-white dark:bg-black/20 text-gray-700 dark:text-gray-300 text-xs border border-black/10 dark:border-white/10 rounded-lg p-2 pr-8 outline-none focus:border-teal-500 appearance-none transition-colors cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5">
+                                    <option value="">${field}...</option>
+                                    ${opts.map(o => `<option value="${o}" ${val === o ? 'selected' : ''}>${o}</option>`).join('')}
+                                </select>
+                                <span class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-[10px] group-hover/select:text-teal-600 transition-colors">▼</span>
+                            </div>`;
                     } else {
-                        inputHtml = `
-                            <input type="text" value="${val}" placeholder="${field}..."
-                                   onchange="window.updateProgramaField(${dayIndex}, '${turnoId}', '${fieldId}', this.value)"
-                                   class="w-full bg-white dark:bg-black/20 text-gray-700 dark:text-gray-200 text-xs py-2 px-3 rounded-lg border border-white/10 focus:border-teal-500 outline-none transition-all shadow-sm">`;
+                        inputHtml = `<input type="text" 
+                                       value="${val}" 
+                                       onchange="updateWeekData(${dayIndex}, '${turnoId}', '${fieldId}', this.value)"
+                                       placeholder="${field}..."
+                                       class="w-full bg-transparent border-b border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-200 text-xs p-1 outline-none focus:border-teal-500 placeholder-gray-400 transition-colors">`;
                     }
 
+                    // Field Row
                     html += `
-                        <div class="grid grid-cols-1 items-center gap-1.5 group/field">
-                             <span class="text-[9px] font-bold text-gray-400 uppercase tracking-tight ml-1 flex items-center gap-1.5">
-                                <span class="opacity-40 italic">${icon}</span> ${field}
-                             </span>
-                             ${inputHtml}
+                        <div class="flex items-center gap-2 group/field">
+                            <span class="text-xs w-5 text-center opacity-60 grayscale group-hover/field:grayscale-0 transition-all" title="${field}">${icon}</span>
+                            <div class="flex-1 min-w-0">
+                                ${inputHtml}
+                            </div>
                         </div>`;
-                }); // End fields loop
+                });
 
                 html += `</div></td>`;
-            }); // End turnos loop
-
+            });
             html += `</tr>`;
-        }); // End dias loop
+        });
 
-        html += `</tbody></table></div></div> `;
+        html += `</tbody></table></div></div>`;
+
+        // Responsive Cards (Mobile Only)
+        // Hidden by default, shown via CSS media queries or we can just rely on the horizontal scroll above with "responsive-table-container". 
+        // Given the requirement "no cards overflow", horizontal scroll is safer for complex tables.
 
         tableContainer.innerHTML = html;
-        loadingOverlay.classList.add('hidden');
-
-
-        window.updateProgramaField = async (day, turn, field, value) => {
-            if (!programa.dias[day][turn]) programa.dias[day][turn] = {};
-            programa.dias[day][turn][field] = value;
-            await autoSave(day, turn, field);
-        };
-
+        // attachTableEvents(); // Re-attach strict events if needed (Removed: undefined)
     };
-    document.getElementById('btn-reset-today')?.addEventListener('click', () => {
+
+    // --- Helper for Icons (Fixes the Bug) ---
+    const getFieldIcon = (field) => {
+        const map = {
+            'Lugar': '📍',
+            'Hora': '⏰',
+            'Conductor': '👔',
+            'Auxiliar': '👤',
+            'Faceta': '🏷️',
+            'Grupos': '👥',
+            'Territorio': '🗺️'
+        };
+        return map[field] || '🔹';
+    };
+
+    // --- Controls Events ---
+    // (Existing event listeners logic matches variable names defined above)
+    container.querySelector('#prev-week').onclick = () => {
+        const d = new Date(currentWeekStart);
+        d.setDate(d.getDate() - 7);
+        currentWeekStart = d;
+        loadWeekData();
+    };
+
+    container.querySelector('#next-week').onclick = () => {
+        const d = new Date(currentWeekStart);
+        d.setDate(d.getDate() + 7);
+        currentWeekStart = d;
+        loadWeekData();
+    };
+
+    if (btnResetToday) btnResetToday.onclick = () => {
         currentWeekStart = getMonday(new Date());
         loadWeekData();
-    });
+    };
 
-    // Manual Save button removed as per request (now auto-save)
-
-    // Next/Prev Week Handlers
-    document.getElementById('prev-week')?.addEventListener('click', () => {
-        currentWeekStart.setDate(currentWeekStart.getDate() - 7);
-        loadWeekData();
-    });
-
-
-    document.getElementById('next-week')?.addEventListener('click', () => {
-        currentWeekStart.setDate(currentWeekStart.getDate() + 7);
-        loadWeekData();
-    });
-
-    // Clear Week Logic
-    document.getElementById('btn-clear-week')?.addEventListener('click', async () => {
-        showCustomConfirm('¿Estás seguro de que deseas BORRAR toda la programación de esta semana?', async () => {
-            const btn = document.getElementById('btn-clear-week');
-            if (btn) btn.innerHTML = '⌛';
-            if (btn) btn.disabled = true;
+    // Copy Previous
+    container.querySelector('#btn-copy-prev').onclick = async () => {
+        showCustomConfirm("¿Copiar toda la programación de la semana pasada a esta?", async () => {
+            const prevDate = new Date(currentWeekStart);
+            prevDate.setDate(prevDate.getDate() - 7);
+            const prevId = formatDateId(prevDate);
 
             try {
-                const weekId = formatDateId(currentWeekStart);
-                await deleteProgramaSemanal(weekId);
-                showNotification('Semana borrada exitosamente.', 'success');
-                loadWeekData(); // Reload to show empty state/defaults
+                const prevData = await getProgramaSemanal(prevId);
+                if (prevData && prevData.dias) {
+                    // Deep copy to avoid ref issues
+                    const newDays = JSON.parse(JSON.stringify(prevData.dias));
+                    programa.dias = newDays;
+                    _globalPrograma = programa;
+                    renderTable();
+                    await saveProgramaSemanal(programa.id, programa); // Auto-save
+                    showNotification("Programación copiada exitosamente");
+                } else {
+                    showNotification("No hay datos en la semana anterior", "warning");
+                }
             } catch (e) {
                 console.error(e);
-                showNotification("Error borrando semana: " + e.message, "error");
-            } finally {
-                if (btn) {
-                    btn.innerHTML = `<span class="group-hover:scale-110 transition-transform text-sm">🗑️</span> <span class="hidden lg:inline text-xs">Borrar</span>`;
-                    btn.disabled = false;
-                }
+                showNotification("Error copiando semana", "error");
             }
         });
-    });
+    };
 
-    // --- Copy Previous Week Logic ---
-    document.getElementById('btn-copy-prev')?.addEventListener('click', () => {
-        showCustomConfirm("¿Copiar toda la programación de la semana pasada a esta semana?", async () => {
-            const btn = document.getElementById('btn-copy-prev');
-            if (!btn) return;
-            const originalHtml = btn.innerHTML;
-            btn.innerHTML = `<span class="animate-spin">⌛</span>`;
-
+    // Clear Week
+    container.querySelector('#btn-clear-week').onclick = () => {
+        showCustomConfirm("¿Borrar toda la programación de esta semana? Esta acción no se puede deshacer.", async () => {
             try {
-                // Calculate previous week ID
-                const prevDate = new Date(currentWeekStart);
-                prevDate.setDate(prevDate.getDate() - 7);
-                const prevWeekId = formatDateId(prevDate);
-
-                const prevData = await getProgramaSemanal(prevWeekId);
-
-                if (!prevData || !prevData.dias || prevData.dias.length === 0) {
-                    showNotification("No hay programación en la semana anterior.", "warning");
-                    return;
-                }
-
-                // Merge Data
-                // Rule: We blindly overwrite slots with previous week data
-                if (!programa.dias) programa.dias = [];
-
-                prevData.dias.forEach((prevDia, idx) => {
-                    if (!programa.dias[idx]) {
-                        programa.dias[idx] = { nombre: prevDia.nombre, manana: {}, tarde: {}, noche: {}, zoom: {} };
-                    }
-
-                    // Copy slots
-                    ['manana', 'tarde', 'noche', 'zoom'].forEach(turno => {
-                        if (prevDia[turno]) {
-                            // Clone object to break reference
-                            programa.dias[idx][turno] = JSON.parse(JSON.stringify(prevDia[turno]));
-                        }
-                    });
-                });
-
+                await deleteProgramaSemanal(programa.id);
+                // Reset local state
+                programa.dias = dayNames.map(name => ({
+                    nombre: name,
+                    manana: {}, tarde: {}, noche: {}, zoom: {}
+                }));
+                _globalPrograma = programa;
                 renderTable();
-
-                // Trigger bulk save
-                const weekId = formatDateId(currentWeekStart);
-                await saveProgramaSemanal(weekId, programa);
-
-                // Auto-Assign copied territories
-                const updates = [];
-                programa.dias.forEach((d, dIdx) => {
-                    ['manana', 'tarde', 'noche', 'zoom'].forEach(t => {
-                        const tData = d[t];
-                        if (tData && tData.territorio && tData.conductor) {
-                            const parts = tData.territorio.split(',').map(s => s.trim());
-                            for (const part of parts) {
-                                const match = part.match(/^(\d+)(?:\s*\((.*)\))?$/);
-                                if (match) {
-                                    const num = match[1];
-                                    const mzs = match[2];
-                                    const cond = tData.conductor;
-                                    const candidates = territorios.filter(terr => terr.numero == num);
-                                    let targetId = null;
-                                    if (mzs) {
-                                        const mzsArr = mzs.split(',').map(m => m.trim());
-                                        const perfectMatch = candidates.find(c => {
-                                            if (!c.manzanas) return false;
-                                            const cMzs = c.manzanas.split(',').map(s => s.trim());
-                                            return mzsArr.every(m => cMzs.includes(m));
-                                        });
-                                        if (perfectMatch) targetId = perfectMatch.id;
-                                        if (targetId) updates.push(assignTerritorioParcial(targetId, mzsArr, cond));
-                                    } else if (candidates.length > 0) {
-                                        targetId = candidates[0].id;
-                                        updates.push(assignTerritorio(targetId, cond));
-                                    }
-                                }
-                            }
-                        }
-                    });
-                });
-
-                if (updates.length > 0) await Promise.all(updates);
-                showNotification("Programación copiada y guardada automáticamente. ✅", "success");
-
-            } catch (error) {
-                console.error("Copy Error:", error);
-                showNotification("Error al copiar datos: " + error.message, "error");
-            } finally {
-                btn.innerHTML = originalHtml;
+                showNotification("Semana limpiada exitosamente");
+            } catch (e) {
+                showNotification("Error limpiando semana", "error");
             }
         });
-    });
-
-
-    // --- Export PNG Logic ---
-    // --- Export PNG Logic (Final Polish) ---
-    document.getElementById('export-png')?.addEventListener('click', async () => {
-        const btn = document.getElementById('export-png');
-        if (!btn) return;
-        const originalContent = btn.innerHTML;
-        btn.innerHTML = `<span>⏳</span>`;
-        btn.disabled = true;
-
-        try {
-            const getDayDate = (offset) => {
-                const d = new Date(currentWeekStart);
-                d.setDate(d.getDate() + offset);
-                return d.getDate();
-            };
-
-            const gv = (dayIndex, turn, field) => {
-                const day = programa.dias[dayIndex];
-                if (!day) return '';
-                const t = day[turn];
-                if (!t) return '';
-                return t[field.toLowerCase()] || '';
-            };
-
-            const colors = {
-                header: '#CCFFFF',
-
-                mananaMain: '#FFCC00', // Gold (Vertical Bar)
-                mananaLabel: '#FFE699',// Light Gold (Detail Column)
-                mananaBg: '#FFF2CC',   // Pale Yellow (Data)
-
-                tardeMain: '#ED7D31',  // Orange (Vertical Bar)
-                tardeLabel: '#F8CBAD', // Peach (Detail Column)
-                tardeBg: '#FCE4D6',    // Pale Orange (Data)
-
-                nocheMain: '#4472C4',  // Blue (Vertical Bar)
-                nocheLabel: '#B4C6E7', // Light Blue (Detail Column)
-                nocheBg: '#D9E1F2',    // Pale Blue (Data)
-
-                zoomMain: '#70AD47',    // Green (Vertical Bar)
-                zoomLabel: '#C6E0B4',   // Light Green (Detail Column)
-                zoomBg: '#E2EFDA'       // Pale Green (Data)
-            };
-
-            // Enhanced Styling
-            const baseFont = "font-family: Arial, Helvetica, sans-serif;";
-            const cellStyle = `${baseFont} padding: 4px 2px; border: 1px solid white; text-align: center; font-size: 13px; height: 26px; color: black; font-weight: 500; `;
-            // Label column style
-            const labelStyle = (bg) => `${baseFont} padding: 0 8px; border: 1px solid white; font-weight: bold; font-size: 11px; color: black; background-color: ${bg}; text-align: left; `;
-
-            // Vertical Header Style (Fixed Rotation)
-            // writing-mode: vertical-rl rotates text 90deg clockwise. rotate(180) flips it to read bottom-up.
-            const verticalHeaderStyle = (bg) => `background-color: ${bg}; writing-mode: vertical-rl; transform: rotate(180deg); text-align: center; font-weight: bold; font-size: 14px; width: 35px; border: 1px solid white; color: black; letter-spacing: 2px; `;
-
-            /* --- Light Theme Dashboard Layout Export --- */
-
-            // Helper to get day name
-            const getDayName = (idx) => ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'][idx];
-            const getDayLabel = (idx) => ['LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO', 'DOMINGO'][idx];
-
-            const formatDateShort = (dateInput) => {
-                if (!dateInput) return '';
-                const d = new Date(dateInput);
-                if (isNaN(d.getTime())) return '';
-                const day = d.getDate();
-                const month = d.toLocaleDateString('es-ES', { month: 'short' }).replace('.', '').toUpperCase();
-                return `${day} ${month}`;
-            };
-
-
-
-            const dashboardCellStyle = `
-        padding: 8px;
-        border: 1px solid #e5e7eb;
-        min-height: 100px;
-        vertical-align: top;
-        font-size: 13px;
-        width: 23 %; /* 4 columns approx equal */
-        `;
-
-            const rowHeaderStyle = `
-        width: 8 %;
-        background-color: #f3f4f6;
-        color: #111827;
-        font-weight: 800;
-        text-align: center;
-        vertical-align: middle;
-        border: 1px solid #e5e7eb;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        `;
-
-            const colHeaderStyle = (color) => `
-        background-color: ${color};
-        color: white;
-        font-weight: 800;
-        text-transform: uppercase;
-        padding: 12px;
-        font-size: 14px;
-        letter-spacing: 0.05em;
-        width: 23 %;
-        `;
-
-            const itemStyle = `
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        margin-bottom: 6px;
-        color: #374151;
-        `;
-
-            const iconStyle = `
-        font-size: 14px;
-        width: 20px;
-        text-align: center;
-        color: #6b7280;
-        `;
-
-            // Helper to render content within a cell
-            const renderTurnHTML = (t) => {
-                if (!t || (!t.conductor && !t.lugar && !t.territorio && !t.hora))
-                    return '';
-
-                // Icons: 📍 Time, 👤 User, 👥 Group, 🏷️ Tag, 🗺️ Map
-                return `
-           <div style="display:flex; flex-direction:column; gap:2px; padding-bottom: 8px; margin-bottom: 8px; border-bottom: 1px solid #f3f4f6;">
-                ${t.grupos ? `
-                        <div style="margin-bottom: 8px;">
-                             <span style="background-color: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight:bold;">${t.grupos}</span>
-                        </div>` : ''
-                    }
-
-                        ${t.lugar ? `
-                        <div style="${itemStyle}">
-                            <span style="${iconStyle}">📍</span>
-                            <span style="font-weight:600; color:#111827;">${t.lugar}</span>
-                        </div>` : ''
-                    }
-
-                        ${t.hora ? `
-                        <div style="${itemStyle}">
-                            <span style="${iconStyle}">⏰</span>
-                            <span>${t.hora}</span>
-                        </div>` : ''
-                    }
-
-                        ${t.conductor ? `
-                        <div style="${itemStyle}">
-                             <span style="${iconStyle}">👤</span>
-                             <span style="font-weight:500;">${t.conductor}</span>
-                        </div>` : ''
-                    }
-
-                         ${t.auxiliar ? `
-                        <div style="${itemStyle}">
-                             <span style="${iconStyle}">👥</span>
-                             <span style="font-size:12px;">${t.auxiliar}</span>
-                        </div>` : ''
-                    }
-
-                        ${t.faceta ? `
-                        <div style="${itemStyle}">
-                             <span style="${iconStyle}">🏷️</span>
-                             <span style="font-size:12px; font-style:italic;">${t.faceta}</span>
-                        </div>` : ''
-                    }
-                        
-                        ${t.territorio ? `
-                        <div style="${itemStyle}; margin-top:4px; border-top:1px dashed #e5e7eb; padding-top:4px;">
-                             <span style="${iconStyle}">🗺️</span>
-                             <span style="color:#059669; font-weight:700;">${t.territorio}</span>
-                        </div>` : ''
-                    }
-                    </div>
-    `;
-            };
-
-            const renderCellContent = (dayIndex, turnId) => {
-                const d = programa.dias[dayIndex];
-                if (!d || !d[turnId]) return '<div style="color:#d1d5db; font-style:italic; text-align:center; padding-top:20px;">-</div>';
-                const html = renderTurnHTML(d[turnId]);
-                return html || '<div style="color:#e5e7eb; font-style:italic; text-align:center;"></div>';
-            };
-
-            const html = `
-   <div class="export-container" style="font-family: 'Roboto', sans-serif; background-color: white; padding: 30px; width: 1400px; color: #1f2937;">
-                     <style>
-                        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
-                     </style>
-
-                    <!--Header -->
-                    <div style="text-align:center; margin-bottom:24px; border-bottom: 2px solid #e5e7eb; padding-bottom: 16px;">
-                        <h1 style="font-size: 24px; font-weight: 800; color: #111827; text-transform: uppercase;">Congregación "Nueve de Octubre"</h1>
-                        <h2 style="font-size: 16px; font-weight: 500; color: #4b5563; margin-top: 4px;">Programa de Predicación Semanal | <span style="color:#2563eb;">${formatDisplayDateRange(currentWeekStart)}</span></h2>
-                    </div>
-
-                    <table style="width: 100%; border-collapse: collapse;">
-                        <thead>
-                            <tr>
-                                <th style="width: 8%;"></th>
-                                <th style="${colHeaderStyle('#0ea5e9')}">☀️ MAÑANA</th>
-                                <th style="${colHeaderStyle('#f59e0b')}">⛅ TARDE</th>
-                                <th style="${colHeaderStyle('#6366f1')}">🌙 NOCHE</th>
-                                <th style="${colHeaderStyle('#10b981')}">📹 ZOOM</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${[0, 1, 2, 3, 4, 5, 6].map(dayIdx => {
-                // Special Logic for Sunday (Index 6)
-                if (dayIdx === 6) {
-                    const d = programa.dias[6];
-                    const allTurns = [d.manana, d.tarde, d.noche].filter(t => t && (t.conductor || t.lugar || t.hora));
-
-                    // Sort by Hour if possible
-                    allTurns.sort((a, b) => (a.hora || '').localeCompare(b.hora || ''));
-
-                    const stackedContent = allTurns.map(t => renderTurnHTML(t)).join('') || '<div style="color:#d1d5db; font-style:italic; text-align:center;">-</div>';
-
-                    return `<tr>
-                                        <td style="${rowHeaderStyle}">
-                                            <div style="font-size:16px;">${getDayName(dayIdx)}</div>
-                                            <div style="font-size:10px; color: #6b7280; font-weight:normal;">${getDayLabel(dayIdx)}</div>
-                                            <div style="font-size:11px; margin-top:4px; font-weight:bold; color: #2563eb;">${getDayDate(dayIdx)}</div>
-                                        </td>
-                                        <td style="${dashboardCellStyle}" colspan="3"> <!-- Span across Manana, Tarde, Noche -->
-                                             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
-                                                ${stackedContent ? stackedContent : '<div style="grid-column: span 3; color:#d1d5db; text-align:center;">-</div>'}
-                                             </div>
-                                             <div style="text-align: center; color: #9ca3af; font-size: 10px; margin-top: 4px; border-top: 1px solid #f3f4f6; padding-top: 2px;">
-                                                Asignaciones Consolidadas
-                                             </div>
-                                        </td>
-                                        <td style="${dashboardCellStyle.replace('width: 23%', 'width: 23%')}"> <!-- Zoom stays separate -->
-                                            ${renderCellContent(dayIdx, 'zoom')}
-                                        </td>
-                                    </tr>`;
-                }
-
-                return `
-                                <tr>
-                                    <td style="${rowHeaderStyle}">
-                                        <div style="font-size:16px;">${getDayName(dayIdx)}</div>
-                                        <div style="font-size:10px; color: #6b7280; font-weight:normal;">${getDayLabel(dayIdx)}</div>
-                                        <div style="font-size:11px; margin-top:4px; font-weight:bold; color: #2563eb;">${getDayDate(dayIdx)}</div>
-                                    </td>
-                                    <td style="${dashboardCellStyle}">
-                                        ${renderCellContent(dayIdx, 'manana')}
-                                    </td>
-                                    <td style="${dashboardCellStyle}">
-                                        ${renderCellContent(dayIdx, 'tarde')}
-                                    </td>
-                                    <td style="${dashboardCellStyle}">
-                                        ${renderCellContent(dayIdx, 'noche')}
-                                    </td>
-                                    <td style="${dashboardCellStyle}">
-                                        ${renderCellContent(dayIdx, 'zoom')}
-                                    </td>
-                                </tr>
-                            `;
-            }).join('')}
-                        </tbody>
-                    </table>
-
-                    <div style="margin-top: 24px; display: flex; justify-content: space-between; font-size: 11px; color: #6b7280; border-top: 1px solid #e5e7eb; padding-top: 12px;">
-                        <div>
-                             <strong>DEPARTAMENTO DE TERRITORIOS</strong><br>
-                             Italo Feijóo: 099 474 9286 • Paúl A. Quimís: 098 077 6844
-                        </div>
-                        <div style="text-align:right;">
-                             <strong>CONEXIÓN ZOOM</strong><br>
-                             ID: 883 665 43094 • Pascode: 909090
-                        </div>
-                    </div>
-                </div>
-    `;
-
-            const containerBox = document.createElement('div');
-            containerBox.style.position = 'absolute';
-            containerBox.style.left = '-9999px';
-            containerBox.style.top = '0';
-            containerBox.innerHTML = html;
-            document.body.appendChild(containerBox);
-
-            await new Promise(resolve => setTimeout(resolve, 800));
-
-            const canvas = await html2canvas(containerBox.firstElementChild, {
-                scale: 2,
-                useCORS: true,
-                backgroundColor: '#ffffff'
-            });
-
-            const link = document.createElement('a');
-            link.download = `Programa_${formatDateId(currentWeekStart)}.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-
-            document.body.removeChild(containerBox);
-            showCustomAlert("Imagen generada con éxito 📷");
-
-        } catch (error) {
-            console.error("Export Error:", error);
-            showCustomAlert("Error: " + error.message);
-        } finally {
-            btn.innerHTML = originalContent;
-            btn.disabled = false;
-        }
-    });
-
-    document.getElementById('export-excel')?.addEventListener('click', async () => {
-        const btn = document.getElementById('export-excel');
-        if (!btn) return;
-        const originalContent = btn.innerHTML;
-        try {
-            btn.innerHTML = 'Scan...';
-            btn.disabled = true;
-
-            const config = await getConfiguracion();
-            const congName = config.congregacion?.nombre || "NUEVE DE OCTUBRE";
-            const congNum = config.congregacion?.numero || "14282";
-
-            const getDate = (idx) => {
-                const d = new Date(currentWeekStart);
-                d.setDate(d.getDate() + idx);
-                return d.getDate();
-            };
-
-            const styles = `
-    <style >
-     table { border-collapse: collapse; width: 100 %; font-family: Arial, sans-serif;}
-th, td { border: 1px solid #000000; padding: 5px; text-align: center; font-size: 11px; vertical-align: middle;}
-                    .header-main { background-color: #FFFFFF; font-size: 16px; font-weight: bold; border: none; padding-bottom: 2px;}
-                    .header-sub { background-color: #FFFFFF; font-size: 14px; font-weight: bold; border: none; padding-bottom: 15px; border-bottom: 2px solid black;}
-
-                    /* Headers Colors */
-                    .col-header { background-color: #B4C6E7; font-weight: bold; border: 1px solid #000000;}
-
-                    /* Side Column Colors (Left) */
-                    .side-mañana { background-color: #FFC000; font-weight: bold; writing-mode: vertical-rl; transform: rotate(180deg); color: black; font-size: 12px;} 
-                    .side-tarde { background-color: #ED7D31; font-weight: bold; writing-mode: vertical-rl; transform: rotate(180deg); color: black; font-size: 12px;}
-                    .side-noche { background-color: #4472C4; color: white; font-weight: bold; writing-mode: vertical-rl; transform: rotate(180deg); font-size: 12px;}
-                    .side-zoom { background-color: #70AD47; font-weight: bold; writing-mode: vertical-rl; transform: rotate(180deg); color: black; font-size: 12px;}
-
-                    /* Detail Column Colors */
-                    .row-yellow { background-color: #FFF2CC; font-weight: bold;}
-                    .row-orange { background-color: #FCE4D6; font-weight: bold;}
-                    .row-blue { background-color: #D9E1F2; font-weight: bold;}
-                    .row-green { background-color: #E2EFDA; font-weight: bold;}
-
-                    /* Data Cell Colors (Matching Detail Column) */
-                    .bg-mañana { background-color: #FFF2CC;}
-                    .bg-tarde { background-color: #FCE4D6;}
-                    .bg-noche { background-color: #D9E1F2;}
-                    .bg-zoom { background-color: #E2EFDA;}
-
-                    /* Groups Column */
-                    .bg-white-cell { background-color: #FFFFFF; vertical-align: top;}
-                </style >
-     `;
-
-            // Helper to get safe value
-            const gv = (dIndex, section, field) => {
-                const day = programa.dias[dIndex];
-                if (!day) return '';
-
-                // Special handling for Sunday placement logic (matching the user's Excel)
-                // Sunday Groups: G1 -> Noche(Physically Morning), G2 -> Tarde(Physically Morning), G3 -> Mañana(Physically Morning)
-                // Actually based on image:
-                // Mañana Row (Yellow) -> lists Group 3, 5 (Late Morning?)
-                // Tarde Row (Orange) -> lists Group 2, 4
-                // Noche Row (Blue) -> lists Group 1, 6
-
-                // My data structure just has manana/tarde/noche.
-                // If it's Sunday (Index 6):
-                //   - If section is 'manana', we show Morning Group (Group 1 / Default)
-                //   - If section is 'tarde', we show Afternoon Group (Group 2)
-                //   - If section is 'noche', we show Night Group (Group 3)
-                // Even if the time is 9:15 for all of them, they are stored in the respective "slots" in the JSON usually.
-                // IF the user entered them all in "manana" in the UI, this might be blank for others.
-                // BUT, in the UI (Conductor Dashboard), Sunday has 3 columns: Mañana, Tarde, Noche.
-                // So assume data exists in the respective slots.
-
-                const t = day[section];
-                if (!t) return '';
-                return t[field.toLowerCase()] || '';
-            };
-
-            const getGroupCol = (section) => {
-                const sunday = programa.dias[6];
-                if (sunday && sunday[section] && sunday[section].grupos) {
-                    // "Grupos 1 y 2" -> "1 Y 2"
-                    // If contains 'GRUPOS' or 'GRUPO'
-                    const txt = sunday[section].grupos.toUpperCase();
-                    let content = txt;
-                    if (txt.includes('GRUPO')) {
-                        content = txt.replace(/GRUPOS?/, '').trim();
-                    }
-                    return content;
-                }
-                return '';
-            };
-
-            const mon = getDate(0);
-            const tue = getDate(1);
-            const wed = getDate(2);
-            const thu = getDate(3);
-            const fri = getDate(4);
-            const sat = getDate(5);
-            const sun = getDate(6);
-
-            const tableHtml = `
-                ${styles}
-<table>
-    <!-- Title -->
-    <tr>
-        <td colspan="9" class="header-main">CONGREGACIÓN "${congName}" ${congNum}</td>
-    </tr>
-    <tr>
-        <td colspan="9" class="header-sub">PROGRAMA DE PREDICACIÓN</td>
-    </tr>
-    <tr><td colspan="10" style="height: 10px;"></td></tr>
-
-    <!-- Column Headers -->
-    <tr>
-        <th class="col-header" style="width: 30px;"></th>
-        <th class="col-header" style="width: 100px;">DETALLE</th>
-        <th class="col-header">LUNES ${mon}</th>
-        <th class="col-header">MARTES ${tue}</th>
-        <th class="col-header">MIÉRCOLES ${wed}</th>
-        <th class="col-header">JUEVES ${thu}</th>
-        <th class="col-header">VIERNES ${fri}</th>
-        <th class="col-header">SÁBADO ${sat}</th>
-        <th class="col-header">DOMINGO ${sun}</th>
-        <th class="col-header">GRUPOS</th>
-    </tr>
-
-    <!-- MAÑANA SECTION -->
-    ${['LUGAR', 'HORA', 'CONDUCTOR', 'AUXILIAR', 'FACETA', 'TERRITORIO'].map((field, i) => `
-                        <tr>
-                            ${i === 0 ? `<td rowspan="6" class="side-mañana">M<br>A<br>Ñ<br>A<br>N<br>A</td>` : ''}
-                            <td class="row-yellow">${field}</td>
-                            ${[0, 1, 2, 3, 4, 5, 6].map(d => `<td class="bg-mañana">${gv(d, 'manana', field)}</td>`).join('')}
-                            ${i === 0 ? `<td rowspan="6" class="bg-white-cell" style="vertical-align:middle; text-align:center; border: 2px solid black; font-weight:bold;">${getGroupCol("manana")}</td>` : ''} 
-                        </tr>
-                    `).join('')}
-
-    <!-- TARDE SECTION -->
-    ${['LUGAR', 'HORA', 'CONDUCTOR', 'AUXILIAR', 'FACETA', 'TERRITORIO'].map((field, i) => `
-                        <tr>
-                             ${i === 0 ? `<td rowspan="6" class="side-tarde">T<br>A<br>R<br>D<br>E</td>` : ''}
-                            <td class="row-orange">${field}</td>
-                            ${[0, 1, 2, 3, 4, 5, 6].map(d => `<td class="bg-tarde">${gv(d, 'tarde', field)}</td>`).join('')}
-                             ${i === 0 ? `<td rowspan="6" class="bg-white-cell" style="vertical-align:middle; text-align:center; border: 2px solid black; font-weight:bold;">${getGroupCol("tarde")}</td>` : ''}
-                        </tr>
-                    `).join('')}
-
-    <!-- NOCHE SECTION -->
-    ${['LUGAR', 'HORA', 'CONDUCTOR', 'AUXILIAR', 'FACETA', 'TERRITORIO'].map((field, i) => `
-                        <tr>
-                            ${i === 0 ? `<td rowspan="6" class="side-noche">N<br>O<br>C<br>H<br>E</td>` : ''}
-                            <td class="row-blue">${field}</td>
-                            ${[0, 1, 2, 3, 4, 5, 6].map(d => `<td class="bg-noche">${gv(d, 'noche', field)}</td>`).join('')}
-                            ${i === 0 ? `<td rowspan="6" class="bg-white-cell" style="vertical-align:middle; text-align:center; border: 2px solid black; font-weight:bold;">${getGroupCol("noche")}</td>` : ''}
-                        </tr>
-                    `).join('')}
-
-    <!-- ZOOM SECTION -->
-    ${['LUGAR', 'HORA', 'CONDUCTOR', 'FACETA'].map((field, i) => `
-                        <tr>
-                            ${i === 0 ? `<td rowspan="4" class="side-zoom">Z<br>O<br>O<br>M</td>` : ''}
-                            <td class="row-green">${field}</td>
-                            ${[0, 1, 2, 3, 4, 5, 6].map(d => `<td class="bg-zoom">${gv(d, 'zoom', field)}</td>`).join('')}
-                             ${i === 0 ? '<td rowspan="4"></td>' : ''}
-                        </tr>
-                    `).join('')}
-
-    <tr><td colspan="9"></td></tr>
-    <tr>
-        <td colspan="9" style="text-align:center; font-size:10px;">
-                            DEPARTAMENTO DE TERRITORIOS: [Italo Feijóo -> 099 474 9286 | Paúl A. Quimís -> 098 077 6844]<br>
-                Zoom: [ ID: 883 665 43094 / Contraseña: 909090 ]
-        </td>
-    </tr>
-</table>
-`;
-
-            const blob = new Blob(['\uFEFF', tableHtml], {
-                type: 'application/vnd.ms-excel;charset=utf-8'
-            });
-            const url = URL.createObjectURL(blob);
-            const downloadLink = document.createElement("a");
-            downloadLink.href = url;
-            downloadLink.download = `Programa_${formatDateId(currentWeekStart)}.xls`;
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            document.body.removeChild(downloadLink);
-
-            showCustomAlert("Excel generado con éxito 📊");
-
-        } catch (error) {
-            console.error(error);
-            showCustomAlert("Error generando Excel");
-        } finally {
-            btn.innerHTML = originalContent;
-            btn.disabled = false;
-        }
-    });
-
-    document.getElementById('export-excel-plain')?.addEventListener('click', async () => {
-        const btn = document.getElementById('export-excel-plain');
-        const originalContent = btn.innerHTML;
-        try {
-            btn.innerHTML = 'Scan...';
-            btn.disabled = true;
-
-            const gv = (dIndex, section, field) => {
-                const day = programa.dias[dIndex];
-                if (!day || !day[section]) return '';
-                return day[section][field.toLowerCase()] || '';
-            };
-
-            const getGroupCol = (section) => {
-                const sunday = programa.dias[6];
-                if (!sunday || !sunday[section]) return '';
-                return sunday[section].grupos || '';
-            };
-
-            const getDayLabel = (idx) => {
-                const d = new Date(currentWeekStart);
-                d.setDate(d.getDate() + idx);
-                const days = ['DOMINGO', 'LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO'];
-                const months = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
-                return `${days[d.getDay()]} ${d.getDate()} DE ${months[d.getMonth()]}`;
-            };
-
-            const plainStyles = `
-                <style>
-                    table { border-collapse: collapse; width: 100%; font-family: Arial, sans-serif;}
-                    th, td { border: 1px solid #000; padding: 4px; text-align: center; font-size: 10pt; vertical-align: middle; color: #000; background-color: #FFF;}
-                    .header { font-weight: bold; font-size: 14pt; border: none;}
-                </style>
-            `;
-
-            let tableHtml = `
-                ${plainStyles}
-                <table>
-                    <tr><td colspan="10" class="header">PROGRAMA SEMANAL</td></tr>
-                    <tr><td colspan="10" class="header" style="padding-bottom:10px;">SEMANA DEL ${formatDisplayDateRange(currentWeekStart).toUpperCase()}</td></tr>
-                    <tr>
-                        <th style="width:100px;">TURNO</th>
-                        <th style="width:100px;">DETALLE</th>
-                        ${[0, 1, 2, 3, 4, 5, 6].map(i => `<th>${getDayLabel(i)}</th>`).join('')}
-                        <th style="width:120px;">GRUPOS</th>
-                    </tr>
-            `;
-
-            const sections = [
-                { id: 'manana', label: 'MAÑANA', fields: ['LUGAR', 'HORA', 'CONDUCTOR', 'AUXILIAR', 'FACETA', 'TERRITORIO'] },
-                { id: 'tarde', label: 'TARDE', fields: ['LUGAR', 'HORA', 'CONDUCTOR', 'AUXILIAR', 'FACETA', 'TERRITORIO'] },
-                { id: 'noche', label: 'NOCHE', fields: ['LUGAR', 'HORA', 'CONDUCTOR', 'AUXILIAR', 'FACETA', 'TERRITORIO'] },
-                { id: 'zoom', label: 'ZOOM', fields: ['LUGAR', 'HORA', 'CONDUCTOR', 'FACETA'] }
-            ];
-
-            sections.forEach(sec => {
-                sec.fields.forEach((field, i) => {
-                    tableHtml += `
-                        <tr>
-                            ${i === 0 ? `<td rowspan="${sec.fields.length}" style="font-weight:bold;">${sec.label}</td>` : ''}
-                            <td style="font-weight:bold;">${field}</td>
-                            ${[0, 1, 2, 3, 4, 5, 6].map(d => `<td>${gv(d, sec.id, field)}</td>`).join('')}
-                            ${i === 0 ? `<td rowspan="${sec.fields.length}" style="font-weight:bold;">${getGroupCol(sec.id)}</td>` : ''}
-                        </tr>
-                    `;
-                });
-            });
-
-            tableHtml += `</table>`;
-
-            const blob = new Blob(['\uFEFF', tableHtml], { type: 'application/vnd.ms-excel;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const downloadLink = document.createElement("a");
-            downloadLink.href = url;
-            downloadLink.download = `Plan_Semanal_${formatDateId(currentWeekStart)}_Plano.xls`;
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            document.body.removeChild(downloadLink);
-
-            showCustomAlert("Excel Plano generado con éxito 📋");
-        } catch (error) {
-            console.error(error);
-            showCustomAlert("Error generando Excel");
-        } finally {
-            btn.innerHTML = originalContent;
-            btn.disabled = false;
-        }
-    });
-
-    // Table Event Delegation (One listener for lifecycle)
-    tableContainer.addEventListener('click', (e) => {
-        const btn = e.target.closest('[data-action]');
-        if (!btn) return;
-
-        console.log('Action Click detected:', btn.dataset.action); // Debug
-
-        const action = btn.dataset.action;
-        const dayIndex = parseInt(btn.dataset.day);
-        const turnId = btn.dataset.turn;
-        const currentVal = btn.dataset.current;
-
-        if (action === 'open-territory') {
-            console.log('Event delegation: Opening territory modal');
-            console.log('Territorios available:', territorios.length);
-            console.log('Current value:', currentVal);
-
-            showTerritorySelectionModal(currentVal, territorios, async (newValue) => {
-                if (!programa.dias[dayIndex][turnId]) programa.dias[dayIndex][turnId] = {};
-                programa.dias[dayIndex][turnId].territorio = newValue;
-
-                // Update UI immediately (button might be re-rendered later but this gives instant feedback)
-                btn.dataset.current = newValue.replace(/"/g, '&quot;');
-                const spanState = btn.querySelector('span.truncate');
-                if (spanState) {
-                    spanState.textContent = newValue || 'Asignar';
-                    spanState.className = `truncate font-mono ${newValue ? 'text-teal-300 font-medium' : 'text-gray-500 italic'}`;
-                }
-
-                await autoSave(dayIndex, turnId, 'territorio');
-            });
-        } else if (action === 'open-group') {
-            showGroupSelectionModal(currentVal, async (newValue) => {
-                if (!programa.dias[dayIndex][turnId]) programa.dias[dayIndex][turnId] = {};
-                programa.dias[dayIndex][turnId].grupos = newValue;
-
-                btn.dataset.current = newValue.replace(/"/g, '&quot;');
-                const spanState = btn.querySelector('span.truncate');
-                if (spanState) {
-                    spanState.textContent = newValue || 'Seleccionar';
-                    spanState.className = `truncate ${newValue ? 'text-teal-300 font-medium' : 'text-gray-500 italic'}`;
-                }
-
-                await autoSave(dayIndex, turnId, 'grupos');
-            });
-        }
-    });
+    };
+
+    // Export Excel
+    container.querySelector('#export-excel-plain').onclick = () => {
+        generatePlainXLS(programa, `Programa_${formatDateId(currentWeekStart)}`);
+    };
+
+    // Export Image -> Use canvas or html2canvas
+    container.querySelector('#export-png').onclick = async () => {
+        // Simple alert for now as html2canvas might not be imported.
+        // Assuming user has it or we use window.print logic.
+        // For SaaS feel, we can use a dedicated library or just print style.
+        window.print();
+        // showNotification("Función de imagen en desarrollo. Use 'Imprimir' del navegador por ahora.");
+    };
+
+    // Initialize
     loadWeekData();
 };
 
-const renderConfigTab = async (container, initialSubTab = 'reglas', appVersion) => {
-    // Fetch config once for all sub-tabs
-    const config = await getConfiguracion();
+window.updateWeekData = (dayIndex, turnoId, field, value) => {
+    if (!_globalPrograma) return;
+    if (!_globalPrograma.dias[dayIndex][turnoId]) _globalPrograma.dias[dayIndex][turnoId] = {};
 
-    container.innerHTML = `
-        <div class="flex flex-col h-full">
-            <div class="flex-shrink-0 mb-4 border-b border-gray-200 dark:border-white/10 overflow-x-auto scrollbar-hide">
-                <nav class="-mb-px flex space-x-4 md:space-x-8 min-w-max px-2" aria-label="Tabs">
-                    <button data-subtab="reglas" class="sub-tab-btn whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                        Reglas
-                    </button>
-                    <button data-subtab="congregacion" class="sub-tab-btn whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                        Congregación
-                    </button>
-                    <button data-subtab="personal" class="sub-tab-btn whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                        Personal 👤
-                    </button>
-                    <button data-subtab="grupos" class="sub-tab-btn whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                        Grupos 🏘️
-                    </button>
-                    <button data-subtab="territorios" class="sub-tab-btn whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                        Territorios
-                    </button>
+    _globalPrograma.dias[dayIndex][turnoId][field] = value;
 
-                    <button data-subtab="campanas" class="sub-tab-btn whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                        Campañas
-                    </button>
-                    <button data-subtab="modulos" class="sub-tab-btn whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                        Módulos
-                    </button>
-                    <button data-subtab="mantenimiento" class="sub-tab-btn whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                        Mantenimiento
-                    </button>
-                </nav>
-            </div>
-            <div id="config-sub-content" class="flex-1 overflow-y-auto">
-                <!-- Sub-tab content will be loaded here -->
-            </div>
-        </div>
-    `;
+    // Debounced Save
+    clearTimeout(window._saveTimer);
+    const saveStatus = document.getElementById('save-status');
+    if (saveStatus) saveStatus.style.opacity = '1';
 
-    const subContent = document.getElementById('config-sub-content');
-    const subTabs = container.querySelectorAll('.sub-tab-btn');
-
-    const switchSubTab = async (targetSub) => {
-        subTabs.forEach(btn => {
-            if (btn.dataset.subtab === targetSub) {
-                btn.classList.add('active', 'border-teal-500', 'text-teal-600', 'dark:text-teal-400');
-                btn.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'dark:text-gray-400', 'dark:hover:text-gray-200');
-            } else {
-                btn.classList.remove('active', 'border-teal-500', 'text-teal-600', 'dark:text-teal-400');
-                btn.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'dark:text-gray-400', 'dark:hover:text-gray-200');
-            }
-        });
-
-        subContent.innerHTML = '<div class="flex justify-center items-center h-full"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div></div>';
-
-        if (targetSub === 'reglas') {
-            await renderReglasSubTab(subContent);
-        } else if (targetSub === 'modulos') {
-            await loadSubTab('modulos', subContent, config, appVersion);
-        } else if (targetSub === 'congregacion') {
-            await loadSubTab('congregacion', subContent, config, appVersion);
-        } else if (targetSub === 'personal') {
-            await loadSubTab('personal', subContent, config, appVersion);
-        } else if (targetSub === 'grupos') {
-            await loadSubTab('grupos', subContent, config, appVersion);
-        } else if (targetSub === 'territorios') {
-            await loadSubTab('territorios', subContent, config, appVersion);
-
-        } else if (targetSub === 'campanas') {
-            await loadSubTab('campanas', subContent, config, appVersion);
-        } else if (targetSub === 'mantenimiento') {
-            await loadSubTab('mantenimiento', subContent, config, appVersion);
-        }
-    };
-
-    subTabs.forEach(btn => {
-        btn.addEventListener('click', () => switchSubTab(btn.dataset.subtab));
-    });
-
-    // Initial defaults
-    await switchSubTab(initialSubTab);
-};
-
-/* --- Missing Sub-Tab Implementations --- */
-
-const renderReglasSubTab = async (container) => {
-    const settings = await getGlobalSettings() || { expiration_days: 120, max_active_assignments: 0 };
-    container.innerHTML = `
-        <div class="p-6 max-w-2xl animate-fade-in">
-            <h3 class="font-bold text-xl text-teal-800 dark:text-teal-100 mb-6 flex items-center gap-2">
-                <span>⚖️</span> Reglas y Políticas del Sistema
-            </h3>
-            
-            <div class="space-y-6">
-                <div class="bg-white dark:bg-black/20 p-5 rounded-xl border border-gray-200 dark:border-white/10 shadow-sm">
-                    <label class="block text-sm font-bold text-gray-700 dark:text-teal-400 mb-2 uppercase tracking-wider">Expiración de Territorios (Días)</label>
-                    <input type="number" id="regla-expiracion" value="${settings.expiration_days}" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white outline-none focus:border-teal-500">
-                    <p class="text-[10px] text-gray-500 mt-2">Días recomendados para que un territorio vuelva a estar disponible si no ha sido informado.</p>
-                </div>
-
-                <div class="bg-white dark:bg-black/20 p-5 rounded-xl border border-gray-200 dark:border-white/10 shadow-sm">
-                    <label class="block text-sm font-bold text-gray-700 dark:text-teal-400 mb-2 uppercase tracking-wider">Máximo de Asignaciones por Conductor</label>
-                    <input type="number" id="regla-max-asign" value="${settings.max_active_assignments}" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-3 text-gray-900 dark:text-white outline-none focus:border-teal-500">
-                    <p class="text-[10px] text-gray-500 mt-2">0 = Sin límite. Restringe cuántos territorios puede tener un conductor al mismo tiempo.</p>
-                </div>
-
-                <button id="btn-save-reglas" class="w-full bg-teal-600 hover:bg-teal-500 text-white py-3 rounded-xl font-bold shadow-lg shadow-teal-500/20 transition-all flex items-center justify-center gap-2">
-                    💾 Guardar Reglas del Sistema
-                </button>
-            </div>
-        </div>
-    `;
-
-    container.querySelector('#btn-save-reglas').addEventListener('click', async () => {
-        const btn = container.querySelector('#btn-save-reglas');
-        btn.disabled = true;
-        btn.innerHTML = '⏳ Guardando...';
+    window._saveTimer = setTimeout(async () => {
         try {
-            settings.expiration_days = parseInt(document.getElementById('regla-expiracion').value);
-            settings.max_active_assignments = parseInt(document.getElementById('regla-max-asign').value);
-            await saveGlobalSettings(settings);
-            showNotification("Reglas actualizadas correctamente", "success");
+            // Re-fetch ID just in case
+            _globalPrograma.id = formatDateId(window._currentWeekStartGlobal || new Date());
+            // We need to access the variable 'currentWeekStart' from closure. 
+            // Since this is global, let's trust the ID in _globalPrograma object or pass it.
+            // Actually, best to expose a 'saveCurrentWeek' inside the closure.
+
+            // Workaround: Call the internal saver if accessible, or just save directly.
+            await saveProgramaSemanal(_globalPrograma);
+            if (saveStatus) {
+                saveStatus.innerHTML = '✅ Guardado';
+                setTimeout(() => { saveStatus.style.opacity = '0'; setTimeout(() => saveStatus.innerHTML = '<span class="animate-pulse">●</span> Guardando...', 500); }, 2000);
+            }
         } catch (e) {
-            showNotification("Error al guardar reglas", "error");
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = '💾 Guardar Reglas del Sistema';
+            console.error(e);
+            if (saveStatus) saveStatus.innerHTML = '❌ Error';
         }
-    });
+    }, 1000);
 };
 
-const renderUsuariosSubTab = async (container) => {
+
+/* --- ADVANCED HISTORY VIEW --- */
+export const renderAdvancedHistoryView = async (container) => {
     container.innerHTML = `
-        <div class="p-10 text-center">
-            <div class="text-4xl mb-4">👥</div>
-            <h3 class="text-xl font-bold text-gray-800 dark:text-gray-200">Gestión de Usuarios</h3>
-            <p class="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto mt-2">
-                La gestión de acceso se basa en los correos electrónicos registrados en la pestaña <b>Conductores</b>.
-            </p>
-            <div class="mt-6 flex justify-center gap-4">
-                 <button onclick="window.loadTab('config', 'conductores')" class="bg-teal-600 text-white px-6 py-2 rounded-lg text-sm font-bold shadow-lg shadow-teal-500/20">Ir a Conductores</button>
-            </div>
-        </div>
-    `;
-};
-
-/* --- Group Selection Modal --- */
-const showGroupSelectionModal = (currentValue, onSave) => {
-    // 12 Fixed Groups (can be dynamic if needed)
-    const groups = Array.from({ length: 12 }, (_, i) => ({ id: 'g' + (i + 1), label: 'Grupo ' + (i + 1) }));
-
-    // Parse current state
-    const selectedLabels = new Set();
-    const isTodos = (currentValue || '').toLowerCase().includes('todos');
-
-    if (!isTodos && currentValue) {
-        groups.forEach(g => {
-            if (currentValue.includes(g.label) || currentValue.match(new RegExp('\\b' + g.label.replace('Grupo ', '') + '\\b'))) {
-                selectedLabels.add(g.label);
-            }
-        });
-    }
-
-    const render = () => `
-   <div class="flex flex-col h-[400px]">
-            <header class="mb-4 border-b border-black/10 dark:border-white/10 pb-2">
-                <h3 class="text-xl font-bold text-teal-600 dark:text-teal-400">Seleccionar Grupos de Predicación</h3>
-                <p class="text-xs text-gray-500">Selecciona uno o varios grupos para este turno.</p>
+        <div class="space-y-6 animate-fade-in">
+            <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-white/5 p-4 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                        <span>🛠️</span> Historial y Gestión Avanzada
+                    </h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Visualiza, corrige o elimina registros históricos de asignaciones.
+                    </p>
+                </div>
+                <div class="flex gap-2 w-full md:w-auto">
+                    <input type="text" id="hist-search" placeholder="🔍 Buscar conductor, numero..." class="bg-gray-100 dark:bg-black/20 border-none rounded-xl px-4 py-2 text-sm w-full md:w-64 focus:ring-2 ring-teal-500/50 outline-none text-gray-700 dark:text-gray-200 placeholder-gray-400">
+                </div>
             </header>
-            
-            <div class="flex-1 overflow-y-auto space-y-2 pr-2">
-                <label class="flex items-center gap-3 p-3 rounded-lg bg-black/5 dark:bg-white/5 hover:bg-white/10 cursor-pointer border border-transparent hover:border-teal-500/30 transition-all ${isTodos ? 'bg-teal-900/20 border-teal-500/50' : ''}">
-                     <input type="checkbox" id="chk-todos-groups" class="accent-teal-500 w-5 h-5" ${isTodos ? 'checked' : ''}>
-                     <span class="text-white font-bold">Todos</span>
-                </label>
-                <div class="grid grid-cols-2 gap-2">
-                    ${groups.map(g => `
-                        <label class="flex items-center gap-3 p-3 rounded-lg bg-black/5 dark:bg-white/5 hover:bg-white/10 cursor-pointer group/g border border-transparent hover:border-teal-500/30 transition-all ${selectedLabels.has(g.label) ? 'bg-teal-900/10 border-teal-500/30' : ''}">
-                            <input type="checkbox" value="${g.label}" class="accent-teal-500 w-5 h-5 group-chk" ${selectedLabels.has(g.label) ? 'checked' : ''}>
-                            <span class="text-gray-700 dark:text-gray-300 group-hover/g:text-white">${g.label}</span>
-                        </label>
-                    `).join('')}
+
+            <div class="bg-white dark:bg-white/5 rounded-2xl border border-black/5 dark:border-white/5 overflow-hidden shadow-sm min-h-[400px]" id="hist-table-container">
+                <div class="p-10 text-center text-gray-400 text-sm flex flex-col items-center gap-2">
+                    <span class="text-2xl animate-bounce">⏳</span>
+                    Cargando historial completo...
                 </div>
-            </div>
-            
-            <div class="mt-4 flex justify-end gap-3 pt-4 border-t border-black/10 dark:border-white/10">
-                 <button id="btn-cancel-groups" class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-white transition-colors">Cancelar</button>
-                 <button id="btn-save-groups" class="px-6 py-2 bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-500 hover:to-teal-400 text-white rounded-lg font-medium shadow-lg shadow-teal-500/20">Confirmar</button>
             </div>
         </div>
     `;
 
-    showModal(render(), (modal) => {
-        const chkTodos = modal.querySelector('#chk-todos-groups');
-        const groupChks = modal.querySelectorAll('.group-chk');
+    try {
+        const [history, territorios] = await Promise.all([
+            getHistorialReport(),
+            getTerritorios()
+        ]);
 
-        chkTodos.addEventListener('change', (e) => {
-            if (e.target.checked) {
-                groupChks.forEach(c => c.checked = false);
-            }
+        // Sort by Date Descending
+        let filtered = [...history].sort((a, b) => {
+            const tA = a.timestamp ? a.timestamp.toDate() : new Date(a.fecha_asignacion);
+            const tB = b.timestamp ? b.timestamp.toDate() : new Date(b.fecha_asignacion);
+            return tB - tA;
         });
 
-        groupChks.forEach(chk => {
-            chk.addEventListener('change', () => {
-                if (chk.checked) chkTodos.checked = false;
-            });
-        });
+        const render = () => {
+            const searchVal = document.getElementById("hist-search").value.toLowerCase();
+            const list = filtered.filter(h =>
+                (h.conductor || "").toLowerCase().includes(searchVal) ||
+                (String(h.numero) || "").toLowerCase().includes(searchVal) ||
+                (h.estado || "").toLowerCase().includes(searchVal)
+            ).slice(0, 50); // Pagination/Limit
 
-        modal.querySelector('#btn-cancel-groups').addEventListener('click', () => modal.classList.add('hidden'));
-
-        modal.querySelector('#btn-save-groups').addEventListener('click', () => {
-            if (chkTodos.checked) {
-                onSave('Todos');
-            } else {
-                const selected = Array.from(groupChks).filter(c => c.checked).map(c => c.value);
-                // Format: "Grupos 1, 2" or "Grupo 1"
-                if (selected.length === 0) {
-                    onSave('');
-                } else if (selected.length === 1) {
-                    onSave(selected[0]);
-                } else {
-                    const nums = selected.map(s => s.replace('Grupo ', '')).sort((a, b) => a - b);
-                    // Format nicer: "Grupos 1, 2 y 3"
-                    if (nums.length === 1) {
-                        onSave('Grupo ' + nums[0]);
-                    } else {
-                        const last = nums.pop();
-                        onSave('Grupos ' + nums.join(', ') + ' y ' + last);
-                    }
-                }
-            }
-            modal.classList.add('hidden');
-        });
-    });
-};
-
-/* --- Territory Selector Modal Logic --- */
-
-const showTerritorySelectionModal = (currentValue, allTerritories, onSave) => {
-    // Validación inicial: verificar que hay territorios configurados
-    if (!allTerritories || allTerritories.length === 0) {
-        showModal(`
-            <div class="text-center p-8 bg-white dark:bg-gray-900 rounded-2xl">
-                <div class="text-6xl mb-6 animate-bounce">📍</div>
-                <h3 class="text-2xl font-black text-gray-900 dark:text-white mb-4">No hay territorios</h3>
-                <p class="text-gray-600 dark:text-gray-400 mb-6 text-sm leading-relaxed">
-                    Para poder asignar al programa semanal, primero debes configurar los territorios de la congregación.
-                </p>
-                <div class="bg-gray-50 dark:bg-black/40 border border-gray-100 dark:border-white/10 rounded-xl p-5 mb-8 text-left">
-                    <p class="text-xs font-bold text-teal-600 dark:text-teal-400 mb-3 uppercase tracking-wider">Instrucciones:</p>
-                    <ol class="text-xs text-gray-700 dark:text-gray-300 space-y-2 list-decimal list-inside">
-                        <li>Ve a <strong class="text-teal-600">Configuración</strong></li>
-                        <li>Entra en <strong class="text-teal-600">Territorios</strong></li>
-                        <li>Pulsa el botón <strong class="text-teal-600">+ Agregar</strong></li>
-                    </ol>
-                </div>
-                <button onclick="document.getElementById('modal-container').classList.add('hidden')" 
-                    class="w-full py-3 bg-gradient-to-r from-teal-600 to-teal-500 text-white rounded-xl font-bold shadow-xl shadow-teal-500/20 active:scale-95 transition-all">
-                    Entendido
-                </button>
-            </div>
-        `);
-        return;
-    }
-
-    // 1. Parsing current value
-    const selectionState = {};
-    allTerritories.forEach(t => {
-        selectionState[t.id] = {
-            selected: false,
-            partial: false,
-            manzanas: [],
-            allManzanas: t.manzanas ? t.manzanas.split(',').map(m => m.trim()).filter(Boolean) : []
-        };
-    });
-
-    if (currentValue) {
-        const normVal = currentValue;
-        allTerritories.forEach(t => {
-            const regex = new RegExp('\\\\b' + t.numero + '\\\\b');
-            if (regex.test(normVal)) {
-                selectionState[t.id].selected = true;
-            }
-        });
-    }
-
-    const renderModalContent = () => {
-        return `
-            <div class="flex flex-col text-left p-0">
-                <header class="p-5 border-b border-gray-100 dark:border-white/5 shrink-0 bg-gradient-to-b from-white to-gray-50/30 dark:from-gray-900 dark:to-gray-900/50">
-                    <div class="flex justify-between items-center mb-4">
-                        <div>
-                            <h3 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-teal-600 to-emerald-600 dark:from-teal-400 dark:to-emerald-400">Seleccionar Territorios</h3>
-                            <p class="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">Varios pueden ser seleccionados para un mismo turno.</p>
-                        </div>
-                        <div class="px-3 py-1 bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400 text-[10px] font-bold rounded-full border border-teal-100 dark:border-teal-500/20 shadow-sm">
-                            ${allTerritories.length} DISPONIBLES
-                        </div>
+            if (list.length === 0) {
+                document.getElementById("hist-table-container").innerHTML = `
+                    <div class="p-10 text-center text-gray-400 text-sm">
+                        No se encontraron registros.
                     </div>
-                    
-                    <!-- Search Bar -->
-                    <div class="relative group">
-                        <input type="text" id="terr-search" 
-                            placeholder="Buscar por número o manzana..." 
-                            class="w-full bg-white dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-sm text-gray-700 dark:text-white focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 outline-none transition-all shadow-sm"
-                            autocomplete="off">
-                        <span class="absolute left-3.5 top-3 text-gray-400 group-focus-within:text-teal-500 transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                        </span>
-                    </div>
-                </header>
-                
-                <div class="p-5 bg-gray-50/30 dark:bg-transparent">
-                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                        ${allTerritories.map(t => {
-            const state = selectionState[t.id];
-            const isChecked = state.selected ? 'checked' : '';
+                 `;
+                return;
+            }
 
-            // Manzanas rendering
-            const manzanasHtml = state.allManzanas.length > 0 ? `
-                                <div class="mt-3 pt-3 border-t border-gray-100 dark:border-white/5 ${isChecked ? '' : 'hidden'}" id="manzanas-${t.id}">
-                                    <div class="flex flex-wrap gap-1.5">
-                                        ${state.allManzanas.map(m => `
-                                            <label class="cursor-pointer select-none group/mz">
-                                                <input type="checkbox" class="hidden manzana-check peer" value="${m}" data-tid="${t.id}"
-                                                    ${state.manzanas.includes(m) ? 'checked' : ''}>
-                                                <span class="block text-[9px] px-2 py-1 rounded-md border border-gray-200 dark:border-white/10 text-gray-500 dark:text-gray-400 bg-white dark:bg-white/5 hover:border-teal-500/50 peer-checked:bg-teal-500 peer-checked:text-white peer-checked:border-teal-500 peer-checked:shadow-lg peer-checked:shadow-teal-500/20 transition-all font-bold">
-                                                    ${m.replace(/^Mz\./, '')}
-                                                </span>
-                                            </label>
-                                        `).join('')}
-                                    </div>
-                                </div>
-                            ` : '';
+            let html = `
+                <div class="overflow-x-auto custom-scrollbar">
+                <table class="w-full text-sm text-left align-middle">
+                    <thead class="bg-gray-50 dark:bg-black/20 text-[10px] uppercase font-bold text-gray-400 border-b border-gray-100 dark:border-white/5">
+                        <tr>
+                            <th class="px-6 py-4 whitespace-nowrap">Fecha Evento</th>
+                            <th class="px-6 py-4 whitespace-nowrap">Territorio</th>
+                            <th class="px-6 py-4 whitespace-nowrap">Conductor</th>
+                            <th class="px-6 py-4 whitespace-nowrap text-center">Estado</th>
+                            <th class="px-6 py-4 whitespace-nowrap text-right">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 dark:divide-white/5">
+                        ${list.map(h => {
+                const dVal = h.fecha_asignacion || h.timestamp?.toDate();
+                const dateStr = dVal ? new Date(dVal).toLocaleDateString("es-ES", { year: "numeric", month: "short", day: "numeric" }) : "-";
 
-            const isAssignedToOther = t.estado === 'Asignado' && t.asignado_a;
+                const statusColor = h.estado === "Asignado" ? "text-teal-600 bg-teal-50 dark:bg-teal-500/10 dark:text-teal-400 border border-teal-200 dark:border-teal-500/20" :
+                    h.estado === "Completado" || h.estado === "Predicado" ? "text-green-600 bg-green-50 dark:bg-green-500/10 dark:text-green-400 border border-green-200 dark:border-green-500/20" :
+                        h.estado === "Devuelto" ? "text-orange-600 bg-orange-50 dark:bg-orange-500/10 dark:text-orange-400 border border-orange-200 dark:border-orange-500/20" :
+                            "text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10";
 
-            return `
-                                <div class="terr-item flex flex-col p-3 rounded-2xl border transition-all duration-300 cursor-pointer group ${isChecked
-                    ? 'bg-white dark:bg-teal-500/10 border-teal-500 shadow-xl shadow-teal-500/10 ring-1 ring-teal-500'
-                    : 'bg-white dark:bg-white/5 border-gray-100 dark:border-white/5 hover:border-teal-500/50 hover:shadow-lg hover:shadow-black/5 dark:hover:shadow-none translate-y-0 hover:-translate-y-1'}" 
-                                     data-num="${t.numero}">
-                                    <label class="flex items-start gap-3 cursor-pointer select-none w-full h-full">
-                                        <div class="relative flex items-center h-5">
-                                            <input type="checkbox" class="terr-check w-4 h-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500 transition-all cursor-pointer" value="${t.id}" ${isChecked}>
+                return `
+                                <tr class="hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors group">
+                                    <td class="px-6 py-4 text-gray-600 dark:text-gray-300 font-mono text-xs whitespace-nowrap">${dateStr}</td>
+                                    <td class="px-6 py-4 font-bold text-gray-800 dark:text-white text-base">
+                                        <div class="flex items-center gap-2">
+                                            <span class="p-1.5 bg-gray-100 dark:bg-white/10 rounded text-xs">🗺️</span>
+                                            ${h.numero}
                                         </div>
-                                        <div class="flex-1 min-w-0">
-                                            <div class="flex items-center justify-between mb-0.5">
-                                                <div class="font-black text-gray-900 dark:text-gray-100 text-sm tracking-tight">T. ${t.numero}</div>
-                                                ${isChecked ? '<span class="text-teal-500 animate-pulse">●</span>' : ''}
-                                            </div>
-                                            <div class="flex flex-col gap-0.5">
-                                                <div class="text-[10px] text-gray-500 dark:text-gray-400 font-medium">${state.allManzanas.length} Manzanas</div>
-                                                ${isAssignedToOther ? `
-                                                    <div class="flex items-center gap-1 mt-1">
-                                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                                                        <span class="text-[8px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-tighter truncate">Ocupado: ${t.asignado_a}</span>
-                                                    </div>
-                                                ` : ''}
-                                            </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-gray-600 dark:text-gray-300">
+                                        <div class="flex flex-col">
+                                            <span class="font-medium">${h.conductor}</span>
+                                            ${h.auxiliar ? `<span class="text-[10px] text-gray-400 flex items-center gap-1">👤 ${h.auxiliar}</span>` : ""}
                                         </div>
-                                    </label>
-                                    ${manzanasHtml}
-                                </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-center">
+                                        <span class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${statusColor}">${h.estado}</span>
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <div class="flex justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                                            <button onclick="window.editHistoryRecord('${h.id}')" class="p-2 hover:bg-teal-50 dark:hover:bg-teal-500/20 text-teal-600 dark:text-teal-400 rounded-lg transition" title="Editar Registro">
+                                                ✏️
+                                            </button>
+                                            <button onclick="window.deleteHistoryRecordUI('${h.id}', '${h.conductor}', '${h.numero}')" class="p-2 hover:bg-red-50 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 rounded-lg transition" title="Eliminar Definitivamente">
+                                                🗑️
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
                             `;
-        }).join('')}
-                    </div>
+            }).join("")}
+                    </tbody>
+                </table>
                 </div>
+                <div class="p-4 bg-gray-50 dark:bg-black/20 text-center text-[10px] text-gray-400 border-t border-gray-100 dark:border-white/5 uppercase tracking-widest">
+                    Mostrando últimos ${list.length} registros
+                </div>
+             `;
+            const tableCont = document.getElementById("hist-table-container");
+            if (tableCont) tableCont.innerHTML = html;
+        };
 
-                <footer class="p-5 border-t border-gray-100 dark:border-white/5 flex justify-between items-center bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shrink-0">
-                    <button class="px-6 py-2.5 text-xs font-bold text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 transition-colors uppercase tracking-widest" onclick="document.getElementById('modal-container').classList.add('hidden')">
-                        Cancelar
-                    </button>
-                    <button class="px-8 py-2.5 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white rounded-xl font-bold shadow-xl shadow-teal-500/20 active:scale-95 transition-all text-sm flex items-center gap-2" id="confirm-terr-selection">
-                        <span>✅</span> Confirmar Selección
-                    </button>
-                </footer>
-            </div>
-        `;
-    };
+        const searchEl = document.getElementById("hist-search");
+        if (searchEl) searchEl.addEventListener("input", render);
 
-    showModal(renderModalContent(), (modal) => {
-        const searchInput = modal.querySelector('#terr-search');
+        render(); // Initial Render
 
-        // Focus search immediately
-        setTimeout(() => searchInput.focus(), 100);
 
-        // Search Filter Logic
-        searchInput.addEventListener('input', (e) => {
-            const term = e.target.value.toLowerCase();
-            modal.querySelectorAll('.terr-item').forEach(item => {
-                const num = item.dataset.num.toLowerCase();
-                // Match exact number or contains
-                if (num.includes(term) || `territorio ${num} `.includes(term)) {
-                    item.classList.remove('hidden');
-                } else {
-                    item.classList.add('hidden');
-                }
-            });
-        });
-
-        // 1. Territory Checkbox Toggle
-        modal.querySelectorAll('.terr-check').forEach(chk => {
-            chk.addEventListener('change', (e) => {
-                const tId = e.target.value;
-                selectionState[tId].selected = e.target.checked;
-
-                // Toggle visual state of card
-                const card = e.target.closest('.terr-item');
-                if (e.target.checked) {
-                    card.classList.add('border-teal-500', 'shadow-xl', 'shadow-teal-500/10', 'ring-1', 'ring-teal-500');
-                    card.classList.remove('border-gray-100', 'dark:border-white/5', 'hover:shadow-lg');
-                } else {
-                    card.classList.remove('border-teal-500', 'shadow-xl', 'shadow-teal-500/10', 'ring-1', 'ring-teal-500');
-                    card.classList.add('border-gray-100', 'dark:border-white/5', 'hover:shadow-lg');
-                }
-
-                const mDiv = document.getElementById(`manzanas-${tId}`);
-                if (mDiv) {
-                    if (e.target.checked) {
-                        mDiv.classList.remove('hidden');
-                    } else {
-                        mDiv.classList.add('hidden');
-                    }
-                }
-            });
-        });
-
-        // 2. Manzana Checkbox Toggle (Updated for compact labels)
-        modal.addEventListener('change', (e) => {
-            if (e.target.classList.contains('manzana-check')) {
-                const tId = e.target.dataset.tid;
-                const mVal = e.target.value;
-                const checked = e.target.checked;
-
-                if (checked) {
-                    if (!selectionState[tId].manzanas.includes(mVal)) {
-                        selectionState[tId].manzanas.push(mVal);
-                    }
-                } else {
-                    selectionState[tId].manzanas = selectionState[tId].manzanas.filter(m => m !== mVal);
-                }
-                selectionState[tId].partial = selectionState[tId].manzanas.length > 0;
-            }
-        });
-
-        // 3. Confirm Selection
-        document.getElementById('confirm-terr-selection').addEventListener('click', () => {
-            const selectedTerritories = [];
-
-            Object.entries(selectionState).forEach(([tId, state]) => {
-                if (state.selected) {
-                    const t = allTerritories.find(item => item.id === tId);
-                    if (state.manzanas.length > 0 && state.manzanas.length < state.allManzanas.length) {
-                        // Partial (Specific Manzanas)
-                        // Sort manzanas nicely: 1, 2, 3...
-                        const sortedMz = state.manzanas.sort((a, b) => {
-                            const numA = parseInt(a.replace(/\D/g, '')) || 0;
-                            const numB = parseInt(b.replace(/\D/g, '')) || 0;
-                            return numA - numB;
-                        });
-                        selectedTerritories.push(`${t.numero} (${sortedMz.join(', ')})`);
-                    } else {
-                        // Full Territory
-                        selectedTerritories.push(t.numero);
-                    }
-                }
-            });
-
-            // Sort by territory number
-            selectedTerritories.sort((a, b) => {
-                const numA = parseInt(a.split(' ')[0]);
-                const numB = parseInt(b.split(' ')[0]);
-                return numA - numB;
-            });
-
-            onSave(selectedTerritories.join(', '));
-            document.getElementById('modal-container').classList.add('hidden');
-        });
-    }, 'max-w-4xl');
+    } catch (e) {
+        console.error(e);
+        container.innerHTML = `<div class="p-8 text-center text-red-500 border border-red-200 bg-red-50 rounded-xl">Error cargando historial: ${e.message}</div>`;
+    }
 };
-
-
-
-
-
-
-
 

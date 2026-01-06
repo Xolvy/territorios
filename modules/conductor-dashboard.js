@@ -1,4 +1,4 @@
-import { auth } from '/firebase-config.js?v=2.5.5';
+import { auth } from '../firebase-config.js?v=3.0.0';
 import {
     getProgramaSemanal, getMisTerritorios, returnTerritorio,
     returnTerritorioParcial, solicitarNumeros, releaseUnusedTelefonos, updateTelefonoStatus,
@@ -6,31 +6,58 @@ import {
     getConductores, updateConductor,
     getPermisosUsuario, getTerritorios, getConfiguracion,
     getRecursos // Added Resources
-} from '../data/firestore-services.js?v=2.5.5';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl } from './utils/helpers.js?v=2.5.5';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=2.5.5';
-import { MapViewer } from './map-viewer.js?v=2.5.5';
+} from '../data/firestore-services.js?v=3.0.0';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl } from './utils/helpers.js?v=3.0.0';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=3.0.0';
+import { MapViewer } from './map-viewer.js?v=3.0.0';
 
 
 
 // --- UI HELPERS ---
 
+// --- REUSE INTERACTIVE MAP ---
+window.viewMapFromReport = async (id) => {
+    const territories = await getTerritorios();
+    const t = territories.find(x => x.id === id);
+    if (t) window.openInteractiveMap(t);
+};
+
 const showModal = (content, onOpen, maxWidth = 'max-w-md') => {
     const modalContainer = document.getElementById('modal-container');
     if (!modalContainer) return;
+
+    const handleEsc = (e) => {
+        if (e.key === 'Escape') closeModal();
+    };
+
+    const closeModal = () => {
+        modalContainer.classList.add('hidden');
+        modalContainer.innerHTML = '';
+        window.removeEventListener('keydown', handleEsc);
+    };
+
     modalContainer.innerHTML = `
-        <div class="w-full ${maxWidth} relative animate-fade-in bg-white dark:bg-gray-900 border border-gray-100 dark:border-white/10 flex flex-col rounded-2xl shadow-2xl h-fit">
-            <button class="absolute top-4 right-4 text-gray-400 hover:text-gray-900 dark:hover:text-white z-50 p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-colors" onclick="document.getElementById('modal-container').classList.add('hidden')">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        <div class="w-full ${maxWidth} relative animate-fade-in bg-white dark:bg-[#0a0a0a] flex flex-col rounded-[2.5rem] shadow-[0_40px_80px_-20px_rgba(0,0,0,0.5)] max-h-[calc(100vh-2rem)] border border-black/5 dark:border-white/10 overflow-hidden m-4">
+            <button class="absolute top-6 right-6 text-white/50 hover:text-white z-[60] p-2 bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-full transition-all border border-white/5 group shadow-lg" 
+                    id="modal-close-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
                 </svg>
             </button>
-            <div class="p-6">
+            <div class="relative flex-1 overflow-y-auto custom-scrollbar">
                 ${content}
             </div>
         </div>
     `;
     modalContainer.classList.remove('hidden');
+
+    const closeBtn = modalContainer.querySelector('#modal-close-btn');
+    if (closeBtn) closeBtn.onclick = (e) => { e.stopPropagation(); closeModal(); };
+
+    modalContainer.onclick = (e) => { if (e.target === modalContainer) closeModal(); };
+
+    window.addEventListener('keydown', handleEsc);
+
     if (onOpen) onOpen(modalContainer);
 };
 
@@ -88,18 +115,21 @@ const showCustomPrompt = (message, defaultValue, onConfirm) => {
 window.showCustomPrompt = showCustomPrompt;
 
 export const renderConductorDashboard = async (container, nameOrEmail) => {
-    // Resolve display name if email is passed
     let displayName = nameOrEmail;
+    let conductorData = null;
     try {
         const allC = await getConductores();
-        const found = allC.find(c => c.email === nameOrEmail || c.nombre === nameOrEmail || (c.telefono && c.telefono.replace(/\s+/g, '') === nameOrEmail.replace(/\s+/g, '')));
-        if (found) displayName = found.nombre;
+        conductorData = allC.find(c => c.email === nameOrEmail || c.nombre === nameOrEmail || (c.telefono && c.telefono.replace(/\s+/g, '') === nameOrEmail.replace(/\s+/g, '')));
+        if (conductorData) displayName = conductorData.nombre;
     } catch (err) {
         console.error("Error resolving name:", err);
     }
 
+    // Default modules if not set (legacy or unconfigured)
+    const mods = conductorData?.modulos || { dashboard: true, programa: true, telefonos: true };
+
     container.innerHTML = `
-        <div class="animate-fade-in pb-20 w-full">
+        <div class="animate-fade-in pb-20 w-full text-gray-800 dark:text-gray-100">
             <header class="flex justify-between items-center mb-6 p-4 morphinglass-card">
                 <div>
                     <h1 class="text-2xl font-bold text-teal-600 dark:text-teal-400">Hola, ${displayName.split('@')[0]}</h1>
@@ -116,17 +146,19 @@ export const renderConductorDashboard = async (container, nameOrEmail) => {
             </header>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="lg:col-span-2">
-                    <h3 class="text-lg font-bold text-teal-800 dark:text-teal-100 mb-3 px-2 flex items-center gap-2">
-                        📅 Tu Agenda Semanal
+                <!-- Module: Programa Semanal (Agenda) -->
+                <div class="lg:col-span-2 ${mods.programa !== false ? '' : 'hidden'}">
+                    <h3 class="text-xl font-bold text-teal-800 dark:text-teal-100 mb-3 px-2 flex items-center gap-2">
+                        📅 Programa Semanal
                     </h3>
-                    <div id="calendar-container" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div id="calendar-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div class="animate-pulse bg-black/5 dark:bg-white/5 h-24 rounded-xl"></div>
                         <div class="animate-pulse bg-black/5 dark:bg-white/5 h-24 rounded-xl"></div>
                     </div>
                 </div>
 
-                <div class="lg:col-span-2">
+                <!-- Module: Dashboard (Territorios) -->
+                <div class="lg:col-span-2 ${mods.dashboard !== false ? '' : 'hidden'}">
                     <h3 class="text-lg font-bold text-teal-800 dark:text-teal-100 mb-3 px-2 flex items-center gap-2">
                         🗺️ Mis Territorios
                     </h3>
@@ -141,7 +173,8 @@ export const renderConductorDashboard = async (container, nameOrEmail) => {
                 <div class="lg:col-span-2" id="availability-container">
                 </div>
 
-                <div class="lg:col-span-2 morphinglass-card h-fit overflow-visible">
+                <!-- Module: Telefonos -->
+                <div class="lg:col-span-2 morphinglass-card h-fit overflow-visible ${mods.telefonos !== false ? '' : 'hidden'}">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 p-2">
                         <div>
                             <h3 class="text-xl font-bold text-teal-800 dark:text-teal-100 flex items-center gap-2">
@@ -199,9 +232,12 @@ export const renderConductorDashboard = async (container, nameOrEmail) => {
                         </table>
                     </div>
 
-                    <div id="phone-actions" class="mt-6 flex justify-center p-4">
+                    <div id="phone-actions" class="mt-6 flex flex-col md:flex-row justify-center items-center gap-4 p-4">
                          <button id="btn-finalizar-sesion" class="hidden bg-red-600 hover:bg-red-500 text-white px-10 py-4 rounded-2xl font-black shadow-2xl shadow-red-500/30 transform hover:scale-105 active:scale-95 transition-all flex items-center gap-3">
-                            🏁 FINALIZAR PREDICACIÓN (Zoom)
+                            🏁 FINALIZAR PREDICACIÓN
+                         </button>
+                         <button id="btn-solicitar-more" class="hidden bg-teal-600 hover:bg-teal-500 text-white px-10 py-4 rounded-2xl font-black shadow-2xl shadow-teal-500/30 transform hover:scale-105 active:scale-95 transition-all flex items-center gap-3 border-2 border-white/10">
+                            ➕ SOLICITAR MÁS
                          </button>
                     </div>
                 </div>
@@ -355,8 +391,9 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer)
                 if (turnoData) {
                     const isConductor = turnoData.conductor === name;
                     const isAuxiliar = turnoData.auxiliar === name;
+                    const hasData = turnoData.conductor || turnoData.auxiliar || turnoData.lugar;
 
-                    if (isConductor || isAuxiliar) {
+                    if (hasData) {
                         let displayTurno = turnoLabels[turno];
                         if (d.nombre === 'Domingo' && turnoData.hora) {
                             const h = parseInt(turnoData.hora.split(':')[0]);
@@ -376,19 +413,17 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer)
                             return territoryMap[num] || { numero: num, isMissingData: true };
                         }).filter(t => {
                             if (t.isMissingData) return true;
-                            const isConductor = t.asignado_a === name;
-                            const isAuxiliar = t.auxiliar === name;
-                            // Also check the weekly program turn data in case t.auxiliar is not sync'ed yet
-                            const isAuxInTurn = turnoData.auxiliar === name;
-                            const isCondInTurn = turnoData.conductor === name;
-
-                            return isConductor || isAuxiliar || isAuxInTurn || isCondInTurn;
+                            // Check if this specific territory belongs to the current user
+                            return t.asignado_a === name || t.auxiliar === name;
                         });
+
+                        const isMember = isConductor || isAuxiliar;
 
                         assignments.push({
                             dia: d.nombre,
                             turno: displayTurno,
-                            role: isConductor ? 'Conductor' : 'Auxiliar',
+                            role: isConductor ? 'Conductor' : (isAuxiliar ? 'Auxiliar' : 'Otro'),
+                            isMember,
                             rawDate: d.fecha,
                             attachedTerritories,
                             ...turnoData
@@ -398,6 +433,14 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer)
             });
         });
     }
+
+    // Sort: current user's assignments first, then by day order
+    const dayOrder = { 'Lunes': 0, 'Martes': 1, 'Miércoles': 2, 'Jueves': 3, 'Viernes': 4, 'Sábado': 5, 'Domingo': 6 };
+    assignments.sort((a, b) => {
+        if (a.isMember && !b.isMember) return -1;
+        if (!a.isMember && b.isMember) return 1;
+        return dayOrder[a.dia] - dayOrder[b.dia];
+    });
 
     // --- URGENCY BANNER & CALCULATIONS ---
     const todayIndex = new Date().getDay(); // 0=Sun
@@ -448,7 +491,7 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer)
     }
 
     agendaContainer.innerHTML = assignments.length > 0 ? assignments.map(a => `
-    <div class="bg-white dark:bg-gray-800/90 dark:backdrop-blur-sm p-6 rounded-2xl border border-gray-100 dark:border-white/10 hover:border-teal-500/30 transition-all shadow-sm dark:shadow-black/50 group flex flex-col gap-4 overflow-hidden">
+    <div class="bg-white dark:bg-gray-800/90 dark:backdrop-blur-sm p-6 rounded-2xl border ${a.isMember ? 'border-teal-500/50 ring-2 ring-teal-500/10 shadow-teal-500/10' : 'border-gray-100 dark:border-white/10 opacity-70 scale-95'} hover:border-teal-500 hover:opacity-100 transition-all shadow-sm dark:shadow-black/50 group flex flex-col gap-4 overflow-hidden">
         
         <!-- Header: Day & Role -->
         <div class="flex justify-between items-start">
@@ -458,9 +501,29 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer)
                     ${a.turno}
                 </span>
             </div>
+            ${a.isMember ? `
             <span class="text-[10px] uppercase font-bold tracking-wider ${a.role === 'Conductor' ? 'bg-teal-50 text-teal-700 dark:bg-teal-500/20 dark:text-teal-300' : 'bg-purple-50 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300'} px-2.5 py-1 rounded-lg border ${a.role === 'Conductor' ? 'border-teal-100 dark:border-teal-500/30' : 'border-purple-100 dark:border-purple-500/30'} shadow-sm">
-                ${a.role}
-            </span>
+                Tu Rol: ${a.role}
+            </span>` : `
+            <span class="text-[9px] uppercase font-black tracking-widest text-gray-400 opacity-50">Otros Grupos</span>
+            `}
+        </div>
+
+        <div class="pt-2 border-t border-black/5 dark:border-white/5">
+             <div class="flex items-center justify-between mb-2">
+                <span class="text-[10px] font-black uppercase text-gray-400">Responsables</span>
+             </div>
+             <div class="space-y-1">
+                <div class="flex justify-between items-center bg-black/5 dark:bg-white/5 p-2 rounded-xl border border-white/5">
+                    <span class="text-xs font-bold text-gray-500 uppercase">Cond.</span>
+                    <span class="text-xs font-black ${a.conductor === name ? 'text-teal-500' : 'text-gray-800 dark:text-gray-200'}">${a.conductor || 'Sin asignar'}</span>
+                </div>
+                ${a.auxiliar ? `
+                <div class="flex justify-between items-center bg-black/5 dark:bg-white/5 p-2 rounded-xl border border-white/5">
+                    <span class="text-xs font-bold text-gray-500 uppercase">Aux.</span>
+                    <span class="text-xs font-black ${a.auxiliar === name ? 'text-teal-500' : 'text-gray-800 dark:text-gray-200'}">${a.auxiliar}</span>
+                </div>` : ''}
+             </div>
         </div>
 
         <!-- Info -->
@@ -829,22 +892,29 @@ window.openProgressModal = (id, numero, manzanasStr) => {
     const todayStr = new Date(localDate.getTime() - (offset * 60 * 1000)).toISOString().split('T')[0];
 
     // Modal HTML
-    const modal = document.getElementById('modal-container');
-    modal.innerHTML = `
-    <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-2xl p-6 max-w-md w-full shadow-2xl relative animate-fade-in-up transition-all duration-300">
-            <h3 class="text-xl font-bold text-teal-800 dark:text-teal-100 mb-2">Reportar Territorio ${numero}</h3>
+    showModal(`
+            <div id="progress-modal-content" class="p-6">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h3 class="text-xl font-bold text-teal-800 dark:text-teal-100 italic">Territorio ${numero}</h3>
+                    <p class="text-[10px] text-gray-500 uppercase font-black tracking-widest mt-1">REPORTE DE PROGRESO</p>
+                </div>
+                <button onclick="window.viewMapFromReport('${id}')" class="bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 dark:text-blue-400 px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 border border-blue-600/20">
+                    🗺️ VER MAPA
+                </button>
+            </div>
             
             <!-- VIEW 1: SELECTION -->
             <div id="view-selection">
                 <p id="instruction-text" class="text-sm text-gray-500 dark:text-gray-400 mb-4">Selecciona las manzanas que YA terminaste:</p>
                 
-                <div id="apples-container" class="grid grid-cols-2 gap-2 mb-4 max-h-48 overflow-y-auto bg-black/5 dark:bg-black/20 p-3 rounded-lg border border-black/5 dark:border-white/5 custom-scrollbar">
+                <div id="apples-container" class="grid grid-cols-2 gap-2 mb-4 bg-black/5 dark:bg-black/20 p-4 rounded-2xl border border-black/5 dark:border-white/5 max-h-60 overflow-y-auto custom-scrollbar">
                     ${manzanas.length > 0 ? manzanas.map((m, idx) => `
-                        <label class="flex items-center space-x-3 text-sm text-gray-700 dark:text-gray-200 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 p-2 rounded transition-colors select-none">
-                            <input type="checkbox" value="${m}" class="manzana-check accent-teal-500 w-5 h-5 bg-white/50 border-gray-300 rounded">
-                            <span>${m}</span>
+                        <label class="flex items-center space-x-3 text-sm text-gray-700 dark:text-gray-200 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 p-3 rounded-xl transition-all select-none border border-transparent hover:border-teal-500/20">
+                            <input type="checkbox" value="${m}" class="manzana-check accent-teal-500 w-5 h-5 bg-white/50 border-gray-300 rounded-lg">
+                            <span class="font-bold">${m}</span>
                         </label>
-                    `).join('') : '<p class="col-span-2 text-xs text-gray-400 italic text-center">Sin manzanas específicas.</p>'}
+                    `).join('') : '<p class="col-span-2 text-xs text-gray-400 italic text-center py-4">Sin manzanas específicas.</p>'}
                 </div>
 
                 <!-- Date Selection -->
@@ -855,7 +925,12 @@ window.openProgressModal = (id, numero, manzanasStr) => {
 
                 <!-- Notes Section -->
                 <div class="mb-4">
-                    <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase">Observaciones (Opcional)</label>
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Observaciones (Opcional)</label>
+                        <button onclick="window.startVoiceDictation('progress-notes')" class="text-teal-500 hover:text-teal-400 text-xs font-bold flex items-center gap-1 transition-colors">
+                            <span id="mic-icon">🎤</span> Dictar
+                        </button>
+                    </div>
                     <textarea id="progress-notes" rows="2" placeholder="Ej: Persona molesta, no se completó la manzana..." class="w-full bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-800 dark:text-gray-200 focus:border-teal-500 outline-none resize-none"></textarea>
                 </div>
 
@@ -868,7 +943,7 @@ window.openProgressModal = (id, numero, manzanasStr) => {
                         NO SE PREDICÓ
                     </button>
                     
-                    <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="w-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white py-2 text-sm mt-1">
+                    <button onclick="hideModal()" class="w-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white py-2 text-sm mt-1">
                         Cancelar
                     </button>
                 </div>
@@ -896,8 +971,7 @@ window.openProgressModal = (id, numero, manzanasStr) => {
                 </div>
             </div>
     </div>
-    `;
-    modal.classList.remove('hidden');
+    `);
 
     // Logic Elements
     const viewSelection = document.getElementById('view-selection');
@@ -996,7 +1070,7 @@ window.openProgressModal = (id, numero, manzanasStr) => {
                 showNotification("Avance registrado. Resto devuelto.");
             }
 
-            modal.classList.add('hidden');
+            document.getElementById('modal-container').classList.add('hidden');
             // Reload to refresh lists
             // setTimeout(() => window.location.reload(), 1500); 
             // REPLACED WITH REACTIVE REFRESH:
@@ -1058,7 +1132,7 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
         await updateTelefonoStatus(id, status, (telIndex !== -1 ? telefonos[telIndex].asignado_a : null));
     };
 
-    window.updatePhoneComment = async (id, comment, inputElement) => {
+    window.updatePhoneComment = async (id, comment, inputElement, publicadorName) => {
         const telIndex = telefonos.findIndex(t => t.id === id);
         if (telIndex !== -1) {
             telefonos[telIndex].comentario = comment;
@@ -1067,7 +1141,9 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
         inputElement.classList.add('border-teal-500', 'bg-teal-900/20');
 
         try {
-            await updateTelefono(id, { comentario: comment });
+            // Use updateTelefonoStatus so it logs to history
+            await updateTelefonoStatus(id, (telIndex !== -1 ? telefonos[telIndex].estado : 'Contestaron'), publicadorName, comment);
+
             setTimeout(() => {
                 inputElement.classList.remove('bg-teal-900/20', 'border-teal-500');
             }, 1000);
@@ -1076,6 +1152,39 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
             inputElement.classList.add('border-red-500');
             showNotification("Error al guardar comentario", "error");
         }
+    };
+
+    window.showPhoneHistory = (historial, numero) => {
+        const modal = document.getElementById('modal-container');
+        modal.innerHTML = `
+            <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-3xl p-8 max-w-lg w-full shadow-2xl relative animate-scale-in">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h3 class="text-xl font-black text-amber-600 uppercase tracking-tighter">Historial de Notas</h3>
+                        <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">Número: ${formatPhoneNumber(numero)}</p>
+                    </div>
+                    <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="w-10 h-10 flex items-center justify-center bg-gray-100 dark:bg-white/5 rounded-full text-gray-400 hover:text-white transition-all">&times;</button>
+                </div>
+
+                <div class="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                    ${historial.length === 0 ? `
+                        <div class="text-center py-12 opacity-30">
+                            <span class="text-4xl">📝</span>
+                            <p class="text-xs font-bold uppercase mt-2">Sin notas previas</p>
+                        </div>
+                    ` : historial.map(h => `
+                        <div class="bg-gray-50 dark:bg-white/5 p-4 rounded-2xl border border-black/5 dark:border-white/5 relative group">
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="text-[9px] font-black text-amber-500 uppercase tracking-widest">${h.publicador}</span>
+                                <span class="text-[8px] text-gray-400 font-mono">${new Date(h.fecha).toLocaleString([], { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                            </div>
+                            <p class="text-sm text-gray-700 dark:text-gray-200 font-medium leading-relaxed">${h.nota}</p>
+                        </div>
+                    `).reverse().join('')}
+                </div>
+            </div>
+        `;
+        modal.classList.remove('hidden');
     };
 
     window.copyToClipboard = (text) => {
@@ -1164,11 +1273,18 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
                     </select>
                 </td>
                 <td class="p-2">
-                    <input type="text" 
-                        value="${t.comentario || ''}" 
-                        onblur="window.updatePhoneComment('${t.id}', this.value, this)"
-                        placeholder="Observaciones..." 
-                        class="w-full bg-transparent border-b border-black/10 dark:border-white/10 focus:border-teal-500 text-gray-700 dark:text-gray-300 text-xs py-1 px-2 focus:bg-black/20 outline-none transition-all placeholder-gray-600">
+                    <div class="flex items-center gap-2">
+                        <input type="text" 
+                            value="${t.comentario || ''}" 
+                            onblur="window.updatePhoneComment('${t.id}', this.value, this, '${currentPubName}')"
+                            placeholder="Observaciones..." 
+                            class="flex-1 bg-transparent border-b border-black/10 dark:border-white/10 focus:border-teal-500 text-gray-700 dark:text-gray-300 text-xs py-1 px-2 focus:bg-black/20 outline-none transition-all placeholder-gray-600">
+                        <button onclick='window.showPhoneHistory(${JSON.stringify(t.comentarios_historial || []).replace(/'/g, "&apos;")}, "${t.numero}")' 
+                                class="p-1.5 hover:bg-amber-500/10 rounded-lg transition-colors text-amber-500" 
+                                title="Ver historial de notas">
+                            🕒
+                        </button>
+                    </div>
                 </td>
             </tr>
         `;
@@ -1191,19 +1307,27 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
 
         // Finalizar Session Button visibility
         const btnFinalizar = document.getElementById('btn-finalizar-sesion');
+        const btnSolicitarMore = document.getElementById('btn-solicitar-more');
         if (btnFinalizar) {
-            btnFinalizar.classList.toggle('hidden', activeRequests.length === 0);
+            const hasActive = activeRequests.length > 0;
+            btnFinalizar.classList.toggle('hidden', !hasActive);
+            if (btnSolicitarMore) btnSolicitarMore.classList.toggle('hidden', !hasActive);
         }
     };
     render();
 
     // Listeners (Cloned to remove old ones)
-    const btnSolicitar = document.getElementById('btn-solicitar');
+    const btnSolicitarMore = document.getElementById('btn-solicitar-more');
+    if (btnSolicitarMore) {
+        btnSolicitarMore.onclick = () => btnSolicitar.click();
+    }
+
     if (btnSolicitar) {
         const newBtn = btnSolicitar.cloneNode(true);
         btnSolicitar.parentNode.replaceChild(newBtn, btnSolicitar);
         newBtn.addEventListener('click', async () => {
             const btn = newBtn;
+            const originalText = btn.textContent;
             btn.disabled = true;
             btn.textContent = "...";
             try {
@@ -1219,6 +1343,8 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
                     }
                 } else {
                     showNotification("No hay números disponibles para asignar por ahora.", "warning");
+                    document.getElementById('modal-container').classList.add('hidden');
+                    reloadData();
                 }
             } catch (err) {
                 console.error(err);
@@ -1226,7 +1352,7 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
             }
             finally {
                 btn.disabled = false;
-                btn.textContent = "+ Solicitar";
+                btn.textContent = originalText;
             }
         });
     }
@@ -1307,6 +1433,42 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
         });
     }
 
+    window.startVoiceDictation = (targetId) => {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            return showNotification("Tu navegador no soporta transcripción por voz.", "warning");
+        }
+
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'es-ES';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        const micIcon = document.getElementById('mic-icon');
+        const originalIcon = micIcon ? micIcon.innerText : '🎤';
+        if (micIcon) micIcon.innerText = '🔴';
+
+        recognition.start();
+
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            const target = document.getElementById(targetId);
+            if (target) {
+                target.value = target.value ? target.value + ' ' + transcript : transcript;
+                target.focus();
+            }
+        };
+
+        recognition.onerror = () => {
+            showNotification("Error en el dictado.", "error");
+            if (micIcon) micIcon.innerText = originalIcon;
+        };
+
+        recognition.onend = () => {
+            if (micIcon) micIcon.innerText = originalIcon;
+        };
+    };
+
     window.returnRevisita = async (id) => {
         const row = document.getElementById(`rev-row-${id}`);
         // Demand comment for return
@@ -1377,10 +1539,10 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
                 .join('\n');
 
             const modal = document.getElementById('modal-container');
-            modal.innerHTML = `
-                <div class="bg-white dark:bg-gray-900 border border-teal-200 dark:border-teal-800/30 rounded-3xl p-8 max-w-sm w-full shadow-[0_20px_50px_rgba(0,0,0,0.3)] relative animate-scale-in">
-                    <div class="text-teal-600 dark:text-teal-400 text-5xl mb-4 text-center">🏁</div>
-                    <h3 class="text-2xl font-black text-center text-teal-900 dark:text-teal-100 mb-6">Sesión Finalizada</h3>
+            showModal(`
+                <div class="p-8 text-center animate-scale-in">
+                    <div class="text-teal-600 dark:text-teal-400 text-5xl mb-4">🏁</div>
+                    <h3 class="text-2xl font-black text-teal-900 dark:text-teal-100 mb-6">Sesión Finalizada</h3>
                     
                     <div class="bg-teal-50 dark:bg-white/5 rounded-2xl p-5 mb-6 border border-teal-100 dark:border-white/5">
                         <p class="text-xs uppercase font-bold text-teal-600 dark:text-teal-400 mb-3 tracking-widest text-center">Resumen de Hoy</p>
@@ -1391,15 +1553,12 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
                     </div>
 
                     <div class="grid grid-cols-1 gap-3">
-                        <button id="btn-share-results" class="bg-teal-600 hover:bg-teal-500 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-teal-500/20 transition-all">
+                        <button id="btn-share-results" class="w-full bg-teal-600 hover:bg-teal-500 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-teal-500/20 transition-all">
                              📤 Compartir Reporte
-                        </button>
-                        <button id="btn-close-summary" class="bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-700 dark:text-gray-300 py-3 rounded-xl font-bold transition-all">
-                             Cerrar
                         </button>
                     </div>
                 </div>
-            `;
+            `);
             modal.classList.remove('hidden');
 
             // Log summary to backend
@@ -1409,7 +1568,7 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
                 total: summary.total
             });
 
-            document.getElementById('btn-close-summary').onclick = () => modal.classList.add('hidden');
+            // showModal handles closing via its own X button, backdrop click, or ESC key.
 
             document.getElementById('btn-share-results').onclick = () => {
                 const message = `📋 *Resumen de Predicación Telefónica*\n` +

@@ -4,46 +4,54 @@
 
 @layer base {
     :root {
-        /* Light Mode Defaults (Teal/Slate Theme) */
-        --bg-grad-1: #f0fdfa; /* Teal 50 */
-        --bg-grad-2: #e0f2f1; /* Teal 100 variant */
+        /* Premium Light Mode (Emerald/Diamond Theme) */
+        --bg-grad-1: #f8fafc;
+        /* Slate 50 */
+        --bg-grad-2: #f1f5f9;
+        /* Slate 100 */
         --bg-grad-3: #ffffff;
-        
-        --glass-bg: rgba(255, 255, 255, 0.65);
-        --glass-border: rgba(0, 150, 136, 0.15);
-        --glass-shadow: rgba(0, 150, 136, 0.05);
-        
-        --text-main: #0f172a; /* Slate 900 */
-        --text-muted: #64748b; /* Slate 500 */
-        
-        --input-bg: rgba(255, 255, 255, 0.8);
-        --input-border: rgba(148, 163, 184, 0.4);
+
+        --glass-bg: rgba(255, 255, 255, 0.7);
+        --glass-border: rgba(255, 255, 255, 0.8);
+        --glass-shadow: rgba(31, 41, 55, 0.08);
+        /* Sophisticated dark shadow */
+
+        --text-main: #0f172a;
+        --text-muted: #64748b;
+
+        --input-bg: rgba(255, 255, 255, 0.9);
+        --input-border: rgba(203, 213, 225, 0.5);
         --input-text: #0f172a;
-        --input-bg-focus: rgba(255, 255, 255, 1);
-        
-        --highlight-color: #009688; /* Teal 500 */
-        --blur-intensity: 16px;
+        --input-bg-focus: #ffffff;
+
+        --accent-primary: #059669;
+        /* Emerald 600 */
+        --accent-secondary: #0ea5e9;
+        /* Sky 500 */
+        --blur-intensity: 20px;
     }
 
     .dark {
-        /* Dark Mode Overrides (Original Design) */
-        --bg-grad-1: rgba(3, 37, 72, 0.7);
-        --bg-grad-2: rgba(0, 0, 0, 0.9);
+        /* Premium Dark Mode (Deep Space Theme) */
+        --bg-grad-1: #0f172a;
+        /* Slate 900 */
+        --bg-grad-2: #020617;
+        /* Slate 950 */
         --bg-grad-3: #000000;
-        
-        --glass-bg: rgba(255, 255, 255, 0.05);
-        --glass-border: rgba(255, 255, 255, 0.1);
-        --glass-shadow: rgba(0, 0, 0, 0.5);
-        
-        --text-main: #ffffff;
-        --text-muted: #9ca3af; /* Gray 400 */
-        
-        --input-bg: rgba(0, 0, 0, 0.3);
+
+        --glass-bg: rgba(15, 23, 42, 0.6);
+        --glass-border: rgba(255, 255, 255, 0.08);
+        --glass-shadow: rgba(0, 0, 0, 0.4);
+
+        --text-main: #f8fafc;
+        --text-muted: #94a3b8;
+
+        --input-bg: rgba(2, 6, 23, 0.4);
         --input-border: rgba(255, 255, 255, 0.1);
-        --input-text: #ffffff;
-        --input-bg-focus: rgba(0, 0, 0, 0.5);
-        
-        --blur-intensity: 12px;
+        --input-text: #f8fafc;
+        --input-bg-focus: rgba(2, 6, 23, 0.6);
+
+        --blur-intensity: 25px;
     }
 }
 
@@ -51,36 +59,109 @@ body {
     margin: 0;
     padding: 0;
     min-height: 100vh;
-    background: linear-gradient(135deg, 
-                var(--bg-grad-1) 0%, 
-                var(--bg-grad-2) 70%, 
-                var(--bg-grad-3) 100%);
+    background: radial-gradient(circle at 50% 0%, var(--bg-grad-1) 0%, var(--bg-grad-2) 100%);
     background-size: cover;
     background-attachment: fixed;
     color: var(--text-main);
-    transition: background 0.5s ease, color 0.5s ease;
+    transition: background 0.7s cubic-bezier(0.4, 0, 0.2, 1), color 0.5s ease;
 }
 
-/* Base del efecto GlassMorphin */
+/* GlassMorphin 2.0 */
 .morphinglass-card {
     background: var(--glass-bg);
-    backdrop-filter: blur(var(--blur-intensity));
-    -webkit-backdrop-filter: blur(var(--blur-intensity));
+    backdrop-filter: blur(var(--blur-intensity)) saturate(180%);
+    -webkit-backdrop-filter: blur(var(--blur-intensity)) saturate(180%);
     border: 1px solid var(--glass-border);
-    box-shadow: 0 8px 32px 0 var(--glass-shadow);
-    border-radius: 24px;
-    padding: 24px;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 24px -1px var(--glass-shadow),
+        inset 0 0 20px 0 rgba(255, 255, 255, 0.05);
+    border-radius: 32px;
+    padding: 32px;
+    transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.morphinglass-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg,
+            transparent,
+            rgba(255, 255, 255, 0.1),
+            transparent);
+    transition: 0.5s;
+}
+
+.morphinglass-card:hover::before {
+    left: 100%;
 }
 
 .morphinglass-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 40px 0 rgba(0, 150, 136, 0.15);
-    border-color: var(--highlight-color);
+    transform: translateY(-4px) scale(1.01);
+    box-shadow: 0 20px 40px -10px var(--glass-shadow);
+    border-color: rgba(5, 150, 105, 0.3);
 }
 
+/* Skeleton Loaders */
+@keyframes skeleton-shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+.skeleton {
+    background: linear-gradient(90deg,
+            rgba(0, 0, 0, 0.03) 25%,
+            rgba(0, 0, 0, 0.08) 50%,
+            rgba(0, 0, 0, 0.03) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s infinite linear;
+    border-radius: 0.75rem;
+}
+
+.dark .skeleton {
+    background: linear-gradient(90deg,
+            rgba(255, 255, 255, 0.05) 25%,
+            rgba(255, 255, 255, 0.1) 50%,
+            rgba(255, 255, 255, 0.05) 75%);
+}
+
+.skeleton-text {
+    height: 10px;
+    width: 100%;
+    margin-bottom: 8px;
+    border-radius: 4px;
+}
+
+.skeleton-circle {
+    border-radius: 50%;
+}
+
+.skeleton-card {
+    padding: 24px;
+    border-radius: 2rem;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.dark .skeleton-card {
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+/* Skeleton Loaders End */
+
 /* Inputs y botones */
-input, select, textarea {
+input,
+select,
+textarea {
     background: var(--input-bg) !important;
     border: 1px solid var(--input-border) !important;
     color: var(--input-text) !important;
@@ -88,7 +169,9 @@ input, select, textarea {
     transition: all 0.3s ease;
 }
 
-input:focus, select:focus, textarea:focus {
+input:focus,
+select:focus,
+textarea:focus {
     outline: none;
     border-color: var(--highlight-color) !important;
     background: var(--input-bg-focus) !important;
@@ -99,15 +182,18 @@ input:focus, select:focus, textarea:focus {
 ::-webkit-scrollbar {
     width: 8px;
 }
+
 ::-webkit-scrollbar-track {
-    background: transparent; 
+    background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
-    background: rgba(0, 150, 136, 0.3); 
+    background: rgba(0, 150, 136, 0.3);
     border-radius: 4px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 150, 136, 0.6); 
+    background: rgba(0, 150, 136, 0.6);
 }
 
 /* Horizontal Scroll for Mobile Tabs */
@@ -131,20 +217,32 @@ input:focus, select:focus, textarea:focus {
     #app-container {
         padding: 0.75rem !important;
     }
-    
+
     .morphinglass-card {
         padding: 1rem !important;
         border-radius: 1rem !important;
     }
-    
-    h1 { font-size: 1.5rem !important; }
-    h2 { font-size: 1.25rem !important; }
+
+    h1 {
+        font-size: 1.5rem !important;
+    }
+
+    h2 {
+        font-size: 1.25rem !important;
+    }
 }
 
 /* Animaciones */
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .animate-fade-in {

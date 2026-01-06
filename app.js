@@ -1,18 +1,19 @@
-import { auth, db } from '/firebase-config.js?v=2.5.5';
-import { onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { renderLogin } from './modules/login.js?v=2.5.5';
-import { renderAdminDashboard } from './modules/admin-dashboard.js?v=2.5.5';
-import { renderConductorDashboard } from './modules/conductor-dashboard.js?v=2.5.5';
-import { getPermisosUsuario, getSystemVersion, migrateConductoresToPublicadores } from './data/firestore-services.js?v=2.5.5';
-import { showNotification } from './modules/utils/helpers.js?v=2.5.5';
-import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js?v=2.5.5';
+import './modules/extensions.mjs';
+import { auth, db } from './firebase-config.js?v=3.0.0';
+import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
+import { doc, onSnapshot } from "firebase/firestore";
+import { renderLogin } from './modules/login.js?v=3.0.0';
+import { renderAdminDashboard } from './modules/admin-dashboard.js?v=3.0.0';
+import { renderConductorDashboard } from './modules/conductor-dashboard.js?v=3.0.0';
+import { getPermisosUsuario, getSystemVersion, migrateConductoresToPublicadores } from './data/firestore-services.js?v=3.0.0';
+import { showNotification } from './modules/utils/helpers.js?v=3.0.0';
+import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js?v=3.0.0';
 
 // Init Theme
 initTheme();
 document.body.appendChild(createThemeToggle());
 
-const APP_VERSION = '2.5.5';
+const APP_VERSION = '3.0.0';
 
 // --- SUCCESS CONFIRMATION AFTER UPDATE ---
 const checkUpdateSuccess = () => {
@@ -100,6 +101,40 @@ const initVersionCheck = (currentVersion) => {
 
 // Start listener
 initVersionCheck(APP_VERSION);
+
+// --- DIFFUSION LISTENER ---
+const initDiffusionListener = () => {
+    onSnapshot(doc(db, "configuracion", "diffusion_active"), (docSnap) => {
+        let banner = document.getElementById('global-diffusion-banner');
+
+        if (docSnap.exists() && docSnap.data().active) {
+            const data = docSnap.data();
+            if (!banner) {
+                banner = document.createElement('div');
+                banner.id = 'global-diffusion-banner';
+                // Add to top of body
+                document.body.prepend(banner);
+            }
+
+            const bgColor = data.type === 'urgent' ? 'from-red-600 to-red-800' : 'from-blue-600 to-blue-800';
+            const icon = data.type === 'urgent' ? '🚨' : '📢';
+
+            banner.className = `w-full bg-gradient-to-r ${bgColor} text-white p-4 flex items-center justify-center gap-4 animate-slide-down sticky top-0 z-[100] shadow-2xl border-b border-white/10 backdrop-blur-md`;
+            banner.innerHTML = `
+                <span class="text-xl animate-bounce">${icon}</span>
+                <div class="flex-1 text-center font-black tracking-tight uppercase text-xs md:text-sm">
+                    ${data.content}
+                </div>
+                <div class="flex-shrink-0 opacity-50 text-[8px] font-mono hidden md:block">
+                    ${data.timestamp?.toDate ? data.timestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                </div>
+            `;
+        } else {
+            if (banner) banner.remove();
+        }
+    });
+};
+initDiffusionListener();
 
 // Disable Dev Logs in Production (Only if not localhost)
 if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
@@ -212,6 +247,15 @@ const injectStyles = () => {
         #offline-banner.active {
             transform: translate(-50%, 0) !important;
         }
+        #pwa-install-banner {
+            box-shadow: 0 10px 40px -10px rgba(13, 148, 136, 0.5);
+            border: 1px solid rgba(13, 148, 136, 0.2);
+            backdrop-filter: blur(16px);
+            z-index: 9999;
+        }
+        #pwa-install-banner.active {
+            transform: translate(-50%, 0) !important;
+        }
     `;
     document.head.appendChild(style);
 };
@@ -228,12 +272,82 @@ const navigateWithTransition = (renderFn) => {
     }
 };
 
-// --- GLOBAL PWA INSTALL PROMPT ---
+// --- PWA INSTALLATION LOGIC ---
 window.deferredPrompt = null;
+
+const showInstallBanner = () => {
+    let banner = document.getElementById('pwa-install-banner');
+    if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'pwa-install-banner';
+        banner.className = 'fixed top-6 left-1/2 -translate-x-1/2 bg-white dark:bg-[#0f172a] text-gray-800 dark:text-white px-6 py-4 rounded-3xl shadow-2xl transition-all duration-700 transform -translate-y-48 flex items-center gap-4 max-w-[90vw] w-max border border-teal-500/30';
+        banner.innerHTML = `
+            <div class="flex items-center justify-center w-12 h-12 bg-teal-500/10 text-teal-600 dark:text-teal-400 rounded-2xl text-2xl animate-bounce">📲</div>
+            <div class="flex flex-col flex-1">
+                <span class="text-sm font-black leading-tight">Instalar Aplicación</span>
+                <span class="text-[10px] text-gray-500 dark:text-gray-400">Para una mejor experiencia y notificaciones</span>
+            </div>
+            <div class="flex gap-2">
+                <button id="btn-pwa-install" class="bg-teal-600 hover:bg-teal-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-lg active:scale-95">INSTALAR</button>
+                <button id="btn-pwa-close" class="text-gray-400 hover:text-gray-600 dark:hover:text-white p-2 text-lg leading-none transition-colors">✕</button>
+            </div>
+        `;
+        document.body.appendChild(banner);
+
+        document.getElementById('btn-pwa-install').onclick = async () => {
+            if (!window.deferredPrompt) return;
+            window.deferredPrompt.prompt();
+            const { outcome } = await window.deferredPrompt.userChoice;
+            console.log(`PWA Install Result: ${outcome}`);
+            window.deferredPrompt = null;
+            banner.classList.add('-translate-y-48');
+            banner.classList.remove('active');
+
+            // Sugerir notificaciones después de instalar
+            if (outcome === 'accepted') {
+                setTimeout(() => requestGlobalNotificationPermission(), 2000);
+            }
+        };
+
+        document.getElementById('btn-pwa-close').onclick = () => {
+            banner.classList.add('-translate-y-48');
+            banner.classList.remove('active');
+        };
+    }
+
+    setTimeout(() => {
+        banner.classList.remove('-translate-y-48');
+        banner.classList.add('active');
+    }, 1000);
+};
+
+const requestGlobalNotificationPermission = async () => {
+    if (!("Notification" in window)) return;
+    if (Notification.permission === 'default') {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+            showNotification("¡Notificaciones activadas con éxito!", "success");
+        }
+    }
+};
+
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     window.deferredPrompt = e;
     console.log("📲 PWA Install Trigger Captured");
+    // Show banner after a short delay
+    setTimeout(showInstallBanner, 3000);
+});
+
+window.addEventListener('appinstalled', (e) => {
+    console.log('✅ PWA Instalada con éxito');
+    window.deferredPrompt = null;
+    const banner = document.getElementById('pwa-install-banner');
+    if (banner) {
+        banner.classList.add('-translate-y-48');
+        banner.classList.remove('active');
+    }
+    showNotification("¡Aplicación instalada! Gracias por tu apoyo.", "success");
 });
 
 // Listeners estado de red para PWA

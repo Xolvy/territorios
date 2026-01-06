@@ -1,28 +1,30 @@
-const CACHE_NAME = 'app-territorios-v2.5.5';
+const CACHE_NAME = 'app-territorios-v3.0.0';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
-    '/styles.css?v=2.5.5',
-    '/app.js?v=2.5.5',
+    '/styles.css?v=3.0.0',
+    '/app.js?v=3.0.0',
     '/manifest.json',
-    '/firebase-config.js?v=2.5.5',
-    '/data/firestore-services.js?v=2.5.5',
-    '/modules/login.js?v=2.5.5',
-    '/modules/admin-dashboard.js?v=2.5.5',
-    '/modules/conductor-dashboard.js?v=2.5.5',
-    '/modules/report-s13.js?v=2.5.5',
-    '/modules/analytics-view.js?v=2.5.5',
-    '/modules/utils/helpers.js?v=2.5.5',
-    '/modules/utils/intelligence.js?v=2.5.5',
-    '/modules/map-viewer.js?v=2.5.5',
-    '/modules/utils/theme-manager.js?v=2.5.5',
+    '/firebase-config.js?v=3.0.0',
+    '/data/firestore-services.js?v=3.0.0',
+    '/modules/login.js?v=3.0.0',
+    '/modules/admin-dashboard.js?v=3.0.0',
+    '/modules/conductor-dashboard.js?v=3.0.0',
+    '/modules/report-s13.js?v=3.0.0',
+    '/modules/analytics-view.js?v=3.0.0',
+    '/modules/utils/helpers.js?v=3.0.0',
+    '/modules/utils/intelligence.js?v=3.0.0',
+    '/modules/map-viewer.js?v=3.0.0',
+    '/modules/utils/theme-manager.js?v=3.0.0',
     '/public/icon-192.svg',
     '/public/icon-512.svg',
     '/public/favicon.svg',
     'https://cdn.jsdelivr.net/npm/chart.js',
     'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap',
     'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-    'https://html2canvas.hertzen.com/dist/html2canvas.min.js'
+    'https://html2canvas.hertzen.com/dist/html2canvas.min.js',
+    'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
+    'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
 ];
 
 self.addEventListener('install', (event) => {

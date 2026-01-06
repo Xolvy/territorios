@@ -1,4 +1,4 @@
-import { getTerritorios, getConductores, getGlobalSettings, getHistorialReport } from '../data/firestore-services.js?v=2.5.1';
+import { getTerritorios, getConductores, getGlobalSettings, getHistorialReport } from '../data/firestore-services.js?v=2.6.1';
 
 export const renderAnalyticsView = async (container) => {
     // 1. Fetch settings FIRST to use in the template
@@ -55,17 +55,17 @@ export const renderAnalyticsView = async (container) => {
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-96">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:h-96">
                 <div class="bg-white dark:bg-[#181a1f] p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 flex flex-col">
                     <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100 mb-6">Estado de Territorios</h3>
-                    <div class="flex-1 relative">
+                    <div class="flex-1 relative min-h-[300px]">
                         <canvas id="chart-status"></canvas>
                     </div>
                 </div>
 
                 <div class="lg:col-span-2 bg-white dark:bg-[#181a1f] p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 flex flex-col">
                     <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100 mb-6 font-primary">Frecuencia de Trabajo por Territorio</h3>
-                    <div class="flex-1 relative">
+                    <div class="flex-1 relative min-h-[300px]">
                         <canvas id="chart-territories"></canvas>
                     </div>
                 </div>
@@ -80,10 +80,10 @@ export const renderAnalyticsView = async (container) => {
                     <table class="w-full text-left border-collapse">
                         <thead class="bg-gray-50 dark:bg-black/20 text-xs uppercase text-gray-500 dark:text-gray-400 sticky top-0 z-10 backdrop-blur-md">
                             <tr>
-                                <th class="p-4 font-semibold">Territorio</th>
-                                <th class="p-4 font-semibold">Conductor</th>
-                                <th class="p-4 font-semibold">Fecha Asignación</th>
-                                <th class="p-4 font-semibold">Tiempo Transcurrido</th>
+                                <th class="p-4 font-semibold whitespace-nowrap">Terr.</th>
+                                <th class="p-4 font-semibold whitespace-nowrap">Conductor</th>
+                                <th class="p-4 font-semibold whitespace-nowrap">Asignación</th>
+                                <th class="p-4 font-semibold whitespace-nowrap">Tiempo</th>
                             </tr>
                         </thead>
                         <tbody id="late-table-body" class="divide-y divide-gray-100 dark:divide-white/5 text-sm">
@@ -93,7 +93,7 @@ export const renderAnalyticsView = async (container) => {
             </div>
             
             <div class="text-center text-xs text-gray-400 py-4">
-                App Territorios v2.5.1 Oficial • Powered by Antigravity
+                App Territorios v2.6.1 Oficial • Powered by Antigravity
             </div>
         </div>
     `;
@@ -208,7 +208,14 @@ export const renderAnalyticsView = async (container) => {
                             grid: { color: 'rgba(0,0,0,0.05)' },
                             ticks: { precision: 0 }
                         },
-                        x: { grid: { display: false } }
+                        x: {
+                            grid: { display: false },
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45,
+                                autoSkip: true
+                            }
+                        }
                     },
                     plugins: {
                         legend: { display: false },

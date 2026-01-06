@@ -1,7 +1,12 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { getStorage } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+import { initializeApp, getApps } from "firebase/app";
+import { getAuth } from "firebase/auth";
+import {
+  getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager
+} from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 
 // Configuración de Firebase
 const firebaseConfig = {
@@ -13,16 +18,26 @@ const firebaseConfig = {
   appId: "1:350092132257:web:7795cb426dfe4b496b55e0"
 };
 
-// Inicializa Firebase
-const app = initializeApp(firebaseConfig);
+// Inicializa Firebase o recupera instancia existente
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
 // Exporta las instancias de los servicios
 export const auth = getAuth(app);
-// Inicializar Firestore con persistencia configurada (evita error "already started")
-export const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({
-    tabManager: persistentMultipleTabManager()
-  })
-});
-export const storage = getStorage(app);
 
+// Inicializar Firestore con persistencia configurada (Singleton Pattern)
+let firestoreDb;
+try {
+  // Intentar inicializar con configuración de persistencia
+  firestoreDb = initializeFirestore(app, {
+    localCache: persistentLocalCache({
+      tabManager: persistentMultipleTabManager()
+    })
+  });
+} catch (e) {
+  // Si ya está inicializado (posiblemente por otra importación o HMR), usar la instancia existente
+  console.warn("Firestore already initialized, using existing instance:", e.message);
+  firestoreDb = getFirestore(app);
+}
+
+export const db = firestoreDb;
+export const storage = getStorage(app);
