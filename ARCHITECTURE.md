@@ -39,5 +39,5 @@ La clase `TerritoryIntelligence` encapsula la interacción con Gemini. Se encarg
 
 ## 🚀 Optimización
 
-- **Cache-Busting**: Sistema de versiones por Query String (`?v=2.6.1`) para forzar actualizaciones críticas.
+- **Cache-Busting**: Sistema de versiones por Query String (`?v=3.0.0`) para forzar actualizaciones críticas.
 - **Batching**: Uso de `writeBatch` para operaciones masivas en territorios y teléfonos.

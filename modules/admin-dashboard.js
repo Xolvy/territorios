@@ -3387,7 +3387,7 @@ const renderTelefonosTab = async (container) => {
     const btnSummaries = document.getElementById('btn-view-session-summaries');
     if (btnSummaries) {
         btnSummaries.addEventListener('click', async () => {
-            const { getSessionSummaries } = await import('../data/firestore-services.js?v=2.6.1');
+            const { getSessionSummaries } = await import('../data/firestore-services.js?v=3.0.0');
             const summaries = await getSessionSummaries();
 
             const modal = document.createElement('div');

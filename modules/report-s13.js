@@ -1,5 +1,5 @@
-import { getHistorialReport, rebuildHistoryFromSchedule, getConfiguracion } from '../data/firestore-services.js?v=2.6.1';
-import { showNotification, generatePlainXLS } from './utils/helpers.js?v=2.6.1';
+import { getHistorialReport, rebuildHistoryFromSchedule, getConfiguracion } from '../data/firestore-services.js?v=3.0.0';
+import { showNotification, generatePlainXLS } from './utils/helpers.js?v=3.0.0';
 
 export const renderHistoryTab = (container) => {
     container.innerHTML = `
