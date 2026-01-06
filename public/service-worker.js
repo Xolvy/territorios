@@ -1,152 +1,100 @@
-// 🚀 Service Worker optimizado para Azure Static Web Apps
-const CACHE_NAME = "app-conductores-azure-v1";
-const STATIC_CACHE_NAME = "static-assets-v1";
-const API_CACHE_NAME = "api-cache-v1";
-
-// 📦 Recursos principales para cachear
-const urlsToCache = [
-  "/",
-  "/admin",
-  "/diagnostico",
-  "/enhanced",
-  "/manifest.json",
-  "/offline.html", // Página offline personalizada
+const CACHE_NAME = 'app-territorios-v3.0.0';
+const ASSETS_TO_CACHE = [
+    '/',
+    '/index.html',
+    '/styles.css?v=3.0.0',
+    '/app.js?v=3.0.0',
+    '/manifest.json',
+    '/firebase-config.js?v=3.0.0',
+    '/data/firestore-services.js?v=3.0.0',
+    '/modules/login.js?v=3.0.0',
+    '/modules/admin-dashboard.js?v=3.0.0',
+    '/modules/conductor-dashboard.js?v=3.0.0',
+    '/modules/report-s13.js?v=3.0.0',
+    '/modules/analytics-view.js?v=3.0.0',
+    '/modules/utils/helpers.js?v=3.0.0',
+    '/modules/utils/intelligence.js?v=3.0.0',
+    '/modules/map-viewer.js?v=3.0.0',
+    '/modules/utils/theme-manager.js?v=3.0.0',
+    '/public/icon-192.svg',
+    '/public/icon-512.svg',
+    '/public/favicon.svg',
+    'https://cdn.jsdelivr.net/npm/chart.js',
+    'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap',
+    'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+    'https://html2canvas.hertzen.com/dist/html2canvas.min.js',
+    'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
+    'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
 ];
 
-// 🎯 Recursos estáticos para cache a largo plazo
-const staticAssets = ["/favicon.ico", "/icon-192.png", "/icon-512.png"];
-
-// 🌐 APIs que pueden ser cacheadas temporalmente
-const apiEndpoints = ["/api/health", "/api/azure-info"];
-
-// 🔧 Instalar Service Worker con estrategia multi-cache
-self.addEventListener("install", async function (event) {
-  console.log("🔄 Azure SWA Service Worker: Instalando...");
-
-  event.waitUntil(
-    Promise.all([
-      // Cache principal
-      caches.open(CACHE_NAME).then((cache) => {
-        console.log("✅ Cache principal creado");
-        return cache.addAll(urlsToCache);
-      }),
-      // Cache de assets estáticos
-      caches.open(STATIC_CACHE_NAME).then((cache) => {
-        console.log("✅ Cache estático creado");
-        return cache.addAll(staticAssets);
-      }),
-      // Preparar cache de API
-      caches.open(API_CACHE_NAME).then(() => {
-        console.log("✅ Cache de API preparado");
-      }),
-    ]).then(() => {
-      console.log("✅ Service Worker: Todos los recursos cacheados");
-      self.skipWaiting();
-    })
-  );
-});
-
-// Activar Service Worker y limpiar caches antiguos
-self.addEventListener("activate", function (event) {
-  console.log("🔄 Service Worker: Activando...");
-  event.waitUntil(
-    caches
-      .keys()
-      .then((cacheNames) => {
-        return Promise.all(
-          cacheNames.map((cacheName) => {
-            if (cacheName !== CACHE_NAME) {
-              console.log(
-                "🗑️ Service Worker: Eliminando cache antiguo:",
-                cacheName
-              );
-              return caches.delete(cacheName);
-            }
-          })
-        );
-      })
-      .then(() => {
-        console.log("✅ Service Worker: Activado");
-        return self.clients.claim();
-      })
-  );
-});
-
-// Interceptar peticiones de red para funcionalidad offline
-self.addEventListener("fetch", function (event) {
-  // Solo manejar peticiones GET y esquemas soportados
-  if (event.request.method !== "GET") {
-    return;
-  }
-
-  // Filtrar esquemas no soportados (chrome-extension, etc.)
-  const requestUrl = new URL(event.request.url);
-  if (requestUrl.protocol !== "http:" && requestUrl.protocol !== "https:") {
-    return;
-  }
-
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      // Si tenemos cache, devolverlo
-      if (cachedResponse) {
-        console.log(
-          "📦 Service Worker: Sirviendo desde cache:",
-          event.request.url
-        );
-        return cachedResponse;
-      }
-
-      // Si no hay cache, intentar red
-      return fetch(event.request)
-        .then((response) => {
-          // Solo cachear respuestas exitosas
-          if (
-            !response ||
-            response.status !== 200 ||
-            response.type !== "basic"
-          ) {
-            return response;
-          }
-
-          // Cachear la respuesta para futuro uso (solo para esquemas soportados)
-          const responseToCache = response.clone();
-          const requestUrl = new URL(event.request.url);
-
-          // Solo cachear http y https, no chrome-extension u otros esquemas
-          if (
-            requestUrl.protocol === "http:" ||
-            requestUrl.protocol === "https:"
-          ) {
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseToCache).catch((error) => {
-                console.log(
-                  "⚠️ Service Worker: No se pudo cachear:",
-                  event.request.url,
-                  error.message
-                );
-              });
-            });
-          }
-
-          return response;
-        })
-        .catch(() => {
-          console.log(
-            "❌ Service Worker: Sin conexión, usando cache para:",
-            event.request.url
-          );
-          // Si es una página, devolver la página principal desde cache
-          if (event.request.destination === "document") {
-            return caches.match("/");
-          }
-        });
-    })
-  );
-});
-
-// Manejar actualizaciones del Service Worker
-self.addEventListener("message", (event) => {
-  if (event.data && event.data.type === "SKIP_WAITING") {
+self.addEventListener('install', (event) => {
     self.skipWaiting();
-  }
+    event.waitUntil(
+        caches.open(CACHE_NAME).then((cache) => {
+            console.log('[SW] Pre-caching offline assets');
+            return cache.addAll(ASSETS_TO_CACHE);
+        })
+    );
 });
+
+self.addEventListener('activate', (event) => {
+    event.waitUntil(
+        Promise.all([
+            self.clients.claim().catch(err => console.log("[SW] Claim failed (typical during updates):", err)),
+            caches.keys().then((cacheNames) => {
+                return Promise.all(
+                    cacheNames.map((cacheName) => {
+                        if (cacheName !== CACHE_NAME) {
+                            console.log('[SW] Removing old cache:', cacheName);
+                            return caches.delete(cacheName);
+                        }
+                    })
+                );
+            })
+        ])
+    );
+});
+
+// Stale-While-Revalidate Strategy with offline support for navigation
+self.addEventListener('fetch', (event) => {
+    if (event.request.method !== 'GET') return;
+
+    const url = new URL(event.request.url);
+
+    // Ignore external API calls that shouldn't be cached (except Google Fonts/CDNs used)
+    const isFirebase = url.hostname.includes('firebasejs.extension.google.com') ||
+        url.hostname.includes('firestore.googleapis.com') ||
+        url.hostname.includes('googleapis.com') && !url.hostname.includes('fonts');
+
+    if (isFirebase) return;
+
+    event.respondWith(
+        caches.open(CACHE_NAME).then(async (cache) => {
+            const cachedResponse = await cache.match(event.request);
+
+            const fetchPromise = fetch(event.request).then((networkResponse) => {
+                if (networkResponse.ok) {
+                    cache.put(event.request, networkResponse.clone());
+                }
+                return networkResponse;
+            }).catch(() => {
+                // Network failed
+                console.log('[SW] Network failed');
+
+                // If it's a navigation request and we are offline, return index.html
+                if (event.request.mode === 'navigate') {
+                    return caches.match('/index.html');
+                }
+
+                return null;
+            });
+
+            return cachedResponse || fetchPromise;
+        })
+    );
+});
+
+
+
+
+

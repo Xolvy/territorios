@@ -1,35 +1,23 @@
 {
-  "name": "App Conductores - Sistema de Gestión Territorial",
-  "short_name": "App Conductores",
-  "description": "Sistema completo de gestión de territorios y predicación telefónica optimizado para Azure Static Web Apps",
+  "name": "Gestión de Territorios",
+  "short_name": "Territorios",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#3b82f6",
-  "orientation": "portrait-primary",
-  "scope": "/",
-  "categories": ["productivity", "utilities", "business"],
-  "lang": "es",
-  "dir": "ltr",
-  "prefer_related_applications": false,
-  "edge_side_includes": false,
+  "background_color": "#111827",
+  "theme_color": "#009688",
+  "orientation": "any",
   "icons": [
     {
-      "src": "/favicon.ico",
-      "sizes": "48x48",
-      "type": "image/x-icon"
-    },
-    {
-      "src": "/favicon.ico",
+      "src": "icon-192.svg",
       "sizes": "192x192",
-      "type": "image/x-icon",
-      "purpose": "any"
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     },
     {
-      "src": "/favicon.ico",
+      "src": "icon-512.svg",
       "sizes": "512x512",
-      "type": "image/x-icon",
-      "purpose": "any"
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
   ]
 }
