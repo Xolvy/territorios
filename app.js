@@ -13,7 +13,7 @@ import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js?v
 initTheme();
 document.body.appendChild(createThemeToggle());
 
-const APP_VERSION = '3.1.0';
+const APP_VERSION = '3.0.0';
 
 // --- SUCCESS CONFIRMATION AFTER UPDATE ---
 const checkUpdateSuccess = () => {
