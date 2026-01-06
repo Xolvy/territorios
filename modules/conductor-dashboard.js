@@ -1,15 +1,15 @@
-import { auth } from '../firebase-config.js?v=3.0.0';
+import { auth } from '../firebase-config.js?v=3.1.0';
 import {
     getProgramaSemanal, getMisTerritorios, returnTerritorio,
     returnTerritorioParcial, solicitarNumeros, releaseUnusedTelefonos, updateTelefonoStatus,
     addPublicador, getPublicadores, getTelefonos, updateTelefono, addTelefono,
     getConductores, updateConductor,
     getPermisosUsuario, getTerritorios, getConfiguracion,
-    getRecursos // Added Resources
-} from '../data/firestore-services.js?v=3.0.0';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl } from './utils/helpers.js?v=3.0.0';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=3.0.0';
-import { MapViewer } from './map-viewer.js?v=3.0.0';
+    getRecursos, getTerritoryHistory, transferTerritory // Added
+} from '../data/firestore-services.js?v=3.1.0';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl } from './utils/helpers.js?v=3.1.0';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=3.1.0';
+import { MapViewer } from './map-viewer.js?v=3.1.0';
 
 
 
@@ -189,6 +189,9 @@ export const renderConductorDashboard = async (container, nameOrEmail) => {
                             <button id="btn-add-publicador" class="flex-1 md:flex-none text-xs bg-teal-600/20 text-teal-700 dark:text-teal-400 border border-teal-600/30 px-3 py-2 rounded-xl hover:bg-teal-600/30 transition-all font-bold flex items-center justify-center gap-1">
                                 + Publicador
                             </button>
+                            <button id="btn-zoom" onclick="window.open('https://us02web.zoom.us/j/88366543094?pwd=Z2x4Qjdnck4rSjh2Q2llbXZFaTNiUT09', '_blank')" class="flex-1 md:flex-none text-xs bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-500 transition-all font-black shadow-lg shadow-blue-500/20 flex items-center justify-center gap-1" title="ID: 883 6654 3094 | Pass: 909090">
+                                🎥 UNIRSE A ZOOM
+                            </button>
                             <button id="btn-solicitar" class="flex-1 md:flex-none text-xs bg-teal-600 text-white px-4 py-2 rounded-xl hover:bg-teal-500 transition-all font-black shadow-lg shadow-teal-500/20 flex items-center justify-center gap-1">
                                 + SOLICITAR
                             </button>
@@ -220,10 +223,11 @@ export const renderConductorDashboard = async (container, nameOrEmail) => {
                             <thead class="bg-gray-100/50 dark:bg-white/5 border-b border-black/5 dark:border-white/5 text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest text-[10px]">
                                 <tr>
                                     <th class="p-4">Teléfono</th>
-                                    <th class="p-4">Propietario / Dirección</th>
-                                    <th class="p-4">Publicador (Dictar)</th>
+                                    <th class="p-4">Propietario</th>
+                                    <th class="p-4">Dirección</th>
+                                    <th class="p-4">Publicador</th>
                                     <th class="p-4 text-center">Estado de Llamada</th>
-                                    <th class="p-4">Observaciones Detalladas</th>
+                                    <th class="p-4">Observaciones</th>
                                 </tr>
                             </thead>
                             <tbody id="phone-tbody" class="divide-y divide-black/5 dark:divide-white/5">
@@ -540,16 +544,20 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer)
         </div>
 
         <!-- AI QUICK LOOK -->
-        ${a.attachedTerritories.length > 0 ? `
-        <div class="bg-teal-50/50 dark:bg-teal-900/10 p-3 rounded-xl border border-teal-100 dark:border-teal-800/20">
+        ${a.attachedTerritories.length > 0 ? a.attachedTerritories.map(t => {
+        if (t.isMissingData) return '';
+        const insightId = `ai-insight-${a.rawDate}-${a.turno}-${t.numero}`.replace(/\s+/g, '-');
+        return `
+        <div class="bg-teal-50/50 dark:bg-teal-900/10 p-3 rounded-xl border border-teal-100 dark:border-teal-800/20 mb-2">
             <h4 class="text-[10px] font-bold text-teal-600 uppercase tracking-widest mb-1 flex items-center gap-1">
-                ⭐ Quick Look IA
+                ⭐ Quick Look IA (${t.numero})
             </h4>
-            <p class="text-[10px] text-gray-600 dark:text-gray-400 italic">
-                ${a.role === 'Conductor' ? 'Territorio con muchas personas interesadas por la tarde. Clima favorable.' : 'Sugerencia: Revisar notas de la última salida.'}
+            <p id="${insightId}" class="text-[10px] text-gray-600 dark:text-gray-400 italic ai-placeholder">
+                ${a.role === 'Conductor' ? 'Analizando territorio... 🤖' : 'Sugerencia: Revisar notas de la última salida.'}
             </p>
         </div>
-        ` : ''}
+        `;
+    }).join('') : ''}
 
         <!-- FUSED TERRITORY CARDS -->
         ${a.attachedTerritories.length > 0 ? `
@@ -583,6 +591,13 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer)
                     <div class="swipe-content relative z-10 bg-white dark:bg-gray-900 border ${isLate ? 'border-red-500 shadow-red-500/10' : 'border-gray-200 dark:border-white/10'} rounded-2xl p-4 transition-transform duration-300">
                         ${isLate ? `<div class="absolute top-0 left-0 right-0 bg-red-600 text-white text-[9px] font-bold text-center py-0.5 z-20">⚠️ INFORME PENDIENTE</div>` : ''}
                         
+                        <!-- Map Preview -->
+                        <div class="h-32 bg-gray-50 dark:bg-black/40 rounded-xl mb-4 overflow-hidden border border-black/5 dark:border-white/5 flex items-center justify-center group/img relative">
+                             <img src="${formatMapUrl(t.imagen) || 'https://via.placeholder.com/400x250?text=Territorio+' + t.numero}" 
+                                  class="w-full h-full object-contain group-hover/img:scale-110 transition-transform duration-1000">
+                             <div class="absolute inset-0 bg-teal-500/5 opacity-0 group-hover/img:opacity-100 transition-opacity"></div>
+                        </div>
+
                         <div class="flex justify-between items-start mb-2 ${isLate ? 'mt-2' : ''}">
                             <div>
                                 <h4 class="text-lg font-black text-gray-900 dark:text-white leading-none">Territorio ${t.numero}</h4>
@@ -637,8 +652,41 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer)
     // 3. Availability
     renderAvailabilitySection(document.getElementById('availability-container'), name);
 
-    // 4. AI
+    // 4. AI Dashboard помощник
     renderAISection(name);
+
+    // 4b. AI Quick Look Logic (Background)
+    const config = await getConfiguracion();
+    const brain = new TerritoryIntelligence(null, null, allTerritorios, programa);
+
+    assignments.forEach(async a => {
+        if (a.role !== 'Conductor') return; // Only conductors get deep insights for now
+        for (const t of a.attachedTerritories) {
+            if (t.isMissingData) continue;
+            const insightId = `ai-insight-${a.rawDate}-${a.turno}-${t.numero}`.replace(/\s+/g, '-');
+            const el = document.getElementById(insightId);
+            if (!el) continue;
+
+            // Cache check
+            if (!window.aiCache) window.aiCache = {};
+            if (window.aiCache[insightId]) {
+                el.innerText = window.aiCache[insightId];
+                continue;
+            }
+
+            try {
+                // Add a small delay to not saturate initial load
+                await new Promise(r => setTimeout(r, 500));
+                const history = await getTerritoryHistory(t.id);
+                const insight = await brain.getTerritoryQuickLook(t, history, config.gemini_key);
+                el.innerText = insight;
+                window.aiCache[insightId] = insight;
+            } catch (e) {
+                console.warn("AI Insight failed", e);
+                el.innerText = "Sugerencia: Revisar notas de la última salida.";
+            }
+        }
+    });
 
     // 5. Misión de Rescate (Rescue Mode)
     renderRescueSection(document.getElementById('ayudas-container'), name, allTerritorios);
@@ -1101,21 +1149,23 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
     // Local State for session tracking
     let sessionActive = telefonos.some(t => t.solicitado_por === userId && (t.estado === 'Sin asignar' || !t.estado));
 
-    window.updatePhoneAssignment = async (id, newPub) => {
+    window.updatePhoneAssignment = async (id, newPubName) => {
+        const pub = publicadores.find(p => p.nombre === newPubName);
+        const resolvedId = pub ? pub.id : newPubName;
+        const resolvedName = pub ? pub.nombre : newPubName;
+
         const telIndex = telefonos.findIndex(t => t.id === id);
         if (telIndex !== -1) {
-            telefonos[telIndex].publicador_asignado = newPub;
-            telefonos[telIndex].asignado_a = newPub;
-            // No full render here to keep focus if needed, but usually it's fine
+            telefonos[telIndex].publicador_asignado = resolvedId;
+            telefonos[telIndex].asignado_a = resolvedName;
         }
 
         try {
             await updateTelefono(id, {
-                publicador_asignado: newPub,
-                asignado_a: newPub,
+                publicador_asignado: resolvedId,
+                asignado_a: resolvedName,
                 fecha_asignacion: new Date().toISOString()
             });
-            // showNotification("Asignación guardada", "success", 1000);
         } catch (e) {
             console.error(e);
             showNotification("Error al guardar asignación", "error");
@@ -1256,7 +1306,13 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
         }
 
         tbody.innerHTML = filtered.map(t => {
-            const currentPubName = t.asignado_a || '';
+            const rawAssigned = t.asignado_a || t.publicador_asignado;
+            let currentPubDisplay = rawAssigned || '';
+            if (rawAssigned) {
+                const p = publicadores.find(pub => pub.id === rawAssigned || pub.email === rawAssigned || pub.nombre === rawAssigned);
+                if (p) currentPubDisplay = p.nombre;
+            }
+
             const currentStatus = t.estado || 'Sin asignar';
             return `
             <tr class="hover:bg-black/5 dark:hover:bg-white/5 transition-colors border-b border-white/5 group">
@@ -1266,10 +1322,14 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
                         <button onclick="copyToClipboard('${t.numero}')" class="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-teal-500/20 rounded-md" title="Copiar número para Zoom">📋</button>
                     </div>
                 </td>
-                <td class="p-3 text-gray-700 dark:text-gray-300 text-xs font-bold truncate-text max-w-[150px] uppercase">${t.propietario || '-'}</td>
-                <td class="p-3 text-gray-500 dark:text-gray-400 text-[10px] uppercase tracking-wide truncate-text max-w-[100px]">${t.direccion || '-'}</td>
+                <td class="p-3 text-gray-700 dark:text-gray-300 text-xs font-bold truncate-text max-w-[150px] uppercase">
+                    ${t.propietario || '-'}
+                </td>
+                <td class="p-3 text-gray-400 dark:text-gray-500 text-[10px] uppercase tracking-wide truncate-text max-w-[150px]">
+                    ${t.direccion || '-'}
+                </td>
                 <td class="p-2">
-                    <input type="text" list="pubs-list" value="${currentPubName}" 
+                    <input type="text" list="pubs-list" value="${currentPubDisplay}" 
                         onchange="window.updatePhoneAssignment('${t.id}', this.value)"
                         placeholder="Nombre..."
                         class="w-full bg-black/30 border border-black/10 dark:border-white/10 rounded px-2 py-1 text-xs font-medium focus:border-teal-500 outline-none hover:bg-black/50 transition-colors text-teal-800 dark:text-teal-200">
@@ -1287,7 +1347,7 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
                     <div class="flex items-center gap-2">
                         <input type="text" 
                             value="${t.comentario || ''}" 
-                            onblur="window.updatePhoneComment('${t.id}', this.value, this, '${currentPubName}')"
+                            onblur="window.updatePhoneComment('${t.id}', this.value, this, '${currentPubDisplay}')"
                             placeholder="Observaciones..." 
                             class="flex-1 bg-transparent border-b border-black/10 dark:border-white/10 focus:border-teal-500 text-gray-700 dark:text-gray-300 text-xs py-1 px-2 focus:bg-black/20 outline-none transition-all placeholder-gray-600">
                         <button onclick='window.showPhoneHistory(${JSON.stringify(t.comentarios_historial || []).replace(/'/g, "&apos;")}, "${t.numero}")' 

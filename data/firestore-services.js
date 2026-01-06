@@ -205,6 +205,7 @@ export const setSystemVersion = async (version, force = true) => {
         await setDoc(docRef, {
             latestVersion: version,
             forceUpdate: force,
+            forceTimestamp: Date.now(), // Unique ID for this force-action
             updatedAt: Timestamp.now()
         }, { merge: true });
         return true;
@@ -1328,9 +1329,28 @@ export const runSystemDiagnosticsAndRepair = async (onProgress) => {
         await batch.commit();
     }
 
-    reportProgress("🧹 Depurando referencias huérfanas y normalizando estados...", 95);
-    if (report.fixedPhones > 0) {
-        reportProgress(`✨ Optimización completa: ${report.fixedPhones} inconsistencias corregidas.`, 100);
+    // 3. Unified Personnel Sync (Ensure all in 'Personal' have 'telefonos' module enabled)
+    reportProgress("👥 Sincronizando directorio de personal con telefonía...", 96);
+    const pubBatch = writeBatch(db);
+    let pubCount = 0;
+    allPubs.forEach(d => {
+        const p = d.data();
+        // If modulos is missing or telefonos is not explicitly true, enable it
+        if (!p.modulos || p.modulos.telefonos !== true) {
+            pubBatch.update(d.ref, {
+                'modulos.telefonos': true
+            });
+            pubCount++;
+        }
+    });
+    if (pubCount > 0) {
+        await pubBatch.commit();
+        report.details.push(`Sincronización: Se habilitó el acceso a telefonía para ${pubCount} usuarios.`);
+    }
+
+    reportProgress("🧹 Depurando referencias huérfanas y normalizando estados...", 100);
+    if (report.fixedPhones > 0 || pubCount > 0) {
+        reportProgress(`✨ Optimización completa.`, 100);
     } else {
         reportProgress("💎 Integridad de datos al 100%. No se requirieron parches.", 100);
     }

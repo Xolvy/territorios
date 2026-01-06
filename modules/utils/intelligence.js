@@ -179,6 +179,26 @@ export class TerritoryIntelligence {
         return await this.askGemini(apiKey, prompt);
     }
 
+    async getTerritoryQuickLook(territory, history, apiKey) {
+        if (!apiKey) return "IA Desactivada.";
+
+        const historyContext = history && history.length > 0
+            ? history.slice(0, 3).map(h => `${h.fecha}: ${h.estado}. Notas: ${h.notas || 'Sin notas'}`).join(' | ')
+            : "Sin historial reciente.";
+
+        const prompt = `Como asistente de predicación, da una sugerencia MUY BREVE (máximo 15 palabras) para el territorio ${territory.numero} (${territory.manzanas || 'Todas'}). 
+        Historial reciente: ${historyContext}. 
+        Enfócate en interés, mejor hora o precauciones. Sé específico pero ultra-conciso.`;
+
+        try {
+            const response = await this.askGemini(apiKey, prompt);
+            return response.trim();
+        } catch (e) {
+            console.error("Quick Look Error:", e);
+            return "Sugerencia: Revisar notas de la última salida.";
+        }
+    }
+
     async summarizeNotes(apiKey, notes) {
         if (!notes || notes.length === 0) return "Sin notas para resumir.";
         const prompt = `Resume estas observaciones de predicación de forma muy breve y amigable: ${JSON.stringify(notes)}`;

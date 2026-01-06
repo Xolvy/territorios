@@ -10,15 +10,15 @@ import {
     getCampanas, saveCampana, deleteCampana,
     getGroupsConfig, saveGroupsConfig,
     getDiffusionMessage, saveDiffusionMessage
-} from '../data/firestore-services.js?v=3.0.0';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=3.0.0';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=3.0.0';
-import { renderHistoryTab } from './report-s13.js?v=3.0.0';
-import { renderAnalyticsView } from './analytics-view.js?v=3.0.0';
-import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=3.0.0';
-import { auth } from '../firebase-config.js?v=3.0.0';
+} from '../data/firestore-services.js?v=3.1.0';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=3.1.0';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=3.1.0';
+import { renderHistoryTab } from './report-s13.js?v=3.1.0';
+import { renderAnalyticsView } from './analytics-view.js?v=3.1.0';
+import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=3.1.0';
+import { auth } from '../firebase-config.js?v=3.1.0';
 
-import { animateEntry } from './utils/animations.js?v=3.0.0';
+import { animateEntry } from './utils/animations.js?v=3.1.0';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }) : '';
 
@@ -2343,10 +2343,11 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                             
                             <!-- Terminal Body -->
                             <div id="maint-console" class="flex-1 p-6 font-mono text-[11px] leading-relaxed overflow-y-auto custom-scrollbar-dark touch-pan-y">
-                                <div class="text-teal-400/50 mb-4 animate-pulse">_ ESPERANDO COMANDO DE DIAGNÓSTICO...</div>
                                 <div class="space-y-1" id="console-output-stream">
-                                    <div class="text-gray-600">> Ready for operation.</div>
-                                    <div class="text-gray-600">> System health: 100% stable.</div>
+                                    <div class="text-teal-400/50 mb-4 animate-pulse">_ CONFIGURANDO ENTORNO DE DIAGNÓSTICO...</div>
+                                    <div class="text-gray-600">> Inicializando módulos de integridad de Firebase...</div>
+                                    <div class="text-gray-600">> Conexión establecida con clúster v3.0.0.</div>
+                                    <div class="text-gray-600 text-[9px] opacity-40 italic mt-2">Ready for operation. System health: 100% stable.</div>
                                 </div>
                             </div>
 
@@ -2408,7 +2409,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
         };
 
         container.querySelector('#btn-clear-console').onclick = () => {
-            oStream.innerHTML = '<div class="text-gray-600">> Ready for operation.</div>';
+            oStream.innerHTML = '<div class="text-gray-600 text-[9px] opacity-40 italic">> Consola purgada. Esperando comandos...</div>';
         };
 
         // -- Event Binding --
@@ -2582,7 +2583,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                 logToConsole(`✅ Operación finalizada. ${fixed} registros normalizados.`, 'success');
                 setTimeout(() => {
                     progressOverlay.classList.add('hidden');
-                    renderMantenimientoTab(container, config, appVersion);
+                    loadSubTab('mantenimiento', container, config, appVersion);
                 }, 2000);
             } catch (err) {
                 logToConsole(`❌ Error: ${err.message}`, 'error');
@@ -3155,11 +3156,11 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                         email: modal.querySelector('#p-email').value.trim().toLowerCase(),
                         privilegios: Array.from(modal.querySelectorAll('.p-priv:checked')).map(cb => cb.value),
                         disponibilidad: isCondCheck.checked ? Array.from(modal.querySelectorAll('.p-avail-check:checked')).map(cb => cb.value) : [],
-                        modulos: (isCondCheck.checked || isConductorPriv) ? {
-                            dashboard: modal.querySelector('#mod-dashboard').checked,
-                            programa: modal.querySelector('#mod-programa').checked,
-                            telefonos: modal.querySelector('#mod-telefonos').checked
-                        } : null
+                        modulos: {
+                            dashboard: (isCondCheck.checked || isConductorPriv) ? modal.querySelector('#mod-dashboard').checked : (person?.modulos?.dashboard || false),
+                            programa: (isCondCheck.checked || isConductorPriv) ? modal.querySelector('#mod-programa').checked : (person?.modulos?.programa || false),
+                            telefonos: true // Siempre habilitado según requerimiento
+                        }
                     };
 
                     if (!data.nombre) {

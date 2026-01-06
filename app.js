@@ -13,7 +13,7 @@ import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js?v
 initTheme();
 document.body.appendChild(createThemeToggle());
 
-const APP_VERSION = '3.0.0';
+const APP_VERSION = '3.1.0';
 
 // --- SUCCESS CONFIRMATION AFTER UPDATE ---
 const checkUpdateSuccess = () => {
@@ -34,19 +34,23 @@ const initVersionCheck = (currentVersion) => {
         if (docSnap.exists()) {
             const data = docSnap.data();
             const serverVersion = data.latestVersion;
+            const serverForceTimestamp = data.forceTimestamp || 0;
+            const localForceTimestamp = parseInt(localStorage.getItem('last_force_timestamp') || '0');
 
-            if (serverVersion && serverVersion !== currentVersion && data.forceUpdate) {
-                // Prevenir bucles infinitos: si el path tiene el mismo v que acabamos de generar, no reintentar inmediatamente
+            const isNewVersion = serverVersion && serverVersion !== currentVersion;
+            const isForcedAction = serverForceTimestamp && serverForceTimestamp !== localForceTimestamp;
+
+            if ((isNewVersion || isForcedAction) && data.forceUpdate) {
+                // Prevenir bucles infinitos
                 const urlParams = new URLSearchParams(window.location.search);
                 const currentV = urlParams.get('v');
                 if (currentV && (Date.now() - parseInt(currentV)) < 5000) {
-                    console.log("⏳ Esperando a que el sistema se estabilice...");
+                    console.log("⏳ Sistema estabilizándose...");
                     return;
                 }
 
-                console.warn(`🚀 Iniciando actualización: ${currentVersion} -> ${serverVersion}`);
+                console.warn(`🚀 Iniciando actualización forzada: ${currentVersion} -> ${serverVersion} (Reason: ${isNewVersion ? 'New Version' : 'Force Signal'})`);
 
-                // Mostrar Overlay de Actualización para evitar el parpadeo
                 const overlay = document.createElement('div');
                 overlay.className = 'version-modal-overlay';
                 overlay.innerHTML = `
@@ -56,10 +60,10 @@ const initVersionCheck = (currentVersion) => {
                                 🚀
                             </div>
                         </div>
-                        <h2>¡Nueva versión disponible!</h2>
-                        <p>Estamos optimizando tu experiencia para la v<b>${serverVersion}</b>. <br>Esto solo tomará un momento...</p>
+                        <h2>Actualización Obligatoria</h2>
+                        <p>Estamos sincronizando la última versión de los archivos para asegurar la estabilidad del sistema.</p>
                         <div class="version-modal-timer">
-                            Limpiando caché y archivos temporales...
+                            Limpiando memoria y archivos temporales...
                         </div>
                         <div class="flex justify-center">
                             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
@@ -86,14 +90,15 @@ const initVersionCheck = (currentVersion) => {
                     } catch (e) { console.error("Cache error:", e); }
                 }
 
-                // 3. Clear stored version
+                // 3. Store the timestamp to prevent looping
+                localStorage.setItem('last_force_timestamp', serverForceTimestamp.toString());
                 localStorage.removeItem('app_version');
 
-                // 4. Reload with Cache-Buster tras un pequeño delay para que el overlay sea visible y el sistema respire
+                // 4. Reload forcefully
                 setTimeout(() => {
                     const v = Date.now();
                     window.location.href = `${window.location.pathname}?updated=true&v=${v}`;
-                }, 1000);
+                }, 1500);
             }
         }
     });
