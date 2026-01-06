@@ -37,14 +37,14 @@ const showModal = (content, onOpen, maxWidth = 'max-w-md') => {
     };
 
     modalContainer.innerHTML = `
-        <div class="w-full ${maxWidth} relative animate-fade-in bg-white dark:bg-[#0a0a0a] flex flex-col rounded-[2.5rem] shadow-[0_40px_80px_-20px_rgba(0,0,0,0.5)] max-h-[calc(100vh-2rem)] border border-black/5 dark:border-white/10 overflow-hidden m-4">
-            <button class="absolute top-6 right-6 text-white/50 hover:text-white z-[60] p-2 bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-full transition-all border border-white/5 group shadow-lg" 
+        <div class="w-full ${maxWidth} relative animate-fade-in bg-white dark:bg-[#0a0a0a] flex flex-col rounded-[2.5rem] shadow-[0_40px_80px_-20px_rgba(0,0,0,0.5)] max-h-[95vh] border border-black/5 dark:border-white/10 overflow-hidden m-2 sm:m-4">
+            <button class="absolute top-4 right-4 text-white/50 hover:text-white z-[60] p-2 bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-full transition-all border border-white/5 group shadow-lg" 
                     id="modal-close-btn">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
                 </svg>
             </button>
-            <div class="relative flex-1 overflow-y-auto custom-scrollbar">
+            <div class="flex-1 overflow-y-auto custom-scrollbar flex flex-col">
                 ${content}
             </div>
         </div>
@@ -893,11 +893,12 @@ window.openProgressModal = (id, numero, manzanasStr) => {
 
     // Modal HTML
     showModal(`
-            <div id="progress-modal-content" class="p-6">
-            <div class="flex justify-between items-start mb-4">
+            <div class="flex flex-col h-full">
+            <div class="flex-1 p-6 overflow-y-auto">
+            <div class="flex justify-between items-start mb-6">
                 <div>
                     <h3 class="text-xl font-bold text-teal-800 dark:text-teal-100 italic">Territorio ${numero}</h3>
-                    <p class="text-[10px] text-gray-500 uppercase font-black tracking-widest mt-1">REPORTE DE PROGRESO</p>
+                    <p class="text-[9px] text-gray-500 uppercase font-black tracking-widest mt-1">REPORTE DE PROGRESO</p>
                 </div>
                 <button onclick="window.viewMapFromReport('${id}')" class="bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 dark:text-blue-400 px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 border border-blue-600/20">
                     🗺️ VER MAPA
@@ -934,20 +935,24 @@ window.openProgressModal = (id, numero, manzanasStr) => {
                     <textarea id="progress-notes" rows="2" placeholder="Ej: Persona molesta, no se completó la manzana..." class="w-full bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-800 dark:text-gray-200 focus:border-teal-500 outline-none resize-none"></textarea>
                 </div>
 
-                <div class="flex flex-col gap-3 mt-2">
-                    <button id="btn-action-main" class="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white py-3 rounded-xl font-bold transition-all shadow-lg shadow-teal-900/20 active:scale-95 flex items-center justify-center gap-2">
+                <div class="flex flex-col gap-3 mt-4">
+                    <button id="btn-action-main" class="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white py-4 rounded-xl font-bold transition-all shadow-lg shadow-teal-900/20 active:scale-95 flex items-center justify-center gap-2">
                          🎉 Marcar TODO como Terminado
                     </button>
 
-                    <button id="btn-no-predico" class="text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 text-xs font-bold uppercase tracking-widest mt-1 hover:underline">
+                    <button id="btn-no-predico" class="text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 text-xs font-bold uppercase tracking-widest mt-2 hover:underline">
                         NO SE PREDICÓ
-                    </button>
-                    
-                    <button onclick="hideModal()" class="w-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white py-2 text-sm mt-1">
-                        Cancelar
                     </button>
                 </div>
             </div>
+            </div> <!-- End scrollable area -->
+
+            <div class="shrink-0 p-4 border-t border-black/5 dark:border-white/5 sticky bottom-0 bg-white dark:bg-[#0a0a0a] z-30">
+                <button onclick="hideModal()" class="w-full bg-gray-100 dark:bg-white/5 py-3 rounded-xl text-sm font-bold text-gray-400 hover:text-gray-600 transition-colors uppercase tracking-widest">
+                    Cerrar
+                </button>
+            </div>
+            </div> <!-- End flex-col h-full -->
 
             <!-- VIEW 2: CONFIRMATION -->
             <div id="view-confirmation" class="hidden text-center py-6">
@@ -1157,23 +1162,23 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
     window.showPhoneHistory = (historial, numero) => {
         const modal = document.getElementById('modal-container');
         modal.innerHTML = `
-            <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-3xl p-8 max-w-lg w-full shadow-2xl relative animate-scale-in">
-                <div class="flex justify-between items-center mb-6">
+            <div class="flex flex-col h-full">
+                <header class="shrink-0 flex justify-between items-center bg-amber-600 p-6 text-white shadow-lg">
                     <div>
-                        <h3 class="text-xl font-black text-amber-600 uppercase tracking-tighter">Historial de Notas</h3>
-                        <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">Número: ${formatPhoneNumber(numero)}</p>
+                        <h3 class="font-black uppercase tracking-[0.2em] text-sm">Historial de Notas</h3>
+                        <p class="text-[9px] opacity-70 font-bold uppercase mt-1">Número: ${formatPhoneNumber(numero)}</p>
                     </div>
-                    <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="w-10 h-10 flex items-center justify-center bg-gray-100 dark:bg-white/5 rounded-full text-gray-400 hover:text-white transition-all">&times;</button>
-                </div>
+                    <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-xl">🕒</div>
+                </header>
 
-                <div class="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                <div class="flex-1 p-6 space-y-4 overflow-y-auto custom-scrollbar">
                     ${historial.length === 0 ? `
                         <div class="text-center py-12 opacity-30">
                             <span class="text-4xl">📝</span>
-                            <p class="text-xs font-bold uppercase mt-2">Sin notas previas</p>
+                            <p class="text-xs font-bold uppercase mt-2 font-black tracking-widest">Sin notas previas</p>
                         </div>
                     ` : historial.map(h => `
-                        <div class="bg-gray-50 dark:bg-white/5 p-4 rounded-2xl border border-black/5 dark:border-white/5 relative group">
+                        <div class="bg-gray-50 dark:bg-white/5 p-4 rounded-2xl border border-black/5 dark:border-white/5 relative group hover:border-amber-500/30 transition-all">
                             <div class="flex justify-between items-start mb-2">
                                 <span class="text-[9px] font-black text-amber-500 uppercase tracking-widest">${h.publicador}</span>
                                 <span class="text-[8px] text-gray-400 font-mono">${new Date(h.fecha).toLocaleString([], { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
@@ -1181,6 +1186,12 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
                             <p class="text-sm text-gray-700 dark:text-gray-200 font-medium leading-relaxed">${h.nota}</p>
                         </div>
                     `).reverse().join('')}
+                </div>
+
+                <div class="shrink-0 p-4 bg-gray-50 dark:bg-black/40 border-t border-black/5 dark:border-white/5">
+                    <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="w-full bg-white dark:bg-white/5 py-4 rounded-xl text-[10px] font-black text-gray-400 hover:text-amber-600 transition-colors uppercase tracking-[0.2em] border border-black/5 dark:border-white/5 shadow-sm">
+                        Cerrar Historial
+                    </button>
                 </div>
             </div>
         `;
@@ -1365,31 +1376,43 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
         newBtn.addEventListener('click', async () => {
             const modal = document.getElementById('modal-container');
             modal.innerHTML = `
-                <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-2xl p-6 max-w-4xl w-full shadow-2xl relative animate-fade-in-up flex flex-col">
-                    <div class="flex justify-between items-center mb-4">
-                         <h3 class="text-xl font-bold text-amber-600 dark:text-amber-500 flex items-center gap-2">
-                            <span>↺</span> Revisitas Pendientes
-                         </h3>
-                         <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white transition-colors text-2xl leading-none">&times;</button>
-                    </div>
+                <div class="flex flex-col h-full">
+                    <header class="shrink-0 flex justify-between items-center bg-amber-500 p-6 text-white shadow-lg">
+                        <div>
+                             <h3 class="text-xl font-black uppercase tracking-[0.2em] flex items-center gap-2">
+                                ↺ Revisitas Pendientes
+                             </h3>
+                             <p class="text-[9px] opacity-70 font-bold uppercase mt-1">Gestión de llamadas pendientes</p>
+                        </div>
+                        <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-xl">📞</div>
+                    </header>
                     
-                    <div class="bg-gray-50 dark:bg-black/20 rounded-xl border border-gray-200 dark:border-white/5 relative">
-                         <div id="revisitas-loader" class="absolute inset-0 flex items-center justify-center bg-white/50 dark:bg-black/50 backdrop-blur-sm z-10 p-8">
-                             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600"></div>
+                    <div class="flex-1 p-6 overflow-y-auto bg-gray-50 dark:bg-black/20">
+                         <div class="rounded-xl border border-gray-200 dark:border-white/5 relative overflow-hidden bg-white dark:bg-[#0a0a0a]">
+                             <div id="revisitas-loader" class="absolute inset-0 flex items-center justify-center bg-white/50 dark:bg-black/50 backdrop-blur-sm z-10 p-8">
+                                 <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600"></div>
+                             </div>
+                             <div class="overflow-x-auto">
+                                 <table class="w-full text-left text-sm">
+                                    <thead class="bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 font-black uppercase text-[10px] tracking-widest border-b border-black/5 dark:border-white/5">
+                                        <tr>
+                                            <th class="p-4">Teléfono</th>
+                                            <th class="p-4">Propietario</th>
+                                            <th class="p-4 hidden sm:table-cell">Dirección</th>
+                                            <th class="p-4 text-right">Acción</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="revisitas-tbody" class="divide-y divide-gray-200 dark:divide-white/5"></tbody>
+                                 </table>
+                             </div>
+                             <p id="no-revisitas-msg" class="hidden text-center py-12 text-gray-500 dark:text-gray-400 italic font-black uppercase text-[10px] tracking-widest">No hay revisitas registradas.</p>
                          </div>
-                         <table class="w-full text-left text-sm">
-                            <thead class="bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 font-bold uppercase text-xs">
-                                <tr>
-                                    <th class="p-3">Teléfono</th>
-                                    <th class="p-3">Propietario</th>
-                                    <th class="p-3 hidden sm:table-cell">Dirección</th>
-                                    <th class="p-3 hidden sm:table-cell">Publicador</th>
-                                    <th class="p-3 text-right">Acción</th>
-                                </tr>
-                            </thead>
-                            <tbody id="revisitas-tbody" class="divide-y divide-gray-200 dark:divide-white/5"></tbody>
-                         </table>
-                         <p id="no-revisitas-msg" class="hidden text-center py-8 text-gray-500 dark:text-gray-400 italic">No hay revisitas registradas.</p>
+                    </div>
+
+                    <div class="shrink-0 p-4 bg-gray-50 dark:bg-black/40 border-t border-black/5 dark:border-white/5">
+                        <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="w-full bg-white dark:bg-white/5 py-4 rounded-xl text-[10px] font-black text-gray-400 hover:text-amber-600 transition-colors uppercase tracking-[0.2em] border border-black/5 dark:border-white/5 shadow-sm">
+                            Cerrar Revisitas
+                        </button>
                     </div>
                 </div>
             `;

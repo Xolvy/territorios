@@ -185,24 +185,31 @@ const showTerritorySelectionModal = (current, territorios, onSelect) => {
     let filtered = [...territorios].sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true }));
 
     showModal(`
-        <div class="flex flex-col gap-4">
-            <header class="flex justify-between items-center bg-teal-600 -mx-6 -mt-6 p-4 text-white rounded-t-2xl shadow-lg">
-                <h3 class="font-bold uppercase tracking-widest text-sm">Seleccionar Territorio</h3>
-                <span class="text-[10px] opacity-70">Total: ${territorios.length}</span>
+        <div class="flex flex-col h-full">
+            <header class="shrink-0 flex justify-between items-center bg-teal-600 p-6 text-white shadow-lg">
+                <div>
+                    <h3 class="font-black uppercase tracking-widest text-sm">Seleccionar Territorio</h3>
+                    <p class="text-[9px] opacity-70 font-bold uppercase mt-1">Total: ${territorios.length} registros</p>
+                </div>
+                <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-xl">📍</div>
             </header>
             
-            <div class="relative group mt-2">
-                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
-                <input type="text" id="modal-terr-search" placeholder="Buscar número..." class="w-full bg-gray-50 dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-xl pl-10 pr-4 py-2 text-sm outline-none focus:ring-2 focus:ring-teal-500 transition-all font-bold">
+            <div class="flex-1 p-6 space-y-4 overflow-y-auto">
+                <div class="relative group">
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+                    <input type="text" id="modal-terr-search" placeholder="Buscar por número..." class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:border-teal-500 transition-all font-bold placeholder-gray-400">
+                </div>
+
+                <div id="modal-terr-grid" class="grid grid-cols-4 sm:grid-cols-5 gap-2 p-1 custom-scrollbar">
+                    <!-- Injected via render -->
+                </div>
             </div>
 
-            <div id="modal-terr-grid" class="grid grid-cols-4 sm:grid-cols-5 gap-2 max-h-80 overflow-y-auto p-1 custom-scrollbar">
-                <!-- Injected via render -->
+            <div class="shrink-0 p-6 bg-gray-50 dark:bg-black/40 border-t border-black/5 dark:border-white/5">
+                <button id="modal-terr-none" class="w-full bg-white dark:bg-white/5 py-4 rounded-xl text-[10px] font-black text-gray-400 hover:text-red-500 transition-colors uppercase tracking-[0.2em] border border-black/5 dark:border-white/5 shadow-sm">
+                    ❌ Eliminar Selección
+                </button>
             </div>
-
-            <button id="modal-terr-none" class="w-full bg-gray-100 dark:bg-white/5 py-3 rounded-xl text-xs font-bold text-gray-400 hover:text-red-500 transition-colors uppercase tracking-widest mt-2">
-                ❌ Quitar Selección
-            </button>
         </div>
     `, (modal) => {
         const grid = modal.querySelector('#modal-terr-grid');
@@ -244,15 +251,19 @@ const showGroupSelectionModal = (current, onSelect) => {
     const groups = ['Todos', 'Grupos 1 y 5', 'Grupos 2 y 6', 'Grupos 3 y 4', 'Grupo 1', 'Grupo 2', 'Grupo 3', 'Grupo 4', 'Grupo 5', 'Grupo 6', 'Grupo 7', 'Grupo 8', 'Grupo 9', 'Grupo 10', 'Grupo 11', 'Grupo 12'];
 
     showModal(`
-        <div class="flex flex-col gap-4">
-            <header class="bg-indigo-600 -mx-6 -mt-6 p-4 text-white rounded-t-2xl shadow-lg mb-2">
-                <h3 class="font-bold uppercase tracking-widest text-sm text-center">Seleccionar Grupos</h3>
+        <div class="flex flex-col h-full">
+            <header class="shrink-0 flex justify-between items-center bg-indigo-600 p-6 text-white shadow-lg">
+                <div>
+                    <h3 class="font-black uppercase tracking-widest text-sm">Seleccionar Grupos</h3>
+                    <p class="text-[9px] opacity-70 font-bold uppercase mt-1">Filtrado por congregación</p>
+                </div>
+                <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-xl">👥</div>
             </header>
             
-            <div class="grid grid-cols-1 gap-2 max-h-80 overflow-y-auto p-1 custom-scrollbar">
+            <div class="flex-1 p-6 space-y-2 overflow-y-auto">
                 ${groups.map(g => `
-                    <button class="group-pick-btn w-full p-3 rounded-xl border text-left text-sm font-bold transition-all flex items-center justify-between
-                        ${g === current ? 'bg-indigo-600 text-white border-indigo-500 shadow-md scale-[1.02]' : 'bg-white dark:bg-white/5 border-black/5 dark:border-white/10 text-gray-700 dark:text-gray-300 hover:bg-indigo-500/5 hover:border-indigo-500/30'}
+                    <button class="group-pick-btn w-full p-4 rounded-xl border text-left text-sm font-bold transition-all flex items-center justify-between
+                        ${g === current ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg scale-[1.02]' : 'bg-gray-50 dark:bg-white/5 border-black/5 dark:border-white/10 text-gray-700 dark:text-gray-300 hover:bg-indigo-500/5 hover:border-indigo-500/30'}
                     " data-val="${g}">
                         <span>${g}</span>
                         ${g === current ? '<span>✅</span>' : ''}
@@ -260,9 +271,11 @@ const showGroupSelectionModal = (current, onSelect) => {
                 `).join('')}
             </div>
 
-            <button id="modal-grp-none" class="w-full bg-gray-100 dark:bg-white/5 py-3 rounded-xl text-xs font-bold text-gray-400 hover:text-red-500 transition-colors uppercase tracking-widest mt-2 border border-transparent">
-                ❌ Sin Grupo Específico
-            </button>
+            <div class="shrink-0 p-6 bg-gray-50 dark:bg-black/40 border-t border-black/5 dark:border-white/5">
+                <button id="modal-grp-none" class="w-full bg-white dark:bg-white/5 py-4 rounded-xl text-[10px] font-black text-gray-400 hover:text-red-500 transition-colors uppercase tracking-[0.2em] border border-black/5 dark:border-white/5 shadow-sm">
+                    ❌ Sin Grupo Específico
+                </button>
+            </div>
         </div>
     `, (modal) => {
         modal.querySelectorAll('.group-pick-btn').forEach(btn => {
@@ -858,24 +871,26 @@ const renderAsignacionesView = async (container) => {
         const todayStr = new Date().toISOString().split('T')[0];
 
         // Prepare hours from config or default
-        const horasOptions = (config.horas_predetermined || ['08:30', '08:45', '09:00', '09:15', '09:30', '14:30', '16:00', '18:00']);
+        const horasOptions = (config.horarios_programa && config.horarios_programa.length > 0)
+            ? config.horarios_programa
+            : ['08:30', '08:45', '09:00', '09:15', '09:30', '14:30', '16:00', '18:00'];
 
         const configuredGroups = await getGroupsConfig();
 
         showModal(`
-            <div class="flex flex-col h-full max-h-[90vh]">
-                <header class="shrink-0 flex items-center justify-between bg-gradient-to-r from-indigo-600 to-purple-700 p-8 text-white relative overflow-hidden">
+            <div class="flex flex-col h-full">
+                <header class="shrink-0 flex items-center justify-between bg-gradient-to-r from-indigo-600 to-purple-700 p-6 text-white relative overflow-hidden">
                     <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
                     <div class="relative z-10 flex items-center gap-4">
-                        <div class="w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-3xl shadow-inner border border-white/20">📋</div>
+                        <div class="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-2xl shadow-inner border border-white/20">📋</div>
                         <div>
-                            <h3 class="text-2xl font-black tracking-tight">${editId ? 'Editar Registro' : 'Nueva Asignación'}</h3>
-                            <p class="text-[10px] opacity-70 uppercase tracking-[0.3em] font-black">Planificador de Territorio</p>
+                            <h3 class="text-xl font-black tracking-tight">${editId ? 'Editar Registro' : 'Nueva Asignación'}</h3>
+                            <p class="text-[9px] opacity-70 uppercase tracking-[0.3em] font-black">Planificador de Territorio</p>
                         </div>
                     </div>
                 </header>
 
-                <div class="flex-1 p-8 space-y-8">
+                <div class="flex-1 p-6 space-y-6 overflow-y-auto">
                     <div class="p-1 space-y-6">
                         <div class="space-y-2">
                             <label class="block text-[11px] font-black text-indigo-500 uppercase tracking-widest ml-1">📍 ${editId ? 'Territorio Seleccionado' : 'Seleccionar Territorios (Múltiple)'}</label>
@@ -1046,7 +1061,7 @@ const renderAsignacionesView = async (container) => {
 
                 </div>
 
-                <div class="shrink-0 p-8 bg-gray-50 dark:bg-black/40 border-t border-black/5 dark:border-white/5">
+                <div class="shrink-0 p-6 bg-gray-50 dark:bg-black/40 border-t border-black/5 dark:border-white/5 sticky bottom-0 z-30">
                     <button id="confirm-asig" class="w-full group relative overflow-hidden bg-gradient-to-r from-indigo-600 to-purple-700 py-6 rounded-[2rem] text-white font-black shadow-2xl shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-[1.02] active:scale-[0.98] transition-all uppercase tracking-[0.2em] text-sm">
                         <span class="relative z-10">${editId ? 'Guardar Cambios' : 'Confirmar Asignación'}</span>
                         <div class="absolute inset-0 bg-white/10 translate-x-full group-hover:translate-x-0 transition-transform duration-500"></div>
@@ -1229,20 +1244,19 @@ const renderAsignacionesView = async (container) => {
 
         showModal(`
             <div class="overflow-hidden">
-                <header class="flex items-center justify-between bg-gradient-to-r from-red-600 to-rose-700 p-8 text-white shadow-2xl relative overflow-hidden">
+                <header class="shrink-0 flex items-center justify-between bg-gradient-to-r from-red-600 to-rose-700 p-6 text-white shadow-2xl relative overflow-hidden">
                     <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
                     <div class="relative z-10 flex items-center gap-4">
-                        <div class="w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-3xl shadow-inner border border-white/20">📥</div>
+                        <div class="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-2xl shadow-inner border border-white/20">📥</div>
                         <div>
-                            <h3 class="text-2xl font-black tracking-tight">Cerrar Asignaciones</h3>
-                            <p class="text-[10px] opacity-70 uppercase tracking-[0.3em] font-black">Recepción de Informes</p>
+                            <h3 class="text-xl font-black tracking-tight">Cerrar Asignaciones</h3>
+                            <p class="text-[9px] opacity-70 uppercase tracking-[0.3em] font-black">Recepción de Informes</p>
                         </div>
                     </div>
                 </header>
 
-                <div class="p-8 space-y-8">
-
-                <div class="space-y-8 animate-fade-in-up">
+                <div class="flex-1 p-6 space-y-6 overflow-y-auto">
+                <div class="space-y-6 animate-fade-in-up">
                     <!-- Selección de Territorios -->
                     <div class="space-y-4">
                         <div class="flex justify-between items-center px-1">
@@ -1296,14 +1310,14 @@ const renderAsignacionesView = async (container) => {
                         </label>
                     </div>
 
-                    <div class="pt-4 pb-2">
+                    <div class="pt-2">
                         <button id="confirm-bulk-return" class="w-full group relative overflow-hidden bg-gradient-to-r from-red-600 to-rose-700 py-5 rounded-2xl text-white font-black shadow-2xl shadow-rose-500/30 hover:shadow-rose-500/50 hover:scale-[1.02] transition-all uppercase tracking-[0.2em] text-sm">
                             <span class="relative z-10">Confirmar Devolución</span>
                             <div class="absolute inset-0 bg-white/10 translate-x-full group-hover:translate-x-0 transition-transform duration-500"></div>
                         </button>
                     </div>
                 </div>
-            </div>
+                </div>
         `, (modal) => {
             const selectAll = modal.querySelector('#select-all-returns');
             const checks = modal.querySelectorAll('.return-check');
@@ -1361,19 +1375,19 @@ const renderAsignacionesView = async (container) => {
         if (!t) return;
 
         showModal(`
-             <div class="flex flex-col h-full max-h-[90vh] overflow-hidden">
-                <header class="shrink-0 flex items-center justify-between bg-gradient-to-r from-purple-600 to-indigo-700 p-8 text-white relative overflow-hidden">
+             <div class="flex flex-col h-full">
+                <header class="shrink-0 flex items-center justify-between bg-gradient-to-r from-purple-600 to-indigo-700 p-6 text-white relative overflow-hidden">
                     <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
                     <div class="relative z-10 flex items-center gap-4">
-                        <div class="w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-3xl shadow-inner border border-white/20">✏️</div>
+                        <div class="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-2xl shadow-inner border border-white/20">✏️</div>
                         <div>
-                            <h3 class="text-2xl font-black tracking-tight">Editar Asignación</h3>
-                            <p class="text-[10px] opacity-70 uppercase tracking-[0.3em] font-black">Territorio ${num}</p>
+                            <h3 class="text-xl font-black tracking-tight">Editar Asignación</h3>
+                            <p class="text-[9px] opacity-70 uppercase tracking-[0.3em] font-black">Territorio ${num}</p>
                         </div>
                     </div>
                 </header>
 
-                <div class="flex-1 p-8 space-y-6">
+                <div class="flex-1 p-6 space-y-5 overflow-y-auto">
                     <div class="bg-gray-50 dark:bg-white/5 p-4 rounded-2xl border border-black/5 flex items-center gap-3 mb-2">
                          <span class="text-xl">👤</span>
                          <div class="min-w-0">
@@ -1414,7 +1428,7 @@ const renderAsignacionesView = async (container) => {
                             <div class="space-y-2">
                                 <label class="block text-[10px] font-black text-indigo-500 uppercase tracking-widest ml-1">Horario</label>
                                 <select id="edit-asig-hora" class="w-full bg-white dark:bg-black/40 border-2 border-transparent focus:border-indigo-500/50 rounded-2xl p-4 outline-none font-bold text-sm shadow-sm">
-                                    ${(config.horas_predetermined || ['08:30', '08:45', '09:00', '09:15', '09:30', '14:30', '16:00', '18:00']).map(h => `
+                                    ${(config.horarios_programa && config.horarios_programa.length > 0 ? config.horarios_programa : ['08:30', '08:45', '09:00', '09:15', '09:30', '14:30', '16:00', '18:00']).map(h => `
                                         <option value="${h}" ${t.hora === h ? 'selected' : ''}>${h}</option>
                                     `).join('')}
                                 </select>
@@ -1449,7 +1463,7 @@ const renderAsignacionesView = async (container) => {
                     </div>
                 </div>
 
-                <div class="shrink-0 p-8 bg-gray-50 dark:bg-black/40 border-t border-black/5 dark:border-white/5 flex gap-4">
+                <div class="shrink-0 p-6 bg-gray-50 dark:bg-black/40 border-t border-black/5 dark:border-white/5 flex gap-4 sticky bottom-0 z-30">
                      <button id="delete-active-assign" class="flex-1 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 py-5 rounded-2xl font-black transition-all uppercase tracking-widest text-[10px] border border-red-200 dark:border-red-500/20">
                         ❌ Eliminar
                      </button>
@@ -1532,19 +1546,19 @@ const renderAsignacionesView = async (container) => {
             .sort((a, b) => new Date(b.fecha_asignacion || 0) - new Date(a.fecha_asignacion || 0));
 
         showModal(`
-            <div class="overflow-hidden">
-                <header class="flex items-center justify-between bg-gradient-to-br from-slate-900 to-slate-800 p-8 text-white relative overflow-hidden">
+            <div class="flex flex-col h-full">
+                <header class="shrink-0 flex items-center justify-between bg-gradient-to-br from-slate-900 to-slate-800 p-6 text-white relative overflow-hidden">
                     <div class="absolute top-0 right-0 w-32 h-32 bg-teal-500/10 rounded-full -mr-10 -mt-10 blur-2xl"></div>
                     <div class="relative z-10 flex items-center gap-4">
-                        <div class="w-16 h-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-3xl border border-white/10 shadow-2xl">📜</div>
+                        <div class="w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-2xl border border-white/10 shadow-2xl">📜</div>
                         <div>
-                            <h3 class="text-2xl font-black tracking-tight">Timeline de Vida</h3>
-                            <p class="text-[10px] opacity-60 uppercase tracking-[0.3em] font-black">Territorio ${territoryNum}</p>
+                            <h3 class="text-xl font-black tracking-tight">Timeline de Vida</h3>
+                            <p class="text-[9px] opacity-60 uppercase tracking-[0.3em] font-black">Territorio ${territoryNum}</p>
                         </div>
                     </div>
                 </header>
                 
-                <div class="p-8 relative">
+                <div class="flex-1 p-6 relative overflow-y-auto">
                     <!-- Vertical Line -->
                     <div class="absolute left-12 top-8 bottom-8 w-0.5 bg-gradient-to-b from-teal-500/50 via-gray-200 dark:via-white/10 to-transparent"></div>
 
@@ -2034,6 +2048,10 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                     numero: document.getElementById('conf-numero').value
                 };
                 config.gemini_key = document.getElementById('gemini-key').value;
+                config.horarios_programa = document.getElementById('conf-prog-horarios').value.split(',').map(s => s.trim()).filter(Boolean);
+                config.lugares = document.getElementById('conf-lugares').value.split(',').map(s => s.trim()).filter(Boolean);
+                config.facetas = document.getElementById('conf-facetas').value.split(',').map(s => s.trim()).filter(Boolean);
+
                 await saveConfiguracion(config);
 
                 showCustomAlert("Configuración Actualizada");
@@ -2754,38 +2772,60 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
             if (!t) return;
 
             showModal(`
-    <h3 class="text-xl font-bold mb-4 text-teal-600 dark:text-teal-400" > Editar Territorio</h3>
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-xs uppercase text-gray-700 dark:text-gray-400 mb-1 font-bold">Número</label>
-                        <input type="text" id="edit-t-num" value="${t.numero}" class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-gray-900 dark:text-white shadow-sm focus:border-teal-500 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs uppercase text-gray-700 dark:text-gray-400 mb-1 font-bold">Manzanas</label>
-                        <input type="text" id="edit-t-manzanas" value="${t.manzanas || ''}" class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-gray-900 dark:text-white shadow-sm focus:border-teal-500 outline-none">
+                <div class="flex flex-col h-full">
+                    <header class="shrink-0 flex items-center justify-between bg-gradient-to-r from-teal-600 to-emerald-700 p-6 text-white relative overflow-hidden">
+                        <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
+                        <div class="relative z-10 flex items-center gap-4">
+                            <div class="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-2xl shadow-inner border border-white/20">🗺️</div>
+                            <div>
+                                <h3 class="text-xl font-black tracking-tight">Editar Territorio</h3>
+                                <p class="text-[9px] opacity-70 uppercase tracking-[0.3em] font-black">Identificador ${t.numero}</p>
+                            </div>
+                        </div>
+                    </header>
+
+                    <div class="flex-1 p-6 space-y-6 overflow-y-auto">
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-[10px] uppercase font-black text-teal-600 mb-1.5 ml-1">Número de Territorio</label>
+                                <input type="text" id="edit-t-num" value="${t.numero}" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3.5 text-gray-900 dark:text-white font-bold outline-none focus:border-teal-500 shadow-sm">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] uppercase font-black text-teal-600 mb-1.5 ml-1">Manzanas / Sectores</label>
+                                <input type="text" id="edit-t-manzanas" value="${t.manzanas || ''}" placeholder="Ej: 1, 2, 3..." class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3.5 text-gray-900 dark:text-white font-bold outline-none focus:border-teal-500 shadow-sm">
+                            </div>
+
+                            <div>
+                                <label class="block text-[10px] uppercase font-black text-teal-600 mb-1.5 ml-1">Imagen del Mapa</label>
+                                <div class="bg-gray-50 dark:bg-black/20 p-4 rounded-2xl border border-dashed border-gray-300 dark:border-white/10">
+                                    <div class="flex items-center gap-4">
+                                        <label class="cursor-pointer bg-teal-600 hover:bg-teal-500 text-white px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-teal-500/20 active:scale-95 flex items-center gap-2">
+                                            <span>🔄 Cambiar</span>
+                                            <input type="file" id="edit-t-file" accept="image/*" class="hidden">
+                                        </label>
+                                        <div class="flex flex-col min-w-0">
+                                            <span id="file-name-edit" class="text-[10px] text-gray-500 font-bold uppercase truncate">Mantener actual</span>
+                                            <p class="text-[8px] text-gray-400">Dimensión recomendada: 1200x800px</p>
+                                        </div>
+                                    </div>
+                                    <input type="hidden" id="edit-t-base64" value="${t.imagen || ''}">
+                                    
+                                    <div id="preview-edit-container" class="mt-4 ${t.imagen ? '' : 'hidden'}">
+                                         <div class="relative rounded-xl overflow-hidden border border-black/5 dark:border-white/10 bg-white">
+                                             <img id="preview-edit" src="${t.imagen || ''}" class="w-full h-auto max-h-48 object-contain mx-auto">
+                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <div>
-                        <label class="block text-xs uppercase text-gray-500 dark:text-gray-400 mb-1">Imagen del Mapa</label>
-                        <div class="flex items-center gap-4">
-                            <label class="cursor-pointer bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors">
-                                <span>🔄 Cambiar Imagen</span>
-                                <input type="file" id="edit-t-file" accept="image/png, image/jpeg, image/webp" class="hidden">
-                            </label>
-                            <span id="file-name-edit" class="text-xs text-gray-500 italic truncate max-w-[150px]">Mantener actual</span>
-                        </div>
-                        <input type="hidden" id="edit-t-base64" value="${t.imagen || ''}">
-                        
-                        <div id="preview-edit-container" class="mt-2 ${t.imagen ? '' : 'hidden'}">
-                             <p class="text-[10px] text-gray-500 mb-1">Vista Previa:</p>
-                             <img id="preview-edit" src="${t.imagen || ''}" class="h-32 w-auto max-w-full rounded border border-gray-200 dark:border-white/20 object-contain mx-auto bg-white dark:bg-black">
-                        </div>
+                    <div class="shrink-0 p-6 bg-gray-50 dark:bg-black/40 border-t border-black/5 dark:border-white/5">
+                        <button id="update-territorio" class="w-full bg-teal-600 py-4 rounded-2xl text-white font-black shadow-xl shadow-teal-500/20 hover:shadow-teal-500/40 hover:scale-[1.01] active:scale-[0.99] transition-all uppercase tracking-[0.2em] text-[11px]">
+                            Actualizar Territorio
+                        </button>
                     </div>
-                </div>
-                <button id="update-territorio" class="w-full bg-teal-600 py-3 rounded-lg text-white font-bold mt-6 shadow-lg shadow-teal-500/20 hover:scale-[1.02] transition-all">
-                    Actualizar Cambios
-                </button>
-`, async (modal) => {
+                </div>`, async (modal) => {
                 // File Handler
                 const fileInput = document.getElementById('edit-t-file');
                 const nameDisplay = document.getElementById('file-name-edit');
@@ -2860,7 +2900,26 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                 return (daysOrder[da] - daysOrder[db]) || (sa.localeCompare(sb));
             });
             const listHtml = sorted.map(item => `<div class="flex justify-between p-2 border-b border-black/5 dark:border-white/5 last:border-0"><span class="text-sm font-bold text-gray-700 dark:text-gray-300">${item.split('_')[0]}</span><span class="text-[10px] font-bold uppercase text-teal-500">${shiftLabels[item.split('_')[1]] || item.split('_')[1]}</span></div>`).join('');
-            showModal(`<h3 class="text-xl font-bold mb-4 text-teal-600 dark:text-teal-400">📅 Disponibilidad: ${p.nombre}</h3><div class="bg-gray-50 dark:bg-black/40 rounded-xl overflow-y-auto max-h-[60vh]">${listHtml}</div><button onclick="document.getElementById('modal-container').classList.add('hidden')" class="w-full bg-teal-600 text-white py-2 rounded-lg mt-6 font-bold">Cerrar</button>`, () => { });
+            showModal(`
+                <div class="flex flex-col h-full">
+                    <header class="shrink-0 flex items-center justify-between bg-teal-600 p-6 text-white shadow-lg">
+                        <div>
+                             <h3 class="text-xl font-black uppercase tracking-widest">Disponibilidad</h3>
+                             <p class="text-[9px] opacity-70 font-bold uppercase mt-1 tracking-[0.2em]">${p.nombre}</p>
+                        </div>
+                        <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-xl">📅</div>
+                    </header>
+                    <div class="flex-1 p-6 overflow-y-auto">
+                        <div class="bg-gray-50 dark:bg-black/40 rounded-[2rem] border border-black/5 dark:border-white/10 overflow-hidden shadow-inner">
+                            ${listHtml}
+                        </div>
+                    </div>
+                    <div class="shrink-0 p-4 bg-gray-50 dark:bg-black/40 border-t border-black/5 dark:border-white/5">
+                        <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="w-full bg-white dark:bg-white/5 py-3 rounded-xl text-[10px] font-black text-gray-400 hover:text-teal-600 transition-colors uppercase tracking-[0.2em] border border-black/5 dark:border-white/5 shadow-sm">
+                            Cerrar Vista
+                        </button>
+                    </div>
+                </div>`, () => { });
         };
 
         container.innerHTML = `
@@ -2903,88 +2962,122 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
             const privs = ['Conductor', 'Administrador', 'Secretario', 'Servicio', 'Visitante'];
 
             showModal(`
-                <h3 class="text-2xl font-black mb-6 text-teal-600 dark:text-teal-400">${isEdit ? 'Editar Registro' : 'Nuevo Registro'}</h3>
-                <div class="space-y-5 px-1">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-[10px] font-black uppercase text-gray-400 mb-1 ml-1">Nombre Completo</label>
-                            <input type="text" id="p-name" value="${person?.nombre || ''}" class="w-full bg-white dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-sm font-bold focus:border-teal-500 outline-none">
+                <div class="flex flex-col h-full">
+                    <header class="shrink-0 flex items-center justify-between bg-gradient-to-r from-teal-700 to-indigo-800 p-6 text-white relative overflow-hidden">
+                        <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
+                        <div class="relative z-10 flex items-center gap-4">
+                            <div class="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-2xl shadow-inner border border-white/20">👤</div>
+                            <div>
+                                <h3 class="text-xl font-black tracking-tight">${isEdit ? 'Editar Registro' : 'Nuevo Registro'}</h3>
+                                <p class="text-[9px] opacity-70 uppercase tracking-[0.3em] font-black">Gestión de Personal</p>
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-[10px] font-black uppercase text-gray-400 mb-1 ml-1">Teléfono (WhatsApp)</label>
-                            <input type="text" id="p-phone" value="${person?.telefono || ''}" placeholder="+593..." class="w-full bg-white dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-sm font-mono focus:border-teal-500 outline-none">
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-[10px] font-black uppercase text-gray-400 mb-1 ml-1">Género</label>
-                            <select id="p-gender" class="w-full bg-white dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-sm font-bold focus:border-teal-500 outline-none">
-                                <option value="Hombre" ${person?.genero === 'Hombre' ? 'selected' : ''}>Hombre</option>
-                                <option value="Mujer" ${person?.genero === 'Mujer' ? 'selected' : ''}>Mujer</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-black uppercase text-gray-400 mb-1 ml-1">Grupo</label>
-                            <select id="p-group" class="w-full bg-white dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-sm font-bold focus:border-teal-500 outline-none">
-                                <option value="0" ${!person?.grupo || person?.grupo === 0 ? 'selected' : ''}>Sin asignar</option>
-                                ${Array.from({ length: 6 }, (_, i) => `<option value="${i + 1}" ${person?.grupo == (i + 1) ? 'selected' : ''}>Grupo ${i + 1}</option>`).join('')}
-                            </select>
-                        </div>
-                    </div>
-                    <div id="p-email-container" class="${person?.privilegios?.includes('Administrador') ? '' : 'hidden'}">
-                        <label class="block text-[10px] font-black uppercase text-teal-600 mb-1 ml-1">Correo Electrónico (Acceso Google)</label>
-                        <input type="email" id="p-email" value="${person?.email || ''}" placeholder="ejemplo@gmail.com" class="w-full bg-white dark:bg-black/40 border border-teal-500/20 dark:border-teal-500/20 rounded-xl p-3 text-sm font-bold focus:border-teal-500 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-black uppercase text-gray-400 mb-2 ml-1">Privilegios / Roles</label>
-                        <div id="privs-container" class="flex flex-wrap gap-2">
-                        </div>
-                    </div>
-                    <div class="p-4 bg-teal-500/5 rounded-2xl border border-teal-500/10">
-                        <div class="flex items-center justify-between mb-4">
-                            <span class="text-xs font-black uppercase text-teal-600">Disponibilidad (Conductor)</span>
-                            <label class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" id="p-is-cond" class="sr-only peer" ${person?.es_conductor ? 'checked' : ''}>
-                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
-                                <span class="ml-3 text-xs font-bold text-gray-500">Activo</span>
-                            </label>
-                        </div>
-                        <div id="p-avail-grid" class="${person?.es_conductor ? '' : 'opacity-30 pointer-events-none'} transition-all">
-                             <div class="grid grid-cols-4 gap-1 mb-2 text-center text-[10px] font-black text-gray-400 uppercase">
-                                 <div class="text-left pl-2">Día</div>
-                                 ${shifts.map(s => `<div class="${s.color}">${s.label}</div>`).join('')}
-                             </div>
-                             <div class="space-y-1">
-                                 ${days.map(day => `
-                                     <div class="grid grid-cols-4 gap-1 items-center bg-white/50 dark:bg-black/20 rounded-lg p-1.5 border border-white/5">
-                                         <div class="text-[11px] font-black text-gray-700 dark:text-gray-300 pl-2">${day.slice(0, 3)}</div>
-                                         ${shifts.map(sh => `<div class="flex justify-center"><input type="checkbox" class="p-avail-check accent-teal-500 w-4 h-4" value="${day}_${sh.id}" ${person?.disponibilidad?.includes(`${day}_${sh.id}`) ? 'checked' : ''}></div>`).join('')}
+                    </header>
+
+                    <div class="flex-1 p-6 space-y-6 overflow-y-auto custom-scrollbar">
+                        <div class="space-y-6">
+                            <!-- Datos Básicos -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-[10px] font-black uppercase text-teal-600 mb-1.5 ml-1 tracking-widest">Nombre Completo</label>
+                                    <input type="text" id="p-name" value="${person?.nombre || ''}" placeholder="Ej: Juan Pérez" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3.5 text-sm font-bold focus:border-indigo-500 outline-none shadow-sm transition-all">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-black uppercase text-teal-600 mb-1.5 ml-1 tracking-widest">WhatsApp / Teléfono</label>
+                                    <input type="text" id="p-phone" value="${person?.telefono || ''}" placeholder="+593..." class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3.5 text-sm font-mono font-bold focus:border-indigo-500 outline-none shadow-sm transition-all">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-[10px] font-black uppercase text-teal-600 mb-1.5 ml-1 tracking-widest">Género</label>
+                                    <select id="p-gender" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3.5 text-sm font-bold focus:border-indigo-500 outline-none shadow-sm appearance-none cursor-pointer">
+                                        <option value="Hombre" ${person?.genero === 'Hombre' ? 'selected' : ''}>Hombre</option>
+                                        <option value="Mujer" ${person?.genero === 'Mujer' ? 'selected' : ''}>Mujer</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-black uppercase text-teal-600 mb-1.5 ml-1 tracking-widest">Grupo Asignado</label>
+                                    <select id="p-group" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3.5 text-sm font-bold focus:border-indigo-500 outline-none shadow-sm appearance-none cursor-pointer">
+                                        <option value="0" ${!person?.grupo || person?.grupo === 0 ? 'selected' : ''}>Sin asignar</option>
+                                        ${Array.from({ length: 12 }, (_, i) => `<option value="${i + 1}" ${person?.grupo == (i + 1) ? 'selected' : ''}>Grupo ${i + 1}</option>`).join('')}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div id="p-email-container" class="${person?.privilegios?.includes('Administrador') ? '' : 'hidden'} animate-fade-in-up">
+                                <label class="block text-[10px] font-black uppercase text-indigo-600 mb-1.5 ml-1 tracking-widest">Acceso Google (Email)</label>
+                                <input type="email" id="p-email" value="${person?.email || ''}" placeholder="usuario@gmail.com" class="w-full bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-200 dark:border-indigo-500/20 rounded-xl p-3.5 text-sm font-bold focus:border-indigo-500 outline-none shadow-sm transition-all text-indigo-700 dark:text-indigo-300">
+                                <p class="text-[8px] text-gray-400 mt-1.5 ml-1 italic font-medium">Requerido para administradores y conductores con acceso a la nube.</p>
+                            </div>
+
+                            <div class="space-y-3">
+                                <label class="block text-[10px] font-black uppercase text-teal-600 ml-1 tracking-widest">Privilegios y Roles</label>
+                                <div id="privs-container" class="flex flex-wrap gap-2 p-1">
+                                    ${privs.map(pr => `
+                                        <label class="flex items-center gap-2 bg-gray-100 dark:bg-white/5 px-4 py-2.5 rounded-xl border border-transparent hover:border-indigo-500/30 cursor-pointer transition-all group">
+                                            <input type="checkbox" class="p-priv-check sr-only peer" value="${pr}" ${person?.privilegios?.includes(pr) ? 'checked' : ''}>
+                                            <div class="w-4 h-4 rounded border-2 border-gray-300 dark:border-white/20 peer-checked:bg-indigo-600 peer-checked:border-indigo-600 flex items-center justify-center transition-all">
+                                                <svg class="w-3 h-3 text-white hidden peer-checked:block" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7" /></svg>
+                                            </div>
+                                            <span class="text-xs font-bold text-gray-600 dark:text-gray-400 peer-checked:text-indigo-600 dark:peer-checked:text-indigo-400 transition-colors uppercase tracking-widest">${pr}</span>
+                                        </label>
+                                    `).join('')}
+                                </div>
+                            </div>
+
+                            <!-- Disponibilidad -->
+                            <div class="p-5 bg-teal-500/5 rounded-[2rem] border border-teal-500/10 space-y-4">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[10px] font-black uppercase text-teal-600 tracking-widest">Disponibilidad de Conductor</span>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="p-is-cond" class="sr-only peer" ${person?.es_conductor ? 'checked' : ''}>
+                                        <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
+                                    </label>
+                                </div>
+                                <div id="p-avail-grid" class="${person?.es_conductor ? '' : 'opacity-20 pointer-events-none grayscale'} transition-all duration-500">
+                                     <div class="grid grid-cols-4 gap-1 mb-2 text-center text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                                         <div class="text-left pl-2">Día</div>
+                                         ${shifts.map(s => `<div class="${s.color}">${s.label}</div>`).join('')}
                                      </div>
-                                 `).join('')}
-                             </div>
+                                     <div class="space-y-1.5">
+                                         ${days.map(day => `
+                                             <div class="grid grid-cols-4 gap-1 items-center bg-white/40 dark:bg-black/20 rounded-xl p-2 border border-black/5 dark:border-white/5">
+                                                 <div class="text-[10px] font-black text-gray-700 dark:text-gray-300 pl-2 uppercase">${day.slice(0, 3)}</div>
+                                                 ${shifts.map(sh => `<div class="flex justify-center"><input type="checkbox" class="p-avail-check w-5 h-5 accent-teal-600 cursor-pointer" value="${day}_${sh.id}" ${person?.disponibilidad?.includes(`${day}_${sh.id}`) ? 'checked' : ''}></div>`).join('')}
+                                             </div>
+                                         `).join('')}
+                                     </div>
+                                </div>
+                            </div>
+
+                            <!-- Módulos -->
+                            <div id="p-modules-section" class="p-5 bg-indigo-500/5 rounded-[2rem] border border-indigo-500/10 ${person?.es_conductor ? '' : 'opacity-20 pointer-events-none grayscale'} transition-all duration-500">
+                                <label class="block text-[10px] font-black uppercase text-indigo-600 mb-4 ml-1 tracking-widest">Módulos Habilitados</label>
+                                <div class="grid grid-cols-1 gap-2">
+                                    <label class="flex items-center justify-between p-4 bg-white/40 dark:bg-black/20 rounded-xl border border-black/5 dark:border-white/5 cursor-pointer hover:bg-indigo-500/5 transition-all group">
+                                        <span class="text-xs font-bold text-gray-600 dark:text-gray-400 group-hover:text-indigo-600 transition-colors uppercase tracking-widest">Dashboard de Conductor</span>
+                                        <input type="checkbox" id="mod-dashboard" class="p-mod-check w-5 h-5 accent-indigo-600" ${person?.modulos?.dashboard !== false ? 'checked' : ''}>
+                                    </label>
+                                    <label class="flex items-center justify-between p-4 bg-white/40 dark:bg-black/20 rounded-xl border border-black/5 dark:border-white/5 cursor-pointer hover:bg-indigo-500/5 transition-all group">
+                                        <span class="text-xs font-bold text-gray-600 dark:text-gray-400 group-hover:text-indigo-600 transition-colors uppercase tracking-widest">Programa Semanal</span>
+                                        <input type="checkbox" id="mod-programa" class="p-mod-check w-5 h-5 accent-indigo-600" ${person?.modulos?.programa !== false ? 'checked' : ''}>
+                                    </label>
+                                    <label class="flex items-center justify-between p-4 bg-white/40 dark:bg-black/20 rounded-xl border border-black/5 dark:border-white/5 cursor-pointer hover:bg-indigo-500/5 transition-all group">
+                                        <span class="text-xs font-bold text-gray-600 dark:text-gray-400 group-hover:text-indigo-600 transition-colors uppercase tracking-widest">Predicación Telefónica</span>
+                                        <input type="checkbox" id="mod-telefonos" class="p-mod-check w-5 h-5 accent-indigo-600" ${person?.modulos?.telefonos !== false ? 'checked' : ''}>
+                                    </label>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- User Specific Modules -->
-                    <div id="p-modules-section" class="p-4 bg-blue-500/5 rounded-2xl border border-blue-500/10 ${person?.es_conductor ? '' : 'opacity-30 pointer-events-none'} transition-all">
-                        <label class="block text-[10px] font-black uppercase text-blue-600 mb-3 ml-1">Módulos Habilitados</label>
-                        <div class="grid grid-cols-1 gap-2">
-                            <label class="flex items-center justify-between p-3 bg-white/50 dark:bg-black/20 rounded-xl border border-white/5 cursor-pointer hover:bg-blue-500/5 transition-all">
-                                <span class="text-xs font-bold text-gray-700 dark:text-gray-300">🗺️ Dashboard (Territorios)</span>
-                                <input type="checkbox" id="mod-dashboard" class="p-mod-check w-4 h-4 accent-blue-500" ${person?.modulos?.dashboard !== false ? 'checked' : ''}>
-                            </label>
-                            <label class="flex items-center justify-between p-3 bg-white/50 dark:bg-black/20 rounded-xl border border-white/5 cursor-pointer hover:bg-blue-500/5 transition-all">
-                                <span class="text-xs font-bold text-gray-700 dark:text-gray-300">📅 Programa Semanal (Admin)</span>
-                                <input type="checkbox" id="mod-programa" class="p-mod-check w-4 h-4 accent-blue-500" ${person?.modulos?.programa !== false ? 'checked' : ''}>
-                            </label>
-                            <label class="flex items-center justify-between p-3 bg-white/50 dark:bg-black/20 rounded-xl border border-white/5 cursor-pointer hover:bg-blue-500/5 transition-all">
-                                <span class="text-xs font-bold text-gray-700 dark:text-gray-300">📞 Predicación Telefónica</span>
-                                <input type="checkbox" id="mod-telefonos" class="p-mod-check w-4 h-4 accent-blue-500" ${person?.modulos?.telefonos !== false ? 'checked' : ''}>
-                            </label>
-                        </div>
+                    <div class="shrink-0 p-6 bg-gray-100 dark:bg-black/60 border-t border-black/5 dark:border-white/10">
+                        <button id="save-person" class="w-full bg-gradient-to-r from-teal-600 to-indigo-700 py-4 rounded-2xl text-white font-black shadow-2xl shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-[1.01] active:scale-[0.99] transition-all uppercase tracking-[0.2em] text-[11px]">
+                            ${isEdit ? 'Guardar Cambios' : 'Crear Registro'}
+                        </button>
                     </div>
                 </div>
-                <button id="save-person" class="btn-premium w-full py-4 rounded-2xl mt-8 uppercase tracking-widest font-black text-xs shadow-2xl">Confirmar Registro</button>
             `, (modal) => {
                 const genderSelect = modal.querySelector('#p-gender');
                 const privsContainer = modal.querySelector('#privs-container');
@@ -2997,9 +3090,12 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                     const list = gender === 'Hombre' ? malePrivs : femalePrivs;
 
                     privsContainer.innerHTML = list.map(pr => `
-                        <label class="flex items-center gap-2 px-3 py-2 bg-black/5 dark:bg-white/5 rounded-xl border border-white/5 cursor-pointer hover:bg-teal-500/10 transition-colors group">
-                            <input type="checkbox" class="p-priv accent-teal-500 w-4 h-4" value="${pr}" ${currentPrivs.includes(pr) ? 'checked' : ''}>
-                            <span class="text-xs font-bold text-gray-600 dark:text-gray-300 group-hover:text-teal-600 transition-colors">${pr}</span>
+                        <label class="flex items-center gap-2 bg-gray-100 dark:bg-white/5 px-4 py-2.5 rounded-xl border border-transparent hover:border-indigo-500/30 cursor-pointer transition-all group">
+                            <input type="checkbox" class="p-priv sr-only peer" value="${pr}" ${currentPrivs.includes(pr) ? 'checked' : ''}>
+                            <div class="w-4 h-4 rounded border-2 border-gray-300 dark:border-white/20 peer-checked:bg-indigo-600 peer-checked:border-indigo-600 flex items-center justify-center transition-all">
+                                <svg class="w-3 h-3 text-white hidden peer-checked:block" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7" /></svg>
+                            </div>
+                            <span class="text-[10px] font-black text-gray-400 peer-checked:text-indigo-600 dark:peer-checked:text-indigo-400 transition-colors uppercase tracking-widest">${pr}</span>
                         </label>
                     `).join('');
 
@@ -4066,14 +4162,14 @@ const showModal = (content, onOpen, maxWidth = 'max-w-md') => {
     };
 
     modalContainer.innerHTML = `
-        <div class="w-full ${maxWidth} relative animate-fade-in bg-white dark:bg-[#0a0a0a] flex flex-col rounded-[2.5rem] shadow-[0_40px_80px_-20px_rgba(0,0,0,0.5)] max-h-[calc(100vh-2rem)] border border-gray-100 dark:border-white/10 overflow-hidden m-4">
-            <button class="absolute top-6 right-6 text-white/50 hover:text-white z-[60] p-2 bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-full transition-all border border-white/5 group shadow-lg" 
+        <div class="w-full ${maxWidth} relative animate-fade-in bg-white dark:bg-[#0a0a0a] flex flex-col rounded-[2.5rem] shadow-[0_40px_80px_-20px_rgba(0,0,0,0.5)] max-h-[95vh] border border-gray-100 dark:border-white/10 overflow-hidden m-2 sm:m-4">
+            <button class="absolute top-4 right-4 text-white/50 hover:text-white z-[60] p-2 bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-full transition-all border border-white/5 group shadow-lg" 
                     id="modal-close-btn">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
                 </svg>
             </button>
-            <div class="relative flex-1 overflow-y-auto custom-scrollbar">
+            <div class="flex-1 overflow-y-auto custom-scrollbar flex flex-col">
                 ${content}
             </div>
         </div>
