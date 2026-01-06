@@ -427,7 +427,7 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
                 const newPath = `/administrador/${urlMap[tabId] || 'dashboard'}`;
                 window.history.pushState({}, '', newPath);
 
-                loadTab(tabId);
+                loadTab(tabId, appVersion);
             });
         });
 
@@ -2764,7 +2764,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
         window.deleteTerritorio = async (id) => {
             showCustomConfirm('¿Eliminar esté territorio?', async () => {
                 await deleteTerritorio(id);
-                loadSubTab('territorios', container, config);
+                loadSubTab('territorios', container, config, appVersion);
             });
         };
 
@@ -2866,7 +2866,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                             imagen: base64Input.value
                         });
                         modal.classList.add('hidden');
-                        loadSubTab('territorios', container, config);
+                        loadSubTab('territorios', container, config, appVersion);
                         showNotification("Territorio actualizado");
                     } catch (err) {
                         console.error(err);
