@@ -1,6 +1,5 @@
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { initializeApp } from "firebase/app";
+import { getFirestore, doc, setDoc } from "firebase/firestore";
 
 const firebaseConfig = {
     apiKey: "AIzaSyDrgpMp04uuFRz61vNIOzD9CCPl8p_wDL0",
@@ -14,16 +13,19 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-async function setVersion() {
+async function run() {
     try {
+        console.log("Values updating to: 3.1.6");
         await setDoc(doc(db, "configuracion", "version_control"), {
-            latestVersion: "3.1.5",
+            latestVersion: "3.1.6",
             forceUpdate: true
         });
-        console.log("✅ Firestore version updated to 3.1.5");
+        console.log("✅ Remote version updated successfully.");
+        process.exit(0);
     } catch (e) {
-        console.error("❌ Error:", e);
+        console.error("❌ Failed to update remote version:", e);
+        process.exit(1);
     }
 }
 
-setVersion();
+run();

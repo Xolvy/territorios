@@ -34,8 +34,7 @@ try {
     })
   });
 } catch (e) {
-  // Si ya está inicializado (posiblemente por otra importación o HMR), usar la instancia existente
-  console.warn("Firestore already initialized, using existing instance:", e.message);
+  // Silent fallback: use existing instance if already initialized
   firestoreDb = getFirestore(app);
 }
 

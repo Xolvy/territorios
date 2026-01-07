@@ -10,15 +10,15 @@ import {
     getCampanas, saveCampana, deleteCampana,
     getGroupsConfig, saveGroupsConfig,
     getDiffusionMessage, saveDiffusionMessage
-} from '../data/firestore-services.js?v=3.0.0';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=3.0.0';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=3.0.0';
-import { renderHistoryTab } from './report-s13.js?v=3.0.0';
-import { renderAnalyticsView } from './analytics-view.js?v=3.0.0';
-import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=3.0.0';
-import { auth } from '../firebase-config.js?v=3.0.0';
+} from '../data/firestore-services.js?v=3.2.0';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=3.2.0';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=3.2.0';
+import { renderHistoryTab } from './report-s13.js?v=3.2.0';
+import { renderAnalyticsView } from './analytics-view.js?v=3.2.0';
+import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=3.2.0';
+import { auth } from '../firebase-config.js?v=3.2.0';
 
-import { animateEntry } from './utils/animations.js?v=3.0.0';
+import { animateEntry } from './utils/animations.js?v=3.2.0';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }) : '';
 
@@ -35,12 +35,15 @@ window.showCustomAlert = showCustomAlert;
 
 const showCustomConfirm = (message, onConfirm) => {
     showModal(`
-        <div class="p-8 text-center space-y-4">
-            <div class="text-5xl mb-4">❓</div>
-            <h3 class="text-xl font-bold text-gray-800 dark:text-white leading-tight">${message}</h3>
-            <div class="flex gap-3 justify-center mt-8">
-                <button id="confirm-cancel" class="px-8 py-3 rounded-2xl bg-gray-100 dark:bg-white/5 text-gray-500 font-black hover:bg-gray-200 transition-all uppercase tracking-widest text-[10px]">Cancelar</button>
-                <button id="confirm-ok" class="px-8 py-3 rounded-2xl bg-teal-600 text-white font-black hover:bg-teal-500 shadow-xl shadow-teal-500/30 transition-all uppercase tracking-widest text-[10px]">Aceptar</button>
+        <div class="p-10 text-center space-y-6 flex flex-col items-center">
+            <div class="w-20 h-20 bg-amber-500/10 rounded-full flex items-center justify-center text-4xl animate-bounce-in">❓</div>
+            <div>
+                <h3 class="text-2xl font-black text-slate-800 dark:text-white leading-tight">${message}</h3>
+                <p class="text-xs text-slate-400 mt-2 font-bold uppercase tracking-widest">Se requiere confirmación</p>
+            </div>
+            <div class="flex gap-4 w-full mt-4">
+                <button id="confirm-cancel" class="flex-1 py-4 rounded-2xl bg-slate-100 dark:bg-white/5 text-slate-500 font-black hover:bg-slate-200 transition-all uppercase tracking-widest text-[10px]">Cancelar</button>
+                <button id="confirm-ok" class="flex-[2] py-4 rounded-2xl bg-teal-600 text-white font-black hover:bg-teal-500 shadow-xl shadow-teal-500/30 transition-all uppercase tracking-widest text-[10px]">Confirmar Acción</button>
             </div>
         </div>
     `, (modal) => {
@@ -55,15 +58,18 @@ window.showCustomConfirm = showCustomConfirm;
 
 const showCustomPrompt = (message, defaultValue, onConfirm) => {
     showModal(`
-        <div class="p-8 space-y-6">
-            <div>
-                <h3 class="text-xl font-black text-gray-800 dark:text-white uppercase tracking-tight mb-1">${message}</h3>
-                <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Entrada de datos</p>
+        <div class="p-10 space-y-8">
+            <div class="text-center">
+                <h3 class="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight mb-2">${message}</h3>
+                <p class="text-[10px] text-teal-600 font-black uppercase tracking-[0.2em]">Entrada de datos Administrador</p>
             </div>
-            <input type="text" id="prompt-input" value="${defaultValue || ''}" class="w-full bg-gray-50 dark:bg-black/40 border-2 border-transparent focus:border-teal-500/50 rounded-2xl p-4 text-gray-900 dark:text-white outline-none shadow-inner font-bold">
-            <div class="flex gap-3 justify-end mt-6">
-                <button id="prompt-cancel" class="px-8 py-3 rounded-2xl bg-gray-100 dark:bg-white/5 text-gray-500 font-black hover:bg-gray-200 transition-all uppercase tracking-widest text-[10px]">Cancelar</button>
-                <button id="prompt-ok" class="px-8 py-3 rounded-2xl bg-teal-600 text-white font-black hover:bg-teal-500 shadow-xl shadow-teal-500/30 transition-all uppercase tracking-widest text-[10px]">Aceptar</button>
+            <div class="relative group">
+                <input type="text" id="prompt-input" value="${defaultValue || ''}" class="w-full bg-slate-50 dark:bg-black/40 border-2 border-transparent focus:border-teal-500/30 rounded-3xl p-5 text-gray-900 dark:text-white outline-none shadow-inner font-bold text-center text-lg transition-all">
+                <div class="absolute inset-0 rounded-3xl border border-white/20 pointer-events-none group-focus-within:border-teal-500/50"></div>
+            </div>
+            <div class="flex gap-4 mt-4">
+                <button id="prompt-cancel" class="flex-1 py-4 rounded-2xl bg-slate-100 dark:bg-white/5 text-slate-500 font-black hover:bg-slate-200 transition-all uppercase tracking-widest text-[10px]">Omitir</button>
+                <button id="prompt-ok" class="flex-[2] py-4 rounded-2xl bg-teal-600 text-white font-black hover:bg-teal-500 shadow-xl shadow-teal-500/30 transition-all uppercase tracking-widest text-[10px]">Guardar Cambios</button>
             </div>
         </div>
     `, (modal) => {
@@ -88,28 +94,27 @@ style.textContent = `
     .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
     .scrollbar-hide::-webkit-scrollbar { display: none; }
 
-    /* Premium Navigation Styles */
+    /* Premium PRO Navigation */
     .nav-item {
         display: flex;
         align-items: center;
-        width: 100%;
-        padding: 0.875rem 1.25rem;
-        margin-bottom: 0.5rem;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
         border-radius: 1rem;
         color: #64748b;
         font-size: 0.9rem;
         font-weight: 600;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         background: transparent;
+        white-space: nowrap;
         border: 1px solid transparent;
-        text-align: left;
     }
     .dark .nav-item { color: #94a3b8; }
     
     .nav-item:hover {
-        background-color: rgba(0, 150, 136, 0.08);
+        background-color: rgba(13, 148, 136, 0.05);
         color: #0d9488;
-        transform: translateX(4px);
+        transform: translateY(-1px);
     }
     .dark .nav-item:hover {
         background-color: rgba(255, 255, 255, 0.05);
@@ -117,29 +122,47 @@ style.textContent = `
     }
 
     .nav-item.active {
-        background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+        background: #0d9488;
         color: white;
-        box-shadow: 0 10px 20px -5px rgba(13, 148, 136, 0.4);
-        border: 1px solid rgba(255,255,255,0.1);
+        box-shadow: 0 10px 15px -3px rgba(13, 148, 136, 0.3);
     }
     .dark .nav-item.active {
-        background: linear-gradient(135deg, #0d9488 0%, #115e59 100%);
+        background: #0d9488;
         color: white;
-        box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.4);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
     }
 
     .nav-icon {
-        font-size: 1.25rem;
-        margin-right: 1rem;
-        width: 1.5rem;
-        display: flex;
-        justify-content: center;
+        font-size: 1.1rem;
         transition: transform 0.3s ease;
     }
-    .nav-item:hover .nav-icon { transform: scale(1.15) rotate(5deg); }
-    .nav-item.active .nav-icon { color: white; }
+    .nav-item:hover .nav-icon { transform: scale(1.1) rotate(-5deg); }
     
-    .nav-label { font-family: 'Inter', sans-serif; letter-spacing: 0.01em; }
+    .nav-label { font-family: 'Inter', sans-serif; }
+
+    /* Layout Utilities */
+    .admin-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    @media (min-width: 1024px) {
+        .admin-grid {
+            grid-template-columns: 260px 1fr;
+            align-items: start;
+        }
+    }
+    
+    .sticky-nav {
+        position: sticky;
+        top: 0.5rem;
+        z-index: 40;
+    }
+    @media (min-width: 1024px) {
+        .sticky-nav {
+            top: 2rem;
+        }
+    }
 `;
 document.head.appendChild(style);
 
@@ -338,82 +361,102 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
                 if (appVersion !== remoteVer) {
                     console.log(`[Auto-Update] Bumping remote version from ${remoteVer} to ${appVersion}`);
                     await setSystemVersion(appVersion);
-                    showNotification(`Versión del sistema actualizada automáticamente a ${appVersion}`);
                 }
             }).catch(e => console.warn("Auto-update check failed", e));
         }
-        // ----------------------------------------
 
         container.innerHTML = `
-   <div class="w-full max-w-7xl animate-fade-in pb-10">
-            <header class="flex justify-between items-center mb-6 p-4 morphinglass-card">
-                <div>
-                    <h1 class="text-2xl font-bold text-teal-600 dark:text-teal-400">Panel de Administrador</h1>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Configuración y Gestión</p>
-                </div>
-                <button id="logout-btn" class="bg-red-100 hover:bg-red-200 text-red-600 dark:bg-red-500/20 dark:hover:bg-red-500/40 dark:text-red-200 px-4 py-2 rounded-lg border border-red-200 dark:border-red-500/30 transition-colors shadow-sm dark:shadow-none font-medium">
-                    Cerrar Sesión
-                </button>
-            </header>
-
-            <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
-                <!-- Sidebar -->
-                <nav class="lg:col-span-1 bg-white/40 dark:bg-black/20 backdrop-blur-xl border border-black/5 dark:border-white/5 p-4 rounded-[2.5rem] h-fit flex flex-col gap-2 relative lg:sticky lg:top-4 z-20 shadow-xl">
-                    <div class="px-4 py-3 mb-2 border-b border-black/5 dark:border-white/5">
-                        <p class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Navegación</p>
+            <div class="animate-fade-in pb-24 w-full max-w-[1800px] mx-auto p-4 md:p-8">
+                <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 px-8 py-6 glass-morphism border border-white/20 dark:border-white/10 rounded-[3rem] shadow-2xl gap-6">
+                    <div class="flex items-center gap-5">
+                        <div class="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl flex items-center justify-center text-3xl shadow-2xl shadow-indigo-500/30 rotate-3 hover:rotate-0 transition-transform duration-500 animate-float">🏛️</div>
+                        <div class="space-y-1">
+                            <h1 class="text-2xl font-black text-slate-800 dark:text-white tracking-tight">Administración</h1>
+                            <p class="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-black tracking-[0.2em] flex items-center gap-2">
+                               <span class="relative flex h-2 w-2">
+                                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                                  <span class="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                               </span> Gestión de territorios
+                            </p>
+                        </div>
                     </div>
-                    
-                    <button class="nav-item group ${initialTab === 'dashboard' ? 'active' : ''}" data-tab="dashboard">
-                        <span class="nav-icon">📊</span>
-                        <span class="nav-label">Panel de Control</span>
-                    </button>
-                    <button class="nav-item group ${initialTab === 'casa-en-casa' ? 'active' : ''}" data-tab="casa-en-casa">
-                        <span class="nav-icon">🏘️</span>
-                        <span class="nav-label">Casa en Casa</span>
-                    </button>
-                    <button class="nav-item group ${initialTab === 'predicacion' ? 'active' : ''}" data-tab="predicacion">
-                        <span class="nav-icon">📢</span>
-                        <span class="nav-label">P. Pública</span>
-                    </button>
-                    <button class="nav-item group ${initialTab === 'telefonos' ? 'active' : ''}" data-tab="telefonos">
-                        <span class="nav-icon">📞</span>
-                        <span class="nav-label">P. Telefónica</span>
-                    </button>
-                    <div class="h-6"></div> <!-- Spacer -->
+                    <div class="flex items-center gap-3 w-full md:w-auto">
+                        <div class="hidden sm:flex flex-col items-end mr-4 text-right">
+                             <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Version</p>
+                             <p class="text-xs font-bold text-slate-600 dark:text-slate-300">v${appVersion || '3.1.5'}</p>
+                        </div>
+                        <button id="logout-btn" class="flex-1 md:flex-none bg-slate-100/50 hover:bg-red-50 text-slate-600 hover:text-red-600 dark:bg-slate-800/50 dark:hover:bg-red-500/10 dark:text-slate-400 dark:hover:text-red-400 px-8 py-4 rounded-2xl border border-white/10 transition-all font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2">
+                            Salir
+                        </button>
+                    </div>
+                </header>
 
-                    <button class="nav-item group ${initialTab === 'config' ? 'active' : ''}" data-tab="config">
-                        <span class="nav-icon">⚙️</span>
-                        <span class="nav-label">Configuración</span>
-                    </button>
-                </nav>
+                <div class="admin-grid gap-10">
+                    <!-- Sidebar -->
+                    <aside class="sticky-nav bg-transparent">
+                        <nav class="glass-morphism border border-white/20 dark:border-white/5 p-4 rounded-[3rem] shadow-2xl flex flex-row lg:flex-col gap-2 overflow-x-auto lg:overflow-visible scrollbar-hide">
+                            <button class="nav-item ${initialTab === 'dashboard' ? 'active' : ''} group" data-tab="dashboard">
+                                <span class="nav-icon">📊</span>
+                                <span class="nav-label hidden lg:block">Estadísticas</span>
+                                <div class="absolute right-4 hidden lg:block opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/></svg>
+                                </div>
+                            </button>
+                            <button class="nav-item ${initialTab === 'casa-en-casa' ? 'active' : ''} group" data-tab="casa-en-casa">
+                                <span class="nav-icon">🏘️</span>
+                                <span class="nav-label hidden lg:block">Territorios</span>
+                                <div class="absolute right-4 hidden lg:block opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/></svg>
+                                </div>
+                            </button>
+                            <button class="nav-item ${initialTab === 'predicacion' ? 'active' : ''} group" data-tab="predicacion">
+                                <span class="nav-icon">📢</span>
+                                <span class="nav-label hidden lg:block">P. Pública</span>
+                                <div class="absolute right-4 hidden lg:block opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/></svg>
+                                </div>
+                            </button>
+                            <button class="nav-item ${initialTab === 'telefonos' ? 'active' : ''} group" data-tab="telefonos">
+                                <span class="nav-icon">📞</span>
+                                <span class="nav-label hidden lg:block">Telefonía</span>
+                                <div class="absolute right-4 hidden lg:block opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/></svg>
+                                </div>
+                            </button>
+                            <div class="hidden lg:block h-px my-4 bg-gradient-to-r from-transparent via-slate-200 dark:via-white/10 to-transparent"></div>
+                            <button class="nav-item ${initialTab === 'config' ? 'active' : ''} group" data-tab="config">
+                                <span class="nav-icon">⚙️</span>
+                                <span class="nav-label hidden lg:block">Ajustes</span>
+                                <div class="absolute right-4 hidden lg:block opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/></svg>
+                                </div>
+                            </button>
+                        </nav>
+                    </aside>
 
-                <!-- Content -->
-                <div class="lg:col-span-4 morphinglass-card min-h-[600px]" id="admin-content">
-                    <!-- Dynamic Content -->
+                    <!-- Content Area -->
+                    <main id="admin-content" class="w-full min-h-[70vh] flex flex-col">
+                        <!-- Dynamic Content -->
+                    </main>
                 </div>
             </div>
-        </div>
-        
-    <div id="modal-container" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden overflow-y-auto z-50 p-4 md:p-10 flex justify-center items-start"></div>
-`;
+            
+            <div id="modal-container" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden overflow-y-auto z-[100] p-4 md:p-12 flex justify-center items-center"></div>
+        `;
 
         document.getElementById('logout-btn').addEventListener('click', async () => {
             localStorage.removeItem('demo_role');
             await auth.signOut();
-            window.location.href = '/login'; // Redirect to login route
+            window.location.href = '/login';
         });
 
         const tabs = document.querySelectorAll('.nav-item');
         tabs.forEach(btn => {
             btn.addEventListener('click', (e) => {
-                // Remove active state from all
                 tabs.forEach(t => t.classList.remove('active'));
-
-                // Add active state to clicked
                 const target = e.currentTarget;
                 target.classList.add('active');
 
-                // URL Mapping
                 const tabId = target.dataset.tab;
                 const urlMap = {
                     'dashboard': 'dashboard',
@@ -423,15 +466,12 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
                     'config': 'config'
                 };
 
-                // Update URL
                 const newPath = `/administrador/${urlMap[tabId] || 'dashboard'}`;
                 window.history.pushState({}, '', newPath);
-
                 loadTab(tabId, appVersion);
             });
         });
 
-        const currentLoadTab = (tab) => loadTab(tab, appVersion);
         loadTab(initialTab, appVersion);
         renderAdminAI();
     } catch (e) {
@@ -442,17 +482,17 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
 
 const renderSkeleton = (container) => {
     container.innerHTML = `
-        <div class="p-8 space-y-8 animate-pulse">
-            <div class="flex justify-between items-center mb-10">
-                <div class="h-10 w-48 skeleton"></div>
-                <div class="h-10 w-32 skeleton rounded-full"></div>
+        <div class="p-8 space-y-10">
+            <header class="flex justify-between items-center mb-12">
+                <div class="h-14 w-64 skeleton-pro rounded-3xl"></div>
+                <div class="h-14 w-40 skeleton-pro rounded-full"></div>
+            </header>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                <div class="h-72 skeleton-pro rounded-[2.5rem]"></div>
+                <div class="h-72 skeleton-pro rounded-[2.5rem]"></div>
+                <div class="h-72 skeleton-pro rounded-[2.5rem]"></div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <div class="h-64 skeleton-card skeleton"></div>
-                <div class="h-64 skeleton-card skeleton"></div>
-                <div class="h-64 skeleton-card skeleton"></div>
-            </div>
-            <div class="h-96 skeleton-card skeleton mt-8"></div>
+            <div class="h-[400px] skeleton-pro rounded-[3rem] mt-10"></div>
         </div>
     `;
 };
@@ -788,26 +828,45 @@ const renderRecursosTab = async (container) => {
         if (!recurso) return;
 
         showModal(`
-   <h3 class="text-xl font-bold mb-4 text-teal-800 dark:text-teal-200"> Editar Ayuda</h3>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Título</label>
-                    <input type="text" id="edit-rec-title" value="${recurso.titulo || ''}" class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 outline-none focus:border-teal-500 text-gray-900 dark:text-white">
+            <div class="flex flex-col h-full">
+                <header class="shrink-0 flex items-center justify-between bg-gradient-to-r from-teal-800 to-indigo-900 p-8 text-white relative overflow-hidden">
+                    <div class="absolute inset-0 bg-white/5 backdrop-blur-3xl"></div>
+                    <div class="relative z-10 flex items-center gap-5">
+                        <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-[2rem] flex items-center justify-center text-3xl shadow-2xl border border-white/30 animate-float">🧰</div>
+                        <div>
+                            <h3 class="text-2xl font-black tracking-tight leading-none mb-1">Editar Ayuda</h3>
+                            <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Material del Ministerio</p>
+                        </div>
+                    </div>
+                </header>
+
+                <div class="flex-1 p-10 space-y-8 overflow-y-auto custom-scrollbar">
+                    <div class="space-y-6">
+                        <div class="space-y-3">
+                            <label class="label-premium">Título de la Ayuda</label>
+                            <input type="text" id="edit-rec-title" value="${recurso.titulo || ''}" class="input-premium" placeholder="Ej: Video: ¿Por qué estudiar la Biblia?">
+                        </div>
+                        <div class="space-y-3">
+                            <label class="label-premium">URL del Enlace</label>
+                            <input type="url" id="edit-rec-url" value="${recurso.url || ''}" class="input-premium" placeholder="https://jw.org/...">
+                        </div>
+                        <div class="space-y-3">
+                            <label class="label-premium">URL Imagen (Previsualización)</label>
+                            <input type="url" id="edit-rec-img" value="${recurso.imagen || ''}" class="input-premium" placeholder="https://...">
+                        </div>
+                        <div class="space-y-3">
+                            <label class="label-premium">Breve Descripción</label>
+                            <textarea id="edit-rec-desc" class="input-premium min-h-[100px] resize-none" placeholder="¿De qué trata este recurso?">${recurso.descripcion || ''}</textarea>
+                        </div>
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">URL del Enlace</label>
-                    <input type="url" id="edit-rec-url" value="${recurso.url || ''}" class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 outline-none focus:border-teal-500 text-gray-900 dark:text-white">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">URL Imagen (Opcional)</label>
-                    <input type="url" id="edit-rec-img" value="${recurso.imagen || ''}" class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 outline-none focus:border-teal-500 text-gray-900 dark:text-white">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción</label>
-                    <textarea id="edit-rec-desc" rows="3" class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 outline-none focus:border-teal-500 resize-none text-gray-900 dark:text-white">${recurso.descripcion || ''}</textarea>
+
+                <div class="shrink-0 p-8 bg-gray-50 dark:bg-black/40 border-t border-black/5 dark:border-white/5">
+                    <button id="update-rec-btn" class="w-full bg-teal-600 py-4 rounded-2xl text-white font-black shadow-xl shadow-teal-500/20 hover:shadow-teal-500/40 hover:scale-[1.01] active:scale-[0.99] transition-all uppercase tracking-[0.2em] text-[11px]">
+                        Actualizar Material
+                    </button>
                 </div>
             </div>
-            <button id="update-rec-btn" class="w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-3 rounded-xl mt-6">Actualizar</button>
 `, async (modal) => {
             modal.querySelector('#update-rec-btn').addEventListener('click', async () => {
                 const title = modal.querySelector('#edit-rec-title').value;
@@ -879,21 +938,21 @@ const renderAsignacionesView = async (container) => {
 
         showModal(`
             <div class="flex flex-col h-full">
-                <header class="shrink-0 flex items-center justify-between bg-gradient-to-r from-indigo-600 to-purple-700 p-6 text-white relative overflow-hidden">
-                    <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
-                    <div class="relative z-10 flex items-center gap-4">
-                        <div class="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-2xl shadow-inner border border-white/20">📋</div>
+                <header class="shrink-0 flex items-center justify-between bg-gradient-to-r from-indigo-600 to-purple-700 p-8 text-white relative overflow-hidden">
+                    <div class="absolute inset-0 bg-white/5 backdrop-blur-3xl"></div>
+                    <div class="relative z-10 flex items-center gap-5">
+                        <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-[2rem] flex items-center justify-center text-3xl shadow-2xl border border-white/30 animate-float">📋</div>
                         <div>
-                            <h3 class="text-xl font-black tracking-tight">${editId ? 'Editar Registro' : 'Nueva Asignación'}</h3>
-                            <p class="text-[9px] opacity-70 uppercase tracking-[0.3em] font-black">Planificador de Territorio</p>
+                            <h3 class="text-2xl font-black tracking-tight leading-none mb-1">${editId ? 'Editar Registro' : 'Nueva Asignación'}</h3>
+                            <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Planificador de Territorio</p>
                         </div>
                     </div>
                 </header>
 
-                <div class="flex-1 p-6 space-y-6 overflow-y-auto">
-                    <div class="p-1 space-y-6">
-                        <div class="space-y-2">
-                            <label class="block text-[11px] font-black text-indigo-500 uppercase tracking-widest ml-1">📍 ${editId ? 'Territorio Seleccionado' : 'Seleccionar Territorios (Múltiple)'}</label>
+                <div class="flex-1 p-10 space-y-8 overflow-y-auto custom-scrollbar">
+                    <div class="space-y-8">
+                        <div class="space-y-3">
+                            <label class="label-premium">📍 ${editId ? 'Territorio Seleccionado' : 'Seleccionar Territorios (Múltiple)'}</label>
                             ${editId ? `
                                 <div class="bg-indigo-50 dark:bg-indigo-500/10 p-4 rounded-2xl border-2 border-indigo-500/20 flex items-center gap-3">
                                     <span class="text-2xl">📍</span>
@@ -925,11 +984,11 @@ const renderAsignacionesView = async (container) => {
                             `}
                         </div>
 
-                        <div class="space-y-2">
-                            <label class="block text-[11px] font-black text-indigo-500 uppercase tracking-widest ml-1">🚩 Campaña Especial</label>
+                        <div class="space-y-3">
+                            <label class="label-premium">🚩 Campaña Especial</label>
                             <div class="relative group">
-                                <span class="absolute left-4 top-1/2 -translate-y-1/2 opacity-30 group-focus-within:opacity-100 transition-opacity">#</span>
-                                <input type="text" id="asig-campana" value="${item?.campana || ''}" list="campanas-list" class="w-full pl-8 bg-gray-50 dark:bg-black/40 border-2 border-transparent focus:border-indigo-500/50 dark:border-white/5 rounded-2xl p-4 outline-none transition-all font-bold text-gray-800 dark:text-gray-100 placeholder-gray-400 shadow-sm" placeholder="Opcional">
+                                <span class="absolute left-6 top-1/2 -translate-y-1/2 opacity-30 group-focus-within:opacity-100 transition-opacity font-bold">#</span>
+                                <input type="text" id="asig-campana" value="${item?.campana || ''}" list="campanas-list" class="input-premium pl-12" placeholder="Opcional">
                                 <datalist id="campanas-list">
                                     ${[...new Set(allHistory.map(h => h.campana).filter(Boolean))].map(c => `<option value="${c}">`).join('')}
                                 </datalist>
@@ -1376,30 +1435,30 @@ const renderAsignacionesView = async (container) => {
 
         showModal(`
              <div class="flex flex-col h-full">
-                <header class="shrink-0 flex items-center justify-between bg-gradient-to-r from-purple-600 to-indigo-700 p-6 text-white relative overflow-hidden">
-                    <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
-                    <div class="relative z-10 flex items-center gap-4">
-                        <div class="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-2xl shadow-inner border border-white/20">✏️</div>
+                <header class="shrink-0 flex items-center justify-between bg-gradient-to-r from-purple-600 to-indigo-700 p-8 text-white relative overflow-hidden">
+                    <div class="absolute inset-0 bg-white/5 backdrop-blur-3xl"></div>
+                    <div class="relative z-10 flex items-center gap-5">
+                        <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-[2rem] flex items-center justify-center text-3xl shadow-2xl border border-white/30 animate-float">✏️</div>
                         <div>
-                            <h3 class="text-xl font-black tracking-tight">Editar Asignación</h3>
-                            <p class="text-[9px] opacity-70 uppercase tracking-[0.3em] font-black">Territorio ${num}</p>
+                            <h3 class="text-2xl font-black tracking-tight leading-none mb-1">Editar Asignación</h3>
+                            <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Territorio ${num}</p>
                         </div>
                     </div>
                 </header>
 
-                <div class="flex-1 p-6 space-y-5 overflow-y-auto">
-                    <div class="bg-gray-50 dark:bg-white/5 p-4 rounded-2xl border border-black/5 flex items-center gap-3 mb-2">
-                         <span class="text-xl">👤</span>
+                <div class="flex-1 p-10 space-y-8 overflow-y-auto custom-scrollbar">
+                    <div class="bg-indigo-500/5 p-5 rounded-[2rem] border border-indigo-500/10 flex items-center gap-4 mb-4">
+                         <div class="w-12 h-12 bg-white dark:bg-white/5 rounded-2xl flex items-center justify-center text-xl shadow-sm">👤</div>
                          <div class="min-w-0">
-                            <p class="text-[9px] font-black text-gray-400 uppercase tracking-[0.1em]">Actual</p>
-                            <p class="font-bold text-sm truncate">${conductor}</p>
+                            <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Responsable Actual</p>
+                            <p class="font-black text-lg text-slate-800 dark:text-white truncate">${conductor}</p>
                          </div>
                     </div>
 
-                    <div class="space-y-4">
-                        <div class="space-y-2">
-                             <label class="block text-[10px] font-black text-indigo-500 uppercase tracking-widest ml-1">Cambiar Conductor</label>
-                             <select id="edit-asig-new-cond" class="w-full bg-white dark:bg-black/40 border-2 border-transparent focus:border-indigo-500/50 rounded-2xl p-4 outline-none font-bold text-sm shadow-sm">
+                    <div class="space-y-6">
+                        <div class="space-y-3">
+                             <label class="label-premium">Cambiar Conductor</label>
+                             <select id="edit-asig-new-cond" class="input-premium appearance-none cursor-pointer">
                                 ${conductores.sort((a, b) => a.nombre.localeCompare(b.nombre)).map(c => `
                                      <option value="${c.nombre}" ${c.nombre === t.asignado_a ? 'selected' : ''}>${c.nombre}</option>
                                 `).join('')}
@@ -1546,27 +1605,27 @@ const renderAsignacionesView = async (container) => {
             .sort((a, b) => new Date(b.fecha_asignacion || 0) - new Date(a.fecha_asignacion || 0));
 
         showModal(`
-            <div class="flex flex-col h-full">
-                <header class="shrink-0 flex items-center justify-between bg-gradient-to-br from-slate-900 to-slate-800 p-6 text-white relative overflow-hidden">
-                    <div class="absolute top-0 right-0 w-32 h-32 bg-teal-500/10 rounded-full -mr-10 -mt-10 blur-2xl"></div>
-                    <div class="relative z-10 flex items-center gap-4">
-                        <div class="w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-2xl border border-white/10 shadow-2xl">📜</div>
-                        <div>
-                            <h3 class="text-xl font-black tracking-tight">Timeline de Vida</h3>
-                            <p class="text-[9px] opacity-60 uppercase tracking-[0.3em] font-black">Territorio ${territoryNum}</p>
+            <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden shadow-2xl border border-transparent dark:border-white/5">
+                <header class="shrink-0 flex items-center justify-between p-6 bg-white dark:bg-[#0a0f18] border-b border-slate-50 dark:border-white/5">
+                    <button id="modal-back-btn" class="flex items-center gap-2 group">
+                        <div class="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                             <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
                         </div>
+                        <span class="text-xs font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-800 dark:group-hover:text-white transition-colors">Volver</span>
+                    </button>
+                    
+                    <div class="flex flex-col items-end mr-16">
+                        <span class="text-[10px] font-black text-indigo-400 dark:text-indigo-300 uppercase tracking-widest mb-0.5">Historial</span>
+                        <h3 class="text-xl font-black text-slate-800 dark:text-white tracking-tighter">Territorio ${territoryNum}</h3>
                     </div>
                 </header>
                 
-                <div class="flex-1 p-6 relative overflow-y-auto">
-                    <!-- Vertical Line -->
-                    <div class="absolute left-12 top-8 bottom-8 w-0.5 bg-gradient-to-b from-teal-500/50 via-gray-200 dark:via-white/10 to-transparent"></div>
-
-                    <div class="space-y-12">
+                <div class="flex-1 p-6 relative overflow-y-auto custom-scrollbar bg-slate-50/30 dark:bg-black/20">
+                    <div class="space-y-4 max-w-lg mx-auto pb-10">
                         ${history.length === 0 ? `
-                            <div class="py-20 text-center opacity-30 ml-8">
-                                <div class="text-5xl mb-4">📜</div>
-                                <p class="font-black uppercase tracking-widest text-xs">Sin registros históricos</p>
+                            <div class="py-20 text-center">
+                                <div class="text-6xl mb-4 opacity-20 text-slate-300 dark:text-white/10">📜</div>
+                                <p class="font-black uppercase tracking-widest text-xs text-slate-300 dark:text-slate-600">Sin registros históricos</p>
                             </div>
                         ` : history.map((h, index) => {
             const dateAsig = h.fecha_asignacion ? new Date(h.fecha_asignacion) : null;
@@ -1574,57 +1633,73 @@ const renderAsignacionesView = async (container) => {
             const isCurrent = !h.fecha_entrega && h.estado !== 'Completado' && h.estado !== 'Devuelto';
 
             return `
-                                <div class="relative pl-12 group">
-                                    <!-- Indicator Dot -->
-                                    <div class="absolute left-[3.35rem] top-1.5 w-4 h-4 rounded-full border-4 ${isCurrent ? 'bg-teal-500 border-teal-500/30 animate-pulse' : 'bg-white dark:bg-slate-800 border-gray-300 dark:border-white/10'} z-10 group-hover:scale-125 transition-transform"></div>
-                                    
-                                    <div class="morphinglass-card !p-6 border-l-4 ${isCurrent ? 'border-l-teal-500 shadow-teal-500/10' : 'border-l-transparent'} hover:border-l-teal-500 transition-all">
-                                        <div class="flex justify-between items-start mb-4">
+                            <div class="relative group">
+                                <div class="bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-[2rem] p-5 shadow-sm hover:shadow-md transition-all duration-300">
+                                    <div class="flex justify-between items-center mb-4">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-lg shadow-inner">
+                                                ${isCurrent ? '⚡' : '👤'}
+                                            </div>
                                             <div>
-                                                <h4 class="font-black text-gray-900 dark:text-white text-lg">${h.conductor}</h4>
+                                                <h4 class="font-black text-slate-800 dark:text-white text-lg leading-tight uppercase tracking-tight">${h.conductor}</h4>
                                                 <div class="flex items-center gap-2 mt-1">
-                                                    <span class="text-[10px] font-black uppercase tracking-widest ${isCurrent ? 'text-teal-600' : 'text-gray-400'}">${isCurrent ? '⚡ En curso' : '✅ Finalizado'}</span>
-                                                    ${h.auxiliar ? `<span class="text-[10px] text-gray-400">w/ ${h.auxiliar}</span>` : ''}
+                                                    ${isCurrent ?
+                    '<span class="text-[9px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-widest">En Curso</span>' :
+                    '<span class="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Finalizado</span>'
+                }
+                                                    ${h.auxiliar ? `<span class="text-[9px] text-slate-300 dark:text-slate-700">|</span> <span class="text-[9px] text-slate-400 dark:text-slate-500 truncate max-w-[80px]">w/ ${h.auxiliar}</span>` : ''}
                                                 </div>
                                             </div>
-                                            <div class="flex flex-col items-end">
-                                                <span class="text-[10px] font-bold text-gray-400 uppercase">Ciclo #${history.length - index}</span>
-                                            </div>
                                         </div>
-
-                                        <div class="grid grid-cols-2 gap-4">
-                                            <div class="bg-black/5 dark:bg-white/5 rounded-xl p-3 border border-black/5 dark:border-white/5">
-                                                <span class="block text-[8px] font-black text-gray-400 uppercase mb-1">Inició</span>
-                                                <span class="text-xs font-bold text-gray-700 dark:text-gray-300">${dateAsig ? dateAsig.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : '--'}</span>
-                                            </div>
-                                            <div class="bg-black/5 dark:bg-white/5 rounded-xl p-3 border border-black/5 dark:border-white/5">
-                                                <span class="block text-[8px] font-black text-gray-400 uppercase mb-1">Finalizó</span>
-                                                <span class="text-xs font-bold text-gray-700 dark:text-gray-300">${dateEntrega ? dateEntrega.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : (isCurrent ? 'Actual' : '--')}</span>
-                                            </div>
-                                        </div>
-
-                                        ${h.observaciones ? `
-                                            <div class="mt-4 p-3 bg-teal-500/5 rounded-xl border border-teal-500/10 text-left">
-                                                <p class="text-[10px] text-teal-700 dark:text-teal-400 leading-relaxed italic">"${h.observaciones}"</p>
-                                            </div>
-                                        ` : ''}
-
-                                        <div class="mt-6 flex justify-end gap-2 pt-4 border-t border-black/5 dark:border-white/5">
-                                            <button onclick="window.actionEditHist('${h.id}')" class="p-2 text-gray-400 hover:text-teal-600 transition-colors" title="Editar">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                                            </button>
-                                            <button onclick="window.actionDeleteHistUI('${h.id}', '${h.conductor}', '${h.numero}')" class="p-2 text-gray-400 hover:text-red-600 transition-colors" title="Borrar">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                            </button>
+                                        <div class="text-right">
+                                            <span class="text-[8px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest px-2 py-1 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-100 dark:border-white/5">CICLO #${history.length - index}</span>
                                         </div>
                                     </div>
+
+                                    <div class="flex items-center gap-3 p-3 bg-slate-50/50 dark:bg-black/40 rounded-2xl border border-slate-100/50 dark:border-white/5">
+                                        <div class="flex-1 px-2 text-center sm:text-left">
+                                            <span class="block text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.1em] mb-0.5">Asignado</span>
+                                            <span class="text-xs font-black text-slate-700 dark:text-gray-300">
+                                                ${dateAsig ? dateAsig.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : '--'}
+                                            </span>
+                                        </div>
+                                        <div class="w-px h-6 bg-slate-200 dark:bg-white/10"></div>
+                                        <div class="flex-1 px-2 text-center sm:text-left">
+                                            <span class="block text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.1em] mb-0.5">Devuelto</span>
+                                            <span class="text-xs font-black text-slate-700 dark:text-gray-300">
+                                                ${dateEntrega ? dateEntrega.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : (isCurrent ? '<span class="text-indigo-500">Actual</span>' : '--')}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    ${h.observaciones ? `
+                                        <div class="mt-4 pt-4 border-t border-slate-100 dark:border-white/5">
+                                            <p class="text-xs text-slate-400 dark:text-slate-500 italic font-medium leading-relaxed">"${h.observaciones}"</p>
+                                        </div>
+                                    ` : ''}
+
+                                    <div class="flex justify-end gap-2 mt-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button onclick="window.actionEditHist('${h.id}')" class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-white/10 text-slate-400 hover:text-indigo-600 hover:bg-white dark:hover:bg-slate-800 border border-transparent hover:border-slate-100 dark:hover:border-white/10 hover:shadow-md transition-all duration-300">
+                                            ✏️
+                                        </button>
+                                        <button onclick="window.actionDeleteHistUI('${h.id}', '${h.conductor}', '${h.numero}')" class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-white/10 text-slate-400 hover:text-red-500 hover:bg-white dark:hover:bg-slate-800 border border-transparent hover:border-slate-100 dark:hover:border-white/10 hover:shadow-md transition-all duration-300">
+                                            🗑️
+                                        </button>
+                                    </div>
                                 </div>
-                            `;
+                            </div>
+            `;
         }).join('')}
                     </div>
                 </div>
             </div>
         `, null, 'max-w-xl');
+
+        setTimeout(() => {
+            document.getElementById('modal-back-btn').onclick = () => {
+                if (window.openGlobalHistory) window.openGlobalHistory();
+            };
+        }, 0);
     };
 
     // --- GLOBAL HISTORY MANAGER (Move here to be always ready) ---
@@ -1743,33 +1818,60 @@ const renderAsignacionesView = async (container) => {
     window.editHistoryRecord = (id) => showEditHistoryModal(id);
     window.deleteHistoryRecordUI = (id, c, n) => showDeleteHistoryModal(id, c, n);
 
+    // --- EXPOSE GLOBAL HISTORY ---
     const handleGlobalHistory = async () => {
         const allTerrs = [...territorios].sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true }));
 
         showModal(`
-            <div class="overflow-hidden">
-                <header class="flex items-center gap-4 bg-gradient-to-r from-indigo-600 to-blue-700 p-8 text-white shadow-2xl relative overflow-hidden">
+            <div class="rounded-[2.5rem] overflow-hidden bg-white dark:bg-[#0a0f18] shadow-2xl max-w-3xl w-full border border-transparent dark:border-white/5">
+                <header class="flex items-center justify-between bg-gradient-to-r from-teal-600 via-emerald-600 to-cyan-700 p-8 text-white relative">
                     <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
-                    <div class="relative z-10 flex items-center gap-4">
-                        <div class="w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-3xl shadow-inner border border-white/20">📜</div>
+                    <div class="relative z-10 flex items-center gap-5">
+                        <div class="w-14 h-14 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-2xl border border-white/20 shadow-inner overflow-hidden">
+                             <div class="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent"></div>
+                             <span class="relative z-10">📜</span>
+                        </div>
                         <div>
-                            <h3 class="text-2xl font-black tracking-tight">Registro Maestro</h3>
-                            <p class="text-[10px] opacity-70 uppercase tracking-[0.3em] font-black">Historial por Territorio</p>
+                            <h3 class="text-2xl font-black tracking-tight leading-none mb-1">Registro Maestro</h3>
+                            <p class="text-[9px] opacity-70 uppercase tracking-[0.4em] font-black">Historial de Entregas</p>
                         </div>
                     </div>
                 </header>
                 
-                <div class="p-8 grid grid-cols-4 sm:grid-cols-6 gap-3 bg-gray-50 dark:bg-black/20">
-                    ${allTerrs.map(t => `
-                        <button onclick="window.actionHistory('${t.id}', '${t.numero}')" class="h-16 flex flex-col items-center justify-center rounded-2xl bg-white dark:bg-white/5 border border-black/5 hover:border-indigo-500 hover:scale-110 active:scale-95 transition-all group shadow-sm">
-                            <span class="text-[10px] font-black text-gray-400 group-hover:text-indigo-600">ID</span>
-                            <span class="text-lg font-black text-gray-800 dark:text-gray-100">${t.numero}</span>
-                        </button>
-                    `).join('')}
+                <div class="p-6 max-h-[75vh] overflow-y-auto custom-scrollbar bg-slate-50/10 dark:bg-black/20">
+                    <div class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-3">
+                        ${allTerrs.map(t => {
+            const isAssigned = t.estado === 'Asignado' || t.estado === 'Pendiente';
+            // Get last delivery date
+            const tHistory = allHistory.filter(h => (h.territorio_id === t.id || h.numero === t.numero) && h.fecha_entrega)
+                .sort((a, b) => new Date(b.fecha_entrega) - new Date(a.fecha_entrega));
+            const lastDate = tHistory.length > 0 ? new Date(tHistory[0].fecha_entrega) : null;
+            const dateStr = lastDate ? lastDate.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }) : 'DISPONIBLE';
+
+            return `
+                            <button onclick="window.actionHistory('${t.id}', '${t.numero}')" class="flex flex-col items-center justify-center rounded-2xl bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5 p-3 hover:border-teal-500 transition-all duration-300 group shadow-sm hover:shadow-lg hover:shadow-teal-500/10 hover:-translate-y-1 relative aspect-[4/5] min-h-[85px]">
+                                ${isAssigned ? `<div class="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-teal-500 ring-2 ring-teal-50 dark:ring-slate-900 shadow-sm"></div>` : ''}
+                                <div class="flex flex-col items-center">
+                                    <span class="text-[8px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest mb-0.5 group-hover:text-teal-400 transition-colors">ID</span>
+                                    <span class="text-xl font-black text-slate-800 dark:text-white group-hover:text-teal-600 transition-transform group-hover:scale-110">${t.numero}</span>
+                                </div>
+                                
+                                <div class="mt-2 w-full">
+                                    <p class="text-[8px] font-black ${isAssigned ? 'text-slate-400 dark:text-slate-500' : 'text-teal-600 dark:text-teal-400'} text-center uppercase tracking-tight bg-slate-50 dark:bg-black/40 py-1 rounded-lg border border-slate-100/50 dark:border-white/5">
+                                        ${isAssigned ? 'OCUPADO' : (dateStr === 'DISPONIBLE' ? 'DISPONIBLE' : dateStr)}
+                                    </p>
+                                </div>
+                            </button>
+                        `}).join('')}
+                    </div>
                 </div>
             </div>
-        `, null, 'max-w-xl');
+        `, null, 'max-w-3xl');
     };
+    window.openGlobalHistory = handleGlobalHistory;
+
+
+
 
     const renderMain = () => {
         container.innerHTML = `
@@ -1950,14 +2052,14 @@ const renderConfigTab = async (container, initialSub = 'reglas', appVersion) => 
                     </div>
                 </header>
 
-                <div class="flex flex-wrap gap-2 border-b border-gray-200 dark:border-white/10 pb-4 overflow-x-auto scrollbar-hide">
-                    <button class="conf-nav-btn active px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap bg-teal-600 text-white shadow-lg shadow-teal-500/30" data-sub="reglas">📏 Reglas</button>
-                    <button class="conf-nav-btn px-4 py-2 rounded-xl text-sm font-bold text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all whitespace-nowrap" data-sub="territorios">🗺️ Territorios</button>
-                    <button class="conf-nav-btn px-4 py-2 rounded-xl text-sm font-bold text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all whitespace-nowrap" data-sub="personal">👥 Personal</button>
-                    <button class="conf-nav-btn px-4 py-2 rounded-xl text-sm font-bold text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all whitespace-nowrap" data-sub="grupos">🏘️ Grupos</button>
-                    <button class="conf-nav-btn px-4 py-2 rounded-xl text-sm font-bold text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all whitespace-nowrap" data-sub="campanas">🚩 Campañas</button>
-                    <button class="conf-nav-btn px-4 py-2 rounded-xl text-sm font-bold text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all whitespace-nowrap" data-sub="difusion">📢 Difusión</button>
-                    <button class="conf-nav-btn px-4 py-2 rounded-xl text-sm font-bold text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all whitespace-nowrap" data-sub="mantenimiento">🛠️ Mantenimiento</button>
+                <div class="flex flex-wrap gap-4 p-4 -m-4 pb-12 overflow-x-auto scrollbar-hide">
+                    <button class="conf-nav-btn ${initialSub === 'reglas' ? 'active' : ''} px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap" data-sub="reglas">📏 Reglas</button>
+                    <button class="conf-nav-btn ${initialSub === 'territorios' ? 'active' : ''} px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap" data-sub="territorios">🗺️ Territorios</button>
+                    <button class="conf-nav-btn ${initialSub === 'personal' ? 'active' : ''} px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap" data-sub="personal">👥 Personal</button>
+                    <button class="conf-nav-btn ${initialSub === 'grupos' ? 'active' : ''} px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap" data-sub="grupos">🏘️ Grupos</button>
+                    <button class="conf-nav-btn ${initialSub === 'campanas' ? 'active' : ''} px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap" data-sub="campanas">🚩 Campañas</button>
+                    <button class="conf-nav-btn ${initialSub === 'difusion' ? 'active' : ''} px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap" data-sub="difusion">📢 Difusión</button>
+                    <button class="conf-nav-btn ${initialSub === 'mantenimiento' ? 'active' : ''} px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap" data-sub="mantenimiento">🛠️ Mantenimiento</button>
                 </div>
 
                 <div id="config-content" class="min-h-[400px]"></div>
@@ -1970,9 +2072,9 @@ const renderConfigTab = async (container, initialSub = 'reglas', appVersion) => 
     const load = async (sub) => {
         btns.forEach(b => {
             if (b.dataset.sub === sub) {
-                b.className = "conf-nav-btn active px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap bg-teal-600 text-white shadow-lg shadow-teal-500/30";
+                b.className = "conf-nav-btn active px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap bg-teal-600 text-white shadow-[0_15px_30px_-5px_rgba(13,148,136,0.4)] scale-105 z-10";
             } else {
-                b.className = "conf-nav-btn px-4 py-2 rounded-xl text-sm font-bold text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all whitespace-nowrap";
+                b.className = "conf-nav-btn px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap text-gray-400 hover:text-gray-600 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 border border-transparent";
             }
         });
         await loadSubTab(sub, content, await getConfiguracion(), appVersion);
@@ -2232,20 +2334,20 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
 
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
                     <!-- Control Panel (Left Column) -->
-                    <div class="lg:col-span-4 space-y-6">
+                    <div class="lg:col-span-5 flex flex-col gap-6 w-full min-w-0">
                         <!-- Stats Grid -->
-                        <div class="grid grid-cols-3 gap-2 md:gap-4">
-                            <div class="bg-white dark:bg-white/5 p-3 md:p-4 rounded-2xl md:rounded-3xl border border-black/5 dark:border-white/5 text-center flex flex-col items-center justify-center">
-                                <p class="text-[8px] md:text-[9px] font-bold text-gray-400 uppercase mb-1">Terrenos</p>
-                                <p class="text-lg md:text-xl font-black text-teal-600">${tCount}</p>
+                        <div class="grid grid-cols-3 gap-2 md:gap-4 w-full">
+                            <div class="bg-white dark:bg-white/5 p-3 md:p-4 rounded-2xl md:rounded-3xl border border-black/5 dark:border-white/5 text-center flex flex-col items-center justify-center min-w-0 overflow-hidden">
+                                <p class="text-[8px] md:text-[9px] font-bold text-gray-400 uppercase mb-1 truncate w-full">Terrenos</p>
+                                <p class="text-lg md:text-xl font-black text-teal-600 truncate w-full">${tCount}</p>
                             </div>
-                            <div class="bg-white dark:bg-white/5 p-3 md:p-4 rounded-2xl md:rounded-3xl border border-black/5 dark:border-white/5 text-center flex flex-col items-center justify-center">
-                                <p class="text-[8px] md:text-[9px] font-bold text-gray-400 uppercase mb-1">Equipos</p>
-                                <p class="text-lg md:text-xl font-black text-blue-600">${cCount}</p>
+                            <div class="bg-white dark:bg-white/5 p-3 md:p-4 rounded-2xl md:rounded-3xl border border-black/5 dark:border-white/5 text-center flex flex-col items-center justify-center min-w-0 overflow-hidden">
+                                <p class="text-[8px] md:text-[9px] font-bold text-gray-400 uppercase mb-1 truncate w-full">Equipos</p>
+                                <p class="text-lg md:text-xl font-black text-blue-600 truncate w-full">${cCount}</p>
                             </div>
-                            <div class="bg-white dark:bg-white/5 p-3 md:p-4 rounded-2xl md:rounded-3xl border border-black/5 dark:border-white/5 text-center flex flex-col items-center justify-center">
-                                <p class="text-[8px] md:text-[9px] font-bold text-gray-400 uppercase mb-1">Líneas</p>
-                                <p class="text-lg md:text-xl font-black text-amber-600">${pCount}</p>
+                            <div class="bg-white dark:bg-white/5 p-3 md:p-4 rounded-2xl md:rounded-3xl border border-black/5 dark:border-white/5 text-center flex flex-col items-center justify-center min-w-0 overflow-hidden">
+                                <p class="text-[8px] md:text-[9px] font-bold text-gray-400 uppercase mb-1 truncate w-full">Líneas</p>
+                                <p class="text-lg md:text-xl font-black text-amber-600 truncate w-full">${pCount}</p>
                             </div>
                         </div>
 
@@ -2290,8 +2392,6 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                                     <p class="text-[8px] md:text-[9px] text-gray-500">Detección de inconsistencias</p>
                                 </div>
                             </button>
-                        </div>
-
                             <button id="btn-fix-territories" class="w-full flex items-center gap-3 md:gap-4 p-3 md:p-4 bg-white dark:bg-white/5 rounded-xl md:rounded-2xl border border-black/5 dark:border-white/5 hover:bg-indigo-500/5 transition-all text-left">
                                 <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-500 text-sm md:text-lg">🔢</div>
                                 <div>
@@ -2310,22 +2410,24 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                         </div>
 
                         <!-- System Version Info Card -->
-                        <div class="bg-gradient-to-br from-teal-500 to-emerald-600 p-5 md:p-6 rounded-3xl shadow-xl text-white relative overflow-hidden group">
+                        <div class="bg-gradient-to-br from-teal-500 to-emerald-600 p-5 md:p-6 rounded-3xl shadow-xl text-white relative overflow-hidden group w-full mt-4">
                            <div class="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-125 transition-transform duration-1000">
                                <svg class="w-24 h-24 md:w-32 md:h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg>
                            </div>
-                           <h4 class="text-[8px] md:text-[10px] font-black uppercase tracking-widest opacity-80 mb-1">Núcleo del Sistema</h4>
-                           <p class="text-xl md:text-2xl font-black mb-4 md:mb-6">Versión ${appVersion}</p>
-                           
-                           <div class="grid grid-cols-2 gap-2 md:gap-3">
-                               <button id="btn-force-update" class="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white py-2 rounded-lg md:rounded-xl text-[8px] md:text-[9px] font-black uppercase tracking-wider transition-all">Reinstalar</button>
-                               <button id="btn-set-remote-version" class="bg-black/20 hover:bg-black/40 backdrop-blur-md text-white py-2 rounded-lg md:rounded-xl text-[8px] md:text-[9px] font-black uppercase tracking-wider transition-all">Forzar</button>
+                           <div class="relative z-10">
+                               <h4 class="text-[8px] md:text-[10px] font-black uppercase tracking-widest opacity-80 mb-1 truncate">Núcleo del Sistema</h4>
+                               <p class="text-xl md:text-2xl font-black mb-4 md:mb-6">Versión ${appVersion || '3.1.5'}</p>
+                               
+                               <div class="grid grid-cols-2 gap-2 md:gap-3">
+                                   <button id="btn-force-update" class="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white py-2 rounded-lg md:rounded-xl text-[8px] md:text-[9px] font-black uppercase tracking-wider transition-all">Reinstalar</button>
+                                   <button id="btn-set-remote-version" class="bg-black/20 hover:bg-black/40 backdrop-blur-md text-white py-2 rounded-lg md:rounded-xl text-[8px] md:text-[9px] font-black uppercase tracking-wider transition-all">Forzar</button>
+                               </div>
                            </div>
                         </div>
                     </div>
 
                     <!-- Terminal / Console Area (Right Column) -->
-                    <div class="lg:col-span-8 flex flex-col gap-6">
+                    <div class="lg:col-span-7 flex flex-col gap-6">
                         <div class="flex-1 bg-[#0b0c10] rounded-3xl border border-white/10 shadow-3xl flex flex-col overflow-hidden min-h-[400px] md:min-h-[500px] relative">
                             <!-- Terminal Header -->
                             <div class="bg-white/5 border-b border-white/5 p-4 flex items-center justify-between">
@@ -2346,7 +2448,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                                 <div class="space-y-1" id="console-output-stream">
                                     <div class="text-teal-400/50 mb-4 animate-pulse">_ CONFIGURANDO ENTORNO DE DIAGNÓSTICO...</div>
                                     <div class="text-gray-600">> Inicializando módulos de integridad de Firebase...</div>
-                                    <div class="text-gray-600">> Conexión establecida con clúster v3.0.0.</div>
+                                    <div class="text-gray-600">> Conexión establecida con clúster v3.1.5.</div>
                                     <div class="text-gray-600 text-[9px] opacity-40 italic mt-2">Ready for operation. System health: 100% stable.</div>
                                 </div>
                             </div>
@@ -2774,30 +2876,30 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
 
             showModal(`
                 <div class="flex flex-col h-full">
-                    <header class="shrink-0 flex items-center justify-between bg-gradient-to-r from-teal-600 to-emerald-700 p-6 text-white relative overflow-hidden">
-                        <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
-                        <div class="relative z-10 flex items-center gap-4">
-                            <div class="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-2xl shadow-inner border border-white/20">🗺️</div>
+                    <header class="shrink-0 flex items-center justify-between bg-gradient-to-r from-teal-600 to-emerald-700 p-8 text-white relative overflow-hidden">
+                        <div class="absolute inset-0 bg-white/5 backdrop-blur-3xl"></div>
+                        <div class="relative z-10 flex items-center gap-5">
+                            <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-[2rem] flex items-center justify-center text-3xl shadow-2xl border border-white/30 animate-float">🗺️</div>
                             <div>
-                                <h3 class="text-xl font-black tracking-tight">Editar Territorio</h3>
-                                <p class="text-[9px] opacity-70 uppercase tracking-[0.3em] font-black">Identificador ${t.numero}</p>
+                                <h3 class="text-2xl font-black tracking-tight leading-none mb-1">Editar Territorio</h3>
+                                <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Identificador ${t.numero}</p>
                             </div>
                         </div>
                     </header>
 
-                    <div class="flex-1 p-6 space-y-6 overflow-y-auto">
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-[10px] uppercase font-black text-teal-600 mb-1.5 ml-1">Número de Territorio</label>
-                                <input type="text" id="edit-t-num" value="${t.numero}" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3.5 text-gray-900 dark:text-white font-bold outline-none focus:border-teal-500 shadow-sm">
+                    <div class="flex-1 p-10 space-y-8 overflow-y-auto custom-scrollbar">
+                        <div class="space-y-6">
+                            <div class="space-y-3">
+                                <label class="label-premium">Número de Territorio</label>
+                                <input type="text" id="edit-t-num" value="${t.numero}" class="input-premium">
                             </div>
-                            <div>
-                                <label class="block text-[10px] uppercase font-black text-teal-600 mb-1.5 ml-1">Manzanas / Sectores</label>
-                                <input type="text" id="edit-t-manzanas" value="${t.manzanas || ''}" placeholder="Ej: 1, 2, 3..." class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3.5 text-gray-900 dark:text-white font-bold outline-none focus:border-teal-500 shadow-sm">
+                            <div class="space-y-3">
+                                <label class="label-premium">Manzanas / Sectores</label>
+                                <input type="text" id="edit-t-manzanas" value="${t.manzanas || ''}" placeholder="Ej: 1, 2, 3..." class="input-premium">
                             </div>
 
-                            <div>
-                                <label class="block text-[10px] uppercase font-black text-teal-600 mb-1.5 ml-1">Imagen del Mapa</label>
+                            <div class="space-y-3">
+                                <label class="label-premium">Imagen del Mapa</label>
                                 <div class="bg-gray-50 dark:bg-black/20 p-4 rounded-2xl border border-dashed border-gray-300 dark:border-white/10">
                                     <div class="flex items-center gap-4">
                                         <label class="cursor-pointer bg-teal-600 hover:bg-teal-500 text-white px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-teal-500/20 active:scale-95 flex items-center gap-2">
@@ -2924,12 +3026,15 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
         };
 
         container.innerHTML = `
-            <div class="flex justify-between items-center mb-6">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <div>
                     <h3 class="font-bold text-xl text-teal-800 dark:text-teal-100">Directorio de Personal</h3>
                     <p class="text-xs text-gray-500 dark:text-gray-400">Gestiona publicadores, conductores y administradores</p>
                 </div>
-                <button id="btn-add-person" class="btn-premium px-6 py-2.5 rounded-xl text-sm">+ Nuevo Registro</button>
+                
+                <div class="flex items-center gap-4">
+                    <button id="btn-add-person" class="btn-premium px-6 py-2.5 rounded-xl text-sm font-black">+ Nuevo Registro</button>
+                </div>
             </div>
             <div class="space-y-3 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
                 ${publicadores.map(p => `
@@ -2956,6 +3061,8 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
             </div>
         `;
 
+
+
         const openPersonModal = (person = null) => {
             const isEdit = !!person;
             const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
@@ -2964,28 +3071,28 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
 
             showModal(`
                 <div class="flex flex-col h-full">
-                    <header class="shrink-0 flex items-center justify-between bg-gradient-to-r from-teal-700 to-indigo-800 p-6 text-white relative overflow-hidden">
-                        <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
-                        <div class="relative z-10 flex items-center gap-4">
-                            <div class="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-2xl shadow-inner border border-white/20">👤</div>
+                    <header class="shrink-0 flex items-center justify-between bg-gradient-to-r from-teal-700 to-indigo-800 p-8 text-white relative overflow-hidden">
+                        <div class="absolute inset-0 bg-white/5 backdrop-blur-3xl"></div>
+                        <div class="relative z-10 flex items-center gap-5">
+                            <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-[2rem] flex items-center justify-center text-3xl shadow-2xl border border-white/30 animate-float">👤</div>
                             <div>
-                                <h3 class="text-xl font-black tracking-tight">${isEdit ? 'Editar Registro' : 'Nuevo Registro'}</h3>
-                                <p class="text-[9px] opacity-70 uppercase tracking-[0.3em] font-black">Gestión de Personal</p>
+                                <h3 class="text-2xl font-black tracking-tight leading-none mb-1">${isEdit ? 'Editar Registro' : 'Nuevo Registro'}</h3>
+                                <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Gestión de Personal</p>
                             </div>
                         </div>
                     </header>
 
-                    <div class="flex-1 p-6 space-y-6 overflow-y-auto custom-scrollbar">
-                        <div class="space-y-6">
+                    <div class="flex-1 p-10 space-y-8 overflow-y-auto custom-scrollbar">
+                        <div class="space-y-8">
                             <!-- Datos Básicos -->
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-[10px] font-black uppercase text-teal-600 mb-1.5 ml-1 tracking-widest">Nombre Completo</label>
-                                    <input type="text" id="p-name" value="${person?.nombre || ''}" placeholder="Ej: Juan Pérez" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3.5 text-sm font-bold focus:border-indigo-500 outline-none shadow-sm transition-all">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="space-y-3">
+                                    <label class="label-premium">Nombre Completo</label>
+                                    <input type="text" id="p-name" value="${person?.nombre || ''}" placeholder="Ej: Juan Pérez" class="input-premium">
                                 </div>
-                                <div>
-                                    <label class="block text-[10px] font-black uppercase text-teal-600 mb-1.5 ml-1 tracking-widest">WhatsApp / Teléfono</label>
-                                    <input type="text" id="p-phone" value="${person?.telefono || ''}" placeholder="+593..." class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3.5 text-sm font-mono font-bold focus:border-indigo-500 outline-none shadow-sm transition-all">
+                                <div class="space-y-3">
+                                    <label class="label-premium">WhatsApp / Teléfono</label>
+                                    <input type="text" id="p-phone" value="${person?.telefono || ''}" placeholder="+593..." class="input-premium font-mono">
                                 </div>
                             </div>
 
@@ -3056,17 +3163,21 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                             <div id="p-modules-section" class="p-5 bg-indigo-500/5 rounded-[2rem] border border-indigo-500/10 ${person?.es_conductor ? '' : 'opacity-20 pointer-events-none grayscale'} transition-all duration-500">
                                 <label class="block text-[10px] font-black uppercase text-indigo-600 mb-4 ml-1 tracking-widest">Módulos Habilitados</label>
                                 <div class="grid grid-cols-1 gap-2">
-                                    <label class="flex items-center justify-between p-4 bg-white/40 dark:bg-black/20 rounded-xl border border-black/5 dark:border-white/5 cursor-pointer hover:bg-indigo-500/5 transition-all group">
-                                        <span class="text-xs font-bold text-gray-600 dark:text-gray-400 group-hover:text-indigo-600 transition-colors uppercase tracking-widest">Dashboard de Conductor</span>
-                                        <input type="checkbox" id="mod-dashboard" class="p-mod-check w-5 h-5 accent-indigo-600" ${person?.modulos?.dashboard !== false ? 'checked' : ''}>
+                                    <label class="flex items-center justify-between p-4 bg-white/40 dark:bg-black/20 rounded-xl border border-black/5 dark:border-white/5 cursor-pointer hover:bg-teal-500/5 transition-all group">
+                                        <span class="text-xs font-bold text-gray-600 dark:text-gray-400 group-hover:text-teal-600 transition-colors uppercase tracking-widest">Agenda Semanal</span>
+                                        <input type="checkbox" id="mod-agenda" class="p-mod-check w-5 h-5 accent-teal-600" ${person?.modulos?.agenda !== false && (person?.modulos?.dashboard !== false) ? 'checked' : ''}>
                                     </label>
-                                    <label class="flex items-center justify-between p-4 bg-white/40 dark:bg-black/20 rounded-xl border border-black/5 dark:border-white/5 cursor-pointer hover:bg-indigo-500/5 transition-all group">
-                                        <span class="text-xs font-bold text-gray-600 dark:text-gray-400 group-hover:text-indigo-600 transition-colors uppercase tracking-widest">Programa Semanal</span>
-                                        <input type="checkbox" id="mod-programa" class="p-mod-check w-5 h-5 accent-indigo-600" ${person?.modulos?.programa !== false ? 'checked' : ''}>
+                                    <label class="flex items-center justify-between p-4 bg-white/40 dark:bg-black/20 rounded-xl border border-black/5 dark:border-white/5 cursor-pointer hover:bg-teal-500/5 transition-all group">
+                                        <span class="text-xs font-bold text-gray-600 dark:text-gray-400 group-hover:text-teal-600 transition-colors uppercase tracking-widest">Programa Semanal</span>
+                                        <input type="checkbox" id="mod-programa" class="p-mod-check w-5 h-5 accent-teal-600" ${person?.modulos?.programa !== false ? 'checked' : ''}>
                                     </label>
-                                    <label class="flex items-center justify-between p-4 bg-white/40 dark:bg-black/20 rounded-xl border border-black/5 dark:border-white/5 cursor-pointer hover:bg-indigo-500/5 transition-all group">
-                                        <span class="text-xs font-bold text-gray-600 dark:text-gray-400 group-hover:text-indigo-600 transition-colors uppercase tracking-widest">Predicación Telefónica</span>
-                                        <input type="checkbox" id="mod-telefonos" class="p-mod-check w-5 h-5 accent-indigo-600" ${person?.modulos?.telefonos !== false ? 'checked' : ''}>
+                                    <label class="flex items-center justify-between p-4 bg-white/40 dark:bg-black/20 rounded-xl border border-black/5 dark:border-white/5 cursor-pointer hover:bg-teal-500/5 transition-all group">
+                                        <span class="text-xs font-bold text-gray-600 dark:text-gray-400 group-hover:text-teal-600 transition-colors uppercase tracking-widest">Predicación Telefónica</span>
+                                        <input type="checkbox" id="mod-telefonos" class="p-mod-check w-5 h-5 accent-teal-600" ${person?.modulos?.telefonos !== false ? 'checked' : ''}>
+                                    </label>
+                                    <label class="flex items-center justify-between p-4 bg-white/40 dark:bg-black/20 rounded-xl border border-black/5 dark:border-white/5 cursor-pointer hover:bg-red-500/5 transition-all group">
+                                        <span class="text-xs font-bold text-gray-600 dark:text-gray-400 group-hover:text-red-600 transition-colors uppercase tracking-widest">Misión Rescate</span>
+                                        <input type="checkbox" id="mod-rescue" class="p-mod-check w-5 h-5 accent-red-600" ${person?.modulos?.rescue ? 'checked' : ''}>
                                     </label>
                                 </div>
                             </div>
@@ -3157,9 +3268,10 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                         privilegios: Array.from(modal.querySelectorAll('.p-priv:checked')).map(cb => cb.value),
                         disponibilidad: isCondCheck.checked ? Array.from(modal.querySelectorAll('.p-avail-check:checked')).map(cb => cb.value) : [],
                         modulos: {
-                            dashboard: (isCondCheck.checked || isConductorPriv) ? modal.querySelector('#mod-dashboard').checked : (person?.modulos?.dashboard || false),
+                            agenda: (isCondCheck.checked || isConductorPriv) ? modal.querySelector('#mod-agenda').checked : (person?.modulos?.agenda || person?.modulos?.dashboard || false),
                             programa: (isCondCheck.checked || isConductorPriv) ? modal.querySelector('#mod-programa').checked : (person?.modulos?.programa || false),
-                            telefonos: true // Siempre habilitado según requerimiento
+                            telefonos: (isCondCheck.checked || isConductorPriv) ? modal.querySelector('#mod-telefonos').checked : (person?.modulos?.telefonos || false),
+                            rescue: (isCondCheck.checked || isConductorPriv) ? modal.querySelector('#mod-rescue').checked : (person?.modulos?.rescue || false)
                         }
                     };
 
@@ -3387,7 +3499,7 @@ const renderTelefonosTab = async (container) => {
     const btnSummaries = document.getElementById('btn-view-session-summaries');
     if (btnSummaries) {
         btnSummaries.addEventListener('click', async () => {
-            const { getSessionSummaries } = await import('../data/firestore-services.js?v=3.0.0');
+            const { getSessionSummaries } = await import('../data/firestore-services.js?v=3.2.0');
             const summaries = await getSessionSummaries();
 
             const modal = document.createElement('div');
@@ -3730,43 +3842,66 @@ const renderTelefonosTab = async (container) => {
         const estados = ['Sin asignar', 'Asignado', 'Contestaron', 'No contestan', 'Colgaron', 'Revisita', 'No llamar', 'Suspendido', 'Testigo'];
 
         showModal(`
-            <h3 class="text-xl font-bold mb-4 text-teal-600 dark:text-teal-400">Editar Registro Telefónico</h3>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-xs uppercase text-gray-700 dark:text-gray-400 mb-1 font-bold">Número</label>
-                    <input type="text" id="edit-p-num" value="${t.numero}" class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded p-2 text-gray-900 dark:text-white focus:border-teal-500 outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs uppercase text-gray-700 dark:text-gray-400 mb-1 font-bold">Nombre Propietario</label>
-                    <input type="text" id="edit-p-prop" value="${t.propietario || ''}" class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded p-2 text-gray-900 dark:text-white focus:border-teal-500 outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs uppercase text-gray-700 dark:text-gray-400 mb-1 font-bold">Dirección</label>
-                    <input type="text" id="edit-p-dir" value="${t.direccion || ''}" class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded p-2 text-gray-900 dark:text-white focus:border-teal-500 outline-none">
-                </div>
-                
-                <div class="grid grid-cols-2 gap-4">
-                     <div>
-                        <label class="block text-xs uppercase text-gray-700 dark:text-gray-400 mb-1 font-bold">Asignado a (Publicador)</label>
-                        <select id="edit-p-pub" class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded p-2 text-gray-900 dark:text-white focus:border-teal-500 outline-none">
-                            <option value="">Sin asignar</option>
-                            ${publicadores.map(p => `<option value="${p.nombre}" ${t.asignado_a === p.nombre ? 'selected' : ''}>${p.nombre}</option>`).join('')}
-                        </select>
+            <div class="flex flex-col h-full">
+                <header class="shrink-0 flex items-center justify-between bg-gradient-to-r from-teal-600 to-indigo-700 p-8 text-white relative overflow-hidden">
+                    <div class="absolute inset-0 bg-white/5 backdrop-blur-3xl"></div>
+                    <div class="relative z-10 flex items-center gap-5">
+                        <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-[2rem] flex items-center justify-center text-3xl shadow-2xl border border-white/30 animate-float">📞</div>
+                        <div>
+                            <h3 class="text-2xl font-black tracking-tight leading-none mb-1">Editar Teléfono</h3>
+                            <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Registro ID: ${t.numero.slice(-4)}</p>
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-xs uppercase text-gray-700 dark:text-gray-400 mb-1 font-bold">Estado</label>
-                        <select id="edit-p-estado" class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded p-2 text-gray-900 dark:text-white focus:border-teal-500 outline-none">
-                            ${estados.map(e => `<option value="${e}" ${t.estado === e ? 'selected' : ''}>${e}</option>`).join('')}
-                        </select>
+                </header>
+
+                <div class="flex-1 p-10 space-y-8 overflow-y-auto custom-scrollbar">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-3">
+                            <label class="label-premium">Número Telefónico</label>
+                            <input type="text" id="edit-p-num" value="${t.numero}" class="input-premium">
+                        </div>
+                        <div class="space-y-3">
+                            <label class="label-premium">Nombre Propietario</label>
+                            <input type="text" id="edit-p-prop" value="${t.propietario || ''}" list="prop-list" class="input-premium">
+                            <datalist id="prop-list">
+                                ${[...new Set(telefonos.map(x => x.propietario).filter(Boolean))].map(p => `<option value="${p}">`).join('')}
+                            </datalist>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <label class="label-premium">Dirección de Domicilio</label>
+                        <input type="text" id="edit-p-dir" value="${t.direccion || ''}" class="input-premium">
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                         <div class="space-y-3">
+                            <label class="label-premium">Asignado a</label>
+                            <select id="edit-p-pub" class="input-premium appearance-none cursor-pointer">
+                                <option value="">Sin asignar</option>
+                                ${publicadores.map(p => `<option value="${p.nombre}" ${t.asignado_a === p.nombre ? 'selected' : ''}>${p.nombre}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="space-y-3">
+                            <label class="label-premium">Estado de Llamada</label>
+                            <select id="edit-p-estado" class="input-premium appearance-none cursor-pointer">
+                                ${estados.map(e => `<option value="${e}" ${t.estado === e ? 'selected' : ''}>${e}</option>`).join('')}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <label class="label-premium">Observaciones / Comentarios</label>
+                        <textarea id="edit-p-obs" class="input-premium min-h-[120px] resize-none">${t.comentario || t.observaciones || ''}</textarea>
                     </div>
                 </div>
 
-                <div>
-                    <label class="block text-xs uppercase text-gray-700 dark:text-gray-400 mb-1 font-bold">Observaciones / Comentarios</label>
-                    <textarea id="edit-p-obs" class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded p-2 text-gray-900 dark:text-white focus:border-teal-500 outline-none h-20 resize-none">${t.comentario || t.observaciones || ''}</textarea>
+                <div class="shrink-0 p-8 bg-gray-50 dark:bg-black/40 border-t border-black/5 dark:border-white/5">
+                    <button id="update-phone" class="w-full bg-teal-600 py-4 rounded-2xl text-white font-black shadow-xl shadow-teal-500/20 hover:shadow-teal-500/40 hover:scale-[1.01] active:scale-[0.99] transition-all uppercase tracking-[0.2em] text-[11px]">
+                        Guardar Cambios Registro
+                    </button>
                 </div>
             </div>
-            <button id="update-phone" class="w-full bg-teal-600 py-3 rounded-lg text-white mt-6 hover:bg-teal-500 transition-colors font-bold shadow-lg shadow-teal-500/20">Actualizar Registro</button>
         `, async (modal) => {
             modal.querySelector('#update-phone').addEventListener('click', async () => {
                 const assignedTo = modal.querySelector('#edit-p-pub').value;

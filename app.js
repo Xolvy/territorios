@@ -1,19 +1,19 @@
 import './modules/extensions.mjs';
-import { auth, db } from './firebase-config.js?v=3.0.0';
+import { auth, db } from './firebase-config.js?v=3.2.0';
 import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
-import { renderLogin } from './modules/login.js?v=3.0.0';
-import { renderAdminDashboard } from './modules/admin-dashboard.js?v=3.0.0';
-import { renderConductorDashboard } from './modules/conductor-dashboard.js?v=3.0.0';
-import { getPermisosUsuario, getSystemVersion, migrateConductoresToPublicadores } from './data/firestore-services.js?v=3.0.0';
-import { showNotification } from './modules/utils/helpers.js?v=3.0.0';
-import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js?v=3.0.0';
+import { renderLogin } from './modules/login.js?v=3.2.0';
+import { renderAdminDashboard } from './modules/admin-dashboard.js?v=3.2.0';
+import { renderConductorDashboard } from './modules/conductor-dashboard.js?v=3.2.0';
+import { getPermisosUsuario, getSystemVersion, migrateConductoresToPublicadores } from './data/firestore-services.js?v=3.2.0';
+import { showNotification } from './modules/utils/helpers.js?v=3.2.0';
+import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js?v=3.2.0';
 
 // Init Theme
 initTheme();
 document.body.appendChild(createThemeToggle());
 
-const APP_VERSION = '3.0.0';
+const APP_VERSION = '3.2.0';
 
 // --- SUCCESS CONFIRMATION AFTER UPDATE ---
 const checkUpdateSuccess = () => {
@@ -176,95 +176,7 @@ const setupOfflineListener = () => {
 };
 setupOfflineListener();
 
-// --- PREMIUM STYLES INJECTION ---
-const injectStyles = () => {
-    const style = document.createElement('style');
-    style.innerHTML = `
-        .version-modal-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(10px);
-            z-index: 10000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem;
-            animation: fadeIn 0.4s ease-out;
-        }
-        .version-modal-content {
-            background: white;
-            padding: 2.5rem;
-            border-radius: 2rem;
-            max-width: 450px;
-            width: 100%;
-            text-align: center;
-            box-shadow: 0 25px 50px -12px rgba(0, 150, 136, 0.5);
-            border: 1px solid rgba(0, 150, 136, 0.2);
-        }
-        .dark .version-modal-content {
-            background: #0f172a;
-            color: white;
-            border-color: rgba(255, 255, 255, 0.1);
-        }
-        .version-modal-content h2 {
-            font-size: 1.5rem;
-            font-weight: 800;
-            margin-bottom: 1rem;
-            color: #0d9488;
-        }
-        .version-modal-content p {
-            font-size: 0.95rem;
-            color: #475569;
-            margin-bottom: 1.5rem;
-            line-height: 1.6;
-        }
-        .dark .version-modal-content p { color: #94a3b8; }
-        .version-modal-timer {
-            font-size: 0.85rem;
-            background: #f1f5f9;
-            padding: 0.75rem;
-            border-radius: 1rem;
-            margin-bottom: 1.5rem;
-            font-family: monospace;
-            color: #64748b;
-        }
-        .dark .version-modal-timer { background: rgba(255,255,255,0.05); color: #94a3b8; }
-        .version-modal-btn {
-            background: #0d9488;
-            color: white;
-            padding: 1rem 2rem;
-            border-radius: 1rem;
-            font-weight: 600;
-            width: 100%;
-            transition: all 0.3s ease;
-            box-shadow: 0 10px 15px -3px rgba(13, 148, 136, 0.3);
-        }
-        .version-modal-btn:hover {
-            background: #0f766e;
-            transform: translateY(-2px);
-        }
-        #offline-banner {
-            box-shadow: 0 10px 30px -5px rgba(217, 119, 6, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(12px);
-        }
-        #offline-banner.active {
-            transform: translate(-50%, 0) !important;
-        }
-        #pwa-install-banner {
-            box-shadow: 0 10px 40px -10px rgba(13, 148, 136, 0.5);
-            border: 1px solid rgba(13, 148, 136, 0.2);
-            backdrop-filter: blur(16px);
-            z-index: 9999;
-        }
-        #pwa-install-banner.active {
-            transform: translate(-50%, 0) !important;
-        }
-    `;
-    document.head.appendChild(style);
-};
-injectStyles();
+// --- STYLES INJECTED VIA INPUT.CSS ---
 
 // --- VIEW TRANSITIONS ---
 const navigateWithTransition = (renderFn) => {

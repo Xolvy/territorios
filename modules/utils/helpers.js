@@ -23,15 +23,15 @@ export const showNotification = (message, type = 'success') => {
     if (!banner) {
         banner = document.createElement('div');
         banner.id = 'app-notification-banner';
-        banner.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-50 transition-all duration-500 transform -translate-y-20 opacity-0 pointer-events-none';
+        banner.className = 'fixed top-6 left-1/2 -translate-x-1/2 z-[10000] transition-all duration-700 transform -translate-y-32 opacity-0 pointer-events-none scale-90';
         banner.innerHTML = `
-            <div class="bg-gray-900/90 backdrop-blur-md text-white px-6 py-4 rounded-xl shadow-2xl border border-teal-500/30 flex items-center gap-4 min-w-[300px] pointer-events-auto">
-                <div class="bg-teal-500/20 p-2 rounded-full text-teal-300 icon-container">🔔</div>
-                <div class="flex-1">
-                    <h4 class="font-bold text-sm text-teal-100 title">Notificación</h4>
-                    <p class="text-xs text-gray-400 message"></p>
+            <div class="glass-morphism bg-white/60 dark:bg-slate-900/60 backdrop-blur-2xl px-8 py-5 rounded-[2.5rem] shadow-[0_30px_90px_-20px_rgba(0,0,0,0.3)] border border-white/40 dark:border-white/10 flex items-center gap-6 min-w-[340px] pointer-events-auto">
+                <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl icon-container shadow-inner border border-white/20">🔔</div>
+                <div class="flex-1 min-w-0">
+                    <h4 class="font-black text-[10px] uppercase tracking-[0.2em] title mb-1">Notificación</h4>
+                    <p class="text-xs font-bold text-slate-600 dark:text-slate-300 message truncate"></p>
                 </div>
-                <button onclick="this.closest('#app-notification-banner').classList.add('-translate-y-20', 'opacity-0')" class="text-gray-500 hover:text-white transition-colors">✕</button>
+                <button onclick="this.closest('#app-notification-banner').classList.add('-translate-y-32', 'opacity-0', 'scale-90')" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 transition-colors">✕</button>
             </div>
         `;
         document.body.appendChild(banner);
@@ -43,25 +43,28 @@ export const showNotification = (message, type = 'success') => {
     const title = banner.querySelector('.title');
 
     if (type === 'error') {
-        icon.textContent = '⚠️';
-        icon.className = 'bg-red-500/20 p-2 rounded-full text-red-300 icon-container';
-        title.className = 'font-bold text-sm text-red-100 title';
+        icon.textContent = '❌';
+        icon.className = 'w-12 h-12 bg-rose-500/20 text-rose-500 rounded-2xl flex items-center justify-center text-2xl icon-container shadow-inner border border-rose-500/20';
+        title.className = 'font-black text-[10px] uppercase tracking-[0.2em] text-rose-500 title mb-1';
+        title.textContent = 'Error de Sistema';
     } else if (type === 'warning') {
         icon.textContent = '⚠️';
-        icon.className = 'bg-yellow-500/20 p-2 rounded-full text-yellow-300 icon-container';
-        title.className = 'font-bold text-sm text-yellow-100 title';
+        icon.className = 'w-12 h-12 bg-amber-500/20 text-amber-500 rounded-2xl flex items-center justify-center text-2xl icon-container shadow-inner border border-amber-500/20';
+        title.className = 'font-black text-[10px] uppercase tracking-[0.2em] text-amber-600 title mb-1';
+        title.textContent = 'Atención';
     } else {
-        icon.textContent = '🔔';
-        icon.className = 'bg-teal-500/20 p-2 rounded-full text-teal-300 icon-container';
-        title.className = 'font-bold text-sm text-teal-100 title';
+        icon.textContent = '✨';
+        icon.className = 'w-12 h-12 bg-teal-500/20 text-teal-500 rounded-2xl flex items-center justify-center text-2xl icon-container shadow-inner border border-teal-500/20';
+        title.className = 'font-black text-[10px] uppercase tracking-[0.2em] text-teal-600 title mb-1';
+        title.textContent = 'Éxito';
     }
 
-    requestAnimationFrame(() => banner.classList.remove('-translate-y-20', 'opacity-0'));
+    requestAnimationFrame(() => banner.classList.remove('-translate-y-32', 'opacity-0', 'scale-90'));
 
     // Clear previous timeout if exists
     if (banner.dataset.timeoutId) clearTimeout(parseInt(banner.dataset.timeoutId));
 
-    const tid = setTimeout(() => banner.classList.add('-translate-y-20', 'opacity-0'), 4000);
+    const tid = setTimeout(() => banner.classList.add('-translate-y-32', 'opacity-0', 'scale-90'), 5000);
     banner.dataset.timeoutId = tid;
 };
 

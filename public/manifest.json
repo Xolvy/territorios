@@ -1,11 +1,12 @@
 {
-  "name": "Gestión de Territorios",
-  "short_name": "Territorios",
+  "name": "Ultra PRO 2026 | Territorios",
+  "short_name": "Ultra PRO",
+  "description": "Sistema Premium de Gestión de Territorios y Predicación",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#111827",
-  "theme_color": "#009688",
-  "orientation": "any",
+  "background_color": "#080b13",
+  "theme_color": "#0d9488",
+  "orientation": "portrait",
   "icons": [
     {
       "src": "icon-192.svg",

@@ -1,4 +1,4 @@
-import { getTerritorios, getConductores, getGlobalSettings, getHistorialReport } from '../data/firestore-services.js?v=3.0.0';
+import { getTerritorios, getConductores, getGlobalSettings, getHistorialReport } from '../data/firestore-services.js?v=3.2.0';
 
 export const renderAnalyticsView = async (container) => {
     // 1. Fetch settings FIRST to use in the template
@@ -93,9 +93,9 @@ export const renderAnalyticsView = async (container) => {
             </div>
             
             <div class="text-center text-xs text-gray-400 py-4">
-                App Territorios v3.0.0 Oficial • Powered by Antigravity
+                App Territorios v3.1.5 Oficial • Powered by Antigravity
             </div>
-        </div>
+        </div >
     `;
 
     // Load Data
@@ -190,7 +190,7 @@ export const renderAnalyticsView = async (container) => {
             new Chart(ctxTerr, {
                 type: 'bar',
                 data: {
-                    labels: sortedTerrFreq.map(x => `Terr. ${x[0]}`),
+                    labels: sortedTerrFreq.map(x => `Terr.${x[0]} `),
                     datasets: [{
                         label: 'Veces Trabajado',
                         data: sortedTerrFreq.map(x => x[1]),
@@ -250,7 +250,7 @@ export const renderAnalyticsView = async (container) => {
 
         } catch (e) {
             console.error(e);
-            container.innerHTML = `<div class="text-red-500 p-5">Error cargando analytics: ${e.message}</div>`;
+            container.innerHTML = `< div class="text-red-500 p-5" > Error cargando analytics: ${e.message}</div > `;
         }
     };
 

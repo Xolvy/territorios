@@ -1,5 +1,5 @@
-import { getHistorialReport, rebuildHistoryFromSchedule, getConfiguracion } from '../data/firestore-services.js?v=3.0.0';
-import { showNotification, generatePlainXLS } from './utils/helpers.js?v=3.0.0';
+import { getHistorialReport, rebuildHistoryFromSchedule, getConfiguracion } from '../data/firestore-services.js?v=3.2.0';
+import { showNotification, generatePlainXLS } from './utils/helpers.js?v=3.2.0';
 
 export const renderHistoryTab = (container) => {
     container.innerHTML = `
@@ -266,8 +266,8 @@ const renderReport = (dataInRange, allHistory, startDate, endDate, yearLabel, co
 
     dataInRange.forEach(item => {
         if (!item.numero) return;
-        // Split territory numbers if they are comma-separated (e.g. "1, 2")
-        const nums = item.numero.toString().split(',').map(n => n.trim().padStart(2, '0'));
+        // Split territory numbers if they are comma or slash separated (e.g. "1, 2" or "1 / 2")
+        const nums = item.numero.toString().split(/[,/]/).map(n => n.trim().padStart(2, '0'));
         nums.forEach(num => {
             if (!territoriesMap.has(num)) territoriesMap.set(num, []);
             territoriesMap.get(num).push({ ...item, numero: num });
@@ -477,14 +477,33 @@ const generateS13PageHtmlTable = (keys, map, allHistory, reportStartDate, assign
         assignments.sort((a, b) => new Date(a.fecha_asignacion) - new Date(b.fecha_asignacion));
 
         // Calculate "Last Completion Date" (Última fecha en que se completó)
-        // Find latest fecha_entrega in allHistory for this territory number that is BEFORE reportStartMs
         let lastCompletionDate = '';
-        if (key) {
+        let foundPrevious = false;
+
+        // 1. If this is a continuation row (offset > 0), check the LAST column of the PREVIOUS row (assignments[assignOffset - 1])
+        if (assignOffset > 0 && assignments[assignOffset - 1]) {
+            const prevAssign = assignments[assignOffset - 1];
+            if (prevAssign.fecha_entrega) {
+                lastCompletionDate = formatDateShort(prevAssign.fecha_entrega);
+            }
+            // Explicit user instruction: "si está en blanco no va nada". 
+            // So if prevAssign.fecha_entrega is null, we leave it blank. 
+            // We flag foundPrevious = true to prevent falling back to historical logic if we want to be strict.
+            // Assuming for continuation rows we ONLY look at the immediate predecessor.
+            foundPrevious = true;
+        }
+
+        // 2. If it's the first row (or fallback if desired), look at history BEFORE report range
+        if (!foundPrevious && key) {
             const previousCompletions = allHistory
                 .filter(h => {
                     if (!h.numero || !h.fecha_entrega) return false;
-                    const hNum = h.numero.toString().trim().padStart(2, '0');
-                    return hNum === key && new Date(h.fecha_entrega).getTime() < reportStartMs;
+                    // Handle regex split for history items too if needed, but usually individual history items are atomic.
+                    // However, if legacy data has "1 / 2", filtering by "01" might fail.
+                    // We assume history data is normalized or we do a loose check.
+                    // For robust check: Split h.numero and check if ANY match key.
+                    const hNums = h.numero.toString().split(/[,/]/).map(n => n.trim().padStart(2, '0'));
+                    return hNums.includes(key) && new Date(h.fecha_entrega).getTime() < reportStartMs;
                 })
                 .sort((a, b) => new Date(b.fecha_entrega).getTime() - new Date(a.fecha_entrega).getTime());
 

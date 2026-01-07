@@ -1,15 +1,14 @@
-import { auth } from '../firebase-config.js?v=3.0.0';
+import { auth } from '../firebase-config.js?v=3.2.0';
 import {
-    getProgramaSemanal, getMisTerritorios, returnTerritorio,
-    returnTerritorioParcial, solicitarNumeros, releaseUnusedTelefonos, updateTelefonoStatus,
-    addPublicador, getPublicadores, getTelefonos, updateTelefono, addTelefono,
-    getConductores, updateConductor,
-    getPermisosUsuario, getTerritorios, getConfiguracion,
-    getRecursos, getTerritoryHistory, transferTerritory // Added
-} from '../data/firestore-services.js?v=3.0.0';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl } from './utils/helpers.js?v=3.0.0';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=3.0.0';
-import { MapViewer } from './map-viewer.js?v=3.0.0';
+    getTerritorios, getConductores, getPublicadores, getTelefonos, updateTelefono,
+    getRecursos, getConfiguracion,
+    getPredicacionPublica, savePredicacionPublica,
+    getProgramaSemanal, getTerritoryHistory,
+    addPublicador, updatePublicador, deletePublicador // Added for management within dashboard
+} from '../data/firestore-services.js?v=3.2.0';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl } from './utils/helpers.js?v=3.2.0';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=3.2.0';
+import { MapViewer } from './map-viewer.js?v=3.2.0';
 
 
 
@@ -17,9 +16,15 @@ import { MapViewer } from './map-viewer.js?v=3.0.0';
 
 // --- REUSE INTERACTIVE MAP ---
 window.viewMapFromReport = async (id) => {
+    // Show spinner in button if we could, but let's just fetch
+    showNotification("Cargando mapa interactivo...", "info");
     const territories = await getTerritorios();
     const t = territories.find(x => x.id === id);
-    if (t) window.openInteractiveMap(t);
+    if (t) {
+        window.openInteractiveMap(t);
+    } else {
+        showNotification("No se encontró la data del territorio para el mapa.", "error");
+    }
 };
 
 const showModal = (content, onOpen, maxWidth = 'max-w-md') => {
@@ -37,14 +42,14 @@ const showModal = (content, onOpen, maxWidth = 'max-w-md') => {
     };
 
     modalContainer.innerHTML = `
-        <div class="w-full ${maxWidth} relative animate-fade-in bg-white dark:bg-[#0a0a0a] flex flex-col rounded-[2.5rem] shadow-[0_40px_80px_-20px_rgba(0,0,0,0.5)] max-h-[95vh] border border-black/5 dark:border-white/10 overflow-hidden m-2 sm:m-4">
-            <button class="absolute top-4 right-4 text-white/50 hover:text-white z-[60] p-2 bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-full transition-all border border-white/5 group shadow-lg" 
+        <div class="w-full ${maxWidth} relative animate-slide-up bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl flex flex-col rounded-[3rem] shadow-[0_40px_100px_-20px_hsla(var(--glass-shadow))] max-h-[92vh] border border-white/20 dark:border-white/5 overflow-hidden m-4">
+            <button class="absolute top-6 right-6 text-slate-400 hover:text-teal-500 z-[60] p-2 bg-slate-100 dark:bg-slate-800 rounded-full transition-all border border-transparent hover:border-teal-500/30 group shadow-md" 
                     id="modal-close-btn">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 group-hover:rotate-90 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
                 </svg>
             </button>
-            <div class="flex-1 overflow-y-auto custom-scrollbar flex flex-col">
+            <div class="flex-1 overflow-y-auto custom-scrollbar flex flex-col px-8 py-10">
                 ${content}
             </div>
         </div>
@@ -70,12 +75,17 @@ window.showCustomAlert = showCustomAlert;
 
 const showCustomConfirm = (message, onConfirm) => {
     showModal(`
-        <div class="text-center space-y-4">
-            <div class="text-4xl">❓</div>
-            <h3 class="text-lg font-bold text-gray-800 dark:text-white">${message}</h3>
-            <div class="flex gap-3 justify-center mt-6">
-                <button id="confirm-cancel" class="px-6 py-2 rounded-xl bg-gray-100 dark:bg-white/5 text-gray-500 font-bold hover:bg-gray-200 transition-all">Cancelar</button>
-                <button id="confirm-ok" class="px-6 py-2 rounded-xl bg-teal-600 text-white font-bold hover:bg-teal-500 shadow-lg shadow-teal-500/20 transition-all">Aceptar</button>
+        <div class="space-y-8 py-4">
+            <div class="flex flex-col items-center text-center space-y-5">
+                <div class="w-20 h-20 bg-amber-500/10 dark:bg-amber-500/20 rounded-[2rem] flex items-center justify-center text-4xl shadow-inner border border-amber-500/20 animate-bounce">❓</div>
+                <div class="space-y-2">
+                    <h3 class="text-2xl font-black text-slate-800 dark:text-white tracking-tight leading-tight px-4">${message}</h3>
+                    <p class="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-black tracking-widest">Confirmación Requerida</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <button id="confirm-cancel" class="p-4 rounded-2xl bg-slate-100 dark:bg-white/5 text-slate-500 font-black text-[11px] uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-white/10 transition-all active:scale-95">Regresar</button>
+                <button id="confirm-ok" class="p-4 rounded-2xl bg-teal-600 text-white font-black text-[11px] uppercase tracking-widest hover:bg-teal-500 shadow-xl shadow-teal-500/30 transition-all active:scale-95">SÍ, PROCEDER</button>
             </div>
         </div>
     `, (modal) => {
@@ -90,12 +100,23 @@ window.showCustomConfirm = showCustomConfirm;
 
 const showCustomPrompt = (message, defaultValue, onConfirm) => {
     showModal(`
-        <div class="space-y-4">
-            <h3 class="text-lg font-bold text-gray-800 dark:text-white">${message}</h3>
-            <input type="text" id="prompt-input" value="${defaultValue || ''}" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-gray-900 dark:text-white outline-none focus:border-teal-500 shadow-sm">
-            <div class="flex gap-3 justify-end mt-6">
-                <button id="prompt-cancel" class="px-6 py-2 rounded-xl bg-gray-100 dark:bg-white/5 text-gray-500 font-bold hover:bg-gray-200 transition-all">Cancelar</button>
-                <button id="prompt-ok" class="px-6 py-2 rounded-xl bg-teal-600 text-white font-bold hover:bg-teal-500 shadow-lg shadow-teal-500/20 transition-all">Aceptar</button>
+        <div class="space-y-8 py-4">
+            <div class="space-y-5">
+                <div class="flex items-center gap-4">
+                    <div class="w-14 h-14 bg-teal-500/10 dark:bg-teal-500/20 rounded-2xl flex items-center justify-center text-2xl shadow-inner border border-teal-500/20">🖊️</div>
+                    <div class="space-y-1">
+                        <h3 class="text-xl font-black text-slate-800 dark:text-white tracking-tight leading-none">${message}</h3>
+                        <p class="text-[10px] text-teal-600 text-teal-400 uppercase font-black tracking-widest">Ingresa la información</p>
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <label class="label-premium">Respuesta Requerida</label>
+                    <input type="text" id="prompt-input" value="${defaultValue || ''}" class="input-premium" placeholder="Escribe aquí...">
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <button id="prompt-cancel" class="p-4 rounded-2xl bg-slate-100 dark:bg-white/5 text-slate-500 font-black text-[11px] uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-white/10 transition-all active:scale-95">Cancelar</button>
+                <button id="prompt-ok" class="p-4 rounded-2xl bg-teal-600 text-white font-black text-[11px] uppercase tracking-widest hover:bg-teal-500 shadow-xl shadow-teal-500/30 transition-all active:scale-95">CONFIRMAR</button>
             </div>
         </div>
     `, (modal) => {
@@ -126,34 +147,59 @@ export const renderConductorDashboard = async (container, nameOrEmail) => {
     }
 
     // Default modules if not set (legacy or unconfigured)
-    const mods = conductorData?.modulos || { dashboard: true, programa: true, telefonos: true };
+    const mods = conductorData?.modulos || { agenda: true, dashboard: true, programa: true, telefonos: true, rescue: false };
+    const hasAgenda = mods.agenda !== false && mods.dashboard !== false; // support legacy key
+
 
     container.innerHTML = `
-        <div class="animate-fade-in pb-20 w-full text-gray-800 dark:text-gray-100">
-            <header class="flex justify-between items-center mb-6 p-4 morphinglass-card">
-                <div>
-                    <h1 class="text-2xl font-bold text-teal-600 dark:text-teal-400">Hola, ${displayName.split('@')[0]}</h1>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Panel de Conductor</p>
+        <div class="animate-fade-in pb-24 w-full max-w-7xl mx-auto p-4 md:p-8">
+            <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 px-8 py-6 glass-morphism border border-white/20 dark:border-white/10 rounded-[2.5rem] shadow-2xl gap-6">
+                <div class="flex items-center gap-5">
+                    <div class="w-16 h-16 bg-gradient-to-br from-teal-500 to-indigo-600 rounded-3xl flex items-center justify-center text-3xl shadow-2xl shadow-teal-500/30 rotate-3 hover:rotate-0 transition-transform duration-500 animate-float">👤</div>
+                    <div class="space-y-1">
+                        <h1 class="text-2xl font-black text-slate-800 dark:text-white tracking-tight">Hola, ${displayName.split(' ')[0]}</h1>
+                        <p class="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-black tracking-[0.2em] flex items-center gap-2">
+                           <span class="relative flex h-2 w-2">
+                              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
+                              <span class="relative inline-flex rounded-full h-2 w-2 bg-teal-500"></span>
+                           </span> Panel Conductor PRO
+                        </p>
+                    </div>
                 </div>
-                <div class="flex items-center gap-2">
-                    <button onclick="window.startOnboarding()" class="bg-blue-100 hover:bg-blue-200 text-blue-600 dark:bg-blue-500/20 dark:hover:bg-blue-500/40 dark:text-blue-200 px-3 py-1 rounded-lg border border-blue-200 dark:border-blue-500/30 text-sm transition-colors shadow-sm font-medium" title="Ayuda">
-                        ❓ Ayuda
+                <div class="flex items-center gap-3 w-full md:w-auto">
+                    <button onclick="window.startOnboarding()" class="flex-1 md:flex-none bg-slate-100/50 hover:bg-white text-slate-600 dark:bg-slate-800/50 dark:hover:bg-slate-800 dark:text-slate-400 px-6 py-3 rounded-2xl border border-white/10 transition-all font-bold text-xs flex items-center justify-center gap-2">
+                        <span>❔</span> Ayuda
                     </button>
-                    <button id="logout-btn" class="bg-red-100 hover:bg-red-200 text-red-600 dark:bg-red-500/20 dark:hover:bg-red-500/40 dark:text-red-200 px-3 py-1 rounded-lg border border-red-200 dark:border-red-500/30 text-sm transition-colors shadow-sm dark:shadow-none font-medium">
-                        Salir
+                    <button id="logout-btn" class="flex-1 md:flex-none bg-slate-100/50 hover:bg-red-50 text-slate-600 hover:text-red-600 dark:bg-slate-800/50 dark:hover:bg-red-500/10 dark:text-slate-400 dark:hover:text-red-400 px-6 py-3 rounded-2xl border border-white/10 transition-all font-bold text-xs flex items-center justify-center gap-2">
+                        Cerrar Sesión
                     </button>
                 </div>
             </header>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Module: Programa Semanal (Agenda) -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Module: Agenda Semanal (Personal) -->
+                <div class="lg:col-span-2 ${hasAgenda ? '' : 'hidden'}">
+                    <div class="flex items-center justify-between mb-5 px-4">
+                        <h3 class="text-xs font-black text-gray-400 uppercase tracking-[0.3em] flex items-center gap-3">
+                           <span class="w-8 h-[1px] bg-gray-300 dark:bg-white/10"></span>
+                           Agenda Semanal (Mis Asignaciones)
+                        </h3>
+                    </div>
+                    <div id="calendar-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div class="skeleton-pro h-32"></div>
+                    </div>
+                </div>
+
+                <!-- Module: Programa Semanal (Global Cards) -->
                 <div class="lg:col-span-2 ${mods.programa !== false ? '' : 'hidden'}">
-                    <h3 class="text-xl font-bold text-teal-800 dark:text-teal-100 mb-3 px-2 flex items-center gap-2">
-                        📅 Programa Semanal
-                    </h3>
-                    <div id="calendar-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <div class="animate-pulse bg-black/5 dark:bg-white/5 h-24 rounded-xl"></div>
-                        <div class="animate-pulse bg-black/5 dark:bg-white/5 h-24 rounded-xl"></div>
+                    <div class="flex items-center justify-between mb-5 px-4">
+                        <h3 class="text-xs font-black text-gray-400 uppercase tracking-[0.3em] flex items-center gap-3">
+                           <span class="w-8 h-[1px] bg-gray-300 dark:bg-white/10"></span>
+                           Programa Semanal
+                        </h3>
+                    </div>
+                    <div id="weekly-program-cards" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 px-2">
+                         <div class="skeleton-pro h-24"></div>
                     </div>
                 </div>
 
@@ -174,25 +220,25 @@ export const renderConductorDashboard = async (container, nameOrEmail) => {
                 </div>
 
                 <!-- Module: Telefonos -->
-                <div class="lg:col-span-2 morphinglass-card h-fit overflow-visible ${mods.telefonos !== false ? '' : 'hidden'}">
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 p-2">
+                <div class="lg:col-span-2 morphinglass-card p-6 md:p-8 ${mods.telefonos !== false ? '' : 'hidden'} border-teal-500/10 dark:border-teal-500/5">
+                    <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 mb-8">
                         <div>
-                            <h3 class="text-xl font-bold text-teal-800 dark:text-teal-100 flex items-center gap-2">
-                                📞 Ministerio Telefónico
+                            <h3 class="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-3">
+                                <span class="text-teal-500">📞</span> Predicación Telefónica
                             </h3>
-                            <div id="phone-progress-info" class="mt-1"></div>
+                            <div id="phone-progress-info" class="mt-2"></div>
                         </div>
-                        <div class="flex flex-wrap gap-2 w-full md:w-auto">
-                            <button id="btn-revisitas" class="flex-1 md:flex-none text-xs bg-amber-600/20 text-amber-700 dark:text-amber-400 border border-amber-600/30 px-3 py-2 rounded-xl hover:bg-amber-600/30 transition-all font-bold flex items-center justify-center gap-1">
+                        <div class="flex flex-wrap gap-2.5 w-full xl:w-auto">
+                            <button id="btn-revisitas" class="flex-1 md:flex-none btn-pro text-[10px] uppercase tracking-widest bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 px-4 py-3 rounded-xl hover:bg-amber-500/20">
                                 ↺ Revisitas
                             </button>
-                            <button id="btn-add-publicador" class="flex-1 md:flex-none text-xs bg-teal-600/20 text-teal-700 dark:text-teal-400 border border-teal-600/30 px-3 py-2 rounded-xl hover:bg-teal-600/30 transition-all font-bold flex items-center justify-center gap-1">
+                            <button id="btn-add-publicador" class="flex-1 md:flex-none btn-pro text-[10px] uppercase tracking-widest bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20 px-4 py-3 rounded-xl hover:bg-teal-500/20">
                                 + Publicador
                             </button>
-                            <button id="btn-zoom" onclick="window.open('https://us02web.zoom.us/j/88366543094?pwd=Z2x4Qjdnck4rSjh2Q2llbXZFaTNiUT09', '_blank')" class="flex-1 md:flex-none text-xs bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-500 transition-all font-black shadow-lg shadow-blue-500/20 flex items-center justify-center gap-1" title="ID: 883 6654 3094 | Pass: 909090">
-                                🎥 UNIRSE A ZOOM
+                            <button id="btn-zoom" onclick="window.open('https://us02web.zoom.us/j/88366543094?pwd=Z2x4Qjdnck4rSjh2Q2llbXZFaTNiUT09', '_blank')" class="flex-1 md:flex-none btn-pro text-[10px] uppercase tracking-widest bg-blue-600 text-white px-5 py-3 rounded-xl hover:bg-blue-500 shadow-xl shadow-blue-500/20">
+                                🎥 ZOOM
                             </button>
-                            <button id="btn-solicitar" class="flex-1 md:flex-none text-xs bg-teal-600 text-white px-4 py-2 rounded-xl hover:bg-teal-500 transition-all font-black shadow-lg shadow-teal-500/20 flex items-center justify-center gap-1">
+                            <button id="btn-solicitar" class="flex-1 md:flex-none btn-pro text-[10px] uppercase tracking-widest bg-teal-600 text-white px-5 py-3 rounded-xl hover:bg-teal-500 shadow-xl shadow-teal-500/20">
                                 + SOLICITAR
                             </button>
                         </div>
@@ -246,7 +292,7 @@ export const renderConductorDashboard = async (container, nameOrEmail) => {
                     </div>
                 </div>
 
-                <div class="lg:col-span-2" id="ayudas-container"></div>
+                <div class="lg:col-span-2 ${mods.rescue ? '' : 'hidden'}" id="ayudas-container"></div>
             </div>
         </div>
         
@@ -273,15 +319,14 @@ export const renderConductorDashboard = async (container, nameOrEmail) => {
     // Expose refresh function/trigger
     window.refreshConductorView = async () => {
         try {
-            await loadUnifiedDashboard(displayName, document.getElementById('calendar-container'), document.getElementById('territorios-container'));
+            const config = await getConfiguracion();
+            const allC = await getConductores();
+            const conductorData = allC.find(c => c.nombre === displayName);
+            const userMods = conductorData?.modulos || { agenda: true, dashboard: true, programa: true, telefonos: true, rescue: false };
+
+            await loadUnifiedDashboard(displayName, document.getElementById('calendar-container'), document.getElementById('territorios-container'), userMods, config);
             const myPhones = await refreshPhones();
             const publicadores = await getPublicadores();
-            // We need to re-init phone module or just update rows? 
-            // initializePhoneModule handles render, so we can just call it (check implementation in next read if needed, but presumably safe)
-            // Actually initializePhoneModule attaches listeners too, better to just clear tbody and re-render?
-            // For now, let's assume calling it is okay or we can just ignore phone refresh if it's not the focus, 
-            // but the user said "changes" generally. 
-            // Let's re-run init, it should be robust.
             initializePhoneModule(myPhones, publicadores, displayName, document.getElementById('phone-tbody'), refreshPhones);
         } catch (e) { console.error("Refresh error", e); }
     };
@@ -295,57 +340,44 @@ export const renderConductorDashboard = async (container, nameOrEmail) => {
     }
 };
 
-const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer) => {
+const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer, userMods, config) => {
     // Hide separate territories container as requested ("fusionar")
     if (territoriosContainer) {
-        territoriosContainer.parentElement.style.display = 'none'; // Hide the entire "Mis Territorios" section wrapper
-        if (document.getElementById('no-territories-msg')) document.getElementById('no-territories-msg').style.display = 'none';
-
-        // Also hide the header title "Mis Territorios" if it exists nearby
-        const possibleHeader = territoriosContainer.parentElement.querySelector('h3');
-        if (possibleHeader && possibleHeader.textContent.includes('Territorios')) possibleHeader.style.display = 'none';
+        const parent = territoriosContainer.parentElement;
+        if (parent) parent.style.display = 'none';
     }
 
     /* --- Onboarding Logic --- */
     window.startOnboarding = () => {
         const steps = [
-            { el: '#calendar-container', msg: 'Aquí verás tu agenda semanal. Si tienes asignación de conducción, aparecerá aquí.', title: '📅 Agenda' },
-            { el: '#territorios-container', msg: 'Tus territorios asignados. Si alguno está en rojo, ¡es porque lleva mucho tiempo o está atrasado! Haz clic en "Avance" para reportar.', title: '🗺️ Territorios' },
-            { el: 'h3:contains("Telefónica")', msg: 'Lista de números asignados para predicar. Usa los botones para solicitar más o agregar otros.', title: '📞 Telefónica' },
-            { el: '#ayudas-container', msg: 'Encuentra enlaces útiles y recursos para tu ministerio aquí.', title: '🧰 Ayudas' }
+            { title: '📅 Agenda Semanal', msg: 'Aquí verás tus turnos de predicación y las tarjetas de territorio asignadas para cada día.' },
+            { title: '📞 Predicación Telefónica', msg: 'Solicita números y gestiona las llamadas de tu grupo desde aquí.' },
+            { title: '🧰 Recursos', msg: 'Accede a enlaces útiles, mapas y material de referencia rápido.' }
         ];
 
         let stepIndex = 0;
         const overlay = document.createElement('div');
-        overlay.id = 'guide-overlay';
-        overlay.className = 'fixed inset-0 bg-black/70 z-50 flex items-center justify-center transition-opacity duration-300';
+        overlay.className = 'fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[100] flex items-center justify-center p-6';
 
         const showStep = () => {
-            if (stepIndex >= steps.length) {
-                overlay.remove();
-                return;
-            }
-            // Simple centered card for simplicity instead of positioning logic (vanilla js complexity)
-            // Or try to find element.
-            // Let's do a centered card that points out what to look for.
             const s = steps[stepIndex];
             overlay.innerHTML = `
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl max-w-sm w-full mx-4 shadow-2xl border border-teal-500 animate-bounce-in text-center">
-                    <div class="text-4xl mb-4 text-teal-600">👆</div>
-                    <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">${s.title}</h3>
-                    <p class="text-gray-600 dark:text-gray-300 mb-6">${s.msg}</p>
-                    <div class="flex justify-between">
-                        <button id="skip-guide" class="text-gray-400 text-sm hover:text-white">Saltar</button>
-                        <button id="next-guide" class="bg-teal-600 text-white px-6 py-2 rounded-xl font-bold hover:scale-105 transition-transform">
-                            ${stepIndex === steps.length - 1 ? 'Finalizar' : 'Siguiente'}
+                <div class="glass-morphism p-10 rounded-[3rem] border border-white/20 max-w-sm w-full animate-slide-up text-center shadow-2xl">
+                    <div class="text-5xl mb-6">🚀</div>
+                    <h3 class="text-2xl font-black text-white mb-3 tracking-tight">${s.title}</h3>
+                    <p class="text-slate-300 mb-8 font-medium leading-relaxed">${s.msg}</p>
+                    <div class="flex gap-4">
+                        <button id="skip-guide" class="flex-1 py-3 text-slate-400 font-bold text-sm uppercase">Saltar</button>
+                        <button id="next-guide" class="flex-[2] py-4 bg-teal-500 text-white rounded-2xl font-black shadow-lg shadow-teal-500/30 hover:scale-105 transition-transform">
+                            ${stepIndex === steps.length - 1 ? '¡Entendido!' : 'Siguiente'}
                         </button>
                     </div>
                 </div>
             `;
-
             overlay.querySelector('#next-guide').onclick = () => {
                 stepIndex++;
-                showStep();
+                if (stepIndex >= steps.length) overlay.remove();
+                else showStep();
             };
             overlay.querySelector('#skip-guide').onclick = () => overlay.remove();
         };
@@ -370,75 +402,51 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer)
 
     const currentWeekId = getSafeDateId(getMonday(new Date()));
 
-    // Parallel Fetch: Get ALL territories to ensure we can show data for Auxiliars too
     const [programa, allTerritorios] = await Promise.all([
         getProgramaSemanal(currentWeekId),
-        getTerritorios() // Fetch ALL to lookup map data for any assigned number
+        getTerritorios()
     ]);
 
-    // Create a lookup map for ANY territory by number
     const territoryMap = {};
-    if (allTerritorios) {
-        allTerritorios.forEach(t => {
-            territoryMap[t.numero] = t;
-        });
-    }
+    if (allTerritorios) allTerritorios.forEach(t => territoryMap[t.numero] = t);
 
-    const turnos = ['manana', 'tarde', 'noche'];
-    const turnoLabels = { manana: '🌅 Mañana', tarde: '☀️ Tarde', noche: '🌙 Noche' };
-    let assignments = [];
+    const turnosArr = ['manana', 'tarde', 'noche'];
+    const assignments = [];
 
     if (programa && programa.dias) {
         programa.dias.forEach(d => {
-            turnos.forEach(turno => {
-                const turnoData = d[turno];
-                if (turnoData) {
-                    const isConductor = turnoData.conductor === name;
-                    const isAuxiliar = turnoData.auxiliar === name;
-                    const hasData = turnoData.conductor || turnoData.auxiliar || turnoData.lugar;
+            turnosArr.forEach(turno => {
+                const tData = d[turno];
+                if (tData && (tData.conductor || tData.auxiliar || tData.lugar)) {
+                    const isConductor = tData.conductor === name;
+                    const isAuxiliar = tData.auxiliar === name;
 
-                    if (hasData) {
-                        let displayTurno = turnoLabels[turno];
-                        if (d.nombre === 'Domingo' && turnoData.hora) {
-                            const h = parseInt(turnoData.hora.split(':')[0]);
-                            if (!isNaN(h)) {
-                                if (h < 12) displayTurno = '🌅 Mañana';
-                                else if (h < 18) displayTurno = '☀️ Tarde';
-                                else displayTurno = '🌙 Noche';
-                            }
-                        }
+                    // IMPORTANT: Filter Agenda Semanal to ONLY user's assignments
+                    if (!isConductor && !isAuxiliar) return;
 
-                        let assignedTerritoryIds = [];
-                        if (turnoData.territorio) {
-                            assignedTerritoryIds = turnoData.territorio.split(',').map(s => s.trim());
-                        }
-
-                        const attachedTerritories = assignedTerritoryIds.map(num => {
-                            return territoryMap[num] || { numero: num, isMissingData: true };
-                        }).filter(t => {
-                            if (t.isMissingData) return true;
-                            // Check if this specific territory belongs to the current user
-                            return t.asignado_a === name || t.auxiliar === name;
-                        });
-
-                        const isMember = isConductor || isAuxiliar;
-
-                        assignments.push({
-                            dia: d.nombre,
-                            turno: displayTurno,
-                            role: isConductor ? 'Conductor' : (isAuxiliar ? 'Auxiliar' : 'Otro'),
-                            isMember,
-                            rawDate: d.fecha,
-                            attachedTerritories,
-                            ...turnoData
-                        });
+                    let assignedTerritoryIds = [];
+                    if (tData.territorio) {
+                        assignedTerritoryIds = tData.territorio.split(',').map(s => s.trim());
                     }
+
+                    const attachedTerritories = assignedTerritoryIds.map(num => {
+                        return territoryMap[num] || { numero: num, isMissingData: true };
+                    }).filter(t => t.isMissingData || t.asignado_a === name || t.auxiliar === name);
+
+                    assignments.push({
+                        dia: d.nombre,
+                        turno: turno === 'manana' ? '🌅 Mañana' : (turno === 'tarde' ? '☀️ Tarde' : '🌙 Noche'),
+                        role: isConductor ? 'Conductor' : (isAuxiliar ? 'Auxiliar' : 'Otro'),
+                        isMember: true,
+                        rawDate: d.fecha,
+                        attachedTerritories,
+                        ...tData
+                    });
                 }
             });
         });
     }
 
-    // Sort: current user's assignments first, then by day order
     const dayOrder = { 'Lunes': 0, 'Martes': 1, 'Miércoles': 2, 'Jueves': 3, 'Viernes': 4, 'Sábado': 5, 'Domingo': 6 };
     assignments.sort((a, b) => {
         if (a.isMember && !b.isMember) return -1;
@@ -446,265 +454,164 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer)
         return dayOrder[a.dia] - dayOrder[b.dia];
     });
 
-    // --- URGENCY BANNER & CALCULATIONS ---
-    const todayIndex = new Date().getDay(); // 0=Sun
-    const currentDayNorm = todayIndex === 0 ? 6 : todayIndex - 1;
-    const daysMap = { 'Lunes': 0, 'Martes': 1, 'Miércoles': 2, 'Jueves': 3, 'Viernes': 4, 'Sábado': 5, 'Domingo': 6 };
-
-    // Check if any territory is late
-    let isAnyLate = false;
-    assignments.forEach(a => {
-        if (daysMap[a.dia] < currentDayNorm) {
-            a.attachedTerritories.forEach(t => { if (!t.isMissingData) isAnyLate = true; });
-        }
-    });
-
-    // Global Urgency Banner
-    const existingBanner = document.getElementById('urgency-global-banner');
-    if (existingBanner) existingBanner.remove();
-
-    if (isAnyLate) {
-        const banner = document.createElement('div');
-        banner.id = 'urgency-global-banner';
-        banner.className = 'col-span-full mb-6 animate-bounce-in';
-        banner.innerHTML = `
-            <div class="bg-gradient-to-r from-red-600 to-rose-600 text-white p-4 rounded-2xl shadow-xl flex items-center justify-between gap-4 border border-white/20">
-                <div class="flex items-center gap-3">
-                    <div class="bg-white/20 p-2 rounded-xl text-xl">⚠️</div>
-                    <div>
-                        <h4 class="font-bold text-sm">Territorios por vencer</h4>
-                        <p class="text-[10px] opacity-90">Tienes informes pendientes de días anteriores. ¡Reporta hoy!</p>
-                    </div>
-                </div>
-                <button onclick="window.requestNotificationPermission()" class="bg-white text-red-600 px-4 py-2 rounded-xl text-xs font-bold shadow-sm hover:scale-105 transition-transform whitespace-nowrap">
-                    🔔 Notificarme
-                </button>
-            </div>
-        `;
-        agendaContainer.parentElement.prepend(banner);
-
-        // Push Notification Logic
-        window.requestNotificationPermission = async () => {
-            if (!("Notification" in window)) return;
-            const permission = await Notification.requestPermission();
-            if (permission === "granted") {
-                showNotification("¡Notificaciones activadas! Te avisaremos si un territorio está por vencer.", "success");
-                // In a real app, we'd register the push subscription here.
-            }
-        };
-    }
-
     agendaContainer.innerHTML = assignments.length > 0 ? assignments.map(a => `
-    <div class="bg-white dark:bg-gray-800/90 dark:backdrop-blur-sm p-6 rounded-2xl border ${a.isMember ? 'border-teal-500/50 ring-2 ring-teal-500/10 shadow-teal-500/10' : 'border-gray-100 dark:border-white/10 opacity-70 scale-95'} hover:border-teal-500 hover:opacity-100 transition-all shadow-sm dark:shadow-black/50 group flex flex-col gap-4 overflow-hidden">
-        
-        <!-- Header: Day & Role -->
-        <div class="flex justify-between items-start">
-            <div>
-                <h3 class="font-bold text-gray-900 dark:text-white text-xl group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">${a.dia}</h3> 
-                <span class="text-teal-600 dark:text-teal-400 font-semibold text-sm flex items-center gap-1 mt-1">
-                    ${a.turno}
-                </span>
-            </div>
-            ${a.isMember ? `
-            <span class="text-[10px] uppercase font-bold tracking-wider ${a.role === 'Conductor' ? 'bg-teal-50 text-teal-700 dark:bg-teal-500/20 dark:text-teal-300' : 'bg-purple-50 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300'} px-2.5 py-1 rounded-lg border ${a.role === 'Conductor' ? 'border-teal-100 dark:border-teal-500/30' : 'border-purple-100 dark:border-purple-500/30'} shadow-sm">
-                Tu Rol: ${a.role}
-            </span>` : `
-            <span class="text-[9px] uppercase font-black tracking-widest text-gray-400 opacity-50">Otros Grupos</span>
-            `}
-        </div>
-
-        <div class="pt-2 border-t border-black/5 dark:border-white/5">
-             <div class="flex items-center justify-between mb-2">
-                <span class="text-[10px] font-black uppercase text-gray-400">Responsables</span>
-             </div>
-             <div class="space-y-1">
-                <div class="flex justify-between items-center bg-black/5 dark:bg-white/5 p-2 rounded-xl border border-white/5">
-                    <span class="text-xs font-bold text-gray-500 uppercase">Cond.</span>
-                    <span class="text-xs font-black ${a.conductor === name ? 'text-teal-500' : 'text-gray-800 dark:text-gray-200'}">${a.conductor || 'Sin asignar'}</span>
+        <div class="group relative overflow-hidden glass-morphism p-8 rounded-[3rem] border border-white/20 dark:border-white/5 transition-all duration-500 hover:scale-[1.02] flex flex-col gap-6 shadow-xl ${a.isMember ? 'shadow-teal-500/5' : 'opacity-60 grayscale scale-95'}">
+            <div class="flex justify-between items-start gap-4">
+                <div class="space-y-1">
+                    <h3 class="font-black text-2xl text-slate-900 dark:text-white group-hover:text-teal-500 transition-colors tracking-tight">${a.dia}</h3> 
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-teal-500 animate-pulse"></span>
+                        <span class="text-teal-600 dark:text-teal-400 font-bold text-[10px] uppercase tracking-widest">${a.turno}</span>
+                    </div>
                 </div>
-                ${a.auxiliar ? `
-                <div class="flex justify-between items-center bg-black/5 dark:bg-white/5 p-2 rounded-xl border border-white/5">
-                    <span class="text-xs font-bold text-gray-500 uppercase">Aux.</span>
-                    <span class="text-xs font-black ${a.auxiliar === name ? 'text-teal-500' : 'text-gray-800 dark:text-gray-200'}">${a.auxiliar}</span>
-                </div>` : ''}
-             </div>
-        </div>
-
-        <!-- Info -->
-        <div class="space-y-2">
-            <div class="flex items-center gap-3 text-gray-700 dark:text-gray-300">
-                <div class="w-6 h-6 rounded-full bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center text-pink-500 text-xs">📍</div>
-                <span class="font-medium text-sm">${a.lugar || 'Familia ...'}</span>
+                ${a.isMember ? `
+                <div class="flex flex-col items-end gap-2">
+                    <span class="px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-teal-500 text-white shadow-lg shadow-teal-500/20">
+                        ${a.role}
+                    </span>
+                    <span class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter shrink-0">${a.rawDate}</span>
+                </div>` : `
+                <span class="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-[9px] font-black uppercase text-slate-400">Grupo Externo</span>
+                `}
             </div>
-            ${(a.territorio && a.attachedTerritories.length > 0) ? `
-            <div class="flex items-center gap-3 text-gray-700 dark:text-gray-300">
-                <div class="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-500 text-xs">🗺️</div>
-                <span class="font-medium text-sm">Territorio <span class="font-bold text-gray-900 dark:text-white">${a.territorio}</span></span>
-            </div>` : ''}
-        </div>
 
-        <!-- AI QUICK LOOK -->
-        ${a.attachedTerritories.length > 0 ? a.attachedTerritories.map(t => {
-        if (t.isMissingData) return '';
-        const insightId = `ai-insight-${a.rawDate}-${a.turno}-${t.numero}`.replace(/\s+/g, '-');
+            <div class="grid grid-cols-2 gap-3 pt-2 border-t border-black/5 dark:border-white/5">
+                <div class="p-4 rounded-[2rem] bg-slate-50 dark:bg-slate-900/50 space-y-1 border border-transparent hover:border-teal-500/20 transition-colors">
+                    <p class="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Conductor</p>
+                    <p class="text-xs font-bold ${a.conductor === name ? 'text-teal-600' : 'text-slate-700 dark:text-slate-200'} truncate">${a.conductor || '---'}</p>
+                </div>
+                <div class="p-4 rounded-[2rem] bg-slate-50 dark:bg-slate-900/50 space-y-1 border border-transparent hover:border-teal-500/20 transition-colors">
+                    <p class="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Auxiliar</p>
+                    <p class="text-xs font-bold ${a.auxiliar === name ? 'text-teal-600' : 'text-slate-700 dark:text-slate-200'} truncate">${a.auxiliar || '---'}</p>
+                </div>
+            </div>
+
+            <div class="p-5 rounded-[2rem] bg-teal-500/5 border border-teal-500/10 flex items-center gap-4">
+                <div class="w-10 h-10 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center text-xl shadow-sm">📍</div>
+                <div class="min-w-0">
+                    <p class="text-[9px] font-black text-teal-600 uppercase tracking-widest">Punto de Reunión</p>
+                    <p class="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">${a.lugar || 'Por definir'}</p>
+                </div>
+            </div>
+
+            ${a.attachedTerritories.length > 0 ? `
+            <div class="space-y-3 mt-2">
+                ${a.attachedTerritories.map(t => {
+        const insightId = `ai-look-${a.rawDate}-${a.turno}-${t.numero}`.replace(/\s+/g, '-');
         return `
-        <div class="bg-teal-50/50 dark:bg-teal-900/10 p-3 rounded-xl border border-teal-100 dark:border-teal-800/20 mb-2">
-            <h4 class="text-[10px] font-bold text-teal-600 uppercase tracking-widest mb-1 flex items-center gap-1">
-                ⭐ Quick Look IA (${t.numero})
-            </h4>
-            <p id="${insightId}" class="text-[10px] text-gray-600 dark:text-gray-400 italic ai-placeholder">
-                ${a.role === 'Conductor' ? 'Analizando territorio... 🤖' : 'Sugerencia: Revisar notas de la última salida.'}
-            </p>
-        </div>
-        `;
-    }).join('') : ''}
-
-        <!-- FUSED TERRITORY CARDS -->
-        ${a.attachedTerritories.length > 0 ? `
-        <div class="mt-2 grid grid-cols-1 gap-3">
-             ${a.attachedTerritories.map(t => {
-        if (t.isMissingData) {
-            return `<div class="bg-gray-50 dark:bg-white/5 rounded-lg p-3 border border-gray-200 dark:border-white/10 flex justify-between items-center"><span class="font-bold text-gray-600 dark:text-gray-400">Territorio ${t.numero}</span><span class="text-xs italic text-gray-400">Datos no disponibles</span></div>`;
-        }
-
-        const isLate = daysMap[a.dia] < currentDayNorm;
-        const quality = (t.imagen ? 40 : 10) + (t.observaciones ? 30 : 0) + (t.manzanas ? 30 : 0);
-
-        return `
-                 <div class="territory-card-swipe relative group/swipe overflow-hidden rounded-2xl" 
-                      data-id="${t.id}" data-num="${t.numero}" data-manzanas="${t.manzanas || ''}"
-                      data-coords='${JSON.stringify(t.coordenadas || null)}'>
+                    <div class="bg-slate-950 p-4 rounded-[2rem] border border-white/5 shadow-inner">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse"></span>
+                            <span class="text-[9px] font-black text-teal-400 uppercase tracking-widest">Quick Look IA / T-${t.numero}</span>
+                        </div>
+                        <p id="${insightId}" class="text-[10px] text-slate-400 italic">Analizando historial... 🤖</p>
+                    </div>
                     
-                    <!-- Swipe Actions Underlay -->
-                    <div class="absolute inset-0 flex justify-between items-center px-6">
-                        <div class="swipe-action-left flex flex-col items-center text-white opacity-0 transition-opacity">
-                            <span class="text-2xl">🗺️</span>
-                            <span class="text-[8px] font-bold uppercase">Mapa</span>
-                        </div>
-                        <div class="swipe-action-right flex flex-col items-center text-white opacity-0 transition-opacity">
-                            <span class="text-2xl">✅</span>
-                            <span class="text-[8px] font-bold uppercase">Reportar</span>
-                        </div>
-                    </div>
-
-                    <!-- Main Card Content (Swipeable) -->
-                    <div class="swipe-content relative z-10 bg-white dark:bg-gray-900 border ${isLate ? 'border-red-500 shadow-red-500/10' : 'border-gray-200 dark:border-white/10'} rounded-2xl p-4 transition-transform duration-300">
-                        ${isLate ? `<div class="absolute top-0 left-0 right-0 bg-red-600 text-white text-[9px] font-bold text-center py-0.5 z-20">⚠️ INFORME PENDIENTE</div>` : ''}
-                        
-                        <!-- Map Preview -->
-                        <div class="h-32 bg-gray-50 dark:bg-black/40 rounded-xl mb-4 overflow-hidden border border-black/5 dark:border-white/5 flex items-center justify-center group/img relative">
-                             <img src="${formatMapUrl(t.imagen) || 'https://via.placeholder.com/400x250?text=Territorio+' + t.numero}" 
-                                  class="w-full h-full object-contain group-hover/img:scale-110 transition-transform duration-1000">
-                             <div class="absolute inset-0 bg-teal-500/5 opacity-0 group-hover/img:opacity-100 transition-opacity"></div>
-                        </div>
-
-                        <div class="flex justify-between items-start mb-2 ${isLate ? 'mt-2' : ''}">
-                            <div>
-                                <h4 class="text-lg font-black text-gray-900 dark:text-white leading-none">Territorio ${t.numero}</h4>
-                                <p class="text-[10px] text-gray-500 mt-1">${t.manzanas || 'Mz. Generales'}</p>
-                            </div>
-                            <!-- Quality Badge -->
-                            <div class="flex flex-col items-end">
-                                <div class="text-[8px] font-bold text-gray-400 uppercase tracking-tighter mb-0.5">Calidad</div>
-                                <div class="w-12 h-1 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
-                                    <div class="h-full ${quality > 70 ? 'bg-green-500' : quality > 40 ? 'bg-yellow-500' : 'bg-red-500'}" style="width: ${quality}%"></div>
-                                </div>
+                    <button class="w-full p-5 bg-white dark:bg-slate-800 rounded-[2rem] border border-slate-200 dark:border-white/5 flex items-center justify-between shadow-sm hover:border-teal-500/50 transition-all active:scale-95 territory-card-swipe"
+                        data-id="${t.id}" data-num="${t.numero}" data-manzanas="${t.manzanas || ''}" data-coords='${JSON.stringify(t.coordenadas || null)}'>
+                        <div class="flex items-center gap-5">
+                            <div class="w-12 h-12 bg-teal-500/10 rounded-2xl flex items-center justify-center text-teal-600 font-black text-lg">${t.numero}</div>
+                            <div class="text-left">
+                                <p class="text-xs font-black text-slate-800 dark:text-white">Reportar Avance</p>
+                                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">${t.manzanas || 'Mz. Generales'}</p>
                             </div>
                         </div>
-
-                        <div class="grid grid-cols-2 gap-2 my-3">
-                             <div class="bg-gray-50 dark:bg-white/5 p-2 rounded-xl text-center">
-                                <span class="block text-[8px] text-gray-500 font-bold uppercase">Asignado</span>
-                                <span class="text-[10px] dark:text-gray-300 font-medium">${t.fecha_asignacion ? new Date(t.fecha_asignacion).toLocaleDateString() : '--'}</span>
-                             </div>
-                             <div class="bg-purple-50 dark:bg-purple-500/10 p-2 rounded-xl text-center border border-purple-100 dark:border-purple-500/20">
-                                <span class="block text-[8px] text-purple-600 font-bold uppercase">📅 Salida</span>
-                                <span class="text-[10px] text-purple-700 dark:text-purple-300 font-black">${t.fecha_salida ? new Date(t.fecha_salida).toLocaleDateString() : 'Por definir'}</span>
-                             </div>
+                        <div class="w-8 h-8 rounded-full bg-slate-50 dark:bg-slate-700 flex items-center justify-center text-slate-400 transition-transform group-hover:translate-x-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/></svg>
                         </div>
-
-                        <div class="flex gap-2">
-                            <button onclick='window.openInteractiveMap(${JSON.stringify(t).replace(/'/g, "&apos;")})' class="flex-1 bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 dark:text-blue-400 py-2 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1">
-                                🗺️ Mapa
-                            </button>
-                            <button onclick="window.openProgressModal('${t.id}', '${t.numero}', '${t.manzanas || ''}')" class="flex-1 ${isLate ? 'bg-red-600 text-white' : 'bg-teal-600 text-white'} py-2 rounded-xl text-xs font-bold shadow-lg shadow-teal-500/20 transition-all flex items-center justify-center gap-1">
-                                ✅ Reportar
-                            </button>
-                        </div>
-                    </div>
-                 </div>
-                 `;
+                    </button>
+                    `;
     }).join('')}
+            </div>` : ''}
+
+            ${a.isMember ? '<div class="absolute inset-x-0 -bottom-px h-1 bg-gradient-to-r from-transparent via-teal-500 to-transparent blur-sm"></div>' : ''}
         </div>
-        ` : `
-        <div class="bg-gray-50 dark:bg-white/5 rounded-2xl border-2 border-dashed border-gray-200 dark:border-white/10 p-8 flex flex-col items-center justify-center text-center mt-2">
-            <div class="text-4xl mb-3 opacity-30">🍃</div>
-            <h4 class="font-bold text-gray-600 dark:text-gray-300">Sin Territorios</h4>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-[200px]">No tienes territorios asignados para este turno.</p>
-        </div>
-        `}
-    </div>
-    `).join('') : '<div class="col-span-full p-12 text-center text-gray-500 bg-white dark:bg-white/5 rounded-3xl border border-dashed border-gray-300 dark:border-white/10 italic">No tienes asignaciones esta semana.</div>';
+    `).join('') : '<div class="col-span-full py-20 glass-morphism rounded-[3rem] text-center"><p class="text-slate-400 font-bold">No hay asignaciones registradas para esta semana.</p></div>';
 
-    // Initialize Swipe Handlers
-    setTimeout(() => initSwipeActions(), 0);
-
-    // 3. Availability
-    renderAvailabilitySection(document.getElementById('availability-container'), name);
-
-    // 4. AI Dashboard помощник
-    renderAISection(name);
-
-    // 4b. AI Quick Look Logic (Background)
-    const config = await getConfiguracion();
+    // AI Analysis Trigger
     const brain = new TerritoryIntelligence(null, null, allTerritorios, programa);
-
     assignments.forEach(async a => {
-        if (a.role !== 'Conductor') return; // Only conductors get deep insights for now
+        if (!a.isMember) return;
         for (const t of a.attachedTerritories) {
             if (t.isMissingData) continue;
-            const insightId = `ai-insight-${a.rawDate}-${a.turno}-${t.numero}`.replace(/\s+/g, '-');
+            const insightId = `ai-look-${a.rawDate}-${a.turno}-${t.numero}`.replace(/\s+/g, '-');
             const el = document.getElementById(insightId);
             if (!el) continue;
 
-            // Cache check
-            if (!window.aiCache) window.aiCache = {};
-            if (window.aiCache[insightId]) {
-                el.innerText = window.aiCache[insightId];
-                continue;
-            }
-
             try {
-                // Add a small delay to not saturate initial load
-                await new Promise(r => setTimeout(r, 500));
                 const history = await getTerritoryHistory(t.id);
-                const insight = await brain.getTerritoryQuickLook(t, history, config.gemini_key);
+                const insight = await brain.getTerritoryQuickLook(t, history, (await getConfiguracion()).gemini_key);
                 el.innerText = insight;
-                window.aiCache[insightId] = insight;
             } catch (e) {
-                console.warn("AI Insight failed", e);
-                el.innerText = "Sugerencia: Revisar notas de la última salida.";
+                el.innerText = "Revisar notas de la última salida.";
             }
         }
     });
 
-    // 5. Misión de Rescate (Rescue Mode)
-    renderRescueSection(document.getElementById('ayudas-container'), name, allTerritorios);
+    // Final UI Setup
+    setTimeout(() => {
+        const btns = agendaContainer.querySelectorAll('.territory-card-swipe');
+        btns.forEach(btn => {
+            btn.onclick = () => window.openProgressModal(btn.dataset.id, btn.dataset.num, btn.dataset.manzanas);
+        });
+    }, 0);
 
-    // GEOFENCING Logic
-    if ("geolocation" in navigator) {
-        navigator.geolocation.watchPosition((pos) => {
-            const { latitude, longitude } = pos.coords;
-            assignments.forEach(a => {
-                a.attachedTerritories.forEach(t => {
-                    if (t.coordenadas) {
-                        // Simple dist calculation or check
-                        // If within 500m of territory, show notification
-                        // (Requires coordinates implementation)
-                    }
-                });
-            });
-        }, (err) => console.log("Geo error", err), { enableHighAccuracy: true });
+    renderAvailabilitySection(document.getElementById('availability-container'), name);
+    renderAISection(name);
+
+    // Check if user has Rescue module enabled OR if global config had it enabled (legacy)
+    const showRescue = userMods?.rescue || config?.rescue_mode;
+    if (showRescue) {
+        renderRescueSection(document.getElementById('ayudas-container'), name, allTerritorios, { rescue_mode: true });
+    } else {
+        const ayudas = document.getElementById('ayudas-container');
+        if (ayudas) ayudas.classList.add('hidden');
+    }
+
+    // Render Weekly Program Cards (Global Weekly View)
+    if (programa && userMods.programa !== false) {
+        const programCardsContainer = document.getElementById('weekly-program-cards');
+        if (programCardsContainer) {
+            renderFullProgramaCards(programa, programCardsContainer);
+        }
+    }
+};
+
+const renderFullProgramaCards = (programa, container) => {
+    const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+    const shifts = ['manana', 'tarde', 'noche'];
+    const shiftLabels = { 'manana': 'Mañana', 'tarde': 'Tarde', 'noche': 'Noche' };
+
+    container.innerHTML = days.map(dayName => {
+        const d = (programa?.dias || []).find(x => x.nombre === dayName);
+        if (!d) return '';
+
+        return shifts.map(s => {
+            const sData = d[s];
+            if (!sData || (!sData.conductor && !sData.lugar)) return '';
+
+            return `
+                <div class="bg-white dark:bg-white/5 border border-black/5 dark:border-white/5 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all flex flex-col gap-2">
+                    <div class="flex justify-between items-start">
+                        <span class="text-[10px] font-black text-teal-600 dark:text-teal-400 uppercase tracking-tighter">${dayName}: ${shiftLabels[s]}</span>
+                    </div>
+                    <div class="space-y-1">
+                        <p class="text-[11px] font-bold text-slate-800 dark:text-white line-clamp-1">📍 ${sData.lugar || '---'}</p>
+                        <div class="grid grid-cols-1 gap-0.5">
+                            <p class="text-[10px] text-slate-500 dark:text-slate-400"><b>C:</b> ${sData.conductor || '---'}</p>
+                            ${sData.auxiliar ? `<p class="text-[10px] text-slate-500 dark:text-slate-400"><b>A:</b> ${sData.auxiliar}</p>` : ''}
+                        </div>
+                        ${sData.territorio ? `
+                            <p class="text-[10px] font-black text-indigo-600 dark:text-indigo-400 mt-1">Terr: ${sData.territorio}</p>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }).join('');
+
+    if (container.innerHTML === '') {
+        container.innerHTML = '<p class="col-span-full text-center text-xs text-gray-400 italic py-4">No hay programa asignado esta semana.</p>';
     }
 };
 
@@ -751,188 +658,117 @@ const initSwipeActions = () => {
             isMoving = false;
             content.style.transition = 'transform 0.3s ease';
 
-            if (currentX > 70) {
-                // Swipe Right -> Open Map
-                const t = {
-                    id: card.dataset.id,
-                    numero: card.dataset.num,
-                    manzanas: card.dataset.manzanas,
-                    coordenadas: JSON.parse(card.dataset.coords)
-                };
-                window.openInteractiveMap(t);
-            } else if (currentX < -70) {
-                // Swipe Left -> Open Report
-                window.openProgressModal(card.dataset.id, card.dataset.num, card.dataset.manzanas);
+            if (Math.abs(currentX) > 70) {
+                if (currentX > 0) {
+                    // Right -> Map
+                    const t = {
+                        id: card.dataset.id,
+                        numero: card.dataset.num,
+                        manzanas: card.dataset.manzanas,
+                        coordenadas: card.dataset.coords ? JSON.parse(card.dataset.coords) : null
+                    };
+                    window.openInteractiveMap(t);
+                } else {
+                    // Left -> Report
+                    window.openProgressModal(card.dataset.id, card.dataset.num, card.dataset.manzanas);
+                }
             }
 
+            // Reset
             content.style.transform = 'translateX(0px)';
-            leftAction.style.opacity = 0;
-            rightAction.style.opacity = 0;
+            const leftAction = card.querySelector('.swipe-action-left');
+            const rightAction = card.querySelector('.swipe-action-right');
+            if (leftAction) leftAction.style.opacity = 0;
+            if (rightAction) rightAction.style.opacity = 0;
             setTimeout(() => card.style.backgroundColor = 'transparent', 300);
             currentX = 0;
         });
     });
 };
 
-async function renderAyudasSection(container) {
-    const recursos = await getRecursos();
-    if (recursos.length === 0) return;
+// Helper: Render Weekly Program Table (ReadOnly)
+const renderProgramaTableHelpers = (programa) => {
+    const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+    const shifts = ['manana', 'tarde', 'noche'];
+    const shiftLabels = { 'manana': 'Mañana', 'tarde': 'Tarde', 'noche': 'Noche' };
+    const shiftIcons = { 'manana': '🌅', 'tarde': '☀️', 'noche': '🌙' };
 
-    container.innerHTML = `
-        <h3 class="text-lg font-bold text-teal-800 dark:text-teal-100 mb-3 px-2 flex items-center gap-2">
-            🧰 Ayudas para el Ministerio
-        </h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            ${recursos.map(r => `
-                <a href="${r.url}" target="_blank" class="block bg-white dark:bg-gray-800 rounded-xl overflow-hidden border border-gray-200 dark:border-white/10 hover:border-teal-500 transition-all hover:shadow-lg group">
-                    <div class="flex">
-                        <div class="w-24 h-24 bg-gray-100 dark:bg-white/5 flex-shrink-0">
-                            ${r.imagen ? `<img src="${r.imagen}" class="w-full h-full object-cover">` : '<div class="w-full h-full flex items-center justify-center text-2xl">🔗</div>'}
+    let html = `
+    <div class="mt-12 mb-6 animate-fade-in">
+        <h3 class="text-2xl font-black text-slate-800 dark:text-white mb-6 pl-4 border-l-4 border-teal-500">Programa Semanal</h3>
+        <div class="overflow-x-auto pb-4 custom-scrollbar">
+            <div class="min-w-[800px] bg-white dark:bg-[#151515] rounded-[2rem] shadow-xl border border-black/5 dark:border-white/5 overflow-hidden">
+                <div class="grid grid-cols-[100px_1fr_1fr_1fr] bg-slate-50 dark:bg-white/5 border-b border-black/5 dark:border-white/5">
+                    <div class="p-4 text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center justify-center">Día</div>
+                    ${shifts.map(s => `<div class="p-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">${shiftIcons[s]} ${shiftLabels[s]}</div>`).join('')}
+                </div>
+                <div class="divide-y divide-black/5 dark:divide-white/5">
+                    ${days.map(dayName => {
+        const dayData = (programa?.dias || []).find(d => d.nombre === dayName) || {};
+        return `
+                        <div class="grid grid-cols-[100px_1fr_1fr_1fr] hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors group">
+                            <div class="p-4 flex items-center justify-center border-r border-black/5 dark:border-white/5 bg-slate-50/30 dark:bg-white/[0.02]">
+                                <span class="text-xs font-black text-slate-700 dark:text-slate-300 uppercase -rotate-90 md:rotate-0">${dayName.substring(0, 3)}</span>
+                            </div>
+                            ${shifts.map(shift => {
+            const sData = dayData[shift] || {};
+            if (!sData.conductor && !sData.lugar) return `<div class="p-2"></div>`;
+            return `
+                                <div class="p-3 border-r border-black/5 dark:border-white/5 last:border-0 relative group/cell">
+                                    ${sData.lugar ? `<div class="text-[9px] font-bold text-teal-600 dark:text-teal-400 mb-1 truncate">📍 ${sData.lugar}</div>` : ''}
+                                    ${sData.conductor ? `<div class="text-[10px] font-bold text-slate-800 dark:text-slate-200 leading-tight">${sData.conductor}</div>` : ''}
+                                    ${sData.auxiliar ? `<div class="text-[9px] text-slate-500 leading-tight mt-0.5">+ ${sData.auxiliar}</div>` : ''}
+                                    ${sData.territorio ? `
+                                        <div class="mt-2 flex flex-wrap gap-1">
+                                            ${sData.territorio.split(',').map(t => `<span class="px-1.5 py-0.5 bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 rounded text-[9px] font-black border border-indigo-100 dark:border-indigo-500/20">${t.trim()}</span>`).join('')}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                                `;
+        }).join('')}
                         </div>
-                        <div class="p-3 flex flex-col justify-center">
-                            <h4 class="font-bold text-gray-900 dark:text-white group-hover:text-teal-500 transition-colors line-clamp-1">${r.titulo}</h4>
-                            <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-1">${r.descripcion || 'Enlace externo'}</p>
-                        </div>
-                    </div>
-                </a>
-            `).join('')}
+                        `;
+    }).join('')}
+                </div>
+            </div>
         </div>
+    </div>
     `;
+    return html;
 };
 
-async function renderAvailabilitySection(container, conductorName) {
-    // 1. Fetch Conductor ID and Data
-    const allConductores = await getConductores();
-    // Match by name or email (legacy support)
-    const conductor = allConductores.find(c => c.nombre === conductorName || c.email === conductorName || c.nombre === conductorName.split('@')[0]);
 
-    if (!conductor) {
-        container.innerHTML = '<p class="text-red-400 text-xs">Error: No se encontró perfil de conductor.</p>';
-        return;
+// Progress / Return Modal
+// Progress / Return Modal
+// Progress / Return Modal - REFACTORED for Multi-Territory Logic
+window.openProgressModal = async (initialId, initialNum, initialManzanasStr) => {
+    // 1. Fetch ALL assigned territories for the current user to support multi-select
+    let myTerritories = [];
+    try {
+        const currentUserEl = document.querySelector('#user-display-name');
+        // We might not have the name directly stored globally easily, but openProgressModal is called from UI.
+        // Let's rely on the passed ID to find the owner, OR fetch all terrs and filter by current user logic?
+        // Better: Use `getTerritorios` and filter by the 'assigned_to' of the initial territory context if possible, 
+        // or just fetch all and filter client side.
+        // For safety, let's fetch fresh data.
+        const allT = await getTerritorios();
+        // Find the "owner" of the clicked territory
+        const initialT = allT.find(t => t.id === initialId);
+        if (initialT && initialT.asignado_a) {
+            myTerritories = allT.filter(t => t.asignado_a === initialT.asignado_a || t.auxiliar === initialT.asignado_a);
+        } else {
+            // Fallback if something is weird, just use the initial one.
+            myTerritories = initialT ? [initialT] : [];
+        }
+    } catch (e) { console.error(e); myTerritories = []; }
+
+    // If fetch failed or logic issue, stick to the passed params as single
+    if (myTerritories.length === 0 && initialId) {
+        myTerritories = [{ id: initialId, numero: initialNum, manzanas: initialManzanasStr, isFallback: true }];
     }
 
-    // Availability Data: Array of strings e.g. "Lunes_manana"
-    const dispon = conductor.disponibilidad || [];
-
-    const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-    const shirts = [
-        { id: 'manana', label: 'MAÑANA', color: 'text-yellow-700 dark:text-yellow-200' },
-        { id: 'tarde', label: 'TARDE', color: 'text-orange-700 dark:text-orange-200' },
-        { id: 'noche', label: 'NOCHE', color: 'text-blue-700 dark:text-blue-200' }
-    ];
-
-    let gridHtml = `
-        <h3 class="font-bold text-teal-800 dark:text-teal-100 mb-3 px-2 flex items-center justify-between">
-            <div class="flex items-center gap-2">🗓️ Mi Disponibilidad</div>
-            <span class="text-[10px] text-teal-600 dark:text-teal-400 font-normal opacity-80">
-                * Se guarda auto.
-            </span>
-        </h3>
-        <div class="morphinglass-card p-3">
-             <!-- Compact Header -->
-             <div class="grid grid-cols-4 gap-1 mb-2">
-                 <div class="text-[10px] text-gray-500 font-bold uppercase tracking-wider text-center self-end">Día</div>
-                 ${shirts.map(s => `
-                    <div class="text-center font-bold text-xs uppercase ${s.color} bg-gray-100 dark:bg-white/5 rounded-lg py-1 border border-gray-200 dark:border-white/5" title="${s.id}">
-                        ${s.label}
-                    </div>
-                 `).join('')}
-             </div>
-
-             <!-- Days Rows -->
-             <div class="space-y-1.5">
-                ${days.map(day => `
-                    <div class="grid grid-cols-4 gap-1 items-center bg-gray-50 dark:bg-white/5 rounded-lg p-1 border border-gray-200 dark:border-white/5 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
-                        <!-- Day Label -->
-                            <div class="text-xs font-bold text-teal-700 dark:text-teal-300 uppercase tracking-wide text-center pl-1">
-                            ${day}
-                        </div>
-                        
-                        <!-- Checkboxes -->
-                        ${shirts.map(shift => {
-        const key = `${day}_${shift.id}`;
-        const isChecked = dispon.includes(key);
-        return `
-                                <div class="flex justify-center">
-                                    <label class="cursor-pointer w-full h-8 flex items-center justify-center rounded hover:bg-black/5 dark:hover:bg-white/10 transition-colors relative group">
-                                        <input type="checkbox" 
-                                            class="avail-check w-4 h-4 accent-teal-500 rounded border-gray-300 dark:border-white/20 bg-white dark:bg-black/40" 
-                                            value="${key}" 
-                                            data-cid="${conductor.id}"
-                                            ${isChecked ? 'checked' : ''}>
-                                    </label>
-                                </div>
-                            `;
-    }).join('')}
-                    </div>
-                `).join('')}
-             </div>
-        </div>
-    `;
-
-    container.innerHTML = gridHtml;
-
-    // Event Listeners for Auto-Save
-    const inputs = container.querySelectorAll('.avail-check');
-    inputs.forEach(input => {
-        input.addEventListener('change', async (e) => {
-            const val = e.target.value;
-            const cid = e.target.dataset.cid;
-            const checked = e.target.checked;
-
-            // Optimistic UI update already happened via checkbox
-
-            // Get latest state from DOM to be safe or manipulate local array
-            let currentDispon = Array.from(inputs).filter(i => i.checked).map(i => i.value);
-
-            try {
-                await updateConductor(cid, { disponibilidad: currentDispon });
-                showNotification("Disponibilidad actualizada", "success");
-            } catch (err) {
-                console.error("Error saving availability:", err);
-                showNotification("Error guardando disponibilidad", "error");
-                // Revert
-                e.target.checked = !checked;
-            }
-        });
-    });
-};
-
-
-/* --- MODALS & HELPERS --- */
-
-// View Map Modal (Interactive)
-window.openInteractiveMap = (territory) => {
-    const modal = document.getElementById('modal-container');
-    modal.innerHTML = `
-        <div class="relative max-w-5xl w-full h-[80vh] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden animate-scale-in">
-             <div id="interactive-map-container" class="w-full h-full"></div>
-        </div>
-    `;
-    modal.classList.remove('hidden');
-    MapViewer.render(document.getElementById('interactive-map-container'), territory);
-};
-
-window.viewMap = (url) => {
-    // Legacy support or fallback
-    const modal = document.getElementById('modal-container');
-    modal.innerHTML = `
-    <div class="relative max-w-5xl w-full p-4 animate-scale-in">
-             <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="absolute top-4 right-4 m-2 text-gray-800 dark:text-white bg-white/80 dark:bg-black/50 hover:bg-white dark:hover:bg-black/70 rounded-full p-2 z-10 transition-colors shadow-lg">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-             </button>
-             <img src="${url}" class="w-full h-auto max-h-[85vh] object-contain rounded-xl shadow-2xl border border-gray-200 dark:border-blue-900/50 bg-white dark:bg-[#191970]">
-        </div>
-`;
-    modal.classList.remove('hidden');
-};
-
-// Progress / Return Modal
-// Progress / Return Modal
-window.openProgressModal = (id, numero, manzanasStr) => {
-    const manzanas = manzanasStr ? manzanasStr.split(',').map(s => s.trim()).filter(s => s) : [];
+    // Sort: Initial one first, then others
+    myTerritories.sort((a, b) => a.id === initialId ? -1 : 1);
 
     // Get today's date
     const localDate = new Date();
@@ -942,203 +778,336 @@ window.openProgressModal = (id, numero, manzanasStr) => {
     // Modal HTML
     showModal(`
             <div class="flex flex-col h-full">
-            <div class="flex-1 p-6 overflow-y-auto">
-            <div class="flex justify-between items-start mb-6">
-                <div>
-                    <h3 class="text-xl font-bold text-teal-800 dark:text-teal-100 italic">Territorio ${numero}</h3>
-                    <p class="text-[9px] text-gray-500 uppercase font-black tracking-widest mt-1">REPORTE DE PROGRESO</p>
-                </div>
-                <button onclick="window.viewMapFromReport('${id}')" class="bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 dark:text-blue-400 px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 border border-blue-600/20">
-                    🗺️ VER MAPA
-                </button>
-            </div>
-            
-            <!-- VIEW 1: SELECTION -->
-            <div id="view-selection">
-                <p id="instruction-text" class="text-sm text-gray-500 dark:text-gray-400 mb-4">Selecciona las manzanas que YA terminaste:</p>
-                
-                <div id="apples-container" class="grid grid-cols-2 gap-2 mb-4 bg-black/5 dark:bg-black/20 p-4 rounded-2xl border border-black/5 dark:border-white/5 max-h-60 overflow-y-auto custom-scrollbar">
-                    ${manzanas.length > 0 ? manzanas.map((m, idx) => `
-                        <label class="flex items-center space-x-3 text-sm text-gray-700 dark:text-gray-200 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 p-3 rounded-xl transition-all select-none border border-transparent hover:border-teal-500/20">
-                            <input type="checkbox" value="${m}" class="manzana-check accent-teal-500 w-5 h-5 bg-white/50 border-gray-300 rounded-lg">
-                            <span class="font-bold">${m}</span>
-                        </label>
-                    `).join('') : '<p class="col-span-2 text-xs text-gray-400 italic text-center py-4">Sin manzanas específicas.</p>'}
-                </div>
-
-                <!-- Date Selection -->
-                 <div class="mb-4">
-                    <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase">Fecha de Entrega</label>
-                    <input type="date" id="completion-date" value="${todayStr}" class="w-full bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-800 dark:text-gray-200 focus:border-teal-500 outline-none">
-                </div>
-
-                <!-- Notes Section -->
-                <div class="mb-4">
-                    <div class="flex justify-between items-center mb-1">
-                        <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Observaciones (Opcional)</label>
-                        <button onclick="window.startVoiceDictation('progress-notes')" class="text-teal-500 hover:text-teal-400 text-xs font-bold flex items-center gap-1 transition-colors">
-                            <span id="mic-icon">🎤</span> Dictar
-                        </button>
+                <header class="shrink-0 flex items-center justify-between bg-gradient-to-r from-teal-600 to-emerald-700 p-8 text-white relative overflow-hidden">
+                    <div class="absolute inset-0 bg-white/5 backdrop-blur-3xl"></div>
+                    <div class="relative z-10 flex items-center gap-5">
+                        <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-[2rem] flex items-center justify-center text-3xl shadow-2xl border border-white/30 animate-float">📈</div>
+                        <div>
+                            <h3 class="text-2xl font-black tracking-tight leading-none mb-1">Reporte de Servicio</h3>
+                            <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Territorio ${myTerritories.map(t => t.numero).join(', ')}</p>
+                        </div>
                     </div>
-                    <textarea id="progress-notes" rows="2" placeholder="Ej: Persona molesta, no se completó la manzana..." class="w-full bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-800 dark:text-gray-200 focus:border-teal-500 outline-none resize-none"></textarea>
-                </div>
+                </header>
 
-                <div class="flex flex-col gap-3 mt-4">
-                    <button id="btn-action-main" class="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white py-4 rounded-xl font-bold transition-all shadow-lg shadow-teal-900/20 active:scale-95 flex items-center justify-center gap-2">
-                         🎉 Marcar TODO como Terminado
-                    </button>
+                <div class="flex-1 p-10 space-y-8 overflow-y-auto custom-scrollbar">
+                    
+                    <!-- STEP 1: INITIAL VIEW (No Apples) -->
+                    <div id="view-initial" class="space-y-8 animate-fade-in">
+                        <button onclick="window.viewMapFromReport('${initialId}')" class="w-full bg-blue-600/5 hover:bg-blue-600/10 text-blue-600 dark:text-blue-400 p-5 rounded-3xl text-xs font-black transition-all flex items-center justify-center gap-3 border border-blue-600/10 group">
+                            <span class="text-xl group-hover:rotate-12 transition-transform">🗺️</span> VER MAPA INTERACTIVO
+                        </button>
 
-                    <button id="btn-no-predico" class="text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 text-xs font-bold uppercase tracking-widest mt-2 hover:underline">
-                        NO SE PREDICÓ
-                    </button>
+                        <!-- General Info Inputs -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-3">
+                                <label class="label-premium">Fecha de Entrega</label>
+                                <input type="date" id="completion-date" value="${todayStr}" class="input-premium">
+                            </div>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center px-2">
+                                    <label class="label-premium !mb-0">Observaciones Generales</label>
+                                    <button onclick="window.startVoiceDictation('progress-notes')" class="text-teal-600 hover:text-teal-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                                        <span id="mic-icon">🎤</span> Dictar
+                                    </button>
+                                </div>
+                                <textarea id="progress-notes" rows="3" placeholder="Opcional..." class="input-premium min-h-[100px] resize-none"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="pt-4 space-y-4">
+                            <button id="btn-goto-select" class="w-full bg-teal-600 py-5 rounded-3xl text-white font-black shadow-xl shadow-teal-500/20 hover:shadow-teal-500/40 hover:scale-[1.01] active:scale-[0.98] transition-all uppercase tracking-[0.2em] text-xs flex items-center justify-center gap-3">
+                                 ✨ Marcar como Terminado
+                            </button>
+                            <button id="btn-no-predico" class="w-full py-2 text-rose-500 hover:text-rose-600 font-black text-[10px] uppercase tracking-widest transition-colors">
+                                No se pudo predicar nada hoy
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 2: APPLE SELECTION (Multi-Territory) -->
+                    <div id="view-apple-selection" class="hidden space-y-6 animate-fade-in">
+                        <div class="text-center mb-4">
+                            <h4 class="text-xl font-black text-slate-800 dark:text-white">¿Qué se completó?</h4>
+                            <p class="text-xs text-slate-400 font-bold mt-1">Selecciona las manzanas trabajadas por territorio</p>
+                        </div>
+
+                        <div id="territories-apple-list" class="space-y-6">
+                            <!-- Injected via JS -->
+                        </div>
+
+                         <div class="pt-4 space-y-4">
+                             <div id="keep-assigned-container" class="hidden p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center text-sm">🔄</div>
+                                    <p class="text-[10px] font-bold text-slate-600 dark:text-slate-300">Mantener resto asignado</p>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="keep-assigned" class="sr-only peer" checked>
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-amber-500"></div>
+                                </label>
+                            </div>
+
+                            <button id="btn-confirm-selection" class="w-full bg-teal-600 py-5 rounded-3xl text-white font-black shadow-xl shadow-teal-500/20 hover:shadow-teal-500/40 hover:scale-[1.01] active:scale-[0.98] transition-all uppercase tracking-[0.2em] text-xs flex items-center justify-center gap-3">
+                                 Continuar
+                            </button>
+                             <button id="btn-back-initial" class="w-full py-2 text-slate-400 hover:text-slate-600 font-black text-[10px] uppercase tracking-widest transition-colors">
+                                Volver
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 3: CONFIRMATION -->
+                    <div id="view-confirmation" class="hidden text-center py-10 space-y-8 animate-fade-in">
+                        <div class="relative inline-block">
+                            <div class="w-24 h-24 bg-amber-500/10 dark:bg-amber-500/20 rounded-[2.5rem] flex items-center justify-center text-5xl shadow-inner border border-amber-500/20 animate-bounce">⚠️</div>
+                        </div>
+                        <div class="space-y-2">
+                            <h4 class="text-2xl font-black text-slate-800 dark:text-white tracking-tight">¿Confirmar Acción?</h4>
+                            <p id="confirm-msg" class="text-sm font-bold text-slate-500 dark:text-slate-400 px-8 leading-relaxed">...</p>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4 px-10">
+                            <button id="btn-confirm-cancel" class="p-5 rounded-3xl bg-slate-100 dark:bg-white/5 text-slate-500 font-black text-[11px] uppercase tracking-[0.2em] hover:bg-slate-200 dark:hover:bg-white/10 transition-all">Regresar</button>
+                            <button id="btn-confirm-final" class="p-5 rounded-3xl bg-teal-600 text-white font-black text-[11px] uppercase tracking-[0.2em] hover:bg-teal-500 shadow-xl shadow-teal-500/30 transition-all">Sí, confirmar</button>
+                        </div>
+                    </div>
+
                 </div>
             </div>
-            </div> <!-- End scrollable area -->
+    `, async (modal) => {
+        // Elements
+        const viewInitial = modal.querySelector('#view-initial');
+        const viewAppleSelection = modal.querySelector('#view-apple-selection');
+        const viewConfirmation = modal.querySelector('#view-confirmation');
 
-            <div class="shrink-0 p-4 border-t border-black/5 dark:border-white/5 sticky bottom-0 bg-white dark:bg-[#0a0a0a] z-30">
-                <button onclick="hideModal()" class="w-full bg-gray-100 dark:bg-white/5 py-3 rounded-xl text-sm font-bold text-gray-400 hover:text-gray-600 transition-colors uppercase tracking-widest">
-                    Cerrar
-                </button>
-            </div>
-            </div> <!-- End flex-col h-full -->
+        const btnGotoSelect = modal.querySelector('#btn-goto-select');
+        const btnNoPredico = modal.querySelector('#btn-no-predico');
 
-            <!-- VIEW 2: CONFIRMATION -->
-            <div id="view-confirmation" class="hidden text-center py-6">
-                <div class="mb-6 flex justify-center">
-                   <div class="w-20 h-20 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center text-4xl mb-2 animate-bounce">
-                        ⚠️
-                   </div>
-                </div>
-                <h4 class="text-xl font-bold text-gray-900 dark:text-white mb-2">¿Estás seguro?</h4>
-                <p id="confirm-msg" class="text-gray-600 dark:text-gray-300 mb-8 px-4">
-                    ...
-                </p>
-                
-                <div class="grid grid-cols-2 gap-4">
-                    <button id="btn-confirm-cancel" class="py-3 rounded-xl font-bold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-                        Cancelar
-                    </button>
-                    <button id="btn-confirm-yes" class="py-3 rounded-xl font-bold text-white bg-green-600 hover:bg-green-500 shadow-lg shadow-green-500/20 transform hover:scale-105 transition-all">
-                        SÍ, TERMINAR
-                    </button>
-                </div>
-            </div>
-    </div>
-    `);
+        const appleListContainer = modal.querySelector('#territories-apple-list');
+        const btnConfirmSelection = modal.querySelector('#btn-confirm-selection');
+        const btnBackInitial = modal.querySelector('#btn-back-initial');
+        const keepContainer = modal.querySelector('#keep-assigned-container');
 
-    // Logic Elements
-    const viewSelection = document.getElementById('view-selection');
-    const viewConfirmation = document.getElementById('view-confirmation');
-    const btnMain = document.getElementById('btn-action-main');
-    const btnNoPredico = document.getElementById('btn-no-predico');
-    const confirmMsg = document.getElementById('confirm-msg');
-    const btnConfirmYes = document.getElementById('btn-confirm-yes');
+        const btnConfirmFinal = modal.querySelector('#btn-confirm-final');
+        const btnConfirmCancel = modal.querySelector('#btn-confirm-cancel');
+        const confirmMsg = modal.querySelector('#confirm-msg');
 
-    // State
-    let pendingAction = null; // 'completed_all', 'completed_partial', 'return_all'
+        let pendingPayload = null;
 
-    // Update Button Text based on Checks
-    // Default: "Marcar TODO como Terminado" (if 0 checked, implies all; if all checked, implies all)
-    // If SOME checked: "Marcar SELECCIONADAS como Terminadas" (implicit partial return for unselected)
+        // Render Apples Logic
+        const renderApples = () => {
+            appleListContainer.innerHTML = myTerritories.map(t => {
+                const manzanas = t.manzanas ? t.manzanas.split(',').map(s => s.trim()).filter(s => s) : [];
+                const safeNum = t.numero.replace(/\s+/g, '-');
 
-    // Requirement Update: "si devuelve un territorio, se sobre entiende que se predicó todo" (if normal flow)
-    // "si devuelven solo las manzanas de un territorio se entiende que las otras que no marcaron no se predicaron"
+                return `
+                    <div class="bg-slate-50 dark:bg-white/5 rounded-3xl border border-black/5 dark:border-white/5 overflow-hidden">
+                        <div class="p-4 bg-slate-100 dark:bg-black/20 flex justify-between items-center cursor-pointer hover:bg-slate-200 dark:hover:bg-white/10 transition-colors" onclick="document.getElementById('body-${safeNum}').classList.toggle('hidden')">
+                            <span class="font-black text-slate-700 dark:text-white">Territorio ${t.numero}</span>
+                            <span class="text-[10px] text-slate-400 font-bold uppercase">▼</span>
+                        </div>
+                        <div id="body-${safeNum}" class="p-4 space-y-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-[10px] text-gray-400 font-black uppercase tracking-widest">Manzanas</span>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" class="check-all-t w-4 h-4 accent-teal-500 rounded" data-id="${t.id}">
+                                    <span class="text-[10px] font-bold text-teal-600">Todas</span>
+                                </label>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-2">
+                                ${manzanas.length > 0 ? manzanas.map(m => `
+                                    <label class="flex items-center gap-2 p-3 bg-white dark:bg-black/20 rounded-xl border border-transparent hover:border-teal-500/30 cursor-pointer transition-all">
+                                        <input type="checkbox" value="${m}" data-id="${t.id}" class="check-apple w-4 h-4 accent-teal-500 rounded">
+                                        <span class="font-bold text-xs text-slate-600 dark:text-slate-300">${m}</span>
+                                    </label>
+                                `).join('') : `
+                                    <div class="col-span-2">
+                                        <input type="text" data-id="${t.id}" class="manual-input w-full bg-transparent border-b border-gray-300 text-center text-sm py-2 outline-none font-bold" placeholder="Escribir (ej: 1, 2)">
+                                    </div>
+                                `}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
 
-    const updateMainButton = () => {
-        const checkedCount = document.querySelectorAll('.manzana-check:checked').length;
-        if (checkedCount === 0) {
-            btnMain.innerHTML = "🎉 Marcar TODO como Terminado";
-            // Implicitly ALL
-        } else if (checkedCount === manzanas.length) {
-            btnMain.innerHTML = "🎉 Marcar TODO como Terminado";
-        } else {
-            // Partial
-            btnMain.innerHTML = `✅ Terminar ${checkedCount} Manzana(s) (Devolver Resto)`;
-        }
-    };
+            // Bind checklist logic
+            modal.querySelectorAll('.check-all-t').forEach(ca => {
+                ca.addEventListener('change', (e) => {
+                    const tid = e.target.dataset.id;
+                    const apples = modal.querySelectorAll(`.check-apple[data-id="${tid}"]`);
+                    apples.forEach(a => a.checked = e.target.checked);
+                    updateAppleState();
+                });
+            });
 
-    document.querySelectorAll('.manzana-check').forEach(c => c.addEventListener('change', updateMainButton));
+            modal.querySelectorAll('.check-apple').forEach(c => c.addEventListener('change', updateAppleState));
+            modal.querySelectorAll('.manual-input').forEach(i => i.addEventListener('input', updateAppleState));
+        };
 
-    // Show Confirmation
-    const showConfirm = (action) => {
-        pendingAction = action;
-        viewSelection.classList.add('hidden');
-        viewConfirmation.classList.remove('hidden');
+        const updateAppleState = () => {
+            // Check if any apples are selected or manual text entered
+            let hasSelection = false;
+            let partialMode = false;
 
-        if (action === 'return_all') {
-            confirmMsg.innerHTML = `Vas a marcar que <b class="text-red-500">NO SE PREDICÓ</b> nada en este territorio. Se devolverá completo.`;
-            btnConfirmYes.textContent = "SÍ, DEVOLVER";
-            btnConfirmYes.className = "py-3 rounded-xl font-bold text-white bg-red-600 hover:bg-red-500 shadow-lg shadow-red-500/20 transform hover:scale-105 transition-all";
-        } else if (action === 'completed_partial') {
-            const checkedCount = document.querySelectorAll('.manzana-check:checked').length;
-            confirmMsg.innerHTML = `Marcaste <b>${checkedCount}</b> manzanas como terminadas. Las <b>${manzanas.length - checkedCount}</b> restantes se devolverán como NO predicadas.`;
-            btnConfirmYes.textContent = "SÍ, TERMINAR PARCIAL";
-            btnConfirmYes.className = "py-3 rounded-xl font-bold text-white bg-teal-600 hover:bg-teal-500 shadow-lg shadow-teal-500/20 transform hover:scale-105 transition-all";
-        } else {
-            // completed_all
-            confirmMsg.innerHTML = `Vas a marcar <b class="text-teal-600">TODO el territorio</b> como completado. ¡Buen trabajo!`;
-            btnConfirmYes.textContent = "SÍ, TERMINAR";
-            btnConfirmYes.className = "py-3 rounded-xl font-bold text-white bg-green-600 hover:bg-green-500 shadow-lg shadow-green-500/20 transform hover:scale-105 transition-all";
-        }
-    };
+            myTerritories.forEach(t => {
+                const checks = modal.querySelectorAll(`.check-apple[data-id="${t.id}"]:checked`);
+                const allChecks = modal.querySelectorAll(`.check-apple[data-id="${t.id}"]`);
+                const manual = modal.querySelector(`.manual-input[data-id="${t.id}"]`);
 
-    btnMain.onclick = () => {
-        const checkedCount = document.querySelectorAll('.manzana-check:checked').length;
-        if (checkedCount > 0 && checkedCount < manzanas.length) {
-            showConfirm('completed_partial');
-        } else {
-            showConfirm('completed_all');
-        }
-    };
+                if (checks.length > 0 || (manual && manual.value.trim())) hasSelection = true;
+                if (checks.length > 0 && checks.length < allChecks.length) partialMode = true;
+                if (manual && manual.value.trim()) partialMode = true; // Manual entry is implicitly expansive/partial
+            });
 
-    btnNoPredico.onclick = () => {
-        showConfirm('return_all');
-    };
+            if (partialMode) keepContainer.classList.remove('hidden');
+            else keepContainer.classList.add('hidden');
 
-    document.getElementById('btn-confirm-cancel').onclick = () => {
-        viewConfirmation.classList.add('hidden');
-        viewSelection.classList.remove('hidden');
-    };
+            btnConfirmSelection.innerHTML = hasSelection ? 'Continuar' : 'Marcar Todo Como Completado';
+        };
 
-    btnConfirmYes.onclick = async () => {
-        const notes = document.getElementById('progress-notes').value.trim();
-        const dateVal = document.getElementById('completion-date').value;
-        const selected = Array.from(document.querySelectorAll('.manzana-check:checked')).map(cb => cb.value);
-        const remaining = manzanas.filter(m => !selected.includes(m));
 
-        try {
-            if (pendingAction === 'return_all') {
-                // Return ALL as NOT preached
-                await returnTerritorioParcial(id, [], manzanas, true, notes, dateVal);
-                showNotification("Territorio devuelto (No predicado).");
-            } else if (pendingAction === 'completed_all') {
-                // Mark ALL as preached
-                await returnTerritorio(id, notes, dateVal);
-                showNotification("Territorio completado exitosamente 🎉");
-            } else {
-                // Partial
-                // Selected = Done, Remaining = Not Done (Returned)
-                // unassignRemaining = true (implicit return of rest)
-                await returnTerritorioParcial(id, selected, remaining, true, notes, dateVal);
-                showNotification("Avance registrado. Resto devuelto.");
+        // --- Navigation Logic ---
+
+        btnGotoSelect.onclick = () => {
+            renderApples();
+            viewInitial.classList.add('hidden');
+            viewAppleSelection.classList.remove('hidden');
+            updateAppleState();
+        };
+
+        btnBackInitial.onclick = () => {
+            viewAppleSelection.classList.add('hidden');
+            viewInitial.classList.remove('hidden');
+        };
+
+        btnNoPredico.onclick = () => {
+            pendingPayload = { type: 'none' };
+            confirmMsg.innerText = "Vas a reportar que NO se predicó en estos territorios. Se mantendrán asignados.";
+            viewInitial.classList.add('hidden');
+            viewConfirmation.classList.remove('hidden');
+        };
+
+        btnConfirmSelection.onclick = () => {
+            // Build Payload
+            const reports = [];
+            const keepAssigned = modal.querySelector('#keep-assigned').checked;
+
+            myTerritories.forEach(t => {
+                const checks = Array.from(modal.querySelectorAll(`.check-apple[data-id="${t.id}"]:checked`)).map(c => c.value);
+                const manual = modal.querySelector(`.manual-input[data-id="${t.id}"]`);
+                const manualVal = manual ? manual.value.split(',').map(s => s.trim()).filter(Boolean) : [];
+
+                const allSelected = checks.concat(manualVal);
+
+                if (allSelected.length > 0 || myTerritories.length === 1) { // If explicit selection OR just one territory implicit all
+                    // Identify status
+                    let isPartial = false;
+                    let remaining = [];
+
+                    if (t.manzanas) {
+                        const original = t.manzanas.split(',').map(s => s.trim()).filter(Boolean);
+                        if (checks.length > 0 && checks.length < original.length) {
+                            isPartial = true;
+                            remaining = original.filter(x => !checks.includes(x));
+                        }
+                    }
+                    if (manualVal.length > 0) isPartial = true; // Assume manual entry is implicitly expansive/partial
+
+                    // If button said "Marcar Todo", and no specific selection made, assume ALL
+                    const isImplicitAll = allSelected.length === 0;
+
+                    reports.push({
+                        id: t.id,
+                        numero: t.numero,
+                        completed: isImplicitAll ? (t.manzanas ? t.manzanas.split(',') : []) : allSelected,
+                        remaining: remaining,
+                        isPartial: isPartial && !isImplicitAll,
+                        originalManzanas: t.manzanas
+                    });
+                }
+            });
+
+            pendingPayload = { type: 'report', data: reports, keep: keepAssigned };
+
+            const count = reports.length;
+            const partials = reports.filter(r => r.isPartial).length;
+
+            confirmMsg.innerText = `Vas a reportar ${count} territorio(s). ${partials > 0 ? `${partials} de ellos marcados como parcialmente completados` : 'Todos marcados como completados'}. ${keepAssigned && partials > 0 ? 'El resto se mantendrá asignado.' : ''}`;
+
+            viewAppleSelection.classList.add('hidden');
+            viewConfirmation.classList.remove('hidden');
+        };
+
+        btnConfirmCancel.onclick = () => {
+            viewConfirmation.classList.add('hidden');
+            if (pendingPayload.type === 'none') viewInitial.classList.remove('hidden');
+            else viewAppleSelection.classList.remove('hidden');
+        };
+
+        btnConfirmFinal.onclick = async (e) => {
+            e.target.innerHTML = 'Procesando...';
+            e.target.disabled = true;
+
+            const date = modal.querySelector('#completion-date').value;
+            const notes = modal.querySelector('#progress-notes').value;
+
+            try {
+                if (pendingPayload.type === 'none') {
+                    // Logic for "No Predicó" - maybe log interaction but keep assigned
+                    // For now, assume it effectively does nothing but log "Intento fallido" or re-assign date?
+                    // User request implies just "Return" or "Keep"? 
+                    // Let's assume keep but log note.
+                    // Or actually, user usually means "Return incomplete".
+                    // Let's safe default: Just add history note.
+                    for (const t of myTerritories) {
+                        await logReturn(t.id, new Date().toISOString(), 'No predicado', notes || 'Sin actividad');
+                    }
+                    showNotification("Reporte registrado.");
+                } else {
+                    // Process Reports
+                    for (const r of pendingPayload.data) {
+                        if (r.isPartial) {
+                            // Partial Logic
+                            // If keep is true: Split. 
+                            // If keep is false: Return all but mark completed part in history? 
+                            // Complex. Let's use returnTerritorioParcial
+                            // If "Implicit All", r.isPartial is false.
+
+                            // Calculate remaining for manual input if not derived?
+                            // If manual input was used, we don't know "remaining" easily without valid original list.
+                            // Fallback: If original list exists, calculate.
+                            let rem = r.remaining;
+                            if (rem.length === 0 && r.originalManzanas) {
+                                // If manual entry, we can't subtract easily if strings don't match. 
+                                // Assume manual entry replaces logic: User types what they did. 
+                                // We might need to ask what is left?
+                                // For MVP: If manual, we don't unassign remainder unless implicit?
+                            }
+
+                            await returnTerritorioParcial(r.id, r.completed, rem, !pendingPayload.keep, notes, date);
+                        } else {
+                            // Full Completion
+                            await returnTerritorio(r.id, "Terminado", date, "Completado");
+                            if (notes) await logReturn(r.id, date, 'Nota', notes);
+                        }
+                    }
+                    showNotification("¡Excelente! Informe procesado.");
+                }
+
+                modal.remove();
+                if (window.refreshConductorView) window.refreshConductorView();
+
+            } catch (err) {
+                console.error(err);
+                showCustomAlert("Error al procesar: " + err.message);
+                e.target.innerHTML = 'Intentar de nuevo';
+                e.target.disabled = false;
             }
+        };
 
-            document.getElementById('modal-container').classList.add('hidden');
-            // Reload to refresh lists
-            // setTimeout(() => window.location.reload(), 1500); 
-            // REPLACED WITH REACTIVE REFRESH:
-            if (window.refreshConductorView) {
-                showNotification("Actualizando vista... 🔄");
-                await window.refreshConductorView();
-            } else {
-                window.location.reload(); // Fallback
-            }
-
-        } catch (e) {
-            console.error(e);
-            showNotification("Error: " + e.message, "error");
-        }
-    };
+    }); // End ShowModal
 };
 
 const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refreshCallback) => {
@@ -1212,7 +1181,7 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
     window.showPhoneHistory = (historial, numero) => {
         const modal = document.getElementById('modal-container');
         modal.innerHTML = `
-            <div class="flex flex-col h-full">
+    < div class="flex flex-col h-full" >
                 <header class="shrink-0 flex justify-between items-center bg-amber-600 p-6 text-white shadow-lg">
                     <div>
                         <h3 class="font-black uppercase tracking-[0.2em] text-sm">Historial de Notas</h3>
@@ -1243,8 +1212,8 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
                         Cerrar Historial
                     </button>
                 </div>
-            </div>
-        `;
+            </div >
+    `;
         modal.classList.remove('hidden');
     };
 
@@ -1279,18 +1248,18 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
         if (activeRequests.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="6" class="p-0">
-                        <div class="bg-gradient-to-br from-teal-50 to-white dark:from-teal-900/10 dark:to-[#0f1115] p-12 text-center rounded-2xl border-2 border-dashed border-teal-200 dark:border-teal-800/30 m-4 animate-fade-in">
-                            <div class="text-6xl mb-6">📞</div>
-                            <h3 class="text-2xl font-bold text-teal-800 dark:text-teal-100 mb-4">¿Listo para la Predicación Telefónica?</h3>
-                            <p class="text-gray-600 dark:text-gray-400 max-w-md mx-auto mb-8">
-                                Haz clic en el botón de abajo para solicitar tus primeros 30 números y empezar la sesión con tu grupo.
-                            </p>
-                            <button id="btn-solicitar-banner" class="bg-teal-600 hover:bg-teal-500 text-white px-8 py-3 rounded-full font-bold shadow-xl shadow-teal-500/20 transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2 mx-auto">
-                                🚀 Solicitar Números
-                            </button>
-                        </div>
-                    </td>
+                <td colspan="6" class="p-0">
+                    <div class="bg-gradient-to-br from-teal-50 to-white dark:from-teal-900/10 dark:to-[#0f1115] p-12 text-center rounded-2xl border-2 border-dashed border-teal-200 dark:border-teal-800/30 m-4 animate-fade-in">
+                        <div class="text-6xl mb-6">📞</div>
+                        <h3 class="text-2xl font-bold text-teal-800 dark:text-teal-100 mb-4">¿Listo para la Predicación Telefónica?</h3>
+                        <p class="text-gray-600 dark:text-gray-400 max-w-md mx-auto mb-8">
+                            Haz clic en el botón de abajo para solicitar tus primeros 30 números y empezar la sesión con tu grupo.
+                        </p>
+                        <button id="btn-solicitar-banner" class="bg-teal-600 hover:bg-teal-500 text-white px-8 py-3 rounded-full font-bold shadow-xl shadow-teal-500/20 transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2 mx-auto">
+                            🚀 Solicitar Números
+                        </button>
+                    </div>
+                </td>
                 </tr>
             `;
             setTimeout(() => {
@@ -1315,7 +1284,7 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
 
             const currentStatus = t.estado || 'Sin asignar';
             return `
-            <tr class="hover:bg-black/5 dark:hover:bg-white/5 transition-colors border-b border-white/5 group">
+                < tr class="hover:bg-black/5 dark:hover:bg-white/5 transition-colors border-b border-white/5 group" >
                 <td class="p-3">
                     <div class="flex items-center gap-2 font-mono text-teal-700 dark:text-teal-300 font-bold text-sm tracking-wide">
                         ${formatPhoneNumber(t.numero)}
@@ -1357,8 +1326,8 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
                         </button>
                     </div>
                 </td>
-            </tr>
-        `;
+            </tr >
+    `;
         }).join('');
 
         // Progress Stats
@@ -1367,13 +1336,13 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
         const progressContainer = document.getElementById('phone-progress-info');
         if (progressContainer) {
             progressContainer.innerHTML = `
-                <div class="flex items-center gap-4 text-xs font-medium text-gray-500 dark:text-gray-400">
+    < div class="flex items-center gap-4 text-xs font-medium text-gray-500 dark:text-gray-400" >
                     <span>Progreso: <b>${totalProcessed}</b> de <b>${total}</b></span>
                     <div class="w-24 h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
                         <div class="h-full bg-teal-500 transition-all duration-500" style="width: ${(totalProcessed / total) * 100}%"></div>
                     </div>
-                </div>
-            `;
+                </div >
+    `;
         }
 
         // Finalizar Session Button visibility
@@ -1436,7 +1405,7 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
         newBtn.addEventListener('click', async () => {
             const modal = document.getElementById('modal-container');
             modal.innerHTML = `
-                <div class="flex flex-col h-full">
+    < div class="flex flex-col h-full" >
                     <header class="shrink-0 flex justify-between items-center bg-amber-500 p-6 text-white shadow-lg">
                         <div>
                              <h3 class="text-xl font-black uppercase tracking-[0.2em] flex items-center gap-2">
@@ -1474,8 +1443,8 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
                             Cerrar Revisitas
                         </button>
                     </div>
-                </div>
-            `;
+                </div >
+    `;
             modal.classList.remove('hidden');
 
             try {
@@ -1491,7 +1460,7 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
                     noMsg.classList.remove('hidden');
                 } else {
                     tbody.innerHTML = revisitas.map(r => `
-                        <tr id="rev-row-${r.id}" class="hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-colors">
+    < tr id = "rev-row-${r.id}" class="hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-colors" >
                             <td class="p-3 font-mono text-teal-600 dark:text-teal-400">${formatPhoneNumber(r.numero)}</td>
                             <td class="p-3 font-bold text-gray-800 dark:text-gray-200">${r.propietario || '-'}</td>
                             <td class="p-3 text-xs text-gray-500 dark:text-gray-400">${r.direccion || '-'}</td>
@@ -1504,8 +1473,8 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
                                     Devolver
                                 </button>
                             </td>
-                        </tr>
-                     `).join('');
+                        </tr >
+    `).join('');
                 }
 
             } catch (e) {
@@ -1553,7 +1522,7 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
     };
 
     window.returnRevisita = async (id) => {
-        const row = document.getElementById(`rev-row-${id}`);
+        const row = document.getElementById(`rev - row - ${id} `);
         // Demand comment for return
         const reason = prompt("Por favor, ingresa el motivo de la devolución (¿Por qué se devuelve este número?):");
         if (reason === null) return; // Cancelled
@@ -1618,30 +1587,44 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
 
             const statsText = Object.entries(summary.stats)
                 .filter(([_, count]) => count > 0)
-                .map(([name, count]) => `• ${name}: ${count}`)
+                .map(([name, count]) => `• ${name}: ${count} `)
                 .join('\n');
 
             const modal = document.getElementById('modal-container');
             showModal(`
-                <div class="p-8 text-center animate-scale-in">
-                    <div class="text-teal-600 dark:text-teal-400 text-5xl mb-4">🏁</div>
-                    <h3 class="text-2xl font-black text-teal-900 dark:text-teal-100 mb-6">Sesión Finalizada</h3>
+    < div class="p-12 text-center space-y-10 animate-fade-in" >
+                    <div class="relative inline-block">
+                        <div class="w-28 h-28 bg-teal-500/10 dark:bg-teal-500/20 rounded-[3rem] flex items-center justify-center text-6xl shadow-inner border border-teal-500/20 animate-float">🏁</div>
+                        <div class="absolute -top-3 -right-3 w-10 h-10 bg-emerald-500 text-white rounded-full flex items-center justify-center text-lg font-black shadow-xl animate-bounce border-4 border-white dark:border-slate-900">✓</div>
+                    </div>
                     
-                    <div class="bg-teal-50 dark:bg-white/5 rounded-2xl p-5 mb-6 border border-teal-100 dark:border-white/5">
-                        <p class="text-xs uppercase font-bold text-teal-600 dark:text-teal-400 mb-3 tracking-widest text-center">Resumen de Hoy</p>
-                        <div class="space-y-2 text-sm text-teal-900 dark:text-teal-200">
-                             <p class="font-bold border-b border-teal-200 dark:border-white/10 pb-2 mb-2">Total Procesado: ${summary.total}</p>
-                             ${statsText.replace(/\n/g, '<br>')}
+                    <div class="space-y-3">
+                        <h3 class="text-4xl font-black text-slate-800 dark:text-white tracking-tight">Sesión Finalizada</h3>
+                        <p class="text-[11px] text-teal-600 dark:text-teal-400 uppercase font-black tracking-[0.4em]">Resumen de Actividad</p>
+                    </div>
+                    
+                    <div class="glass-morphism bg-teal-500/[0.03] dark:bg-white/[0.03] rounded-[3rem] p-10 border border-teal-500/10 dark:border-white/5 space-y-8">
+                        <div class="flex justify-between items-center bg-teal-600/10 dark:bg-teal-600/20 p-6 rounded-3xl border border-teal-500/10">
+                             <span class="text-[10px] font-black text-teal-600 uppercase tracking-[0.2em]">Total Registros</span>
+                             <span class="text-4xl font-black text-teal-700 dark:text-teal-300 tracking-tighter">${summary.total}</span>
+                        </div>
+                        <div class="space-y-4 text-left">
+                             ${Object.entries(summary.stats)
+                    .filter(([_, count]) => count > 0)
+                    .map(([name, count]) => `
+                                     <div class="flex justify-between items-center px-4 py-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors">
+                                         <span class="text-[12px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">${name}</span>
+                                         <span class="text-sm font-black text-slate-800 dark:text-white">${count}</span>
+                                     </div>
+                                 `).join('')}
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 gap-3">
-                        <button id="btn-share-results" class="w-full bg-teal-600 hover:bg-teal-500 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-teal-500/20 transition-all">
-                             📤 Compartir Reporte
-                        </button>
-                    </div>
-                </div>
-            `);
+                    <button id="btn-share-results" class="w-full bg-teal-600 py-6 rounded-3xl text-white font-black shadow-[0_20px_50px_-10px_rgba(13,148,136,0.5)] hover:shadow-[0_25px_60px_-10px_rgba(13,148,136,0.6)] hover:scale-[1.02] active:scale-[0.98] transition-all uppercase tracking-[0.3em] text-xs flex items-center justify-center gap-4 group">
+                         <span class="text-xl group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform">📤</span> Compartir Reporte
+                    </button>
+                </div >
+    `);
             modal.classList.remove('hidden');
 
             // Log summary to backend
@@ -1654,10 +1637,10 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
             // showModal handles closing via its own X button, backdrop click, or ESC key.
 
             document.getElementById('btn-share-results').onclick = () => {
-                const message = `📋 *Resumen de Predicación Telefónica*\n` +
-                    `👤 *Conductor:* ${userId}\n` +
-                    `📊 *Total procesado:* ${summary.total}\n\n` +
-                    `${statsText}\n\n` +
+                const message = `📋 * Resumen de Predicación Telefónica *\n` +
+                    `👤 * Conductor:* ${userId} \n` +
+                    `📊 * Total procesado:* ${summary.total} \n\n` +
+                    `${statsText} \n\n` +
                     `_Enviado desde App Territorios_`;
 
                 if (navigator.share) {
@@ -1892,8 +1875,15 @@ async function renderAISection(name) {
 
 /** --- RESCUE MODE (Ayudas) --- **/
 
-function renderRescueSection(container, currentConductorName, allTerritories) {
+function renderRescueSection(container, currentConductorName, allTerritories, config) {
     if (!container) return;
+
+    if (!config || !config.rescue_mode) {
+        container.classList.add('hidden');
+        container.innerHTML = '';
+        return;
+    }
+    container.classList.remove('hidden');
 
     const now = new Date();
     const rescueCandidates = allTerritories.filter(t => {
