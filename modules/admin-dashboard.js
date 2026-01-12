@@ -3430,7 +3430,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                            </div>
                            <div class="relative z-10">
                                <p class="text-[9px] font-black uppercase tracking-[0.4em] text-slate-400 mb-2">Core Kernel Version</p>
-                               <h4 class="text-4xl font-black mb-10 tracking-tighter tabular-nums">${appVersion || '3.6.0'} (DEPLOY TEST)</h4>
+                               <h4 class="text-4xl font-black mb-10 tracking-tighter tabular-nums">v${appVersion}</h4>
                                
                                <div class="flex flex-col gap-3">
                                    <div class="flex flex-col sm:flex-row items-center gap-3">
@@ -3439,7 +3439,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                                    </div>
                                    <button id="btn-set-remote-version" class="w-full bg-emerald-500/20 hover:bg-emerald-500 text-emerald-500 hover:text-white py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-emerald-500/20 active:scale-95 flex items-center justify-center gap-2">
                                        <i class="fas fa-cloud-arrow-up"></i>
-                                       Publicar v3.6.3 como obligatoria
+                                       Publicar v${appVersion} como obligatoria
                                    </button>
                                </div>
                            </div>
