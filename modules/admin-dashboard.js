@@ -2985,8 +2985,8 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                                     <div class="relative">
                                         <input type="text" id="conf-nombre" value="${config.congregacion?.nombre || ''}" 
                                             class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-sm font-bold shadow-inner outline-none focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10 transition-all text-slate-800 dark:text-white"
-                                            placeholder="Ej. Central de Guayaquil">
-                                        <i class="fas fa-church absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 dark:text-white/10 opacity-0 group-focus-within/input:opacity-100 transition-opacity"></i>
+                                            placeholder="Ej. Nueve de Octubre">
+                                        <i class="fas fa-briefcase absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 dark:text-white/10 opacity-0 group-focus-within/input:opacity-100 transition-opacity"></i>
                                     </div>
                                 </div>
 
