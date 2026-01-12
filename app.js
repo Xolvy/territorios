@@ -312,7 +312,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             // --- ROUTING LOGIC ---
-            if (role === 'Administrador' || role === 'SuperAdmin') {
+            const isAdmin = (role === 'Administrador' || role === 'SuperAdmin');
+
+            if (isAdmin && !path.startsWith('/conductores')) {
                 // Enforce /administrador URL
                 if (!path.startsWith('/administrador')) {
                     window.history.replaceState({}, '', '/administrador/dashboard');

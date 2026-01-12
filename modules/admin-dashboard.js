@@ -667,6 +667,10 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
                              <p class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Versión del Sistema</p>
                              <p class="text-xs font-extrabold text-primary">Build ${appVersion || '3.6.0'}</p>
                         </div>
+                        <button onclick="window.location.href='/conductores'" class="flex-1 md:flex-none bg-indigo-500/10 hover:bg-indigo-500 text-indigo-600 hover:text-white px-6 py-4 rounded-xl border border-indigo-500/20 transition-all font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-3">
+                            <i class="fas fa-user"></i>
+                            Vista Conductor
+                        </button>
                         <button id="logout-btn" class="flex-1 md:flex-none bg-white dark:bg-white/5 hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-500 hover:text-red-500 px-6 py-4 rounded-xl border border-slate-100 dark:border-white/5 transition-all font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-3">
                             <i class="fas fa-sign-out-alt"></i>
                             Cerrar Sesión
@@ -4143,7 +4147,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                                     </td>
                                     <td class="p-6 text-center">
                                         <span class="text-[10px] font-black uppercase text-slate-400 bg-slate-100 dark:bg-white/5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 shadow-inner">
-                                            G-${p.grupo || '?'}
+                                            ${p.grupo || '?'}
                                         </span>
                                     </td>
                                     <td class="p-6">
@@ -4353,14 +4357,14 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                     const list = gender === 'Hombre' ? malePrivs : femalePrivs;
 
                     privsContainer.innerHTML = list.map(pr => `
-    < label class="flex items-center gap-3 bg-white dark:bg-white/5 px-4 py-3 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-primary/50 cursor-pointer transition-all group">
-        <input type="checkbox" class="p-priv-check sr-only peer" value="${pr}" ${currentPrivs.includes(pr) ? 'checked' : ''}>
-            <div class="w-5 h-5 rounded-lg border-2 border-slate-200 dark:border-white/10 peer-checked:bg-primary peer-checked:border-primary flex items-center justify-center transition-all">
-                <i class="fas fa-check text-[10px] text-white hidden peer-checked:block"></i>
-            </div>
-            <span class="text-[10px] font-black text-slate-400 peer-checked:text-primary transition-colors uppercase tracking-widest">${pr}</span>
-        </label>
-`).join('');
+                        <label class="flex items-center gap-3 bg-white dark:bg-white/5 px-4 py-3 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-primary/50 cursor-pointer transition-all group">
+                            <input type="checkbox" class="p-priv-check sr-only peer" value="${pr}" ${currentPrivs.includes(pr) ? 'checked' : ''}>
+                            <div class="w-5 h-5 rounded-lg border-2 border-slate-200 dark:border-white/10 peer-checked:bg-primary peer-checked:border-primary flex items-center justify-center transition-all">
+                                <i class="fas fa-check text-[10px] text-white hidden peer-checked:block"></i>
+                            </div>
+                            <span class="text-[10px] font-black text-slate-400 peer-checked:text-primary transition-colors uppercase tracking-widest">${pr}</span>
+                        </label>
+                    `).join('');
 
                     privsContainer.querySelectorAll('.p-priv-check').forEach(cb => {
                         cb.addEventListener('change', syncConductorUI);

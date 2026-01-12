@@ -185,9 +185,15 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                          <p class="text-[8px] font-black text-slate-400 uppercase tracking-[0.3em] mb-0.5">Versión</p>
                          <p class="text-[10px] font-black text-slate-800 dark:text-white tabular-nums">${appVersion || '3.6.0'}</p>
                     </div>
+                    ${conductorData?.privilegios?.includes('Administrador') ? `
+                    <button onclick="window.location.href='/administrador/dashboard'" class="flex-1 md:flex-none bg-amber-500/10 hover:bg-amber-500 text-amber-600 hover:text-white px-6 py-3.5 rounded-xl border border-amber-500/20 transition-all font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95">
+                        <i class="fas fa-user-shield"></i> Panel Admin
+                    </button>
+                    ` : `
                     <button onclick="window.startOnboarding()" class="flex-1 md:flex-none bg-slate-50 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 px-6 py-3.5 rounded-xl border border-slate-200 dark:border-white/10 transition-all font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95">
                         <i class="fas fa-circle-info text-indigo-500"></i> Ayuda
                     </button>
+                    `}
                     <button id="logout-btn" class="flex-1 md:flex-none bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white px-6 py-3.5 rounded-xl border border-rose-500/20 transition-all font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95">
                         <i class="fas fa-sign-out-alt"></i> Salir
                     </button>
