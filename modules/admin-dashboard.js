@@ -605,8 +605,10 @@ window.openTerritorySelector = (dayIndex, turnId, btnElement) => {
             const span = btnElement.querySelector('span.truncate');
             if (span) {
                 span.textContent = newValue || 'Asignar';
-                span.className = `truncate font-mono ${newValue ? 'text-teal-400 font-bold' : 'text-gray-500 italic'}`;
+                span.className = `truncate font-mono ${newValue ? 'text-primary' : 'text-slate-400 opacity-50'}`;
             }
+            // Trigger auto-save
+            window.updateWeekData(dayIndex, turnId, 'territorio', newValue);
         });
     }
 };
@@ -623,8 +625,10 @@ window.openGroupSelector = (dayIndex, turnId, btnElement) => {
             const span = btnElement.querySelector('span.truncate');
             if (span) {
                 span.textContent = newValue || 'Seleccionar';
-                span.className = `truncate ${newValue ? 'text-teal-400 font-bold' : 'text-gray-500 italic'}`;
+                span.className = `truncate ${newValue ? 'text-indigo-500' : 'text-slate-400 opacity-50'}`;
             }
+            // Trigger auto-save
+            window.updateWeekData(dayIndex, turnId, 'grupos', newValue);
         });
     }
 };
@@ -5640,6 +5644,7 @@ const renderProgramaTab = async (container) => {
                         <i class="fas fa-cloud-upload-alt text-emerald-500"></i> Autoguardado inteligente activado
                     </p>
                     <div class="flex items-center gap-6 text-[9px] font-black uppercase tracking-widest opacity-60">
+                        <span id="save-status" class="text-emerald-500 transition-opacity opacity-0 mr-4 font-bold flex items-center gap-2"></span>
                         <span class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-cyan-500 shadow-lg shadow-cyan-500/40"></span> Mañana</span>
                         <span class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-orange-500 shadow-lg shadow-orange-500/40"></span> Tarde</span>
                         <span class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-indigo-500 shadow-lg shadow-indigo-500/40"></span> Noche</span>
@@ -5706,17 +5711,17 @@ const renderProgramaTab = async (container) => {
             </div>
 
             <div class="table-container overflow-x-auto custom-scrollbar">
-                <table class="w-full text-left border-collapse min-w-[1200px]">
+                <table class="w-full text-left border-collapse min-w-[1300px] table-fixed">
                     <thead>
                         <tr class="bg-slate-50 dark:bg-black/20 text-slate-400 text-[9px] font-black uppercase tracking-[0.2em] border-b border-slate-200 dark:border-white/5">
-                            <th class="p-6 w-32 sticky left-0 z-30 bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-white/5">Día</th>
+                            <th class="p-4 w-24 sticky left-0 z-30 bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-white/5">Día</th>
                             ${turnos.map(t => `
-                                <th class="p-6 min-w-[300px]">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-8 h-8 ${t.bg} ${t.color} rounded-lg flex items-center justify-center text-xs shadow-sm">
+                                <th class="p-4">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-7 h-7 ${t.bg} ${t.color} rounded-lg flex items-center justify-center text-[10px] shadow-sm">
                                             <i class="fas ${t.icon}"></i>
                                         </div>
-                                        <span>${t.label}</span>
+                                        <span class="tracking-widest">${t.label}</span>
                                     </div>
                                 </th>
                             `).join('')}
@@ -5727,26 +5732,23 @@ const renderProgramaTab = async (container) => {
 
         programa.dias.forEach((dia, dayIndex) => {
             html += `<tr class="group/row">
-                <td class="p-6 sticky left-0 z-20 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-white/5 group-hover/row:bg-slate-50 dark:group-hover/row:bg-white/[0.02] transition-colors">
+                <td class="p-4 sticky left-0 z-20 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-white/5 group-hover/row:bg-slate-50 dark:group-hover/row:bg-white/[0.02] transition-colors">
                     <div class="flex flex-col items-center">
-                        <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">${dia.nombre}</span>
-                        <span class="text-xl font-black text-slate-800 dark:text-white uppercase">${dia.nombre.substring(0, 3)}</span>
+                        <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1">${dia.nombre}</span>
+                        <span class="text-lg font-black text-slate-800 dark:text-white uppercase">${dia.nombre.substring(0, 3)}</span>
                     </div>
                 </td>`;
 
             turnos.forEach(t => {
                 const turnoId = t.id;
-                if (turnoId === 'zoom' && dia.nombre !== 'Martes') {
-                    html += `<td class="p-4 bg-slate-50/50 dark:bg-black/10"></td>`;
-                    return;
-                }
+                // Allow Zoom turn for all days in Admin view to provide maximum flexibility
 
                 if (!dia[turnoId]) dia[turnoId] = {};
                 const data = dia[turnoId];
 
                 html += `
-                    <td class="p-4 align-top transition-colors">
-                        <div class="space-y-4 relative">
+                    <td class="p-3 align-top transition-colors border-r border-slate-100 dark:border-white/5 last:border-r-0">
+                        <div class="space-y-3 relative">
                             ${(() => {
                         if (!data.territorio) return '';
                         const tNum = data.territorio.split(',')[0].trim();
@@ -5778,43 +5780,43 @@ const renderProgramaTab = async (container) => {
 
                     if (field === 'Territorio') {
                         html += `
-                            <div class="space-y-2">
-                                <label class="text-[10px] font-bold text-slate-400 tracking-widest uppercase ml-1 flex items-center gap-2">
+                            <div class="space-y-1">
+                                <label class="text-[8px] font-bold text-slate-400 tracking-widest uppercase ml-1 flex items-center gap-1.5">
                                     <i class="fas fa-map-marked-alt opacity-50"></i> ${field}
                                 </label>
                                 <button onclick="window.openTerritorySelector(${dayIndex}, '${turnoId}', this)" 
                                         data-current="${val.replace(/"/g, '&quot;')}"
-                                        class="w-full text-left bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-3 rounded-xl hover:border-primary transition-all flex items-center justify-between group/btn shadow-sm">
-                                    <span class="text-xs font-bold truncate ${val ? 'text-primary' : 'text-slate-400 opacity-50'}">${val || 'S-##'}</span>
-                                    <i class="fas fa-chevron-down text-[10px] opacity-20 group-hover/btn:opacity-100"></i>
+                                        class="w-full text-left bg-white dark:bg-slate-800/40 border border-slate-200 dark:border-white/10 p-2.5 rounded-xl hover:border-primary transition-all flex items-center justify-between group/btn shadow-sm">
+                                    <span class="text-[11px] font-bold truncate ${val ? 'text-primary' : 'text-slate-400 opacity-50'}">${val || 'S-##'}</span>
+                                    <i class="fas fa-chevron-down text-[9px] opacity-20 group-hover/btn:opacity-100"></i>
                                 </button>
                             </div>`;
                     } else if (field === 'Grupos') {
                         html += `
-                            <div class="space-y-2">
-                                <label class="text-[10px] font-bold text-slate-400 tracking-widest uppercase ml-1 flex items-center gap-2">
+                            <div class="space-y-1">
+                                <label class="text-[8px] font-bold text-slate-400 tracking-widest uppercase ml-1 flex items-center gap-1.5">
                                     <i class="fas fa-users opacity-50"></i> ${field}
                                 </label>
                                 <button onclick="window.openGroupSelector(${dayIndex}, '${turnoId}', this)" 
                                         data-current="${val.replace(/"/g, '&quot;')}"
-                                        class="w-full text-left bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-3 rounded-xl hover:border-indigo-500 transition-all flex items-center justify-between group/btn shadow-sm">
-                                    <span class="text-xs font-bold truncate ${val ? 'text-indigo-500' : 'text-slate-400 opacity-50'}">${val || 'Punto de reunión'}</span>
-                                    <i class="fas fa-chevron-down text-[10px] opacity-20 group-hover/btn:opacity-100"></i>
+                                        class="w-full text-left bg-white dark:bg-slate-800/40 border border-slate-200 dark:border-white/10 p-2.5 rounded-xl hover:border-indigo-500 transition-all flex items-center justify-between group/btn shadow-sm">
+                                    <span class="text-[11px] font-bold truncate ${val ? 'text-indigo-500' : 'text-slate-400 opacity-50'}">${val || 'Punto de reunión'}</span>
+                                    <i class="fas fa-chevron-down text-[9px] opacity-20 group-hover/btn:opacity-100"></i>
                                 </button>
                             </div>`;
                     } else if (opts.length > 0) {
                         html += `
-                            <div class="space-y-2">
-                                <label class="text-[10px] font-bold text-slate-400 tracking-widest uppercase ml-1 flex items-center gap-2">
+                            <div class="space-y-1">
+                                <label class="text-[8px] font-bold text-slate-400 tracking-widest uppercase ml-1 flex items-center gap-1.5">
                                     <i class="fas ${icon} opacity-50"></i> ${field}
                                 </label>
                                 <div class="relative">
                                     <select onchange="window.updateWeekData(${dayIndex}, '${turnoId}', '${fieldId}', this.value)" 
-                                            class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-3 rounded-xl text-xs font-bold text-slate-700 dark:text-white outline-none focus:border-primary appearance-none cursor-pointer shadow-sm">
+                                            class="w-full bg-white dark:bg-slate-800/40 border border-slate-200 dark:border-white/10 p-2.5 rounded-xl text-[11px] font-bold text-slate-700 dark:text-white outline-none focus:border-primary appearance-none cursor-pointer shadow-sm">
                                         <option value="">${field}...</option>
                                         ${opts.map(o => `<option value="${o}" ${val === o ? 'selected' : ''}>${o}</option>`).join('')}
                                     </select>
-                                    <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-[10px] opacity-20 pointer-events-none"></i>
+                                    <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-[9px] opacity-20 pointer-events-none"></i>
                                 </div>
                             </div>`;
                     }

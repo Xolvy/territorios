@@ -957,22 +957,44 @@ export const savePredicacionPublica = async (data) => {
 // --- HELPER: Sync Hub Assignment to Weekly Program ---
 export const syncAssignmentToWeeklyProgram = async (territoryData, conductorName, details) => {
     try {
-        // Primary date for the week is the service date (fecha_salida), fallback to assignment date
-        const dateStr = details.fecha_salida || details.fecha_asignacion;
-        const date = new Date(dateStr.split('T')[0] + 'T12:00:00Z');
-        if (isNaN(date.getTime())) return;
+        // We need a base date to determine the week. Use fecha_asignacion (ISO)
+        const baseDateStr = details.fecha_asignacion || new Date().toISOString();
+        const baseDate = new Date(baseDateStr.split('T')[0] + 'T12:00:00Z');
+        if (isNaN(baseDate.getTime())) return;
 
         // Get Monday of that week
-        const d = new Date(date);
+        const d = new Date(baseDate);
         const day = d.getUTCDay();
         const diff = d.getUTCDate() - (day === 0 ? 6 : day - 1);
         d.setUTCDate(diff);
         d.setUTCHours(12, 0, 0, 0);
         const weekId = d.toISOString().split('T')[0];
 
-        // Day of week (0=Monday, 6=Sunday)
-        let dayIdx = date.getUTCDay();
-        dayIdx = dayIdx === 0 ? 6 : dayIdx - 1;
+        // Determine Day Index (0-6)
+        const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+        let dayIdx = -1;
+
+        if (details.fecha_salida) {
+            if (dayNames.includes(details.fecha_salida)) {
+                // It's a day name (Lunes, etc.)
+                dayIdx = dayNames.indexOf(details.fecha_salida);
+            } else {
+                // Assume it's an ISO date string
+                const sDate = new Date(details.fecha_salida);
+                if (!isNaN(sDate.getTime())) {
+                    dayIdx = sDate.getUTCDay();
+                    dayIdx = dayIdx === 0 ? 6 : dayIdx - 1;
+                }
+            }
+        }
+
+        // Final fallback to baseDate if still no valid index
+        if (dayIdx === -1) {
+            dayIdx = baseDate.getUTCDay();
+            dayIdx = dayIdx === 0 ? 6 : dayIdx - 1;
+        }
+
+        if (dayIdx === -1) return;
 
         // Turn
         const turno = details.turno || 'manana';
@@ -982,28 +1004,18 @@ export const syncAssignmentToWeeklyProgram = async (territoryData, conductorName
         if (!prog) {
             prog = {
                 id: weekId,
-                dias: [
-                    { nombre: 'Lunes', manana: {}, tarde: {}, noche: {} },
-                    { nombre: 'Martes', manana: {}, tarde: {}, noche: {} },
-                    { nombre: 'Miércoles', manana: {}, tarde: {}, noche: {} },
-                    { nombre: 'Jueves', manana: {}, tarde: {}, noche: {} },
-                    { nombre: 'Viernes', manana: {}, tarde: {}, noche: {} },
-                    { nombre: 'Sábado', manana: {}, tarde: {}, noche: {} },
-                    { nombre: 'Domingo', manana: {}, tarde: {}, noche: {} }
-                ]
+                dias: dayNames.map(name => ({ nombre: name, manana: {}, tarde: {}, noche: {}, zoom: {} }))
             };
         }
 
-        // Initialize day turn if missing
-        if (!prog.dias[dayIdx]) prog.dias[dayIdx] = { nombre: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'][dayIdx] };
+        // Initialize day/turn if missing
+        if (!prog.dias[dayIdx]) prog.dias[dayIdx] = { nombre: dayNames[dayIdx] };
         if (!prog.dias[dayIdx][turno]) prog.dias[dayIdx][turno] = {};
 
         // Update fields (Supports multiple blocks for Sundays)
         const t = prog.dias[dayIdx][turno];
 
         if (details.blocks && details.blocks.length > 0) {
-            // Sunday Split Logic: Concatenate blocks or store as array if view supports it
-            // For now, we concatenate for the "Read-Only" simplified view
             t.territorio = details.blocks.map(b => b.territorio || territoryData.numero).join(' / ');
             t.conductor = details.blocks.map(b => b.conductor).join(' / ');
             t.auxiliar = details.blocks.map(b => b.auxiliar || '-').join(' / ');
@@ -1031,7 +1043,7 @@ export const syncAssignmentToWeeklyProgram = async (territoryData, conductorName
 
         // Save
         await setDoc(doc(db, "programa_semanal", weekId), prog);
-        console.log(`Synced territory ${territoryData.numero} to Program ${weekId}`);
+        console.log(`Synced territory ${territoryData.numero} to Program ${weekId} [${dayNames[dayIdx]}]`);
     } catch (e) {
         console.error("Error syncing to weekly program:", e);
     }
