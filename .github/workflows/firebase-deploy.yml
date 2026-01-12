@@ -25,6 +25,9 @@ jobs:
       - name: Build CSS
         run: npm run build:css
 
+      - name: Build Project
+        run: npm run build
+
       - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
