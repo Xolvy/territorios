@@ -105,7 +105,7 @@ const logAssignment = async (territorioData, conductorName, details = {}) => {
     }
 };
 
-export const logReturn = async (territorioId, fechaEntrega, status = 'Completado', notas = null) => {
+export const logReturn = async (territorioId, fechaEntrega, status = 'Completado', notas = null, fotos = null) => {
     try {
         // Find the open assignment for this territory
         // We fetch all records for this ID to avoid composite index requirements.
@@ -135,6 +135,7 @@ export const logReturn = async (territorioId, fechaEntrega, status = 'Completado
                     estado: status // 'Completado' or 'Devuelto'
                 };
                 if (notas) updateData.observaciones = notas;
+                if (fotos) updateData.fotos = fotos;
 
                 await updateDoc(doc(db, "historial_territorios", histDoc.id), updateData);
                 return;
@@ -406,7 +407,7 @@ export const transferTerritorio = async (id, newConductor, manzanasToTransfer, d
 // S-13 tracks by "Number". If 1A and 1B exist, they are different rows usually.
 // I won't overengineer partials yet.
 
-export const returnTerritorio = async (id, notes, customDate, status = 'Completado') => {
+export const returnTerritorio = async (id, notes, customDate, status = 'Completado', fotos = null) => {
     const dateToUse = customDate ? new Date(customDate).toISOString() : new Date().toISOString();
     await updateDoc(doc(db, "territorios", id), {
         asignado_a: null,
@@ -419,7 +420,7 @@ export const returnTerritorio = async (id, notes, customDate, status = 'Completa
         ultima_fecha: dateToUse,
         estado: status === 'Perdido' ? 'Extraviado' : (status === 'Disponible' ? 'Sin asignar' : 'Predicado')
     });
-    await logReturn(id, dateToUse, status, notes);
+    await logReturn(id, dateToUse, status, notes, fotos);
 };
 
 export const returnTerritorioMultiple = async (ids, notes, customDate, status = 'Completado') => {
@@ -466,7 +467,7 @@ export const transferTerritory = async (territoryId, newConductor, manzanasToAss
     }
 };
 
-export const returnTerritorioParcial = async (originalId, completedManzanas, remainingManzanas, unassignRemaining = false, notes = null, customDate = null) => {
+export const returnTerritorioParcial = async (originalId, completedManzanas, remainingManzanas, unassignRemaining = false, notes = null, customDate = null, fotos = null) => {
     const dateToUse = customDate ? new Date(customDate).toISOString() : new Date().toISOString();
 
     // 1. Get original doc
@@ -507,7 +508,7 @@ export const returnTerritorioParcial = async (originalId, completedManzanas, rem
     await updateDoc(territoryRef, updateData);
 
     if (unassignRemaining) {
-        await logReturn(originalId, dateToUse, 'Devuelto (Incompleto)', notes);
+        await logReturn(originalId, dateToUse, 'Devuelto (Incompleto)', notes, fotos);
     } else {
         // If partial completion but kept assigned (simple progress), we might want to log it?
         // S-13 cares about when it is FULLY DONE.

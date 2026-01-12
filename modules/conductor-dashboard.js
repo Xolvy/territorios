@@ -218,7 +218,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 <!-- Module: Programa Semanal (Global Cards) -->
                 <div class="lg:col-span-2 ${mods.programa !== false ? '' : 'hidden'}">
                     <div class="modern-card !p-0 border-slate-200 dark:border-white/5 shadow-2xl transition-all overflow-hidden group/prog">
-                        <details class="group/prog-details" open>
+                        <details class="group/prog-details">
                             <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-8 cursor-pointer list-none select-none hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
                                 <div class="flex items-start gap-6">
                                     <div class="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-2xl text-indigo-500 shadow-inner border border-indigo-500/10 group-open/prog-details:rotate-6 transition-transform">
@@ -261,18 +261,14 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 <!-- Module: Telefonos -->
                 <div class="lg:col-span-2 modern-card p-6 md:p-8 ${mods.telefonos !== false ? '' : 'hidden'} border-primary/20 transition-all duration-500" id="phone-module-card">
                     <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 mb-8">
-                        <div class="flex items-center gap-5 cursor-pointer select-none group/phone-header" id="phone-toggle-trigger">
+                        <div class="flex items-center gap-5 select-none group/phone-header">
                             <h3 class="text-2xl font-black text-slate-800 dark:text-white flex items-center gap-4 uppercase tracking-tight">
-                                <div class="w-12 h-12 bg-indigo-600 group-hover:bg-indigo-500 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-indigo-500/20 transition-all group-hover/phone-header:rotate-6">
+                                <div class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-indigo-500/20">
                                     <i class="fas fa-phone-alt"></i>
                                 </div>
                                 Predicación Telefónica
                             </h3>
-                            <div id="phone-arrow" class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/10 flex items-center justify-center text-[10px] transition-transform duration-500 text-slate-400">
-                                <i class="fas fa-chevron-down"></i>
-                            </div>
                         </div>
-                        <div id="phone-progress-info"></div>
                     </div>
 
                     <!-- Compact View: Banner + Basic Buttons -->
@@ -301,23 +297,29 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
                     <!-- Expanded View: Full Controls & Table -->
                     <div id="phone-expanded-view" class="hidden animate-fade-in space-y-10">
-                        <div class="flex flex-wrap gap-3 w-full border-b border-slate-100 dark:border-white/5 pb-10">
-                            <button id="btn-revisitas" class="flex-1 md:flex-none btn-pro text-[10px] uppercase tracking-[0.2em] bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 px-6 py-4 rounded-2xl hover:bg-amber-500/20 transition-all flex items-center justify-center gap-3 font-black shadow-sm">
-                                <i class="fas fa-sync-alt rotate-180"></i> <span class="hidden xs:inline">Revisitas</span>
-                            </button>
-                            <button id="btn-add-publicador" class="flex-1 md:flex-none btn-pro text-[10px] uppercase tracking-[0.2em] bg-primary/10 text-primary border border-primary/20 px-6 py-4 rounded-2xl hover:bg-primary/20 transition-all flex items-center justify-center gap-3 font-black shadow-sm">
-                                <i class="fas fa-user-plus"></i> <span class="hidden xs:inline">Publicador</span>
-                            </button>
-                            <button id="btn-refresh" class="flex-1 md:flex-none btn-pro text-[10px] uppercase tracking-[0.2em] bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/10 px-6 py-4 rounded-2xl hover:bg-slate-200 dark:hover:bg-white/10 transition-all flex items-center justify-center gap-3 font-black shadow-sm">
-                                <i class="fas fa-sync-alt"></i> <span class="hidden xs:inline">Refrescar</span>
-                            </button>
-                            <div class="flex-1"></div>
-                            <button id="btn-zoom" onclick="window.open('https://us02web.zoom.us/j/88366543094?pwd=Z2x4Qjdnck4rSjh2Q2llbXZFaTNiUT09', '_blank')" class="flex-1 md:flex-none btn-pro bg-blue-600 text-white border border-blue-400/20 px-6 py-4 rounded-2xl hover:bg-blue-500 transition-all flex items-center justify-center gap-3 font-black shadow-xl shadow-blue-500/20 uppercase tracking-[0.2em] text-[10px]">
-                                <i class="fas fa-video"></i> Zoom
-                            </button>
-                            <button id="btn-finalizar" class="flex-1 md:flex-none btn-pro bg-rose-600 text-white border border-rose-400/20 px-8 py-4 rounded-2xl hover:bg-rose-500 transition-all flex items-center justify-center gap-3 font-black shadow-xl shadow-rose-500/20 uppercase tracking-[0.2em] text-[10px]">
-                                <i class="fas fa-power-off"></i> Finalizar Sesión
-                            </button>
+                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 w-full border-b border-slate-100 dark:border-white/5 pb-10">
+                            <div class="flex flex-wrap gap-3">
+                                <button id="btn-revisitas" class="btn-pro text-[10px] uppercase tracking-[0.2em] bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 px-6 py-4 rounded-2xl hover:bg-amber-500/20 transition-all flex items-center justify-center gap-3 font-black shadow-sm">
+                                    <i class="fas fa-sync-alt rotate-180"></i> <span class="hidden xs:inline">Revisitas</span>
+                                </button>
+                                <button id="btn-add-publicador" class="btn-pro text-[10px] uppercase tracking-[0.2em] bg-primary/10 text-primary border border-primary/20 px-6 py-4 rounded-2xl hover:bg-primary/20 transition-all flex items-center justify-center gap-3 font-black shadow-sm">
+                                    <i class="fas fa-user-plus"></i> <span class="hidden xs:inline">Publicador</span>
+                                </button>
+                                <button id="btn-refresh" class="btn-pro text-[10px] uppercase tracking-[0.2em] bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/10 px-6 py-4 rounded-2xl hover:bg-slate-200 dark:hover:bg-white/10 transition-all flex items-center justify-center gap-3 font-black shadow-sm">
+                                    <i class="fas fa-sync-alt"></i> <span class="hidden xs:inline">Refrescar</span>
+                                </button>
+                            </div>
+
+                            <div id="phone-progress-info" class="order-first md:order-none"></div>
+
+                            <div class="flex gap-3">
+                                <button id="btn-zoom" onclick="window.open('https://us02web.zoom.us/j/88366543094?pwd=Z2x4Qjdnck4rSjh2Q2llbXZFaTNiUT09', '_blank')" class="flex-1 md:flex-none btn-pro bg-blue-600 text-white border border-blue-400/20 px-6 py-4 rounded-2xl hover:bg-blue-500 transition-all flex items-center justify-center gap-3 font-black shadow-xl shadow-blue-500/20 uppercase tracking-[0.2em] text-[10px]">
+                                    <i class="fas fa-video"></i> Zoom
+                                </button>
+                                <button id="btn-finalizar" class="flex-1 md:flex-none btn-pro bg-rose-600 text-white border border-rose-400/20 px-8 py-4 rounded-2xl hover:bg-rose-500 transition-all flex items-center justify-center gap-3 font-black shadow-xl shadow-rose-500/20 uppercase tracking-[0.2em] text-[10px]">
+                                    <i class="fas fa-power-off"></i> Finalizar
+                                </button>
+                            </div>
                         </div>
 <!-- Search & Filters -->
                         <div class="grid grid-cols-1 md:grid-cols-12 gap-5">
@@ -378,7 +380,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
                 <!-- Module: Mapas Interactivos -->
                 <div class="lg:col-span-2 modern-card border-indigo-500/10 dark:border-indigo-500/5 transition-all overflow-hidden !p-0" id="interactive-maps-module">
-                    <details class="group/maps" open>
+                    <details class="group/maps">
                         <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-8 cursor-pointer list-none select-none hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
                             <div class="flex items-start gap-6">
                                 <div class="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-2xl text-indigo-600 shadow-inner border border-indigo-500/10 group-open/maps:rotate-6 transition-transform">
@@ -1138,7 +1140,7 @@ async function renderAvailabilitySection(container, name) {
 
     container.innerHTML = `
     <div class="modern-card !p-0 mt-8 animate-fade-in shadow-2xl transition-all overflow-hidden border-indigo-500/20">
-        <details class="group/avail" ${currentAvail.length === 0 ? 'open' : ''}>
+        <details class="group/avail">
             <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-8 cursor-pointer list-none select-none hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
                 <div class="flex items-start gap-6">
                     <div class="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-2xl text-indigo-500 shadow-inner border border-indigo-500/10 group-open/avail:rotate-6 transition-transform">
@@ -1466,22 +1468,22 @@ window.openProgressModal = async (initialId) => {
     // Build Modal with Admin-style UI (Image 3)
     showModal(`
     <div class="flex flex-col h-full bg-slate-50 dark:bg-[#0b0e14]">
-            <header class="shrink-0 bg-gradient-to-br from-primary to-primary-dark p-8 text-white relative overflow-hidden shadow-2xl">
-                <div class="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+            <header class="shrink-0 bg-slate-900 dark:bg-gradient-to-br dark:from-primary dark:to-primary-dark p-6 text-white relative overflow-hidden shadow-2xl">
+                <div class="absolute -right-10 -top-10 w-40 h-40 bg-white/5 rounded-full blur-3xl"></div>
                 <div class="relative z-10 flex items-center justify-between">
-                    <div class="flex items-center gap-6">
-                        <div class="w-16 h-16 bg-white/10 backdrop-blur-xl rounded-2xl flex items-center justify-center text-3xl border border-white/20 shadow-inner">
+                    <div class="flex items-center gap-5">
+                        <div class="w-12 h-12 bg-white/10 backdrop-blur-xl rounded-xl flex items-center justify-center text-xl border border-white/20 shadow-inner">
                             <i class="fas fa-chart-line animate-float"></i>
                         </div>
                         <div>
-                            <h3 class="text-3xl font-black tracking-tighter uppercase leading-none mb-1">Informe de Actividad</h3>
-                            <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Registro de Territorios Asignados</p>
+                            <h3 class="text-xl font-black tracking-tighter uppercase leading-none mb-1">Informe de Actividad</h3>
+                            <p class="text-[9px] opacity-60 uppercase tracking-[0.4em] font-black">Registro de Territorios Asignados</p>
                         </div>
                     </div>
                 </div>
             </header>
 
-            <div class="flex-1 p-8 md:p-12 space-y-10 overflow-y-auto custom-scrollbar">
+            <div class="flex-1 p-5 md:p-8 space-y-6 overflow-y-auto custom-scrollbar">
                 <!-- Top Actions -->
                 <div class="flex justify-between items-center px-2">
                     <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Registros en Posesión</h4>
@@ -1496,62 +1498,79 @@ window.openProgressModal = async (initialId) => {
         const rawManzanas = t.manzanas ? t.manzanas.split(',').map(s => s.trim()).filter(s => s) : [];
         return `
                         <div class="return-item-container modern-card !p-0 overflow-hidden transition-all duration-300 shadow-sm border-slate-200">
-                            <div class="p-8 flex items-center gap-6 group cursor-pointer hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
+                            <div class="p-5 flex items-center gap-4 group cursor-pointer hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
                                 <label class="relative flex items-center cursor-pointer">
                                     <input type="checkbox" value="${t.id}" class="return-check sr-only peer">
-                                    <div class="w-12 h-12 bg-white dark:bg-white/5 rounded-2xl flex items-center justify-center border border-slate-200 peer-checked:border-primary peer-checked:bg-primary peer-checked:text-white transition-all text-transparent shadow-sm">
-                                        <i class="fas fa-check text-xl"></i>
+                                    <div class="w-10 h-10 bg-white dark:bg-white/5 rounded-xl flex items-center justify-center border border-slate-200 peer-checked:border-primary peer-checked:bg-primary transition-all text-white/0 peer-checked:text-white shadow-sm">
+                                        <i class="fas fa-check text-base"></i>
                                     </div>
                                 </label>
                                 <div class="flex-1 select-none modal-item-trigger">
-                                    <div class="flex items-center gap-4">
-                                        <span class="px-3 py-1 bg-primary/10 text-primary text-[10px] font-black rounded-lg uppercase">T-${t.numero}</span>
-                                        <h5 class="font-black text-xl text-slate-800 dark:text-white tracking-tight uppercase">Territorio ${t.numero}</h5>
+                                    <div class="flex items-center gap-3">
+                                        <span class="px-2 py-0.5 bg-primary/10 text-primary text-[9px] font-black rounded-md uppercase tracking-widest">T-${t.numero}</span>
+                                        <h5 class="font-black text-lg text-slate-800 dark:text-white tracking-tight uppercase">Territorio ${t.numero}</h5>
                                     </div>
-                                    <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mt-1.5 opacity-70">
-                                        <i class="fas fa-layer-group mr-1.5"></i> ${rawManzanas.length || '---'} Manzanas Pendientes
+                                    <p class="text-[9px] text-slate-400 font-black uppercase tracking-[0.2em] mt-1 opacity-70">
+                                        <i class="fas fa-layer-group mr-1"></i> ${rawManzanas.length || '---'} Manzanas Pendientes
                                     </p>
                                 </div>
                             </div>
 
+
                             <!-- Detail Section (Hidden by default) -->
-                            <div class="return-details hidden p-10 bg-slate-50/50 dark:bg-black/40 border-t border-slate-100 dark:border-white/10 space-y-10 animate-fade-in">
+                            <div class="return-details hidden p-6 bg-slate-50/50 dark:bg-black/40 border-t border-slate-100 dark:border-white/10 space-y-6 animate-fade-in">
                                 <!-- Completion Toggle -->
-                                <div class="grid grid-cols-2 gap-6">
-                                    <button class="completion-toggle flex flex-col items-center gap-3 p-8 rounded-[2.5rem] border-2 border-slate-100 dark:border-white/5 active transition-all group hover:bg-white dark:hover:bg-white/5" data-tid="${t.id}" data-val="full">
-                                        <div class="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-white/10 flex items-center justify-center text-slate-400 group-[.active]:bg-emerald-500 group-[.active]:text-white transition-all shadow-inner group-[.active]:shadow-lg group-[.active]:shadow-emerald-500/30">
-                                            <i class="fas fa-check-circle text-2xl"></i>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <button class="completion-toggle flex items-center justify-center gap-4 p-4 rounded-2xl border-2 border-slate-200 dark:border-white/5 active transition-all group hover:bg-white dark:hover:bg-white/5" data-tid="${t.id}" data-val="full">
+                                        <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/10 flex items-center justify-center text-slate-400 group-[.active]:bg-emerald-500 group-[.active]:text-white transition-all shadow-inner group-[.active]:shadow-lg group-[.active]:shadow-emerald-500/30">
+                                            <i class="fas fa-check-circle text-xl"></i>
                                         </div>
-                                        <span class="text-[10px] font-black uppercase tracking-[0.3em] opacity-40 group-[.active]:opacity-100">Completo</span>
+                                        <span class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 group-[.active]:text-emerald-600 dark:group-[.active]:text-emerald-400 group-[.active]:opacity-100 opacity-60">Completo</span>
                                     </button>
-                                    <button class="completion-toggle flex flex-col items-center gap-3 p-8 rounded-[2.5rem] border-2 border-slate-100 dark:border-white/5 grayscale opacity-40 transition-all group hover:bg-white dark:hover:bg-white/5" data-tid="${t.id}" data-val="parcial">
-                                        <div class="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-white/10 flex items-center justify-center text-slate-400 group-[.active]:bg-amber-500 group-[.active]:text-white transition-all shadow-inner group-[.active]:shadow-lg group-[.active]:shadow-amber-500/30">
-                                            <i class="fas fa-adjust text-2xl rotate-45"></i>
+                                    <button class="completion-toggle flex items-center justify-center gap-4 p-4 rounded-2xl border-2 border-slate-200 dark:border-white/5 grayscale opacity-40 transition-all group hover:bg-white dark:hover:bg-white/5" data-tid="${t.id}" data-val="parcial">
+                                        <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/10 flex items-center justify-center text-slate-400 group-[.active]:bg-amber-500 group-[.active]:text-white transition-all shadow-inner group-[.active]:shadow-lg group-[.active]:shadow-amber-500/30">
+                                            <i class="fas fa-adjust text-xl rotate-45"></i>
                                         </div>
-                                        <span class="text-[10px] font-black uppercase tracking-[0.3em] opacity-40 group-[.active]:opacity-100">Parcial</span>
+                                        <span class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 group-[.active]:text-amber-600 dark:group-[.active]:text-amber-400 group-[.active]:opacity-100 opacity-60">Parcial</span>
                                     </button>
                                 </div>
 
                                 <!-- Partial Selector (Apples) -->
-                                <div class="partial-selector hidden space-y-4" data-tid="${t.id}">
+                                <div class="partial-selector hidden space-y-3" data-tid="${t.id}">
                                     <div class="flex items-center gap-2">
                                         <div class="h-px flex-1 bg-black/5 dark:bg-white/5"></div>
-                                        <span class="text-[9px] text-slate-400 font-black uppercase tracking-widest">¿Qué se completó hoy?</span>
+                                        <span class="text-[8px] text-slate-400 font-black uppercase tracking-widest">¿Qué se completó hoy?</span>
                                         <div class="h-px flex-1 bg-black/5 dark:bg-white/5"></div>
                                     </div>
-                                    <div class="grid grid-cols-2 gap-3">
+                                    <div class="grid grid-cols-2 gap-2">
                                         ${rawManzanas.length > 0 ? rawManzanas.map(m => `
-                                            <label class="flex items-center gap-3 p-4 bg-white dark:bg-black/30 rounded-2xl border border-transparent hover:border-teal-500/20 cursor-pointer transition-all shadow-sm group">
-                                                <input type="checkbox" value="${m}" data-tid="${t.id}" class="mz-done-check w-5 h-5 accent-teal-500 rounded-lg group-hover:scale-110 transition-transform">
-                                                <span class="font-black text-sm text-slate-700 dark:text-slate-300">Mz. ${m}</span>
+                                            <label class="flex items-center gap-3 p-3 bg-white dark:bg-black/30 rounded-xl border border-transparent hover:border-teal-500/20 cursor-pointer transition-all shadow-sm group">
+                                                <input type="checkbox" value="${m}" data-tid="${t.id}" class="mz-done-check w-4 h-4 accent-teal-500 rounded group-hover:scale-110 transition-transform">
+                                                <span class="font-black text-[11px] text-slate-700 dark:text-slate-300">Mz. ${m}</span>
                                             </label>
                                         `).join('') : `
                                             <div class="col-span-2">
-                                                <input type="text" data-tid="${t.id}" class="manual-input-modal w-full bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-2xl px-6 py-4 text-center text-sm outline-none font-bold placeholder:opacity-20" placeholder="Escribir manzanas (ej: 1, 3, 5)">
+                                                <input type="text" data-tid="${t.id}" class="manual-input-modal w-full bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-xl px-4 py-3 text-center text-xs outline-none font-bold placeholder:opacity-20" placeholder="Escribir manzanas (ej: 1, 3, 5)">
                                             </div>
                                         `}
                                     </div>
-                                    <button class="btn-sel-all-mz w-full py-4 border-2 border-dashed border-black/5 dark:border-white/5 rounded-2xl text-[9px] font-black uppercase text-slate-400 hover:border-teal-500/30 hover:text-teal-500 transition-all" data-tid="${t.id}">Marcar todas las manzanas</button>
+                                    <button class="btn-sel-all-mz w-full py-3 border-2 border-dashed border-black/5 dark:border-white/5 rounded-xl text-[8px] font-black uppercase text-slate-400 hover:border-teal-500/30 hover:text-teal-500 transition-all" data-tid="${t.id}">Marcar todas las manzanas</button>
+                                </div>
+
+                                <!-- Photo Upload -->
+                                <div class="space-y-3">
+                                    <div class="flex items-center gap-2">
+                                        <div class="h-px flex-1 bg-black/5 dark:bg-white/5"></div>
+                                        <span class="text-[8px] text-slate-400 font-black uppercase tracking-widest text-center">Evidencia Fotográfica (Marcados)</span>
+                                        <div class="h-px flex-1 bg-black/5 dark:bg-white/5"></div>
+                                    </div>
+                                    <div class="flex flex-wrap gap-3 photos-grid" data-tid="${t.id}">
+                                        <label class="w-16 h-16 rounded-2xl border-2 border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center justify-center text-slate-400 cursor-pointer hover:border-primary/20 hover:text-primary transition-all bg-white dark:bg-black/20 shadow-sm">
+                                            <i class="fas fa-camera text-xl mb-1"></i>
+                                            <span class="text-[6px] font-black uppercase tracking-tighter">Subir</span>
+                                            <input type="file" accept="image/*" class="hidden photo-input" data-tid="${t.id}" multiple>
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1560,29 +1579,29 @@ window.openProgressModal = async (initialId) => {
                 </div>
 
                 <!-- Global Inputs -->
-                <div class="pt-8 border-t border-black/5 dark:border-white/10 space-y-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-2">
-                             <label class="text-[10px] font-black text-teal-600 dark:text-teal-400 uppercase tracking-widest ml-1">Fecha de Entrega</label>
-                             <input type="date" id="bulk-return-date" value="${todayStr}" class="w-full bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-3xl p-5 text-sm font-black outline-none focus:ring-4 focus:ring-teal-500/10 transition-all text-slate-800 dark:text-white">
+                <div class="pt-6 border-t border-black/5 dark:border-white/10 space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-1">
+                             <label class="text-[9px] font-black text-teal-600 dark:text-teal-400 uppercase tracking-widest ml-1">Fecha de Entrega</label>
+                             <input type="date" id="bulk-return-date" value="${todayStr}" class="w-full bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-2xl p-4 text-xs font-black outline-none focus:ring-4 focus:ring-teal-500/10 transition-all text-slate-800 dark:text-white">
                         </div>
-                        <div class="space-y-2">
+                        <div class="space-y-1">
                              <div class="flex justify-between items-center px-1">
-                                <label class="text-[10px] font-black text-teal-600 dark:text-teal-400 uppercase tracking-widest">Observaciones</label>
-                                <button onclick="window.startVoiceDictation('bulk-notes')" class="text-[9px] font-black text-teal-600 uppercase tracking-tighter">🎤 Dictar</button>
+                                <label class="text-[9px] font-black text-teal-600 dark:text-teal-400 uppercase tracking-widest">Observaciones</label>
+                                <button onclick="window.startVoiceDictation('bulk-notes')" class="text-[8px] font-black text-teal-600 uppercase tracking-tighter">🎤 Dictar</button>
                              </div>
-                             <textarea id="bulk-notes" placeholder="Opcional..." class="w-full bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-3xl p-5 text-sm font-bold min-h-[100px] outline-none focus:ring-4 focus:ring-teal-500/10 transition-all text-slate-800 dark:text-white resize-none"></textarea>
+                             <textarea id="bulk-notes" placeholder="Opcional..." class="w-full bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-2xl p-4 text-xs font-bold min-h-[80px] outline-none focus:ring-4 focus:ring-teal-500/10 transition-all text-slate-800 dark:text-white resize-none"></textarea>
                         </div>
                     </div>
 
                     <!-- Voice Command Hint -->
-                    <button id="btn-none-today" class="w-full py-4 text-rose-500 dark:text-rose-400 font-black text-[10px] uppercase tracking-[0.3em] hover:opacity-70 transition-opacity">No se pudo predicar nada hoy</button>
+                    <button id="btn-none-today" class="w-full py-2 text-rose-500 dark:text-rose-400 font-black text-[9px] uppercase tracking-[0.3em] hover:opacity-70 transition-opacity">No se pudo predicar nada hoy</button>
                 </div>
             </div>
 
-            <div class="shrink-0 p-8 border-t border-black/5 dark:border-white/5 bg-white dark:bg-[#0b0e14] z-20">
-                <button id="confirm-all-reports" class="w-full group relative overflow-hidden bg-gradient-to-r from-teal-600 to-emerald-700 py-6 rounded-[2.5rem] text-white font-black shadow-2xl shadow-teal-500/30 hover:shadow-teal-500/50 hover:scale-[1.02] active:scale-[0.98] transition-all uppercase tracking-[0.2em] text-sm">
-                    <span class="relative z-10">Confirmar Informe de Actividad</span>
+            <div class="shrink-0 p-6 border-t border-black/5 dark:border-white/5 bg-white dark:bg-[#0b0e14] z-20">
+                <button id="confirm-all-reports" class="w-full group relative overflow-hidden bg-gradient-to-r from-teal-600 to-emerald-700 py-4 rounded-2xl text-white font-black shadow-xl shadow-teal-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all uppercase tracking-[0.2em] text-xs">
+                    <span class="relative z-10">Confirmar Informe</span>
                     <div class="absolute inset-0 bg-white/10 translate-x-full group-hover:translate-x-0 transition-transform duration-500"></div>
                 </button>
             </div>
@@ -1627,7 +1646,7 @@ window.openProgressModal = async (initialId) => {
             btn.onclick = () => {
                 const tid = btn.dataset.tid;
                 const val = btn.dataset.val;
-                const siblings = modal.querySelectorAll(`.completion - toggle[data - tid="${tid}"]`);
+                const siblings = modal.querySelectorAll(`.completion-toggle[data-tid="${tid}"]`);
                 siblings.forEach(s => {
                     s.classList.add('opacity-40', 'grayscale');
                     s.classList.remove('active', 'border-teal-500', 'bg-teal-500/5', 'border-amber-500', 'bg-amber-500/5');
@@ -1637,7 +1656,7 @@ window.openProgressModal = async (initialId) => {
                 if (val === 'full') btn.classList.add('border-teal-500', 'bg-teal-500/5');
                 else btn.classList.add('border-amber-500', 'bg-amber-500/5');
 
-                const selector = modal.querySelector(`.partial - selector[data - tid="${tid}"]`);
+                const selector = modal.querySelector(`.partial-selector[data-tid="${tid}"]`);
                 if (val === 'parcial') selector.classList.remove('hidden');
                 else selector.classList.add('hidden');
             };
@@ -1647,10 +1666,34 @@ window.openProgressModal = async (initialId) => {
         modal.querySelectorAll('.btn-sel-all-mz').forEach(btn => {
             btn.onclick = () => {
                 const tid = btn.dataset.tid;
-                const mzs = modal.querySelectorAll(`.mz - done - check[data - tid="${tid}"]`);
+                const mzs = modal.querySelectorAll(`.mz-done-check[data-tid="${tid}"]`);
                 const someUnchecked = Array.from(mzs).some(m => !m.checked);
                 mzs.forEach(m => m.checked = someUnchecked);
                 btn.innerText = someUnchecked ? 'Desmarcar todas' : 'Marcar todas las manzanas';
+            };
+        });
+
+        // Photo Upload Logic
+        modal.querySelectorAll('.photo-input').forEach(input => {
+            input.onchange = (e) => {
+                const tid = input.dataset.tid;
+                const grid = modal.querySelector(`.photos-grid[data-tid="${tid}"]`);
+                Array.from(e.target.files).forEach(file => {
+                    if (file.size > 800 * 1024) return showNotification("Foto muy grande (max 800KB)", "warning");
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        const container = document.createElement('div');
+                        container.className = 'relative w-16 h-16 rounded-2xl overflow-hidden border border-black/10 group animate-scale-in shadow-sm';
+                        container.innerHTML = `
+                            <img src="${ev.target.result}" class="w-full h-full object-cover">
+                            <button onclick="this.parentElement.remove()" class="absolute inset-0 bg-rose-500/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <i class="fas fa-trash-alt text-xs"></i>
+                            </button>
+                        `;
+                        grid.insertBefore(container, grid.lastElementChild);
+                    };
+                    reader.readAsDataURL(file);
+                });
             };
         });
 
@@ -1699,29 +1742,38 @@ window.openProgressModal = async (initialId) => {
 
             try {
                 for (const tid of targetIds) {
-                    const isPartial = modal.querySelector(`.completion - toggle[data - tid="${tid}"].active`).dataset.val === 'parcial';
+                    const toggle = modal.querySelector(`.completion-toggle[data-tid="${tid}"].active`);
+                    const isPartial = toggle && toggle.dataset.val === 'parcial';
                     const t = myTerritories.find(x => x.id === tid);
+
+                    // Collect Photos
+                    const pGrid = modal.querySelector(`.photos-grid[data-tid="${tid}"]`);
+                    const photos = pGrid ? Array.from(pGrid.querySelectorAll('img')).map(img => img.src) : null;
+
                     const original = t.manzanas ? t.manzanas.split(',').map(m => m.trim()).filter(Boolean) : [];
 
                     if (isPartial) {
-                        const checksMz = Array.from(modal.querySelectorAll(`.mz - done - check[data - tid="${tid}"]: checked`)).map(c => c.value);
-                        const manual = modal.querySelector(`.manual - input - modal[data - tid="${tid}"]`);
+                        const checksMz = Array.from(modal.querySelectorAll(`.mz-done-check[data-tid="${tid}"]:checked`)).map(c => c.value);
+                        const manual = modal.querySelector(`.manual-input-modal[data-tid="${tid}"]`);
                         const manualVal = manual ? manual.value.split(',').map(s => s.trim()).filter(Boolean) : [];
                         const completed = checksMz.concat(manualVal);
                         const remaining = original.filter(x => !completed.includes(x));
 
                         if (completed.length === 0) {
-                            showNotification(`No seleccionaste manzanas para T - ${t.numero} `, "warning");
+                            showNotification(`No seleccionaste manzanas para T-${t.numero}`, "warning");
                             e.target.disabled = false;
                             e.target.innerHTML = "Confirmar Informe de Actividad";
                             return;
                         }
 
-                        await returnTerritorioParcial(tid, completed, remaining, !keep, notes || 'Avance Parcial', date);
+                        await returnTerritorioParcial(tid, completed, remaining, !keep, notes || 'Avance Parcial', date, photos);
                     } else {
                         // Full
-                        await returnTerritorio(tid, "Terminado", date, "Completado");
-                        if (notes) await logReturn(tid, date, 'Nota', notes);
+                        await returnTerritorio(tid, "Terminado", date, "Completado", photos);
+                        if (notes) {
+                            // Link notes as well
+                            await logReturn(tid, date, 'Completado', notes, photos);
+                        }
                     }
                 }
 
@@ -1748,9 +1800,7 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
     publicadores.sort((a, b) => a.nombre.localeCompare(b.nombre));
     const estados = ['Sin asignar', 'Contestaron', 'No contestan', 'Colgaron', 'Revisita', 'No llamar', 'Suspendido', 'Testigo'];
 
-    // UI Elements for Toggle
-    const phoneToggle = document.getElementById('phone-toggle-trigger');
-    const phoneArrow = document.getElementById('phone-arrow');
+    // UI Elements
     const compactView = document.getElementById('phone-compact-view');
     const expandedView = document.getElementById('phone-expanded-view');
 
@@ -1763,15 +1813,11 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
         if (open) {
             compactView?.classList.add('hidden');
             expandedView?.classList.remove('hidden');
-            if (phoneArrow) phoneArrow.style.transform = 'rotate(180deg)';
         } else {
             compactView?.classList.remove('hidden');
             expandedView?.classList.add('hidden');
-            if (phoneArrow) phoneArrow.style.transform = 'rotate(0deg)';
         }
     };
-
-    if (phoneToggle) phoneToggle.onclick = () => setPhoneOpen(!isExpanded);
     setPhoneOpen(isExpanded);
 
     window.updatePhoneAssignment = async (id, newPubName) => {
@@ -1909,7 +1955,7 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
         }
 
         if (filtered.length === 0) {
-            tbody.innerHTML = `< tr> <td colspan="6" class="p-8 text-center text-gray-500 italic">No se encontraron números que coincidan con la búsqueda.</td></tr> `;
+            tbody.innerHTML = `<tr> <td colspan="6" class="p-8 text-center text-gray-500 italic">No se encontraron números que coincidan con la búsqueda.</td></tr> `;
             return;
         }
 
@@ -1966,7 +2012,17 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
                     </td>
                 </tr>
     `;
-        }).join('') + `< datalist id = "phone-pubs-list"> ${publicadores.map(p => `<option value="${p.nombre}">${p.nombre}</option>`).join('')}</datalist> `;
+        }).join('');
+
+        // Fix and move datalist
+        const dlContainer = document.getElementById('phone-module-card');
+        let dl = document.getElementById('phone-pubs-list');
+        if (!dl) {
+            dl = document.createElement('datalist');
+            dl.id = 'phone-pubs-list';
+            dlContainer.appendChild(dl);
+        }
+        dl.innerHTML = publicadores.map(p => `<option value="${p.nombre}">${p.nombre}</option>`).join('');
 
         // Progress Stats
         const totalProcessed = telefonos.filter(t => t.estado && t.estado !== 'Sin asignar').length;
@@ -2422,10 +2478,10 @@ async function renderAISection(name) {
     aiUI.id = 'ai-assistant-overlay';
     aiUI.innerHTML = `
         <!-- Proactive Speech Bubble -->
-        <div id="ai-speech-bubble" class="fixed bottom-28 right-6 z-40 max-w-[220px] bg-white dark:bg-slate-900 text-slate-800 dark:text-white p-5 rounded-[2rem] rounded-br-none shadow-2xl border border-primary/20 opacity-0 pointer-events-none translate-y-4 transition-all duration-500">
+        <div id="ai-speech-bubble" class="fixed bottom-28 right-6 z-40 max-w-[220px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl text-slate-800 dark:text-white p-5 rounded-[2rem] rounded-br-none shadow-2xl border border-primary/20 opacity-0 pointer-events-none translate-y-4 transition-all duration-500">
             <p class="text-[10px] font-black uppercase tracking-widest leading-none mb-1 opacity-50">Sugerencia IA</p>
             <p class="text-[13px] font-black leading-tight" id="ai-bubble-text">¿Te digo por donde empezar?</p>
-            <div class="absolute bottom-[-10px] right-0 w-0 h-0 border-l-[12px] border-l-transparent border-t-[12px] border-t-white dark:border-t-slate-900"></div>
+            <div class="absolute bottom-[-10px] right-0 w-0 h-0 border-l-[12px] border-l-transparent border-t-[12px] border-t-white/95 dark:border-t-slate-900/95 transition-all"></div>
         </div>
 
         <button id="ai-fab" class="fixed bottom-8 right-8 z-40 bg-slate-900 dark:bg-primary text-white rounded-full p-5 shadow-2xl border border-white/20 transition-all hover:scale-110 active:scale-95 group overflow-hidden">
@@ -2437,8 +2493,8 @@ async function renderAISection(name) {
             </span>
         </button>
 
-        <div id="ai-panel" class="fixed bottom-28 right-8 w-80 md:w-96 modern-card border-primary/20 shadow-[0_40px_80px_-20px_rgba(0,0,0,0.6)] z-40 transform translate-y-12 opacity-0 pointer-events-none transition-all duration-500 ease-out flex flex-col max-h-[75vh] overflow-hidden !p-0">
-            <div class="flex justify-between items-center p-8 bg-gradient-to-r from-primary/10 to-blue-500/10 border-b border-primary/10">
+        <div id="ai-panel" class="fixed bottom-28 right-8 w-80 md:w-96 modern-card border-primary/20 shadow-[0_40px_80px_-20px_rgba(0,0,0,0.6)] z-40 transform translate-y-12 opacity-0 pointer-events-none transition-all duration-500 ease-out flex flex-col max-h-[75vh] overflow-hidden !p-0 !bg-white/80 dark:!bg-slate-900/80 backdrop-blur-3xl ring-1 ring-white/20">
+            <div class="flex justify-between items-center p-8 bg-gradient-to-r from-primary/20 to-blue-500/20 border-b border-primary/10 backdrop-blur-xl">
                 <div class="flex items-center gap-4">
                     <div class="w-14 h-14 rounded-2xl bg-primary/20 flex items-center justify-center text-2xl text-primary shadow-inner">
                         <i class="fas fa-brain"></i>
@@ -2453,7 +2509,7 @@ async function renderAISection(name) {
                 </button>
             </div>
             
-            <div id="conductor-chat-log" class="flex-1 overflow-y-auto p-8 space-y-6 text-xs custom-scrollbar min-h-[350px] bg-slate-50/50 dark:bg-black/20">
+            <div id="conductor-chat-log" class="flex-1 overflow-y-auto p-8 space-y-6 text-xs custom-scrollbar min-h-[350px] bg-white/40 dark:bg-slate-900/40">
                 <div class="bg-white dark:bg-white/5 p-6 rounded-[2rem] rounded-tl-none border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 leading-relaxed shadow-sm font-bold text-[13px]">
                     Hola <b>${name.split(' ')[0]}</b>. He analizado el estado del territorio de la congregación. ✨<br><br>
                     ¿Necesitas que te recomiende un territorio estratégico o tienes alguna consulta sobre cómo usar la App?
