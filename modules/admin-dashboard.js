@@ -78,14 +78,22 @@ const showCustomPrompt = (message, defaultValue, onConfirm) => {
         const input = modal.querySelector('#prompt-input');
         input.focus();
         input.select();
-        modal.querySelector('#prompt-cancel').onclick = () => modal.classList.add('hidden');
-        modal.querySelector('#prompt-ok').onclick = () => {
+
+        const handleConfirm = () => {
             const val = input.value.trim();
             if (val) {
                 modal.classList.add('hidden');
                 onConfirm(val);
             }
         };
+
+        input.onkeydown = (e) => {
+            if (e.key === 'Enter') handleConfirm();
+            if (e.key === 'Escape') modal.classList.add('hidden');
+        };
+
+        modal.querySelector('#prompt-cancel').onclick = () => modal.classList.add('hidden');
+        modal.querySelector('#prompt-ok').onclick = handleConfirm;
     }, 'max-w-sm');
 };
 window.showCustomPrompt = showCustomPrompt;
@@ -3108,10 +3116,24 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
 
         // Helper functions for dynamic lists
         window.addConfigItem = (type) => {
-            const labels = { horarios: 'Horario (ej. 09:00)', lugares: 'Lugar', facetas: 'Faceta' };
+            const labels = { horarios: 'Horario (ej. 09:00AM)', lugares: 'Lugar', facetas: 'Faceta' };
             showCustomPrompt(`Añadir ${labels[type]}:`, "", (val) => {
                 if (!val) return;
-                if (type === 'horarios') config.horarios_programa = [...(config.horarios_programa || []), val];
+                if (type === 'horarios') {
+                    const newList = [...(config.horarios_programa || []), val];
+                    // Smart Sort for AM/PM times
+                    const toMinutes = (s) => {
+                        const match = s.match(/(\d+):(\d+)\s*(AM|PM)/i);
+                        if (!match) return 0;
+                        let h = parseInt(match[1]);
+                        const m = parseInt(match[2]);
+                        const p = (match[3] || 'AM').toUpperCase();
+                        if (p === 'PM' && h < 12) h += 12;
+                        if (p === 'AM' && h === 12) h = 0;
+                        return h * 60 + m;
+                    };
+                    config.horarios_programa = newList.sort((a, b) => toMinutes(a) - toMinutes(b));
+                }
                 if (type === 'lugares') config.lugares = [...(config.lugares || []), val];
                 if (type === 'facetas') config.facetas = [...(config.facetas || []), val];
                 loadSubTab('reglas', container, config, appVersion);
