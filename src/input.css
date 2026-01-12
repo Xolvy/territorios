@@ -42,6 +42,13 @@
         --glass-shadow: 0 0% 0% / 0.4;
 
         --input-bg: rgba(15, 23, 42, 0.4);
+
+        color-scheme: dark;
+    }
+
+    .dark select option {
+        background-color: #1e293b;
+        color: white;
     }
 
     html {
@@ -291,6 +298,37 @@ textarea:focus {
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: hsla(var(--primary) / 0.5);
+}
+
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+
+.overflow-x-auto {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.flex-wrap-safe {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.table-container {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 1rem;
+}
+
+.table-container table {
+    min-width: 800px;
 }
 
 /* Banners & System Modals */

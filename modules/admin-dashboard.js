@@ -10,15 +10,15 @@ import {
     getCampanas, saveCampana, deleteCampana,
     getGroupsConfig, saveGroupsConfig,
     getDiffusionMessage, saveDiffusionMessage
-} from '../data/firestore-services.js?v=3.2.0';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=3.2.0';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=3.2.0';
-import { renderHistoryTab } from './report-s13.js?v=3.2.0';
-import { renderAnalyticsView } from './analytics-view.js?v=3.2.0';
-import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=3.2.0';
-import { auth } from '../firebase-config.js?v=3.2.0';
+} from '../data/firestore-services.js?v=3.6.9';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=3.6.9';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=3.6.9';
+import { renderHistoryTab } from './report-s13.js?v=3.6.9';
+import { renderAnalyticsView } from './analytics-view.js?v=3.6.9';
+import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=3.6.9';
+import { auth } from '../firebase-config.js?v=3.6.9';
 
-import { animateEntry } from './utils/animations.js?v=3.2.0';
+import { animateEntry } from './utils/animations.js?v=3.6.9';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }) : '';
 
@@ -35,15 +35,17 @@ window.showCustomAlert = showCustomAlert;
 
 const showCustomConfirm = (message, onConfirm) => {
     showModal(`
-        <div class="p-10 text-center space-y-6 flex flex-col items-center">
-            <div class="w-20 h-20 bg-amber-500/10 rounded-full flex items-center justify-center text-4xl animate-bounce-in">❓</div>
-            <div>
-                <h3 class="text-2xl font-black text-slate-800 dark:text-white leading-tight">${message}</h3>
-                <p class="text-xs text-slate-400 mt-2 font-bold uppercase tracking-widest">Se requiere confirmación</p>
+        <div class="p-8 text-center space-y-6 flex flex-col items-center">
+            <div class="w-16 h-16 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500 text-2xl">
+                <i class="fas fa-question-circle"></i>
             </div>
-            <div class="flex gap-4 w-full mt-4">
-                <button id="confirm-cancel" class="flex-1 py-4 rounded-2xl bg-slate-100 dark:bg-white/5 text-slate-500 font-black hover:bg-slate-200 transition-all uppercase tracking-widest text-[10px]">Cancelar</button>
-                <button id="confirm-ok" class="flex-[2] py-4 rounded-2xl bg-teal-600 text-white font-black hover:bg-teal-500 shadow-xl shadow-teal-500/30 transition-all uppercase tracking-widest text-[10px]">Confirmar Acción</button>
+            <div>
+                <h3 class="text-h3 text-slate-900 dark:text-white">${message}</h3>
+                <p class="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-widest">Confirmación de Administrador</p>
+            </div>
+            <div class="flex gap-3 w-full mt-4">
+                <button id="confirm-cancel" class="flex-1 py-4 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-500 font-bold hover:bg-slate-200 transition-all text-xs uppercase">Cancelar</button>
+                <button id="confirm-ok" class="flex-[1.5] py-4 rounded-xl bg-primary text-white font-bold hover:bg-primary-light shadow-lg shadow-primary/20 transition-all text-xs uppercase">Confirmar</button>
             </div>
         </div>
     `, (modal) => {
@@ -52,24 +54,24 @@ const showCustomConfirm = (message, onConfirm) => {
             modal.classList.add('hidden');
             onConfirm();
         };
-    });
+    }, 'max-w-sm');
 };
 window.showCustomConfirm = showCustomConfirm;
 
 const showCustomPrompt = (message, defaultValue, onConfirm) => {
     showModal(`
-        <div class="p-10 space-y-8">
+        <div class="p-8 space-y-6">
             <div class="text-center">
-                <h3 class="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight mb-2">${message}</h3>
-                <p class="text-[10px] text-teal-600 font-black uppercase tracking-[0.2em]">Entrada de datos Administrador</p>
+                <h3 class="text-h3 text-slate-900 dark:text-white">${message}</h3>
+                <p class="text-[10px] text-primary font-bold uppercase tracking-widest mt-1 italic">Entrada de Sistema</p>
             </div>
-            <div class="relative group">
-                <input type="text" id="prompt-input" value="${defaultValue || ''}" class="w-full bg-slate-50 dark:bg-black/40 border-2 border-transparent focus:border-teal-500/30 rounded-3xl p-5 text-gray-900 dark:text-white outline-none shadow-inner font-bold text-center text-lg transition-all">
-                <div class="absolute inset-0 rounded-3xl border border-white/20 pointer-events-none group-focus-within:border-teal-500/50"></div>
+            <div class="relative">
+                <input type="text" id="prompt-input" value="${defaultValue || ''}" 
+                    class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 focus:border-primary/50 rounded-2xl p-4 text-slate-900 dark:text-white outline-none font-bold text-center text-base transition-all">
             </div>
-            <div class="flex gap-4 mt-4">
-                <button id="prompt-cancel" class="flex-1 py-4 rounded-2xl bg-slate-100 dark:bg-white/5 text-slate-500 font-black hover:bg-slate-200 transition-all uppercase tracking-widest text-[10px]">Omitir</button>
-                <button id="prompt-ok" class="flex-[2] py-4 rounded-2xl bg-teal-600 text-white font-black hover:bg-teal-500 shadow-xl shadow-teal-500/30 transition-all uppercase tracking-widest text-[10px]">Guardar Cambios</button>
+            <div class="flex gap-3 mt-4">
+                <button id="prompt-cancel" class="flex-1 py-4 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-500 font-bold hover:bg-slate-200 transition-all text-xs uppercase">Omitir</button>
+                <button id="prompt-ok" class="flex-[1.5] py-4 rounded-xl bg-primary text-white font-bold hover:bg-primary-light shadow-lg shadow-primary/20 transition-all text-xs uppercase">Guardar</button>
             </div>
         </div>
     `, (modal) => {
@@ -84,7 +86,7 @@ const showCustomPrompt = (message, defaultValue, onConfirm) => {
                 onConfirm(val);
             }
         };
-    });
+    }, 'max-w-sm');
 };
 window.showCustomPrompt = showCustomPrompt;
 
@@ -94,74 +96,188 @@ style.textContent = `
     .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
     .scrollbar-hide::-webkit-scrollbar { display: none; }
 
-    /* Premium PRO Navigation */
+    /* 2026 Admin Navigation */
     .nav-item {
         display: flex;
         align-items: center;
-        gap: 0.75rem;
-        padding: 0.75rem 1rem;
-        border-radius: 1rem;
-        color: #64748b;
-        font-size: 0.9rem;
+        gap: 0.85rem;
+        padding: 0.9rem 1.25rem;
+        border-radius: var(--radius-md);
+        color: hsl(var(--text-muted));
+        font-size: 0.875rem;
         font-weight: 600;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         background: transparent;
         white-space: nowrap;
         border: 1px solid transparent;
+        position: relative;
     }
-    .dark .nav-item { color: #94a3b8; }
     
     .nav-item:hover {
-        background-color: rgba(13, 148, 136, 0.05);
-        color: #0d9488;
-        transform: translateY(-1px);
-    }
-    .dark .nav-item:hover {
-        background-color: rgba(255, 255, 255, 0.05);
-        color: #2dd4bf;
+        background: hsla(var(--primary) / 0.05);
+        color: hsl(var(--primary));
+        transform: translateX(4px);
     }
 
     .nav-item.active {
-        background: #0d9488;
-        color: white;
-        box-shadow: 0 10px 15px -3px rgba(13, 148, 136, 0.3);
+        background: hsla(var(--primary) / 0.1);
+        color: hsl(var(--primary));
+        border-color: hsla(var(--primary) / 0.1);
     }
-    .dark .nav-item.active {
-        background: #0d9488;
-        color: white;
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+    
+    .nav-item.active::before {
+        content: '';
+        position: absolute;
+        left: -4px;
+        top: 20%;
+        bottom: 20%;
+        width: 4px;
+        background: hsl(var(--primary));
+        border-radius: 0 4px 4px 0;
     }
 
     .nav-icon {
-        font-size: 1.1rem;
-        transition: transform 0.3s ease;
+        font-size: 1.15rem;
+        width: 24px;
+        text-align: center;
+        transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
-    .nav-item:hover .nav-icon { transform: scale(1.1) rotate(-5deg); }
+    .nav-item:hover .nav-icon { transform: scale(1.2) rotate(-5deg); }
     
-    .nav-label { font-family: 'Inter', sans-serif; }
+    .nav-label { 
+        font-family: 'Outfit', sans-serif;
+        letter-spacing: -0.01em;
+    }
 
     /* Layout Utilities */
     .admin-grid {
         display: grid;
         grid-template-columns: 1fr;
-        gap: 1.5rem;
+        gap: 2rem;
     }
     @media (min-width: 1024px) {
         .admin-grid {
-            grid-template-columns: 260px 1fr;
+            grid-template-columns: 240px 1fr;
             align-items: start;
         }
     }
     
     .sticky-nav {
         position: sticky;
-        top: 0.5rem;
+        top: 2rem;
         z-index: 40;
     }
-    @media (min-width: 1024px) {
+
+    @media (max-width: 1023px) {
         .sticky-nav {
-            top: 2rem;
+            position: fixed;
+            bottom: 0px;
+            left: 0;
+            right: 0;
+            top: auto;
+            z-index: 1000;
         }
+        
+        .sticky-nav nav {
+            background: rgba(15, 23, 42, 0.9) !important;
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            padding: 0.5rem 0.25rem calc(0.5rem + env(safe-area-inset-bottom)) !important;
+            border-radius: 2rem 2rem 0 0;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.3);
+            justify-content: space-around;
+            width: 100%;
+        }
+
+        .nav-item {
+            flex-direction: column;
+            gap: 2px;
+            padding: 8px 4px;
+            flex: 1;
+            align-items: center;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+        }
+
+        .nav-item:hover {
+            transform: translateY(-2px);
+        }
+
+        .nav-icon {
+            font-size: 1.1rem;
+            width: auto;
+        }
+
+        .nav-label {
+            font-size: 8px !important;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+            display: block !important;
+            opacity: 0.6;
+        }
+        
+        .nav-item.active .nav-label {
+            opacity: 1;
+            color: #3b82f6;
+        }
+        
+        .nav-item.active .nav-icon {
+            color: #3b82f6;
+            transform: translateY(-2px);
+        }
+
+        .nav-item.active::before {
+            left: 50%;
+            top: -2px;
+            bottom: auto;
+            width: 16px;
+            height: 3px;
+            transform: translateX(-50%);
+            border-radius: 0 0 4px 4px;
+            background: #3b82f6;
+        }
+
+        .admin-content-wrapper {
+            padding-bottom: 6rem;
+        }
+    }
+    
+    /* Global High Contrast active state for all sub-navigation buttons */
+    .conf-nav-btn.active, .sub-tab-casa.active, .cc-view-btn.active {
+        background: #0f172a !important; /* Slate 900 */
+        color: #ffffff !important;
+        box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.4) !important;
+        transform: scale(1.05);
+        z-index: 10;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
+
+    /* Fixed visibility for important confirm buttons in light mode */
+    #modal-terr-confirm, #confirm-bulk-return, #confirm-asig, #confirm-ok, #prompt-ok, #save-rec-btn, #btn-force-update, #btn-run-diagnostics {
+        background: #0f172a !important;
+        color: #ffffff !important;
+        border: none !important;
+    }
+    
+    /* Ensure secondary buttons are visible */
+    #prompt-cancel, #confirm-cancel, #btn-cancel-rec {
+        background: #f1f5f9 !important;
+        color: #475569 !important;
+        border: 1px solid #e2e8f0 !important;
+    }
+
+    .dark #modal-terr-confirm, .dark #confirm-bulk-return, .dark #confirm-asig, .dark #confirm-ok, .dark #prompt-ok, .dark #save-rec-btn, 
+    .dark #btn-force-update, .dark #btn-run-diagnostics {
+        background: hsl(var(--primary)) !important;
+    }
+    
+    .dark #prompt-cancel, .dark #confirm-cancel, .dark #btn-cancel-rec {
+        background: rgba(255,255,255,0.05) !important;
+        color: #94a3b8 !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
     }
 `;
 document.head.appendChild(style);
@@ -204,114 +320,268 @@ const formatDisplayDateRange = (date) => {
 // Ensure functions exist immediately upon module load
 
 // --- SELECTION MODALS (Fixes non-functional buttons) ---
-const showTerritorySelectionModal = (current, territorios, onSelect) => {
+// --- SELECTION MODALS (Enhanced for Multiple Selection and Manzanas) ---
+const showTerritorySelectionModal = (current, territorios, onSelect, containerId = 'modal-container') => {
     let filtered = [...territorios].sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true }));
 
+    // Parse current value: "1, 2(Mz 1, Mz 2), 3"
+    const parseCurrent = (str) => {
+        const selections = {};
+        if (!str) return selections;
+        str.split(',').forEach(p => {
+            const part = p.trim();
+            if (!part) return;
+            const match = part.match(/^([^(\s,]+)(?:\s*\((.*)\))?$/);
+            if (match) {
+                const num = match[1];
+                const mzs = match[2] ? match[2].split(',').map(m => m.trim()) : null;
+                selections[num] = mzs;
+            }
+        });
+        return selections;
+    };
+
+    let selections = parseCurrent(current);
+
     showModal(`
-        <div class="flex flex-col h-full">
-            <header class="shrink-0 flex justify-between items-center bg-teal-600 p-6 text-white shadow-lg">
-                <div>
-                    <h3 class="font-black uppercase tracking-widest text-sm">Seleccionar Territorio</h3>
-                    <p class="text-[9px] opacity-70 font-bold uppercase mt-1">Total: ${territorios.length} registros</p>
+        <div class="flex flex-col h-[80vh] sm:h-[700px] overflow-hidden">
+            <header class="shrink-0 bg-primary p-8 text-white relative overflow-hidden">
+                <div class="absolute inset-0 bg-white/10 backdrop-blur-3xl"></div>
+                <div class="relative z-10 flex justify-between items-center">
+                    <div>
+                        <h3 class="text-2xl font-black uppercase tracking-tight leading-none mb-1">Seleccionar Territorios</h3>
+                        <p class="text-[10px] opacity-70 font-bold uppercase tracking-[0.2em]">Gestión Granular de Manzanas</p>
+                    </div>
+                    <div class="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-2xl shadow-2xl border border-white/30">
+                        <i class="fas fa-map-marked-alt"></i>
+                    </div>
                 </div>
-                <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-xl">📍</div>
             </header>
             
-            <div class="flex-1 p-6 space-y-4 overflow-y-auto">
+            <div class="flex-1 p-6 space-y-6 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-black/20">
                 <div class="relative group">
-                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
-                    <input type="text" id="modal-terr-search" placeholder="Buscar por número..." class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:border-teal-500 transition-all font-bold placeholder-gray-400">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">
+                        <i class="fas fa-search"></i>
+                    </span>
+                    <input type="text" id="modal-terr-search" placeholder="Buscar por número o manzana..." class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 focus:border-primary rounded-2xl pl-12 pr-4 py-4 text-sm font-bold shadow-sm outline-none transition-all">
                 </div>
 
-                <div id="modal-terr-grid" class="grid grid-cols-4 sm:grid-cols-5 gap-2 p-1 custom-scrollbar">
+                <div id="modal-terr-list" class="space-y-3">
                     <!-- Injected via render -->
                 </div>
             </div>
 
-            <div class="shrink-0 p-6 bg-gray-50 dark:bg-black/40 border-t border-black/5 dark:border-white/5">
-                <button id="modal-terr-none" class="w-full bg-white dark:bg-white/5 py-4 rounded-xl text-[10px] font-black text-gray-400 hover:text-red-500 transition-colors uppercase tracking-[0.2em] border border-black/5 dark:border-white/5 shadow-sm">
-                    ❌ Eliminar Selección
+            <div class="shrink-0 p-6 bg-white dark:bg-[#0a0f18] border-t border-slate-100 dark:border-white/5 flex flex-col gap-4">
+                <div class="bg-primary/5 p-5 rounded-3xl border border-primary/10">
+                    <div class="flex items-center justify-between mb-3 px-1">
+                        <span class="text-[10px] font-black text-primary uppercase tracking-widest">Resumen de Selección:</span>
+                        <button id="modal-terr-clear" class="text-[10px] font-black text-red-500 hover:text-red-600 uppercase tracking-widest transition-colors flex items-center gap-2">
+                            <i class="fas fa-undo-alt"></i> Limpiar
+                        </button>
+                    </div>
+                    <div id="modal-selection-preview" class="text-[11px] font-mono text-primary font-bold break-all bg-white dark:bg-white/5 p-4 rounded-xl border border-primary/10 min-h-[48px] shadow-inner">
+                        ${current || 'Nada seleccionado'}
+                    </div>
+                </div>
+                
+                <button id="modal-terr-confirm" class="w-full bg-primary hover:bg-primary-light text-white py-5 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 transition-all hover:scale-[1.01] active:scale-[0.99]">
+                    Confirmar Selección
                 </button>
             </div>
         </div>
     `, (modal) => {
-        const grid = modal.querySelector('#modal-terr-grid');
+        const listContainer = modal.querySelector('#modal-terr-list');
         const searchInput = modal.querySelector('#modal-terr-search');
+        const preview = modal.querySelector('#modal-selection-preview');
+        const confirmBtn = modal.querySelector('#modal-terr-confirm');
+
+        const updatePreview = () => {
+            const keys = Object.keys(selections).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+            if (keys.length === 0) {
+                preview.innerText = 'Nada seleccionado';
+                return;
+            }
+
+            const result = keys.map(num => {
+                const mzs = selections[num];
+                if (!mzs) return num;
+                return `${num}(${mzs.join(', ')})`;
+            }).join(', ');
+            preview.innerText = result;
+        };
 
         const render = () => {
-            const query = searchInput.value.trim();
-            const items = query ? filtered.filter(t => t.numero.includes(query)) : filtered;
+            const query = searchInput.value.trim().toLowerCase();
+            const items = query ? filtered.filter(t => t.numero.toLowerCase().includes(query) || (t.manzanas && t.manzanas.toLowerCase().includes(query))) : filtered;
 
-            grid.innerHTML = items.map(t => {
-                const isActive = t.numero === current;
+            listContainer.innerHTML = items.map(t => {
+                const isSelected = t.numero in selections;
+                const selectedMzs = selections[t.numero] || [];
+                const allMzs = t.manzanas ? t.manzanas.split(',').map(m => m.trim()).filter(Boolean) : [];
+
                 return `
-                    <button class="terr-pick-btn h-12 flex items-center justify-center rounded-xl border font-mono font-black text-sm transition-all
-                        ${isActive ? 'bg-teal-600 text-white border-teal-500 shadow-lg shadow-teal-500/20 scale-105' : 'bg-white dark:bg-white/5 border-black/5 dark:border-white/10 text-gray-600 dark:text-gray-300 hover:border-teal-500/50 hover:bg-teal-500/5'}
-                    " data-num="${t.numero}">
-                        ${t.numero}
-                    </button>
+                    <div class="modern-card !p-2 transition-all duration-300 group ${isSelected ? 'border-primary shadow-lg ring-1 ring-primary/20' : 'border-slate-100 dark:border-white/5 shadow-sm'}">
+                        <label class="flex items-center gap-4 p-3 cursor-pointer">
+                             <input type="checkbox" class="terr-check w-6 h-6 rounded-lg border-2 border-slate-300 dark:border-white/10 text-primary focus:ring-primary transition-all cursor-pointer" 
+                                    data-num="${t.numero}" ${isSelected ? 'checked' : ''}>
+                             <div class="flex-1">
+                                 <div class="flex items-center justify-between">
+                                     <span class="font-black text-slate-800 dark:text-white uppercase tracking-tight">Territorio ${t.numero}</span>
+                                     <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 dark:bg-white/10 px-2 py-1 rounded-md">${allMzs.length} Manzanas</span>
+                                 </div>
+                             </div>
+                        </label>
+                        
+                        ${isSelected && allMzs.length > 0 ? `
+                            <div class="mt-2 p-4 bg-slate-50 dark:bg-black/40 rounded-2xl border border-slate-100 dark:border-white/5 space-y-4 animate-fade-in">
+                                <div class="flex items-center justify-between px-1">
+                                    <span class="text-[9px] font-black text-primary uppercase tracking-widest">Manzanas:</span>
+                                    <button class="select-all-mzs text-[8px] font-black text-primary hover:text-primary-light uppercase tracking-widest flex items-center gap-1" data-num="${t.numero}">
+                                        <i class="fas fa-check-square"></i> Todas
+                                    </button>
+                                </div>
+                                <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                                    ${allMzs.map(mz => {
+                    const isMzSelected = !selections[t.numero] || selections[t.numero].includes(mz);
+                    return `
+                                            <label class="flex items-center gap-2 p-2 bg-white dark:bg-white/5 rounded-xl cursor-pointer hover:bg-teal-500/5 transition-colors border border-black/[0.03] dark:border-white/[0.03]">
+                                                <input type="checkbox" class="mz-check w-4 h-4 rounded-lg border-gray-300 dark:border-white/10 text-teal-600" 
+                                                       data-num="${t.numero}" data-mz="${mz}" ${isMzSelected ? 'checked' : ''}>
+                                                <span class="text-[10px] font-bold text-gray-600 dark:text-gray-400 truncate">${mz}</span>
+                                            </label>
+                                        `;
+                }).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
                 `;
             }).join('');
 
-            modal.querySelectorAll('.terr-pick-btn').forEach(btn => {
+            // Bind Events
+            modal.querySelectorAll('.terr-check').forEach(cb => {
+                cb.onchange = (e) => {
+                    const num = cb.dataset.num;
+                    if (e.target.checked) selections[num] = null;
+                    else delete selections[num];
+                    render();
+                    updatePreview();
+                };
+            });
+
+            modal.querySelectorAll('.mz-check').forEach(cb => {
+                cb.onchange = (e) => {
+                    const num = cb.dataset.num;
+                    const mz = cb.dataset.mz;
+                    const terr = territorios.find(x => x.numero == num);
+                    const allMzs = terr.manzanas.split(',').map(m => m.trim());
+                    let current = selections[num] || [...allMzs];
+
+                    if (e.target.checked) {
+                        if (!current.includes(mz)) current.push(mz);
+                    } else {
+                        current = current.filter(m => m !== mz);
+                    }
+
+                    if (current.length === allMzs.length) selections[num] = null;
+                    else if (current.length === 0) delete selections[num];
+                    else selections[num] = current.sort();
+
+                    render();
+                    updatePreview();
+                };
+            });
+
+            modal.querySelectorAll('.select-all-mzs').forEach(btn => {
                 btn.onclick = () => {
-                    onSelect(btn.dataset.num);
-                    modal.classList.add('hidden');
+                    selections[btn.dataset.num] = null;
+                    render();
+                    updatePreview();
                 };
             });
         };
 
         searchInput.oninput = render;
-        modal.querySelector('#modal-terr-none').onclick = () => {
-            onSelect('');
-            modal.classList.add('hidden');
+
+        modal.querySelector('#modal-terr-clear').onclick = () => {
+            selections = {};
+            render();
+            updatePreview();
         };
+
+        confirmBtn.onclick = () => {
+            const displayStr = preview.innerText === 'Nada seleccionado' ? '' : preview.innerText;
+            onSelect(displayStr, selections);
+            // Properly close the CURRENT modal container
+            const container = document.getElementById(containerId);
+            if (container) {
+                container.classList.add('hidden');
+                container.innerHTML = '';
+                window.removeEventListener('keydown', handleEsc);
+            }
+        };
+
         render();
-    }, 'max-w-md');
+        updatePreview();
+    }, 'max-w-2xl', containerId);
 };
 
-const showGroupSelectionModal = (current, onSelect) => {
-    const groups = ['Todos', 'Grupos 1 y 5', 'Grupos 2 y 6', 'Grupos 3 y 4', 'Grupo 1', 'Grupo 2', 'Grupo 3', 'Grupo 4', 'Grupo 5', 'Grupo 6', 'Grupo 7', 'Grupo 8', 'Grupo 9', 'Grupo 10', 'Grupo 11', 'Grupo 12'];
+const showGroupSelectionModal = async (current, onSelect) => {
+    const today = new Date().getDay();
+    const isWeekend = today === 0 || today === 6;
+
+    if (!isWeekend) {
+        showNotification("La selección de grupos solo está disponible los Sábados y Domingos", "warning");
+        return;
+    }
+
+    const configuredGroups = await getGroupsConfig();
+    const currentList = current ? current.split(',').map(s => s.trim()) : [];
 
     showModal(`
-        <div class="flex flex-col h-full">
-            <header class="shrink-0 flex justify-between items-center bg-indigo-600 p-6 text-white shadow-lg">
-                <div>
-                    <h3 class="font-black uppercase tracking-widest text-sm">Seleccionar Grupos</h3>
-                    <p class="text-[9px] opacity-70 font-bold uppercase mt-1">Filtrado por congregación</p>
+        <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[2rem] overflow-hidden">
+            <header class="shrink-0 bg-primary p-6 text-white relative">
+                <div class="absolute inset-0 bg-white/10 backdrop-blur-xl"></div>
+                <div class="relative z-10 flex justify-between items-center">
+                    <div>
+                        <h3 class="font-black uppercase tracking-widest text-xs">Seleccionar Grupos</h3>
+                        <p class="text-[9px] opacity-70 font-bold uppercase mt-0.5">Filtrado dominical</p>
+                    </div>
+                    <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-xl shadow-lg">
+                        <i class="fas fa-users"></i>
+                    </div>
                 </div>
-                <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-xl">👥</div>
             </header>
             
-            <div class="flex-1 p-6 space-y-2 overflow-y-auto">
-                ${groups.map(g => `
-                    <button class="group-pick-btn w-full p-4 rounded-xl border text-left text-sm font-bold transition-all flex items-center justify-between
-                        ${g === current ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg scale-[1.02]' : 'bg-gray-50 dark:bg-white/5 border-black/5 dark:border-white/10 text-gray-700 dark:text-gray-300 hover:bg-indigo-500/5 hover:border-indigo-500/30'}
-                    " data-val="${g}">
-                        <span>${g}</span>
-                        ${g === current ? '<span>✅</span>' : ''}
-                    </button>
+            <div class="flex-1 p-5 space-y-3 overflow-y-auto custom-scrollbar">
+                ${configuredGroups.map(g => `
+                    <label class="flex items-center gap-3 p-4 rounded-xl border border-slate-100 dark:border-white/10 bg-slate-50 dark:bg-white/5 cursor-pointer transition-all hover:border-primary/50">
+                        <input type="checkbox" name="grp-check" value="${g.nombre}" ${currentList.includes(g.nombre) ? 'checked' : ''} class="w-5 h-5 rounded border-slate-300 text-primary focus:ring-primary accent-primary">
+                        <span class="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-tight">${g.nombre}</span>
+                    </label>
                 `).join('')}
             </div>
 
-            <div class="shrink-0 p-6 bg-gray-50 dark:bg-black/40 border-t border-black/5 dark:border-white/5">
-                <button id="modal-grp-none" class="w-full bg-white dark:bg-white/5 py-4 rounded-xl text-[10px] font-black text-gray-400 hover:text-red-500 transition-colors uppercase tracking-[0.2em] border border-black/5 dark:border-white/5 shadow-sm">
-                    ❌ Sin Grupo Específico
+            <footer class="shrink-0 p-5 bg-slate-50 dark:bg-black/40 border-t border-slate-100 dark:border-white/5 flex flex-col gap-3">
+                <button id="modal-grp-confirm" class="w-full bg-primary text-white py-4 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                    <i class="fas fa-check-circle"></i> Confirmar Selección
                 </button>
-            </div>
+                <button id="modal-grp-none" class="w-full bg-white dark:bg-white/5 py-4 rounded-xl text-[10px] font-black text-slate-400 hover:text-red-500 transition-colors uppercase tracking-[0.2em] border border-slate-100 dark:border-white/5 shadow-sm flex items-center justify-center gap-2">
+                    <i class="fas fa-times-circle"></i> Limpiar Todo
+                </button>
+            </footer>
         </div>
     `, (modal) => {
-        modal.querySelectorAll('.group-pick-btn').forEach(btn => {
-            btn.onclick = () => {
-                onSelect(btn.dataset.val);
-                modal.classList.add('hidden');
-            };
-        });
-        modal.querySelector('#modal-grp-none').onclick = () => {
-            onSelect('');
+        modal.querySelector('#modal-grp-confirm').onclick = () => {
+            const selected = Array.from(modal.querySelectorAll('input[name="grp-check"]:checked')).map(i => i.value);
             modal.classList.add('hidden');
+            onSelect(selected.join(', '));
         };
-    }, 'max-w-xs');
+        modal.querySelector('#modal-grp-none').onclick = () => {
+            modal.classList.add('hidden');
+            onSelect('');
+        };
+    }, 'max-w-xs', 'modal-container-nested');
 };
 
 window.openTerritorySelector = (dayIndex, turnId, btnElement) => {
@@ -366,82 +636,73 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
         }
 
         container.innerHTML = `
-            <div class="animate-fade-in pb-24 w-full max-w-[1800px] mx-auto p-4 md:p-8">
-                <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 px-8 py-6 glass-morphism border border-white/20 dark:border-white/10 rounded-[3rem] shadow-2xl gap-6">
-                    <div class="flex items-center gap-5">
-                        <div class="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl flex items-center justify-center text-3xl shadow-2xl shadow-indigo-500/30 rotate-3 hover:rotate-0 transition-transform duration-500 animate-float">🏛️</div>
-                        <div class="space-y-1">
-                            <h1 class="text-2xl font-black text-slate-800 dark:text-white tracking-tight">Administración</h1>
-                            <p class="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-black tracking-[0.2em] flex items-center gap-2">
-                               <span class="relative flex h-2 w-2">
-                                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                                  <span class="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
-                               </span> Gestión de territorios
-                            </p>
+            <div class="animate-fade-in pb-32 lg:pb-8 w-full max-w-[1600px] mx-auto p-4 md:p-8">
+                <!-- Dashboard Header 2026 -->
+                <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 lg:mb-10 p-5 md:p-8 glass-morphism rounded-2xl lg:rounded-[2rem] gap-6">
+                    <div class="flex items-center gap-4 md:gap-5">
+                        <div class="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-primary to-secondary rounded-xl md:rounded-2xl flex items-center justify-center text-2xl md:text-3xl shadow-xl shadow-primary/20 transition-transform hover:scale-105 duration-500">
+                            <i class="fas fa-landmark text-white"></i>
+                        </div>
+                        <div class="space-y-0.5 md:space-y-1">
+                            <h1 class="text-[18px] md:text-h2 font-black text-slate-900 dark:text-white leading-tight">Panel de Administración</h1>
+                            <div class="flex items-center gap-2">
+                                <span class="relative flex h-2 w-2">
+                                   <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-light opacity-75"></span>
+                                   <span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                                </span>
+                                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Sincronizado con la nube</p>
+                            </div>
                         </div>
                     </div>
-                    <div class="flex items-center gap-3 w-full md:w-auto">
-                        <div class="hidden sm:flex flex-col items-end mr-4 text-right">
-                             <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Version</p>
-                             <p class="text-xs font-bold text-slate-600 dark:text-slate-300">v${appVersion || '3.1.5'}</p>
+                    <div class="flex items-center gap-4 w-full md:w-auto">
+                        <div class="hidden sm:flex flex-col items-end mr-2">
+                             <p class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Versión del Sistema</p>
+                             <p class="text-xs font-extrabold text-primary">Build ${appVersion || '3.6.0'}</p>
                         </div>
-                        <button id="logout-btn" class="flex-1 md:flex-none bg-slate-100/50 hover:bg-red-50 text-slate-600 hover:text-red-600 dark:bg-slate-800/50 dark:hover:bg-red-500/10 dark:text-slate-400 dark:hover:text-red-400 px-8 py-4 rounded-2xl border border-white/10 transition-all font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2">
-                            Salir
+                        <button id="logout-btn" class="flex-1 md:flex-none bg-white dark:bg-white/5 hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-500 hover:text-red-500 px-6 py-4 rounded-xl border border-slate-100 dark:border-white/5 transition-all font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-3">
+                            <i class="fas fa-sign-out-alt"></i>
+                            Cerrar Sesión
                         </button>
                     </div>
                 </header>
 
-                <div class="admin-grid gap-10">
-                    <!-- Sidebar -->
-                    <aside class="sticky-nav bg-transparent">
-                        <nav class="glass-morphism border border-white/20 dark:border-white/5 p-4 rounded-[3rem] shadow-2xl flex flex-row lg:flex-col gap-2 overflow-x-auto lg:overflow-visible scrollbar-hide">
+                <div class="admin-grid">
+                    <!-- Sidebar Navigation -->
+                    <aside class="sticky-nav">
+                        <nav class="flex flex-row lg:flex-col gap-1.5 overflow-x-auto scrollbar-hide">
                             <button class="nav-item ${initialTab === 'dashboard' ? 'active' : ''} group" data-tab="dashboard">
-                                <span class="nav-icon">📊</span>
-                                <span class="nav-label hidden lg:block">Estadísticas</span>
-                                <div class="absolute right-4 hidden lg:block opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/></svg>
-                                </div>
+                                <span class="nav-icon"><i class="fas fa-chart-pie"></i></span>
+                                <span class="nav-label hidden lg:block">Dashboard</span>
                             </button>
                             <button class="nav-item ${initialTab === 'casa-en-casa' ? 'active' : ''} group" data-tab="casa-en-casa">
-                                <span class="nav-icon">🏘️</span>
+                                <span class="nav-icon"><i class="fas fa-map-marked-alt"></i></span>
                                 <span class="nav-label hidden lg:block">Territorios</span>
-                                <div class="absolute right-4 hidden lg:block opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/></svg>
-                                </div>
                             </button>
                             <button class="nav-item ${initialTab === 'predicacion' ? 'active' : ''} group" data-tab="predicacion">
-                                <span class="nav-icon">📢</span>
+                                <span class="nav-icon"><i class="fas fa-broadcast-tower"></i></span>
                                 <span class="nav-label hidden lg:block">P. Pública</span>
-                                <div class="absolute right-4 hidden lg:block opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/></svg>
-                                </div>
                             </button>
                             <button class="nav-item ${initialTab === 'telefonos' ? 'active' : ''} group" data-tab="telefonos">
-                                <span class="nav-icon">📞</span>
+                                <span class="nav-icon"><i class="fas fa-phone-alt"></i></span>
                                 <span class="nav-label hidden lg:block">Telefonía</span>
-                                <div class="absolute right-4 hidden lg:block opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/></svg>
-                                </div>
                             </button>
-                            <div class="hidden lg:block h-px my-4 bg-gradient-to-r from-transparent via-slate-200 dark:via-white/10 to-transparent"></div>
+                            <div class="hidden lg:block h-px mx-4 my-3 bg-slate-200 dark:bg-white/5"></div>
                             <button class="nav-item ${initialTab === 'config' ? 'active' : ''} group" data-tab="config">
-                                <span class="nav-icon">⚙️</span>
+                                <span class="nav-icon"><i class="fas fa-cog"></i></span>
                                 <span class="nav-label hidden lg:block">Ajustes</span>
-                                <div class="absolute right-4 hidden lg:block opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/></svg>
-                                </div>
                             </button>
                         </nav>
                     </aside>
 
                     <!-- Content Area -->
-                    <main id="admin-content" class="w-full min-h-[70vh] flex flex-col">
+                    <main id="admin-content" class="w-full min-h-[70vh] admin-content-wrapper">
                         <!-- Dynamic Content -->
                     </main>
                 </div>
             </div>
             
-            <div id="modal-container" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden overflow-y-auto z-[100] p-4 md:p-12 flex justify-center items-center"></div>
+            <div id="modal-container" class="fixed inset-0 bg-slate-950/40 backdrop-blur-sm hidden overflow-y-auto z-[100] p-4 flex justify-center items-center transition-all duration-300"></div>
+            <div id="modal-container-nested" class="fixed inset-0 bg-slate-950/60 backdrop-blur-md hidden overflow-y-auto z-[500] p-4 flex justify-center items-center transition-all duration-300"></div>
         `;
 
         document.getElementById('logout-btn').addEventListener('click', async () => {
@@ -515,58 +776,71 @@ const loadTab = async (tabName, appVersion) => {
 };
 
 /* --- FLOATING AI (ADMIN) --- */
+/* --- FLOATING AI (ADMIN) --- */
 const renderAdminAI = async () => {
-    // 1. Fetch Data State
-    const telefonos = await getTelefonos();
-    const publicadores = await getPublicadores();
-    const territorios = await getTerritorios();
-    const programa = await getProgramaSemanal();
-    const conductores = await getConductores();
     const config = await getConfiguracion();
+    if (!config.gemini_key) return;
 
-    // 2. Intelligence Engine
+    const [telefonos, publicadores, territorios, programa, conductores] = await Promise.all([
+        getTelefonos(), getPublicadores(), getTerritorios(), getProgramaSemanal(), getConductores()
+    ]);
+
     const brain = new TerritoryIntelligence(telefonos, publicadores, territorios, programa, conductores);
 
-    // 3. Inject UI
+    // Inject styles
+    if (!document.getElementById('ai-admin-styles')) {
+        const style = document.createElement('style');
+        style.id = 'ai-admin-styles';
+        style.innerHTML = `
+            @keyframes admin-pulse {
+                0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.7); }
+                70% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(79, 70, 229, 0); }
+                100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
+            }
+            .admin-ai-glow { animation: admin-pulse 2s infinite alternate; filter: drop-shadow(0 0 10px rgba(0, 255, 200, 0.3)); }
+        `;
+        document.head.appendChild(style);
+    }
+
     const aiUI = document.createElement('div');
     aiUI.id = 'admin-ai-overlay';
     aiUI.innerHTML = `
-   <button id="admin-ai-fab" class="fixed bottom-6 right-6 z-50 bg-teal-600 hover:bg-teal-500 text-white rounded-full p-4 shadow-2xl shadow-teal-900/50 transition-all hover:scale-110 active:scale-95 animate-bounce-in group">
-            <span class="text-2xl group-hover:rotate-12 transition-transform block">🧠</span>
-            <span class="absolute right-full top-1/2 -translate-y-1/2 mr-3 px-2 py-1 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                Admin AI
+        <button id="admin-ai-fab" class="fixed bottom-6 right-6 z-50 bg-indigo-900 border border-indigo-400/30 text-white rounded-full p-4 shadow-2xl transition-all hover:scale-110 active:scale-95 group admin-ai-glow">
+            <span class="text-3xl group-hover:rotate-12 transition-transform block">🧠</span>
+            <span class="absolute right-full top-1/2 -translate-y-1/2 mr-3 px-3 py-1.5 bg-black/80 backdrop-blur-md text-white text-[10px] font-black uppercase rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none tracking-widest border border-indigo-500/20">
+                Centro de Mando IA
             </span>
-        </button >
+        </button>
 
-    <div id="admin-ai-panel" class="fixed bottom-24 right-6 w-96 bg-gray-900/95 backdrop-blur-xl border border-teal-500/30 rounded-2xl shadow-2xl z-50 transform translate-y-10 opacity-0 pointer-events-none transition-all duration-300 flex flex-col max-h-[70vh]">
-        <!-- Header -->
-        <div class="flex justify-between items-center p-4 border-b border-white/10 bg-gradient-to-r from-teal-900/20 to-blue-900/20 rounded-t-2xl">
-            <h3 class="font-bold text-teal-100 flex items-center gap-2">
-                <span>🧠</span> Command Center
-            </h3>
-            <button id="admin-ai-close" class="text-white/50 hover:text-white transition-colors">✕</button>
-        </div>
+        <div id="admin-ai-panel" class="fixed bottom-24 right-6 w-[calc(100vw-3rem)] md:w-96 glass-morphism border border-indigo-500/20 rounded-[2.5rem] shadow-[0_35px_60px_-15px_rgba(0,0,0,0.6)] z-50 transform translate-y-10 opacity-0 pointer-events-none transition-all duration-500 ease-out flex flex-col max-h-[75vh] overflow-hidden">
+            <div class="flex justify-between items-center p-6 bg-gradient-to-r from-indigo-900/40 to-blue-900/40">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-2xl bg-indigo-500/20 flex items-center justify-center text-3xl shadow-inner shadow-indigo-500/10">🧠</div>
+                    <div>
+                        <h3 class="font-black text-white text-sm uppercase tracking-tighter">Command Center</h3>
+                        <p class="text-[9px] text-teal-400 font-bold uppercase tracking-widest animate-pulse">Algoritmos Activos • v${appVersion || '3.5.0'}</p>
+                    </div>
+                </div>
+                <button id="admin-ai-close" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 text-white/50 hover:text-white transition-all text-lg">✕</button>
+            </div>
+            
+            <div id="admin-chat-log" class="flex-1 overflow-y-auto p-6 space-y-4 text-xs custom-scrollbar min-h-[350px]">
+                <div class="bg-indigo-500/10 p-4 rounded-3xl rounded-tl-none border border-indigo-500/20 text-gray-200 leading-relaxed shadow-sm">
+                    <b>Sistema de Auditoría Proactiva</b> cargado. ¿Deseas un informe de inconsistencias o necesitas ejecutar una asignación masiva mediante lenguaje natural?
+                </div>
+            </div>
 
-        <!-- Chat Log -->
-        <div id="admin-chat-log" class="flex-1 overflow-y-auto p-4 space-y-3 text-xs custom-scrollbar min-h-[300px]">
-            <div class="bg-teal-500/10 p-3 rounded-lg rounded-tl-none border border-teal-500/20 text-gray-300">
-                Panel de Control Inteligente activado. Puedo analizar datos y asignar territorios.
+            <div class="p-4 bg-black/50 border-t border-white/5 flex gap-2">
+                <input type="text" id="admin-chat-input" 
+                    placeholder="Ej: 'Asigna el 05 a Juan Pérez'..." 
+                    class="flex-1 bg-white/5 border border-white/10 rounded-2xl px-5 py-3 text-sm text-white focus:border-indigo-500 outline-none placeholder-gray-500 transition-all">
+                <button id="admin-chat-send" class="bg-indigo-600 hover:bg-indigo-500 text-white w-12 h-12 rounded-2xl transition-all shadow-lg shadow-indigo-500/20 flex items-center justify-center active:scale-90">
+                    <span class="text-xl">⚡</span>
+                </button>
             </div>
         </div>
+    `;
 
-        <!-- Input -->
-        <div class="p-3 border-t border-white/10 bg-black/20 rounded-b-2xl flex gap-2">
-            <input type="text" id="admin-chat-input"
-                placeholder="Orden: 'Asigna el 25 a Juan'..."
-                class="flex-1 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-teal-500 outline-none placeholder-gray-500">
-                <button id="admin-chat-send" class="bg-teal-600 hover:bg-teal-500 text-white px-3 rounded-lg transition-colors flex items-center justify-center">
-                    ➤
-                </button>
-        </div>
-    </div>
-`;
-
-    // Clean up old
     const existing = document.getElementById('admin-ai-overlay');
     if (existing) existing.remove();
     document.body.appendChild(aiUI);
@@ -596,17 +870,16 @@ const renderAdminAI = async () => {
         const prompt = input.value.trim();
         if (!prompt) return;
 
-        log.innerHTML += `<div class="flex justify-end"> <div class="bg-teal-600/80 text-white px-3 py-2 rounded-lg rounded-tr-none text-xs max-w-[85%]">${prompt}</div></div> `;
+        log.innerHTML += `<div class="flex justify-end"><div class="bg-indigo-600 text-white px-4 py-3 rounded-3xl rounded-tr-none text-xs max-w-[85%] font-medium shadow-lg">${prompt}</div></div>`;
         log.scrollTop = log.scrollHeight;
         input.value = '';
         input.disabled = true;
 
-        const loadingId = 'loading-' + Date.now();
-        log.innerHTML += `<div id="${loadingId}" class="text-gray-500 text-[10px] animate-pulse"> Procesando comando...</div> `;
-        log.scrollTop = log.scrollHeight;
-
         try {
-            // --- Command Execution Logic ---
+            const loadingId = 'loading-' + Date.now();
+            log.innerHTML += `<div id="${loadingId}" class="flex items-center gap-2 text-indigo-400 text-[10px] font-black uppercase tracking-widest"><span class="animate-ping">🧠</span> Procesando...</div>`;
+            log.scrollTop = log.scrollHeight;
+
             let responseText = await brain.askGemini(config.gemini_key, prompt);
 
             // Regex for Commands
@@ -619,7 +892,6 @@ const renderAdminAI = async () => {
                 const commandContent = match[2];
                 const actionType = match[1];
 
-                // Remove command from visible text
                 responseText = responseText.replace(fullCommand, '');
 
                 try {
@@ -627,37 +899,30 @@ const renderAdminAI = async () => {
                         const parts = commandContent.split(':');
                         const tId = parts[0];
                         const cName = parts[1];
-                        let details = {};
-                        if (parts[2]) {
-                            try { details = JSON.parse(parts[2]); } catch (err) { console.error("AI Params Error:", err); }
-                        }
                         if (tId && cName) {
-                            await assignTerritorio(tId, cName, details);
-                            actionLogs += `<div class="text-green-400 text-[10px] mt-1 p-1 bg-green-500/10 border border-green-500/20 rounded">✅ Asignado: <b>${tId}</b> a <b>${cName}</b> ${details.lugar ? `en ${details.lugar}` : ''}</div>`;
-                            showNotification(`IA: Asignado territorio ${tId} a ${cName}`);
+                            await assignTerritorio(tId, cName);
+                            actionLogs += `<div class="text-teal-400 text-[10px] mt-2 p-3 bg-teal-500/10 border border-teal-500/20 rounded-2xl flex items-center gap-2">✅ Asignado: <b>${tId}</b> → <b>${cName}</b></div>`;
                         }
                     }
                 } catch (e) {
-                    console.error("AI Action Error:", e);
-                    actionLogs += `<div class="text-red-400 text-[10px] mt-1">❌ Error: ${e.message}</div> `;
+                    console.error(e);
+                    actionLogs += `<div class="text-red-400 text-[10px] mt-2 p-3 bg-red-500/10 border border-red-500/20 rounded-2xl">❌ Error en acción: ${e.message}</div>`;
                 }
             }
 
-            document.getElementById(loadingId).remove();
-
+            document.getElementById(loadingId)?.remove();
             const htmlResponse = responseText.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
 
-            log.innerHTML += `<div class="flex justify-start flex-col gap-1 max-w-[90%]">
-    <div class="bg-white/10 text-gray-200 px-3 py-2 rounded-lg rounded-tl-none text-xs border border-white/5">
-        ${htmlResponse}
-    </div>
+            log.innerHTML += `<div class="flex items-start flex-col gap-2 max-w-[95%] animate-fade-in">
+                <div class="bg-white/10 text-gray-200 px-4 py-3 rounded-3xl rounded-tl-none text-xs border border-white/10 leading-relaxed shadow-sm">
+                    ${htmlResponse}
+                </div>
                 ${actionLogs}
-            </div> `;
+            </div>`;
 
         } catch (err) {
             console.error(err);
-            if (document.getElementById(loadingId)) document.getElementById(loadingId).remove();
-            log.innerHTML += `<div class="text-red-400 text-[10px] p-2"> Error: ${err.message}</div> `;
+            log.innerHTML += `<div class="bg-red-500/10 text-red-400 text-[10px] p-4 rounded-2xl border border-red-500/20 shadow-lg">Error: ${err.message}</div>`;
         } finally {
             input.disabled = false;
             input.focus();
@@ -666,73 +931,119 @@ const renderAdminAI = async () => {
     };
 
     send.addEventListener('click', handleSend);
-    input.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') handleSend();
-    });
+    input.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSend(); });
 };
 
-/* --- CASA EN CASA TAB --- */
-/* --- CASA EN CASA TAB --- */
+
+/* --- CASA EN CASA TAB (SUPER MODULE) --- */
 const renderCasaEnCasaTab = async (container) => {
-    const config = await getConfiguracion();
-
+    let _activeSub = 'asignaciones';
     container.innerHTML = `
-   <h2 class="text-xl font-bold mb-6 border-b border-black/10 dark:border-white/10 pb-2 text-teal-800 dark:text-teal-100 flex items-center gap-2">
-        <span>🏘️</span> Predicación de Casa en Casa
-   </h2>
-        
-        <div class="flex flex-wrap gap-2 mb-6 text-sm border-b border-black/10 dark:border-white/10 pb-4 overflow-x-auto scrollbar-hide">
-            <button class="sub-tab-casa active bg-teal-500/20 text-teal-800 dark:text-teal-200 px-4 py-2 rounded-lg border border-teal-500/30 transition-all font-medium whitespace-nowrap" data-sub="asignaciones">
-                📋 Asignaciones
-            </button>
-            <button class="sub-tab-casa bg-black/5 dark:bg-white/5 text-gray-500 dark:text-gray-400 px-4 py-2 rounded-lg hover:bg-white/10 transition-all whitespace-nowrap" data-sub="programa">
-                📅 Programa Semanal
-            </button>
-             <button class="sub-tab-casa bg-black/5 dark:bg-white/5 text-gray-500 dark:text-gray-400 px-4 py-2 rounded-lg hover:bg-white/10 transition-all whitespace-nowrap" data-sub="gestion">
-                🛠️ Reporte S-13 y Gestión
-            </button>
-            <div class="h-4 w-px bg-gray-300 dark:bg-white/20 mx-1 self-center"></div>
-            <button class="sub-tab-casa bg-black/5 dark:bg-white/5 text-gray-500 dark:text-gray-400 px-4 py-2 rounded-lg hover:bg-white/10 transition-all whitespace-nowrap" data-sub="recursos">
-                🧰 Ayudas Ministerio
-            </button>
+        <div class="space-y-8 animate-fade-in px-2 lg:px-6">
+            <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-8">
+                <div class="flex items-center gap-6">
+                    <div class="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center text-white text-2xl shadow-xl shadow-primary/20">
+                        <i class="fas fa-home"></i>
+                    </div>
+                    <div class="space-y-1">
+                        <h2 class="text-h2 text-slate-900 dark:text-white">Predicación Casa en Casa</h2>
+                        <div class="flex items-center gap-2">
+                             <span class="w-2 h-2 rounded-full bg-accent animate-pulse"></span>
+                             <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Módulo de Territorios JW</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2026 Sub Navigation -->
+                <nav class="flex flex-wrap items-center gap-2 bg-white/50 dark:bg-white/[0.03] p-1.5 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm w-full xl:w-auto backdrop-blur-xl">
+                    <button class="sub-tab-casa group px-5 py-3 rounded-xl transition-all flex items-center gap-3 whitespace-nowrap" data-sub="asignaciones">
+                        <i class="fas fa-clipboard-list text-sm"></i>
+                        <span class="text-[11px] font-bold uppercase tracking-wider">Asignaciones</span>
+                    </button>
+                    <button class="sub-tab-casa group px-5 py-3 rounded-xl transition-all flex items-center gap-3 whitespace-nowrap" data-sub="programa">
+                        <i class="fas fa-calendar-alt text-sm"></i>
+                        <span class="text-[11px] font-bold uppercase tracking-wider">Programa</span>
+                    </button>
+                    <button class="sub-tab-casa group px-5 py-3 rounded-xl transition-all flex items-center gap-3 whitespace-nowrap" data-sub="gestion">
+                        <i class="fas fa-history text-sm"></i>
+                        <span class="text-[11px] font-bold uppercase tracking-wider">Historial S-13</span>
+                    </button>
+                    <div class="w-px h-6 bg-slate-200 dark:bg-white/10 mx-1 shrink-0"></div>
+                    <button class="sub-tab-casa group px-5 py-3 rounded-xl transition-all flex items-center gap-3 whitespace-nowrap" data-sub="recursos">
+                        <i class="fas fa-briefcase text-sm"></i>
+                        <span class="text-[11px] font-bold uppercase tracking-wider">Ayudas</span>
+                    </button>
+                </nav>
+            </div>
+            
+            <div id="casa-content" class="relative min-h-[60vh]">
+                <!-- Contenido dinámico -->
+            </div>
+            
+            <!-- Sync Indicator -->
+            <div id="super-sync-indicator" class="hidden fixed bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-primary text-white px-6 py-3 rounded-2xl shadow-2xl z-[60] animate-bounce-in">
+                <i class="fas fa-sync-alt animate-spin"></i>
+                <span class="text-xs font-bold uppercase tracking-widest">Sincronizando...</span>
+            </div>
         </div>
+    `;
 
-        <div id="casa-content" class="min-h-[400px]"></div>
-`;
-
-    const loadCasaSub = async (sub) => {
+    const loadCasaSub = async (sub, isSync = false) => {
+        _activeSub = sub;
         const subContainer = container.querySelector('#casa-content');
-        subContainer.innerHTML = '<div class="flex justify-center p-10"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div></div>';
+        const syncIndicator = container.querySelector('#super-sync-indicator');
 
-        // Update buttons
-        container.querySelectorAll('.sub-tab-casa').forEach(b => {
-            // Reset style
-            b.className = "sub-tab-casa bg-black/5 dark:bg-white/5 text-gray-500 dark:text-gray-400 px-4 py-2 rounded-lg hover:bg-white/10 transition-all whitespace-nowrap";
-            // Set active
-            if (b.dataset.sub === sub) {
-                b.className = "sub-tab-casa active bg-teal-500/20 text-teal-800 dark:text-teal-200 px-4 py-2 rounded-lg border border-teal-500/30 transition-all font-medium whitespace-nowrap";
+        if (!isSync) {
+            subContainer.innerHTML = `
+                <div class="flex flex-col items-center justify-center py-48 gap-6 opacity-20">
+                    <div class="w-16 h-16 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
+                    <p class="text-[12px] font-black uppercase tracking-[0.4em]">Iniciando Super Módulo...</p>
+                </div>
+            `;
+        } else {
+            syncIndicator.classList.remove('hidden');
+        }
+
+        // Update Nav UI
+        container.querySelectorAll('.sub-tab-casa').forEach(btn => {
+            const isActive = btn.dataset.sub === sub;
+            btn.classList.toggle('active', isActive);
+            if (!isActive) {
+                btn.className = "sub-tab-casa group px-5 py-3 rounded-xl text-slate-500 hover:text-primary dark:text-slate-400 dark:hover:text-primary-light hover:bg-white/80 dark:hover:bg-white/5 transition-all flex items-center gap-3 font-bold";
             }
         });
 
-        if (sub === 'asignaciones') {
-            await renderAsignacionesView(subContainer);
-        } else if (sub === 'programa') {
-            await renderProgramaTab(subContainer);
-        } else if (sub === 'gestion') {
-            // Unify S-13 and Advanced History
-            subContainer.innerHTML = '<div id="s13-container"></div><div class="h-10"></div><div id="adv-hist-container"></div>';
-            await renderHistoryTab(subContainer.querySelector('#s13-container'));
-            await renderAdvancedHistoryView(subContainer.querySelector('#adv-hist-container'));
-        } else if (sub === 'recursos') {
-            await renderRecursosTab(subContainer);
+        try {
+            // Unified render mapping
+            const views = {
+                'asignaciones': renderAsignacionesView,
+                'programa': renderProgramaTab,
+                'gestion': renderS13CommandCenter,
+                'recursos': renderRecursosTab
+            };
+
+            if (views[sub]) {
+                await views[sub](subContainer);
+                setTimeout(() => syncIndicator.classList.add('hidden'), 1000);
+            }
+        } catch (error) {
+            console.error(`Error loading Super Module [${sub}]:`, error);
+            subContainer.innerHTML = `<div class="p-10 text-center text-red-500 font-bold">Error al cargar el módulo: ${error.message}</div>`;
+            syncIndicator.classList.add('hidden');
         }
+    };
+
+    // Shared Module Broadcaster
+    window.dispatchModuleSync = () => {
+        console.log("[SuperModule] Remote Sync Triggered");
+        loadCasaSub(_activeSub, true);
     };
 
     container.querySelectorAll('.sub-tab-casa').forEach(btn => {
         btn.addEventListener('click', (e) => loadCasaSub(e.currentTarget.dataset.sub));
     });
 
-    // Initial load
+    // Default to Asignaciones
     loadCasaSub('asignaciones');
 };
 
@@ -740,61 +1051,103 @@ const renderRecursosTab = async (container) => {
     const recursos = await getRecursos();
 
     container.innerHTML = `
-   <div class="flex justify-between items-center mb-6">
-            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Recursos para el Ministerio</h3>
-            <button id="add-recurso-btn" class="bg-teal-600 hover:bg-teal-500 text-white px-4 py-2 rounded-lg font-medium shadow-md transition-colors flex items-center gap-2">
-                <span>➕</span> Agregar Ayuda
+        <div class="flex flex-wrap justify-between items-center mb-10 gap-6">
+            <div>
+                <h3 class="text-h3 text-slate-900 dark:text-white">Material de Apoyo</h3>
+                <p class="text-xs text-slate-500 mt-1">Recursos útiles para los publicadores</p>
+            </div>
+            <button id="add-recurso-btn" class="bg-primary hover:bg-primary-light text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-primary/20 transition-all flex items-center gap-3 text-xs uppercase tracking-wider">
+                <i class="fas fa-plus"></i>
+                Agregar Recurso
             </button>
         </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        ${recursos.length === 0 ? '<div class="col-span-full text-center text-gray-500 py-10 italic">No hay recursos agregados aún.</div>' :
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            ${recursos.length === 0 ? `
+                <div class="col-span-full modern-card !py-20 text-center opacity-60 italic">
+                    <i class="fas fa-folder-open text-4xl mb-4 block"></i>
+                    No hay recursos agregados aún.
+                </div>
+            ` :
             recursos.map(r => `
-                <div class="bg-white dark:bg-black/20 rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden group hover:border-teal-500/30 transition-all shadow-sm hover:shadow-lg flex flex-col">
-                    <div class="h-32 bg-gray-100 dark:bg-white/5 relative overflow-hidden">
-                        ${r.imagen ? `<img src="${r.imagen}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">` :
-                    `<div class="w-full h-full flex items-center justify-center text-4xl">📚</div>`}
-                        <div class="absolute top-2 right-2 flex gap-1">
-                             <button onclick="window.editRecurso('${r.id}')" class="bg-blue-500/80 hover:bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center shadow-lg backdrop-blur-sm transition-colors" title="Editar">✏️</button>
-                             <button onclick="window.deleteRecurso('${r.id}')" class="bg-red-500/80 hover:bg-red-600 text-white w-8 h-8 rounded-full flex items-center justify-center shadow-lg backdrop-blur-sm transition-colors" title="Eliminar">🗑️</button>
+                <div class="modern-card !p-0 overflow-hidden flex flex-col group border border-slate-200 dark:border-white/5">
+                    <div class="h-44 bg-slate-100 dark:bg-white/5 relative overflow-hidden">
+                        ${r.imagen ? `<img src="${r.imagen}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">` :
+                    `<div class="w-full h-full flex items-center justify-center text-slate-300 text-5xl opacity-40">
+                            <i class="fas fa-book"></i>
+                        </div>`}
+                        <div class="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                             <button onclick="window.editRecurso('${r.id}')" class="bg-white/90 dark:bg-slate-900/90 text-slate-700 dark:text-white w-9 h-9 rounded-xl flex items-center justify-center shadow-lg backdrop-blur-md hover:bg-primary hover:text-white transition-colors">
+                                <i class="fas fa-edit text-xs"></i>
+                             </button>
+                             <button onclick="window.deleteRecurso('${r.id}')" class="bg-white/90 dark:bg-slate-900/90 text-red-500 w-9 h-9 rounded-xl flex items-center justify-center shadow-lg backdrop-blur-md hover:bg-red-500 hover:text-white transition-colors">
+                                <i class="fas fa-trash-alt text-xs"></i>
+                             </button>
                         </div>
                     </div>
-                    <div class="p-4 flex-1 flex flex-col">
-                        <h4 class="font-bold text-gray-900 dark:text-white mb-2 leading-tight">${r.titulo}</h4>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-4 line-clamp-3 flex-1">${r.descripcion || 'Sin descripción'}</p>
-                        <a href="${r.url}" target="_blank" class="block text-center w-full bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-300 py-2 rounded-lg border border-teal-100 dark:border-teal-500/20 text-sm font-bold hover:bg-teal-100 dark:hover:bg-teal-500/20 transition-colors">
-                            Abrir Enlace 🔗
+                    <div class="p-6 flex-1 flex flex-col">
+                        <h4 class="text-lg font-bold text-slate-900 dark:text-white mb-3 leading-tight group-hover:text-primary transition-colors">${r.titulo}</h4>
+                        <p class="text-[13px] text-slate-500 dark:text-slate-400 mb-6 line-clamp-2 flex-1 leading-relaxed">${r.descripcion || 'Sin descripción adicional.'}</p>
+                        <a href="${r.url}" target="_blank" class="flex items-center justify-center gap-3 w-full bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-400 py-3.5 rounded-xl border border-slate-100 dark:border-white/5 text-xs font-bold hover:bg-primary hover:text-white hover:border-primary transition-all group/link">
+                            Abrir Recurso
+                            <i class="fas fa-external-link-alt text-[10px] group-hover/link:translate-x-0.5 transition-transform"></i>
                         </a>
                     </div>
                 </div>
             `).join('')}
-    </div>
-`;
+        </div>
+    `;
 
     document.getElementById('add-recurso-btn').addEventListener('click', () => {
         showModal(`
-   <h3 class="text-xl font-bold mb-4 text-teal-800 dark:text-teal-200"> Agregar Nueva Ayuda</h3>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Título</label>
-                    <input type="text" id="rec-title" class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 outline-none focus:border-teal-500 text-gray-900 dark:text-white">
+            <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden">
+                <header class="shrink-0 bg-primary p-8 text-white relative overflow-hidden">
+                    <div class="absolute inset-0 bg-white/10 backdrop-blur-3xl"></div>
+                    <div class="relative z-10 flex items-center gap-6">
+                        <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center text-3xl shadow-2xl border border-white/30">
+                            <i class="fas fa-plus"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-black uppercase tracking-tight leading-none mb-1">Nueva Ayuda</h3>
+                            <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Agregar Material de Apoyo</p>
+                        </div>
+                    </div>
+                </header>
+
+                <div class="flex-1 overflow-y-auto custom-scrollbar p-10 space-y-8 bg-slate-50 dark:bg-black/20">
+                    <div class="space-y-6">
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Título de la Ayuda</label>
+                            <input type="text" id="rec-title" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all uppercase shadow-inner" placeholder="Ej: Video: ¿Por qué estudiar la Biblia?">
+                        </div>
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">URL del Enlace</label>
+                            <input type="url" id="rec-url" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all shadow-inner" placeholder="https://jw.org/...">
+                        </div>
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">URL Imagen (Opcional)</label>
+                            <input type="url" id="rec-img" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all shadow-inner" placeholder="https://...">
+                        </div>
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Descripción</label>
+                            <textarea id="rec-desc" rows="3" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all resize-none shadow-inner" placeholder="¿De qué trata este recurso?"></textarea>
+                        </div>
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">URL del Enlace</label>
-                    <input type="url" id="rec-url" placeholder="https://..." class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 outline-none focus:border-teal-500 text-gray-900 dark:text-white">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">URL Imagen (Opcional)</label>
-                    <input type="url" id="rec-img" placeholder="https://... (jpg/png)" class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 outline-none focus:border-teal-500 text-gray-900 dark:text-white">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción</label>
-                    <textarea id="rec-desc" rows="3" class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 outline-none focus:border-teal-500 resize-none text-gray-900 dark:text-white"></textarea>
-                </div>
+
+                <footer class="shrink-0 p-8 bg-white dark:bg-black/40 border-t border-slate-100 dark:border-white/5 flex gap-4">
+                    <button id="btn-cancel-rec" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] border border-slate-200 dark:border-white/10 transition-all active:scale-95">
+                        Cancelar
+                    </button>
+                    <button id="save-rec-btn" class="flex-[1.5] py-5 bg-primary hover:bg-primary-light text-white font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-primary/20 transition-all active:scale-95 flex items-center justify-center gap-2">
+                        <i class="fas fa-save"></i> Guardar Recurso
+                    </button>
+                </footer>
             </div>
-            <button id="save-rec-btn" class="w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-3 rounded-xl mt-6">Guardar</button>
-`, async (modal) => {
-            modal.querySelector('#save-rec-btn').addEventListener('click', async () => {
+        `, async (modal) => {
+            modal.querySelector('#btn-cancel-rec').onclick = () => modal.classList.add('hidden');
+            modal.querySelector('#save-rec-btn').addEventListener('click', async (e) => {
+                const btn = e.currentTarget;
                 const title = modal.querySelector('#rec-title').value;
                 const url = modal.querySelector('#rec-url').value;
                 const img = modal.querySelector('#rec-img').value;
@@ -802,13 +1155,19 @@ const renderRecursosTab = async (container) => {
 
                 if (!title || !url) return showNotification("Título y URL requeridos", "warning");
 
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Guardando...';
+
                 try {
                     await addRecurso({ titulo: title, url, imagen: img, descripcion: desc });
-                    showNotification("Recurso agregado");
+                    showNotification("Recurso agregado correctamente", "success");
                     modal.classList.add('hidden');
-                    renderRecursosTab(container);
+                    if (window.dispatchModuleSync) window.dispatchModuleSync();
+                    else renderRecursosTab(container);
                 } catch (e) {
                     showNotification("Error: " + e.message, "error");
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-save"></i> Guardar Recurso';
                 }
             });
         });
@@ -816,9 +1175,11 @@ const renderRecursosTab = async (container) => {
 
     // Expose delete
     window.deleteRecurso = async (id) => {
-        showCustomConfirm("¿Eliminar este recurso?", async () => {
+        showCustomConfirm("¿Eliminar este material de apoyo?", async () => {
             await deleteRecurso(id);
-            renderRecursosTab(container);
+            showNotification("Recurso eliminado", "success");
+            if (window.dispatchModuleSync) window.dispatchModuleSync();
+            else renderRecursosTab(container);
         });
     };
 
@@ -828,47 +1189,54 @@ const renderRecursosTab = async (container) => {
         if (!recurso) return;
 
         showModal(`
-            <div class="flex flex-col h-full">
-                <header class="shrink-0 flex items-center justify-between bg-gradient-to-r from-teal-800 to-indigo-900 p-8 text-white relative overflow-hidden">
-                    <div class="absolute inset-0 bg-white/5 backdrop-blur-3xl"></div>
-                    <div class="relative z-10 flex items-center gap-5">
-                        <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-[2rem] flex items-center justify-center text-3xl shadow-2xl border border-white/30 animate-float">🧰</div>
+            <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden">
+                <header class="shrink-0 bg-primary p-8 text-white relative overflow-hidden">
+                    <div class="absolute inset-0 bg-white/10 backdrop-blur-3xl"></div>
+                    <div class="relative z-10 flex items-center gap-6">
+                        <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center text-3xl shadow-2xl border border-white/30">
+                            <i class="fas fa-edit"></i>
+                        </div>
                         <div>
-                            <h3 class="text-2xl font-black tracking-tight leading-none mb-1">Editar Ayuda</h3>
-                            <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Material del Ministerio</p>
+                            <h3 class="text-2xl font-black uppercase tracking-tight leading-none mb-1">Editar Ayuda</h3>
+                            <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">${recurso.titulo}</p>
                         </div>
                     </div>
                 </header>
 
-                <div class="flex-1 p-10 space-y-8 overflow-y-auto custom-scrollbar">
+                <div class="flex-1 overflow-y-auto custom-scrollbar p-10 space-y-8 bg-slate-50 dark:bg-black/20">
                     <div class="space-y-6">
                         <div class="space-y-3">
-                            <label class="label-premium">Título de la Ayuda</label>
-                            <input type="text" id="edit-rec-title" value="${recurso.titulo || ''}" class="input-premium" placeholder="Ej: Video: ¿Por qué estudiar la Biblia?">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Título de la Ayuda</label>
+                            <input type="text" id="edit-rec-title" value="${recurso.titulo || ''}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all uppercase shadow-inner" placeholder="Ej: Video: ¿Por qué estudiar la Biblia?">
                         </div>
                         <div class="space-y-3">
-                            <label class="label-premium">URL del Enlace</label>
-                            <input type="url" id="edit-rec-url" value="${recurso.url || ''}" class="input-premium" placeholder="https://jw.org/...">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">URL del Enlace</label>
+                            <input type="url" id="edit-rec-url" value="${recurso.url || ''}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all shadow-inner" placeholder="https://jw.org/...">
                         </div>
                         <div class="space-y-3">
-                            <label class="label-premium">URL Imagen (Previsualización)</label>
-                            <input type="url" id="edit-rec-img" value="${recurso.imagen || ''}" class="input-premium" placeholder="https://...">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">URL Imagen (Opcional)</label>
+                            <input type="url" id="edit-rec-img" value="${recurso.imagen || ''}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all shadow-inner" placeholder="https://...">
                         </div>
                         <div class="space-y-3">
-                            <label class="label-premium">Breve Descripción</label>
-                            <textarea id="edit-rec-desc" class="input-premium min-h-[100px] resize-none" placeholder="¿De qué trata este recurso?">${recurso.descripcion || ''}</textarea>
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Breve Descripción</label>
+                            <textarea id="edit-rec-desc" rows="3" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all resize-none shadow-inner" placeholder="¿De qué trata este recurso?">${recurso.descripcion || ''}</textarea>
                         </div>
                     </div>
                 </div>
 
-                <div class="shrink-0 p-8 bg-gray-50 dark:bg-black/40 border-t border-black/5 dark:border-white/5">
-                    <button id="update-rec-btn" class="w-full bg-teal-600 py-4 rounded-2xl text-white font-black shadow-xl shadow-teal-500/20 hover:shadow-teal-500/40 hover:scale-[1.01] active:scale-[0.99] transition-all uppercase tracking-[0.2em] text-[11px]">
-                        Actualizar Material
+                <footer class="shrink-0 p-8 bg-white dark:bg-black/40 border-t border-slate-100 dark:border-white/5 flex gap-4">
+                    <button id="btn-cancel-edit-rec" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] border border-slate-200 dark:border-white/10 transition-all active:scale-95">
+                        Cancelar
                     </button>
-                </div>
+                    <button id="update-rec-btn" class="flex-[1.5] py-5 bg-primary hover:bg-primary-light text-white font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-primary/20 transition-all active:scale-95 flex items-center justify-center gap-2">
+                        <i class="fas fa-save"></i> Actualizar Material
+                    </button>
+                </footer>
             </div>
-`, async (modal) => {
-            modal.querySelector('#update-rec-btn').addEventListener('click', async () => {
+        `, async (modal) => {
+            modal.querySelector('#btn-cancel-edit-rec').onclick = () => modal.classList.add('hidden');
+            modal.querySelector('#update-rec-btn').addEventListener('click', async (e) => {
+                const btn = e.currentTarget;
                 const title = modal.querySelector('#edit-rec-title').value;
                 const url = modal.querySelector('#edit-rec-url').value;
                 const img = modal.querySelector('#edit-rec-img').value;
@@ -876,13 +1244,18 @@ const renderRecursosTab = async (container) => {
 
                 if (!title || !url) return showNotification("Título y URL requeridos", "warning");
 
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Guardando...';
+
                 try {
                     await updateRecurso(id, { titulo: title, url, imagen: img, descripcion: desc });
-                    showNotification("Recurso actualizado");
+                    showNotification("Recurso actualizado", "success");
                     modal.classList.add('hidden');
                     renderRecursosTab(container);
                 } catch (e) {
                     showNotification("Error: " + e.message, "error");
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-save"></i> Actualizar Material';
                 }
             });
         });
@@ -925,70 +1298,95 @@ const renderAsignacionesView = async (container) => {
 
     window.actionToggleSelect = toggleSelect;
 
-    const handleNewAssignment = async (editId = null) => {
+    const handleNewAssignment = async (editId = null, prefill = null) => {
         const item = editId ? territorios.find(x => x.id === editId) : null;
-        const todayStr = new Date().toISOString().split('T')[0];
+        const todayStr = prefill?.date || (item?.fecha_asignacion ? item.fecha_asignacion.split('T')[0] : new Date().toISOString().split('T')[0]);
 
-        // Prepare hours from config or default
-        const horasOptions = (config.horarios_programa && config.horarios_programa.length > 0)
-            ? config.horarios_programa
-            : ['08:30', '08:45', '09:00', '09:15', '09:30', '14:30', '16:00', '18:00'];
+        // Strict config based options
+        const horasOptions = (config.horarios_programa && config.horarios_programa.length > 0) ? config.horarios_programa : ['09:00', '15:00', '19:00'];
+        const lugaresOptions = (config.lugares && config.lugares.length > 0) ? config.lugares : ['Salón del Reino'];
+        const facetasOptions = (config.facetas && config.facetas.length > 0) ? config.facetas : ['Casa en casa', 'Carritos'];
 
         const configuredGroups = await getGroupsConfig();
+        const activeConductors = allPersonnel.filter(p => p.es_conductor).sort((a, b) => a.nombre.localeCompare(b.nombre));
 
         showModal(`
-            <div class="flex flex-col h-full">
-                <header class="shrink-0 flex items-center justify-between bg-gradient-to-r from-indigo-600 to-purple-700 p-8 text-white relative overflow-hidden">
-                    <div class="absolute inset-0 bg-white/5 backdrop-blur-3xl"></div>
-                    <div class="relative z-10 flex items-center gap-5">
-                        <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-[2rem] flex items-center justify-center text-3xl shadow-2xl border border-white/30 animate-float">📋</div>
+            <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden">
+                <header class="shrink-0 bg-primary p-8 text-white relative overflow-hidden">
+                    <div class="absolute inset-0 bg-white/10 backdrop-blur-3xl"></div>
+                    <div class="relative z-10 flex items-center gap-6">
+                        <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center text-3xl shadow-2xl border border-white/30">
+                            <i class="fas fa-layer-group"></i>
+                        </div>
                         <div>
-                            <h3 class="text-2xl font-black tracking-tight leading-none mb-1">${editId ? 'Editar Registro' : 'Nueva Asignación'}</h3>
-                            <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Planificador de Territorio</p>
+                            <h3 class="text-2xl font-black uppercase tracking-tight leading-none mb-1">Planificar Asignación</h3>
+                            <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Panel de Gestión Logística</p>
                         </div>
                     </div>
                 </header>
 
-                <div class="flex-1 p-10 space-y-8 overflow-y-auto custom-scrollbar">
-                    <div class="space-y-8">
-                        <div class="space-y-3">
-                            <label class="label-premium">📍 ${editId ? 'Territorio Seleccionado' : 'Seleccionar Territorios (Múltiple)'}</label>
-                            ${editId ? `
-                                <div class="bg-indigo-50 dark:bg-indigo-500/10 p-4 rounded-2xl border-2 border-indigo-500/20 flex items-center gap-3">
-                                    <span class="text-2xl">📍</span>
-                                    <div>
-                                        <p class="text-sm font-black text-indigo-600 dark:text-indigo-400">Territorio ${item.numero}</p>
-                                        <p class="text-[10px] opacity-60 uppercase">${item.nombre || 'Área general'}</p>
-                                    </div>
-                                    <input type="hidden" id="asig-terr-single" value="${item.id}">
-                                </div>
-                            ` : `
-                                <div class="flex flex-col gap-3">
-                                    <div class="flex justify-between items-center px-1">
-                                        <button type="button" id="btn-select-all-terr" class="text-[10px] font-black text-indigo-500 hover:text-indigo-600 uppercase tracking-tighter">Seleccionar Todos</button>
-                                        <span id="selected-count" class="text-[10px] font-black text-gray-400 uppercase">0 Seleccionados</span>
-                                    </div>
-                                    <div id="terr-checklist" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 bg-gray-50 dark:bg-black/40 rounded-3xl p-4 border-2 border-transparent focus-within:border-indigo-500/30 transition-all max-h-48 overflow-y-auto custom-scrollbar">
-                                        ${territorios
-                .filter(t => (t.estado !== 'Asignado' && t.estado !== 'Pendiente'))
-                .sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true }))
-                .map(t => `
-                                                <label class="flex items-center gap-2 p-2 hover:bg-white dark:hover:bg-white/5 rounded-xl cursor-pointer transition-all border border-transparent hover:border-indigo-500/20 group">
-                                                    <input type="checkbox" name="asig-terr-check" value="${t.id}" data-num="${t.numero}" class="w-5 h-5 rounded-lg border-2 border-indigo-200 dark:border-white/10 bg-transparent accent-indigo-600 transition-transform group-active:scale-90">
-                                                    <span class="text-xs font-bold text-gray-700 dark:text-gray-200">#${t.numero}</span>
-                                                </label>
-                                            `).join('')}
-                                        ${territorios.filter(t => t.estado !== 'Asignado' && t.estado !== 'Pendiente').length === 0 ? '<p class="col-span-full py-4 text-center text-[10px] text-gray-400 font-bold uppercase">No hay territorios disponibles</p>' : ''}
+                <div class="flex-1 p-8 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-black/20 space-y-8">
+                    <!-- Territorios -->
+                    <div class="space-y-4">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                             <i class="fas fa-map-marked-alt text-primary"></i> Territorios Seleccionados
+                        </label>
+                        ${editId ? `
+                            <div class="modern-card flex items-center justify-between !p-5 bg-white dark:bg-white/5 border-primary/20 ring-1 ring-primary/10">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary text-xl"><i class="fas fa-map"></i></div>
+                                    <div class="text-left">
+                                        <span class="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">Territorio ${item.numero}</span>
+                                        <span class="text-[10px] text-slate-500 uppercase font-black opacity-60">${item.nombre || 'Área General'}</span>
                                     </div>
                                 </div>
-                            `}
+                                <input type="hidden" id="asig-terr-single" value="${item.id}" data-num="${item.numero}">
+                            </div>
+                        ` : `
+                            <button id="btn-open-terr-modal" class="w-full flex items-center justify-between p-6 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-3xl transition-all hover:border-primary/50 group shadow-sm hover:shadow-xl hover:shadow-primary/10">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary text-2xl transition-transform group-hover:scale-110 shadow-inner"><i class="fas fa-search-location"></i></div>
+                                    <div class="text-left">
+                                        <span id="asig-terr-summary" class="text-sm font-black ${prefill?.territoriesRaw ? 'text-primary' : 'text-slate-900 dark:text-white'} uppercase block leading-tight">${prefill?.territoriesRaw || 'Click para seleccionar...'}</span>
+                                        <span class="text-[10px] text-slate-400 uppercase font-black tracking-widest mt-1 block">Gestión Granular</span>
+                                    </div>
+                                </div>
+                                <i class="fas fa-arrow-right text-slate-300 group-hover:translate-x-1 group-hover:text-primary transition-all"></i>
+                            </button>
+                            <input type="hidden" id="asig-terr-raw" value="${prefill?.territoriesRaw || ''}">
+                        `}
+                    </div>
+
+                    <!-- Equipo y Faceta -->
+                    <div class="space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Conductor Principal</label>
+                                <select id="asig-cond" class="w-full p-5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-[11px] font-black text-slate-700 dark:text-white hover:border-primary transition-all appearance-none cursor-pointer uppercase shadow-sm">
+                                    <option value="" disabled ${(!item && !prefill?.cond) ? 'selected' : ''}>Elegir conductor...</option>
+                                    ${activeConductors.map(c => `<option value="${c.nombre}" ${(prefill?.cond ? prefill.cond === c.nombre : item?.asignado_a === c.nombre) ? 'selected' : ''} class="text-slate-900">${c.nombre}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Auxiliar de Apoyo</label>
+                                <select id="asig-aux" class="w-full p-5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-[11px] font-black text-slate-700 dark:text-white hover:border-primary transition-all appearance-none cursor-pointer uppercase shadow-sm">
+                                    <option value="" class="text-slate-900">Ninguno</option>
+                                    ${activeConductors.map(c => `<option value="${c.nombre}" ${(prefill?.aux ? prefill.aux === c.nombre : item?.auxiliar === c.nombre) ? 'selected' : ''} class="text-slate-900">${c.nombre}</option>`).join('')}
+                                </select>
+                            </div>
                         </div>
 
-                        <div class="space-y-3">
-                            <label class="label-premium">🚩 Campaña Especial</label>
-                            <div class="relative group">
-                                <span class="absolute left-6 top-1/2 -translate-y-1/2 opacity-30 group-focus-within:opacity-100 transition-opacity font-bold">#</span>
-                                <input type="text" id="asig-campana" value="${item?.campana || ''}" list="campanas-list" class="input-premium pl-12" placeholder="Opcional">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Faceta de Predicación</label>
+                                <select id="asig-faceta" class="w-full p-5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-[11px] font-black text-slate-700 dark:text-white hover:border-primary transition-all appearance-none cursor-pointer uppercase shadow-sm">
+                                    ${facetasOptions.map(f => `<option value="${f}" ${(prefill?.faceta === f || item?.faceta === f) ? 'selected' : ''} class="text-slate-900">${f}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Campaña Especial</label>
+                                <input type="text" id="asig-campana" value="${prefill?.campana || item?.campana || ''}" list="campanas-list" placeholder="Opcional..." 
+                                    class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[11px] font-black text-slate-700 dark:text-white outline-none focus:border-red-400 transition-all placeholder-slate-400 uppercase shadow-sm">
                                 <datalist id="campanas-list">
                                     ${[...new Set(allHistory.map(h => h.campana).filter(Boolean))].map(c => `<option value="${c}">`).join('')}
                                 </datalist>
@@ -996,136 +1394,50 @@ const renderAsignacionesView = async (container) => {
                         </div>
                     </div>
 
-                    <!-- Sección Responsables -->
-                    <div class="bg-indigo-500/[0.03] dark:bg-indigo-500/[0.05] p-6 rounded-[2rem] border border-indigo-500/10 space-y-6">
-                        <div class="flex items-center gap-2 mb-2">
-                            <span class="text-xs font-black text-indigo-600 uppercase tracking-wider">👤 Equipo de Predicación</span>
-                            <div class="h-px flex-1 bg-indigo-500/10"></div>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div class="space-y-2">
-                                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Conductor Principal</label>
-                                <div class="relative group">
-                                    <select id="asig-cond" class="w-full bg-white dark:bg-black/40 border-2 border-transparent focus:border-indigo-500/50 dark:border-white/5 rounded-2xl p-4 outline-none transition-all font-bold text-gray-800 dark:text-gray-100 appearance-none shadow-sm">
-                                        <option value="" disabled ${!item ? 'selected' : ''}>Elegir publicador...</option>
-                                        ${conductores.sort((a, b) => a.nombre.localeCompare(b.nombre)).map(c => `<option value="${c.nombre}" ${item?.asignado_a === c.nombre ? 'selected' : ''}>${c.nombre}</option>`).join('')}
-                                    </select>
-                                    <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-50">▼</div>
-                                </div>
+                    <!-- Logística -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white/50 dark:bg-black/20 p-8 rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-inner">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="space-y-3">
+                                <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Fecha</label>
+                                <input type="date" id="asig-date" value="${todayStr}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-[11px] font-black text-primary outline-none shadow-sm">
                             </div>
-
-                            <div class="space-y-2">
-                                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Auxiliar de Apoyo</label>
-                                <div class="relative group">
-                                    <select id="asig-aux" class="w-full bg-white dark:bg-black/40 border-2 border-transparent focus:border-indigo-500/50 dark:border-white/5 rounded-2xl p-4 outline-none transition-all font-bold text-gray-800 dark:text-gray-100 appearance-none shadow-sm">
-                                        <option value="">Ningún auxiliar</option>
-                                        ${conductores.sort((a, b) => a.nombre.localeCompare(b.nombre)).map(c => `<option value="${c.nombre}" ${item?.auxiliar === c.nombre ? 'selected' : ''}>${c.nombre}</option>`).join('')}
-                                    </select>
-                                    <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-50">▼</div>
-                                </div>
+                            <div class="space-y-3">
+                                 <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Día Salida</label>
+                                 <select id="asig-date-salida" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-[11px] font-black text-primary outline-none appearance-none cursor-pointer uppercase shadow-sm text-center">
+                                    <option value="" class="text-slate-900">Elegir...</option>
+                                    ${['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(d => {
+            const currentSalida = prefill?.salida || (item?.fecha_salida ? ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][new Date(item.fecha_salida).getUTCDay()] : '');
+            return `<option value="${d}" ${currentSalida === d ? 'selected' : ''} class="text-slate-900">${d}</option>`;
+        }).join('')}
+                                 </select>
                             </div>
                         </div>
-                    </div>
-
-                    <!-- Sección Logística -->
-                    <div class="p-1 space-y-6">
-                        <div class="flex items-center gap-2 mb-2">
-                            <span class="text-xs font-black text-gray-400 uppercase tracking-wider">🕒 Logística y Horario</span>
-                            <div class="h-px flex-1 bg-gray-200 dark:bg-white/5"></div>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            <div class="space-y-2">
-                                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Día de Salida</label>
-                                <select id="asig-date-salida" class="w-full bg-gray-50 dark:bg-black/40 border-2 border-transparent focus:border-indigo-500/50 dark:border-white/5 rounded-2xl p-4 outline-none transition-all font-bold text-gray-800 dark:text-gray-100 shadow-sm appearance-none">
-                                    <option value="">Seleccionar día...</option>
-                                    ${['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(d => `
-                                        <option value="${d}" ${item?.fecha_salida && ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][new Date(item.fecha_salida).getUTCDay()] === d ? 'selected' : ''}>${d}</option>
-                                    `).join('')}
-                                </select>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="space-y-3">
+                                 <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Hora</label>
+                                 <select id="asig-hora" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-[11px] font-black text-primary outline-none appearance-none cursor-pointer uppercase shadow-sm text-center">
+                                    ${horasOptions.map(h => `<option value="${h}" ${(prefill?.hora === h || item?.hora === h || prefill?.turno === h) ? 'selected' : ''} class="text-slate-900">${h}</option>`).join('')}
+                                 </select>
                             </div>
-
-                            <div class="space-y-2">
-                                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Turno</label>
-                                <select id="asig-turno" class="w-full bg-gray-50 dark:bg-black/40 border-2 border-transparent focus:border-indigo-500/50 dark:border-white/5 rounded-2xl p-4 outline-none transition-all font-bold text-gray-800 dark:text-gray-100 shadow-sm appearance-none">
-                                    <option value="manana" ${item?.turno === 'manana' ? 'selected' : ''}>${config.jornadas?.manana || '🌅 Mañana'}</option>
-                                    <option value="tarde" ${item?.turno === 'tarde' ? 'selected' : ''}>${config.jornadas?.tarde || '☀️ Tarde'}</option>
-                                    <option value="noche" ${item?.turno === 'noche' ? 'selected' : ''}>${config.jornadas?.noche || '🌙 Noche'}</option>
-                                </select>
-                            </div>
-
-                            <div class="space-y-2">
-                                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Faceta</label>
-                                <select id="asig-faceta" class="w-full bg-gray-50 dark:bg-black/40 border-2 border-transparent focus:border-indigo-500/50 dark:border-white/5 rounded-2xl p-4 outline-none transition-all font-bold text-gray-800 dark:text-gray-100 shadow-sm appearance-none">
-                                    ${(config.facetas || ['Casa en Casa', 'Telefónica', 'Pública', 'Cartas']).map(f => `<option value="${f}" ${item?.faceta === f ? 'selected' : ''}>${f}</option>`).join('')}
-                                </select>
-                            </div>
-
-                            <div class="space-y-2">
-                                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Hora de Salida</label>
-                                <select id="asig-hora" class="w-full bg-gray-50 dark:bg-black/40 border-2 border-transparent focus:border-indigo-500/50 dark:border-white/5 rounded-2xl p-4 outline-none transition-all font-bold text-gray-800 dark:text-gray-100 shadow-sm appearance-none">
-                                     ${horasOptions.map(h => `<option value="${h}" ${item?.hora === h ? 'selected' : ''}>${h}</option>`).join('')}
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="space-y-2">
-                            <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Punto de Encuentro</label>
-                            <select id="asig-lugar" class="w-full bg-gray-50 dark:bg-black/40 border-2 border-transparent focus:border-indigo-500/50 dark:border-white/5 rounded-2xl p-4 outline-none transition-all font-bold text-gray-800 dark:text-gray-100 shadow-sm appearance-none">
-                                <option value="">Estándar de la congregación...</option>
-                                ${(config.lugares || []).map(l => `<option value="${l}" ${item?.lugar === l ? 'selected' : ''}>${l}</option>`).join('')}
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Lógica Especial Fines de Semana -->
-                    <div id="sunday-logic" class="hidden bg-gradient-to-br from-indigo-600 to-purple-800 p-8 rounded-[2rem] text-white shadow-2xl relative overflow-hidden group">
-                        <div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
-                        <div class="relative z-10">
-                            <div class="flex items-center justify-between mb-6">
-                                <p class="text-[11px] font-black uppercase tracking-[0.2em] flex items-center gap-2"><span>🛡️</span> División de Grupos</p>
-                                <select id="asig-split-count" class="bg-white/20 border border-white/20 rounded-xl text-xs font-bold px-3 py-1.5 outline-none backdrop-blur-md">
-                                    <option value="1" class="text-gray-800">1 Bloque Único</option>
-                                    <option value="2" class="text-gray-800">2 Grupos Separados</option>
-                                    <option value="3" class="text-gray-800">3 Grupos Separados</option>
-                                </select>
-                            </div>
-                            <div id="sunday-blocks" class="space-y-4"></div>
-                            <div id="asig-group-single" class="mt-4">
-                                <label class="block text-[10px] font-black opacity-60 uppercase mb-3 ml-1">Seleccionar Grupos Participantes</label>
-                                <div id="groups-checklist" class="grid grid-cols-2 gap-2 bg-black/10 rounded-2xl p-4 border border-white/10 max-h-40 overflow-y-auto custom-scrollbar">
-                                    ${configuredGroups.map(g => `
-                                        <label class="flex items-center gap-3 p-2 hover:bg-white/5 rounded-xl cursor-pointer transition-all">
-                                            <input type="checkbox" name="asig-group-check" value="${g.nombre}" class="w-5 h-5 rounded-lg border-2 border-white/20 bg-transparent accent-white">
-                                            <span class="text-xs font-bold">${g.nombre}</span>
-                                        </label>
-                                    `).join('')}
-                                    ${configuredGroups.length === 0 ? '<p class="text-[9px] opacity-50 col-span-2 text-center py-2">No hay grupos configurados</p>' : ''}
-                                </div>
-                                <input type="hidden" id="asig-grupos" value="${item?.grupos || ''}">
+                            <div class="space-y-3">
+                                 <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Lugar</label>
+                                 <select id="asig-lugar" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-[11px] font-black text-primary outline-none appearance-none cursor-pointer uppercase shadow-sm text-center">
+                                    ${lugaresOptions.map(l => `<option value="${l}" ${(prefill?.lugar === l || item?.lugar === l) ? 'selected' : ''} class="text-slate-900">${l}</option>`).join('')}
+                                 </select>
                             </div>
                         </div>
                     </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-2 bg-indigo-50/50 dark:bg-white/5 rounded-3xl border border-indigo-100 dark:border-white/10">
-                        <div class="space-y-2 p-2">
-                            <label class="block text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest ml-1">Fecha de Asignación</label>
-                            <input type="date" id="asig-date" value="${todayStr}" class="w-full bg-white dark:bg-black/40 border-2 border-transparent focus:border-indigo-500/50 rounded-2xl p-4 outline-none font-bold text-sm shadow-sm transition-all">
-                        </div>
-                        <div class="p-4 flex items-center">
-                            <p class="text-[10px] text-gray-400 font-medium leading-relaxed italic">Normalmente es hoy, pero puedes ajustarla para registros pasados.</p>
-                        </div>
-                    </div>
-
+                    
+                    <!-- Hidden field for compatibility with legacyturno logic if needed -->
+                    <input type="hidden" id="asig-turno" value="">
                 </div>
 
-                <div class="shrink-0 p-6 bg-gray-50 dark:bg-black/40 border-t border-black/5 dark:border-white/5 sticky bottom-0 z-30">
-                    <button id="confirm-asig" class="w-full group relative overflow-hidden bg-gradient-to-r from-indigo-600 to-purple-700 py-6 rounded-[2rem] text-white font-black shadow-2xl shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-[1.02] active:scale-[0.98] transition-all uppercase tracking-[0.2em] text-sm">
-                        <span class="relative z-10">${editId ? 'Guardar Cambios' : 'Confirmar Asignación'}</span>
-                        <div class="absolute inset-0 bg-white/10 translate-x-full group-hover:translate-x-0 transition-transform duration-500"></div>
+                <footer class="shrink-0 p-8 bg-white dark:bg-black/40 border-t border-slate-100 dark:border-white/5">
+                    <button id="confirm-asig" class="w-full py-5 bg-primary hover:bg-primary-light text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.3em] shadow-xl shadow-primary/20 transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-3">
+                        <i class="fas fa-check-circle"></i>
+                        ${editId ? 'Guardar Cambios' : 'Confirmar Asignación'}
                     </button>
-                </div>
+                </footer>
             </div>
         `, (modal) => {
             const dateInput = modal.querySelector('#asig-date');
@@ -1134,6 +1446,9 @@ const renderAsignacionesView = async (container) => {
             const splitSelect = modal.querySelector('#asig-split-count');
             const blocksContainer = modal.querySelector('#sunday-blocks');
             const singleGroupContainer = modal.querySelector('#asig-group-single');
+            const confirmBtn = modal.querySelector('#confirm-asig');
+            const hiddenGroupsInput = modal.querySelector('#asig-grupos');
+            const checkboxes = modal.querySelectorAll('input[name="asig-group-check"]');
 
             const renderBlocks = () => {
                 const count = parseInt(splitSelect.value);
@@ -1147,18 +1462,29 @@ const renderAsignacionesView = async (container) => {
                 let html = '';
                 for (let i = 1; i <= count; i++) {
                     html += `
-                        <div class="p-3 bg-white/50 dark:bg-black/20 rounded-xl border border-purple-100 dark:border-purple-900/30 space-y-2">
-                            <p class="text-[9px] font-black text-purple-400 uppercase">BLOQUE ${i}</p>
-                            <div class="grid grid-cols-2 gap-2">
-                                <select class="block-cond w-full bg-white dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2 text-xs font-bold">
-                                    <option value="">Conductor...</option>
-                                    ${conductores.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('')}
-                                </select>
-                                <select class="block-group w-full bg-white dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2 text-xs font-bold">
-                                    <option value="">Grupo...</option>
-                                    <option value="G1-5">G1-5</option><option value="G2-6">G2-6</option><option value="G3-4">G3-4</option>
-                                    ${Array.from({ length: 12 }, (_, i) => `<option value="G${i + 1}">G${i + 1}</option>`).join('')}
-                                </select>
+                        <div class="modern-card !p-5 bg-white/40 dark:bg-white/5 border-primary/20 space-y-4">
+                            <div class="flex items-center justify-between border-b border-white/5 pb-2">
+                                <p class="text-[9px] font-black text-primary uppercase tracking-widest">Sub-Equipo ${i}</p>
+                                <i class="fas fa-users-cog text-primary/40"></i>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div class="space-y-1">
+                                    <label class="text-[8px] font-black text-slate-400 uppercase tracking-tighter">Responsable</label>
+                                    <select class="block-cond w-full bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-xl p-3 text-[10px] font-black text-slate-700 dark:text-white uppercase outline-none shadow-inner">
+                                        <option value="" class="text-slate-900">Elegir...</option>
+                                        ${conductores.map(c => `<option value="${c.nombre}" class="text-slate-900">${c.nombre}</option>`).join('')}
+                                    </select>
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-[8px] font-black text-slate-400 uppercase tracking-tighter">Grupo/Sectores</label>
+                                    <select class="block-group w-full bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-xl p-3 text-[10px] font-black text-slate-700 dark:text-white uppercase outline-none shadow-inner">
+                                        <option value="" class="text-slate-900">Elegir...</option>
+                                        <option value="G1-5" class="text-slate-900">G1-5</option>
+                                        <option value="G2-6" class="text-slate-900">G2-6</option>
+                                        <option value="G3-4" class="text-slate-900">G3-4</option>
+                                        ${Array.from({ length: 12 }, (_, i) => `<option value="G${i + 1}" class="text-slate-900">G${i + 1}</option>`).join('')}
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     `;
@@ -1172,30 +1498,32 @@ const renderAsignacionesView = async (container) => {
                 else sunLogic.classList.add('hidden');
             };
 
-            const hiddenGroupsInput = modal.querySelector('#asig-grupos');
-            const checkboxes = modal.querySelectorAll('input[name="asig-group-check"]');
+            if (!editId) {
+                const btnOpen = modal.querySelector('#btn-open-terr-modal');
+                const summaryLabel = modal.querySelector('#asig-terr-summary');
+                const rawInput = modal.querySelector('#asig-terr-raw');
 
-            // Logic for multiple territory selection
-            const terrCheckboxes = modal.querySelectorAll('input[name="asig-terr-check"]');
-            const selectedCountLabel = modal.querySelector('#selected-count');
-            const btnSelectAll = modal.querySelector('#btn-select-all-terr');
+                btnOpen.onclick = () => {
+                    const available = territorios.filter(t => t.estado !== 'Asignado' && t.estado !== 'Pendiente');
 
-            if (selectedCountLabel) {
-                const updateCount = () => {
-                    const count = Array.from(terrCheckboxes).filter(cb => cb.checked).length;
-                    selectedCountLabel.innerText = `${count} Seleccionados`;
+
+
+                    showTerritorySelectionModal(rawInput.value, available, (displayStr) => {
+                        if (displayStr) {
+                            summaryLabel.innerText = displayStr;
+                            summaryLabel.classList.add('text-primary');
+                            summaryLabel.classList.remove('text-slate-900', 'dark:text-white');
+                            rawInput.value = displayStr;
+                        } else {
+                            summaryLabel.innerText = 'Click para seleccionar...';
+                            summaryLabel.classList.remove('text-primary');
+                            summaryLabel.classList.add('text-slate-900', 'dark:text-white');
+                            rawInput.value = '';
+                        }
+                    }, 'modal-container-nested');
                 };
-                terrCheckboxes.forEach(cb => cb.onchange = updateCount);
-                if (btnSelectAll) {
-                    btnSelectAll.onclick = () => {
-                        const allChecked = Array.from(terrCheckboxes).every(cb => cb.checked);
-                        terrCheckboxes.forEach(cb => cb.checked = !allChecked);
-                        updateCount();
-                    };
-                }
             }
 
-            // Re-sync checkboxes if editing
             if (hiddenGroupsInput.value) {
                 const selected = hiddenGroupsInput.value.split(', ');
                 checkboxes.forEach(cb => { if (selected.includes(cb.value)) cb.checked = true; });
@@ -1212,12 +1540,27 @@ const renderAsignacionesView = async (container) => {
             splitSelect.onchange = renderBlocks;
             checkSunday();
 
-            modal.querySelector('#confirm-asig').onclick = async (e) => {
-                let terrIDs = [];
+            confirmBtn.onclick = async (e) => {
+                let terrRequests = [];
                 if (editId) {
-                    terrIDs = [modal.querySelector('#asig-terr-single').value];
+                    const tid = modal.querySelector('#asig-terr-single').value;
+                    const num = modal.querySelector('#asig-terr-single').dataset.num;
+                    terrRequests.push({ id: tid, num: num, manzanas: null });
                 } else {
-                    terrIDs = Array.from(modal.querySelectorAll('input[name="asig-terr-check"]:checked')).map(cb => cb.value);
+                    const rawValue = modal.querySelector('#asig-terr-raw').value;
+                    if (!rawValue) return showNotification("Debes seleccionar al menos un territorio", "warning");
+
+                    rawValue.split(',').forEach(p => {
+                        const part = p.trim();
+                        if (!part) return;
+                        const match = part.match(/^([^(\s,]+)(?:\s*\((.*)\))?$/);
+                        if (match) {
+                            const num = match[1];
+                            const mzs = match[2] ? match[2].split(',').map(m => m.trim()) : null;
+                            const t = territorios.find(x => x.numero == num);
+                            if (t) terrRequests.push({ id: t.id, num: num, manzanas: mzs });
+                        }
+                    });
                 }
 
                 const cond = modal.querySelector('#asig-cond').value;
@@ -1232,7 +1575,7 @@ const renderAsignacionesView = async (container) => {
                 const groups = modal.querySelector('#asig-grupos').value;
                 const splitCount = parseInt(splitSelect.value);
 
-                if (terrIDs.length === 0 || !cond || !date) return showNotification("Faltan campos críticos (Territorio, Conductor o Fecha)", "warning");
+                if (terrRequests.length === 0 || !cond || !date) return showNotification("Faltan campos críticos (Territorio, Conductor o Fecha)", "warning");
 
                 const blocks = [];
                 if (splitCount > 1) {
@@ -1243,24 +1586,19 @@ const renderAsignacionesView = async (container) => {
                     });
                 }
 
-                e.target.disabled = true;
-                e.target.innerHTML = "PROCESANDO...";
+                confirmBtn.disabled = true;
+                confirmBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Procesando...';
 
                 const calculateSalidaDate = (assignDateStr, dayName) => {
                     if (!dayName) return null;
                     const daysMap = { 'Domingo': 0, 'Lunes': 1, 'Martes': 2, 'Miércoles': 3, 'Jueves': 4, 'Viernes': 5, 'Sábado': 6 };
                     const targetDay = daysMap[dayName];
-
-                    // Parse as local components to avoid UTC shift
                     const [y, m, d] = assignDateStr.split('-').map(Number);
                     const dateObj = new Date(y, m - 1, d);
-
                     const currentDay = dateObj.getDay();
                     let diff = targetDay - currentDay;
                     if (diff <= 0) diff += 7;
                     dateObj.setDate(dateObj.getDate() + diff);
-
-                    // Return T12:00:00Z to ensure it lands on the correct day regardless of browser timezone
                     const finalY = dateObj.getFullYear();
                     const finalM = String(dateObj.getMonth() + 1).padStart(2, '0');
                     const finalD = String(dateObj.getDate()).padStart(2, '0');
@@ -1269,27 +1607,32 @@ const renderAsignacionesView = async (container) => {
 
                 try {
                     const finalFechaSalida = calculateSalidaDate(date, dateSalida);
-
-                    // Bulk assign processing
-                    for (const tid of terrIDs) {
-                        await assignTerritorio(tid, cond, {
+                    for (const req of terrRequests) {
+                        const sharedDetails = {
                             auxiliar: aux,
                             fecha_asignacion: new Date(date + 'T12:00:00Z').toISOString(),
                             fecha_salida: finalFechaSalida,
                             turno, faceta, lugar, hora, campana: camp, grupos: groups,
                             blocks: blocks.length > 0 ? blocks : null
-                        });
+                        };
+
+                        if (req.manzanas) {
+                            await assignTerritorioParcial(req.id, req.manzanas, cond, sharedDetails);
+                        } else {
+                            await assignTerritorio(req.id, cond, sharedDetails);
+                        }
                     }
 
                     if (camp) await saveCampana(camp);
-
-                    showNotification(terrIDs.length > 1 ? `${terrIDs.length} territorios asignados` : (editId ? "Asignación actualizada" : "Territorio asignado con éxito"), "success");
+                    showNotification(terrRequests.length > 1 ? `${terrRequests.length} territorios asignados` : (editId ? "Asignación actualizada" : "Territorio asignado con éxito"), "success");
                     modal.classList.add('hidden');
-                    reloadData();
+                    await reloadData();
+                    if (window.dispatchModuleSync) window.dispatchModuleSync();
                 } catch (err) {
+                    console.error(err);
                     showNotification("Error: " + err.message, "error");
-                    e.target.disabled = false;
-                    e.target.innerHTML = editId ? "GUARDAR" : "CONFIRMAR";
+                    confirmBtn.disabled = false;
+                    confirmBtn.innerHTML = editId ? "Guardar Cambios" : "Confirmar Asignación";
                 }
             };
         });
@@ -1302,90 +1645,184 @@ const renderAsignacionesView = async (container) => {
         if (assignedTerritories.length === 0) return showNotification("No hay territorios asignados para devolver", "info");
 
         showModal(`
-            <div class="overflow-hidden">
-                <header class="shrink-0 flex items-center justify-between bg-gradient-to-r from-red-600 to-rose-700 p-6 text-white shadow-2xl relative overflow-hidden">
-                    <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
-                    <div class="relative z-10 flex items-center gap-4">
-                        <div class="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-2xl shadow-inner border border-white/20">📥</div>
+            <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden shadow-2xl">
+                <!-- 2026 Admin Header (Return Style) -->
+                <header class="shrink-0 bg-primary p-8 text-white relative overflow-hidden">
+                    <div class="absolute inset-0 bg-white/10 backdrop-blur-3xl"></div>
+                    <div class="relative z-10 flex items-center gap-6">
+                        <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center text-3xl shadow-2xl border border-white/30">
+                            <i class="fas fa-file-invoice"></i>
+                        </div>
                         <div>
-                            <h3 class="text-xl font-black tracking-tight">Cerrar Asignaciones</h3>
-                            <p class="text-[9px] opacity-70 uppercase tracking-[0.3em] font-black">Recepción de Informes</p>
+                            <h3 class="text-2xl font-black uppercase tracking-tight leading-none mb-1">Recepción de Informes</h3>
+                            <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Cierre de Asignaciones y Registro S-13</p>
                         </div>
                     </div>
                 </header>
 
-                <div class="flex-1 p-6 space-y-6 overflow-y-auto">
-                <div class="space-y-6 animate-fade-in-up">
-                    <!-- Selección de Territorios -->
+                <div class="flex-1 p-8 overflow-y-auto custom-scrollbar space-y-8 bg-slate-50 dark:bg-black/20">
+                    <!-- Registros Seleccionados -->
                     <div class="space-y-4">
                         <div class="flex justify-between items-center px-1">
-                            <label class="text-[11px] font-black text-rose-600 uppercase tracking-widest">Seleccionar Registros</label>
-                            <button id="select-all-returns" class="text-[10px] font-black text-rose-600 uppercase hover:underline tracking-wider">Marcar Todos</button>
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Territorios en curso</label>
+                            <button id="select-all-returns" class="text-[10px] font-black text-primary uppercase hover:text-primary-light transition-colors tracking-widest">Seleccionar Todos</button>
                         </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 bg-gray-50 dark:bg-black/20 rounded-[2.5rem] border border-black/5 custom-scrollbar-dark ring-8 ring-gray-100 dark:ring-white/5 mx-1">
-                            ${assignedTerritories.map(t => `
-                                <label class="flex items-center gap-4 p-4 bg-white dark:bg-gray-800 rounded-2xl border-2 border-transparent hover:border-rose-500/30 cursor-pointer transition-all group scale-95 hover:scale-100 shadow-sm">
-                                    <div class="relative">
-                                        <input type="checkbox" class="return-check w-6 h-6 accent-rose-600 rounded-lg" value="${t.id}" ${selectedIds.has(t.id) ? 'checked' : ''}>
+                        
+                        <div class="grid grid-cols-1 gap-3">
+                            ${assignedTerritories.map(t => {
+            const isChecked = selectedIds.has(t.id);
+            return `
+                                    <div class="return-item-container modern-card !p-4 border ${isChecked ? 'border-primary/50 ring-2 ring-primary/5' : 'border-slate-100 dark:border-white/5'} transition-all group">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center gap-4">
+                                                <div class="relative">
+                                                    <input type="checkbox" class="return-check peer sr-only" value="${t.id}" ${isChecked ? 'checked' : ''}>
+                                                    <div class="w-6 h-6 rounded-lg border-2 border-slate-200 dark:border-white/10 peer-checked:bg-primary peer-checked:border-primary transition-all flex items-center justify-center text-white text-[10px]">
+                                                        <i class="fas fa-check"></i>
+                                                    </div>
+                                                </div>
+                                                <div class="text-left">
+                                                    <div class="flex items-center gap-2">
+                                                        <span class="text-xs font-black text-slate-900 dark:text-white">#${t.numero}</span>
+                                                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate max-w-[150px]">${t.asignado_a}</span>
+                                                    </div>
+                                                    <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">${t.manzanas ? t.manzanas.split(',').length + ' Manzanas' : 'Territorio Completo'}</p>
+                                                </div>
+                                            </div>
+                                            <div class="return-details ${isChecked ? '' : 'hidden'} flex gap-3">
+                                                <button class="completion-toggle w-10 h-10 rounded-xl flex items-center justify-center text-sm active border border-primary/20 bg-primary/10 text-primary shadow-sm hover:scale-105 transition-transform" data-val="full" data-tid="${t.id}" title="Completo">
+                                                    <i class="fas fa-check-double"></i>
+                                                </button>
+                                                <button class="completion-toggle w-10 h-10 rounded-xl flex items-center justify-center text-sm opacity-40 grayscale border border-slate-200 dark:border-white/10 hover:opacity-100 hover:grayscale-0 transition-all hover:scale-105" data-val="partial" data-tid="${t.id}" title="Parcial">
+                                                    <i class="fas fa-adjust"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Partial selection (hidden by default) -->
+                                        <div class="partial-selector hidden mt-4 pt-4 border-t border-slate-100 dark:border-white/5" data-tid="${t.id}">
+                                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Marcar sectores completados:</p>
+                                            <div class="flex flex-wrap gap-2">
+                                                ${(t.manzanas || '').split(',').map(m => m.trim()).filter(Boolean).map(mz => `
+                                                    <label class="flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-100 dark:border-white/10 cursor-pointer hover:border-primary/50 transition-all">
+                                                        <input type="checkbox" class="mz-done-check peer sr-only" value="${mz}" data-tid="${t.id}">
+                                                        <div class="w-4 h-4 rounded border border-slate-300 dark:border-white/20 peer-checked:bg-primary peer-checked:border-primary flex items-center justify-center text-white text-[8px]">
+                                                            <i class="fas fa-check"></i>
+                                                        </div>
+                                                        <span class="text-[10px] font-bold text-slate-600 dark:text-white uppercase">${mz}</span>
+                                                    </label>
+                                                `).join('')}
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="min-w-0">
-                                        <p class="text-sm font-black text-gray-800 dark:text-gray-100 flex items-center gap-2">
-                                            <span class="w-6 h-6 bg-rose-500/10 text-rose-600 rounded flex items-center justify-center text-[10px]">${t.numero}</span>
-                                            ${t.asignado_a}
-                                        </p>
-                                        <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Pendiente de cierre</p>
-                                    </div>
-                                </label>
-                            `).join('')}
+                                `;
+        }).join('')}
                         </div>
                     </div>
 
                     <!-- Logística de Cierre -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-1">
-                        <div class="space-y-2">
-                            <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Fecha de Devolución</label>
-                            <input type="date" id="bulk-return-date" value="${new Date().toISOString().split('T')[0]}" class="w-full bg-gray-50 dark:bg-black/40 border-2 border-transparent focus:border-rose-500/50 rounded-2xl p-4 outline-none font-bold text-sm shadow-sm">
-                        </div>
-                        <div class="space-y-2">
-                            <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Estado Final de los Datos</label>
-                            <div class="relative">
-                                <select id="bulk-return-status" class="w-full bg-gray-50 dark:bg-black/40 border-2 border-transparent focus:border-rose-500/50 rounded-2xl p-4 outline-none font-bold text-sm shadow-sm appearance-none">
-                                    <option value="Completado" selected>✅ Territorios Completados</option>
-                                    <option value="Perdido">⚠️ Reportar como Perdido</option>
-                                </select>
-                                <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-50">▼</div>
+                    <div class="modern-card !p-8 space-y-8 bg-white dark:bg-white/5 border-primary/10 ring-1 ring-primary/5">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Fecha de Devolución</label>
+                                <div class="relative">
+                                    <input type="date" id="bulk-return-date" value="${new Date().toISOString().split('T')[0]}" class="w-full p-5 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-2xl text-[11px] font-black text-primary outline-none focus:border-primary transition-all shadow-inner uppercase text-center">
+                                    <div class="absolute inset-y-0 right-5 flex items-center pointer-events-none text-primary/40"><i class="fas fa-calendar-day"></i></div>
+                                </div>
+                            </div>
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Estado del Registro</label>
+                                <div class="relative">
+                                    <select id="bulk-return-status" class="w-full p-5 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-2xl text-[11px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all shadow-inner uppercase text-center appearance-none cursor-pointer">
+                                        <option value="Completado" selected>TERMINADO</option>
+                                        <option value="Incompleto">PENDIENTE</option>
+                                        <option value="Perdido">PERDIDO</option>
+                                    </select>
+                                    <div class="absolute inset-y-0 right-5 flex items-center pointer-events-none text-slate-400"><i class="fas fa-chevron-down text-[10px]"></i></div>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Acción Especial -->
-                    <div class="px-1">
-                        <label class="flex items-center gap-4 p-5 bg-rose-500/[0.03] dark:bg-rose-500/[0.05] rounded-3xl border border-rose-500/10 cursor-pointer hover:bg-rose-500/[0.06] transition-all group shadow-sm">
-                            <input type="checkbox" id="bulk-repeat" class="w-6 h-6 accent-rose-600 rounded-lg">
+                        <label class="flex items-center gap-5 p-6 bg-slate-50 dark:bg-black/20 rounded-3xl border border-slate-100 dark:border-white/5 cursor-pointer hover:border-primary/20 transition-all group">
+                            <div class="relative">
+                                <input type="checkbox" id="bulk-repeat" class="peer sr-only">
+                                <div class="w-6 h-6 rounded-lg border-2 border-slate-300 dark:border-white/20 peer-checked:bg-primary peer-checked:border-primary transition-all flex items-center justify-center text-white text-[10px] shadow-sm">
+                                    <i class="fas fa-redo-alt"></i>
+                                </div>
+                            </div>
                             <div>
-                                <p class="text-[13px] font-black text-rose-800 dark:text-rose-400 leading-tight">Mismo publicador mantiene el territorio</p>
-                                <p class="text-[10px] text-rose-600/60 uppercase font-black tracking-tighter mt-0.5">Reinicia el ciclo de predicación automáticamente hoy</p>
+                                <p class="text-[11px] font-black text-slate-700 dark:text-white uppercase tracking-tight">Reiniciar ciclo automáticamente</p>
+                                <p class="text-[9px] text-slate-400 uppercase font-black tracking-widest mt-0.5 opacity-60 italic">El publicador conserva el registro para una nueva vuelta</p>
                             </div>
                         </label>
                     </div>
 
-                    <div class="pt-2">
-                        <button id="confirm-bulk-return" class="w-full group relative overflow-hidden bg-gradient-to-r from-red-600 to-rose-700 py-5 rounded-2xl text-white font-black shadow-2xl shadow-rose-500/30 hover:shadow-rose-500/50 hover:scale-[1.02] transition-all uppercase tracking-[0.2em] text-sm">
-                            <span class="relative z-10">Confirmar Devolución</span>
-                            <div class="absolute inset-0 bg-white/10 translate-x-full group-hover:translate-x-0 transition-transform duration-500"></div>
-                        </button>
-                    </div>
                 </div>
-                </div>
+
+                <!-- Sticky Footer -->
+                <footer class="shrink-0 p-8 bg-white dark:bg-black/40 border-t border-slate-100 dark:border-white/5 flex flex-col gap-6">
+                    <button id="confirm-bulk-return" class="w-full py-6 bg-primary hover:bg-primary-light text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.3em] shadow-xl shadow-primary/20 transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-3">
+                        <i class="fas fa-file-archive"></i>
+                        Confirmar Cierre de Registros
+                    </button>
+                    <p class="text-[9px] text-slate-400 text-center font-black uppercase tracking-widest opacity-40">
+                        Los datos se archivarán permanentemente en el historial S-13
+                    </p>
+                </footer>
+            </div>
         `, (modal) => {
             const selectAll = modal.querySelector('#select-all-returns');
             const checks = modal.querySelectorAll('.return-check');
 
+            const updateItemVisibility = (cb) => {
+                const container = cb.closest('.return-item-container');
+                const details = container.querySelector('.return-details');
+                if (cb.checked) {
+                    details.classList.remove('hidden');
+                    container.classList.add('border-primary/30', 'ring-4', 'ring-primary/5');
+                } else {
+                    details.classList.add('hidden');
+                    container.classList.remove('border-primary/30', 'ring-4', 'ring-primary/5');
+                    // Also hide partial selector if unchecked
+                    const pSelector = container.querySelector('.partial-selector');
+                    if (pSelector) pSelector.classList.add('hidden');
+                }
+            };
+
+            checks.forEach(cb => {
+                cb.onchange = () => updateItemVisibility(cb);
+            });
+
             selectAll.onclick = () => {
                 const someUnchecked = Array.from(checks).some(c => !c.checked);
-                checks.forEach(c => c.checked = someUnchecked);
-                selectAll.innerText = someUnchecked ? 'Desmarcar Todos' : 'Marcar Todos';
+                checks.forEach(c => {
+                    c.checked = someUnchecked;
+                    updateItemVisibility(c);
+                });
+                selectAll.innerText = someUnchecked ? 'Deseleccionar Todos' : 'Seleccionar Todos';
             };
+
+            // Logic for Full/Partial Toggle
+            modal.querySelectorAll('.completion-toggle').forEach(btn => {
+                btn.onclick = () => {
+                    const tid = btn.dataset.tid;
+                    const val = btn.dataset.val;
+                    const group = modal.querySelectorAll(`.completion-toggle[data-tid="${tid}"]`);
+                    group.forEach(b => {
+                        b.classList.add('opacity-40', 'grayscale');
+                        b.classList.remove('active', 'border-primary/20', 'bg-primary/10', 'text-primary');
+                        b.classList.add('border-slate-200', 'dark:border-white/10');
+                    });
+                    btn.classList.remove('opacity-40', 'grayscale', 'border-slate-200', 'dark:border-white/10');
+                    btn.classList.add('active', 'border-primary/20', 'bg-primary/10', 'text-primary');
+
+                    const selector = modal.querySelector(`.partial-selector[data-tid="${tid}"]`);
+                    if (selector) {
+                        if (val === 'partial') selector.classList.remove('hidden');
+                        else selector.classList.add('hidden');
+                    }
+                };
+            });
 
             modal.querySelector('#confirm-bulk-return').onclick = async (e) => {
                 const targetIds = Array.from(checks).filter(c => c.checked).map(c => c.value);
@@ -1398,20 +1835,46 @@ const renderAsignacionesView = async (container) => {
                 const itemsToProcess = assignedTerritories.filter(t => targetIds.includes(t.id));
 
                 e.target.disabled = true;
-                e.target.innerHTML = "PROCESANDO...";
+                e.target.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-3"></i> Procesando Informes...';
 
                 try {
                     for (const item of itemsToProcess) {
-                        await returnTerritorio(item.id, repeat ? "Repetición automática" : "Devolución masiva", date, status);
-                        if (repeat) {
+                        const togglePartial = modal.querySelector(`.completion-toggle[data-tid="${item.id}"].active`).dataset.val === 'partial';
+                        const allMzs = item.manzanas ? item.manzanas.split(',').map(m => m.trim()) : [];
+
+                        if (togglePartial) {
+                            const completedMzs = Array.from(modal.querySelectorAll(`.mz-done-check[data-tid="${item.id}"]:checked`)).map(c => c.value);
+                            const remainingMzs = allMzs.filter(m => !completedMzs.includes(m));
+
+                            if (remainingMzs.length === 0) {
+                                // Effectively a full return
+                                await returnTerritorio(item.id, repeat ? "Repetición automática (Full)" : "Devolución masiva (Full)", date, status);
+                            } else {
+                                await returnTerritorioParcial(
+                                    item.id,
+                                    completedMzs,
+                                    remainingMzs,
+                                    !repeat, // If repeat is false, we unassign the remaining part
+                                    repeat ? "Repetición parcial" : "Devolución parcial masiva",
+                                    date
+                                );
+                            }
+                        } else {
+                            await returnTerritorio(item.id, repeat ? "Repetición automática" : "Devolución masiva", date, status);
+                        }
+
+                        // If repeat is requested, we need to reassign IF the territory became free
+                        const isEffectivelyFull = !togglePartial || (togglePartial && allMzs.filter(m => !Array.from(modal.querySelectorAll(`.mz-done-check[data-tid="${item.id}"]:checked`)).map(c => c.value).includes(m)).length === 0);
+
+                        if (repeat && isEffectivelyFull) {
                             await assignTerritorio(item.id, item.asignado_a, {
-                                auxiliar: item.auxiliar,
-                                lugar: item.lugar,
-                                hora: item.hora,
-                                faceta: item.faceta,
-                                turno: item.turno,
-                                campana: item.campana,
-                                grupos: item.grupos,
+                                auxiliar: item.auxiliar || null,
+                                lugar: item.lugar || null,
+                                hora: item.hora || null,
+                                faceta: item.faceta || null,
+                                turno: item.turno || null,
+                                campana: item.campana || null,
+                                grupos: item.grupos || null,
                                 fecha_asignacion: new Date().toISOString()
                             });
                         }
@@ -1419,55 +1882,60 @@ const renderAsignacionesView = async (container) => {
 
                     showNotification(`${targetIds.length} territorios procesados con éxito`, "success");
                     selectedIds.clear();
-                    modal.classList.add('hidden');
-                    reloadData();
+                    modal.closest('#modal-container').classList.add('hidden');
+                    await reloadData();
+                    if (window.dispatchModuleSync) window.dispatchModuleSync();
                 } catch (err) {
                     showNotification("Error: " + err.message, "error");
                     e.target.disabled = false;
+                    e.target.innerHTML = "Reintentar Acción";
                 }
             };
         });
     };
+
 
     const handleEditActive = async (id, num, conductor) => {
         const t = territorios.find(x => x.id === id);
         if (!t) return;
 
         showModal(`
-             <div class="flex flex-col h-full">
-                <header class="shrink-0 flex items-center justify-between bg-gradient-to-r from-purple-600 to-indigo-700 p-8 text-white relative overflow-hidden">
-                    <div class="absolute inset-0 bg-white/5 backdrop-blur-3xl"></div>
-                    <div class="relative z-10 flex items-center gap-5">
-                        <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-[2rem] flex items-center justify-center text-3xl shadow-2xl border border-white/30 animate-float">✏️</div>
+             <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden">
+                <header class="shrink-0 bg-primary p-8 text-white relative overflow-hidden">
+                    <div class="absolute inset-0 bg-white/10 backdrop-blur-3xl"></div>
+                    <div class="relative z-10 flex items-center gap-6">
+                        <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center text-3xl shadow-2xl border border-white/30">
+                            <i class="fas fa-edit"></i>
+                        </div>
                         <div>
-                            <h3 class="text-2xl font-black tracking-tight leading-none mb-1">Editar Asignación</h3>
+                            <h3 class="text-2xl font-black uppercase tracking-tight leading-none mb-1">Editar Asignación</h3>
                             <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Territorio ${num}</p>
                         </div>
                     </div>
                 </header>
 
-                <div class="flex-1 p-10 space-y-8 overflow-y-auto custom-scrollbar">
-                    <div class="bg-indigo-500/5 p-5 rounded-[2rem] border border-indigo-500/10 flex items-center gap-4 mb-4">
-                         <div class="w-12 h-12 bg-white dark:bg-white/5 rounded-2xl flex items-center justify-center text-xl shadow-sm">👤</div>
+                <div class="flex-1 p-8 space-y-8 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-black/20">
+                    <div class="modern-card !p-5 bg-white dark:bg-white/5 border-primary/20 ring-1 ring-primary/10 flex items-center gap-5">
+                         <div class="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary text-2xl shadow-inner"><i class="fas fa-user-circle"></i></div>
                          <div class="min-w-0">
-                            <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Responsable Actual</p>
-                            <p class="font-black text-lg text-slate-800 dark:text-white truncate">${conductor}</p>
+                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Responsable Actual</p>
+                            <p class="font-black text-lg text-slate-800 dark:text-white truncate leading-tight">${conductor}</p>
                          </div>
                     </div>
 
                     <div class="space-y-6">
                         <div class="space-y-3">
-                             <label class="label-premium">Cambiar Conductor</label>
-                             <select id="edit-asig-new-cond" class="input-premium appearance-none cursor-pointer">
+                             <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Cambiar Conductor</label>
+                             <select id="edit-asig-new-cond" class="w-full p-5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-[11px] font-black text-slate-700 dark:text-white hover:border-primary transition-all appearance-none cursor-pointer uppercase shadow-sm">
                                 ${conductores.sort((a, b) => a.nombre.localeCompare(b.nombre)).map(c => `
                                      <option value="${c.nombre}" ${c.nombre === t.asignado_a ? 'selected' : ''}>${c.nombre}</option>
                                 `).join('')}
                              </select>
                         </div>
 
-                        <div class="space-y-2">
-                             <label class="block text-[10px] font-black text-indigo-500 uppercase tracking-widest ml-1">Auxiliar de Apoyo</label>
-                             <select id="edit-asig-aux" class="w-full bg-white dark:bg-black/40 border-2 border-transparent focus:border-indigo-500/50 rounded-2xl p-4 outline-none font-bold text-sm shadow-sm">
+                        <div class="space-y-3">
+                             <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Auxiliar de Apoyo</label>
+                             <select id="edit-asig-aux" class="w-full p-5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-[11px] font-black text-slate-700 dark:text-white hover:border-primary transition-all appearance-none cursor-pointer uppercase shadow-sm">
                                 <option value="">Ningún auxiliar</option>
                                 ${conductores.sort((a, b) => a.nombre.localeCompare(b.nombre)).map(c => `
                                      <option value="${c.nombre}" ${c.nombre === t.auxiliar ? 'selected' : ''}>${c.nombre}</option>
@@ -1475,18 +1943,18 @@ const renderAsignacionesView = async (container) => {
                              </select>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="space-y-2">
-                                <label class="block text-[10px] font-black text-indigo-500 uppercase tracking-widest ml-1">Jornada</label>
-                                <select id="edit-asig-turno" class="w-full bg-white dark:bg-black/40 border-2 border-transparent focus:border-indigo-500/50 rounded-2xl p-4 outline-none font-bold text-sm shadow-sm">
-                                    <option value="manana" ${t.turno === 'manana' ? 'selected' : ''}>🌅 Mañana</option>
-                                    <option value="tarde" ${t.turno === 'tarde' ? 'selected' : ''}>☀️ Tarde</option>
-                                    <option value="noche" ${t.turno === 'noche' ? 'selected' : ''}>🌙 Noche</option>
+                        <div class="grid grid-cols-2 gap-6">
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Jornada</label>
+                                <select id="edit-asig-turno" class="w-full p-5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-[11px] font-black text-slate-700 dark:text-white hover:border-primary transition-all appearance-none cursor-pointer uppercase shadow-sm">
+                                    <option value="manana" ${t.turno === 'manana' ? 'selected' : ''}>Mañana</option>
+                                    <option value="tarde" ${t.turno === 'tarde' ? 'selected' : ''}>Tarde</option>
+                                    <option value="noche" ${t.turno === 'noche' ? 'selected' : ''}>Noche</option>
                                 </select>
                             </div>
-                            <div class="space-y-2">
-                                <label class="block text-[10px] font-black text-indigo-500 uppercase tracking-widest ml-1">Horario</label>
-                                <select id="edit-asig-hora" class="w-full bg-white dark:bg-black/40 border-2 border-transparent focus:border-indigo-500/50 rounded-2xl p-4 outline-none font-bold text-sm shadow-sm">
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Horario</label>
+                                <select id="edit-asig-hora" class="w-full p-5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-[11px] font-black text-slate-700 dark:text-white hover:border-primary transition-all appearance-none cursor-pointer uppercase shadow-sm">
                                     ${(config.horarios_programa && config.horarios_programa.length > 0 ? config.horarios_programa : ['08:30', '08:45', '09:00', '09:15', '09:30', '14:30', '16:00', '18:00']).map(h => `
                                         <option value="${h}" ${t.hora === h ? 'selected' : ''}>${h}</option>
                                     `).join('')}
@@ -1494,25 +1962,25 @@ const renderAsignacionesView = async (container) => {
                             </div>
                         </div>
 
-                        <div class="space-y-2">
-                            <label class="block text-[10px] font-black text-indigo-500 uppercase tracking-widest ml-1">Faceta</label>
-                            <select id="edit-asig-faceta" class="w-full bg-white dark:bg-black/40 border-2 border-transparent focus:border-indigo-500/50 rounded-2xl p-4 outline-none font-bold text-sm shadow-sm">
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Faceta</label>
+                            <select id="edit-asig-faceta" class="w-full p-5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-[11px] font-black text-slate-700 dark:text-white hover:border-primary transition-all appearance-none cursor-pointer uppercase shadow-sm">
                                 ${(config.facetas || ['Casa en Casa', 'Telefónica', 'Pública', 'Cartas']).map(f => `
                                     <option value="${f}" ${t.faceta === f ? 'selected' : ''}>${f}</option>
                                 `).join('')}
                             </select>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-2 gap-6 bg-white/50 dark:bg-black/40 p-6 rounded-[2rem] border border-slate-100 dark:border-white/5">
                             <div class="space-y-2">
-                                <label class="block text-[10px] font-black text-indigo-500 uppercase tracking-widest ml-1">Fecha Asignación</label>
-                                <input type="date" id="edit-asig-date" value="${t.fecha_asignacion ? t.fecha_asignacion.split('T')[0] : ''}" class="w-full bg-white dark:bg-black/40 border-2 border-transparent focus:border-indigo-500/50 rounded-2xl p-4 outline-none font-bold text-sm shadow-sm">
+                                <label class="text-[8px] font-black text-slate-400 uppercase text-center block tracking-widest">Fecha Asignación</label>
+                                <input type="date" id="edit-asig-date" value="${t.fecha_asignacion ? t.fecha_asignacion.split('T')[0] : ''}" class="w-full bg-transparent text-[10px] font-black text-primary outline-none text-center">
                             </div>
 
                             <div class="space-y-2">
-                                <label class="block text-[10px] font-black text-indigo-500 uppercase tracking-widest ml-1">Día Salida</label>
-                                <select id="edit-asig-date-salida" class="w-full bg-white dark:bg-black/40 border-2 border-transparent focus:border-indigo-500/50 rounded-2xl p-4 outline-none font-bold text-sm shadow-sm">
-                                    <option value="">Seleccionar día...</option>
+                                <label class="text-[8px] font-black text-slate-400 uppercase text-center block tracking-widest">Día Salida</label>
+                                <select id="edit-asig-date-salida" class="w-full bg-transparent text-[10px] font-black text-primary outline-none text-center appearance-none cursor-pointer uppercase">
+                                    <option value="">Elegir...</option>
                                     ${['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(d => `
                                         <option value="${d}" ${t.fecha_salida && ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][new Date(t.fecha_salida).getUTCDay()] === d ? 'selected' : ''}>${d}</option>
                                     `).join('')}
@@ -1522,28 +1990,33 @@ const renderAsignacionesView = async (container) => {
                     </div>
                 </div>
 
-                <div class="shrink-0 p-6 bg-gray-50 dark:bg-black/40 border-t border-black/5 dark:border-white/5 flex gap-4 sticky bottom-0 z-30">
-                     <button id="delete-active-assign" class="flex-1 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 py-5 rounded-2xl font-black transition-all uppercase tracking-widest text-[10px] border border-red-200 dark:border-red-500/20">
-                        ❌ Eliminar
+                <footer class="shrink-0 p-8 bg-white dark:bg-black/40 border-t border-slate-100 dark:border-white/5 flex gap-4">
+                     <button id="delete-active-assign" class="flex-1 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 py-5 rounded-2xl font-black transition-all uppercase tracking-[0.2em] text-[10px] border border-red-200 dark:border-red-500/20 active:scale-95 flex items-center justify-center gap-2">
+                        <i class="fas fa-trash-alt"></i> Eliminar
                      </button>
-                     <button id="save-active-edit" class="flex-[2] bg-purple-600 hover:bg-purple-500 py-5 rounded-2xl text-white font-black shadow-xl shadow-purple-500/20 transition-all uppercase tracking-widest text-[10px]">
-                        Guardar Cambios
+                     <button id="save-active-edit" class="flex-[2] bg-primary hover:bg-primary-light py-5 rounded-2xl text-white font-black shadow-xl shadow-primary/20 transition-all uppercase tracking-[0.2em] text-[10px] hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2">
+                        <i class="fas fa-save"></i> Guardar Cambios
                      </button>
-                </div>
+                </footer>
             </div>
         `, (modal) => {
 
             modal.querySelector('#delete-active-assign').onclick = async () => {
                 showCustomConfirm(`
-                    <div class="text-left">
-                        <h4 class="font-bold text-lg mb-2">¿Eliminar asignación de ${num}?</h4>
-                        <p class="text-sm text-gray-600 mb-4">Esta acción liberará el territorio y borrará esta asignación actual sin guardarla en el historial histórico de completados.</p>
-                        <p class="text-xs text-red-500 bg-red-50 p-2 rounded border border-red-100">⚠️ Úsalo solo si te equivocaste al asignar.</p>
+                    <div class="text-left space-y-4">
+                        <div class="flex items-center gap-4 text-red-600">
+                             <div class="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center text-xl shadow-inner"><i class="fas fa-exclamation-triangle"></i></div>
+                             <h4 class="font-black uppercase tracking-tight text-xl">¿Eliminar asignación?</h4>
+                        </div>
+                        <p class="text-xs font-bold text-slate-600 dark:text-slate-400 leading-relaxed uppercase tracking-wide">Esta acción liberará el territorio "${num}" y borrará la asignación actual sin enviarla al historial. Úselo con precaución.</p>
+                        <div class="p-3 bg-red-50 dark:bg-red-500/10 rounded-xl border border-red-100 dark:border-red-500/20">
+                             <p class="text-[9px] text-red-600 dark:text-red-400 font-black uppercase tracking-widest italic text-center">⚠️ Esta acción es irreversible</p>
+                        </div>
                     </div>
                  `, async () => {
                     try {
                         await cancelarAsignacion(id);
-                        showNotification("Asignación eliminada correctamente");
+                        showNotification("Asignación eliminada correctamente", "success");
                         modal.classList.add('hidden');
                         reloadData();
                     } catch (e) {
@@ -1553,6 +2026,7 @@ const renderAsignacionesView = async (container) => {
             };
 
             modal.querySelector('#save-active-edit').onclick = async (e) => {
+                const btn = e.currentTarget;
                 const newDate = modal.querySelector('#edit-asig-date').value;
                 const newDateSalida = modal.querySelector('#edit-asig-date-salida').value;
                 const newCond = modal.querySelector('#edit-asig-new-cond').value;
@@ -1573,8 +2047,8 @@ const renderAsignacionesView = async (container) => {
                     return `${finalY}-${finalM}-${finalD}T12:00:00Z`;
                 };
 
-                e.target.disabled = true;
-                e.target.innerHTML = "GUARDANDO...";
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Guardando...';
                 try {
                     const finalFechaSalida = calculateSalidaDate(newDate, newDateSalida);
 
@@ -1588,13 +2062,13 @@ const renderAsignacionesView = async (container) => {
                         faceta: modal.querySelector('#edit-asig-faceta').value,
                         estado: t.estado
                     });
-                    showNotification("Asignación actualizada");
+                    showNotification("Asignación actualizada correctamente", "success");
                     modal.closest('#modal-container').classList.add('hidden');
                     reloadData();
                 } catch (err) {
                     showNotification("Error: " + err.message, "error");
-                    e.target.disabled = false;
-                    e.target.innerHTML = "Guardar Cambios";
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-save mr-2"></i> Guardar Cambios';
                 }
             };
         });
@@ -1606,26 +2080,28 @@ const renderAsignacionesView = async (container) => {
 
         showModal(`
             <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden shadow-2xl border border-transparent dark:border-white/5">
-                <header class="shrink-0 flex items-center justify-between p-6 bg-white dark:bg-[#0a0f18] border-b border-slate-50 dark:border-white/5">
-                    <button id="modal-back-btn" class="flex items-center gap-2 group">
-                        <div class="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400 group-hover:bg-indigo-600 group-hover:text-white transition-all">
-                             <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
+                <header class="shrink-0 flex items-center justify-between p-8 bg-white dark:bg-black/40 border-b border-slate-100 dark:border-white/5">
+                    <button id="modal-back-btn" class="flex items-center gap-3 group px-4 py-2 rounded-2xl hover:bg-slate-100 dark:hover:bg-white/5 transition-all">
+                        <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                             <i class="fas fa-arrow-left text-xs"></i>
                         </div>
-                        <span class="text-xs font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-800 dark:group-hover:text-white transition-colors">Volver</span>
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] group-hover:text-primary transition-colors">Volver</span>
                     </button>
                     
-                    <div class="flex flex-col items-end mr-16">
-                        <span class="text-[10px] font-black text-indigo-400 dark:text-indigo-300 uppercase tracking-widest mb-0.5">Historial</span>
-                        <h3 class="text-xl font-black text-slate-800 dark:text-white tracking-tighter">Territorio ${territoryNum}</h3>
+                    <div class="flex flex-col items-end">
+                        <span class="text-[10px] font-black text-primary uppercase tracking-[0.3em] mb-1">Registro Maestro</span>
+                        <h3 class="text-2xl font-black text-slate-800 dark:text-white tracking-tighter uppercase">Territorio ${territoryNum}</h3>
                     </div>
                 </header>
                 
-                <div class="flex-1 p-6 relative overflow-y-auto custom-scrollbar bg-slate-50/30 dark:bg-black/20">
-                    <div class="space-y-4 max-w-lg mx-auto pb-10">
+                <div class="flex-1 p-8 relative overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-black/20">
+                    <div class="space-y-6 max-w-2xl mx-auto pb-10">
                         ${history.length === 0 ? `
-                            <div class="py-20 text-center">
-                                <div class="text-6xl mb-4 opacity-20 text-slate-300 dark:text-white/10">📜</div>
-                                <p class="font-black uppercase tracking-widest text-xs text-slate-300 dark:text-slate-600">Sin registros históricos</p>
+                            <div class="py-24 text-center">
+                                <div class="w-24 h-24 bg-slate-200/50 dark:bg-white/5 rounded-[2.5rem] flex items-center justify-center text-4xl mx-auto mb-6 text-slate-300 dark:text-slate-600">
+                                    <i class="fas fa-scroll opacity-40"></i>
+                                </div>
+                                <p class="font-black uppercase tracking-[0.3em] text-[10px] text-slate-400">Sin registros históricos disponibles</p>
                             </div>
                         ` : history.map((h, index) => {
             const dateAsig = h.fecha_asignacion ? new Date(h.fecha_asignacion) : null;
@@ -1634,56 +2110,55 @@ const renderAsignacionesView = async (container) => {
 
             return `
                             <div class="relative group">
-                                <div class="bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-[2rem] p-5 shadow-sm hover:shadow-md transition-all duration-300">
-                                    <div class="flex justify-between items-center mb-4">
-                                        <div class="flex items-center gap-3">
-                                            <div class="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-lg shadow-inner">
-                                                ${isCurrent ? '⚡' : '👤'}
+                                <div class="modern-card !p-6 bg-white dark:bg-white/5 border-slate-100 dark:border-white/5 hover:border-primary/30 transition-all duration-500 shadow-sm hover:shadow-xl hover:shadow-primary/5">
+                                    <div class="flex justify-between items-start mb-6">
+                                        <div class="flex items-center gap-5">
+                                            <div class="w-14 h-14 rounded-2xl ${isCurrent ? 'bg-primary/10 text-primary' : 'bg-slate-100 dark:bg-white/5 text-slate-400'} flex items-center justify-center text-2xl shadow-inner">
+                                                <i class="fas ${isCurrent ? 'fa-bolt' : 'fa-user-check'}"></i>
                                             </div>
                                             <div>
-                                                <h4 class="font-black text-slate-800 dark:text-white text-lg leading-tight uppercase tracking-tight">${h.conductor}</h4>
-                                                <div class="flex items-center gap-2 mt-1">
+                                                <h4 class="font-black text-slate-800 dark:text-white text-xl leading-none uppercase tracking-tight mb-2">${h.conductor}</h4>
+                                                <div class="flex items-center gap-3">
                                                     ${isCurrent ?
-                    '<span class="text-[9px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-widest">En Curso</span>' :
-                    '<span class="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Finalizado</span>'
+                    '<span class="text-[9px] font-black text-primary bg-primary/10 px-2 py-1 rounded-md uppercase tracking-widest border border-primary/20">En Curso</span>' :
+                    '<span class="text-[9px] font-black text-slate-400 bg-slate-100 dark:bg-white/5 px-2 py-1 rounded-md uppercase tracking-widest border border-slate-200 dark:border-white/10">Finalizado</span>'
                 }
-                                                    ${h.auxiliar ? `<span class="text-[9px] text-slate-300 dark:text-slate-700">|</span> <span class="text-[9px] text-slate-400 dark:text-slate-500 truncate max-w-[80px]">w/ ${h.auxiliar}</span>` : ''}
+                                                    ${h.auxiliar ? `<div class="w-1 h-1 rounded-full bg-slate-300"></div> <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Apoyo: ${h.auxiliar}</span>` : ''}
                                                 </div>
                                             </div>
                                         </div>
                                         <div class="text-right">
-                                            <span class="text-[8px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest px-2 py-1 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-100 dark:border-white/5">CICLO #${history.length - index}</span>
+                                            <span class="text-[9px] font-black text-slate-400 bg-slate-50 dark:bg-white/5 px-3 py-1.5 rounded-xl border border-slate-100 dark:border-white/5 uppercase tracking-widest">Registro #${history.length - index}</span>
                                         </div>
                                     </div>
 
-                                    <div class="flex items-center gap-3 p-3 bg-slate-50/50 dark:bg-black/40 rounded-2xl border border-slate-100/50 dark:border-white/5">
-                                        <div class="flex-1 px-2 text-center sm:text-left">
-                                            <span class="block text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.1em] mb-0.5">Asignado</span>
-                                            <span class="text-xs font-black text-slate-700 dark:text-gray-300">
+                                    <div class="grid grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-black/40 rounded-3xl border border-slate-100 dark:border-white/5">
+                                        <div class="space-y-1">
+                                            <span class="block text-[8px] font-black text-slate-400 uppercase tracking-[0.2em]">F. Asignación</span>
+                                            <span class="text-[11px] font-black text-slate-700 dark:text-white uppercase">
                                                 ${dateAsig ? dateAsig.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : '--'}
                                             </span>
                                         </div>
-                                        <div class="w-px h-6 bg-slate-200 dark:bg-white/10"></div>
-                                        <div class="flex-1 px-2 text-center sm:text-left">
-                                            <span class="block text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.1em] mb-0.5">Devuelto</span>
-                                            <span class="text-xs font-black text-slate-700 dark:text-gray-300">
-                                                ${dateEntrega ? dateEntrega.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : (isCurrent ? '<span class="text-indigo-500">Actual</span>' : '--')}
+                                        <div class="space-y-1 border-l border-slate-200 dark:border-white/10 pl-4">
+                                            <span class="block text-[8px] font-black text-slate-400 uppercase tracking-[0.2em]">F. Devolución</span>
+                                            <span class="text-[11px] font-black text-slate-700 dark:text-white uppercase">
+                                                ${dateEntrega ? dateEntrega.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : (isCurrent ? '<span class="text-primary">Activo</span>' : '--')}
                                             </span>
                                         </div>
                                     </div>
 
                                     ${h.observaciones ? `
-                                        <div class="mt-4 pt-4 border-t border-slate-100 dark:border-white/5">
-                                            <p class="text-xs text-slate-400 dark:text-slate-500 italic font-medium leading-relaxed">"${h.observaciones}"</p>
+                                        <div class="mt-5 p-4 bg-primary/5 rounded-2xl border border-primary/10">
+                                            <p class="text-[10px] text-primary/70 italic font-black uppercase tracking-wide leading-relaxed">"${h.observaciones}"</p>
                                         </div>
                                     ` : ''}
 
-                                    <div class="flex justify-end gap-2 mt-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button onclick="window.actionEditHist('${h.id}')" class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-white/10 text-slate-400 hover:text-indigo-600 hover:bg-white dark:hover:bg-slate-800 border border-transparent hover:border-slate-100 dark:hover:border-white/10 hover:shadow-md transition-all duration-300">
-                                            ✏️
+                                    <div class="flex justify-end gap-3 mt-6">
+                                        <button onclick="window.actionEditHist('${h.id}')" class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 dark:bg-white/5 text-slate-400 hover:text-primary hover:bg-primary/10 border border-slate-200 dark:border-white/10 transition-all duration-300 group/btn shadow-sm">
+                                            <i class="fas fa-edit text-sm group-hover/btn:scale-110"></i>
                                         </button>
-                                        <button onclick="window.actionDeleteHistUI('${h.id}', '${h.conductor}', '${h.numero}')" class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 dark:bg-white/10 text-slate-400 hover:text-red-500 hover:bg-white dark:hover:bg-slate-800 border border-transparent hover:border-slate-100 dark:hover:border-white/10 hover:shadow-md transition-all duration-300">
-                                            🗑️
+                                        <button onclick="window.actionDeleteHistUI('${h.id}', '${h.conductor}', '${h.numero}')" class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-50 dark:bg-white/5 text-slate-400 hover:text-red-500 hover:bg-red-50 border border-slate-200 dark:border-white/10 transition-all duration-300 group/btn shadow-sm">
+                                            <i class="fas fa-trash-alt text-sm group-hover/btn:scale-110"></i>
                                         </button>
                                     </div>
                                 </div>
@@ -1693,23 +2168,23 @@ const renderAsignacionesView = async (container) => {
                     </div>
                 </div>
             </div>
-        `, null, 'max-w-xl');
+        `, null, 'max-w-2xl');
 
         setTimeout(() => {
-            document.getElementById('modal-back-btn').onclick = () => {
-                if (window.openGlobalHistory) window.openGlobalHistory();
-            };
+            const backBtn = document.getElementById('modal-back-btn');
+            if (backBtn) {
+                backBtn.onclick = () => {
+                    if (window.openGlobalHistory) window.openGlobalHistory();
+                };
+            }
         }, 0);
     };
 
-    // --- GLOBAL HISTORY MANAGER (Move here to be always ready) ---
     const showEditHistoryModal = async (recordId, sourceData = null) => {
-        // Source data can be the 'allHistory' or 'history' from a specific view
         const historyList = sourceData || allHistory;
         const rec = historyList.find(r => r.id === recordId);
         if (!rec) {
-            // Fallback: try to fetch it if not in memory
-            showNotification("Cargando datos del registro...");
+            showNotification("Cargando datos del registro...", "info");
             const fullHist = await getHistorialReport();
             const freshRec = fullHist.find(r => r.id === recordId);
             if (!freshRec) return showNotification("No se encontró el registro", "error");
@@ -1717,46 +2192,75 @@ const renderAsignacionesView = async (container) => {
         }
 
         showModal(`
-            <div class="p-8 space-y-6">
-                <div>
-                    <h3 class="text-2xl font-black text-gray-800 dark:text-white uppercase tracking-tight">Editar Historial</h3>
-                    <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Territorio ${rec.numero || ''}</p>
+            <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden">
+                <header class="shrink-0 bg-primary p-8 text-white relative overflow-hidden">
+                    <div class="absolute inset-0 bg-white/10 backdrop-blur-3xl"></div>
+                    <div class="relative z-10 flex items-center gap-6">
+                        <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center text-3xl shadow-2xl border border-white/30">
+                            <i class="fas fa-history"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-black uppercase tracking-tight leading-none mb-1">Editar Registro</h3>
+                            <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Identificador: ${rec.numero || 'T-ERR'}</p>
+                        </div>
+                    </div>
+                </header>
+
+                <div class="flex-1 p-8 space-y-8 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-black/20">
+                    <div class="space-y-6">
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Conductor</label>
+                             <input type="text" id="edit-h-cond" value="${rec.conductor}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all uppercase shadow-inner">
+                        </div>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Fecha Original</label>
+                                <input type="date" id="edit-h-date" value="${rec.fecha_asignacion ? rec.fecha_asignacion.split("T")[0] : ""}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[11px] font-black text-primary outline-none focus:border-primary transition-all shadow-inner uppercase">
+                            </div>
+
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Estado del Registro</label>
+                                <select id="edit-h-status" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[11px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all uppercase shadow-inner cursor-pointer appearance-none">
+                                    <option value="Asignado" ${rec.estado === "Asignado" ? "selected" : ""}>Asignado (Activo)</option>
+                                    <option value="Completado" ${rec.estado === "Completado" ? "selected" : ""}>Completado</option>
+                                    <option value="Devuelto" ${rec.estado === "Devuelto" ? "selected" : ""}>Devuelto</option>
+                                    <option value="Predicado" ${rec.estado === "Predicado" ? "selected" : ""}>Predicado</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="p-6 bg-primary/5 rounded-[2rem] border border-primary/10 space-y-4">
+                            <label class="flex items-start gap-4 cursor-pointer group">
+                                <div class="relative mt-1">
+                                    <input type="checkbox" id="edit-h-sync" checked class="peer sr-only">
+                                    <div class="w-6 h-6 rounded-lg border-2 border-slate-200 dark:border-white/10 peer-checked:bg-primary peer-checked:border-primary transition-all flex items-center justify-center text-white text-[10px]">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-1">
+                                    <span class="block text-[10px] font-black text-primary uppercase tracking-widest mb-1">Sincronizar Maestro actual</span>
+                                    <p class="text-[8px] font-black text-slate-400 uppercase tracking-wide leading-relaxed opacity-60">Si se activa, el estado actual del territorio "${rec.numero}" se actualizará para coincidir con este cambio histórico.</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
                 </div>
-                <div class="space-y-4">
-                 <div>
-                    <label class="text-xs font-bold text-gray-400 uppercase">Fecha Asignación Original</label>
-                    <input type="date" id="edit-h-date" value="${rec.fecha_asignacion ? rec.fecha_asignacion.split("T")[0] : ""}" class="w-full bg-gray-50 dark:bg-black/40 text-gray-800 dark:text-white p-3 rounded-xl border border-gray-200 dark:border-white/10 outline-none focus:border-teal-500">
-                </div>
-                <div>
-                    <label class="text-xs font-bold text-gray-400 uppercase">Conductor</label>
-                     <input type="text" id="edit-h-cond" value="${rec.conductor}" class="w-full bg-gray-50 dark:bg-black/40 text-gray-800 dark:text-white p-3 rounded-xl border border-gray-200 dark:border-white/10 outline-none focus:border-teal-500">
-                </div>
-                <div>
-                    <label class="text-xs font-bold text-gray-400 uppercase">Estado</label>
-                    <select id="edit-h-status" class="w-full bg-gray-50 dark:bg-black/40 text-gray-800 dark:text-white p-3 rounded-xl border border-gray-200 dark:border-white/10 outline-none focus:border-teal-500">
-                        <option value="Asignado" ${rec.estado === "Asignado" ? "selected" : ""}>Asignado (Activo)</option>
-                        <option value="Completado" ${rec.estado === "Completado" ? "selected" : ""}>Completado</option>
-                        <option value="Devuelto" ${rec.estado === "Devuelto" ? "selected" : ""}>Devuelto</option>
-                        <option value="Predicado" ${rec.estado === "Predicado" ? "selected" : ""}>Predicado</option>
-                    </select>
-                </div>
-                 <div class="flex items-center gap-3 mt-4 bg-yellow-50 dark:bg-yellow-900/10 p-4 rounded-xl border border-yellow-200 dark:border-yellow-700/30">
-                    <input type="checkbox" id="edit-h-sync" checked class="w-5 h-5 accent-teal-600 rounded">
-                    <label for="edit-h-sync" class="text-xs text-yellow-800 dark:text-yellow-200 leading-tight">
-                        <b>Sincronizar Territorio Actual:</b><br>
-                        Si marcas esto, también se actualizará el estado actual del territorio "${rec.numero}" con estos datos.
-                    </label>
-                </div>
-            </div>
-            <div class="flex justify-end gap-2 mt-6">
-                <button class="px-6 py-2.5 rounded-xl bg-gray-100 dark:bg-white/5 text-gray-500 font-bold hover:bg-gray-200 transition-all text-xs uppercase tracking-wider" id="btn-cancel-hist">Cancelar</button>
-                <button class="px-6 py-2.5 rounded-xl bg-teal-600 text-white font-bold shadow-lg shadow-teal-500/30 hover:bg-teal-500 transition-all text-xs uppercase tracking-wider" id="btn-save-hist">Guardar Cambios</button>
+
+                <footer class="shrink-0 p-8 bg-white dark:bg-black/40 border-t border-slate-100 dark:border-white/5 flex gap-4">
+                    <button id="btn-cancel-hist" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] border border-slate-200 dark:border-white/10 transition-all active:scale-95">
+                        Cancelar
+                    </button>
+                    <button id="btn-save-hist" class="flex-[1.5] py-5 bg-primary hover:bg-primary-light text-white font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-primary/20 transition-all active:scale-95 flex items-center justify-center gap-2">
+                        <i class="fas fa-save"></i> Guardar Cambios
+                    </button>
+                </footer>
             </div>
         `, (modal) => {
             modal.querySelector("#btn-cancel-hist").onclick = () => modal.classList.add("hidden");
-            modal.querySelector("#btn-save-hist").onclick = async () => {
-                const btn = modal.querySelector("#btn-save-hist");
-                btn.innerText = "Guadando..."; btn.disabled = true;
+            modal.querySelector("#btn-save-hist").onclick = async (e) => {
+                const btn = e.currentTarget;
+                btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Guardando...'; btn.disabled = true;
                 try {
                     const newDate = modal.querySelector("#edit-h-date").value;
                     const newC = modal.querySelector("#edit-h-cond").value;
@@ -1776,7 +2280,8 @@ const renderAsignacionesView = async (container) => {
                     }
                     showNotification("Registro actualizado");
                     modal.classList.add("hidden");
-                    reloadData();
+                    await reloadData();
+                    if (window.dispatchModuleSync) window.dispatchModuleSync();
                 } catch (e) { showNotification(e.message, "error"); btn.innerText = "Error"; btn.disabled = false; }
             };
         });
@@ -1784,15 +2289,34 @@ const renderAsignacionesView = async (container) => {
 
     const showDeleteHistoryModal = (recordId, cond, num, sourceData = null) => {
         showCustomConfirm(`
-            <div class="text-left">
-                <p class="mb-4 text-gray-800 dark:text-gray-200">¿Eliminar registro de <b>${num}</b> (${cond})?</p>
-                <div class="text-xs text-red-600 bg-red-50 p-4 rounded-xl border border-red-100 mb-4">
-                    ⚠️ Esta acción borrará el registro para siempre.
+             <div class="text-left space-y-4">
+                <div class="flex items-center gap-4 text-red-600">
+                     <div class="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center text-xl shadow-inner"><i class="fas fa-trash-alt"></i></div>
+                     <h4 class="font-black uppercase tracking-tight text-xl">¿Eliminar registro?</h4>
                 </div>
-                <div class="flex items-start gap-3 bg-gray-50 dark:bg-white/5 p-3 rounded-xl">
-                    <input type="checkbox" id="del-h-reset-global" class="w-5 h-5 accent-red-600 mt-0.5">
-                    <label for="del-h-reset-global" class="text-xs text-gray-600 dark:text-gray-400">
-                         <b>Liberar Territorio</b> (Sin asignado)
+                
+                <p class="text-[11px] font-bold text-slate-600 dark:text-slate-400 leading-relaxed uppercase tracking-wide">
+                    Estás a punto de borrar permanentemente el historial de <b>${cond}</b> para el territorio <b>${num}</b>.
+                </p>
+
+                <div class="p-4 bg-red-50 dark:bg-red-500/10 rounded-2xl border border-red-100 dark:border-red-500/20">
+                     <p class="text-[9px] text-red-600 dark:text-red-400 font-black uppercase tracking-widest italic text-center leading-normal">
+                        <i class="fas fa-exclamation-triangle mr-1"></i> Esta acción no se puede deshacer y afectará las estadísticas.
+                     </p>
+                </div>
+
+                <div class="p-5 bg-slate-50 dark:bg-black/20 rounded-[2rem] border border-slate-100 dark:border-white/5">
+                    <label class="flex items-start gap-4 cursor-pointer group">
+                        <div class="relative mt-1">
+                            <input type="checkbox" id="del-h-reset-global" class="peer sr-only">
+                            <div class="w-6 h-6 rounded-lg border-2 border-slate-200 dark:border-white/10 peer-checked:bg-red-500 peer-checked:border-red-500 transition-all flex items-center justify-center text-white text-[10px]">
+                                <i class="fas fa-check"></i>
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <span class="block text-[10px] font-black text-slate-700 dark:text-white uppercase tracking-widest mb-1">Liberar Territorio</span>
+                            <p class="text-[8px] font-black text-slate-400 uppercase tracking-wide opacity-60">Si se activa, el territorio volverá a estar "Disponible" inmediatamente.</p>
+                        </div>
                     </label>
                 </div>
             </div>
@@ -1805,15 +2329,125 @@ const renderAsignacionesView = async (container) => {
                 if (resetTerr && rec && rec.territorio_id) {
                     await updateTerritorio(rec.territorio_id, { estado: "Disponible", asignado_a: null, fecha_asignacion: null, fecha_salida: null });
                 }
-                showNotification("Registro eliminado");
+                showNotification("Registro eliminado correctamente", "success");
                 reloadData();
             } catch (e) { showNotification(e.message, "error"); }
         });
     };
 
-    window.actionEditActive = handleEditActive;
-    window.actionHistory = handleHistory;
-    window.actionEditHist = (id) => showEditHistoryModal(id);
+    const handleTransfer = async (id, num, currentConductor) => {
+        const t = territorios.find(x => x.id === id);
+        if (!t) return;
+
+        const allMzs = t.manzanas ? t.manzanas.split(',').map(m => m.trim()).filter(Boolean) : [];
+
+        showModal(`
+            <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden">
+                <header class="shrink-0 bg-primary p-8 text-white relative overflow-hidden">
+                    <div class="absolute inset-0 bg-white/10 backdrop-blur-3xl"></div>
+                    <div class="relative z-10 flex items-center gap-6">
+                        <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center text-3xl shadow-2xl border border-white/30">
+                            <i class="fas fa-exchange-alt"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-black uppercase tracking-tight leading-none mb-1">Transferir Territorio</h3>
+                            <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">${num} • De ${currentConductor}</p>
+                        </div>
+                    </div>
+                </header>
+
+                <div class="flex-1 overflow-y-auto custom-scrollbar p-8 space-y-8 bg-slate-50 dark:bg-black/20">
+                    <div class="modern-card !p-6 bg-white dark:bg-white/5 border-primary/10 ring-1 ring-primary/5">
+                        <div class="flex items-start gap-4 text-primary mb-6">
+                            <div class="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-lg shadow-inner"><i class="fas fa-info-circle"></i></div>
+                            <p class="text-[11px] font-black uppercase tracking-wide leading-relaxed">
+                                Se generará un registro de finalización para <b>${currentConductor}</b> y se abrirá una nueva asignación para el próximo responsable.
+                            </p>
+                        </div>
+                        
+                        ${allMzs.length > 0 ? `
+                            <div class="space-y-4">
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Área a Transferir (Manzanas)</label>
+                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                    ${allMzs.map(mz => `
+                                        <label class="flex items-center gap-3 p-3 bg-white dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/10 cursor-pointer hover:border-primary/50 transition-all group overflow-hidden relative">
+                                            <input type="checkbox" class="transfer-mz-check peer sr-only" value="${mz}" checked>
+                                            <div class="w-5 h-5 rounded-lg border-2 border-slate-200 dark:border-white/10 peer-checked:bg-primary peer-checked:border-primary flex items-center justify-center text-white text-[10px] transition-all">
+                                                <i class="fas fa-check"></i>
+                                            </div>
+                                            <span class="text-[11px] font-black text-slate-600 dark:text-slate-300 uppercase truncate">${mz}</span>
+                                        </label>
+                                    `).join('')}
+                                </div>
+                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest italic opacity-60"><i class="fas fa-hand-pointer mr-1"></i> Desmarca las áreas que ya se completaron.</p>
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    <div class="space-y-6">
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Nuevo Responsable</label>
+                            <select id="transfer-new-cond" class="w-full p-5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-[11px] font-black text-slate-700 dark:text-white hover:border-primary transition-all appearance-none cursor-pointer uppercase shadow-sm">
+                                <option value="" disabled selected>Elegir nuevo conductor...</option>
+                                ${conductores.sort((a, b) => a.nombre.localeCompare(b.nombre))
+                .filter(c => c.nombre !== currentConductor)
+                .map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('')}
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-6 bg-white/50 dark:bg-black/40 p-6 rounded-[2rem] border border-slate-100 dark:border-white/5">
+                            <div class="space-y-2">
+                                <label class="text-[8px] font-black text-slate-400 uppercase text-center block tracking-widest">Nueva Fecha Salida</label>
+                                <input type="date" id="transfer-date" value="${new Date().toISOString().split('T')[0]}" class="w-full bg-transparent text-[10px] font-black text-primary outline-none text-center">
+                            </div>
+                            <div class="space-y-2 border-l border-slate-200 dark:border-white/10">
+                                <label class="text-[8px] font-black text-slate-400 uppercase text-center block tracking-widest">Turno</label>
+                                <select id="transfer-turno" class="w-full bg-transparent text-[10px] font-black text-primary outline-none text-center appearance-none cursor-pointer uppercase">
+                                    <option value="manana">🌅 Mañana</option>
+                                    <option value="tarde" selected>☀️ Tarde</option>
+                                    <option value="noche">🌙 Noche</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <footer class="shrink-0 p-8 bg-white dark:bg-black/40 border-t border-slate-100 dark:border-white/5">
+                    <button id="confirm-transfer" class="w-full py-5 bg-primary hover:bg-primary-light text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.3em] shadow-xl shadow-primary/20 transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-3">
+                        <i class="fas fa-exchange-alt"></i> Confirmar Transferencia
+                    </button>
+                </footer>
+            </div>
+        `, (modal) => {
+            modal.querySelector('#confirm-transfer').onclick = async (e) => {
+                const btn = e.currentTarget;
+                const newCond = modal.querySelector('#transfer-new-cond').value;
+                if (!newCond) return showNotification("Selecciona un nuevo conductor", "warning");
+
+                const checks = modal.querySelectorAll('.transfer-mz-check:checked');
+                const mzsToTransfer = Array.from(checks).map(c => c.value);
+
+                if (allMzs.length > 0 && mzsToTransfer.length === 0) return showNotification("Debes transferir al menos una manzana", "warning");
+
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Procesando...';
+
+                try {
+                    await transferTerritorio(id, newCond, mzsToTransfer.join(', '), {
+                    });
+
+                    showNotification(`Territorio ${num} transferido con éxito`, "success");
+                    modal.closest('#modal-container').classList.add('hidden');
+                    reloadData();
+                } catch (err) {
+                    showNotification("Error: " + err.message, "error");
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-exchange-alt"></i> Confirmar Transferencia';
+                }
+            };
+        });
+    };
+
     window.actionDeleteHistUI = (id, c, n) => showDeleteHistoryModal(id, c, n);
     window.editHistoryRecord = (id) => showEditHistoryModal(id);
     window.deleteHistoryRecordUI = (id, c, n) => showDeleteHistoryModal(id, c, n);
@@ -1823,119 +2457,305 @@ const renderAsignacionesView = async (container) => {
         const allTerrs = [...territorios].sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true }));
 
         showModal(`
-            <div class="rounded-[2.5rem] overflow-hidden bg-white dark:bg-[#0a0f18] shadow-2xl max-w-3xl w-full border border-transparent dark:border-white/5">
-                <header class="flex items-center justify-between bg-gradient-to-r from-teal-600 via-emerald-600 to-cyan-700 p-8 text-white relative">
-                    <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
-                    <div class="relative z-10 flex items-center gap-5">
-                        <div class="w-14 h-14 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-2xl border border-white/20 shadow-inner overflow-hidden">
-                             <div class="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent"></div>
-                             <span class="relative z-10">📜</span>
+            <div class="rounded-[2.5rem] overflow-hidden bg-white dark:bg-[#0a0f18] shadow-2xl max-w-4xl w-full border border-transparent dark:border-white/5">
+                <header class="bg-primary p-10 text-white relative overflow-hidden">
+                    <div class="absolute inset-0 bg-white/10 backdrop-blur-3xl"></div>
+                    <div class="relative z-10 flex items-center justify-between">
+                         <div class="flex items-center gap-6">
+                            <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center text-3xl shadow-2xl border border-white/30">
+                                <i class="fas fa-scroll"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-2xl font-black uppercase tracking-tight leading-none mb-1">Registro Maestro</h3>
+                                <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Control Histórico de Territorios</p>
+                            </div>
                         </div>
-                        <div>
-                            <h3 class="text-2xl font-black tracking-tight leading-none mb-1">Registro Maestro</h3>
-                            <p class="text-[9px] opacity-70 uppercase tracking-[0.4em] font-black">Historial de Entregas</p>
+                        <div class="hidden sm:flex flex-col items-end">
+                             <span class="text-[10px] font-black opacity-60 uppercase tracking-widest mb-1">Total Territorios</span>
+                             <span class="text-4xl font-black">${allTerrs.length}</span>
                         </div>
                     </div>
                 </header>
                 
-                <div class="p-6 max-h-[75vh] overflow-y-auto custom-scrollbar bg-slate-50/10 dark:bg-black/20">
-                    <div class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-3">
+                <div class="p-8 max-h-[70vh] overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-black/20">
+                    <div class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-4">
                         ${allTerrs.map(t => {
             const isAssigned = t.estado === 'Asignado' || t.estado === 'Pendiente';
-            // Get last delivery date
             const tHistory = allHistory.filter(h => (h.territorio_id === t.id || h.numero === t.numero) && h.fecha_entrega)
                 .sort((a, b) => new Date(b.fecha_entrega) - new Date(a.fecha_entrega));
             const lastDate = tHistory.length > 0 ? new Date(tHistory[0].fecha_entrega) : null;
-            const dateStr = lastDate ? lastDate.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }) : 'DISPONIBLE';
+            const dateStr = lastDate ? lastDate.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }) : 'LISTO';
 
             return `
-                            <button onclick="window.actionHistory('${t.id}', '${t.numero}')" class="flex flex-col items-center justify-center rounded-2xl bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5 p-3 hover:border-teal-500 transition-all duration-300 group shadow-sm hover:shadow-lg hover:shadow-teal-500/10 hover:-translate-y-1 relative aspect-[4/5] min-h-[85px]">
-                                ${isAssigned ? `<div class="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-teal-500 ring-2 ring-teal-50 dark:ring-slate-900 shadow-sm"></div>` : ''}
-                                <div class="flex flex-col items-center">
-                                    <span class="text-[8px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest mb-0.5 group-hover:text-teal-400 transition-colors">ID</span>
-                                    <span class="text-xl font-black text-slate-800 dark:text-white group-hover:text-teal-600 transition-transform group-hover:scale-110">${t.numero}</span>
-                                </div>
-                                
-                                <div class="mt-2 w-full">
-                                    <p class="text-[8px] font-black ${isAssigned ? 'text-slate-400 dark:text-slate-500' : 'text-teal-600 dark:text-teal-400'} text-center uppercase tracking-tight bg-slate-50 dark:bg-black/40 py-1 rounded-lg border border-slate-100/50 dark:border-white/5">
-                                        ${isAssigned ? 'OCUPADO' : (dateStr === 'DISPONIBLE' ? 'DISPONIBLE' : dateStr)}
-                                    </p>
-                                </div>
-                            </button>
-                        `}).join('')}
+                            <div class="relative group">
+                                <button onclick="window.actionHistory('${t.id}', '${t.numero}')" class="w-full aspect-[4/5] flex flex-col items-center justify-center rounded-[2rem] bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-3 hover:border-primary transition-all duration-500 shadow-sm hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 overflow-hidden relative group">
+                                    <div class="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                    
+                                    ${isAssigned ? `<div class="absolute top-3 right-3 w-2 h-2 rounded-full bg-primary ring-4 ring-primary/10 shadow-sm animate-pulse"></div>` : ''}
+                                    
+                                    <div class="relative z-10 flex flex-col items-center">
+                                        <span class="text-[8px] font-black text-slate-400 group-hover:text-primary uppercase tracking-widest mb-1 transition-colors">T-${t.id.slice(-2)}</span>
+                                        <span class="text-2xl font-black text-slate-800 dark:text-white group-hover:scale-110 transition-transform">${t.numero}</span>
+                                    </div>
+                                    
+                                    <div class="mt-3 w-full relative z-10">
+                                        <div class="h-px w-8 bg-slate-100 dark:bg-white/10 mx-auto mb-2 group-hover:w-12 transition-all"></div>
+                                        <span class="block text-[8px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest text-center group-hover:text-slate-500 truncate">${dateStr}</span>
+                                    </div>
+                                    
+                                    <button onclick="event.stopPropagation(); window.viewMapFromAdmin('${t.id}')" class="absolute inset-x-0 bottom-0 bg-primary text-white py-2 opacity-0 group-hover:opacity-100 transition-all translate-y-full group-hover:translate-y-0 flex items-center justify-center gap-1.5 font-black uppercase text-[8px] tracking-widest">
+                                        <i class="fas fa-map-marked-alt text-[10px]"></i> Ver Mapa
+                                    </button>
+                                </button>
+                            </div>
+            `;
+        }).join('')}
                     </div>
                 </div>
             </div>
-        `, null, 'max-w-3xl');
+        `, null, 'max-w-4xl');
     };
     window.openGlobalHistory = handleGlobalHistory;
+
+    window.viewMapFromAdmin = async (id) => {
+        showNotification("Cargando mapa...", "info");
+        const terrs = await getTerritorios();
+        const t = terrs.find(x => x.id === id);
+        if (t) {
+            if (window.openInteractiveMap) window.openInteractiveMap(t);
+            else showNotification("MapViewer no inicializado", "error");
+        }
+    };
+
+    window.actionHistory = async (id, num) => {
+        try {
+            // We use the local allHistory which is already synchronized with S-13 data.
+            // This avoids extra network calls and the need for composite indices in Firestore.
+            const history = allHistory.filter(h => {
+                if (h.territorio_id === id) return true;
+                if (h.numero) {
+                    const nums = h.numero.toString().split(/[,/]/).map(n => n.trim().padStart(2, '0'));
+                    const targetNum = num.toString().padStart(2, '0');
+                    if (nums.includes(targetNum)) return true;
+                }
+                return false;
+            });
+
+            // Sort by date descending (using fecha_asignacion or timestamp)
+            history.sort((a, b) => {
+                const dateA = new Date(a.fecha_asignacion || a.timestamp?.toDate?.() || 0);
+                const dateB = new Date(b.fecha_asignacion || b.timestamp?.toDate?.() || 0);
+                return dateB - dateA;
+            });
+
+            showModal(`
+                <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden shadow-2xl border border-transparent dark:border-white/5">
+                    <header class="shrink-0 bg-primary p-8 text-white relative overflow-hidden">
+                         <div class="absolute inset-0 bg-white/10 backdrop-blur-3xl"></div>
+                         <div class="relative z-10 flex items-center gap-6">
+                            <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center text-3xl shadow-2xl border border-white/30">
+                                <i class="fas fa-history"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-2xl font-black uppercase tracking-tight leading-none mb-1">Historial T-${num}</h3>
+                                <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Cronología de Asignaciones</p>
+                            </div>
+                         </div>
+                    </header>
+                    
+                    <div class="flex-1 p-8 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-black/20">
+                        ${history.length === 0 ? `
+                            <div class="flex flex-col items-center justify-center h-full py-20 opacity-30 text-center space-y-6">
+                                <div class="w-24 h-24 bg-slate-200/50 dark:bg-white/5 rounded-[2.5rem] flex items-center justify-center text-4xl mx-auto mb-6 text-slate-300 dark:text-slate-600">
+                                    <i class="fas fa-scroll opacity-40"></i>
+                                </div>
+                                <p class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Sin registros previos en el sistema</p>
+                            </div>
+                        ` : `
+                            <div class="space-y-6 max-w-2xl mx-auto">
+                                ${history.map(rec => {
+                const dateVal = rec.fecha_salida || rec.fecha_asignacion;
+                const fmtDate = dateVal ? new Date(dateVal).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+                const isCompleted = rec.estado === 'Completado' || rec.estado === 'Predicado';
+
+                return `
+                                    <div class="modern-card !p-6 bg-white dark:bg-white/5 border-slate-100 dark:border-white/5 hover:border-primary/30 transition-all duration-500 shadow-sm hover:shadow-xl hover:shadow-primary/5 group">
+                                        <div class="flex justify-between items-start mb-6">
+                                            <div class="flex items-center gap-5">
+                                                <div class="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-2xl shadow-inner group-hover:scale-110 transition-transform">
+                                                    <i class="fas fa-user-circle"></i>
+                                                </div>
+                                                <div>
+                                                    <p class="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none mb-2">${rec.conductor || 'Sin nombre'}</p>
+                                                    <p class="text-[9px] text-primary font-black uppercase tracking-widest leading-none mt-1 opacity-60">${rec.faceta || 'Casa en Casa'}</p>
+                                                </div>
+                                            </div>
+                                            <div class="text-right">
+                                                <span class="px-4 py-2 bg-slate-100 dark:bg-white/5 rounded-xl text-[10px] font-black text-slate-500 uppercase tracking-widest border border-slate-200 dark:border-white/10">
+                                                    ${fmtDate}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 p-5 bg-slate-50 dark:bg-black/40 rounded-3xl border border-slate-100 dark:border-white/5">
+                                            <div class="space-y-2">
+                                                <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Estado Final</p>
+                                                <div class="flex items-center gap-2">
+                                                    <span class="text-[11px] ${isCompleted ? 'text-emerald-500' : 'text-amber-500'} font-black uppercase flex items-center gap-2">
+                                                        <i class="fas ${isCompleted ? 'fa-check-circle' : 'fa-clock'}"></i> ${rec.estado || 'Finalizado'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div class="space-y-2 border-l border-slate-200 dark:border-white/10 pl-5">
+                                                <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Fecha Reporte</p>
+                                                <p class="text-[11px] font-black text-slate-700 dark:text-white uppercase">
+                                                    ${rec.fecha_entrega ? new Date(rec.fecha_entrega).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }) : 'Pendiente'}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        ${rec.observaciones ? `
+                                            <div class="mt-5 p-4 bg-primary/5 rounded-2xl border border-primary/10">
+                                                <p class="text-[10px] text-primary/70 italic font-black uppercase tracking-wider leading-relaxed">"${rec.observaciones}"</p>
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                `;
+            }).join('')}
+                            </div>
+                        `}
+                    </div>
+                    
+                    <footer class="shrink-0 p-8 bg-white dark:bg-black/40 border-t border-slate-100 dark:border-white/5">
+                         <button onclick="this.closest('#modal-container').classList.add('hidden')" class="w-full py-5 rounded-2xl bg-slate-50 dark:bg-white/5 text-slate-500 font-black text-[10px] uppercase tracking-[0.2em] shadow-sm hover:bg-slate-100 dark:hover:bg-white/10 transition-all border border-slate-200 dark:border-white/10 active:scale-95">
+                            Cerrar Historial
+                         </button>
+                    </footer>
+                </div>
+            `, null, 'max-w-2xl');
+        } catch (e) {
+            console.error(e);
+            showNotification("Error cargando historial: " + e.message, "error");
+        }
+    };
 
 
 
 
     const renderMain = () => {
         container.innerHTML = `
-    <div class="space-y-8 animate-fade-in px-2" >
+            <div class="space-y-8 animate-fade-in px-2">
                 
-                <div class="grid grid-cols-2 gap-4">
-                    <button id="hub-btn-assign" class="group relative bg-white dark:bg-[#121212] overflow-hidden p-6 rounded-[2.5rem] border border-black/[0.03] dark:border-white/5 shadow-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_40px_-10px_rgba(147,51,234,0.2)]">
-                        <div class="absolute -right-6 -bottom-6 w-24 h-24 bg-purple-500/10 blur-[30px] rounded-full group-hover:bg-purple-500/20 transition-all"></div>
-                        <div class="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center mb-4 text-2xl group-hover:scale-110 transition-transform shadow-inner">➕</div>
-                        <p class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Operación</p>
-                        <p class="text-sm font-black text-gray-800 dark:text-white uppercase tracking-tighter">Nueva Asignación</p>
-                    </button>
-
-                    <button id="hub-btn-return" class="group relative bg-white dark:bg-[#121212] overflow-hidden p-6 rounded-[2.5rem] border border-black/[0.03] dark:border-white/5 shadow-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_40px_-10px_rgba(239,68,68,0.2)]">
-                        <div class="absolute -right-6 -bottom-6 w-24 h-24 bg-red-500/10 blur-[30px] rounded-full group-hover:bg-red-500/20 transition-all"></div>
-                        <div class="w-12 h-12 rounded-2xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center mb-4 text-2xl group-hover:scale-110 transition-transform shadow-inner">📥</div>
-                        <p class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Recepción</p>
-                        <p class="text-sm font-black text-gray-800 dark:text-white uppercase tracking-tighter">Devolver Territorios</p>
-                        ${selectedIds.size > 0 ? `<div class="absolute top-6 right-6 bg-red-600 text-white w-5 h-5 rounded-full text-[10px] font-black flex items-center justify-center animate-bounce shadow-lg ring-4 ring-white dark:ring-[#121212]">${selectedIds.size}</div>` : ''}
-                    </button>
-
-                    <button id="hub-btn-global-history" class="col-span-2 group relative bg-white dark:bg-[#121212] overflow-hidden p-6 rounded-[2.5rem] border border-black/[0.03] dark:border-white/5 shadow-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_40px_-10px_rgba(79,70,229,0.2)]">
-                        <div class="absolute -right-6 -bottom-6 w-24 h-24 bg-indigo-500/10 blur-[30px] rounded-full group-hover:bg-indigo-500/20 transition-all"></div>
-                        <div class="flex items-center gap-6">
-                            <div class="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform shadow-inner">📜</div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                    <!-- Nueva Asignación Card -->
+                    <button id="hub-btn-assign" class="group relative bg-white dark:bg-[#121212]/40 backdrop-blur-3xl overflow-hidden p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-slate-200 dark:border-white/10 shadow-2xl transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_60px_-10px_rgba(59,130,246,0.3)]">
+                        <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-primary/10 blur-[60px] rounded-full group-hover:bg-primary/30 transition-all duration-700"></div>
+                        <div class="flex items-center gap-4 md:gap-6">
+                            <div class="w-12 h-12 md:w-16 md:h-16 rounded-[1.2rem] md:rounded-[1.5rem] bg-primary flex items-center justify-center text-2xl md:text-3xl text-white group-hover:scale-110 group-hover:rotate-6 transition-all shadow-lg shadow-primary/30">
+                                <i class="fas fa-plus"></i>
+                            </div>
                             <div class="text-left">
-                                <p class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Historial General</p>
-                                <p class="text-base font-black text-gray-800 dark:text-white uppercase tracking-tighter">Explorar Pasado de Territorios</p>
+                                <p class="text-[8px] md:text-[10px] font-black text-primary uppercase tracking-[0.3em] mb-0.5 md:mb-1">Operación</p>
+                                <p class="text-lg md:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Nueva Asignación</p>
                             </div>
                         </div>
                     </button>
-                    
-                     <button id="hub-btn-export-xls" class="col-span-2 group flex items-center justify-center gap-3 bg-white dark:bg-[#121212] p-4 rounded-2xl border border-black/[0.03] dark:border-white/5 shadow-sm hover:shadow-lg transition-all text-xs font-bold text-gray-500 hover:text-green-600 uppercase tracking-widest">
-                        <span>📊</span> Ir a Reportes S-13
+                    <!-- Devolver Territorios Card -->
+                    <button id="hub-btn-return" class="group relative bg-white dark:bg-[#121212]/40 backdrop-blur-3xl overflow-hidden p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-slate-200 dark:border-white/10 shadow-2xl transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_60px_-10px_rgba(244,63,94,0.3)]">
+                        <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-rose-600/10 blur-[60px] rounded-full group-hover:bg-rose-600/30 transition-all duration-700"></div>
+                        <div class="flex items-center gap-4 md:gap-6">
+                            <div class="w-12 h-12 md:w-16 md:h-16 rounded-[1.2rem] md:rounded-[1.5rem] bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center text-2xl md:text-3xl text-white group-hover:scale-110 group-hover:-rotate-6 transition-all shadow-lg shadow-rose-500/30">
+                                <i class="fas fa-file-import"></i>
+                            </div>
+                            <div class="text-left relative">
+                                <p class="text-[8px] md:text-[10px] font-black text-rose-500 uppercase tracking-[0.3em] mb-0.5 md:mb-1">Recepción</p>
+                                <p class="text-lg md:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Devolver Territorios</p>
+                                ${selectedIds.size > 0 ? `<div class="absolute -top-3 -right-8 md:-top-4 md:-right-12 bg-rose-600 text-white w-6 h-6 md:w-8 md:h-8 rounded-full text-[10px] md:text-xs font-black flex items-center justify-center animate-bounce shadow-lg ring-4 ring-white dark:ring-[#121212]">${selectedIds.size}</div>` : ''}
+                            </div>
+                        </div>
                     </button>
                 </div>
 
-                <div class="flex flex-col md:flex-row justify-between items-center gap-6 bg-white/40 dark:bg-black/20 backdrop-blur-xl p-6 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-lg">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-6 bg-white/40 dark:bg-black/20 backdrop-blur-xl p-6 rounded-[2rem] border border-slate-100 dark:border-white/5 shadow-lg">
                      <div class="flex items-center gap-5">
                         <div class="flex flex-col">
-                            <h2 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-0.5" id="hub-view-title">MAPA DE TERRITORIOS</h2>
-                            <div id="view-stats" class="text-[11px] font-bold text-teal-600 dark:text-teal-400 flex items-center gap-2"></div>
+                            <h2 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1" id="hub-view-title">MAPA DE TERRITORIOS</h2>
+                            <div id="view-stats" class="text-[11px] font-black text-primary flex flex-wrap items-center gap-3"></div>
                         </div>
                      </div>
                      
                      <div class="relative w-full md:w-80 group">
-                         <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-teal-500">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                         <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary">
+                            <i class="fas fa-search text-xs"></i>
                          </span>
-                         <input type="text" id="search-assigns" placeholder="Buscar ID o Publicador..." class="w-full pl-12 pr-4 py-3.5 bg-gray-50 dark:bg-white/5 border border-black/[0.03] dark:border-white/[0.05] rounded-2xl text-[13px] font-bold text-gray-700 dark:text-gray-200 outline-none focus:ring-4 focus:ring-teal-500/10 transition-all shadow-inner placeholder-gray-400">
+                         <input type="text" id="search-assigns" placeholder="Buscar por número o publicador..." class="w-full pl-12 pr-5 py-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all shadow-inner placeholder-slate-400">
                      </div>
                 </div>
 
-                <div id="assigns-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-fade-in pb-20"></div>
+                <div id="assigns-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-fade-in pb-20"></div>
             </div>
-    `;
+
+            ${selectedIds.size > 0 ? `
+                <div class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[60] animate-bounce-in">
+                    <div class="bg-slate-900/95 backdrop-blur-2xl border border-white/20 rounded-3xl p-3 shadow-2xl flex items-center gap-3 ring-[12px] ring-black/5">
+                        <div class="px-6 py-2 border-r border-white/10">
+                            <p class="text-[9px] font-black text-rose-400 uppercase tracking-widest leading-none mb-1.5">Seleccionados</p>
+                            <p class="text-2xl font-black text-white leading-none">${selectedIds.size}</p>
+                        </div>
+                        
+                        <div class="flex items-center gap-2">
+                            <button id="fab-delete" class="flex items-center gap-3 px-6 py-4 rounded-2xl hover:bg-red-500/20 text-red-500 transition-all group">
+                                 <i class="fas fa-trash-alt text-lg group-hover:scale-110 transition-transform"></i>
+                                 <span class="text-[10px] font-black uppercase tracking-widest hidden sm:block">Eliminar</span>
+                            </button>
+                            
+                            <button id="fab-complete" class="flex items-center gap-4 px-8 py-4 bg-primary hover:bg-primary-light text-white rounded-2xl shadow-xl shadow-primary/20 transition-all group active:scale-95">
+                                 <i class="fas fa-check-double text-lg group-hover:rotate-12 transition-transform"></i>
+                                 <span class="text-[10px] font-black uppercase tracking-widest">Devolver</span>
+                            </button>
+    
+                            <button id="fab-clear" class="w-12 h-12 hover:bg-white/10 text-white/40 hover:text-white rounded-2xl transition-all flex items-center justify-center">
+                                 <i class="fas fa-times text-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            ` : ''}
+        `;
+
+        if (selectedIds.size > 0) {
+            container.querySelector('#fab-delete').onclick = () => {
+                showCustomConfirm(`
+                    <div class="text-left space-y-4">
+                        <div class="flex items-center gap-4 text-red-600">
+                             <div class="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center text-xl shadow-inner"><i class="fas fa-trash-alt"></i></div>
+                             <h4 class="font-black uppercase tracking-tight text-xl">¿Eliminar selección?</h4>
+                        </div>
+                        <p class="text-[11px] font-bold text-slate-600 dark:text-slate-400 leading-relaxed uppercase tracking-wide">Estás a punto de eliminar <b>${selectedIds.size}</b> asignaciones. Esta acción no se puede deshacer.</p>
+                    </div>
+                `, async () => {
+                    try {
+                        for (const id of selectedIds) {
+                            await cancelarAsignacion(id);
+                        }
+                        showNotification(`${selectedIds.size} asignaciones eliminadas`, "success");
+                        selectedIds.clear();
+                        reloadData();
+                    } catch (e) {
+                        showNotification("Error: " + e.message, "error");
+                    }
+                });
+            };
+            container.querySelector('#fab-complete').onclick = () => handleBulkReturn();
+            container.querySelector('#fab-clear').onclick = () => {
+                selectedIds.clear();
+                renderMain();
+            };
+        }
+
 
         container.querySelector('#hub-btn-assign').onclick = () => handleNewAssignment();
         container.querySelector('#hub-btn-return').onclick = () => handleBulkReturn();
-        container.querySelector('#hub-btn-global-history').onclick = () => handleGlobalHistory();
-
-        container.querySelector('#hub-btn-export-xls').onclick = () => {
-            document.querySelector('[data-tab="historial"]').click();
-        };
 
         const search = container.querySelector('#search-assigns');
         search.oninput = () => renderGrid();
@@ -1946,11 +2766,9 @@ const renderAsignacionesView = async (container) => {
     const renderGrid = () => {
         const grid = container.querySelector('#assigns-grid');
         const search = container.querySelector('#search-assigns');
-        const title = container.querySelector('#hub-view-title');
         const stats = container.querySelector('#view-stats');
         if (!grid) return;
 
-        title.innerText = 'MAPA DE TERRITORIOS';
         const query = search ? search.value.toLowerCase() : '';
 
         let items = [...territorios].sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true }));
@@ -1971,16 +2789,19 @@ const renderAsignacionesView = async (container) => {
         const availableCount = territorios.length - activeCount;
 
         stats.innerHTML = `
-            <div class="flex items-center gap-4" >
-                <span class="text-gray-400">${filtered.length} / ${territorios.length}</span>
-                <span class="hidden md:inline-block h-3 w-px bg-gray-200 dark:bg-gray-800"></span>
-                <span class="text-indigo-500 dark:text-indigo-400 font-black">⚡ ${activeCount} ACTIVOS</span>
-                <span class="text-emerald-500 font-black">📖 ${availableCount} LIBRES</span>
-            </div>
-    `;
+            <span class="opacity-40 font-mono tracking-tighter">${filtered.length} / ${territorios.length}</span>
+            <span class="w-1.5 h-1.5 rounded-full bg-slate-200 dark:bg-white/10"></span>
+            <span class="text-primary uppercase tracking-widest text-[10px] flex items-center gap-2"><i class="fas fa-bolt-lightning text-[9px]"></i> ${activeCount} ACTIVOS</span>
+            <span class="text-emerald-500 uppercase tracking-widest text-[10px] flex items-center gap-2"><i class="fas fa-map text-[9px]"></i> ${availableCount} LIBRES</span>
+        `;
 
         if (filtered.length === 0) {
-            grid.innerHTML = `<div class="col-span-full py-40 text-center opacity-30 font-black text-sm uppercase tracking-widest" > Nada que mostrar</div> `;
+            grid.innerHTML = `
+                <div class="col-span-full py-40 text-center space-y-4 opacity-30 group">
+                    <div class="w-20 h-20 bg-slate-100 dark:bg-white/5 rounded-3xl flex items-center justify-center text-3xl mx-auto group-hover:scale-110 transition-transform"><i class="fas fa-search"></i></div>
+                    <p class="font-black text-[10px] uppercase tracking-[0.4em]">Nada que mostrar</p>
+                </div>
+            `;
             return;
         }
 
@@ -1992,46 +2813,57 @@ const renderAsignacionesView = async (container) => {
             return `
                 <div class="relative group cursor-pointer transition-all duration-300" onclick="window.actionToggleSelect('${item.id}')">
                      <!-- Card Body -->
-                     <div class="bg-white dark:bg-[#151515] rounded-[2rem] p-5 border ${isSelected ? 'border-teal-500 ring-2 ring-teal-500/20' : 'border-black/5 dark:border-white/5'} shadow-sm hover:shadow-lg transition-all flex flex-col justify-between h-48 relative overflow-hidden">
+                     <div class="bg-white dark:bg-[#151515] rounded-[2.5rem] p-6 border ${isSelected ? 'border-primary ring-4 ring-primary/10' : 'border-slate-100 dark:border-white/5'} shadow-sm hover:shadow-2xl transition-all flex flex-col justify-between h-52 relative overflow-hidden group/card shadow-primary/5">
                         
-                        <!-- Status Dot & Number -->
+                        <!-- Status & Number -->
                         <div class="flex justify-between items-start z-10">
-                            <div class="w-12 h-12 rounded-2xl ${isAssigned ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-300' : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-300'} flex items-center justify-center text-xl font-black shadow-inner">
+                            <div class="w-14 h-14 rounded-2xl ${isAssigned ? 'bg-primary/10 text-primary' : 'bg-emerald-500/10 text-emerald-500'} flex items-center justify-center text-2xl font-black shadow-inner">
                                 ${num}
                             </div>
                             
                             <div class="flex flex-col items-end">
-                                <span class="text-[9px] font-black uppercase tracking-widest ${isAssigned ? 'text-indigo-400' : 'text-emerald-400'} mb-1">${isAssigned ? 'ASIGNADO' : 'LIBRE'}</span>
-                                ${isSelected ? '<span class="text-xl text-teal-500 animate-bounce">✅</span>' : ''}
+                                <span class="text-[9px] font-black uppercase tracking-widest ${isAssigned ? 'text-primary' : 'text-emerald-500'} mb-1 opacity-60">${isAssigned ? 'ASIGNADO' : 'LIBRE'}</span>
+                                ${isSelected ? '<span class="text-xl text-primary animate-bounce-in"><i class="fas fa-check-circle"></i></span>' : ''}
                             </div>
                         </div>
                         
-                        <!-- Conductor Info -->
-                        <div class="z-10 mt-2">
+                        <!-- Info Content -->
+                        <div class="z-10 mt-3">
                              ${isAssigned ? `
-                                <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Responsable</p>
-                                <p class="text-base font-bold text-gray-800 dark:text-gray-100 leading-tight line-clamp-2">${item.asignado_a}</p>
+                                <p class="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1.5 opacity-60">Responsable</p>
+                                <p class="text-base font-black text-slate-800 dark:text-white leading-tight line-clamp-2 uppercase tracking-tight">${item.asignado_a}</p>
                                 ${item.fecha_salida ? `
-                                    <div class="mt-2 flex items-center gap-2">
-                                        <span class="px-2 py-0.5 bg-gray-100 dark:bg-white/5 rounded text-[10px] font-mono text-gray-500">📅 ${new Date(item.fecha_salida).toLocaleDateString("es-ES", { weekday: 'short' })}</span>
+                                    <div class="mt-3 flex items-center gap-2">
+                                        <div class="px-3 py-1 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-100 dark:border-white/10 flex items-center gap-2">
+                                            <i class="far fa-calendar-alt text-[10px] text-primary/60"></i>
+                                            <span class="text-[10px] font-black text-slate-500 uppercase">${new Date(item.fecha_salida).toLocaleDateString("es-ES", { weekday: 'short', day: '2-digit', month: 'short' })}</span>
+                                        </div>
                                     </div>
                                 ` : ''}
                              ` : `
                                 <div class="h-full flex flex-col justify-end opacity-40">
-                                    <p class="text-sm font-bold text-gray-400 italic">Disponible para asignar</p>
+                                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Disponible para asignar</p>
                                 </div>
                              `}
                         </div>
 
-                        <!-- Actions (Hover) -->
-                        <div class="absolute bottom-4 right-4 z-20 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
-                             <button onclick="event.stopPropagation(); window.actionEditActive('${item.id}', '${num}', '${item.asignado_a || ''}')" class="p-2 bg-white dark:bg-black/50 text-gray-600 dark:text-white rounded-full shadow-lg border border-black/5 hover:scale-110 transition-transform" title="Editar / Ver Detalles">
-                                ✏️
+                        <!-- Hover Actions -->
+                        <div class="absolute bottom-6 right-6 z-20 opacity-0 group-hover/card:opacity-100 transition-all translate-y-2 group-hover/card:translate-y-0 flex gap-2">
+                             <button onclick="event.stopPropagation(); window.viewMapFromAdmin('${item.id}')" class="w-10 h-10 bg-primary text-white rounded-xl shadow-xl shadow-primary/20 hover:scale-110 transition-transform flex items-center justify-center" title="Ver Mapa">
+                                <i class="fas fa-map-marked-alt text-xs"></i>
+                             </button>
+                             ${isAssigned ? `
+                                <button onclick="event.stopPropagation(); window.actionTransfer('${item.id}', '${num}', '${item.asignado_a}')" class="w-10 h-10 bg-white dark:bg-[#222] text-slate-600 dark:text-white rounded-xl shadow-lg border border-slate-100 dark:border-white/10 hover:scale-110 transition-transform flex items-center justify-center" title="Transferir">
+                                    <i class="fas fa-exchange-alt text-xs"></i>
+                                </button>
+                             ` : ''}
+                             <button onclick="event.stopPropagation(); window.actionEditActive('${item.id}', '${num}', '${item.asignado_a || ''}')" class="w-10 h-10 bg-white dark:bg-[#222] text-slate-600 dark:text-white rounded-xl shadow-lg border border-slate-100 dark:border-white/10 hover:scale-110 transition-transform flex items-center justify-center" title="Editar">
+                                <i class="fas fa-edit text-xs"></i>
                              </button>
                         </div>
                         
-                        <!-- Decorative BG -->
-                        <div class="absolute -right-10 -bottom-10 w-32 h-32 rounded-full blur-[40px] ${isAssigned ? 'bg-indigo-500/5' : 'bg-emerald-500/5'} pointer-events-none"></div>
+                        <!-- Decoration -->
+                        <div class="absolute -right-8 -bottom-8 w-24 h-24 rounded-full blur-[30px] ${isAssigned ? 'bg-primary/5' : 'bg-emerald-500/5'} pointer-events-none group-hover/card:scale-150 transition-transform duration-700"></div>
                      </div>
                 </div>
             `;
@@ -2044,37 +2876,73 @@ const renderAsignacionesView = async (container) => {
 // --- Render Config Tab (Restored) ---
 const renderConfigTab = async (container, initialSub = 'reglas', appVersion) => {
     container.innerHTML = `
-            <div class="space-y-6 animate-fade-in">
-                <header class="flex justify-between items-center mb-6">
-                    <div>
-                        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Configuración del Sistema</h2>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Ajusta los parámetros de la congregación</p>
-                    </div>
-                </header>
-
-                <div class="flex flex-wrap gap-4 p-4 -m-4 pb-12 overflow-x-auto scrollbar-hide">
-                    <button class="conf-nav-btn ${initialSub === 'reglas' ? 'active' : ''} px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap" data-sub="reglas">📏 Reglas</button>
-                    <button class="conf-nav-btn ${initialSub === 'territorios' ? 'active' : ''} px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap" data-sub="territorios">🗺️ Territorios</button>
-                    <button class="conf-nav-btn ${initialSub === 'personal' ? 'active' : ''} px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap" data-sub="personal">👥 Personal</button>
-                    <button class="conf-nav-btn ${initialSub === 'grupos' ? 'active' : ''} px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap" data-sub="grupos">🏘️ Grupos</button>
-                    <button class="conf-nav-btn ${initialSub === 'campanas' ? 'active' : ''} px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap" data-sub="campanas">🚩 Campañas</button>
-                    <button class="conf-nav-btn ${initialSub === 'difusion' ? 'active' : ''} px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap" data-sub="difusion">📢 Difusión</button>
-                    <button class="conf-nav-btn ${initialSub === 'mantenimiento' ? 'active' : ''} px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap" data-sub="mantenimiento">🛠️ Mantenimiento</button>
+        <div class="space-y-8 animate-fade-in px-2">
+            <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6 p-2">
+                <div>
+                    <h2 class="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Configuración del Sistema</h2>
+                    <p class="text-[10px] text-slate-500 dark:text-slate-400 font-black uppercase tracking-[0.3em] mt-1 ml-1">Ajustes globales y gestión técnica</p>
                 </div>
+                <div class="px-4 py-2 bg-slate-100 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    v${appVersion}
+                </div>
+            </header>
 
-                <div id="config-content" class="min-h-[400px]"></div>
+            <!-- 2026 Settings Sub Navigation -->
+            <nav class="flex flex-wrap items-center gap-2 bg-white/50 dark:bg-white/[0.03] p-2 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm backdrop-blur-xl mb-8">
+                <button class="conf-nav-btn group px-4 md:px-5 py-3 rounded-xl transition-all flex items-center gap-3" data-sub="reglas">
+                    <i class="fas fa-ruler"></i>
+                    <span class="text-[10px] md:text-[11px] font-bold uppercase tracking-wider">Reglas</span>
+                </button>
+                <button class="conf-nav-btn group px-4 md:px-5 py-3 rounded-xl transition-all flex items-center gap-3" data-sub="territorios">
+                    <i class="fas fa-map"></i>
+                    <span class="text-[10px] md:text-[11px] font-bold uppercase tracking-wider">Territorios</span>
+                </button>
+                <button class="conf-nav-btn group px-4 md:px-5 py-3 rounded-xl transition-all flex items-center gap-3" data-sub="personal">
+                    <i class="fas fa-users"></i>
+                    <span class="text-[10px] md:text-[11px] font-bold uppercase tracking-wider">Personal</span>
+                </button>
+                <button class="conf-nav-btn group px-4 md:px-5 py-3 rounded-xl transition-all flex items-center gap-3" data-sub="grupos">
+                    <i class="fas fa-layer-group"></i>
+                    <span class="text-[10px] md:text-[11px] font-bold uppercase tracking-wider">Grupos</span>
+                </button>
+                <button class="conf-nav-btn group px-4 md:px-5 py-3 rounded-xl transition-all flex items-center gap-3" data-sub="campanas">
+                    <i class="fas fa-flag-checkered"></i>
+                    <span class="text-[10px] md:text-[11px] font-bold uppercase tracking-wider">Campañas</span>
+                </button>
+                <button class="conf-nav-btn group px-4 md:px-5 py-3 rounded-xl transition-all flex items-center gap-3" data-sub="difusion">
+                    <i class="fas fa-bullhorn"></i>
+                    <span class="text-[10px] md:text-[11px] font-bold uppercase tracking-wider">Difusión</span>
+                </button>
+                <button class="conf-nav-btn group px-4 md:px-5 py-3 rounded-xl transition-all flex items-center gap-3" data-sub="mantenimiento">
+                    <i class="fas fa-tools"></i>
+                    <span class="text-[10px] md:text-[11px] font-bold uppercase tracking-wider">Mantenimiento</span>
+                </button>
+            </nav>
+
+            <div id="config-content" class="min-h-[500px] relative">
+                 <!-- Contenido dinámico -->
             </div>
-        `;
+        </div>
+    `;
 
     const btns = container.querySelectorAll('.conf-nav-btn');
     const content = container.querySelector('#config-content');
 
     const load = async (sub) => {
+        // Shimmer loading
+        content.innerHTML = `
+            <div class="p-10 flex flex-col items-center justify-center space-y-4 opacity-20">
+                <div class="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+                <p class="text-[10px] font-black uppercase tracking-[0.4em]">Sincronizando Ajustes...</p>
+            </div>
+        `;
+
         btns.forEach(b => {
-            if (b.dataset.sub === sub) {
-                b.className = "conf-nav-btn active px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap bg-teal-600 text-white shadow-[0_15px_30px_-5px_rgba(13,148,136,0.4)] scale-105 z-10";
+            const isActive = b.dataset.sub === sub;
+            if (isActive) {
+                b.className = "conf-nav-btn active group px-5 py-3 rounded-xl bg-primary dark:bg-primary text-white shadow-lg shadow-primary/20 transition-all flex items-center gap-3 scale-105 z-10 font-bold";
             } else {
-                b.className = "conf-nav-btn px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap text-gray-400 hover:text-gray-600 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 border border-transparent";
+                b.className = "conf-nav-btn group px-5 py-3 rounded-xl text-slate-500 hover:text-primary dark:text-slate-400 dark:hover:text-primary-light hover:bg-white/80 dark:hover:bg-white/5 transition-all flex items-center gap-3";
             }
         });
         await loadSubTab(sub, content, await getConfiguracion(), appVersion);
@@ -2088,81 +2956,198 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
     container.innerHTML = '<div class="animate-pulse flex space-x-4"><div class="h-4 bg-white/10 rounded w-3/4"></div></div>';
 
     if (subTab === 'reglas') {
-        const tCount = (await getTerritorios()).length;
-
         container.innerHTML = `
-            <div class="space-y-6 max-w-2xl animate-fade-in p-6 bg-white dark:bg-[#0f1115] rounded-3xl border border-black/5 dark:border-white/10 shadow-xl m-4">
-                <div class="mb-6 pb-6 border-b border-black/5 dark:border-white/5">
-                    <h3 class="font-bold text-xl text-teal-800 dark:text-teal-200">Reglas Generales</h3>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Define los parámetros básicos de la congregación.</p>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-xs uppercase tracking-wider text-teal-600 dark:text-teal-400 mb-1.5 font-medium ml-1">Nombre Congregación</label>
-                        <input type="text" id="conf-nombre" value="${config.congregacion?.nombre || ''}" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-gray-900 dark:text-white font-bold outline-none focus:border-teal-500 lg:text-sm">
-                    </div>
-                     <div>
-                        <label class="block text-xs uppercase tracking-wider text-teal-600 dark:text-teal-400 mb-1.5 font-medium ml-1">Número Congregación</label>
-                        <input type="text" id="conf-numero" value="${config.congregacion?.numero || ''}" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-gray-900 dark:text-white font-bold outline-none focus:border-teal-500 lg:text-sm">
-                    </div>
-                </div>
-
-                <!-- Additional inputs -->
-                <div>
-                    <label class="block text-xs uppercase tracking-wider text-teal-600 dark:text-teal-400 mb-1.5 font-medium ml-1">Horarios Predicación</label>
-                    <input type="text" id="conf-prog-horarios" value="${config.horarios_programa?.join(', ') || ''}" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-sm focus:border-teal-500 outline-none font-mono" placeholder="08:30, 09:00...">
-                </div>
-                 <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs uppercase tracking-wider text-teal-600 dark:text-teal-400 mb-1.5 font-medium ml-1">Lugares</label>
-                        <textarea id="conf-lugares" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-xs h-20 outline-none resize-none">${config.lugares?.join(', ') || ''}</textarea>
+            <div class="max-w-4xl mx-auto space-y-8 animate-fade-in pb-12">
+                <!-- Header Section -->
+                <div class="flex items-center gap-6 mb-10">
+                    <div class="w-16 h-16 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-2xl flex items-center justify-center text-2xl text-white shadow-xl shadow-teal-500/20 transform -rotate-3">
+                        <i class="fas fa-sliders-h"></i>
                     </div>
                     <div>
-                        <label class="block text-xs uppercase tracking-wider text-teal-600 dark:text-teal-400 mb-1.5 font-medium ml-1">Facetas</label>
-                        <textarea id="conf-facetas" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-xs h-20 outline-none resize-none">${config.facetas?.join(', ') || ''}</textarea>
+                        <h3 class="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Parámetros del Sistema</h3>
+                        <p class="text-[10px] text-teal-600 dark:text-teal-400 font-bold uppercase tracking-[0.3em] mt-1">Configuración Maestra de la Congregación</p>
                     </div>
                 </div>
 
-                <!-- Gemini Section -->
-                <div class="pt-4 border-t border-black/5 dark:border-white/5">
-                    <label class="block text-xs uppercase tracking-wider text-teal-600 dark:text-teal-400 mb-1.5 font-medium ml-1">API Key (Google Gemini)</label>
-                    <input type="password" id="gemini-key" value="${config.gemini_key || ''}" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3 text-sm focus:border-teal-500 outline-none font-mono" placeholder="AIxa...">
-                    <p class="text-[10px] text-gray-400 mt-2 ml-1 italic">Habilita el Asistente Inteligente en los paneles de control.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Left Column: Identity -->
+                    <div class="space-y-8">
+                        <section class="modern-card group border-slate-200 dark:border-white/5 shadow-xl relative overflow-hidden">
+                            <div class="absolute -right-16 -top-16 w-32 h-32 bg-teal-500/5 rounded-full blur-3xl"></div>
+                            <header class="flex items-center gap-3 mb-6">
+                                <i class="fas fa-id-card text-teal-500 text-sm"></i>
+                                <h4 class="text-[11px] font-black uppercase tracking-widest text-slate-400">Identidad Local</h4>
+                            </header>
+
+                            <div class="space-y-5">
+                                <div class="relative group/input">
+                                    <label class="label-premium">Nombre de la Congregación</label>
+                                    <div class="relative">
+                                        <input type="text" id="conf-nombre" value="${config.congregacion?.nombre || ''}" 
+                                            class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-sm font-bold shadow-inner outline-none focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10 transition-all text-slate-800 dark:text-white"
+                                            placeholder="Ej. Central de Guayaquil">
+                                        <i class="fas fa-church absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 dark:text-white/10 opacity-0 group-focus-within/input:opacity-100 transition-opacity"></i>
+                                    </div>
+                                </div>
+
+                                <div class="relative group/input">
+                                    <label class="label-premium">Número de Congregación</label>
+                                    <div class="relative">
+                                        <input type="text" id="conf-numero" value="${config.congregacion?.numero || ''}" 
+                                            class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-sm font-bold shadow-inner outline-none focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10 transition-all text-slate-800 dark:text-white"
+                                            placeholder="Ej. 14282">
+                                        <i class="fas fa-hashtag absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 dark:text-white/10 opacity-0 group-focus-within/input:opacity-100 transition-opacity"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="modern-card group border-slate-200 dark:border-white/5 shadow-xl relative overflow-hidden">
+                            <div class="absolute -left-16 -bottom-16 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl"></div>
+                            <header class="flex items-center gap-3 mb-6">
+                                <i class="fas fa-brain text-indigo-500 text-sm"></i>
+                                <h4 class="text-[11px] font-black uppercase tracking-widest text-slate-400">Inteligencia Artificial</h4>
+                            </header>
+
+                            <div class="relative group/input">
+                                <label class="label-premium flex items-center justify-between">
+                                    Google Gemini API Key
+                                    <span class="text-[8px] px-1.5 py-0.5 bg-indigo-500/10 text-indigo-500 rounded uppercase tracking-tighter">Recomendado</span>
+                                </label>
+                                <div class="relative">
+                                    <input type="password" id="gemini-key" value="${config.gemini_key || ''}" 
+                                        class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-xs font-mono shadow-inner outline-none focus:border-indigo-500 transition-all text-slate-800 dark:text-white"
+                                        placeholder="AIzaSy...">
+                                    <button class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-indigo-500 transition-colors" onclick="const p=this.previousElementSibling; p.type=p.type==='password'?'text':'password'">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                <p class="text-[9px] text-slate-400 mt-3 ml-1 leading-relaxed italic">Habilita el asistente virtual en los paneles de control para análisis predictivo y sugerencias inteligentes.</p>
+                            </div>
+                        </section>
+                    </div>
+
+                    <!-- Right Column: Ministry Config -->
+                    <div class="space-y-8">
+                        <section class="modern-card group border-slate-200 dark:border-white/5 shadow-xl">
+                            <header class="flex items-center gap-3 mb-6">
+                                <i class="fas fa-calendar-check text-emerald-500 text-sm"></i>
+                                <h4 class="text-[11px] font-black uppercase tracking-widest text-slate-400">Planificación de Ministerio</h4>
+                            </header>
+
+                            <div class="space-y-6">
+                                <!-- Dynamic List for Schedules -->
+                                <div class="relative group/input">
+                                    <label class="label-premium flex items-center justify-between">
+                                        Horarios de Salida
+                                        <button class="text-[9px] text-emerald-500 hover:underline" onclick="window.addConfigItem('horarios')">+ Añadir</button>
+                                    </label>
+                                    <div id="list-horarios" class="flex flex-wrap gap-2 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 min-h-[60px]">
+                                        ${(config.horarios_programa || []).map((h, i) => `
+                                            <div class="bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-bold flex items-center gap-2 shadow-sm animate-scale-in">
+                                                ${h}
+                                                <button onclick="window.removeConfigItem('horarios', ${i})" class="text-slate-400 hover:text-red-500 transition-colors"><i class="fas fa-times"></i></button>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+
+                                <!-- Dynamic List for Places -->
+                                <div class="relative group/input">
+                                    <label class="label-premium flex items-center justify-between">
+                                        Lugares de Reunión
+                                        <button class="text-[9px] text-emerald-500 hover:underline" onclick="window.addConfigItem('lugares')">+ Añadir</button>
+                                    </label>
+                                    <div id="list-lugares" class="flex flex-wrap gap-2 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 min-h-[60px]">
+                                        ${(config.lugares || []).map((l, i) => `
+                                            <div class="bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-bold flex items-center gap-2 shadow-sm animate-scale-in">
+                                                ${l}
+                                                <button onclick="window.removeConfigItem('lugares', ${i})" class="text-slate-400 hover:text-red-500 transition-colors"><i class="fas fa-times"></i></button>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+
+                                <!-- Dynamic List for Facets -->
+                                <div class="relative group/input">
+                                    <label class="label-premium flex items-center justify-between">
+                                        Facetas de Predicación
+                                        <button class="text-[9px] text-emerald-500 hover:underline" onclick="window.addConfigItem('facetas')">+ Añadir</button>
+                                    </label>
+                                    <div id="list-facetas" class="flex flex-wrap gap-2 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 min-h-[60px]">
+                                        ${(config.facetas || []).map((f, i) => `
+                                            <div class="bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-bold flex items-center gap-2 shadow-sm animate-scale-in">
+                                                ${f}
+                                                <button onclick="window.removeConfigItem('facetas', ${i})" class="text-slate-400 hover:text-red-500 transition-colors"><i class="fas fa-times"></i></button>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
                 </div>
 
-                 <div class="mt-8 flex justify-end">
-                    <button id="save-reglas" class="bg-teal-600 hover:bg-teal-500 text-white px-8 py-3 rounded-xl font-bold uppercase tracking-widest text-xs shadow-xl shadow-teal-500/20 hover:scale-105 transition-all">
-                        Guardar Cambios
-                    </button>
+                <!-- Action Bar -->
+                <div class="sticky bottom-8 left-0 right-0 z-50 flex justify-center px-4">
+                    <div class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl px-6 py-4 rounded-[2rem] border border-slate-200 dark:border-white/10 shadow-2xl flex items-center gap-10">
+                        <div class="hidden sm:flex flex-col">
+                            <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Estado de Sincronización</span>
+                            <span class="text-[10px] font-bold text-emerald-500 flex items-center gap-1.5 uppercase">
+                                <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span> Servidor en línea
+                            </span>
+                        </div>
+                        <div class="h-8 w-px bg-slate-200 dark:bg-white/10 hidden sm:block"></div>
+                        <button id="save-reglas" class="bg-slate-900 dark:bg-teal-600 hover:bg-teal-500 dark:hover:bg-teal-500 text-white px-10 py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] shadow-xl shadow-teal-500/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-3">
+                            <i class="fas fa-cloud-upload-alt"></i> Aplicar Cambios
+                        </button>
+                    </div>
                 </div>
             </div>
-         `;
+        `;
+
+        // Helper functions for dynamic lists
+        window.addConfigItem = (type) => {
+            const labels = { horarios: 'Horario (ej. 09:00)', lugares: 'Lugar', facetas: 'Faceta' };
+            showCustomPrompt(`Añadir ${labels[type]}:`, "", (val) => {
+                if (!val) return;
+                if (type === 'horarios') config.horarios_programa = [...(config.horarios_programa || []), val];
+                if (type === 'lugares') config.lugares = [...(config.lugares || []), val];
+                if (type === 'facetas') config.facetas = [...(config.facetas || []), val];
+                loadSubTab('reglas', container, config, appVersion);
+            });
+        };
+
+        window.removeConfigItem = (type, index) => {
+            if (type === 'horarios') config.horarios_programa.splice(index, 1);
+            if (type === 'lugares') config.lugares.splice(index, 1);
+            if (type === 'facetas') config.facetas.splice(index, 1);
+            loadSubTab('reglas', container, config, appVersion);
+        };
 
         container.querySelector('#save-reglas').onclick = async () => {
             const btn = container.querySelector('#save-reglas');
-            btn.innerHTML = '⏳ Guardando...';
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sincronizando...';
             btn.disabled = true;
 
             try {
                 config.congregacion = {
-                    nombre: document.getElementById('conf-nombre').value,
-                    numero: document.getElementById('conf-numero').value
+                    nombre: document.getElementById('conf-nombre').value.trim(),
+                    numero: document.getElementById('conf-numero').value.trim()
                 };
-                config.gemini_key = document.getElementById('gemini-key').value;
-                config.horarios_programa = document.getElementById('conf-prog-horarios').value.split(',').map(s => s.trim()).filter(Boolean);
-                config.lugares = document.getElementById('conf-lugares').value.split(',').map(s => s.trim()).filter(Boolean);
-                config.facetas = document.getElementById('conf-facetas').value.split(',').map(s => s.trim()).filter(Boolean);
+                config.gemini_key = document.getElementById('gemini-key').value.trim();
+                // Lists are already updated in the 'config' object by helper functions
 
                 await saveConfiguracion(config);
 
-                showCustomAlert("Configuración Actualizada");
+                showNotification("Configuración de la congregación guardada con éxito", "success");
                 loadSubTab('reglas', container, config, appVersion);
             } catch (e) {
                 console.error(e);
-                showCustomAlert("Error: " + e.message);
+                showNotification("Error al guardar: " + e.message, "error");
             } finally {
-                btn.innerHTML = 'Guardar Cambios';
+                btn.innerHTML = originalHTML;
                 btn.disabled = false;
             }
         };
@@ -2171,24 +3156,37 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
     } else if (subTab === 'campanas') {
         const list = await getCampanas();
         container.innerHTML = `
-    <div class="p-6 max-w-4xl animate-fade-in shadow-xl bg-white dark:bg-[#0f1115] rounded-3xl border border-black/5 dark:border-white/10 m-4" >
-                <div class="flex justify-between items-center mb-8 border-b border-black/5 dark:border-white/5 pb-6">
+    <div class="p-8 max-w-5xl animate-fade-in bg-white dark:bg-[#0f1115] rounded-[2.5rem] border border-slate-100 dark:border-white/10 shadow-2xl m-4 overflow-hidden relative">
+                <div class="absolute -right-20 -top-20 w-64 h-64 bg-red-500/5 blur-[100px] rounded-full pointer-events-none"></div>
+                
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-6 relative z-10">
                     <div>
-                        <h3 class="text-2xl font-black dark:text-white flex items-center gap-3">
-                            <span class="p-2 bg-red-500/10 rounded-xl text-red-500">🚩</span> Gestión de Campañas
+                        <h3 class="text-3xl font-black text-slate-800 dark:text-white flex items-center gap-5 uppercase tracking-tighter">
+                            <div class="w-14 h-14 bg-red-500/10 rounded-2xl flex items-center justify-center text-red-500 shadow-inner">
+                                <i class="fas fa-flag-checkered"></i>
+                            </div>
+                            Gestión de Campañas
                         </h3>
-                        <p class="text-[10px] text-gray-400 uppercase tracking-widest font-black mt-1 ml-14">Eventos especiales y ministerio intensivo</p>
+                        <p class="text-[10px] text-slate-400 uppercase tracking-[0.4em] font-black mt-2 ml-1">Eventos especiales y ministerio intensivo</p>
                     </div>
-                    <button id="add-campana" class="bg-red-600 hover:bg-red-500 text-white px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-red-500/20 transition-all hover:-translate-y-1">
-                        + Nueva Campaña
+                    <button id="add-campana" class="w-full sm:w-auto bg-red-600 hover:bg-red-500 text-white px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-red-500/20 transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-3">
+                        <i class="fas fa-plus-circle"></i> Nueva Campaña
                     </button>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    ${list.length === 0 ? '<div class="col-span-full py-20 text-center opacity-30 font-black uppercase tracking-widest">No hay campañas registradas</div>' : ''}
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10">
+                    ${list.length === 0 ? `
+                        <div class="col-span-full py-32 text-center space-y-4 opacity-30">
+                            <div class="w-20 h-20 bg-slate-100 dark:bg-white/5 rounded-3xl flex items-center justify-center text-3xl mx-auto"><i class="fas fa-scroll"></i></div>
+                            <p class="font-black text-[10px] uppercase tracking-[0.4em]">Sin campañas activas</p>
+                        </div>
+                    ` : ''}
                     ${list.map(c => `
-                        <div class="bg-gray-50 dark:bg-black/20 p-5 rounded-[2rem] border border-black/5 dark:border-white/10 flex justify-between items-center group hover:border-red-500/30 transition-all shadow-sm">
-                            <span class="font-black text-gray-700 dark:text-gray-200 uppercase tracking-tighter text-sm">${c}</span>
-                            <button onclick="window.actionDeleteCampana('${c}')" class="bg-white dark:bg-white/10 hover:bg-red-50 text-red-500 p-3 rounded-xl transition-all shadow-md group-hover:scale-105" title="Eliminar">🗑️</button>
+                        <div class="bg-slate-50 dark:bg-white/5 p-6 rounded-3xl border border-slate-100 dark:border-white/5 flex justify-between items-center group hover:border-red-500/30 transition-all shadow-sm">
+                            <span class="font-black text-slate-700 dark:text-slate-200 uppercase tracking-tight text-sm">${c}</span>
+                            <button onclick="window.actionDeleteCampana('${c}')" class="w-10 h-10 bg-white dark:bg-[#1a1a1a] text-red-500 rounded-xl shadow-md border border-slate-100 dark:border-white/10 hover:scale-110 transition-transform flex items-center justify-center" title="Eliminar">
+                                <i class="fas fa-trash-alt text-xs"></i>
+                            </button>
                         </div>
                     `).join('')}
                 </div>
@@ -2209,54 +3207,59 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
     } else if (subTab === 'difusion') {
         const diffusion = await getDiffusionMessage();
         container.innerHTML = `
-            <div class="max-w-xl mx-auto space-y-8 animate-fade-in p-8 morphinglass-card mt-6">
-                <div class="flex items-center gap-4 mb-2">
-                    <div class="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center text-3xl shadow-inner border border-blue-500/10">📢</div>
+    <div class="max-w-2xl mx-auto space-y-10 animate-fade-in p-10 bg-white dark:bg-[#0a0f18] rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-2xl mt-6 relative overflow-hidden">
+                <div class="absolute -left-20 -bottom-20 w-64 h-64 bg-blue-500/5 blur-[100px] rounded-full pointer-events-none"></div>
+
+                <div class="flex items-center gap-6 mb-2 relative z-10">
+                    <div class="w-20 h-20 bg-blue-500/10 rounded-3xl flex items-center justify-center text-3xl shadow-inner border border-blue-500/10 text-blue-500 transition-transform hover:rotate-12 duration-500">
+                        <i class="fas fa-bullhorn"></i>
+                    </div>
                     <div>
-                        <h3 class="text-2xl font-black tracking-tight text-gray-800 dark:text-white">Sistema de Difusión</h3>
-                        <p class="text-[10px] text-gray-500 uppercase tracking-widest font-black">Comunicación Masiva Directa</p>
+                        <h3 class="text-3xl font-black tracking-tighter text-slate-800 dark:text-white uppercase leading-none mb-2">Sistema de Difusión</h3>
+                        <p class="text-[10px] text-slate-400 uppercase tracking-[0.4em] font-black">Comunicación Masiva Directa</p>
                     </div>
                 </div>
 
-                <div class="space-y-6">
-                    <div>
-                        <label class="block text-[10px] font-black uppercase text-gray-400 mb-2 ml-1 tracking-widest">Contenido del Mensaje</label>
-                        <textarea id="diff-content" placeholder="Escribe el anuncio para todos los conductores..." class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-[1.5rem] p-5 text-sm font-bold min-h-[120px] outline-none focus:ring-4 focus:ring-blue-500/10 transition-all shadow-inner">${diffusion?.content || ''}</textarea>
+                <div class="space-y-8 relative z-10">
+                    <div class="space-y-3">
+                        <label class="block text-[10px] font-black uppercase text-slate-400 mb-2 ml-1 tracking-[0.2em]">Contenido del Mensaje</label>
+                        <textarea id="diff-content" placeholder="Escribe el anuncio para todos los conductores..." class="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-[2rem] p-6 text-sm font-bold min-h-[140px] outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/30 transition-all shadow-inner dark:text-white">${diffusion?.content || ''}</textarea>
                     </div>
 
-                    <div>
-                        <label class="block text-[10px] font-black uppercase text-gray-400 mb-2 ml-1 tracking-widest">Prioridad Visual</label>
-                        <div class="grid grid-cols-2 gap-4">
-                            <button class="diff-type-btn p-4 rounded-2xl border-2 transition-all font-bold flex flex-col items-center gap-2 ${diffusion?.type !== 'urgent' ? 'border-blue-500/50 bg-blue-500/10 text-blue-600' : 'border-black/5 dark:border-white/5 opacity-50'}" data-type="info">
-                                <span class="text-xl">ℹ️</span>
-                                <span class="text-xs">Informativo</span>
+                    <div class="space-y-4">
+                        <label class="block text-[10px] font-black uppercase text-slate-400 mb-2 ml-1 tracking-[0.2em]">Prioridad del Anuncio</label>
+                        <div class="grid grid-cols-2 gap-6">
+                            <button class="diff-type-btn p-6 rounded-2xl border-2 transition-all font-black uppercase tracking-widest flex flex-col items-center gap-3 ${diffusion?.type !== 'urgent' ? 'border-primary/50 bg-primary/10 text-primary shadow-lg shadow-primary/10' : 'border-slate-100 dark:border-white/5 opacity-40 hover:opacity-70'}" data-type="info">
+                                <i class="fas fa-info-circle text-2xl"></i>
+                                <span class="text-[10px]">Informativo</span>
                             </button>
-                            <button class="diff-type-btn p-4 rounded-2xl border-2 transition-all font-bold flex flex-col items-center gap-2 ${diffusion?.type === 'urgent' ? 'border-red-500/50 bg-red-500/10 text-red-600' : 'border-black/5 dark:border-white/5 opacity-50'}" data-type="urgent">
-                                <span class="text-xl">🚨</span>
-                                <span class="text-xs">Urgente</span>
+                            <button class="diff-type-btn p-6 rounded-2xl border-2 transition-all font-black uppercase tracking-widest flex flex-col items-center gap-3 ${diffusion?.type === 'urgent' ? 'border-rose-500/50 bg-rose-500/10 text-rose-500 shadow-lg shadow-rose-500/10' : 'border-slate-100 dark:border-white/5 opacity-40 hover:opacity-70'}" data-type="urgent">
+                                <i class="fas fa-exclamation-triangle text-2xl"></i>
+                                <span class="text-[10px]">Urgente</span>
                             </button>
                         </div>
                     </div>
 
-                    <div class="pt-6 border-t border-black/5 dark:border-white/5 flex gap-4">
-                        <button id="btn-save-diffusion" class="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-500/20 hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-widest text-xs">
-                            📣 Publicar Anuncio
+                    <div class="pt-8 border-t border-slate-100 dark:border-white/5 flex gap-4">
+                        <button id="btn-save-diffusion" class="flex-1 bg-primary hover:bg-primary-light text-white font-black py-5 rounded-2xl shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-[0.25em] text-[11px] flex items-center justify-center gap-3">
+                            <i class="fas fa-broadcast-tower"></i> Publicar Anuncio
                         </button>
                         ${diffusion?.active ? `
-                            <button id="btn-stop-diffusion" class="px-6 bg-red-50 dark:bg-red-500/10 text-red-600 font-black rounded-2xl border border-red-200 dark:border-red-500/20 hover:bg-red-100 transition-colors uppercase tracking-tight text-[10px]">
-                                Detener
+                            <button id="btn-stop-diffusion" class="px-8 bg-slate-100 dark:bg-white/5 text-rose-500 font-black rounded-2xl border border-slate-200 dark:border-white/10 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all uppercase tracking-widest text-[10px]">
+                                <i class="fas fa-stop-circle mr-2"></i> Detener
                             </button>
                         ` : ''}
                     </div>
                 </div>
 
-                <div class="bg-blue-500/5 rounded-2xl p-4 border border-blue-500/10">
-                    <p class="text-[10px] text-blue-600 dark:text-blue-400 italic">
-                        "El anuncio aparecerá en la parte superior de la pantalla para todos los usuarios logueados hasta que sea desactivado."
+                <div class="bg-blue-500/5 rounded-[1.5rem] p-5 border border-blue-500/10 flex items-start gap-4">
+                    <i class="fas fa-lightbulb text-blue-500 mt-1"></i>
+                    <p class="text-[10px] text-blue-600/70 dark:text-blue-400 font-black uppercase tracking-wide leading-relaxed">
+                        El anuncio aparecerá en la parte superior de la pantalla para todos los usuarios activos hasta que sea desactivado manualmente.
                     </p>
                 </div>
             </div>
-        `;
+    `;
 
         let selectedType = diffusion?.type || 'info';
         const typeBtns = container.querySelectorAll('.diff-type-btn');
@@ -2265,7 +3268,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
             typeBtns.forEach(b => {
                 const isSelected = b.dataset.type === selectedType;
                 const activeColor = selectedType === 'info' ? 'blue' : 'red';
-                b.className = `diff-type-btn p-4 rounded-2xl border-2 transition-all font-bold flex flex-col items-center gap-2 ${isSelected ? `border-${activeColor}-500/50 bg-${activeColor}-500/10 text-${activeColor}-600` : 'border-black/5 dark:border-white/5 opacity-50'}`;
+                b.className = `diff - type - btn p - 4 rounded - 2xl border - 2 transition - all font - bold flex flex - col items - center gap - 2 ${isSelected ? `border-${activeColor}-500/50 bg-${activeColor}-500/10 text-${activeColor}-600` : 'border-black/5 dark:border-white/5 opacity-50'} `;
             });
         });
 
@@ -2306,121 +3309,138 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
 
         container.innerHTML = `
             <div class="space-y-8 animate-fade-in p-2 md:p-6 max-w-6xl mx-auto">
-                <!-- Header with System Health -->
                 <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
                     <div>
-                        <h3 class="font-black text-2xl md:text-3xl text-teal-800 dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-teal-200 dark:to-teal-500 flex items-center gap-3">
-                            <span class="p-2.5 bg-teal-500/10 rounded-xl border border-teal-500/20 shadow-lg shadow-teal-500/5">🛡️</span> 
+                        <h3 class="font-black text-2xl md:text-3xl text-slate-800 dark:text-white flex items-center gap-4">
+                            <div class="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary shadow-inner">
+                                <i class="fas fa-shield-halved"></i>
+                            </div>
                             Mantenimiento
                         </h3>
-                        <p class="text-gray-500 dark:text-gray-400 text-xs md:text-sm mt-1 ml-1 opacity-80">Monitorización y reparación proactiva del sistema.</p>
+                        <p class="text-slate-400 text-[10px] font-black uppercase tracking-[0.3em] mt-1 ml-1">Monitorización y reparación proactiva del sistema</p>
                     </div>
-                    <div class="flex items-center gap-3 bg-white/50 dark:bg-white/5 p-3 md:p-4 rounded-2xl md:rounded-3xl border border-black/5 dark:border-white/5 backdrop-blur-xl shadow-xl w-full sm:w-auto justify-between sm:justify-start">
-                        <div class="text-left sm:text-right">
-                            <p class="text-[8px] md:text-[10px] font-black uppercase text-gray-400 tracking-widest">Estado Global</p>
-                            <p class="text-xs md:text-sm font-bold text-green-500 flex items-center gap-2 sm:justify-end">
-                                <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                                Estable
+                    <div class="flex items-center gap-4 bg-white/50 dark:bg-white/[0.03] p-4 rounded-[2rem] border border-slate-200 dark:border-white/5 backdrop-blur-xl shadow-sm w-full sm:w-auto">
+                        <div class="text-left sm:text-right px-2">
+                            <p class="text-[9px] font-black uppercase text-slate-400 tracking-widest">Estado Global</p>
+                            <p class="text-xs font-black text-emerald-500 flex items-center gap-2 sm:justify-end">
+                                <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                                ESTABLE
                             </p>
                         </div>
-                        <div class="h-8 w-px bg-black/10 dark:bg-white/10 mx-1 md:mx-2 hidden xs:block"></div>
-                        <div class="flex -space-x-2 md:-space-x-3">
-                            <div class="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-teal-500/20 border-2 border-white dark:border-gray-900 flex items-center justify-center text-sm md:text-lg" title="Territorios">🗺️</div>
-                            <div class="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-blue-500/20 border-2 border-white dark:border-gray-900 flex items-center justify-center text-sm md:text-lg" title="Conductores">👤</div>
-                            <div class="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-amber-500/20 border-2 border-white dark:border-gray-900 flex items-center justify-center text-sm md:text-lg" title="Registros">📞</div>
+                        <div class="h-8 w-px bg-slate-200 dark:bg-white/10 mx-1"></div>
+                        <div class="flex -space-x-3">
+                            <div class="w-10 h-10 rounded-xl bg-primary/10 border-2 border-white dark:border-slate-900 flex items-center justify-center text-primary shadow-sm" title="Territorios"><i class="fas fa-map"></i></div>
+                            <div class="w-10 h-10 rounded-xl bg-indigo-500/10 border-2 border-white dark:border-slate-900 flex items-center justify-center text-indigo-500 shadow-sm" title="Conductores"><i class="fas fa-user-tie"></i></div>
+                            <div class="w-10 h-10 rounded-xl bg-amber-500/10 border-2 border-white dark:border-slate-900 flex items-center justify-center text-amber-600 shadow-sm" title="Registros"><i class="fas fa-phone-alt"></i></div>
                         </div>
                     </div>
                 </header>
 
-                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     <!-- Control Panel (Left Column) -->
-                    <div class="lg:col-span-5 flex flex-col gap-6 w-full min-w-0">
+                    <div class="lg:col-span-5 flex flex-col gap-8 w-full">
                         <!-- Stats Grid -->
-                        <div class="grid grid-cols-3 gap-2 md:gap-4 w-full">
-                            <div class="bg-white dark:bg-white/5 p-3 md:p-4 rounded-2xl md:rounded-3xl border border-black/5 dark:border-white/5 text-center flex flex-col items-center justify-center min-w-0 overflow-hidden">
-                                <p class="text-[8px] md:text-[9px] font-bold text-gray-400 uppercase mb-1 truncate w-full">Terrenos</p>
-                                <p class="text-lg md:text-xl font-black text-teal-600 truncate w-full">${tCount}</p>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div class="modern-card group !p-4 border-slate-100 dark:border-white/5 text-center flex flex-col items-center justify-center transition-all hover:bg-primary/5">
+                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Territorios</p>
+                                <p class="text-2xl font-black text-primary tabular-nums">${tCount}</p>
                             </div>
-                            <div class="bg-white dark:bg-white/5 p-3 md:p-4 rounded-2xl md:rounded-3xl border border-black/5 dark:border-white/5 text-center flex flex-col items-center justify-center min-w-0 overflow-hidden">
-                                <p class="text-[8px] md:text-[9px] font-bold text-gray-400 uppercase mb-1 truncate w-full">Equipos</p>
-                                <p class="text-lg md:text-xl font-black text-blue-600 truncate w-full">${cCount}</p>
+                            <div class="modern-card group !p-4 border-slate-100 dark:border-white/5 text-center flex flex-col items-center justify-center transition-all hover:bg-indigo-500/5">
+                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Conductores</p>
+                                <p class="text-2xl font-black text-indigo-500 tabular-nums">${cCount}</p>
                             </div>
-                            <div class="bg-white dark:bg-white/5 p-3 md:p-4 rounded-2xl md:rounded-3xl border border-black/5 dark:border-white/5 text-center flex flex-col items-center justify-center min-w-0 overflow-hidden">
-                                <p class="text-[8px] md:text-[9px] font-bold text-gray-400 uppercase mb-1 truncate w-full">Líneas</p>
-                                <p class="text-lg md:text-xl font-black text-amber-600 truncate w-full">${pCount}</p>
+                            <div class="modern-card group !p-4 border-slate-100 dark:border-white/5 text-center flex flex-col items-center justify-center transition-all hover:bg-amber-500/5">
+                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Teléfonos</p>
+                                <p class="text-2xl font-black text-amber-500 tabular-nums">${pCount}</p>
                             </div>
                         </div>
 
                         <!-- Main Actions -->
-                        <div class="p-4 md:p-6 bg-white/50 dark:bg-white/5 rounded-3xl border border-black/5 dark:border-white/5 shadow-xl space-y-4">
-                            <h4 class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Herramientas Nucleares</h4>
+                        <div class="p-8 bg-white/50 dark:bg-white/[0.03] rounded-[2.5rem] border border-slate-200 dark:border-white/5 shadow-xl space-y-6 backdrop-blur-xl">
+                            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
+                                <i class="fas fa-microchip opacity-30"></i> Herramientas de Núcleo
+                            </h4>
                             
-                            <button id="btn-smart-repair" class="w-full group relative overflow-hidden bg-gradient-to-br from-amber-500 to-orange-600 p-px rounded-xl md:rounded-2xl shadow-lg shadow-orange-500/10 transition-all">
-                                <div class="bg-[#12141c] hover:bg-transparent transition-colors p-3 md:p-4 rounded-xl md:rounded-2xl flex items-center justify-between">
-                                    <div class="text-left">
-                                        <p class="text-[11px] md:text-xs font-black text-white group-hover:text-black">REPARACIÓN CUÁNTICA</p>
-                                        <p class="text-[8px] md:text-[9px] text-orange-400/80 group-hover:text-black/60 font-medium">✨ Motor avanzado</p>
+                            <button id="btn-smart-repair" class="w-full group relative overflow-hidden bg-primary p-[1.5px] rounded-2xl shadow-xl shadow-primary/20 transition-all hover:-translate-y-1 active:scale-95">
+                                <div class="bg-white dark:bg-[#0f1420] group-hover:bg-transparent transition-colors p-5 rounded-2xl flex items-center justify-between text-left">
+                                    <div>
+                                        <p class="text-[11px] font-black text-primary group-hover:text-white uppercase tracking-widest">Reparación Cuántica</p>
+                                        <p class="text-[9px] text-slate-500 group-hover:text-white/70 font-bold mt-0.5">Diagnóstico profundo y limpieza total</p>
                                     </div>
-                                    <span class="text-lg md:text-xl group-hover:rotate-12 transition-transform">⚡</span>
+                                    <span class="text-xl text-primary group-hover:text-white transition-transform group-hover:scale-125 group-hover:rotate-12">
+                                        <i class="fas fa-bolt-lightning"></i>
+                                    </span>
                                 </div>
                             </button>
 
-                            <button id="btn-rebuild-history" class="w-full flex items-center gap-3 md:gap-4 p-3 md:p-4 bg-white dark:bg-white/5 rounded-xl md:rounded-2xl border border-black/5 dark:border-white/5 hover:bg-teal-500/5 transition-all text-left">
-                                <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-teal-500/10 flex items-center justify-center text-teal-500 text-sm md:text-lg">🧹</div>
-                                <div>
-                                    <p class="text-[10px] md:text-xs font-black text-gray-800 dark:text-gray-100 uppercase tracking-wider">Sincronizar S-13</p>
-                                    <p class="text-[8px] md:text-[9px] text-gray-500">Recuperar historial</p>
-                                </div>
-                            </button>
-
-                            <div class="grid grid-cols-2 gap-2 md:gap-3">
-                                <button id="btn-backup-json" class="flex flex-col items-center justify-center gap-1 md:gap-2 p-3 md:p-4 bg-white dark:bg-white/5 rounded-xl md:rounded-2xl border border-black/5 dark:border-white/5 hover:bg-blue-500/5 transition-all">
-                                    <span class="text-lg md:text-xl">📥</span>
-                                    <span class="text-[8px] md:text-[9px] font-black uppercase text-gray-500 tracking-wider">Backup</span>
+                            <div class="grid grid-cols-1 gap-3">
+                                <button id="btn-rebuild-history" class="w-full flex items-center gap-5 p-5 bg-white dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 hover:border-primary/30 transition-all text-left group">
+                                    <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary text-lg group-hover:scale-110 transition-transform">
+                                        <i class="fas fa-sync"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-black text-slate-700 dark:text-gray-100 uppercase tracking-wide">Sincronizar S-13</p>
+                                        <p class="text-[9px] text-slate-400 font-bold">Recuperar historial desde programas</p>
+                                    </div>
                                 </button>
-                                <label class="flex flex-col items-center justify-center gap-1 md:gap-2 p-3 md:p-4 bg-white dark:bg-white/5 rounded-xl md:rounded-2xl border border-black/5 dark:border-white/5 hover:bg-purple-500/5 transition-all cursor-pointer">
-                                    <span class="text-lg md:text-xl">📤</span>
-                                    <span class="text-[8px] md:text-[9px] font-black uppercase text-gray-500 tracking-wider">Restore</span>
-                                    <input type="file" id="input-restore-json" class="hidden" accept=".json">
-                                </label>
+
+                                <div class="grid grid-cols-2 gap-3">
+                                    <button id="btn-backup-json" class="flex flex-col items-center justify-center gap-3 p-5 bg-white dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 hover:border-indigo-500/30 transition-all group">
+                                        <i class="fas fa-file-export text-xl text-indigo-500 group-hover:scale-110 transition-transform"></i>
+                                        <span class="text-[9px] font-black uppercase text-slate-400 tracking-widest">Backup</span>
+                                    </button>
+                                    <label class="flex flex-col items-center justify-center gap-3 p-5 bg-white dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 hover:border-purple-500/30 transition-all cursor-pointer group">
+                                        <i class="fas fa-file-import text-xl text-purple-500 group-hover:scale-110 transition-transform"></i>
+                                        <span class="text-[9px] font-black uppercase text-slate-400 tracking-widest">Restore</span>
+                                        <input type="file" id="input-restore-json" class="hidden" accept=".json">
+                                    </label>
+                                </div>
                             </div>
 
-                            <button id="btn-ai-audit" class="w-full flex items-center gap-3 md:gap-4 p-3 md:p-4 bg-violet-500/10 rounded-xl md:rounded-2xl border border-violet-500/20 hover:bg-violet-500/20 transition-all text-left">
-                                <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-violet-600 flex items-center justify-center text-white text-sm md:text-lg">🤖</div>
-                                <div>
-                                    <p class="text-[10px] md:text-xs font-black text-violet-600 dark:text-violet-400 uppercase tracking-wider">Auditoría IA (Gemini)</p>
-                                    <p class="text-[8px] md:text-[9px] text-gray-500">Detección de inconsistencias</p>
+                            <button id="btn-ai-audit" class="w-full flex items-center gap-5 p-5 bg-indigo-500/5 rounded-2xl border border-indigo-500/10 hover:border-indigo-500/40 transition-all text-left group">
+                                <div class="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center text-white text-lg group-hover:scale-110 group-hover:rotate-12 transition-transform shadow-lg shadow-indigo-600/20">
+                                    <i class="fas fa-brain"></i>
                                 </div>
-                            </button>
-                            <button id="btn-fix-territories" class="w-full flex items-center gap-3 md:gap-4 p-3 md:p-4 bg-white dark:bg-white/5 rounded-xl md:rounded-2xl border border-black/5 dark:border-white/5 hover:bg-indigo-500/5 transition-all text-left">
-                                <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-500 text-sm md:text-lg">🔢</div>
                                 <div>
-                                    <p class="text-[10px] md:text-xs font-black text-gray-800 dark:text-gray-100 uppercase tracking-wider">Normalizar</p>
-                                    <p class="text-[8px] md:text-[9px] text-gray-500">Formateo de datos</p>
+                                    <p class="text-xs font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-wide">Auditoría IA (Gemini)</p>
+                                    <p class="text-[9px] text-slate-400 font-bold">Detección heurística de discrepancias</p>
                                 </div>
                             </button>
 
-                            <button id="btn-ai-predict" class="w-full flex items-center gap-3 md:gap-4 p-3 md:p-4 bg-emerald-500/10 rounded-xl md:rounded-2xl border border-emerald-500/20 hover:bg-emerald-500/20 transition-all text-left">
-                                <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-emerald-600 flex items-center justify-center text-white text-sm md:text-lg">📈</div>
-                                <div>
-                                    <p class="text-[10px] md:text-xs font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Predicción IA (Gemini)</p>
-                                    <p class="text-[8px] md:text-[9px] text-gray-500">Sugerencia de asignaciones</p>
-                                </div>
-                            </button>
+                            <div class="grid grid-cols-2 gap-3">
+                                <button id="btn-fix-territories" class="flex items-center gap-4 p-4 bg-white dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 hover:border-teal-500/30 transition-all text-left group">
+                                    <div class="w-10 h-10 rounded-xl bg-teal-500/10 flex items-center justify-center text-teal-500 text-sm group-hover:scale-110 transition-transform">
+                                        <i class="fas fa-spell-check"></i>
+                                    </div>
+                                    <p class="text-[9px] font-black text-slate-700 dark:text-white uppercase tracking-widest leading-tight">Normalizar</p>
+                                </button>
+                                <button id="btn-ai-predict" class="flex items-center gap-4 p-4 bg-emerald-500/5 rounded-2xl border border-emerald-500/10 hover:border-emerald-500/40 transition-all text-left group">
+                                    <div class="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white text-sm group-hover:scale-110 transition-transform shadow-md">
+                                        <i class="fas fa-wand-magic-sparkles"></i>
+                                    </div>
+                                    <p class="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest leading-tight">Predicción</p>
+                                </button>
+                            </div>
                         </div>
 
                         <!-- System Version Info Card -->
-                        <div class="bg-gradient-to-br from-teal-500 to-emerald-600 p-5 md:p-6 rounded-3xl shadow-xl text-white relative overflow-hidden group w-full mt-4">
-                           <div class="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-125 transition-transform duration-1000">
-                               <svg class="w-24 h-24 md:w-32 md:h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg>
+                        <div class="bg-gradient-to-br from-slate-900 to-slate-800 p-8 rounded-[2.5rem] shadow-2xl shadow-slate-900/40 text-white relative overflow-hidden group">
+                           <div class="absolute -right-10 -bottom-10 opacity-5 group-hover:scale-125 transition-transform duration-1000">
+                               <i class="fas fa-microchip text-[12rem]"></i>
                            </div>
                            <div class="relative z-10">
-                               <h4 class="text-[8px] md:text-[10px] font-black uppercase tracking-widest opacity-80 mb-1 truncate">Núcleo del Sistema</h4>
-                               <p class="text-xl md:text-2xl font-black mb-4 md:mb-6">Versión ${appVersion || '3.1.5'}</p>
+                               <p class="text-[9px] font-black uppercase tracking-[0.4em] text-slate-400 mb-2">Core Kernel Version</p>
+                               <h4 class="text-4xl font-black mb-10 tracking-tighter tabular-nums">${appVersion || '3.6.0'} (DEPLOY TEST)</h4>
                                
-                               <div class="grid grid-cols-2 gap-2 md:gap-3">
-                                   <button id="btn-force-update" class="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white py-2 rounded-lg md:rounded-xl text-[8px] md:text-[9px] font-black uppercase tracking-wider transition-all">Reinstalar</button>
-                                   <button id="btn-set-remote-version" class="bg-black/20 hover:bg-black/40 backdrop-blur-md text-white py-2 rounded-lg md:rounded-xl text-[8px] md:text-[9px] font-black uppercase tracking-wider transition-all">Forzar</button>
+                               <div class="flex flex-col gap-3">
+                                   <div class="flex flex-col sm:flex-row items-center gap-3">
+                                       <button id="btn-force-update" class="w-full sm:flex-1 bg-white/10 hover:bg-white text-white hover:text-slate-950 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-white/10 active:scale-95">Reinstalar</button>
+                                       <button id="btn-clear-cache" class="w-full sm:flex-1 bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-red-500/20 active:scale-95">Borrar Caché</button>
+                                   </div>
+                                   <button id="btn-set-remote-version" class="w-full bg-emerald-500/20 hover:bg-emerald-500 text-emerald-500 hover:text-white py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-emerald-500/20 active:scale-95 flex items-center justify-center gap-2">
+                                       <i class="fas fa-cloud-arrow-up"></i>
+                                       Publicar v3.6.3 como obligatoria
+                                   </button>
                                </div>
                            </div>
                         </div>
@@ -2428,6 +3448,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
 
                     <!-- Terminal / Console Area (Right Column) -->
                     <div class="lg:col-span-7 flex flex-col gap-6">
+
                         <div class="flex-1 bg-[#0b0c10] rounded-3xl border border-white/10 shadow-3xl flex flex-col overflow-hidden min-h-[400px] md:min-h-[500px] relative">
                             <!-- Terminal Header -->
                             <div class="bg-white/5 border-b border-white/5 p-4 flex items-center justify-between">
@@ -2448,7 +3469,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                                 <div class="space-y-1" id="console-output-stream">
                                     <div class="text-teal-400/50 mb-4 animate-pulse">_ CONFIGURANDO ENTORNO DE DIAGNÓSTICO...</div>
                                     <div class="text-gray-600">> Inicializando módulos de integridad de Firebase...</div>
-                                    <div class="text-gray-600">> Conexión establecida con clúster v3.1.5.</div>
+                                    <div class="text-gray-600">> Conexión establecida con clúster v3.2.1.</div>
                                     <div class="text-gray-600 text-[9px] opacity-40 italic mt-2">Ready for operation. System health: 100% stable.</div>
                                 </div>
                             </div>
@@ -2483,7 +3504,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                     </div>
                 </div>
             </div>
-        `;
+    `;
 
         // -- Consolidated UI Handlers --
         const oStream = container.querySelector('#console-output-stream');
@@ -2496,8 +3517,8 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
             const entry = document.createElement('div');
             const colorClass = type === 'error' ? 'text-red-400' : type === 'success' ? 'text-green-400' : type === 'warning' ? 'text-amber-400' : 'text-teal-400/80';
             const timestamp = new Date().toLocaleTimeString('es-ES', { hour12: false });
-            entry.className = `flex gap-3 py-0.5 ${colorClass}`;
-            entry.innerHTML = `<span class="opacity-30 flex-shrink-0">[${timestamp}]</span> <span>${msg}</span>`;
+            entry.className = `flex gap - 3 py - 0.5 ${colorClass} `;
+            entry.innerHTML = `<span class="opacity-30 flex-shrink-0"> [${timestamp}]</span> <span>${msg}</span>`;
             oStream.appendChild(entry);
             const consoleDiv = container.querySelector('#maint-console');
             consoleDiv.scrollTop = consoleDiv.scrollHeight;
@@ -2505,8 +3526,8 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
 
         const updateProgress = (pc, status) => {
             progressOverlay.classList.remove('hidden');
-            progressBar.style.width = `${pc}%`;
-            progressPc.innerText = `${pc}%`;
+            progressBar.style.width = `${pc}% `;
+            progressPc.innerText = `${pc}% `;
             if (status) progressStatus.innerText = status;
         };
 
@@ -2540,7 +3561,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                     showNotification(`Sincronización completada: ${count} registros.`);
                     setTimeout(() => progressOverlay.classList.add('hidden'), 2000);
                 } catch (err) {
-                    logToConsole(`❌ ERROR: ${err.message}`, 'error');
+                    logToConsole(`❌ ERROR: ${err.message} `, 'error');
                     updateProgress(0, "Error crítico");
                 }
             });
@@ -2573,7 +3594,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                 logToConsole("📥 Backup generado y descargado correctamente.", "success");
                 setTimeout(() => progressOverlay.classList.add('hidden'), 2000);
             } catch (err) {
-                logToConsole(`❌ ERROR: ${err.message}`, "error");
+                logToConsole(`❌ ERROR: ${err.message} `, "error");
             }
         });
 
@@ -2590,14 +3611,14 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                     try {
                         const data = JSON.parse(event.target.result);
                         await restoreSystemBackup(data, (msg, progress) => {
-                            logToConsole(`[Restore] ${msg}`);
+                            logToConsole(`[Restore] ${msg} `);
                             updateProgress(progress, msg);
                         });
                         logToConsole("✅ SISTEMA RESTAURADO COMPLETAMENTE", "success");
                         updateProgress(100, "Finalizado");
                         setTimeout(() => window.location.reload(), 1500);
                     } catch (err) {
-                        logToConsole(`❌ ERROR: ${err.message}`, "error");
+                        logToConsole(`❌ ERROR: ${err.message} `, "error");
                         updateProgress(0, "Fallo en restauración");
                     }
                 };
@@ -2628,8 +3649,8 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
 
         // 5. Force All Update
         bind('btn-set-remote-version', async (btn) => {
-            showCustomConfirm(`¿Publicar v${appVersion} como versión obligatoria?`, async () => {
-                logToConsole(`Enviando señal de actualización remota (v${appVersion})...`);
+            showCustomConfirm(`¿Publicar v${appVersion} como versión obligatoria ? `, async () => {
+                logToConsole(`Enviando señal de actualización remota(v${appVersion})...`);
                 await setSystemVersion(appVersion);
                 logToConsole("🌐 Versión remota sincronizada.", "success");
                 showNotification("Configuración de flota actualizada.");
@@ -2648,11 +3669,11 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                 });
 
                 logToConsole(`✅ PROTOCOLO FINALIZADO`, 'success');
-                logToConsole(`> Historial sincronizado: ${report.rebuiltHistory}`);
-                logToConsole(`> Teléfonos corregidos: ${report.fixedPhones}`);
+                logToConsole(`> Historial sincronizado: ${report.rebuiltHistory} `);
+                logToConsole(`> Teléfonos corregidos: ${report.fixedPhones} `);
 
                 if (report.details && report.details.length > 0) {
-                    report.details.slice(0, 10).forEach(d => logToConsole(`• ${d}`, 'info'));
+                    report.details.slice(0, 10).forEach(d => logToConsole(`• ${d} `, 'info'));
                     if (report.details.length > 10) logToConsole(`... y ${report.details.length - 10} correcciones adicionales.`);
                 }
 
@@ -2660,7 +3681,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                 showNotification("Reparación completada con éxito.");
                 setTimeout(() => progressOverlay.classList.add('hidden'), 3000);
             } catch (err) {
-                logToConsole(`❌ ERROR CRÍTICO: ${err.message}`, 'error');
+                logToConsole(`❌ ERROR CRÍTICO: ${err.message} `, 'error');
                 updateProgress(0, "Interrupción de sistema");
             }
         });
@@ -2679,16 +3700,16 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                         fixed++;
                         logToConsole(`Normalizado: #${num} (Espacios corregidos)`);
                     }
-                    if (i % 5 === 0) updateProgress(10 + Math.floor((i / terrs.length) * 80), `Analizando #${num}`);
+                    if (i % 5 === 0) updateProgress(10 + Math.floor((i / terrs.length) * 80), `Analizando #${num} `);
                 }
                 updateProgress(100, "Normalización completa");
-                logToConsole(`✅ Operación finalizada. ${fixed} registros normalizados.`, 'success');
+                logToConsole(`✅ Operación finalizada.${fixed} registros normalizados.`, 'success');
                 setTimeout(() => {
                     progressOverlay.classList.add('hidden');
                     loadSubTab('mantenimiento', container, config, appVersion);
                 }, 2000);
             } catch (err) {
-                logToConsole(`❌ Error: ${err.message}`, 'error');
+                logToConsole(`❌ Error: ${err.message} `, 'error');
                 updateProgress(0, "Fallo");
             }
         });
@@ -2722,7 +3743,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
 
                 showNotification("Auditoría IA finalizada con éxito.");
             } catch (err) {
-                logToConsole(`❌ ERROR IA: ${err.message}`, 'error');
+                logToConsole(`❌ ERROR IA: ${err.message} `, 'error');
                 updateProgress(0, "Interrupción de inteligencia");
             }
         });
@@ -2744,7 +3765,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                     if (line.trim()) logToConsole(line.trim(), 'info');
                 });
             } catch (err) {
-                logToConsole(`❌ Error IA: ${err.message}`, 'error');
+                logToConsole(`❌ Error IA: ${err.message} `, 'error');
                 updateProgress(0, "Fallo en predicción");
             }
         });
@@ -2753,30 +3774,57 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
         const territorios = await getTerritorios();
         territorios.sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true, sensitivity: 'base' }));
         container.innerHTML = `
-    <div class="flex justify-between items-center mb-4" >
-                <h3 class="font-semibold text-lg text-teal-800 dark:text-teal-100">Gestión de Territorios</h3>
-                <button id="btn-add-territorio" class="bg-teal-600 text-sm px-4 py-2 rounded-lg hover:bg-teal-500">+ Agregar Territorio</button>
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-6 p-2">
+                <div>
+                    <h3 class="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Gestión de Territorios</h3>
+                    <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] mt-1 ml-1">Configuración técnica de mapas y sectores</p>
+                </div>
+                <button id="btn-add-territorio" class="w-full sm:w-auto bg-primary hover:bg-primary-light text-white px-8 py-4 rounded-[1.5rem] text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-3">
+                    <i class="fas fa-map-marked-alt"></i> Agregar Territorio
+                </button>
             </div>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        ${territorios.map(t => `
-                    <div class="bg-white dark:bg-black/40 p-4 rounded-lg border border-gray-200 dark:border-white/10 relative group shadow-sm dark:shadow-none">
-                        <div class="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                            <button class="text-blue-500 hover:text-blue-400 bg-white/90 dark:bg-black/50 p-1.5 rounded shadow-sm" onclick="window.editTerritorio('${t.id}')">✏️</button>
-                            <button class="text-red-500 hover:text-red-400 bg-white/90 dark:bg-black/50 p-1.5 rounded shadow-sm" onclick="window.deleteTerritorio('${t.id}')">🗑️</button>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 p-2">
+                ${territorios.map(t => `
+                    <div class="bg-white dark:bg-[#151515] rounded-[2.5rem] p-6 border border-slate-100 dark:border-white/5 relative group shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden flex flex-col h-full">
+                        <div class="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+                        
+                        <!-- Mini Actions Overlay (Visible on Mobile, Hover on Desktop) -->
+                        <div class="absolute top-4 right-4 flex gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 lg:translate-x-4 lg:group-hover:translate-x-0 transition-all z-20">
+                            <button class="w-10 h-10 bg-white dark:bg-[#222] text-blue-500 rounded-xl shadow-lg border border-slate-100 dark:border-white/10 hover:scale-110 transition-transform flex items-center justify-center active:scale-95" onclick="window.editTerritorio('${t.id}')" title="Editar">
+                                <i class="fas fa-edit text-xs"></i>
+                            </button>
+                            <button class="w-10 h-10 bg-white dark:bg-[#222] text-rose-500 rounded-xl shadow-lg border border-slate-100 dark:border-white/10 hover:scale-110 transition-transform flex items-center justify-center active:scale-95" onclick="window.deleteTerritorio('${t.id}')" title="Eliminar">
+                                <i class="fas fa-trash-alt text-xs"></i>
+                            </button>
                         </div>
-                        <div class="h-32 bg-white dark:bg-black rounded mb-3 overflow-hidden border border-gray-100 dark:border-white/5 flex items-center justify-center">
-                            <img src="${formatMapUrl(t.imagen) || 'https://via.placeholder.com/300x200?text=No+Map'}" class="w-full h-full object-contain">
+
+                        <!-- Map Preview -->
+                        <div class="h-44 bg-slate-50 dark:bg-black/40 rounded-[2rem] mb-6 overflow-hidden border border-slate-100 dark:border-white/5 flex items-center justify-center relative shadow-inner group-hover:shadow-none transition-shadow">
+                            <img src="${formatMapUrl(t.imagen) || 'https://via.placeholder.com/300x200?text=No+Map'}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                         </div>
-                        <div class="font-black text-teal-600 dark:text-teal-300 text-lg leading-tight mb-1">Territorio ${t.numero}</div>
-                        <div class="text-[10px] text-gray-400 dark:text-gray-500 uppercase font-bold truncate tracking-tighter" title="${t.manzanas || ''}">${t.manzanas || 'Sin descripción'}</div>
+
+                        <!-- Content Info -->
+                        <div class="relative z-10 flex-1 flex flex-col">
+                            <div class="flex items-center gap-3 mb-2">
+                                <span class="bg-primary/10 text-primary text-[10px] font-black px-3 py-1 rounded-lg uppercase tracking-widest shadow-inner">#${t.numero}</span>
+                                <h4 class="font-black text-slate-800 dark:text-white uppercase tracking-tight text-lg line-clamp-1">Territorio ${t.numero}</h4>
+                            </div>
+                            <div class="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-black tracking-[0.1em] mt-auto leading-relaxed border-l-2 border-slate-200 dark:border-white/10 pl-3 py-1" title="${t.manzanas || ''}">
+                                ${t.manzanas ? t.manzanas : 'Sin descripción de sectores'}
+                            </div>
+                        </div>
+
+                        <!-- Decoration -->
+                        <div class="absolute -right-10 -bottom-10 w-32 h-32 bg-primary/5 blur-[40px] rounded-full pointer-events-none group-hover:bg-primary/10 transition-all duration-700"></div>
                     </div>
                 `).join('')}
-    </div>
+            </div>
 `;
 
         document.getElementById('btn-add-territorio').addEventListener('click', () => {
             showModal(`
-    <h3 class="text-xl font-bold mb-4 text-teal-600 dark:text-teal-400">Nuevo Territorio</h3>
+    <h3 class="text-xl font-bold mb-4 text-teal-600 dark:text-teal-400"> Nuevo Territorio</h3>
                 <div class="space-y-4">
                     <div>
                         <label class="block text-xs uppercase text-gray-700 dark:text-gray-400 mb-1 font-bold">Número</label>
@@ -2875,46 +3923,48 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
             if (!t) return;
 
             showModal(`
-                <div class="flex flex-col h-full">
-                    <header class="shrink-0 flex items-center justify-between bg-gradient-to-r from-teal-600 to-emerald-700 p-8 text-white relative overflow-hidden">
-                        <div class="absolute inset-0 bg-white/5 backdrop-blur-3xl"></div>
-                        <div class="relative z-10 flex items-center gap-5">
-                            <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-[2rem] flex items-center justify-center text-3xl shadow-2xl border border-white/30 animate-float">🗺️</div>
+    <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden">
+                    <header class="shrink-0 bg-primary p-8 text-white relative overflow-hidden">
+                        <div class="absolute inset-0 bg-white/10 backdrop-blur-3xl"></div>
+                        <div class="relative z-10 flex items-center gap-6">
+                            <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center text-3xl shadow-2xl border border-white/30">
+                                <i class="fas fa-map-marked-alt"></i>
+                            </div>
                             <div>
-                                <h3 class="text-2xl font-black tracking-tight leading-none mb-1">Editar Territorio</h3>
-                                <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Identificador ${t.numero}</p>
+                                <h3 class="text-2xl font-black uppercase tracking-tight leading-none mb-1">Editar Territorio</h3>
+                                <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Identificador #${t.numero}</p>
                             </div>
                         </div>
                     </header>
 
-                    <div class="flex-1 p-10 space-y-8 overflow-y-auto custom-scrollbar">
+                    <div class="flex-1 p-8 space-y-8 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-black/20">
                         <div class="space-y-6">
                             <div class="space-y-3">
-                                <label class="label-premium">Número de Territorio</label>
-                                <input type="text" id="edit-t-num" value="${t.numero}" class="input-premium">
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Número de Territorio</label>
+                                <input type="text" id="edit-t-num" value="${t.numero}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-sm font-bold focus:border-primary outline-none shadow-sm transition-all text-slate-700 dark:text-white">
                             </div>
                             <div class="space-y-3">
-                                <label class="label-premium">Manzanas / Sectores</label>
-                                <input type="text" id="edit-t-manzanas" value="${t.manzanas || ''}" placeholder="Ej: 1, 2, 3..." class="input-premium">
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Manzanas / Sectores</label>
+                                <input type="text" id="edit-t-manzanas" value="${t.manzanas || ''}" placeholder="Ej: 1, 2, 3..." class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-sm font-bold focus:border-primary outline-none shadow-sm transition-all text-slate-700 dark:text-white">
                             </div>
 
                             <div class="space-y-3">
-                                <label class="label-premium">Imagen del Mapa</label>
-                                <div class="bg-gray-50 dark:bg-black/20 p-4 rounded-2xl border border-dashed border-gray-300 dark:border-white/10">
-                                    <div class="flex items-center gap-4">
-                                        <label class="cursor-pointer bg-teal-600 hover:bg-teal-500 text-white px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-teal-500/20 active:scale-95 flex items-center gap-2">
-                                            <span>🔄 Cambiar</span>
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Imagen del Mapa</label>
+                                <div class="bg-white dark:bg-white/5 p-6 rounded-3xl border border-dashed border-slate-200 dark:border-white/10">
+                                    <div class="flex items-center gap-6">
+                                        <label class="cursor-pointer bg-primary hover:bg-primary-light text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-primary/20 active:scale-95 flex items-center gap-3">
+                                            <i class="fas fa-camera"></i> <span>Actualizar</span>
                                             <input type="file" id="edit-t-file" accept="image/*" class="hidden">
                                         </label>
                                         <div class="flex flex-col min-w-0">
-                                            <span id="file-name-edit" class="text-[10px] text-gray-500 font-bold uppercase truncate">Mantener actual</span>
-                                            <p class="text-[8px] text-gray-400">Dimensión recomendada: 1200x800px</p>
+                                            <span id="file-name-edit" class="text-[10px] text-slate-500 font-black uppercase truncate">Mantener actual</span>
+                                            <p class="text-[9px] text-slate-400 mt-0.5 uppercase tracking-widest font-bold">Máximo 800KB</p>
                                         </div>
                                     </div>
                                     <input type="hidden" id="edit-t-base64" value="${t.imagen || ''}">
                                     
-                                    <div id="preview-edit-container" class="mt-4 ${t.imagen ? '' : 'hidden'}">
-                                         <div class="relative rounded-xl overflow-hidden border border-black/5 dark:border-white/10 bg-white">
+                                    <div id="preview-edit-container" class="mt-6 ${t.imagen ? '' : 'hidden'}">
+                                         <div class="relative rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 bg-white dark:bg-black/40">
                                              <img id="preview-edit" src="${t.imagen || ''}" class="w-full h-auto max-h-48 object-contain mx-auto">
                                          </div>
                                     </div>
@@ -2923,18 +3973,18 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                         </div>
                     </div>
 
-                    <div class="shrink-0 p-6 bg-gray-50 dark:bg-black/40 border-t border-black/5 dark:border-white/5">
-                        <button id="update-territorio" class="w-full bg-teal-600 py-4 rounded-2xl text-white font-black shadow-xl shadow-teal-500/20 hover:shadow-teal-500/40 hover:scale-[1.01] active:scale-[0.99] transition-all uppercase tracking-[0.2em] text-[11px]">
-                            Actualizar Territorio
+                    <div class="shrink-0 p-6 bg-white dark:bg-black/40 border-t border-slate-100 dark:border-white/5">
+                        <button id="update-territorio" class="w-full bg-primary py-5 rounded-2xl text-white text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 hover:shadow-primary/40 hover:scale-[1.01] active:scale-[0.99] transition-all">
+                            Confirmar Cambios
                         </button>
                     </div>
-                </div>`, async (modal) => {
-                // File Handler
-                const fileInput = document.getElementById('edit-t-file');
-                const nameDisplay = document.getElementById('file-name-edit');
-                const previewContainer = document.getElementById('preview-edit-container');
-                const previewImg = document.getElementById('preview-edit');
-                const base64Input = document.getElementById('edit-t-base64');
+                </div> `, async (modal) => {
+                const fileInput = modal.querySelector('#edit-t-file');
+                const nameDisplay = modal.querySelector('#file-name-edit');
+                const previewContainer = modal.querySelector('#preview-edit-container');
+                const previewImg = modal.querySelector('#preview-edit');
+                const base64Input = modal.querySelector('#edit-t-base64');
+                const updateBtn = modal.querySelector('#update-territorio');
 
                 fileInput.addEventListener('change', (e) => {
                     const file = e.target.files[0];
@@ -2956,25 +4006,24 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                     }
                 });
 
-                document.getElementById('update-territorio').addEventListener('click', async () => {
-                    const btn = document.getElementById('update-territorio');
-                    btn.textContent = "Actualizando...";
-                    btn.disabled = true;
+                updateBtn.addEventListener('click', async () => {
+                    updateBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Actualizando...';
+                    updateBtn.disabled = true;
 
                     try {
                         await updateTerritorio(id, {
-                            numero: document.getElementById('edit-t-num').value,
-                            manzanas: document.getElementById('edit-t-manzanas').value,
+                            numero: modal.querySelector('#edit-t-num').value.trim(),
+                            manzanas: modal.querySelector('#edit-t-manzanas').value.trim(),
                             imagen: base64Input.value
                         });
                         modal.classList.add('hidden');
                         loadSubTab('territorios', container, config, appVersion);
-                        showNotification("Territorio actualizado");
+                        showNotification("Territorio actualizado correctamente", "success");
                     } catch (err) {
                         console.error(err);
-                        showNotification("Error al actualizar", "error");
-                        btn.textContent = "Actualizar Cambios";
-                        btn.disabled = false;
+                        showNotification("Error al actualizar territorio", "error");
+                        updateBtn.textContent = "Confirmar Cambios";
+                        updateBtn.disabled = false;
                     }
                 });
             });
@@ -2990,7 +4039,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
             const disp = p.disponibilidad || [];
             if (!p.es_conductor) return '';
             if (disp.length === 0) return '<span class="text-[9px] text-gray-500 italic">Precedencia sin turnos</span>';
-            return `<button onclick="event.stopPropagation(); window.showPublicadorAvailability('${p.id}')" class="text-[9px] text-teal-600 dark:text-teal-300 bg-teal-500/10 hover:bg-teal-500/20 px-2 py-0.5 rounded border border-teal-500/20 underline decoration-teal-500/30 cursor-pointer transition-colors font-medium">Conductor: ${disp.length} turnos</button>`;
+            return `<button onclick = "event.stopPropagation(); window.showPublicadorAvailability('${p.id}')" class="text-[9px] text-teal-600 dark:text-teal-300 bg-teal-500/10 hover:bg-teal-500/20 px-2 py-0.5 rounded border border-teal-500/20 underline decoration-teal-500/30 cursor-pointer transition-colors font-medium"> Conductor: ${disp.length} turnos</button> `;
         };
 
         window.showPublicadorAvailability = (id) => {
@@ -3002,64 +4051,110 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                 const [da, sa] = a.split('_'), [db, sb] = b.split('_');
                 return (daysOrder[da] - daysOrder[db]) || (sa.localeCompare(sb));
             });
-            const listHtml = sorted.map(item => `<div class="flex justify-between p-2 border-b border-black/5 dark:border-white/5 last:border-0"><span class="text-sm font-bold text-gray-700 dark:text-gray-300">${item.split('_')[0]}</span><span class="text-[10px] font-bold uppercase text-teal-500">${shiftLabels[item.split('_')[1]] || item.split('_')[1]}</span></div>`).join('');
+            const listHtml = sorted.map(item => `
+    <div class="flex justify-between items-center p-4 border-b border-slate-100 dark:border-white/5 last:border-0 group hover:bg-white/50 dark:hover:bg-white/5 transition-colors">
+                    <span class="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-tight">${item.split('_')[0]}</span>
+                    <span class="text-[9px] font-black uppercase text-primary bg-primary/10 px-2 py-1 rounded-md tracking-widest border border-primary/20">
+                        ${shiftLabels[item.split('_')[1]] || item.split('_')[1]}
+                    </span>
+                </div> `).join('');
+
             showModal(`
-                <div class="flex flex-col h-full">
-                    <header class="shrink-0 flex items-center justify-between bg-teal-600 p-6 text-white shadow-lg">
-                        <div>
-                             <h3 class="text-xl font-black uppercase tracking-widest">Disponibilidad</h3>
-                             <p class="text-[9px] opacity-70 font-bold uppercase mt-1 tracking-[0.2em]">${p.nombre}</p>
+    <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[2rem] overflow-hidden">
+                    <header class="shrink-0 bg-primary p-6 text-white relative">
+                        <div class="absolute inset-0 bg-white/10 backdrop-blur-xl"></div>
+                        <div class="relative z-10 flex justify-between items-center">
+                            <div>
+                                 <h3 class="text-xl font-black uppercase tracking-tight">Disponibilidad</h3>
+                                 <p class="text-[9px] opacity-70 font-bold uppercase mt-1 tracking-[0.2em]">${p.nombre}</p>
+                            </div>
+                            <div class="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-xl shadow-lg border border-white/30">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
                         </div>
-                        <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-xl">📅</div>
                     </header>
-                    <div class="flex-1 p-6 overflow-y-auto">
-                        <div class="bg-gray-50 dark:bg-black/40 rounded-[2rem] border border-black/5 dark:border-white/10 overflow-hidden shadow-inner">
+                    <div class="flex-1 p-6 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-black/20">
+                        <div class="modern-card !p-0 overflow-hidden shadow-xl border-slate-200 dark:border-white/5">
                             ${listHtml}
                         </div>
                     </div>
-                    <div class="shrink-0 p-4 bg-gray-50 dark:bg-black/40 border-t border-black/5 dark:border-white/5">
-                        <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="w-full bg-white dark:bg-white/5 py-3 rounded-xl text-[10px] font-black text-gray-400 hover:text-teal-600 transition-colors uppercase tracking-[0.2em] border border-black/5 dark:border-white/5 shadow-sm">
-                            Cerrar Vista
-                        </button>
-                    </div>
-                </div>`, () => { });
+                </div>
+    `);
         };
 
         container.innerHTML = `
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-6 px-2">
                 <div>
-                    <h3 class="font-bold text-xl text-teal-800 dark:text-teal-100">Directorio de Personal</h3>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">Gestiona publicadores, conductores y administradores</p>
+                    <h3 class="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Directorio de Personal</h3>
+                    <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] mt-1 ml-1">Gestión centralizada de publicadores</p>
                 </div>
                 
-                <div class="flex items-center gap-4">
-                    <button id="btn-add-person" class="btn-premium px-6 py-2.5 rounded-xl text-sm font-black">+ Nuevo Registro</button>
+                <button id="btn-add-person" class="w-full sm:w-auto bg-primary hover:bg-primary-light text-white px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 transition-all active:scale-95 flex items-center justify-center gap-3">
+                    <i class="fas fa-plus"></i> Nuevo Registro
+                </button>
+            </div>
+
+            <div class="modern-card !p-0 overflow-hidden border-slate-200 dark:border-white/5 shadow-2xl">
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left border-collapse min-w-[600px]">
+                        <thead>
+                            <tr class="bg-slate-50 dark:bg-black/20 text-slate-400 text-[9px] font-black uppercase tracking-[0.2em] border-b border-slate-100 dark:border-white/5">
+                                <th class="p-6">Nombre y Apellido</th>
+                                <th class="p-6 text-center">Grupo</th>
+                                <th class="p-6 text-center">Rol / Estado</th>
+                                <th class="p-6 text-right">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 dark:divide-white/5">
+                            ${publicadores.map(p => `
+                                <tr class="group hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
+                                    <td class="p-6">
+                                        <div class="flex items-center gap-4">
+                                            <div class="w-10 h-10 rounded-xl bg-gradient-to-br ${p.genero === 'Mujer' ? 'from-rose-500 to-pink-500' : 'from-primary to-blue-600'} flex items-center justify-center text-white font-black text-sm shadow-lg group-hover:scale-110 transition-transform">
+                                                ${p.nombre.charAt(0)}
+                                            </div>
+                                            <div>
+                                                <p class="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-tight">${p.nombre}</p>
+                                                <p class="text-[9px] text-slate-400 font-mono">${p.telefono || 'SIN TELÉFONO'}</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="p-6 text-center">
+                                        <span class="text-[10px] font-black uppercase text-slate-400 bg-slate-100 dark:bg-white/5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 shadow-inner">
+                                            G-${p.grupo || '?'}
+                                        </span>
+                                    </td>
+                                    <td class="p-6">
+                                        <div class="flex flex-wrap items-center justify-center gap-2">
+                                            ${p.es_conductor ? `
+                                                <button onclick="event.stopPropagation(); window.showPublicadorAvailability('${p.id}')" class="text-[8px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full hover:bg-emerald-500 hover:text-white transition-all">
+                                                    <i class="fas fa-check-circle mr-1"></i> Conductor
+                                                </button>
+                                            ` : `
+                                                <span class="text-[8px] font-black uppercase tracking-widest text-slate-400 opacity-40">Publicador</span>
+                                            `}
+                                            ${p.privilegios?.includes('Administrador') ? `
+                                                <span class="text-[8px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-600 border border-amber-500/20 px-3 py-1 rounded-full">Admin</span>
+                                            ` : ''}
+                                        </div>
+                                    </td>
+                                    <td class="p-6">
+                                        <div class="flex items-center justify-end gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
+                                            <button onclick="window.editPerson('${p.id}')" class="w-9 h-9 flex items-center justify-center bg-white dark:bg-slate-800 text-slate-500 hover:text-primary rounded-xl border border-slate-200 dark:border-white/10 hover:border-primary/40 transition-all shadow-sm">
+                                                <i class="fas fa-edit text-[10px]"></i>
+                                            </button>
+                                            <button onclick="window.deletePerson('${p.id}')" class="w-9 h-9 flex items-center justify-center bg-white dark:bg-slate-800 text-slate-500 hover:text-rose-500 rounded-xl border border-slate-200 dark:border-white/10 hover:border-rose-500/40 transition-all shadow-sm">
+                                                <i class="fas fa-trash-alt text-[10px]"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
                 </div>
             </div>
-            <div class="space-y-3 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
-                ${publicadores.map(p => `
-                    <div class="premium-glass p-5 rounded-2xl flex justify-between items-center group">
-                        <div class="flex items-center gap-4">
-                            <div class="w-10 h-10 rounded-full bg-gradient-to-br ${p.genero === 'Mujer' ? 'from-pink-500 to-rose-400' : 'from-blue-600 to-cyan-500'} flex items-center justify-center text-white font-bold text-lg shadow-lg">
-                                ${p.nombre.charAt(0)}
-                            </div>
-                            <div>
-                                <div class="font-black text-gray-800 dark:text-white text-base flex items-center gap-2">
-                                    ${p.nombre}
-                                    ${p.privilegios?.includes('Administrador') ? '<span class="text-[8px] bg-red-500 text-white px-1.5 py-0.5 rounded-full uppercase tracking-tighter">Admin</span>' : ''}
-                                </div>
-                                <div class="text-[10px] text-gray-500 dark:text-gray-400 font-mono mt-0.5">${p.telefono || 'Sin teléfono'} • <span class="text-teal-600 dark:text-teal-400 font-bold uppercase">Grupo ${p.grupo || '?'}</span></div>
-                                <div class="mt-2">${renderAvailPreview(p)}</div>
-                            </div>
-                        </div>
-                        <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0">
-                            <button onclick="window.editPerson('${p.id}')" class="p-2.5 bg-white/10 dark:bg-black/40 rounded-xl border border-white/10 hover:border-teal-500/50 hover:text-teal-500 transition-all" title="Editar">✏️</button>
-                            <button onclick="window.deletePerson('${p.id}')" class="p-2.5 bg-white/10 dark:bg-black/40 rounded-xl border border-white/10 hover:border-red-500/50 hover:text-red-500 transition-all" title="Eliminar">🗑️</button>
-                        </div>
-                    </div>
-                `).join('')}
-            </div>
-        `;
+`;
 
 
 
@@ -3070,214 +4165,223 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
             const privs = ['Conductor', 'Administrador', 'Secretario', 'Servicio', 'Visitante'];
 
             showModal(`
-                <div class="flex flex-col h-full">
-                    <header class="shrink-0 flex items-center justify-between bg-gradient-to-r from-teal-700 to-indigo-800 p-8 text-white relative overflow-hidden">
-                        <div class="absolute inset-0 bg-white/5 backdrop-blur-3xl"></div>
-                        <div class="relative z-10 flex items-center gap-5">
-                            <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-[2rem] flex items-center justify-center text-3xl shadow-2xl border border-white/30 animate-float">👤</div>
+    <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden">
+                    <header class="shrink-0 bg-primary p-8 text-white relative overflow-hidden">
+                        <div class="absolute inset-0 bg-white/10 backdrop-blur-3xl"></div>
+                        <div class="relative z-10 flex items-center gap-6">
+                            <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center text-3xl shadow-2xl border border-white/30">
+                                <i class="fas fa-user-circle"></i>
+                            </div>
                             <div>
-                                <h3 class="text-2xl font-black tracking-tight leading-none mb-1">${isEdit ? 'Editar Registro' : 'Nuevo Registro'}</h3>
+                                <h3 class="text-2xl font-black uppercase tracking-tight leading-none mb-1">${isEdit ? 'Editar Registro' : 'Nuevo Registro'}</h3>
                                 <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Gestión de Personal</p>
                             </div>
                         </div>
                     </header>
 
-                    <div class="flex-1 p-10 space-y-8 overflow-y-auto custom-scrollbar">
+                    <div class="flex-1 p-8 space-y-8 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-black/20">
                         <div class="space-y-8">
                             <!-- Datos Básicos -->
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div class="space-y-3">
-                                    <label class="label-premium">Nombre Completo</label>
-                                    <input type="text" id="p-name" value="${person?.nombre || ''}" placeholder="Ej: Juan Pérez" class="input-premium">
+                                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nombre Completo</label>
+                                    <input type="text" id="p-name" value="${person?.nombre || ''}" placeholder="Ej: Juan Pérez" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-sm font-bold focus:border-primary outline-none shadow-sm transition-all text-slate-700 dark:text-white">
                                 </div>
                                 <div class="space-y-3">
-                                    <label class="label-premium">WhatsApp / Teléfono</label>
-                                    <input type="text" id="p-phone" value="${person?.telefono || ''}" placeholder="+593..." class="input-premium font-mono">
+                                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">WhatsApp / Teléfono</label>
+                                    <input type="text" id="p-phone" value="${person?.telefono || ''}" placeholder="+593..." class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-sm font-bold focus:border-primary outline-none shadow-sm transition-all text-slate-700 dark:text-white font-mono">
                                 </div>
                             </div>
 
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-[10px] font-black uppercase text-teal-600 mb-1.5 ml-1 tracking-widest">Género</label>
-                                    <select id="p-gender" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3.5 text-sm font-bold focus:border-indigo-500 outline-none shadow-sm appearance-none cursor-pointer">
+                            <div class="grid grid-cols-2 gap-6">
+                                <div class="space-y-3">
+                                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Género</label>
+                                    <select id="p-gender" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-sm font-bold focus:border-primary outline-none shadow-sm transition-all text-slate-700 dark:text-white appearance-none cursor-pointer">
                                         <option value="Hombre" ${person?.genero === 'Hombre' ? 'selected' : ''}>Hombre</option>
                                         <option value="Mujer" ${person?.genero === 'Mujer' ? 'selected' : ''}>Mujer</option>
                                     </select>
                                 </div>
-                                <div>
-                                    <label class="block text-[10px] font-black uppercase text-teal-600 mb-1.5 ml-1 tracking-widest">Grupo Asignado</label>
-                                    <select id="p-group" class="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl p-3.5 text-sm font-bold focus:border-indigo-500 outline-none shadow-sm appearance-none cursor-pointer">
+                                <div class="space-y-3">
+                                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Grupo Asignado</label>
+                                    <select id="p-group" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-sm font-bold focus:border-primary outline-none shadow-sm transition-all text-slate-700 dark:text-white appearance-none cursor-pointer">
                                         <option value="0" ${!person?.grupo || person?.grupo === 0 ? 'selected' : ''}>Sin asignar</option>
                                         ${Array.from({ length: 12 }, (_, i) => `<option value="${i + 1}" ${person?.grupo == (i + 1) ? 'selected' : ''}>Grupo ${i + 1}</option>`).join('')}
                                     </select>
                                 </div>
                             </div>
 
-                            <div id="p-email-container" class="${person?.privilegios?.includes('Administrador') ? '' : 'hidden'} animate-fade-in-up">
-                                <label class="block text-[10px] font-black uppercase text-indigo-600 mb-1.5 ml-1 tracking-widest">Acceso Google (Email)</label>
-                                <input type="email" id="p-email" value="${person?.email || ''}" placeholder="usuario@gmail.com" class="w-full bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-200 dark:border-indigo-500/20 rounded-xl p-3.5 text-sm font-bold focus:border-indigo-500 outline-none shadow-sm transition-all text-indigo-700 dark:text-indigo-300">
-                                <p class="text-[8px] text-gray-400 mt-1.5 ml-1 italic font-medium">Requerido para administradores y conductores con acceso a la nube.</p>
+                            <div id="p-email-container" class="${person?.privilegios?.includes('Administrador') ? '' : 'hidden'} animate-fade-in space-y-3">
+                                <label class="text-[10px] font-black text-primary uppercase tracking-widest ml-1">Acceso Google (Email)</label>
+                                <input type="email" id="p-email" value="${person?.email || ''}" placeholder="usuario@gmail.com" class="w-full bg-primary/5 border border-primary/20 rounded-2xl p-4 text-sm font-bold focus:border-primary outline-none shadow-inner transition-all text-primary">
+                                <p class="text-[9px] text-slate-400 ml-1 italic font-bold uppercase tracking-tighter">Requerido para administradores y accesos de nube.</p>
                             </div>
 
-                            <div class="space-y-3">
-                                <label class="block text-[10px] font-black uppercase text-teal-600 ml-1 tracking-widest">Privilegios y Roles</label>
-                                <div id="privs-container" class="flex flex-wrap gap-2 p-1">
-                                    ${privs.map(pr => `
-                                        <label class="flex items-center gap-2 bg-gray-100 dark:bg-white/5 px-4 py-2.5 rounded-xl border border-transparent hover:border-indigo-500/30 cursor-pointer transition-all group">
-                                            <input type="checkbox" class="p-priv-check sr-only peer" value="${pr}" ${person?.privilegios?.includes(pr) ? 'checked' : ''}>
-                                            <div class="w-4 h-4 rounded border-2 border-gray-300 dark:border-white/20 peer-checked:bg-indigo-600 peer-checked:border-indigo-600 flex items-center justify-center transition-all">
-                                                <svg class="w-3 h-3 text-white hidden peer-checked:block" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7" /></svg>
-                                            </div>
-                                            <span class="text-xs font-bold text-gray-600 dark:text-gray-400 peer-checked:text-indigo-600 dark:peer-checked:text-indigo-400 transition-colors uppercase tracking-widest">${pr}</span>
-                                        </label>
-                                    `).join('')}
+                            <div class="space-y-4">
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Privilegios y Roles</label>
+                                <div id="privs-container" class="flex flex-wrap gap-3">
+                                    <!-- Dynamic Privs List -->
                                 </div>
                             </div>
 
-                            <!-- Disponibilidad -->
-                            <div class="p-5 bg-teal-500/5 rounded-[2rem] border border-teal-500/10 space-y-4">
-                                <div class="flex items-center justify-between">
-                                    <span class="text-[10px] font-black uppercase text-teal-600 tracking-widest">Disponibilidad de Conductor</span>
+                            <!-- Disponibilidad (Conductor Only) -->
+                            <div class="bg-primary/5 rounded-[2rem] border border-primary/10 overflow-hidden">
+                                <div class="p-6 border-b border-primary/10 flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <i class="fas fa-calendar-check text-primary"></i>
+                                        <span class="text-[10px] font-black uppercase text-primary tracking-widest">Disponibilidad de Conductor</span>
+                                    </div>
                                     <label class="relative inline-flex items-center cursor-pointer">
                                         <input type="checkbox" id="p-is-cond" class="sr-only peer" ${person?.es_conductor ? 'checked' : ''}>
-                                        <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
+                                        <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                                     </label>
                                 </div>
-                                <div id="p-avail-grid" class="${person?.es_conductor ? '' : 'opacity-20 pointer-events-none grayscale'} transition-all duration-500">
-                                     <div class="grid grid-cols-4 gap-1 mb-2 text-center text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                                <div id="p-avail-grid" class="p-6 ${person?.es_conductor ? '' : 'opacity-20 pointer-events-none grayscale'} transition-all duration-500 bg-white/40 dark:bg-black/20">
+                                     <div class="grid grid-cols-4 gap-2 mb-4 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                          <div class="text-left pl-2">Día</div>
-                                         ${shifts.map(s => `<div class="${s.color}">${s.label}</div>`).join('')}
+                                         ${shifts.map(s => `<div>${s.label}</div>`).join('')}
                                      </div>
-                                     <div class="space-y-1.5">
+                                     <div class="space-y-2">
                                          ${days.map(day => `
-                                             <div class="grid grid-cols-4 gap-1 items-center bg-white/40 dark:bg-black/20 rounded-xl p-2 border border-black/5 dark:border-white/5">
-                                                 <div class="text-[10px] font-black text-gray-700 dark:text-gray-300 pl-2 uppercase">${day.slice(0, 3)}</div>
-                                                 ${shifts.map(sh => `<div class="flex justify-center"><input type="checkbox" class="p-avail-check w-5 h-5 accent-teal-600 cursor-pointer" value="${day}_${sh.id}" ${person?.disponibilidad?.includes(`${day}_${sh.id}`) ? 'checked' : ''}></div>`).join('')}
+                                             <div class="grid grid-cols-4 gap-2 items-center modern-card !p-3">
+                                                 <div class="text-[10px] font-black text-slate-600 dark:text-slate-300 pl-2 uppercase">${day.slice(0, 3)}</div>
+                                                 ${shifts.map(sh => `<div class="flex justify-center"><input type="checkbox" class="p-avail-check w-5 h-5 accent-primary cursor-pointer" value="${day}_${sh.id}" ${person?.disponibilidad?.includes(`${day}_${sh.id}`) ? 'checked' : ''}></div>`).join('')}
                                              </div>
                                          `).join('')}
                                      </div>
                                 </div>
                             </div>
 
-                            <!-- Módulos -->
-                            <div id="p-modules-section" class="p-5 bg-indigo-500/5 rounded-[2rem] border border-indigo-500/10 ${person?.es_conductor ? '' : 'opacity-20 pointer-events-none grayscale'} transition-all duration-500">
-                                <label class="block text-[10px] font-black uppercase text-indigo-600 mb-4 ml-1 tracking-widest">Módulos Habilitados</label>
-                                <div class="grid grid-cols-1 gap-2">
-                                    <label class="flex items-center justify-between p-4 bg-white/40 dark:bg-black/20 rounded-xl border border-black/5 dark:border-white/5 cursor-pointer hover:bg-teal-500/5 transition-all group">
-                                        <span class="text-xs font-bold text-gray-600 dark:text-gray-400 group-hover:text-teal-600 transition-colors uppercase tracking-widest">Agenda Semanal</span>
-                                        <input type="checkbox" id="mod-agenda" class="p-mod-check w-5 h-5 accent-teal-600" ${person?.modulos?.agenda !== false && (person?.modulos?.dashboard !== false) ? 'checked' : ''}>
-                                    </label>
-                                    <label class="flex items-center justify-between p-4 bg-white/40 dark:bg-black/20 rounded-xl border border-black/5 dark:border-white/5 cursor-pointer hover:bg-teal-500/5 transition-all group">
-                                        <span class="text-xs font-bold text-gray-600 dark:text-gray-400 group-hover:text-teal-600 transition-colors uppercase tracking-widest">Programa Semanal</span>
-                                        <input type="checkbox" id="mod-programa" class="p-mod-check w-5 h-5 accent-teal-600" ${person?.modulos?.programa !== false ? 'checked' : ''}>
-                                    </label>
-                                    <label class="flex items-center justify-between p-4 bg-white/40 dark:bg-black/20 rounded-xl border border-black/5 dark:border-white/5 cursor-pointer hover:bg-teal-500/5 transition-all group">
-                                        <span class="text-xs font-bold text-gray-600 dark:text-gray-400 group-hover:text-teal-600 transition-colors uppercase tracking-widest">Predicación Telefónica</span>
-                                        <input type="checkbox" id="mod-telefonos" class="p-mod-check w-5 h-5 accent-teal-600" ${person?.modulos?.telefonos !== false ? 'checked' : ''}>
-                                    </label>
-                                    <label class="flex items-center justify-between p-4 bg-white/40 dark:bg-black/20 rounded-xl border border-black/5 dark:border-white/5 cursor-pointer hover:bg-red-500/5 transition-all group">
-                                        <span class="text-xs font-bold text-gray-600 dark:text-gray-400 group-hover:text-red-600 transition-colors uppercase tracking-widest">Misión Rescate</span>
-                                        <input type="checkbox" id="mod-rescue" class="p-mod-check w-5 h-5 accent-red-600" ${person?.modulos?.rescue ? 'checked' : ''}>
-                                    </label>
+                            <!-- Módulos Habilitados -->
+                            <div id="p-modules-section" class="bg-indigo-500/5 rounded-[2rem] border border-indigo-500/10 overflow-hidden ${person?.es_conductor ? '' : 'opacity-20 pointer-events-none grayscale'} transition-all duration-500">
+                                <div class="p-6 border-b border-indigo-500/10 flex items-center gap-3">
+                                    <i class="fas fa-th-large text-indigo-600"></i>
+                                    <label class="text-[10px] font-black uppercase text-indigo-600 tracking-widest">Módulos Habilitados</label>
+                                </div>
+                                <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    ${[
+                    { id: 'mod-agenda', label: 'Agenda Semanal', checked: person?.modulos?.agenda !== false && person?.modulos?.dashboard !== false },
+                    { id: 'mod-programa', label: 'Programa Semanal', checked: person?.modulos?.programa !== false },
+                    { id: 'mod-telefonos', label: 'Predicación Telefónica', checked: person?.modulos?.telefonos !== false },
+                    { id: 'mod-rescue', label: 'Misión Rescate', checked: person?.modulos?.rescue, accent: 'accent-red-500' }
+                ].map(mod => `
+                                        <label class="flex items-center justify-between p-4 modern-card hover:border-indigo-500/30 transition-all cursor-pointer group">
+                                            <span class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-tight group-hover:text-indigo-600">${mod.label}</span>
+                                            <input type="checkbox" id="${mod.id}" class="p-mod-check w-5 h-5 ${mod.accent || 'accent-indigo-600'}" ${mod.checked ? 'checked' : ''}>
+                                        </label>
+                                    `).join('')}
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="shrink-0 p-6 bg-gray-100 dark:bg-black/60 border-t border-black/5 dark:border-white/10">
-                        <button id="save-person" class="w-full bg-gradient-to-r from-teal-600 to-indigo-700 py-4 rounded-2xl text-white font-black shadow-2xl shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-[1.01] active:scale-[0.99] transition-all uppercase tracking-[0.2em] text-[11px]">
-                            ${isEdit ? 'Guardar Cambios' : 'Crear Registro'}
+                    <div class="shrink-0 p-6 bg-white dark:bg-black/40 border-t border-slate-100 dark:border-white/5">
+                        <button id="save-person" class="w-full bg-primary py-5 rounded-2xl text-white text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 hover:shadow-primary/40 hover:scale-[1.01] active:scale-[0.99] transition-all">
+                            <i class="fas fa-save mr-2"></i> ${isEdit ? 'Guardar Cambios' : 'Crear Registro'}
                         </button>
                     </div>
                 </div>
-            `, (modal) => {
+    `, (modal) => {
                 const genderSelect = modal.querySelector('#p-gender');
                 const privsContainer = modal.querySelector('#privs-container');
+                const isCondCheck = modal.querySelector('#p-is-cond');
+                const saveBtn = modal.querySelector('#save-person');
+
+                const syncConductorUI = () => {
+                    const isConductor = Array.from(privsContainer.querySelectorAll('.p-priv-check:checked')).some(cb => cb.value === 'Conductor');
+                    const availGrid = modal.querySelector('#p-avail-grid');
+                    const modulesSection = modal.querySelector('#p-modules-section');
+                    const isAvailable = isCondCheck.checked;
+
+                    if (!isConductor) {
+                        isCondCheck.disabled = true;
+                        isCondCheck.checked = false;
+                        availGrid.classList.add('opacity-20', 'pointer-events-none', 'grayscale');
+                        modulesSection.classList.add('opacity-20', 'pointer-events-none', 'grayscale');
+                    } else {
+                        isCondCheck.disabled = false;
+                        availGrid.classList.toggle('opacity-20', !isAvailable);
+                        availGrid.classList.toggle('pointer-events-none', !isAvailable);
+                        availGrid.classList.toggle('grayscale', !isAvailable);
+                        modulesSection.classList.remove('opacity-20', 'pointer-events-none', 'grayscale');
+
+                        // Granular modules logic
+                        const modAgenda = modal.querySelector('#mod-agenda');
+                        const modRescue = modal.querySelector('#mod-rescue');
+
+                        if (!isAvailable) {
+                            [modAgenda, modRescue].forEach(m => {
+                                m.disabled = true;
+                                m.checked = false;
+                                m.closest('label').classList.add('opacity-40', 'pointer-events-none');
+                            });
+                        } else {
+                            [modAgenda, modRescue].forEach(m => {
+                                m.disabled = false;
+                                m.closest('label').classList.remove('opacity-40', 'pointer-events-none');
+                            });
+                        }
+                    }
+                };
 
                 const updatePrivsList = () => {
                     const gender = genderSelect.value;
                     const malePrivs = ['Superintendente de Circuito', 'Anciano', 'Siervo ministerial', 'Conductor', 'Administrador'];
-                    const femalePrivs = ['Conductor', 'Administrador']; // Added these to women as well for flexibility
+                    const femalePrivs = ['Conductor', 'Administrador'];
                     const currentPrivs = person?.privilegios || [];
                     const list = gender === 'Hombre' ? malePrivs : femalePrivs;
 
                     privsContainer.innerHTML = list.map(pr => `
-                        <label class="flex items-center gap-2 bg-gray-100 dark:bg-white/5 px-4 py-2.5 rounded-xl border border-transparent hover:border-indigo-500/30 cursor-pointer transition-all group">
-                            <input type="checkbox" class="p-priv sr-only peer" value="${pr}" ${currentPrivs.includes(pr) ? 'checked' : ''}>
-                            <div class="w-4 h-4 rounded border-2 border-gray-300 dark:border-white/20 peer-checked:bg-indigo-600 peer-checked:border-indigo-600 flex items-center justify-center transition-all">
-                                <svg class="w-3 h-3 text-white hidden peer-checked:block" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7" /></svg>
-                            </div>
-                            <span class="text-[10px] font-black text-gray-400 peer-checked:text-indigo-600 dark:peer-checked:text-indigo-400 transition-colors uppercase tracking-widest">${pr}</span>
-                        </label>
-                    `).join('');
+    < label class="flex items-center gap-3 bg-white dark:bg-white/5 px-4 py-3 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-primary/50 cursor-pointer transition-all group">
+        <input type="checkbox" class="p-priv-check sr-only peer" value="${pr}" ${currentPrivs.includes(pr) ? 'checked' : ''}>
+            <div class="w-5 h-5 rounded-lg border-2 border-slate-200 dark:border-white/10 peer-checked:bg-primary peer-checked:border-primary flex items-center justify-center transition-all">
+                <i class="fas fa-check text-[10px] text-white hidden peer-checked:block"></i>
+            </div>
+            <span class="text-[10px] font-black text-slate-400 peer-checked:text-primary transition-colors uppercase tracking-widest">${pr}</span>
+        </label>
+`).join('');
 
-                    const conductorCheckboxes = privsContainer.querySelectorAll('input[value="Conductor"]');
-                    const isCondToggle = modal.querySelector('#p-is-cond');
-                    const availGrid = modal.querySelector('#p-avail-grid');
-                    const modulesSection = modal.querySelector('#p-modules-section');
-
-                    conductorCheckboxes.forEach(cb => {
-                        cb.addEventListener('change', () => {
-                            if (cb.checked) {
-                                isCondToggle.checked = true;
-                                availGrid.classList.remove('opacity-30', 'pointer-events-none');
-                                modulesSection.classList.remove('opacity-30', 'pointer-events-none');
-                            }
-                        });
+                    privsContainer.querySelectorAll('.p-priv-check').forEach(cb => {
+                        cb.addEventListener('change', syncConductorUI);
+                        if (cb.value === 'Administrador') {
+                            cb.addEventListener('change', () => {
+                                modal.querySelector('#p-email-container').classList.toggle('hidden', !cb.checked);
+                            });
+                        }
                     });
 
-                    // Logic for Admin email
-                    const adminCheckboxes = privsContainer.querySelectorAll('input[value="Administrador"]');
-                    const emailContainer = modal.querySelector('#p-email-container');
-                    adminCheckboxes.forEach(cb => {
-                        cb.addEventListener('change', () => {
-                            emailContainer.classList.toggle('hidden', !cb.checked);
-                        });
-                    });
+                    syncConductorUI();
                 };
 
                 genderSelect.addEventListener('change', updatePrivsList);
                 updatePrivsList();
 
-                const isCondCheck = modal.querySelector('#p-is-cond');
-                const availGrid = modal.querySelector('#p-avail-grid');
-                const modulesSection = modal.querySelector('#p-modules-section');
+                isCondCheck.addEventListener('change', syncConductorUI);
 
-                isCondCheck.addEventListener('change', () => {
-                    const active = isCondCheck.checked;
-                    availGrid.classList.toggle('opacity-30', !active);
-                    availGrid.classList.toggle('pointer-events-none', !active);
-                    modulesSection.classList.toggle('opacity-30', !active);
-                    modulesSection.classList.toggle('pointer-events-none', !active);
-                });
+                saveBtn.onclick = async () => {
+                    const original = saveBtn.innerHTML;
+                    saveBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Guardando...';
+                    saveBtn.disabled = true;
 
-                modal.querySelector('#save-person').onclick = async () => {
-                    const btn = modal.querySelector('#save-person');
-                    const original = btn.innerText;
-                    btn.innerText = 'GUARDANDO...';
-                    btn.disabled = true;
-
-                    const isConductorPriv = Array.from(modal.querySelectorAll('.p-priv:checked')).map(cb => cb.value).includes('Conductor');
                     const data = {
                         nombre: modal.querySelector('#p-name').value.trim(),
                         telefono: modal.querySelector('#p-phone').value.trim(),
                         genero: modal.querySelector('#p-gender').value,
                         grupo: parseInt(modal.querySelector('#p-group').value),
-                        es_conductor: isCondCheck.checked || isConductorPriv,
+                        es_conductor: isCondCheck.checked,
                         email: modal.querySelector('#p-email').value.trim().toLowerCase(),
-                        privilegios: Array.from(modal.querySelectorAll('.p-priv:checked')).map(cb => cb.value),
+                        privilegios: Array.from(modal.querySelectorAll('.p-priv-check:checked')).map(cb => cb.value),
                         disponibilidad: isCondCheck.checked ? Array.from(modal.querySelectorAll('.p-avail-check:checked')).map(cb => cb.value) : [],
                         modulos: {
-                            agenda: (isCondCheck.checked || isConductorPriv) ? modal.querySelector('#mod-agenda').checked : (person?.modulos?.agenda || person?.modulos?.dashboard || false),
-                            programa: (isCondCheck.checked || isConductorPriv) ? modal.querySelector('#mod-programa').checked : (person?.modulos?.programa || false),
-                            telefonos: (isCondCheck.checked || isConductorPriv) ? modal.querySelector('#mod-telefonos').checked : (person?.modulos?.telefonos || false),
-                            rescue: (isCondCheck.checked || isConductorPriv) ? modal.querySelector('#mod-rescue').checked : (person?.modulos?.rescue || false)
+                            agenda: isCondCheck.checked ? modal.querySelector('#mod-agenda').checked : (person?.modulos?.agenda || person?.modulos?.dashboard || false),
+                            programa: isCondCheck.checked ? modal.querySelector('#mod-programa').checked : (person?.modulos?.programa || false),
+                            telefonos: isCondCheck.checked ? modal.querySelector('#mod-telefonos').checked : (person?.modulos?.telefonos || false),
+                            rescue: isCondCheck.checked ? modal.querySelector('#mod-rescue').checked : (person?.modulos?.rescue || false)
                         }
                     };
 
                     if (!data.nombre) {
                         showNotification("El nombre es obligatorio", "error");
-                        btn.innerText = original; btn.disabled = false;
+                        saveBtn.innerHTML = original; saveBtn.disabled = false;
                         return;
                     }
 
@@ -3308,7 +4412,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
         publicadores.sort((a, b) => a.nombre.localeCompare(b.nombre));
 
         container.innerHTML = `
-            <div class="mb-8">
+    <div class="mb-8">
                 <h3 class="font-bold text-xl text-teal-800 dark:text-teal-100 flex items-center gap-3">
                     <span class="p-2 bg-teal-500/10 rounded-xl">🏘️</span> Configuración de Grupos
                 </h3>
@@ -3357,13 +4461,13 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                     <span>💾</span> Guardar Configuración de Grupos
                 </button>
             </div>
-        `;
+`;
 
         container.querySelector('#add-group-btn').onclick = () => {
             const newId = groups.length > 0 ? (Math.max(...groups.map(g => g.id)) + 1) : 1;
             groups.push({
                 id: newId,
-                nombre: `Grupo ${newId}`,
+                nombre: `Grupo ${newId} `,
                 lider: "",
                 asistente: "",
                 casa_salida: ""
@@ -3379,9 +4483,9 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
 
             const updated = groups.map(g => ({
                 ...g,
-                lider: document.getElementById(`leader-${g.id}`).value,
-                asistente: document.getElementById(`assistant-${g.id}`).value,
-                casa_salida: document.getElementById(`house-${g.id}`).value.trim()
+                lider: document.getElementById(`leader - ${g.id} `).value,
+                asistente: document.getElementById(`assistant - ${g.id} `).value,
+                casa_salida: document.getElementById(`house - ${g.id} `).value.trim()
             }));
 
             try {
@@ -3402,153 +4506,182 @@ const renderTelefonosTab = async (container) => {
     const publicadores = await getPublicadores();
     publicadores.sort((a, b) => a.nombre.localeCompare(b.nombre));
 
-    // Capture previous state if this is a re-render
-    let currentSearch = '';
-    let currentPub = '';
-    let currentStatus = '';
-
-    const existingSearch = document.getElementById('search-number');
-    const existingPub = document.getElementById('filter-publisher');
-    const existingStatus = document.getElementById('filter-status');
-
-    if (existingSearch) {
-        currentSearch = existingSearch.value;
-        currentPub = existingPub.value;
-        currentStatus = existingStatus.value;
-    }
-
     container.innerHTML = `
-        <div class="flex justify-between items-center mb-6">
-            <h3 class="font-bold text-2xl text-teal-800 dark:text-teal-200 flex items-center gap-3">
-                <span class="p-2 bg-teal-100 dark:bg-teal-900/30 rounded-lg text-xl">📞</span> Gestión de Predicación Telefónica
-            </h3>
-            <button id="btn-view-session-summaries" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all active:scale-95 flex items-center gap-2">
-                📋 Resúmenes de Sesión
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
+            <div>
+                <h3 class="text-h3 text-slate-900 dark:text-white flex items-center gap-3">
+                    <i class="fas fa-phone-alt text-primary"></i> Predicación Telefónica
+                </h3>
+                <p class="text-xs text-slate-500 mt-1">Gestión centralizada de registros y contactos</p>
+            </div>
+            <button id="btn-view-session-summaries" class="bg-primary hover:bg-primary-light text-white px-6 py-3.5 rounded-xl font-bold shadow-lg shadow-primary/20 transition-all active:scale-95 flex items-center gap-3 text-xs uppercase tracking-wider">
+                <i class="fas fa-file-invoice"></i> Resúmenes de Zoom
             </button>
         </div>
 
-        <!-- Progress Bar (Cycle) -->
-        <div class="bg-white dark:bg-[#0f1115] p-5 rounded-2xl mb-6 shadow-sm border border-black/5 dark:border-white/5">
-            <div class="flex justify-between items-center mb-2">
-                <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">Progreso del Ciclo (~1124 registros)</span>
-                <span id="cycle-percentage" class="text-xs font-black text-teal-600 dark:text-teal-400">0%</span>
+        <!--Progress Cycle 2026 -->
+        <div class="modern-card !p-8 mb-8 border border-slate-200 dark:border-white/5">
+            <div class="flex justify-between items-center mb-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Progreso del Ciclo Actual</span>
+                        <span class="text-xs font-bold text-slate-600 dark:text-slate-300">Meta: Todos los registros procesados</span>
+                    </div>
+                </div>
+                <span id="cycle-percentage" class="text-2xl font-black text-primary italic">0%</span>
             </div>
-            <div class="w-full h-2.5 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
-                <div id="cycle-progress-bar" class="h-full bg-gradient-to-r from-teal-500 to-emerald-500 shadow-[0_0_10px_rgba(20,184,166,0.3)] transition-all duration-1000" style="width: 0%"></div>
+            <div class="w-full h-3 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden mb-3">
+                <div id="cycle-progress-bar" class="h-full bg-gradient-to-r from-primary to-accent transition-all duration-1000" style="width: 0%"></div>
             </div>
-            <div id="cycle-info-text" class="text-[9px] text-gray-400 mt-2 italic flex justify-between">
-                <span>Total registros: ${telefonos.length}</span>
-                <span id="cycle-processed-info">Procesados: 0</span>
+            <div id="cycle-info-text" class="flex justify-between items-center px-1">
+                <span class="text-[10px] text-slate-400 font-bold uppercase tracking-tighter italic">Total en base de datos: ${telefonos.length}</span>
+                <span id="cycle-processed-info" class="text-[10px] text-primary font-bold uppercase tracking-widest">Procesados: 0</span>
             </div>
         </div>
         
-        <!--Controls Grid-->
-        <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-6">
-             <div class="flex gap-3">
-                <button id="btn-add-phone" class="bg-teal-600 hover:bg-teal-500 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-teal-500/20 transition-all active:scale-95 flex items-center gap-2">
-                    <span>+</span> Manual
+        <!--Advanced Controls 2026 -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-8">
+             <div class="lg:col-span-5 flex flex-wrap gap-2 md:gap-3">
+                <button id="btn-add-phone" class="flex-1 sm:flex-none justify-center bg-primary hover:bg-primary-light text-white px-5 py-3 rounded-xl font-bold transition-all active:scale-95 flex items-center gap-3 text-xs uppercase tracking-wider shadow-lg shadow-primary/20">
+                    <i class="fas fa-plus-circle"></i> Agregar
                 </button>
                 <input type="file" id="csv-upload" accept=".csv" class="hidden">
-                <button id="btn-csv" class="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-200 px-5 py-2.5 rounded-xl font-semibold hover:bg-gray-50 dark:hover:bg-white/10 transition-colors flex items-center gap-2" title="Importar desde CSV">
-                    <span>☁️</span> Importar
+                <button id="btn-csv" class="flex-1 sm:flex-none justify-center bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl font-bold transition-all active:scale-95 flex items-center gap-3 text-xs uppercase tracking-wider shadow-lg shadow-indigo-600/20">
+                    <i class="fas fa-cloud-upload-alt"></i> Importar
                 </button>
-                <button id="btn-export-phones" class="bg-green-600/10 hover:bg-green-600/20 text-green-700 dark:text-green-400 px-5 py-2.5 rounded-xl font-bold border border-green-200 dark:border-green-500/30 transition-all flex items-center gap-2 shadow-sm" title="Exportar a Excel">
-                    <span>📊</span> Exportar
+                <button id="btn-export-phones" class="w-full sm:w-auto justify-center bg-amber-500 hover:bg-amber-600 text-white px-5 py-3 rounded-xl font-bold transition-all active:scale-95 flex items-center gap-3 text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20">
+                    <i class="fas fa-download"></i> Exportar
                 </button>
             </div>
             
-            <div class="flex gap-3 flex-wrap xl:justify-end items-center">
-                 <div class="relative flex-1 xl:flex-none xl:w-64">
-                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
-                    <input type="text" id="search-number" placeholder="Buscar número, nombre..." class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-500/20 outline-none transition-shadow shadow-sm">
+            <div class="lg:col-span-7 flex flex-col sm:flex-row flex-wrap lg:flex-nowrap gap-3 items-center">
+                 <div class="relative w-full flex-1">
+                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input type="text" id="search-number" placeholder="Buscar..." class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:border-primary transition-all shadow-sm">
                 </div>
                 
-                <select id="filter-publisher" class="flex-1 xl:flex-none xl:w-48 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 focus:border-teal-500 outline-none cursor-pointer shadow-sm">
-                    <option value="">Todos los Publicadores</option>
-                    <option value="Sin asignar">Sin asignar</option>
-                    ${publicadores.map(p => `<option value="${p.nombre}">${p.nombre}</option>`).join('')}
-                </select>
-                
-                <select id="filter-status" class="flex-1 xl:flex-none xl:w-48 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 focus:border-teal-500 outline-none cursor-pointer shadow-sm">
-                    <option value="">Todos los Estados</option>
-                    <option value="Sin asignar">Sin asignar</option>
-                    <option value="Contestaron">Contestaron</option>
-                    <option value="No contestan">No contestan</option>
-                    <option value="Colgaron">Colgaron</option>
-                    <option value="Revisita">Revisita</option>
-                    <option value="No llamar">No llamar</option>
-                    <option value="Suspendido">Suspendido</option>
-                    <option value="Testigo">Testigo</option>
-                </select>
+                <div class="flex w-full sm:w-auto gap-2 flex-1">
+                    <select id="filter-publisher" class="flex-1 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-xs font-bold text-slate-600 dark:text-slate-300 outline-none cursor-pointer focus:border-primary transition-all shadow-sm">
+                        <option value="">Publicadores</option>
+                        <option value="Sin asignar">Sin asignar</option>
+                        ${publicadores.map(p => `<option value="${p.nombre}">${p.nombre}</option>`).join('')}
+                    </select>
+                    
+                    <select id="filter-status" class="flex-1 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-xs font-bold text-slate-600 dark:text-slate-300 outline-none cursor-pointer focus:border-primary transition-all shadow-sm">
+                        <option value="">Estados</option>
+                        <option value="Sin asignar">Sin asignar</option>
+                        <option value="Contestaron">Contestaron</option>
+                        <option value="No contestan">No contestan</option>
+                        <option value="Colgaron">Colgaron</option>
+                        <option value="Revisita">Revisita</option>
+                        <option value="No llamar">No llamar</option>
+                        <option value="Suspendido">Suspendido</option>
+                        <option value="Testigo">Testigo</option>
+                    </select>
+                </div>
             </div>
         </div>
 
         <!--Progress Bar Container-->
-        <div id="upload-progress-container" class="hidden mb-4 p-4 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10">
-            <div class="flex justify-between text-sm text-gray-700 dark:text-gray-300 mb-2 font-medium">
-                <span id="progress-text">Cargando...</span>
-                <span id="progress-percent">0%</span>
-            </div>
-            <div class="w-full bg-gray-200 dark:bg-black/40 rounded-full h-2">
-                <div id="upload-progress-bar" class="bg-teal-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
-            </div>
+    <div id="upload-progress-container" class="hidden mb-4 p-4 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10">
+        <div class="flex justify-between text-sm text-gray-700 dark:text-gray-300 mb-2 font-medium">
+            <span id="progress-text">Cargando...</span>
+            <span id="progress-percent">0%</span>
         </div>
-    `;
+        <div class="w-full bg-gray-200 dark:bg-black/40 rounded-full h-2">
+            <div id="upload-progress-bar" class="bg-teal-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+    </div>
+`;
 
     // ADDED: Logic for Session Summaries Button
     const btnSummaries = document.getElementById('btn-view-session-summaries');
     if (btnSummaries) {
         btnSummaries.addEventListener('click', async () => {
-            const { getSessionSummaries } = await import('../data/firestore-services.js?v=3.2.0');
+            const { getSessionSummaries } = await import('../data/firestore-services.js?v=3.2.5');
             const summaries = await getSessionSummaries();
 
-            const modal = document.createElement('div');
-            modal.className = 'fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in';
-            modal.innerHTML = `
-                <div class="bg-white dark:bg-[#0f1115] w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-scale-in">
-                    <div class="p-6 border-b border-black/5 dark:border-white/5 flex justify-between items-center bg-gradient-to-r from-blue-600 to-blue-500 text-white">
-                        <h3 class="text-xl font-black">📋 Resúmenes de Sesión (Zoom)</h3>
-                        <button id="close-summaries" class="p-2 hover:bg-white/20 rounded-full transition-colors font-bold">✕</button>
-                    </div>
-                    <div class="flex-1 overflow-y-auto p-6 custom-scrollbar">
+            showModal(`
+    <div class="flex flex-col h-full bg-white dark:bg-[#0f1115]">
+                    <header class="shrink-0 flex items-center justify-between bg-gradient-to-r from-blue-700 to-indigo-800 p-8 text-white">
+                        <div class="flex items-center gap-5">
+                            <div class="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-2xl shadow-xl">
+                                <i class="fas fa-file-invoice"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-h3 text-white !mb-0.5">Resúmenes de Sesión</h3>
+                                <p class="text-[10px] uppercase font-bold tracking-widest opacity-70 italic">Interacciones de Zoom</p>
+                            </div>
+                        </div>
+                    </header>
+
+                    <div class="flex-1 p-8 overflow-y-auto custom-scrollbar">
                         ${summaries.length === 0 ? `
-                            <div class="text-center py-20 text-gray-400">
-                                <span class="text-5xl block mb-4">📭</span>
-                                <p>No hay resúmenes de sesión registrados aún.</p>
+                            <div class="flex flex-col items-center justify-center py-20 text-slate-400">
+                                <div class="w-20 h-20 bg-slate-100 dark:bg-white/5 rounded-full flex items-center justify-center text-3xl mb-4">
+                                    <i class="fas fa-inbox opacity-20"></i>
+                                </div>
+                                <p class="text-xs font-bold uppercase tracking-widest opacity-50">No hay resúmenes registrados</p>
                             </div>
                         ` : `
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 ${summaries.map(s => `
-                                    <div class="p-5 rounded-2xl border border-black/5 dark:border-white/5 bg-gray-50 dark:bg-white/5 hover:border-blue-500/30 transition-all">
-                                        <div class="flex justify-between items-start mb-3">
-                                            <span class="text-[10px] font-black uppercase tracking-tighter text-blue-500 bg-blue-500/10 px-2 py-1 rounded-md">Sesión #${s.id.substring(0, 5)}</span>
-                                            <span class="text-[10px] text-gray-400 font-bold">${new Date(s.timestamp?.toDate ? s.timestamp.toDate() : s.timestamp).toLocaleString()}</span>
+                                    <div class="p-6 rounded-2xl border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-white/5 hover:border-primary/30 transition-all group">
+                                        <div class="flex justify-between items-start mb-4">
+                                            <div class="flex flex-col">
+                                                <span class="text-[10px] font-black uppercase tracking-tighter text-primary px-0 rounded-md">Sesión #${s.id.substring(0, 8).toUpperCase()}</span>
+                                                <span class="text-[10px] text-slate-400 font-bold mt-0.5">
+                                                    <i class="far fa-calendar-alt mr-1"></i> ${new Date(s.timestamp?.toDate ? s.timestamp.toDate() : s.timestamp).toLocaleString()}
+                                                </span>
+                                            </div>
+                                            <div class="flex gap-1">
+                                                <div class="w-8 h-8 bg-white dark:bg-white/10 rounded-lg flex items-center justify-center shadow-sm text-xs text-slate-600 dark:text-slate-300">
+                                                    <i class="fas fa-phone-alt scale-75"></i>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div class="mb-3">
-                                            <p class="text-xs text-gray-500 dark:text-gray-400">Total Llamadas: <b class="text-gray-900 dark:text-white">${s.total}</b></p>
-                                            ${s.contestaron > 0 ? `<p class="text-xs text-green-600">✅ Contestaron: <b>${s.contestaron}</b></p>` : ''}
-                                            ${s.revisitas > 0 ? `<p class="text-xs text-amber-600">↺ Revisitas: <b>${s.revisitas}</b></p>` : ''}
-                                            ${s.noContestan > 0 ? `<p class="text-xs text-gray-400">🔇 No contestan: <b>${s.noContestan}</b></p>` : ''}
+                                        <div class="grid grid-cols-3 gap-2 mb-4">
+                                            <div class="bg-white dark:bg-black/20 p-2 rounded-xl border border-slate-100 dark:border-white/5 text-center">
+                                                <span class="block text-xs font-black text-slate-900 dark:text-white">${s.total}</span>
+                                                <span class="text-[8px] uppercase text-slate-400 font-bold tracking-tighter">Total</span>
+                                            </div>
+                                            <div class="bg-emerald-500/5 p-2 rounded-xl border border-emerald-500/10 text-center">
+                                                <span class="block text-xs font-black text-emerald-600">${s.contestaron}</span>
+                                                <span class="text-[8px] uppercase text-emerald-600/60 font-bold tracking-tighter">OK</span>
+                                            </div>
+                                            <div class="bg-blue-500/5 p-2 rounded-xl border border-blue-500/10 text-center">
+                                                <span class="block text-xs font-black text-blue-600">${s.revisitas}</span>
+                                                <span class="text-[8px] uppercase text-blue-600/60 font-bold tracking-tighter">Rev</span>
+                                            </div>
                                         </div>
-                                        <div class="text-[11px] text-gray-600 dark:text-gray-300 italic bg-white/50 dark:bg-black/20 p-3 rounded-xl border border-black/5">
-                                            "${s.resumen.substring(0, 150)}${s.resumen.length > 150 ? '...' : ''}"
+                                        <div class="text-[11px] text-slate-600 dark:text-slate-300 italic leading-relaxed bg-white/50 dark:bg-black/40 p-3 rounded-xl border border-slate-200 dark:border-white/5">
+                                            "${s.resumen.substring(0, 160)}${s.resumen.length > 160 ? '...' : ''}"
                                         </div>
                                     </div>
                                 `).join('')}
                             </div>
                         `}
                     </div>
+
+                    <footer class="shrink-0 p-8 bg-slate-50 dark:bg-black/40 border-t border-slate-200 dark:border-white/5 flex justify-end">
+                        <button id="close-summaries-modal" class="bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-300 px-8 py-3 rounded-xl font-bold transition-all hover:bg-slate-300 dark:hover:bg-white/20 text-xs uppercase tracking-widest">
+                            Cerrar
+                        </button>
+                    </footer>
                 </div>
-            `;
-            document.body.appendChild(modal);
-            document.getElementById('close-summaries').onclick = () => modal.remove();
+    `, (modal) => {
+                modal.querySelector('#close-summaries-modal').onclick = () => modal.remove();
+            }, 'max-w-4xl');
         });
     }
 
-    // List Container
+    // List Container 2026
     const listDiv = document.createElement('div');
     listDiv.id = 'phone-list-container';
-    listDiv.className = 'bg-white dark:bg-[#0f1115] rounded-2xl border border-gray-200 dark:border-white/10 h-[600px] overflow-auto relative shadow-sm custom-scrollbar';
+    listDiv.className = 'modern-card !p-0 max-h-[700px] overflow-auto relative border border-slate-200 dark:border-white/5 shadow-sm custom-scrollbar';
     container.appendChild(listDiv);
 
 
@@ -3570,7 +4703,7 @@ const renderTelefonosTab = async (container) => {
         const pInfo = document.getElementById('cycle-processed-info');
         if (pBar) pBar.style.width = pct + '%';
         if (pPct) pPct.textContent = pct + '%';
-        if (pInfo) pInfo.textContent = `Procesados: ${processed}`;
+        if (pInfo) pInfo.textContent = `Procesados: ${processed} `;
 
         const filtered = telefonos.filter(t => {
             const rawAssigned = t.asignado_a || t.publicador_asignado;
@@ -3591,40 +4724,52 @@ const renderTelefonosTab = async (container) => {
 
         if (filtered.length === 0) {
             listContainer.innerHTML = `
-                <div class="flex flex-col items-center justify-center h-full text-gray-400 py-20">
-                    <span class="text-4xl mb-2">🔍</span>
-                    <p class="text-sm font-bold uppercase tracking-widest opacity-50">No se encontraron registros</p>
-                </div>`;
+    <div class="flex flex-col items-center justify-center py-24 text-slate-300 dark:text-white/10">
+                    <div class="w-24 h-24 mb-6 relative">
+                        <div class="absolute inset-0 bg-primary/10 rounded-full animate-ping"></div>
+                        <div class="relative w-full h-full bg-slate-100 dark:bg-white/5 rounded-full flex items-center justify-center text-4xl">
+                            <i class="fas fa-search"></i>
+                        </div>
+                    </div>
+                    <p class="text-xs font-black uppercase tracking-[0.3em] opacity-50">No se encontraron registros</p>
+                    <p class="text-[10px] mt-2 opacity-30 italic">Intenta con otros términos o filtros</p>
+                </div> `;
             return;
         }
 
         const colors = {
-            'Contestaron': 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-300',
-            'No contestan': 'bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300',
-            'Colgaron': 'bg-gray-100 dark:bg-gray-500/20 text-gray-700 dark:text-gray-300',
-            'No llamar': 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-300',
-            'Revisita': 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300',
-            'Sin asignar': 'bg-gray-50 dark:bg-white/5 text-gray-500 dark:text-gray-400'
+            'Contestaron': { class: 'bg-emerald-500/10 text-emerald-600', icon: 'fa-check-circle' },
+            'No contestan': { class: 'bg-slate-400/10 text-slate-500', icon: 'fa-microphone-slash' },
+            'Colgaron': { class: 'bg-amber-500/10 text-amber-600', icon: 'fa-phone-slash' },
+            'No llamar': { class: 'bg-red-500/10 text-red-600', icon: 'fa-ban' },
+            'Revisita': { class: 'bg-blue-500/10 text-blue-600', icon: 'fa-history' },
+            'Sin asignar': { class: 'bg-slate-50 dark:bg-white/5 text-slate-400', icon: 'fa-question-circle' },
+            'Suspendido': { class: 'bg-rose-500/10 text-rose-600', icon: 'fa-pause-circle' },
+            'Testigo': { class: 'bg-indigo-500/10 text-indigo-600', icon: 'fa-user-check' }
         };
 
-        const getStatusBadge = (status) => `
-            <span class="${colors[status] || colors['Sin asignar']} text-[10px] uppercase font-bold tracking-wider px-2.5 py-1 rounded-md border border-black/5 dark:border-white/5 whitespace-nowrap shadow-sm">
-                ${status === 'Contestaron' ? '✅ ' : status === 'Revisita' ? '↺ ' : ''}${status}
-            </span>`;
+        const getStatusBadge = (status) => {
+            const config = colors[status] || colors['Sin asignar'];
+            return `
+    <span class="${config.class} text-[9px] uppercase font-black tracking-widest px-3 py-1.5 rounded-lg whitespace-nowrap flex items-center justify-center gap-1.5 mx-auto w-fit">
+        <i class="fas ${config.icon} opacity-70"></i>
+                ${status}
+            </span> `;
+        };
 
         listContainer.innerHTML = `
-            <table class="w-full text-left text-sm text-gray-600 dark:text-gray-300">
-                <thead class="bg-gray-50 dark:bg-[#12141a] text-gray-500 dark:text-gray-400 uppercase text-[10px] font-black tracking-widest sticky top-0 z-10 border-b border-gray-200 dark:border-white/5">
+    <table class="w-full text-left text-sm border-collapse">
+                <thead class="bg-slate-50/50 dark:bg-slate-900/50 backdrop-blur-md text-slate-400 text-[9px] font-black uppercase tracking-[0.2em] sticky top-0 z-20 border-b border-slate-200 dark:border-white/5">
                     <tr>
-                        <th class="p-4">Propietario / Dirección</th>
-                        <th class="p-4">Número</th>
-                        <th class="p-4">Publicador</th>
-                        <th class="p-4 text-center">Estado</th>
-                        <th class="p-4">Comentarios</th>
-                        <th class="p-4 text-right">Acciones</th>
+                        <th class="p-6 font-black"><div class="flex items-center gap-2"><i class="fas fa-user-circle opacity-30"></i> Propietario / Dirección</div></th>
+                        <th class="p-6 font-black"><div class="flex items-center gap-2"><i class="fas fa-phone opacity-30"></i> Contacto</div></th>
+                        <th class="p-6 font-black"><div class="flex items-center gap-2"><i class="fas fa-user-tie opacity-30"></i> Responsable</div></th>
+                        <th class="p-6 font-black text-center"><div class="flex items-center justify-center gap-2"><i class="fas fa-tasks opacity-30"></i> Gestión</div></th>
+                        <th class="p-6 font-black"><div class="flex items-center gap-2"><i class="fas fa-comment-alt opacity-30"></i> Observaciones</div></th>
+                        <th class="p-6 font-black text-right">Opciones</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100 dark:divide-white/5">
+                <tbody class="divide-y divide-slate-100 dark:divide-white/5">
                     ${filtered.map(t => {
             const rawAssigned = t.asignado_a || t.publicador_asignado;
             let assignedDisplay = 'Sin asignar';
@@ -3666,13 +4811,19 @@ const renderTelefonosTab = async (container) => {
                                 </div>
                             </td>
                             <td class="p-4 text-right opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button onclick="window.editTelefonoAdmin('${t.id}')" class="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all">✏️</button>
-                                <button onclick="window.deleteTelefonoAdmin('${t.id}')" class="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all">🗑️</button>
+                                <div class="flex justify-end gap-2">
+                                    <button onclick="window.editTelefonoAdmin('${t.id}')" class="w-9 h-9 flex items-center justify-center text-blue-500 hover:bg-blue-500/10 rounded-xl transition-all" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button onclick="window.deleteTelefonoAdmin('${t.id}')" class="w-9 h-9 flex items-center justify-center text-red-500 hover:bg-red-500/10 rounded-xl transition-all" title="Eliminar">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
                             </td>
                         </tr>`;
         }).join('')}
                 </tbody>
-            </table>`;
+            </table> `;
     };
 
     // Initialize search/filter inputs once
@@ -3763,8 +4914,8 @@ const renderTelefonosTab = async (container) => {
 
                 if (i % 5 === 0 || i === total - 1) {
                     const percent = Math.round(((i + 1) / total) * 100);
-                    if (progressBar) progressBar.style.width = `${percent}%`;
-                    if (progressPercent) progressPercent.innerText = `${percent}%`;
+                    if (progressBar) progressBar.style.width = `${percent}% `;
+                    if (progressPercent) progressPercent.innerText = `${percent}% `;
                     if (progressText) progressText.innerText = `Cargando ${i + 1} de ${total}...`;
                     await new Promise(r => setTimeout(r, 0));
                 }
@@ -3783,26 +4934,49 @@ const renderTelefonosTab = async (container) => {
 
     if (btnAddPhone) btnAddPhone.onclick = () => {
         showModal(`
-            <h3 class="text-xl font-bold mb-4 text-teal-600 dark:text-teal-400">Nuevo Teléfono</h3>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-xs uppercase text-gray-700 dark:text-gray-400 mb-1 font-bold">Número</label>
-                    <input type="text" id="new-p-num" placeholder="Ej. 0991234567" class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded p-2 text-gray-900 dark:text-white focus:border-teal-500 outline-none">
+    <div class="flex flex-col h-full bg-white dark:bg-slate-900 overflow-hidden">
+                <header class="shrink-0 flex items-center justify-between bg-gradient-to-r from-primary to-accent p-8 text-white">
+                    <div class="flex items-center gap-5">
+                        <div class="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-2xl shadow-xl">
+                            <i class="fas fa-plus-circle"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-h3 text-white !mb-0.5">Nuevo Registro</h3>
+                            <p class="text-[10px] uppercase font-bold tracking-widest opacity-70 italic">Predicación Telefónica</p>
+                        </div>
+                    </div>
+                </header>
+
+                <div class="flex-1 p-8 space-y-6 overflow-y-auto">
+                    <div class="space-y-4">
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Número Telefónico</label>
+                            <input type="text" id="new-p-num" placeholder="0991234567" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-slate-900 dark:text-white outline-none focus:border-primary transition-all">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Propietario (Nombre)</label>
+                            <input type="text" id="new-p-prop" placeholder="Ej: Juan Pérez" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-slate-900 dark:text-white outline-none focus:border-primary transition-all">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Dirección Referencial</label>
+                            <input type="text" id="new-p-dir" placeholder="Av. Principal N-45" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-slate-900 dark:text-white outline-none focus:border-primary transition-all">
+                        </div>
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-xs uppercase text-gray-700 dark:text-gray-400 mb-1 font-bold">Dirección</label>
-                    <input type="text" id="new-p-dir" placeholder="Ej. Av. Principal 123" class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded p-2 text-gray-900 dark:text-white focus:border-teal-500 outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs uppercase text-gray-700 dark:text-gray-400 mb-1 font-bold">Propietario</label>
-                    <input type="text" id="new-p-prop" placeholder="Ej. Juan Pérez" class="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded p-2 text-gray-900 dark:text-white focus:border-teal-500 outline-none">
-                </div>
-                <button id="save-new-phone" class="w-full bg-teal-600 py-3 rounded-xl text-white hover:bg-teal-500 transition-colors font-bold shadow-lg shadow-teal-500/20 mt-4">Guardar</button>
+
+                <footer class="shrink-0 p-8 bg-slate-50 dark:bg-black/40 border-t border-slate-200 dark:border-white/5">
+                    <button id="save-new-phone" class="w-full bg-primary hover:bg-primary-light text-white font-bold py-4 rounded-xl shadow-lg transition-all text-sm uppercase tracking-widest">
+                        Guardar Registro
+                    </button>
+                </footer>
             </div>
-        `, async (modal) => {
+    `, async (modal) => {
             modal.querySelector('#save-new-phone').onclick = async () => {
+                const num = modal.querySelector('#new-p-num').value.trim();
+                if (!num) return showNotification("Número requerido", "warning");
+
                 await addTelefono({
-                    numero: modal.querySelector('#new-p-num').value,
+                    numero: num,
                     direccion: modal.querySelector('#new-p-dir').value,
                     propietario: modal.querySelector('#new-p-prop').value,
                     estado: 'Sin asignar'
@@ -3823,7 +4997,7 @@ const renderTelefonosTab = async (container) => {
             'Estado': t.estado || 'Sin asignar',
             'Comentario': t.comentario || '-'
         }));
-        generatePlainXLS(dataToExport, `Directorio_Telefonico_${new Date().toISOString().split('T')[0]}`);
+        generatePlainXLS(dataToExport, `Directorio_Telefonico_${new Date().toISOString().split('T')[0]} `);
         showNotification("Generando archivo Excel...");
     };
 
@@ -3842,67 +5016,68 @@ const renderTelefonosTab = async (container) => {
         const estados = ['Sin asignar', 'Asignado', 'Contestaron', 'No contestan', 'Colgaron', 'Revisita', 'No llamar', 'Suspendido', 'Testigo'];
 
         showModal(`
-            <div class="flex flex-col h-full">
-                <header class="shrink-0 flex items-center justify-between bg-gradient-to-r from-teal-600 to-indigo-700 p-8 text-white relative overflow-hidden">
-                    <div class="absolute inset-0 bg-white/5 backdrop-blur-3xl"></div>
-                    <div class="relative z-10 flex items-center gap-5">
-                        <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-[2rem] flex items-center justify-center text-3xl shadow-2xl border border-white/30 animate-float">📞</div>
+    <div class="flex flex-col h-full bg-white dark:bg-slate-900 overflow-hidden">
+                <header class="shrink-0 flex items-center justify-between bg-gradient-to-r from-teal-600 to-indigo-700 p-8 text-white relative">
+                    <div class="flex items-center gap-5">
+                        <div class="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-2xl shadow-xl">
+                            <i class="fas fa-phone-alt"></i>
+                        </div>
                         <div>
-                            <h3 class="text-2xl font-black tracking-tight leading-none mb-1">Editar Teléfono</h3>
-                            <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Registro ID: ${t.numero.slice(-4)}</p>
+                            <h3 class="text-h3 text-white !mb-0.5">Editar Registro</h3>
+                            <p class="text-[10px] uppercase font-bold tracking-widest opacity-70 italic">ID: ${t.numero.slice(-4).toUpperCase()}</p>
                         </div>
                     </div>
                 </header>
 
-                <div class="flex-1 p-10 space-y-8 overflow-y-auto custom-scrollbar">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-3">
-                            <label class="label-premium">Número Telefónico</label>
-                            <input type="text" id="edit-p-num" value="${t.numero}" class="input-premium">
+                <div class="flex-1 p-8 space-y-6 overflow-y-auto custom-scrollbar">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Número Telefónico</label>
+                            <input type="text" id="edit-p-num" value="${t.numero}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-slate-900 dark:text-white outline-none focus:border-primary transition-all font-bold">
                         </div>
-                        <div class="space-y-3">
-                            <label class="label-premium">Nombre Propietario</label>
-                            <input type="text" id="edit-p-prop" value="${t.propietario || ''}" list="prop-list" class="input-premium">
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Nombre Propietario</label>
+                            <input type="text" id="edit-p-prop" value="${t.propietario || ''}" list="prop-list" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-slate-900 dark:text-white outline-none focus:border-primary transition-all font-bold">
                             <datalist id="prop-list">
                                 ${[...new Set(telefonos.map(x => x.propietario).filter(Boolean))].map(p => `<option value="${p}">`).join('')}
                             </datalist>
                         </div>
                     </div>
 
-                    <div class="space-y-3">
-                        <label class="label-premium">Dirección de Domicilio</label>
-                        <input type="text" id="edit-p-dir" value="${t.direccion || ''}" class="input-premium">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Dirección Referencial</label>
+                        <input type="text" id="edit-p-dir" value="${t.direccion || ''}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-slate-900 dark:text-white outline-none focus:border-primary transition-all">
                     </div>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                         <div class="space-y-3">
-                            <label class="label-premium">Asignado a</label>
-                            <select id="edit-p-pub" class="input-premium appearance-none cursor-pointer">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                         <div class="space-y-2">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Asignado a</label>
+                            <select id="edit-p-pub" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-slate-900 dark:text-white outline-none focus:border-primary transition-all font-bold cursor-pointer">
                                 <option value="">Sin asignar</option>
                                 ${publicadores.map(p => `<option value="${p.nombre}" ${t.asignado_a === p.nombre ? 'selected' : ''}>${p.nombre}</option>`).join('')}
                             </select>
                         </div>
-                        <div class="space-y-3">
-                            <label class="label-premium">Estado de Llamada</label>
-                            <select id="edit-p-estado" class="input-premium appearance-none cursor-pointer">
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Estado de Registro</label>
+                            <select id="edit-p-estado" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-slate-900 dark:text-white outline-none focus:border-primary transition-all font-bold cursor-pointer">
                                 ${estados.map(e => `<option value="${e}" ${t.estado === e ? 'selected' : ''}>${e}</option>`).join('')}
                             </select>
                         </div>
                     </div>
 
-                    <div class="space-y-3">
-                        <label class="label-premium">Observaciones / Comentarios</label>
-                        <textarea id="edit-p-obs" class="input-premium min-h-[120px] resize-none">${t.comentario || t.observaciones || ''}</textarea>
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Observaciones / Comentarios</label>
+                        <textarea id="edit-p-obs" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-slate-900 dark:text-white outline-none focus:border-primary transition-all min-h-[100px] resize-none">${t.comentario || t.observaciones || ''}</textarea>
                     </div>
                 </div>
 
-                <div class="shrink-0 p-8 bg-gray-50 dark:bg-black/40 border-t border-black/5 dark:border-white/5">
-                    <button id="update-phone" class="w-full bg-teal-600 py-4 rounded-2xl text-white font-black shadow-xl shadow-teal-500/20 hover:shadow-teal-500/40 hover:scale-[1.01] active:scale-[0.99] transition-all uppercase tracking-[0.2em] text-[11px]">
-                        Guardar Cambios Registro
+                <footer class="shrink-0 p-8 bg-slate-50 dark:bg-black/40 border-t border-slate-200 dark:border-white/5">
+                    <button id="update-phone" class="w-full bg-primary hover:bg-primary-light text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/20 transition-all text-xs uppercase tracking-[0.2em]">
+                        Guardar Cambios
                     </button>
-                </div>
+                </footer>
             </div>
-        `, async (modal) => {
+    `, async (modal) => {
             modal.querySelector('#update-phone').addEventListener('click', async () => {
                 const assignedTo = modal.querySelector('#edit-p-pub').value;
                 const updateData = {
@@ -3933,7 +5108,7 @@ const renderTelefonosTab = async (container) => {
                 }
 
                 await updateTelefono(id, updateData);
-                modal.classList.add('hidden');
+                modal.remove();
                 renderTelefonosTab(container);
                 showNotification("Registro actualizado.");
             });
@@ -3946,12 +5121,12 @@ const renderTelefonosTab = async (container) => {
 /* Updated Helper for simple CRUD lists with Edit support */
 const renderListCRUD = (container, title, items, fields, onAdd, onDelete, onEdit) => {
     container.innerHTML = `
-        <div class="flex justify-between items-center mb-4">
+    <div class="flex justify-between items-center mb-4">
             <h3 class="font-semibold text-lg text-teal-800 dark:text-teal-100">${title}</h3>
             <button id="btn-add-item" class="bg-teal-600 text-sm px-4 py-2 rounded-lg hover:bg-teal-500 text-white shadow-lg shadow-teal-500/20">+ Agregar</button>
         </div>
-        <div class="space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
-            ${items.map(item => `
+    <div class="space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
+        ${items.map(item => `
                 <div class="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded border border-black/10 dark:border-white/10 group hover:bg-black/10 dark:hover:bg-white/10 transition-colors">
                     <div>
                         <div class="font-medium text-gray-800 dark:text-gray-200 text-base">${item[fields[0]]}</div>
@@ -3963,29 +5138,29 @@ const renderListCRUD = (container, title, items, fields, onAdd, onDelete, onEdit
                     </div>
                 </div>
             `).join('')}
-        </div>
-    `;
+    </div>
+`;
 
     const inputClasses = "w-full mb-3 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-gray-900 dark:text-white focus:border-teal-500 focus:ring-1 focus:ring-teal-500/20 outline-none transition-all shadow-sm";
 
     document.getElementById('btn-add-item').addEventListener('click', () => {
         const inputs = fields.map(f => `
-            <div>
+    <div>
                 <label class="block text-xs uppercase text-gray-700 dark:text-gray-400 mb-1 font-bold">${f}</label>
                 <input type="text" id="field-${f}" class="${inputClasses}" placeholder="${f.charAt(0).toUpperCase() + f.slice(1)}">
             </div>
-        `).join('');
+`).join('');
 
         showModal(`
-            <h3 class="text-xl font-bold mb-4 text-teal-600 dark:text-teal-400">Nuevo ${title}</h3>
+    <h3 class="text-xl font-bold mb-4 text-teal-600 dark:text-teal-400"> Nuevo ${title}</h3>
             <div class="space-y-2">
                 ${inputs}
             </div>
             <button id="save-item" class="w-full bg-teal-600 py-3 rounded-lg text-white font-bold mt-4 shadow-lg shadow-teal-500/20">Guardar</button>
-        `, async (modal) => {
+`, async (modal) => {
             document.getElementById('save-item').addEventListener('click', async () => {
                 const data = {};
-                fields.forEach(f => data[f] = document.getElementById(`field-${f}`).value);
+                fields.forEach(f => data[f] = document.getElementById(`field - ${f} `).value);
                 await onAdd(data);
                 modal.classList.add('hidden');
                 if (window.reloadCurrentSubTab) window.reloadCurrentSubTab();
@@ -3995,7 +5170,7 @@ const renderListCRUD = (container, title, items, fields, onAdd, onDelete, onEdit
 
     const safeTitle = title.replace(/\s/g, '');
 
-    window[`deleteItem_${safeTitle}`] = async (id) => {
+    window[`deleteItem_${safeTitle} `] = async (id) => {
         showCustomConfirm('¿Eliminar este elemento?', async () => {
             await onDelete(id);
             if (window.reloadCurrentSubTab) window.reloadCurrentSubTab();
@@ -4003,27 +5178,27 @@ const renderListCRUD = (container, title, items, fields, onAdd, onDelete, onEdit
     };
 
     if (onEdit) {
-        window[`editItem_${safeTitle}`] = async (id) => {
+        window[`editItem_${safeTitle} `] = async (id) => {
             const item = items.find(x => x.id === id);
             if (!item) return;
 
             const inputs = fields.map(f => `
-                <div>
+    <div>
                     <label class="block text-xs uppercase text-gray-700 dark:text-gray-400 mb-1 font-bold">${f}</label>
                     <input type="text" id="edit-field-${f}" value="${item[f] || ''}" class="${inputClasses}">
                 </div>
-            `).join('');
+`).join('');
 
             showModal(`
-                <h3 class="text-xl font-bold mb-4 text-teal-600 dark:text-teal-400">Editar ${title}</h3>
+    <h3 class="text-xl font-bold mb-4 text-teal-600 dark:text-teal-400"> Editar ${title}</h3>
                 <div class="space-y-2">
                     ${inputs}
                 </div>
                 <button id="update-item" class="w-full bg-teal-600 py-3 rounded-lg text-white font-bold mt-4 shadow-lg shadow-teal-500/20">Actualizar</button>
-            `, async (modal) => {
+`, async (modal) => {
                 document.getElementById('update-item').addEventListener('click', async () => {
                     const data = {};
-                    fields.forEach(f => data[f] = document.getElementById(`edit-field-${f}`).value);
+                    fields.forEach(f => data[f] = document.getElementById(`edit - field - ${f} `).value);
                     await onEdit(id, data);
                     modal.classList.add('hidden');
                     // showCustomAlert("Actualizado."); // Removed alert
@@ -4043,125 +5218,127 @@ const renderPredicacionTab = async (container) => {
     const config = await getConfiguracion();
 
     container.innerHTML = `
-                                                <div class="space-y-6">
-                                                    <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-black/10 dark:border-white/10 pb-6">
-                                                        <div>
-                                                            <h2 class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-200 to-teal-400">Predicación Pública</h2>
-                                                            <p class="text-sm text-gray-500 dark:text-gray-400">Gestiona los turnos y asignaciones semanales</p>
-                                                        </div>
-                                                        <div class="flex items-center gap-4">
-                                                            <div id="public-save-status" class="flex items-center gap-2 text-[10px] font-bold text-teal-600 dark:text-teal-400 uppercase tracking-widest opacity-0 transition-opacity whitespace-nowrap">
-                                                                <span class="animate-pulse">●</span> Guardando...
-                                                            </div>
-                                                            <div class="flex gap-3">
-                                                                <button id="toggle-view-btn" class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl shadow-lg shadow-indigo-500/20 transition-all transform hover:scale-105">
-                                                                    <span>📊</span> Vista Matriz
-                                                                </button>
-                                                                <button id="add-row-btn" class="flex items-center gap-2 bg-teal-600 hover:bg-teal-500 text-white px-5 py-2.5 rounded-xl shadow-lg shadow-teal-500/20 transition-all transform hover:scale-105">
-                                                                    <span>+</span> Nuevo Turno
-                                                                </button>
-                                                                <button id="export-pdf" class="flex items-center gap-2 bg-white/5 dark:bg-white/5 hover:bg-white/10 text-gray-700 dark:text-gray-200 px-5 py-2.5 rounded-xl border border-black/10 dark:border-white/10 transition-colors">
-                                                                    <span>📄</span> PDF
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </header>
+    <div class="space-y-8">
+            <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                <div>
+                    <h3 class="text-h3 text-slate-900 dark:text-white flex items-center gap-3">
+                        <i class="fas fa-street-view text-primary"></i> Predicación Pública
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-1">Gestión centralizada de turnos y puestos de predicación</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div id="public-save-status" class="flex items-center gap-2 text-[10px] font-bold text-primary uppercase tracking-widest opacity-0 transition-opacity">
+                        <span class="w-2 h-2 bg-primary rounded-full animate-pulse"></span> Guardando cambios...
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button id="toggle-view-btn" class="bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 px-5 py-3 rounded-xl font-bold hover:bg-slate-50 transition-all flex items-center gap-3 text-xs uppercase tracking-wider">
+                            <i class="fas fa-th-large"></i> Vista Matriz
+                        </button>
+                        <button id="add-row-btn" class="bg-primary hover:bg-primary-light text-white px-5 py-3 rounded-xl font-bold shadow-lg shadow-primary/20 transition-all active:scale-95 flex items-center gap-3 text-xs uppercase tracking-wider">
+                            <i class="fas fa-plus-circle"></i> Nuevo Turno
+                        </button>
+                        <button id="export-pdf" class="bg-accent/10 hover:bg-accent/20 text-accent px-5 py-3 rounded-xl font-bold border border-accent/20 transition-all flex items-center gap-3 text-xs uppercase tracking-wider">
+                            <i class="fas fa-file-pdf"></i> Exportar
+                        </button>
+                    </div>
+                </div>
+            </header>
 
-                                                    <div class="morphinglass-card overflow-hidden rounded-2xl border border-black/10 dark:border-white/10 shadow-2xl" id="pdf-content">
-                                                        <div class="overflow-x-auto">
-                                                            <table class="w-full text-left border-collapse">
-                                                                <thead>
-                                                                    <tr class="bg-gray-100 dark:bg-black/40 dark:bg-gradient-to-r dark:from-teal-900/40 dark:to-black/40 text-teal-800 dark:text-teal-100 uppercase text-xs tracking-wider">
-                                                                        <th class="p-4 font-semibold border-b border-black/10 dark:border-white/10">Día</th>
-                                                                        <th class="p-4 font-semibold border-b border-black/10 dark:border-white/10 text-center">Horario</th>
-                                                                        <th class="p-4 font-semibold border-b border-black/10 dark:border-white/10">Lugar</th>
-                                                                        <th class="p-4 font-semibold border-b border-black/10 dark:border-white/10 w-1/5">Publicador</th>
-                                                                        <th class="p-4 font-semibold border-b border-black/10 dark:border-white/10 w-1/5">Compañero</th>
-                                                                        <th class="p-4 font-semibold border-b border-black/10 dark:border-white/10 text-center w-16 no-print">Acción</th>
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody id="public-table-body" class="divide-y divide-white/5 text-sm text-gray-200">
-                                                                    <!-- Rows generated here -->
-                                                                </tbody>
-                                                            </table>
-                                                        </div>
-                                                        ${!data.asignaciones || data.asignaciones.length === 0 ?
-            '<div class="p-8 text-center text-gray-500 italic">No hay turnos registrados. Añade uno nuevo.</div>' : ''}
-                                                    </div>
+            <div class="md:hidden flex items-center justify-center gap-2 p-3 bg-primary/5 text-primary text-[10px] font-bold uppercase tracking-widest border-y border-primary/10">
+                <i class="fas fa-arrows-alt-h animate-pulse"></i> Desliza para ver más columnas
+            </div>
 
-                                                    <datalist id="list-publicadores">
-                                                        ${publicadores.map(p => `<option value="${p.nombre}">`).join('')}
-                                                    </datalist>
-                                                </div>
-                                                `;
+            <div class="modern-card !p-0 overflow-hidden border border-slate-200 dark:border-white/5 min-h-[400px] overflow-x-auto" id="pdf-content">
+                <div class="table-container custom-scrollbar overflow-x-auto">
+                    <table class="w-full text-left border-collapse min-w-[700px] mb-8">
+                        <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-400 text-[8px] md:text-[9px] font-bold uppercase tracking-[0.2em] sticky top-0 z-10 border-b border-slate-200 dark:border-white/5">
+                            <tr>
+                                <th class="p-4 md:p-5 w-32 md:w-40">Día</th>
+                                <th class="p-4 md:p-5 w-40 md:w-48 text-center">Horario</th>
+                                <th class="p-4 md:p-5">Lugar</th>
+                                <th class="p-4 md:p-5 w-1/4">Publicador</th>
+                                <th class="p-4 md:p-5 w-1/4">Compañero</th>
+                                <th class="p-4 md:p-5 text-right no-print">Op.</th>
+                            </tr>
+                        </thead>
+                        <tbody id="public-table-body" class="divide-y divide-slate-100 dark:divide-white/5 text-sm">
+                            <!-- Rows generated here -->
+                        </tbody>
+                    </table>
+                </div>
+                ${!data.asignaciones || data.asignaciones.length === 0 ? `
+                <div class="flex flex-col items-center justify-center py-20 text-slate-300 dark:text-white/10">
+                    <div class="w-20 h-20 mb-4 bg-slate-50 dark:bg-white/5 rounded-full flex items-center justify-center text-3xl">
+                        <i class="fas fa-calendar-plus opacity-20"></i>
+                    </div>
+                    <p class="text-xs font-black uppercase tracking-widest opacity-50">No hay turnos registrados</p>
+                </div>` : ''}
+            </div>
+
+            <datalist id="list-publicadores">
+                ${publicadores.map(p => `<option value="${p.nombre}">`).join('')}
+            </datalist>
+        </div>
+    `;
 
     const tbody = document.getElementById('public-table-body');
 
     const renderRows = () => {
         if (!tbody) return;
         tbody.innerHTML = (data.asignaciones || []).map((row, index) => `
-                                                <tr class="hover:bg-black/5 dark:bg-white/5 transition-colors group">
-                                                    <td class="p-2">
-                                                        <select class="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg px-3 py-2 text-teal-800 dark:text-teal-100 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-all appearance-none cursor-pointer"
-                                                            onchange="updateRow(${index}, 'dia', this.value)">
-                                                            <option value="" disabled ${!row.dia ? 'selected' : ''} class="bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100">Seleccionar</option>
-                                                            ${['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(d =>
-            `<option value="${d}" ${row.dia === d ? 'selected' : ''} class="bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100">${d}</option>`
+    <tr class="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors group">
+                <td class="p-3">
+                    <select class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-300 outline-none focus:border-primary transition-all cursor-pointer appearance-none"
+                        onchange="updateRow(${index}, 'dia', this.value)">
+                        <option value="" disabled ${!row.dia ? 'selected' : ''}>Día...</option>
+                        ${['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(d =>
+            `<option value="${d}" ${row.dia === d ? 'selected' : ''}>${d}</option>`
         ).join('')}
-                                                        </select>
-                                                    </td>
-                                                    <td class="p-2">
-                                                        <div class="flex items-center gap-1">
-                                                            <input type="time" class="w-24 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg px-2 py-2 text-gray-200 focus:outline-none focus:border-teal-500 transition-all font-mono text-center text-xs"
-                                                                value="${row.hora || ''}"
-                                                                title="Hora Inicio"
-                                                                onchange="updateRow(${index}, 'hora', this.value)">
-                                                            <span class="text-gray-500">-</span>
-                                                            <input type="time" class="w-24 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg px-2 py-2 text-gray-200 focus:outline-none focus:border-teal-500 transition-all font-mono text-center text-xs"
-                                                                value="${row.hora_fin || ''}"
-                                                                title="Hora Fin"
-                                                                onchange="updateRow(${index}, 'hora_fin', this.value)">
-                                                        </div>
-                                                    </td>
-                                                    <td class="p-2">
-                                                        <div class="relative w-full h-full group/select">
-                                                            <select class="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg px-3 py-2 text-teal-800 dark:text-teal-100 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-all appearance-none cursor-pointer"
-                                                                onchange="updateRow(${index}, 'lugar', this.value)">
-                                                                <option value="" disabled ${!row.lugar ? 'selected' : ''} class="bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100">Seleccionar Lugar</option>
-                                                                ${(config.lugares || []).map(lugar =>
-            `<option value="${lugar}" ${row.lugar === lugar ? 'selected' : ''} class="bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100">${lugar}</option>`
+                    </select>
+                </td>
+                <td class="p-3">
+                    <div class="flex items-center gap-1.5 justify-center">
+                        <input type="time" class="w-24 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-100 outline-none focus:border-primary transition-all text-center"
+                            value="${row.hora || ''}"
+                            onchange="updateRow(${index}, 'hora', this.value)">
+                        <span class="text-slate-300 dark:text-white/10">—</span>
+                        <input type="time" class="w-24 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-100 outline-none focus:border-primary transition-all text-center"
+                            value="${row.hora_fin || ''}"
+                            onchange="updateRow(${index}, 'hora_fin', this.value)">
+                    </div>
+                </td>
+                <td class="p-3">
+                    <select class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-300 outline-none focus:border-primary transition-all cursor-pointer appearance-none"
+                        onchange="updateRow(${index}, 'lugar', this.value)">
+                        <option value="" disabled ${!row.lugar ? 'selected' : ''}>Puesto...</option>
+                        ${(config.lugares || []).map(lugar =>
+            `<option value="${lugar}" ${row.lugar === lugar ? 'selected' : ''}>${lugar}</option>`
         ).join('')}
-                                                                ${row.lugar && !(config.lugares || []).includes(row.lugar) ? `<option value="${row.lugar}" selected class="bg-white text-yellow-600 dark:bg-gray-900 dark:text-yellow-500">${row.lugar} (No listado)</option>` : ''}
-                                                            </select>
-                                                            <div class="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-teal-500/30 group-hover/select:text-teal-600 dark:text-teal-400 transition-colors text-[10px]">▼</div>
-                                                        </div>
-                                                    </td>
-                                                    <td class="p-2">
-                                                        <div class="relative">
-                                                            <input list="list-publicadores" type="text"
-                                                                class="w-full bg-teal-500/10 border border-teal-500/20 rounded-lg px-3 py-2 text-teal-200 placeholder-teal-500/50 focus:outline-none focus:border-teal-500 focus:bg-teal-500/20 transition-all"
-                                                                value="${row.publicador || ''}"
-                                                                placeholder="Buscar publicador..."
-                                                                onchange="updateRow(${index}, 'publicador', this.value)">
-                                                        </div>
-                                                    </td>
-                                                    <td class="p-2">
-                                                        <div class="relative">
-                                                            <input list="list-publicadores" type="text"
-                                                                class="w-full bg-teal-500/10 border border-teal-500/20 rounded-lg px-3 py-2 text-teal-200 placeholder-teal-500/50 focus:outline-none focus:border-teal-500 focus:bg-teal-500/20 transition-all"
-                                                                value="${row.companero || ''}"
-                                                                placeholder="Buscar compañero..."
-                                                                onchange="updateRow(${index}, 'companero', this.value)">
-                                                        </div>
-                                                    </td>
-                                                    <td class="p-2 text-center no-print">
-                                                        <button class="bg-red-500/10 hover:bg-red-500/30 text-red-400 p-2 rounded-lg transition-all transform hover:scale-110"
-                                                            onclick="deletePublicRow(${index})" title="Eliminar Turno">
-                                                            🗑️
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                                `).join('');
+                        ${row.lugar && !(config.lugares || []).includes(row.lugar) ? `<option value="${row.lugar}" selected>${row.lugar} (Personalizado)</option>` : ''}
+                    </select>
+                </td>
+                <td class="p-3">
+                    <input list="list-publicadores" type="text"
+                        class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-200 outline-none focus:border-primary transition-all placeholder:text-slate-400 dark:placeholder:text-white/10"
+                        value="${row.publicador || ''}"
+                        placeholder="Publicador..."
+                        onchange="updateRow(${index}, 'publicador', this.value)">
+                </td>
+                <td class="p-3">
+                    <input list="list-publicadores" type="text"
+                        class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-200 outline-none focus:border-primary transition-all placeholder:text-slate-400 dark:placeholder:text-white/10"
+                        value="${row.companero || ''}"
+                        placeholder="Compañero..."
+                        onchange="updateRow(${index}, 'companero', this.value)">
+                </td>
+                <td class="p-2 md:p-3 text-right no-print opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button class="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"
+                        onclick="deletePublicRow(${index})" title="Eliminar Turno">
+                        <i class="fas fa-trash-alt text-xs"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
     };
     renderRows();
 
@@ -4170,17 +5347,15 @@ const renderPredicacionTab = async (container) => {
             data.asignaciones.splice(index, 1);
             await savePredicacionPublica(data);
             renderRows();
-            showCustomAlert("Turno eliminado");
+            showNotification("Turno eliminado correctamente");
         });
     };
 
     document.getElementById('add-row-btn').addEventListener('click', async () => {
         data.asignaciones = data.asignaciones || [];
-        // CREAR EN BLANCO SEGUN SOLICITUD DEL USUARIO
         data.asignaciones.push({ dia: '', hora: '', hora_fin: '', lugar: '', publicador: '', companero: '' });
         await savePredicacionPublica(data);
-        renderRows(); // Re-render to show new row
-        // Scroll to bottom
+        renderRows();
         setTimeout(() => {
             const tableContainer = document.querySelector('.overflow-x-auto');
             if (tableContainer) tableContainer.scrollTop = tableContainer.scrollHeight;
@@ -4189,7 +5364,7 @@ const renderPredicacionTab = async (container) => {
 
     window.updateRow = async (index, field, value) => {
         const status = document.getElementById('public-save-status');
-        if (status) status.style.opacity = '1';
+        if (status) status.classList.replace('opacity-0', 'opacity-100');
 
         data.asignaciones[index][field] = value;
         try {
@@ -4200,7 +5375,7 @@ const renderPredicacionTab = async (container) => {
         } finally {
             if (status) {
                 setTimeout(() => {
-                    status.style.opacity = '0';
+                    status.classList.replace('opacity-100', 'opacity-0');
                 }, 1000);
             }
         }
@@ -4209,15 +5384,15 @@ const renderPredicacionTab = async (container) => {
     // PDF Export Logic
     document.getElementById('export-pdf').addEventListener('click', () => {
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
+        const doc = new jsPDF('l', 'mm', 'a4');
 
-        // Temporarily style for print
         const content = document.getElementById('pdf-content');
 
-        // Use html2canvas
+        showNotification("Generando documento PDF...", "info");
+
         html2canvas(content, {
             scale: 2,
-            backgroundColor: '#ffffff', // White background for PDF
+            backgroundColor: '#ffffff',
             ignoreElements: (element) => element.classList.contains('no-print')
         }).then(canvas => {
             const imgData = canvas.toDataURL('image/png');
@@ -4226,7 +5401,8 @@ const renderPredicacionTab = async (container) => {
             const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
             doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-            doc.save('predicacion_publica.pdf');
+            doc.save(`Predicacion_Publica_${new Date().toISOString().split('T')[0]}.pdf`);
+            showNotification("PDF descargado con éxito", "success");
         });
     });
 
@@ -4237,26 +5413,39 @@ const renderPredicacionTab = async (container) => {
         dias.forEach(d => byDay[d] = (data.asignaciones || []).filter(a => a.dia === d && (a.hora || a.lugar || a.publicador)).sort((a, b) => (a.hora || '').localeCompare(b.hora || '')));
 
         matrixContainer.innerHTML = `
-            <div class="p-6 grid grid-cols-1 md:grid-cols-7 gap-4 bg-gray-50 dark:bg-black/20 overflow-x-auto min-h-[400px]">
+            <div class="p-4 md:p-8 grid grid-cols-1 md:grid-cols-7 gap-4 md:gap-5 bg-slate-50 dark:bg-black/20 overflow-x-auto custom-scrollbar min-h-[500px]">
                 ${dias.map(dia => `
-                    <div class="flex flex-col gap-3 min-w-[120px]">
-                        <div class="p-3 bg-teal-600 text-white text-center font-bold rounded-xl shadow-md text-xs uppercase tracking-wider">${dia}</div>
-                        <div class="flex flex-col gap-2">
+                    <div class="flex flex-col gap-4 min-w-[150px]">
+                        <div class="p-4 bg-primary text-white text-center font-black rounded-2xl shadow-lg text-[10px] uppercase tracking-[0.2em] shadow-primary/20">${dia}</div>
+                        <div class="flex flex-col gap-3">
                             ${byDay[dia].length > 0 ? byDay[dia].map(row => {
             const originalIdx = (data.asignaciones || []).indexOf(row);
             return `
-                                    <div class="p-3 bg-white dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-xl shadow-sm group relative hover:border-teal-500/50 transition-all">
-                                        <div class="text-[10px] font-bold text-teal-600 dark:text-teal-400 mb-1">${row.hora || '??:??'} - ${row.hora_fin || '??:??'}</div>
-                                        <div class="text-[11px] font-bold text-gray-800 dark:text-gray-100 truncate mb-2 leading-tight">${row.lugar || 'Sin lugar'}</div>
-                                        <div class="space-y-1">
-                                             <div class="text-[10px] text-gray-500 flex items-center gap-1 truncate" title="${row.publicador || '-'}">👤 ${row.publicador || '-'}</div>
-                                             <div class="text-[10px] text-gray-400 flex items-center gap-1 truncate" title="${row.companero || '-'}">👥 ${row.companero || '-'}</div>
+                                    <div class="p-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm group relative hover:border-primary transition-all duration-300">
+                                        <div class="text-[9px] font-black text-primary mb-2 flex items-center gap-2">
+                                            <i class="far fa-clock"></i>
+                                            ${row.hora || '??:??'} - ${row.hora_fin || '??:??'}
                                         </div>
-                                        <button class="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] shadow-lg" 
-                                            onclick="if(ensureOnline()) deletePublicRow(${originalIdx})">✕</button>
+                                        <div class="text-[11px] font-extrabold text-slate-800 dark:text-white truncate mb-3 leading-tight uppercase tracking-tight">${row.lugar || 'Sin lugar'}</div>
+                                        <div class="space-y-1.5 border-t border-slate-100 dark:border-white/5 pt-3">
+                                             <div class="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-2 truncate font-bold" title="${row.publicador || '-'}">
+                                                <i class="fas fa-user-circle opacity-40"></i> ${row.publicador || '-'}
+                                             </div>
+                                             <div class="text-[10px] text-slate-400 dark:text-slate-500 flex items-center gap-2 truncate" title="${row.companero || '-'}">
+                                                <i class="fas fa-users opacity-40"></i> ${row.companero || '-'}
+                                             </div>
+                                        </div>
+                                        <button class="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-all bg-red-500 text-white rounded-xl w-7 h-7 flex items-center justify-center text-[10px] shadow-lg hover:scale-110 active:scale-95" 
+                                            onclick="deletePublicRow(${originalIdx})">
+                                            <i class="fas fa-times"></i>
+                                        </button>
                                     </div>
                                 `;
-        }).join('') : '<div class="text-[10px] text-gray-400 text-center py-8 italic border border-dashed border-gray-300 dark:border-white/10 rounded-xl">Libre</div>'}
+        }).join('') : `
+                                <div class="text-[10px] text-slate-400 text-center py-10 italic border-2 border-dashed border-slate-200 dark:border-white/5 rounded-3xl flex flex-col items-center gap-2">
+                                    <i class="fas fa-calendar-check opacity-20 text-xl"></i>
+                                    Libre
+                                </div>`}
                         </div>
                     </div>
                 `).join('')}
@@ -4271,21 +5460,21 @@ const renderPredicacionTab = async (container) => {
         const btn = e.currentTarget;
         if (currentView === 'table') {
             currentView = 'matrix';
-            btn.innerHTML = '<span>📋</span> Vista Tabla';
+            btn.innerHTML = '<i class="fas fa-list"></i> Vista Tabla';
             renderMatrix();
         } else {
             currentView = 'table';
-            btn.innerHTML = '<span>📊</span> Vista Matriz';
+            btn.innerHTML = '<i class="fas fa-th-large"></i> Vista Matriz';
             document.getElementById('pdf-content').innerHTML = originalTableContent;
-            renderRows(); // Restore table data
+            renderRows();
         }
     });
 };
 
 // --- UTILS ---
 
-const showModal = (content, onOpen, maxWidth = 'max-w-md') => {
-    const modalContainer = document.getElementById('modal-container');
+const showModal = (content, onOpen, maxWidth = 'max-w-md', containerId = 'modal-container') => {
+    const modalContainer = document.getElementById(containerId);
 
     const handleEsc = (e) => {
         if (e.key === 'Escape') closeModal();
@@ -4324,7 +5513,6 @@ const showModal = (content, onOpen, maxWidth = 'max-w-md') => {
 
 // showCustomAlert and showCustomConfirm were moved to top level
 const renderProgramaTab = async (container) => {
-    // FORCE Current Week Only as per user request
     const today = new Date();
     let currentWeekStart = getMonday(today);
     let programa = { dias: [] };
@@ -4332,203 +5520,117 @@ const renderProgramaTab = async (container) => {
     const saveCurrentWeek = async () => {
         const weekId = formatDateId(currentWeekStart);
         await saveProgramaSemanal(weekId, programa);
+        if (window.dispatchModuleSync) window.dispatchModuleSync();
     };
 
-    // Helper for Auto-Save with automatic territory assignment
-    const autoSave = async (dayIdx, turnId, field) => {
-        const statusIndicator = document.getElementById('save-status');
-        if (statusIndicator) statusIndicator.style.opacity = '1';
-
-        try {
-            const weekId = formatDateId(currentWeekStart);
-            if (!weekId) throw new Error("Invalid weekId");
-
-            await saveCurrentWeek();
-
-            // Check if we need to auto-assign territory
-            // ONLY for present or future weeks (to avoid overwriting current status with past data)
-            const thisWeekStart = getMonday(new Date());
-            const isPast = currentWeekStart.getTime() < thisWeekStart.getTime();
-
-            if (!isPast) {
-                const tData = programa.dias[dayIdx][turnId];
-
-                // CASE 1: Data exists -> SYNC / ASSIGN
-                if (tData && tData.territorio && tData.conductor) {
-                    const extra = {
-                        auxiliar: tData.auxiliar || '',
-                        lugar: tData.lugar || '',
-                        hora: tData.hora || '',
-                        turno: turnId,
-                        faceta: tData.faceta || '',
-                        grupos: tData.grupos || '',
-                        fecha_asignacion: new Date(currentWeekStart).toISOString()
-                    };
-
-                    const parts = tData.territorio.split(',').map(s => s.trim());
-                    for (const part of parts) {
-                        const match = part.match(/^(\d+)(?:\s*\((.*)\))?$/);
-                        if (match) {
-                            const num = match[1];
-                            const manzanasStr = match[2];
-                            const conductor = tData.conductor;
-
-                            const candidates = territorios.filter(terr => terr.numero == num);
-                            let targetId = null;
-                            let manzanasToAssign = [];
-
-                            if (manzanasStr) {
-                                manzanasToAssign = manzanasStr.split(',').map(m => m.trim());
-                                const perfectMatch = candidates.find(c => {
-                                    if (!c.manzanas) return false;
-                                    const cManzanas = c.manzanas.split(',').map(s => s.trim());
-                                    return manzanasToAssign.every(m => cManzanas.includes(m));
-                                });
-                                if (perfectMatch) targetId = perfectMatch.id;
-                            } else if (candidates.length > 0) {
-                                targetId = candidates[0].id;
-                            }
-
-                            if (targetId) {
-                                if (manzanasToAssign.length > 0) {
-                                    await assignTerritorioParcial(targetId, manzanasToAssign, conductor, extra);
-                                } else {
-                                    await assignTerritorio(targetId, conductor, extra);
-                                }
-                            }
-                        }
-                    }
-                }
-                // CASE 2: Conductor or Territory cleared -> UNASSIGN?
-                // If we are in 'conductor' field and it's empty, we might want to free the territory that was there.
-                else if (field === 'conductor' && (!tData.conductor || tData.conductor === '')) {
-                    const parts = (tData.territorio || '').split(',').map(s => s.trim());
-                    for (const part of parts) {
-                        const num = part.split('(')[0].trim();
-                        const target = territorios.find(t => t.numero == num && t.estado === 'Asignado');
-                        if (target) {
-                            await cancelarAsignacion(target.id);
-                        }
-                    }
-                }
-            }
-        } catch (err) {
-            console.error("Auto-save failed:", err);
-            // Non-intrusive notification for auto-save errors
-            showNotification("⚠️ Error guardando cambios: " + err.message, "error");
-        } finally {
-            if (statusIndicator) {
-                setTimeout(() => {
-                    statusIndicator.style.opacity = '0';
-                }, 1000);
-            }
-        }
-    };
-
-    // 1. Fetch Metadata Once
     const territoriesPromise = getTerritorios();
     const configPromise = getConfiguracion();
     const conductorsPromise = getConductores();
     const publishersPromise = getPublicadores();
 
-    const [territorios, config, conductores, publicadores] = await Promise.all([
-        territoriesPromise, configPromise, conductorsPromise, publishersPromise
+    const [territorios, config, allPersonnel] = await Promise.all([
+        territoriesPromise, configPromise, publishersPromise
     ]);
 
     const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
-
-    // Sort lists
     territorios.sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true, sensitivity: 'base' }));
-    conductores.sort((a, b) => a.nombre.localeCompare(b.nombre));
-    publicadores.sort((a, b) => a.nombre.localeCompare(b.nombre));
 
-    // SYNC GLOBALS for Compatibility
+    // Filter personnel by 'es_conductor' for both Conductor and Auxiliar roles
+    const activeConductors = allPersonnel.filter(p => p.es_conductor).sort((a, b) => a.nombre.localeCompare(b.nombre));
+
     _globalTerritorios = territorios;
     _globalPrograma = programa;
 
-
-    // Options Configuration
     const options = {
-        Lugar: config.lugares || [],
+        Lugar: config.lugares && config.lugares.length > 0 ? config.lugares : ['Salón del Reino'],
         Hora: config.horarios_programa && config.horarios_programa.length > 0 ? config.horarios_programa : ['09:00', '15:00', '19:00'],
-        Conductor: conductores.map(c => c.nombre),
-        Auxiliar: conductores.map(c => c.nombre),
-        Faceta: config.facetas || ['Casa en casa', 'Carritos'],
+        Conductor: activeConductors.map(c => c.nombre),
+        Auxiliar: activeConductors.map(p => p.nombre),
+        Faceta: config.facetas && config.facetas.length > 0 ? config.facetas : ['Casa en casa', 'Carritos'],
         Territorio: territorios.map(t => t.numero),
         Grupos: ['Todos', 'Grupos 1 y 5', 'Grupos 2 y 6', 'Grupos 3 y 4', ...Array.from({ length: 12 }, (_, i) => `Grupo ${i + 1}`)]
     };
 
-    // 2. Setup Container Structure        // Initial Controls
-    const controlsHtml = `
-            <div class="flex items-center justify-between mb-6 bg-white dark:bg-[#0f1115] p-4 rounded-xl border border-gray-200 dark:border-white/10 shadow-sm transition-colors">
-                 <div>
-                    <h2 class="text-2xl font-bold text-teal-700 dark:text-teal-400 flex items-center gap-3">
-                        <span class="p-2 bg-teal-50 dark:bg-teal-500/10 rounded-lg border border-teal-100 dark:border-teal-500/20 text-xl">📅</span> 
-                        Programa Semanal
-                    </h2>
-                    <p class="text-gray-500 dark:text-gray-400 text-xs mt-1 ml-14">Organiza las salidas de servicio de la semana</p>
+    container.innerHTML = `
+        <div class="max-w-[1700px] mx-auto space-y-8 animate-fade-in">
+            <header class="flex flex-col xl:flex-row items-center justify-between gap-6">
+                <div class="flex items-center gap-5">
+                    <div class="w-14 h-14 bg-gradient-to-br from-primary to-indigo-600 rounded-2xl flex items-center justify-center text-2xl text-white shadow-xl shadow-primary/20">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-h3 text-slate-900 dark:text-white !mb-0.5">Programa Semanal</h3>
+                        <p class="text-xs text-slate-500">Planificación estratégica de salidas de campo</p>
+                    </div>
                 </div>
                 
-                <div class="flex items-center gap-4">
-                        <div class="flex flex-wrap items-center gap-2">
-                             <button id="prev-week" class="p-2.5 bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-xl hover:bg-teal-500/10 transition-all text-gray-500 hover:text-teal-600 shadow-sm">⬅️</button>
-                             <div class="bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 px-4 py-2 rounded-xl flex items-center gap-3 shadow-sm shadow-black/5">
-                                 <span class="text-xs font-black text-gray-400 uppercase tracking-widest hidden sm:inline">Semana</span>
-                                 <span id="week-range-label" class="text-sm font-black text-teal-600 dark:text-teal-400 min-w-[120px] text-center tracking-tighter">Cargando...</span>
-                             </div>
-                             <button id="next-week" class="p-2.5 bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-xl hover:bg-teal-500/10 transition-all text-gray-500 hover:text-teal-600 shadow-sm">➡️</button>
-                             <button id="btn-reset-today" class="px-4 py-2.5 bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-teal-600 transition-all shadow-sm">Hoy</button>
-                        </div>
-
-                        <div class="flex flex-wrap items-center justify-end gap-2 pl-0 sm:pl-4 border-l-0 sm:border-l border-gray-200 dark:border-white/10 w-full sm:w-auto">
-                            <button id="btn-copy-prev" class="flex items-center gap-2 bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 p-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-teal-600 transition-all shadow-sm" title="Copiar de la semana anterior">
-                                📋 Copiar Anterior
-                            </button>
-                            <button id="btn-clear-week" class="flex items-center gap-2 bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 p-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-red-500 transition-all shadow-sm" title="Limpiar semana">
-                                🗑️ Limpiar
-                            </button>
-                            <div class="h-6 w-px bg-gray-200 dark:bg-white/10 mx-1"></div>
-                            <button id="export-excel-plain" class="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white font-black py-2.5 px-4 rounded-xl shadow-lg hover:shadow-green-500/30 transition-all active:scale-95 border border-green-400/20 group uppercase tracking-widest text-[10px]">
-                                <span class="group-hover:translate-y-0.5 transition-transform text-sm">📊</span> Excel Plano
-                            </button>
-                            <button id="export-png" class="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white font-black py-2.5 px-4 rounded-xl shadow-lg hover:shadow-purple-500/30 transition-all active:scale-95 border border-purple-400/20 group uppercase tracking-widest text-[10px]">
-                                <span class="group-hover:rotate-12 transition-transform text-sm">📷</span> Imagen
-                            </button>
-                            
-                            <div id="save-status" class="flex items-center gap-2 text-[10px] font-bold text-teal-600 dark:text-teal-400 uppercase tracking-widest opacity-0 transition-opacity whitespace-nowrap">
-                                <span class="animate-pulse">●</span> Guardando...
-                            </div>
-                        </div>
+                <div class="flex flex-wrap items-center justify-center gap-3">
+                    <div class="flex items-center bg-slate-100 dark:bg-white/5 rounded-2xl p-1 border border-slate-200 dark:border-white/5">
+                         <button id="prev-week" class="p-3 hover:bg-white dark:hover:bg-white/10 rounded-xl transition-all text-slate-400 hover:text-primary">
+                            <i class="fas fa-chevron-left"></i>
+                         </button>
+                         <div class="px-6 py-2 min-w-[180px] text-center">
+                             <span id="week-range-label" class="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest">Cargando...</span>
+                         </div>
+                         <button id="next-week" class="p-3 hover:bg-white dark:hover:bg-white/10 rounded-xl transition-all text-slate-400 hover:text-primary">
+                            <i class="fas fa-chevron-right"></i>
+                         </button>
                     </div>
+
+                    <div class="flex gap-2">
+                        <button id="btn-reset-today" class="bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 px-5 py-3 rounded-xl font-bold hover:bg-slate-50 transition-all text-xs uppercase tracking-wider">Hoy</button>
+                        <div class="w-px h-10 bg-slate-200 dark:bg-white/10 mx-1"></div>
+                        <button id="btn-copy-prev" class="p-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-400 hover:text-indigo-500 rounded-xl transition-all" title="Copiar Semana Anterior">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                        <button id="btn-clear-week" class="p-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-400 hover:text-red-500 rounded-xl transition-all" title="Limpiar Semana">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                        <button id="export-excel-plain" class="p-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-400 hover:text-emerald-500 rounded-xl transition-all" title="Exportar Excel">
+                            <i class="fas fa-file-excel"></i>
+                        </button>
+                        <button id="export-png" class="p-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-400 hover:text-amber-500 rounded-xl transition-all" title="Imprimir / PDF">
+                            <i class="fas fa-print"></i>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <div class="relative group">
+                <div id="prog-loading-overlay" class="absolute inset-0 bg-white/80 dark:bg-slate-900/80 z-50 backdrop-blur-sm flex items-center justify-center hidden rounded-3xl">
+                     <div class="flex flex-col items-center gap-4">
+                        <div class="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+                        <p class="text-[10px] font-black uppercase text-primary tracking-widest animate-pulse">Sincronizando...</p>
+                     </div>
+                </div>
+                
+                <div class="modern-card !p-0 overflow-x-auto custom-scrollbar border border-slate-200 dark:border-white/5 shadow-inner" id="admin-prog-table">
+                    <!-- Table will be injected here -->
+                </div>
+
+                <div class="flex flex-col sm:flex-row justify-between items-center px-8 mt-6 gap-4">
+                    <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-2">
+                        <i class="fas fa-cloud-upload-alt text-emerald-500"></i> Autoguardado inteligente activado
+                    </p>
+                    <div class="flex items-center gap-6 text-[9px] font-black uppercase tracking-widest opacity-60">
+                        <span class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-cyan-500 shadow-lg shadow-cyan-500/40"></span> Mañana</span>
+                        <span class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-orange-500 shadow-lg shadow-orange-500/40"></span> Tarde</span>
+                        <span class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-indigo-500 shadow-lg shadow-indigo-500/40"></span> Noche</span>
+                    </div>
+                </div>
             </div>
-        `;
-    container.innerHTML = `
-        ${controlsHtml}
-        <div class="space-y-1 relative">
-            <div id="prog-loading-overlay" class="absolute inset-0 bg-white/50 dark:bg-black/60 z-50 backdrop-blur-sm flex items-center justify-center hidden rounded-xl">
-                 <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
-            </div>
-            <div class="relative w-full" id="admin-prog-table">
-                <!-- Table will be injected here -->
-            </div>
-            <p class="text-[10px] text-gray-500 text-right px-2">* Los cambios se guardan por semana específica.</p>
         </div>
     `;
 
     const tableContainer = document.getElementById('admin-prog-table');
-    const loadingOverlay = document.getElementById('prog-loading-overlay');
-    const rangeLabel = document.getElementById('week-range-label');
-    const btnResetToday = document.getElementById('btn-reset-today');
 
-    // Load Logic
     const loadWeekData = async () => {
         const overlay = container.querySelector('#prog-loading-overlay');
-        const range = container.querySelector('#range-label');
         if (overlay) overlay.classList.remove('hidden');
 
         try {
-            window._currentWeekStartGlobal = currentWeekStart; // Set global for auto-save
+            window._currentWeekStartGlobal = currentWeekStart;
             const weekId = formatDateId(currentWeekStart);
             const data = await getProgramaSemanal(weekId);
 
@@ -4545,11 +5647,10 @@ const renderProgramaTab = async (container) => {
             }
             _globalPrograma = programa;
 
-            // Format Label Header
             const monday = currentWeekStart;
             const sunday = new Date(monday);
             sunday.setDate(monday.getDate() + 6);
-            const rangeText = `${monday.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })} - ${sunday.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}`;
+            const rangeText = `${monday.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })} — ${sunday.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}`.toUpperCase();
 
             const lblRange = container.querySelector('#week-range-label');
             if (lblRange) lblRange.innerText = rangeText;
@@ -4563,231 +5664,158 @@ const renderProgramaTab = async (container) => {
         }
     };
 
-
-    // 3. Render Logic Function
     const renderTable = () => {
         const turnos = [
-            {
-                id: 'manana',
-                label: config.jornadas?.manana || '🌅 MAÑANA',
-                headerColor: 'bg-gradient-to-r from-cyan-100 to-cyan-200 dark:from-cyan-950/80 dark:to-cyan-900/80 text-cyan-800 dark:text-cyan-200 border-l-4 border-cyan-500',
-                rowColor: 'bg-gradient-to-r from-cyan-50 to-transparent dark:from-cyan-900/5 dark:to-transparent',
-                accent: 'text-cyan-600 dark:text-cyan-400',
-                fields: ['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', 'Grupos', 'Territorio']
-            },
-            {
-                id: 'tarde',
-                label: config.jornadas?.tarde || '☀️ TARDE',
-                headerColor: 'bg-gradient-to-r from-orange-100 to-orange-200 dark:from-orange-950/80 dark:to-orange-900/80 text-orange-800 dark:text-orange-200 border-l-4 border-orange-500',
-                rowColor: 'bg-gradient-to-r from-orange-50 to-transparent dark:from-orange-900/5 dark:to-transparent',
-                accent: 'text-orange-600 dark:text-orange-400',
-                fields: ['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', 'Grupos', 'Territorio']
-            },
-            {
-                id: 'noche',
-                label: config.jornadas?.noche || '🌙 NOCHE',
-                headerColor: 'bg-gradient-to-r from-blue-100 to-blue-200 dark:from-blue-950/80 dark:to-blue-900/80 text-blue-800 dark:text-blue-200 border-l-4 border-blue-500',
-                rowColor: 'bg-gradient-to-r from-blue-50 to-transparent dark:from-blue-900/5 dark:to-transparent',
-                accent: 'text-blue-600 dark:text-blue-400',
-                fields: ['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', 'Grupos', 'Territorio']
-            },
-            {
-                id: 'zoom',
-                label: '📹 ZOOM',
-                headerColor: 'bg-gradient-to-r from-purple-100 to-purple-200 dark:from-purple-950/80 dark:to-purple-900/80 text-purple-800 dark:text-purple-200 border-l-4 border-purple-500',
-                rowColor: 'bg-gradient-to-r from-purple-50 to-transparent dark:from-purple-900/5 dark:to-transparent',
-                accent: 'text-purple-600 dark:text-purple-400',
-                fields: ['Lugar', 'Hora', 'Conductor', 'Faceta']
-            }
+            { id: 'manana', icon: 'fa-sun', label: 'Mañana', color: 'text-cyan-500', bg: 'bg-cyan-500/5', fields: ['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', 'Grupos', 'Territorio'] },
+            { id: 'tarde', icon: 'fa-cloud-sun', label: 'Tarde', color: 'text-orange-500', bg: 'bg-orange-500/5', fields: ['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', 'Grupos', 'Territorio'] },
+            { id: 'noche', icon: 'fa-moon', label: 'Noche', color: 'text-indigo-500', bg: 'bg-indigo-500/5', fields: ['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', 'Grupos', 'Territorio'] },
+            { id: 'zoom', icon: 'fa-video', label: 'Zoom', color: 'text-emerald-500', bg: 'bg-emerald-500/5', fields: ['Lugar', 'Hora', 'Conductor', 'Faceta'] }
         ];
 
-        // Grid Layout: 3 Columns of cards (Morning, Afternoon, Night/Zoom mixed or stacked)
-        // Or grouped by Day? Users usually plan by Turn across the week, or by Day?
-        // Let's trying grouping by TURN across the week, but using Cards instead of a big table.
-        // Actually, the user asked for "more stylized and ordered".
-        // A clean vertical list of days, where each day has the 3 turns clearly separated?
-
-        // Let's try: A tabular view but with much cleaner UI. 
-        // Rows = Days. Cols = Turns.  (Standard Calendar View)
-        // Previous view was Rows = Fields, Cols = Days. That was "transposed" and maybe confusing.
-        // Let's Pivot: Rows = Days (Lunes...Domingo). Columns = Mañana, Tarde, Noche.
-
-        // Grid Layout: Rows = Days, Columns = Turns.
-        // Modern, cleaner, light-friendly design.
-
         let html = `
-            <div class="overflow-hidden rounded-2xl shadow-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#0f1115] relative transition-colors duration-500">
-                <div class="overflow-x-auto relative z-10 custom-scrollbar">
-                    <table class="w-full text-left border-collapse">
+            <!-- Sroll Indicator mobile -->
+            <div class="sm:hidden flex items-center justify-center gap-2 mb-4 animate-pulse">
+                <i class="fas fa-arrows-left-right text-primary"></i>
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Desliza para ver más columnas</span>
+            </div>
+
+            <div class="table-container overflow-x-auto custom-scrollbar">
+                <table class="w-full text-left border-collapse min-w-[1200px]">
                     <thead>
-                        <tr class="bg-gray-50 dark:bg-white/5 border-b border-gray-200 dark:border-white/10 text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">
-                            <th class="p-4 sticky left-0 bg-gray-50 dark:bg-[#12141a] z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] border-r border-gray-200 dark:border-white/5 w-24 text-center">
-                                Día
-                            </th>
-                            <th class="p-4 min-w-[200px] text-center border-l border-gray-200 dark:border-white/5">
-                                <span class="bg-cyan-50 dark:bg-cyan-900/20 text-cyan-700 dark:text-cyan-300 px-3 py-1 rounded-full border border-cyan-200 dark:border-cyan-800/30 flex items-center justify-center gap-2 mx-auto w-fit">
-                                    🌅 Mañana
-                                </span>
-                            </th>
-                            <th class="p-4 min-w-[200px] text-center border-l border-gray-200 dark:border-white/5">
-                                <span class="bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 px-3 py-1 rounded-full border border-orange-200 dark:border-orange-800/30 flex items-center justify-center gap-2 mx-auto w-fit">
-                                    ☀️ Tarde
-                                </span>
-                            </th>
-                            <th class="p-4 min-w-[200px] text-center border-l border-gray-200 dark:border-white/5">
-                                <span class="bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 px-3 py-1 rounded-full border border-indigo-200 dark:border-indigo-800/30 flex items-center justify-center gap-2 mx-auto w-fit">
-                                    🌙 Noche
-                                </span>
-                            </th>
-                            <th class="p-4 min-w-[200px] text-center border-l border-gray-200 dark:border-white/5">
-                                <span class="bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-800/30 flex items-center justify-center gap-2 mx-auto w-fit">
-                                    📹 Zoom
-                                </span>
-                            </th>
+                        <tr class="bg-slate-50 dark:bg-black/20 text-slate-400 text-[9px] font-black uppercase tracking-[0.2em] border-b border-slate-200 dark:border-white/5">
+                            <th class="p-6 w-32 sticky left-0 z-30 bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-white/5">Día</th>
+                            ${turnos.map(t => `
+                                <th class="p-6 min-w-[300px]">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 ${t.bg} ${t.color} rounded-lg flex items-center justify-center text-xs shadow-sm">
+                                            <i class="fas ${t.icon}"></i>
+                                        </div>
+                                        <span>${t.label}</span>
+                                    </div>
+                                </th>
+                            `).join('')}
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-white/5">
+                    <tbody class="divide-y divide-slate-100 dark:divide-white/5">
         `;
 
         programa.dias.forEach((dia, dayIndex) => {
-            // Determine active/inactive turns for styling
-            html += `<tr class="group/row hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors">
-                <!-- Day Column -->
-                <td class="p-4 font-bold text-gray-700 dark:text-gray-200 sticky left-0 bg-white dark:bg-[#0f1115] z-10 border-r border-gray-200 dark:border-white/5 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] group-hover/row:bg-gray-50 dark:group-hover/row:bg-[#15181e] transition-colors text-center align-middle">
-                    <div class="flex flex-col items-center justify-center">
-                        <span class="text-xs text-gray-400 uppercase tracking-widest font-medium mb-1">${dia.nombre}</span>
-                        <span class="text-xl font-black text-teal-600 dark:text-teal-400">${dia.nombre.substring(0, 3)}</span>
+            html += `<tr class="group/row">
+                <td class="p-6 sticky left-0 z-20 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-white/5 group-hover/row:bg-slate-50 dark:group-hover/row:bg-white/[0.02] transition-colors">
+                    <div class="flex flex-col items-center">
+                        <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">${dia.nombre}</span>
+                        <span class="text-xl font-black text-slate-800 dark:text-white uppercase">${dia.nombre.substring(0, 3)}</span>
                     </div>
                 </td>`;
 
-            // Turns Columns
-            ['manana', 'tarde', 'noche', 'zoom'].forEach(turnoId => {
-                const turnoConfig = turnos.find(t => t.id === turnoId) || {};
-
-                // Zoom Logic (Only Tuesday)
+            turnos.forEach(t => {
+                const turnoId = t.id;
                 if (turnoId === 'zoom' && dia.nombre !== 'Martes') {
-                    html += `<td class="p-3 border-l border-gray-100 dark:border-white/5 bg-gray-50/30 dark:bg-white/[0.01]"></td>`;
+                    html += `<td class="p-4 bg-slate-50/50 dark:bg-black/10"></td>`;
                     return;
                 }
 
                 if (!dia[turnoId]) dia[turnoId] = {};
                 const data = dia[turnoId];
-                const accent = turnoConfig.accent ? turnoConfig.accent.split('-')[1] : 'teal'; // extract color name roughly
 
-                // Determine border color based on shift
-                const hoverBorder =
-                    turnoId === 'manana' ? 'group-hover/cell:border-cyan-300 dark:group-hover/cell:border-cyan-700' :
-                        turnoId === 'tarde' ? 'group-hover/cell:border-orange-300 dark:group-hover/cell:border-orange-700' :
-                            turnoId === 'noche' ? 'group-hover/cell:border-indigo-300 dark:group-hover/cell:border-indigo-700' :
-                                'group-hover/cell:border-emerald-300 dark:group-hover/cell:border-emerald-700';
-
-                html += `<td class="p-3 border-l border-gray-100 dark:border-white/5 align-top group/cell transition-colors relative">
-                    <!-- Sync Indicator -->
-                    <div class="absolute top-2 right-2 z-20">
-                        ${(() => {
+                html += `
+                    <td class="p-4 align-top transition-colors">
+                        <div class="space-y-4 relative">
+                            ${(() => {
                         if (!data.territorio) return '';
-                        const t = territorios.find(x => x.numero === data.territorio);
-                        if (!t) return `<span title="Territorio no existe" class="cursor-help grayscale">❓</span>`;
+                        const tNum = data.territorio.split(',')[0].trim();
+                        const terr = territorios.find(x => x.numero == tNum);
+                        if (!terr) return '';
 
-                        const isSynced = t.asignado_a === data.conductor &&
-                            (!data.auxiliar || t.auxiliar === data.auxiliar);
+                        // Informational entry if missing Conductor or Territory (already checked)
+                        if (!data.conductor) return '';
 
-                        if (isSynced && t.estado === 'Asignado') {
-                            return `<span title="Sincronizado" class="text-[10px] filter drop-shadow-sm opacity-60 group-hover/cell:opacity-100 transition-opacity">✅</span>`;
-                        } else if (t.asignado_a === data.conductor || t.estado === 'Asignado') {
-                            return `<span title="Desincronizado o Parcial" class="text-[10px] filter drop-shadow-sm animate-pulse">⚠️</span>`;
-                        } else {
-                            return `<span title="No asignado en base de datos" class="text-[10px] filter drop-shadow-sm">❌</span>`;
-                        }
+                        // Check sync status: Assigned to this conductor
+                        const isSynced = terr.asignado_a === data.conductor;
+                        return `
+                            <div class="absolute -top-1 -right-1 z-10 w-6 h-6 rounded-lg flex items-center justify-center shadow-lg border border-white dark:border-slate-800 ${isSynced ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'}" title="${isSynced ? 'Sincronizado con Asignaciones' : 'Desajuste de Asignación'}">
+                                <i class="fas ${isSynced ? 'fa-check' : 'fa-exclamation-triangle'} text-[10px]"></i>
+                            </div>`;
                     })()}
-                    </div>
-                    <div class="flex flex-col gap-2.5 h-full relative z-10">
+
+                            <div class="space-y-3">
                 `;
 
-                // Render fields
-                turnoConfig.fields.forEach(field => {
+                t.fields.forEach(field => {
+                    const isWeekend = dia.nombre === 'Sábado' || dia.nombre === 'Domingo';
+                    if (field === 'Grupos' && !isWeekend) return;
+
                     const fieldId = field.toLowerCase();
                     const val = data[fieldId] || '';
                     const icon = getFieldIcon(field);
-                    let inputHtml = '';
-
                     const opts = options[field] || [];
 
                     if (field === 'Territorio') {
-                        inputHtml = `
-                            <button onclick="window.openTerritorySelector(${dayIndex}, '${turnoId}', this)" 
-                                    data-current="${val.replace(/"/g, '&quot;')}"
-                                    class="w-full text-left text-xs bg-white dark:bg-black/20 text-gray-700 dark:text-gray-300 py-2 px-3 rounded-lg border border-black/10 dark:border-white/10 hover:border-teal-500/50 transition-all flex items-center justify-between group/btn shadow-sm">
-                                <span class="truncate font-mono ${val ? 'text-teal-600 dark:text-teal-400 font-bold' : 'text-gray-400 italic'}">${val || 'Asignar'}</span>
-                                <span class="text-teal-500 transition-transform group-hover/btn:scale-125">📍</span>
-                            </button>`;
-                    } else if (field === 'Grupos') {
-                        inputHtml = `
-                            <button onclick="window.openGroupSelector(${dayIndex}, '${turnoId}', this)" 
-                                    data-current="${val.replace(/"/g, '&quot;')}"
-                                    class="w-full text-left text-xs bg-white dark:bg-black/20 text-gray-700 dark:text-gray-300 py-2 px-3 rounded-lg border border-black/10 dark:border-white/10 hover:border-teal-500/50 transition-all flex items-center justify-between group/btn shadow-sm">
-                                <span class="truncate ${val ? 'text-indigo-600 dark:text-indigo-400 font-bold' : 'text-gray-400 italic'}">${val || 'Seleccionar'}</span>
-                                <span class="text-indigo-400 transition-transform group-hover/btn:scale-125">👥</span>
-                            </button>`;
-                    } else if (opts.length > 0) {
-                        inputHtml = `
-                            <div class="relative group/select">
-                                <select onchange="updateWeekData(${dayIndex}, '${turnoId}', '${fieldId}', this.value)" 
-                                        class="w-full bg-white dark:bg-black/20 text-gray-700 dark:text-gray-300 text-xs border border-black/10 dark:border-white/10 rounded-lg p-2 pr-8 outline-none focus:border-teal-500 appearance-none transition-colors cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5">
-                                    <option value="">${field}...</option>
-                                    ${opts.map(o => `<option value="${o}" ${val === o ? 'selected' : ''}>${o}</option>`).join('')}
-                                </select>
-                                <span class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-[10px] group-hover/select:text-teal-600 transition-colors">▼</span>
+                        html += `
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-bold text-slate-400 tracking-widest uppercase ml-1 flex items-center gap-2">
+                                    <i class="fas fa-map-marked-alt opacity-50"></i> ${field}
+                                </label>
+                                <button onclick="window.openTerritorySelector(${dayIndex}, '${turnoId}', this)" 
+                                        data-current="${val.replace(/"/g, '&quot;')}"
+                                        class="w-full text-left bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-3 rounded-xl hover:border-primary transition-all flex items-center justify-between group/btn shadow-sm">
+                                    <span class="text-xs font-bold truncate ${val ? 'text-primary' : 'text-slate-400 opacity-50'}">${val || 'S-##'}</span>
+                                    <i class="fas fa-chevron-down text-[10px] opacity-20 group-hover/btn:opacity-100"></i>
+                                </button>
                             </div>`;
-                    } else {
-                        inputHtml = `<input type="text" 
-                                       value="${val}" 
-                                       onchange="updateWeekData(${dayIndex}, '${turnoId}', '${fieldId}', this.value)"
-                                       placeholder="${field}..."
-                                       class="w-full bg-transparent border-b border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-200 text-xs p-1 outline-none focus:border-teal-500 placeholder-gray-400 transition-colors">`;
+                    } else if (field === 'Grupos') {
+                        html += `
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-bold text-slate-400 tracking-widest uppercase ml-1 flex items-center gap-2">
+                                    <i class="fas fa-users opacity-50"></i> ${field}
+                                </label>
+                                <button onclick="window.openGroupSelector(${dayIndex}, '${turnoId}', this)" 
+                                        data-current="${val.replace(/"/g, '&quot;')}"
+                                        class="w-full text-left bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-3 rounded-xl hover:border-indigo-500 transition-all flex items-center justify-between group/btn shadow-sm">
+                                    <span class="text-xs font-bold truncate ${val ? 'text-indigo-500' : 'text-slate-400 opacity-50'}">${val || 'Punto de reunión'}</span>
+                                    <i class="fas fa-chevron-down text-[10px] opacity-20 group-hover/btn:opacity-100"></i>
+                                </button>
+                            </div>`;
+                    } else if (opts.length > 0) {
+                        html += `
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-bold text-slate-400 tracking-widest uppercase ml-1 flex items-center gap-2">
+                                    <i class="fas ${icon} opacity-50"></i> ${field}
+                                </label>
+                                <div class="relative">
+                                    <select onchange="window.updateWeekData(${dayIndex}, '${turnoId}', '${fieldId}', this.value)" 
+                                            class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-3 rounded-xl text-xs font-bold text-slate-700 dark:text-white outline-none focus:border-primary appearance-none cursor-pointer shadow-sm">
+                                        <option value="">${field}...</option>
+                                        ${opts.map(o => `<option value="${o}" ${val === o ? 'selected' : ''}>${o}</option>`).join('')}
+                                    </select>
+                                    <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-[10px] opacity-20 pointer-events-none"></i>
+                                </div>
+                            </div>`;
                     }
-
-                    // Field Row
-                    html += `
-                        <div class="flex items-center gap-2 group/field">
-                            <span class="text-xs w-5 text-center opacity-60 grayscale group-hover/field:grayscale-0 transition-all" title="${field}">${icon}</span>
-                            <div class="flex-1 min-w-0">
-                                ${inputHtml}
-                            </div>
-                        </div>`;
                 });
 
-                html += `</div></td>`;
+                html += `</div></div></td>`;
             });
             html += `</tr>`;
         });
 
-        html += `</tbody></table></div></div>`;
-
-        // Responsive Cards (Mobile Only)
-        // Hidden by default, shown via CSS media queries or we can just rely on the horizontal scroll above with "responsive-table-container". 
-        // Given the requirement "no cards overflow", horizontal scroll is safer for complex tables.
-
+        html += `</tbody></table></div>`;
         tableContainer.innerHTML = html;
-        // attachTableEvents(); // Re-attach strict events if needed (Removed: undefined)
     };
 
-    // --- Helper for Icons (Fixes the Bug) ---
     const getFieldIcon = (field) => {
         const map = {
-            'Lugar': '📍',
-            'Hora': '⏰',
-            'Conductor': '👔',
-            'Auxiliar': '👤',
-            'Faceta': '🏷️',
-            'Grupos': '👥',
-            'Territorio': '🗺️'
+            'Lugar': 'fa-map-marker-alt',
+            'Hora': 'fa-clock',
+            'Conductor': 'fa-user-tie',
+            'Auxiliar': 'fa-user',
+            'Faceta': 'fa-tag',
+            'Grupos': 'fa-users',
+            'Territorio': 'fa-map'
         };
-        return map[field] || '🔹';
+        return map[field] || 'fa-info-circle';
     };
 
-    // --- Controls Events ---
-    // (Existing event listeners logic matches variable names defined above)
     container.querySelector('#prev-week').onclick = () => {
         const d = new Date(currentWeekStart);
         d.setDate(d.getDate() - 7);
@@ -4802,12 +5830,13 @@ const renderProgramaTab = async (container) => {
         loadWeekData();
     };
 
-    if (btnResetToday) btnResetToday.onclick = () => {
-        currentWeekStart = getMonday(new Date());
-        loadWeekData();
-    };
+    if (container.querySelector('#btn-reset-today')) {
+        container.querySelector('#btn-reset-today').onclick = () => {
+            currentWeekStart = getMonday(new Date());
+            loadWeekData();
+        };
+    }
 
-    // Copy Previous
     container.querySelector('#btn-copy-prev').onclick = async () => {
         showCustomConfirm("¿Copiar toda la programación de la semana pasada a esta?", async () => {
             const prevDate = new Date(currentWeekStart);
@@ -4817,13 +5846,11 @@ const renderProgramaTab = async (container) => {
             try {
                 const prevData = await getProgramaSemanal(prevId);
                 if (prevData && prevData.dias) {
-                    // Deep copy to avoid ref issues
-                    const newDays = JSON.parse(JSON.stringify(prevData.dias));
-                    programa.dias = newDays;
+                    programa.dias = JSON.parse(JSON.stringify(prevData.dias));
                     _globalPrograma = programa;
                     renderTable();
-                    await saveProgramaSemanal(programa.id, programa); // Auto-save
-                    showNotification("Programación copiada exitosamente");
+                    await saveProgramaSemanal(programa.id, programa);
+                    showNotification("Programación copiada exitosamente", "success");
                 } else {
                     showNotification("No hay datos en la semana anterior", "warning");
                 }
@@ -4834,40 +5861,32 @@ const renderProgramaTab = async (container) => {
         });
     };
 
-    // Clear Week
     container.querySelector('#btn-clear-week').onclick = () => {
-        showCustomConfirm("¿Borrar toda la programación de esta semana? Esta acción no se puede deshacer.", async () => {
+        showCustomConfirm("¿Borrar toda la programación de esta semana?", async () => {
             try {
                 await deleteProgramaSemanal(programa.id);
-                // Reset local state
                 programa.dias = dayNames.map(name => ({
                     nombre: name,
                     manana: {}, tarde: {}, noche: {}, zoom: {}
                 }));
                 _globalPrograma = programa;
                 renderTable();
-                showNotification("Semana limpiada exitosamente");
+                showNotification("Semana limpiada exitosamente", "success");
             } catch (e) {
                 showNotification("Error limpiando semana", "error");
             }
         });
     };
 
-    // Export Excel
     container.querySelector('#export-excel-plain').onclick = () => {
-        generatePlainXLS(programa, `Programa_${formatDateId(currentWeekStart)}`);
+        generatePlainXLS(programa, `Programa_${formatDateId(currentWeekStart)} `);
+        showNotification("Generando Excel...", "info");
     };
 
-    // Export Image -> Use canvas or html2canvas
     container.querySelector('#export-png').onclick = async () => {
-        // Simple alert for now as html2canvas might not be imported.
-        // Assuming user has it or we use window.print logic.
-        // For SaaS feel, we can use a dedicated library or just print style.
         window.print();
-        // showNotification("Función de imagen en desarrollo. Use 'Imprimir' del navegador por ahora.");
     };
 
-    // Initialize
     loadWeekData();
 };
 
@@ -4877,59 +5896,403 @@ window.updateWeekData = (dayIndex, turnoId, field, value) => {
 
     _globalPrograma.dias[dayIndex][turnoId][field] = value;
 
+    // Visual Status
+    const statusIndicator = document.getElementById('save-status');
+    if (statusIndicator) {
+        statusIndicator.style.opacity = '1';
+        statusIndicator.innerHTML = '<span class="animate-pulse">●</span> Guardando...';
+    }
+
     // Debounced Save
     clearTimeout(window._saveTimer);
-    const saveStatus = document.getElementById('save-status');
-    if (saveStatus) saveStatus.style.opacity = '1';
-
     window._saveTimer = setTimeout(async () => {
         try {
-            // Re-fetch ID just in case
-            _globalPrograma.id = formatDateId(window._currentWeekStartGlobal || new Date());
-            // We need to access the variable 'currentWeekStart' from closure. 
-            // Since this is global, let's trust the ID in _globalPrograma object or pass it.
-            // Actually, best to expose a 'saveCurrentWeek' inside the closure.
+            const weekId = _globalPrograma.id || formatDateId(window._currentWeekStartGlobal || new Date());
 
-            // Workaround: Call the internal saver if accessible, or just save directly.
-            await saveProgramaSemanal(_globalPrograma);
-            if (saveStatus) {
-                saveStatus.innerHTML = '✅ Guardado';
-                setTimeout(() => { saveStatus.style.opacity = '0'; setTimeout(() => saveStatus.innerHTML = '<span class="animate-pulse">●</span> Guardando...', 500); }, 2000);
+            // 1. Save Weekly Program document
+            await saveProgramaSemanal(weekId, _globalPrograma);
+
+            // 2. Bilateral Sync: Check if we need to Create/Cancel Assignment in 'territorios' collection
+            const today = new Date();
+            const thisWeekNum = getMonday(today).getTime();
+            const progWeekDate = new Date(weekId + 'T12:00:00Z');
+            const progWeekNum = progWeekDate.getTime();
+
+            // Only sync for present or future weeks
+            if (progWeekNum >= (thisWeekNum - 86400000)) { // Small buffer
+                const tData = _globalPrograma.dias[dayIndex][turnoId];
+
+                // If it's a sync-critical field (territory or conductor)
+                if (['conductor', 'territorio', 'auxiliar', 'lugar', 'hora', 'faceta', 'grupos'].includes(field)) {
+                    if (tData.territorio && tData.conductor) {
+                        const extra = {
+                            auxiliar: tData.auxiliar || '',
+                            lugar: tData.lugar || '',
+                            hora: tData.hora || '',
+                            turno: turnoId,
+                            faceta: tData.faceta || '',
+                            grupos: tData.grupos || '',
+                            fecha_asignacion: progWeekDate.toISOString()
+                        };
+
+                        const parts = tData.territorio.split(',').map(s => s.trim());
+                        for (const part of parts) {
+                            const match = part.match(/^(\d+)(?:\s*\((.*)\))?$/);
+                            if (match) {
+                                const num = match[1];
+                                const mzsStr = match[2];
+                                const conductor = tData.conductor;
+                                const candidates = _globalTerritorios.filter(t => t.numero == num);
+
+                                let targetId = null;
+                                let mzsToAssign = [];
+
+                                if (mzsStr) {
+                                    mzsToAssign = mzsStr.split(',').map(m => m.trim());
+                                    const perfect = candidates.find(c => {
+                                        if (!c.manzanas) return false;
+                                        const cMzs = c.manzanas.split(',').map(s => s.trim());
+                                        return mzsToAssign.every(m => cMzs.includes(m));
+                                    });
+                                    if (perfect) targetId = perfect.id;
+                                } else if (candidates.length > 0) {
+                                    targetId = candidates[0].id;
+                                }
+
+                                if (targetId) {
+                                    if (mzsToAssign.length > 0) await assignTerritorioParcial(targetId, mzsToAssign, conductor, extra);
+                                    else await assignTerritorio(targetId, conductor, extra);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (statusIndicator) {
+                statusIndicator.innerHTML = '✅ Guardado';
+                setTimeout(() => { if (statusIndicator.innerHTML === '✅ Guardado') statusIndicator.style.opacity = '0'; }, 2000);
             }
         } catch (e) {
-            console.error(e);
-            if (saveStatus) saveStatus.innerHTML = '❌ Error';
+            console.error("Auto-save error:", e);
+            if (statusIndicator) statusIndicator.innerHTML = '❌ Error';
         }
     }, 1000);
 };
 
 
-/* --- ADVANCED HISTORY VIEW --- */
-export const renderAdvancedHistoryView = async (container) => {
+/* --- S-13 COMMAND CENTER (POWER UP) --- */
+const renderS13CommandCenter = async (container) => {
+    const [history, config, territories] = await Promise.all([
+        getHistorialReport(),
+        getConfiguracion(),
+        getTerritorios()
+    ]);
+
+    let activeView = 'management';
+
+    // --- Metric Calculations ---
+    const touchedNums = new Set(history.map(h => String(h.numero)));
+    const totalT = territories.length;
+    const coveragePercent = totalT > 0 ? Math.round((touchedNums.size / totalT) * 100) : 0;
+    const missingCount = territories.filter(t => !touchedNums.has(String(t.numero))).length;
+
+    const territoryFreq = {};
+    history.forEach(h => {
+        if (!h.numero) return;
+        territoryFreq[h.numero] = (territoryFreq[h.numero] || 0) + 1;
+    });
+    const mostFreqSorted = Object.entries(territoryFreq).sort((a, b) => b[1] - a[1]);
+    const topTerritory = mostFreqSorted[0]?.[0] || '--';
+    const topCount = mostFreqSorted[0]?.[1] || 0;
+
+    const latestTouch = {};
+    history.forEach(h => {
+        const d = h.fecha_entrega || h.fecha_asignacion;
+        if (!d) return;
+        if (!latestTouch[h.numero] || new Date(d) > new Date(latestTouch[h.numero])) {
+            latestTouch[h.numero] = d;
+        }
+    });
+
+    const rezagoSorted = territories.filter(t => latestTouch[t.numero]).sort((a, b) => new Date(latestTouch[a.numero]) - new Date(latestTouch[b.numero]));
+    const oldestTerritory = rezagoSorted[0]?.numero || '--';
+    const daysRezago = rezagoSorted[0] ? Math.floor((new Date() - new Date(latestTouch[rezagoSorted[0].numero])) / (1000 * 60 * 60 * 24)) : 0;
+
     container.innerHTML = `
-        <div class="space-y-6 animate-fade-in">
-            <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-white/5 p-4 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm">
-                <div>
-                    <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
-                        <span>🛠️</span> Historial y Gestión Avanzada
-                    </h3>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Visualiza, corrige o elimina registros históricos de asignaciones.
-                    </p>
+    <div class="space-y-8 animate-fade-in">
+            <!--Stats Dashboard-->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="bg-gradient-to-br from-primary to-indigo-600 p-8 rounded-[2rem] text-white shadow-xl shadow-primary/20 group relative overflow-hidden">
+                    <div class="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+                    <p class="text-[10px] font-black uppercase tracking-[0.2em] opacity-70 mb-2">Cobertura Global</p>
+                    <p class="text-4xl font-black tabular-nums">${coveragePercent}%</p>
+                    <div class="flex items-center gap-2 mt-4 text-[9px] font-bold uppercase tracking-widest opacity-60">
+                         <i class="fas fa-chart-pie"></i> ${touchedNums.size} de ${totalT} abarcados
+                    </div>
                 </div>
-                <div class="flex gap-2 w-full md:w-auto">
-                    <input type="text" id="hist-search" placeholder="🔍 Buscar conductor, numero..." class="bg-gray-100 dark:bg-black/20 border-none rounded-xl px-4 py-2 text-sm w-full md:w-64 focus:ring-2 ring-teal-500/50 outline-none text-gray-700 dark:text-gray-200 placeholder-gray-400">
+                
+                <div class="modern-card group border-slate-200 dark:border-white/5 shadow-xl">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Territorios Faltantes</p>
+                    <p class="text-4xl font-black text-red-500 tabular-nums">${missingCount}</p>
+                    <div class="flex items-center gap-3 mt-4">
+                        <div class="flex-1 h-1.5 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+                            <div class="h-full bg-red-500 rounded-full" style="width: ${100 - coveragePercent}%"></div>
+                        </div>
+                        <span class="text-[10px] font-black text-red-500 uppercase">Faltan</span>
+                    </div>
+                </div>
+
+                <div class="modern-card border-slate-200 dark:border-white/5 shadow-xl">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Uso Frecuente</p>
+                    <p class="text-2xl font-black text-slate-800 dark:text-white truncate">Territorio ${topTerritory}</p>
+                    <div class="flex items-center gap-2 mt-4 text-[9px] text-indigo-500 font-bold uppercase tracking-widest">
+                        <i class="fas fa-redo-alt"></i> Predicado ${topCount} veces
+                    </div>
+                </div>
+
+                <div class="modern-card border-slate-200 dark:border-white/5 shadow-xl">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Mayor Rezago</p>
+                    <p class="text-2xl font-black text-orange-600 truncate">#${oldestTerritory}</p>
+                    <div class="flex items-center gap-2 mt-4 text-[9px] text-slate-400 font-bold uppercase tracking-widest">
+                        <i class="fas fa-history"></i> Hace ${daysRezago} días
+                    </div>
+                </div>
+            </div>
+
+            <!--Unified Control Bar-->
+            <div class="modern-card !p-6 flex flex-col lg:flex-row items-center gap-6 border-slate-200 dark:border-white/5 shadow-2xl">
+                <!-- Left: Date Filters -->
+                <div class="flex flex-wrap items-center gap-4 bg-slate-50 dark:bg-white/5 p-4 rounded-2xl border border-slate-200 dark:border-white/5">
+                    <div class="space-y-1">
+                        <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Año</label>
+                        <select id="report-year-select" class="bg-white dark:bg-slate-800 border-none rounded-xl px-4 p-2 text-xs font-bold outline-none text-slate-700 dark:text-white shadow-sm cursor-pointer">
+                             <!-- Year options -->
+                        </select>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Desde</label>
+                        <input type="date" id="report-start" class="bg-white dark:bg-slate-800 border-none rounded-xl px-4 p-2 text-xs font-bold outline-none text-slate-700 dark:text-white shadow-sm">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Hasta</label>
+                        <input type="date" id="report-end" class="bg-white dark:bg-slate-800 border-none rounded-xl px-4 p-2 text-xs font-bold outline-none text-slate-700 dark:text-white shadow-sm">
+                    </div>
+                </div>
+
+                <!-- Center: Universal Search -->
+                <div class="relative flex-1 group min-w-[200px] w-full lg:w-auto">
+                    <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary">
+                        <i class="fas fa-search"></i>
+                    </span>
+                    <input type="text" id="cc-universal-search" placeholder="Búsqueda global (Conductor, #, Estado)..." class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-2xl pl-12 pr-6 py-4 text-xs font-bold shadow-sm outline-none focus:border-primary transition-all text-slate-700 dark:text-white placeholder:text-slate-400">
+                </div>
+
+                <!-- Right: Actions -->
+                <div class="flex items-center gap-3">
+                    <button id="cc-btn-generate" class="bg-primary hover:bg-primary-light text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 transition-all active:scale-95 flex items-center gap-3 whitespace-nowrap">
+                        <i class="fas fa-file-invoice"></i> Generar Reporte
+                    </button>
+                    <div class="h-10 w-px bg-slate-200 dark:bg-white/10 mx-2"></div>
+                    <button id="cc-btn-tools" class="w-12 h-12 flex items-center justify-center bg-slate-100 dark:bg-white/5 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-all border border-slate-200 dark:border-white/5" title="Herramientas Avanzadas">
+                        <i class="fas fa-tools"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!--View Toggle & Sub - Content-->
+    <div class="space-y-6">
+        <nav class="flex gap-2 p-1.5 bg-slate-100 dark:bg-white/5 w-fit rounded-2xl border border-slate-200 dark:border-white/5">
+            <button class="cc-view-btn px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 ${activeView === 'management' ? 'bg-white dark:bg-white/10 shadow-lg text-accent' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}" data-view="management">
+                <i class="fas fa-database"></i> Gestión de Historial
+            </button>
+            <button class="cc-view-btn px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 ${activeView === 's13' ? 'bg-white dark:bg-white/10 shadow-lg text-primary' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}" data-view="s13">
+                <i class="fas fa-list-alt"></i> Reporte S-13
+            </button>
+        </nav>
+
+        <div id="cc-main-container" class="min-h-[600px] modern-card !p-0 overflow-hidden border-slate-100 dark:border-white/5">
+            <!-- Dynamic View Content -->
+        </div>
+    </div>
+        </div>
+    `;
+
+    // Initialize Year Selector
+    const yearSelect = container.querySelector('#report-year-select');
+    const startInput = container.querySelector('#report-start');
+    const endInput = container.querySelector('#report-end');
+
+    const now = new Date();
+    const serviceYear = now.getMonth() >= 8 ? now.getFullYear() + 1 : now.getFullYear();
+    for (let y = serviceYear - 5; y <= serviceYear + 5; y++) {
+        const opt = document.createElement('option');
+        opt.value = y;
+        opt.textContent = y;
+        if (y === serviceYear) opt.selected = true;
+        opt.className = "dark:bg-slate-800 text-slate-800 dark:text-white";
+        yearSelect.appendChild(opt);
+    }
+
+    const setDatesFromSY = (sy) => {
+        const y = parseInt(sy);
+        const start = `${y - 1} -09-01`;
+        const end = `${y} -08 - 31`;
+        startInput.value = start;
+        endInput.value = end;
+    };
+    setDatesFromSY(serviceYear);
+    yearSelect.onchange = (e) => setDatesFromSY(e.target.value);
+
+    // View Loading Logic
+    const loadView = async (view) => {
+        activeView = view;
+        const mainCont = container.querySelector('#cc-main-container');
+        mainCont.innerHTML = `
+    <div class="flex flex-col items-center justify-center p-40 gap-4 animate-pulse">
+                <div class="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+                <p class="text-[10px] font-black uppercase text-primary tracking-[0.2em]">Preparando vista inteligente...</p>
+            </div> `;
+
+        // Update Buttons
+        container.querySelectorAll('.cc-view-btn').forEach(btn => {
+            const isActive = btn.dataset.view === view;
+            btn.classList.toggle('active', isActive);
+            if (!isActive) {
+                btn.className = "cc-view-btn px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200";
+            }
+        });
+
+        if (view === 's13') {
+            await renderHistoryTab(mainCont, {
+                showHeader: false,
+                startInput: startInput,
+                endInput: endInput
+            });
+            const genBtn = container.querySelector('#cc-btn-generate');
+            genBtn.innerHTML = '<i class="fas fa-file-invoice"></i> Generar S-13';
+            genBtn.onclick = () => document.getElementById('btn-generate-report')?.click();
+        } else {
+            await renderAdvancedHistoryView(mainCont, {
+                showHeader: false,
+                searchInputId: 'cc-universal-search'
+            });
+            const genBtn = container.querySelector('#cc-btn-generate');
+            genBtn.innerHTML = '<i class="fas fa-sync"></i> Sincronizar';
+            genBtn.onclick = () => renderS13CommandCenter(container);
+        }
+    };
+
+    container.querySelectorAll('.cc-view-btn').forEach(btn => {
+        btn.onclick = () => loadView(btn.dataset.view);
+    });
+
+    container.querySelector('#cc-btn-tools').onclick = () => {
+        showModal(`
+    <div class="p-8 space-y-8 animate-fade-in">
+                <header class="flex items-center gap-4 border-b border-slate-100 dark:border-white/5 pb-6">
+                    <div class="w-12 h-12 bg-indigo-500/10 text-indigo-500 rounded-2xl flex items-center justify-center text-xl shadow-inner">
+                        <i class="fas fa-microchip"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-black uppercase tracking-tight text-slate-800 dark:text-white">Mantenimiento Global</h3>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Herramientas críticas para integridad de datos</p>
+                    </div>
+                </header>
+
+                <div class="grid grid-cols-1 gap-4">
+                    <button id="tool-rebuild" class="flex items-center gap-5 p-6 rounded-2xl bg-slate-50 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 transition-all border border-slate-200 dark:border-white/5 group shadow-sm">
+                        <div class="w-14 h-14 bg-indigo-600 text-white rounded-2xl flex items-center justify-center text-xl shadow-lg shadow-indigo-600/20 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-hammer"></i>
+                        </div>
+                        <div class="text-left">
+                            <span class="block text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">Reconstruir Historial</span>
+                            <span class="block text-[10px] text-slate-500 opacity-60 uppercase font-bold mt-1">Escanea programas antiguos para recuperar registros s13 perdidos</span>
+                        </div>
+                        <i class="fas fa-chevron-right ml-auto text-slate-300 opacity-0 group-hover:opacity-100 transition-all"></i>
+                    </button>
+
+                    <button id="tool-repair" class="flex items-center gap-5 p-6 rounded-2xl bg-slate-50 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 transition-all border border-slate-200 dark:border-white/5 group shadow-sm">
+                        <div class="w-14 h-14 bg-teal-500 text-white rounded-2xl flex items-center justify-center text-xl shadow-lg shadow-teal-500/20 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-magic"></i>
+                        </div>
+                        <div class="text-left">
+                            <span class="block text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">Diagnóstico y Limpieza</span>
+                            <span class="block text-[10px] text-slate-500 opacity-60 uppercase font-bold mt-1">Resuelve inconsistencias en asignaciones y estados huérfanos</span>
+                        </div>
+                        <i class="fas fa-chevron-right ml-auto text-slate-300 opacity-0 group-hover:opacity-100 transition-all"></i>
+                    </button>
+                    
+                    <button onclick="window.repairPhoneStatusOnly()" class="flex items-center gap-5 p-6 rounded-2xl bg-slate-50 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 transition-all border border-slate-200 dark:border-white/5 group shadow-sm">
+                         <div class="w-14 h-14 bg-amber-500 text-white rounded-2xl flex items-center justify-center text-xl shadow-lg shadow-amber-500/20 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-phone-slash"></i>
+                        </div>
+                        <div class="text-left">
+                            <span class="block text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">Reparar Telefonía</span>
+                            <span class="block text-[10px] text-slate-500 opacity-60 uppercase font-bold mt-1">Resetea estados inconsistentes en registros telefónicos</span>
+                        </div>
+                        <i class="fas fa-chevron-right ml-auto text-slate-300 opacity-0 group-hover:opacity-100 transition-all"></i>
+                    </button>
+                </div>
+                
+                <footer class="pt-4 text-center">
+                    <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest bg-slate-100 dark:bg-white/5 py-3 rounded-xl border border-slate-200 dark:border-white/5">
+                        <i class="fas fa-exclamation-triangle text-amber-500 mr-2"></i> Estas acciones modifican la base de datos global
+                    </p>
+                </footer>
+            </div>
+    `, (modal) => {
+            modal.querySelector('#tool-rebuild').onclick = () => {
+                modal.classList.add('hidden');
+                document.getElementById('btn-rebuild-history')?.click();
+            };
+            modal.querySelector('#tool-repair').onclick = async () => {
+                modal.classList.add('hidden');
+                showNotification("Iniciando diagnóstico profundo...", "info");
+                const report = await runSystemDiagnosticsAndRepair(msg => showNotification(msg, 'info'));
+                showNotification(`Diagnóstico completo: ${report.fixedPhones} errores corregidos.`, 'success');
+            };
+        });
+    };
+
+    // Initial Load
+    loadView('s13');
+};
+
+
+export const renderAdvancedHistoryView = async (container, options = {}) => {
+    const showHeader = options.showHeader !== false;
+
+    if (options.showHeader !== false) {
+        container.innerHTML = `
+    <div class="space-y-6">
+            <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                <div>
+                    <h3 class="text-h3 text-slate-900 dark:text-white flex items-center gap-3">
+                        <i class="fas fa-database text-accent"></i> Centro de Gestión
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-1">Auditoría y control total del historial de territorios</p>
+                </div>
+                <div class="relative w-full md:w-80 group">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-accent transition-colors">
+                        <i class="fas fa-search"></i>
+                    </span>
+                    <input type="text" id="hist-search" placeholder="Buscar conductor, # o estado..." class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl pl-10 pr-4 py-3 text-xs font-bold outline-none focus:border-accent transition-all text-slate-700 dark:text-white">
                 </div>
             </header>
 
-            <div class="bg-white dark:bg-white/5 rounded-2xl border border-black/5 dark:border-white/5 overflow-hidden shadow-sm min-h-[400px]" id="hist-table-container">
-                <div class="p-10 text-center text-gray-400 text-sm flex flex-col items-center gap-2">
-                    <span class="text-2xl animate-bounce">⏳</span>
-                    Cargando historial completo...
-                </div>
+            <div class="modern-card !p-0 overflow-hidden border border-slate-200 dark:border-white/5 min-h-[400px]" id="hist-table-container">
+                 <!-- Table content -->
             </div>
         </div>
     `;
+    } else {
+        container.innerHTML = `
+    <div class="min-h-[400px]" id = "hist-table-container">
+                <!--Table content-->
+            </div>
+    `;
+    }
 
     try {
         const [history, territorios] = await Promise.all([
@@ -4944,96 +6307,201 @@ export const renderAdvancedHistoryView = async (container) => {
             return tB - tA;
         });
 
+        const selectedIds = new Set();
+
         const render = () => {
-            const searchVal = document.getElementById("hist-search").value.toLowerCase();
+            const searchEl = document.getElementById(options.searchInputId || "hist-search");
+            const searchVal = searchEl ? searchEl.value.toLowerCase() : "";
             const list = filtered.filter(h =>
                 (h.conductor || "").toLowerCase().includes(searchVal) ||
                 (String(h.numero) || "").toLowerCase().includes(searchVal) ||
                 (h.estado || "").toLowerCase().includes(searchVal)
-            ).slice(0, 50); // Pagination/Limit
+            ).slice(0, 100);
+
+            const bulkBar = `
+    <div id = "hist-bulk-bar" class="${selectedIds.size > 0 ? 'flex' : 'hidden'} flex-col md:flex-row items-start md:items-center gap-4 bg-accent/5 p-4 px-6 rounded-2xl border border-accent/20 animate-fade-in mb-6">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 bg-accent text-white rounded-xl flex items-center justify-center shadow-lg shadow-accent/20">
+                            <i class="fas fa-check-double"></i>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-[10px] font-black text-accent uppercase tracking-widest">Selección Masiva</span>
+                            <span class="text-xs font-black text-slate-700 dark:text-white">${selectedIds.size} registros seleccionados</span>
+                        </div>
+                    </div>
+                    <div class="h-8 w-px bg-accent/20 mx-2"></div>
+                    <button id="hist-select-all-btn" class="px-5 py-2.5 bg-white dark:bg-white/5 text-accent rounded-xl text-[10px] font-black uppercase tracking-widest border border-accent/20 hover:bg-accent hover:text-white transition-all">
+                        Seleccionar todos
+                    </button>
+                    <button id="hist-bulk-delete" class="ml-auto bg-red-500 hover:bg-red-600 text-white px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-red-500/20 transition-all active:scale-95 flex items-center gap-2">
+                        <i class="fas fa-trash-alt"></i> Eliminar Selección
+                    </button>
+                </div>
+    `;
 
             if (list.length === 0) {
-                document.getElementById("hist-table-container").innerHTML = `
-                    <div class="p-10 text-center text-gray-400 text-sm">
-                        No se encontraron registros.
-                    </div>
-                 `;
+                const tableTarget = document.getElementById("hist-table-container");
+                if (tableTarget) {
+                    tableTarget.innerHTML = `
+    <div class="flex flex-col items-center justify-center py-20 text-slate-300 dark:text-white/10">
+                            <div class="w-20 h-20 mb-4 bg-slate-50 dark:bg-white/5 rounded-full flex items-center justify-center text-3xl">
+                                <i class="fas fa-search opacity-20"></i>
+                            </div>
+                            <p class="text-xs font-black uppercase tracking-widest opacity-50">No se encontraron registros</p>
+                        </div> `;
+                }
                 return;
             }
 
             let html = `
-                <div class="overflow-x-auto custom-scrollbar">
-                <table class="w-full text-sm text-left align-middle">
-                    <thead class="bg-gray-50 dark:bg-black/20 text-[10px] uppercase font-bold text-gray-400 border-b border-gray-100 dark:border-white/5">
-                        <tr>
-                            <th class="px-6 py-4 whitespace-nowrap">Fecha Evento</th>
-                            <th class="px-6 py-4 whitespace-nowrap">Territorio</th>
-                            <th class="px-6 py-4 whitespace-nowrap">Conductor</th>
-                            <th class="px-6 py-4 whitespace-nowrap text-center">Estado</th>
-                            <th class="px-6 py-4 whitespace-nowrap text-right">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-white/5">
-                        ${list.map(h => {
+    <div class="p-4"> ${bulkBar}</div>
+                <div class="table-container custom-scrollbar">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-400 text-[9px] font-bold uppercase tracking-[0.2em] border-b border-slate-200 dark:border-white/5">
+                            <tr>
+                                <th class="p-6 w-12 text-center">
+                                    <input type="checkbox" id="master-select-hist" class="w-5 h-5 rounded-lg border-2 border-slate-300 dark:border-white/10 accent-accent cursor-pointer transition-all" ${selectedIds.size === list.length ? 'checked' : ''}>
+                                </th>
+                                <th class="p-6 whitespace-nowrap">Fecha Evento</th>
+                                <th class="p-6 whitespace-nowrap">Territorio</th>
+                                <th class="p-6 whitespace-nowrap">Conductor</th>
+                                <th class="p-6 text-center whitespace-nowrap">Estado</th>
+                                <th class="p-6 text-right whitespace-nowrap no-print">Opciones</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 dark:divide-white/5 text-sm">
+                            ${list.map(h => {
+                const isSelected = selectedIds.has(h.id);
                 const dVal = h.fecha_asignacion || h.timestamp?.toDate();
-                const dateStr = dVal ? new Date(dVal).toLocaleDateString("es-ES", { year: "numeric", month: "short", day: "numeric" }) : "-";
+                const dateStr = dVal ? new Date(dVal).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" }) : "-";
 
-                const statusColor = h.estado === "Asignado" ? "text-teal-600 bg-teal-50 dark:bg-teal-500/10 dark:text-teal-400 border border-teal-200 dark:border-teal-500/20" :
-                    h.estado === "Completado" || h.estado === "Predicado" ? "text-green-600 bg-green-50 dark:bg-green-500/10 dark:text-green-400 border border-green-200 dark:border-green-500/20" :
-                        h.estado === "Devuelto" ? "text-orange-600 bg-orange-50 dark:bg-orange-500/10 dark:text-orange-400 border border-orange-200 dark:border-orange-500/20" :
-                            "text-gray-500 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10";
+                const getStatusStyles = (status) => {
+                    const s = (status || "").toLowerCase();
+                    if (s === "asignado") return "bg-blue-500/10 text-blue-500 border-blue-500/20";
+                    if (s === "completado" || s === "predicado") return "bg-emerald-500/10 text-emerald-500 border-emerald-500/20";
+                    if (s === "devuelto") return "bg-orange-500/10 text-orange-500 border-orange-500/20";
+                    return "bg-slate-500/10 text-slate-500 border-slate-500/20";
+                };
 
                 return `
-                                <tr class="hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors group">
-                                    <td class="px-6 py-4 text-gray-600 dark:text-gray-300 font-mono text-xs whitespace-nowrap">${dateStr}</td>
-                                    <td class="px-6 py-4 font-bold text-gray-800 dark:text-white text-base">
+                                <tr class="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors group ${isSelected ? 'bg-accent/5' : ''}">
+                                    <td class="p-4 text-center">
+                                        <input type="checkbox" class="hist-row-check w-5 h-5 rounded-lg border-2 border-slate-300 dark:border-white/10 accent-accent cursor-pointer transition-all" data-id="${h.id}" ${isSelected ? 'checked' : ''}>
+                                    </td>
+                                    <td class="p-6 font-mono text-[11px] text-slate-500 uppercase tracking-tighter">${dateStr}</td>
+                                    <td class="p-6">
                                         <div class="flex items-center gap-2">
-                                            <span class="p-1.5 bg-gray-100 dark:bg-white/10 rounded text-xs">🗺️</span>
-                                            ${h.numero}
+                                            <div class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/5 flex items-center justify-center text-[10px] font-black text-slate-400">
+                                                <i class="fas fa-map"></i>
+                                            </div>
+                                            <span class="font-black text-slate-800 dark:text-white">Territorio ${h.numero}</span>
                                         </div>
                                     </td>
-                                    <td class="px-6 py-4 text-gray-600 dark:text-gray-300">
+                                    <td class="p-6">
                                         <div class="flex flex-col">
-                                            <span class="font-medium">${h.conductor}</span>
-                                            ${h.auxiliar ? `<span class="text-[10px] text-gray-400 flex items-center gap-1">👤 ${h.auxiliar}</span>` : ""}
+                                            <span class="font-bold text-slate-700 dark:text-slate-200">${h.conductor}</span>
+                                            ${h.auxiliar ? `<span class="text-[10px] text-slate-400 mt-0.5"><i class="fas fa-user-friends mr-1"></i> ${h.auxiliar}</span>` : ""}
                                         </div>
                                     </td>
-                                    <td class="px-6 py-4 text-center">
-                                        <span class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${statusColor}">${h.estado}</span>
+                                    <td class="p-6 text-center">
+                                        <span class="px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border ${getStatusStyles(h.estado)}">
+                                            ${h.estado}
+                                        </span>
                                     </td>
-                                    <td class="px-6 py-4 text-right">
-                                        <div class="flex justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
-                                            <button onclick="window.editHistoryRecord('${h.id}')" class="p-2 hover:bg-teal-50 dark:hover:bg-teal-500/20 text-teal-600 dark:text-teal-400 rounded-lg transition" title="Editar Registro">
-                                                ✏️
+                                    <td class="p-6 text-right">
+                                        <div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button onclick="window.editHistoryRecord('${h.id}')" class="w-9 h-9 flex items-center justify-center text-primary hover:bg-primary/10 rounded-xl transition-all" title="Editar Registro">
+                                                <i class="fas fa-edit"></i>
                                             </button>
-                                            <button onclick="window.deleteHistoryRecordUI('${h.id}', '${h.conductor}', '${h.numero}')" class="p-2 hover:bg-red-50 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 rounded-lg transition" title="Eliminar Definitivamente">
-                                                🗑️
+                                            <button onclick="window.deleteHistoryRecordUI('${h.id}', '${h.conductor}', '${h.numero}')" class="w-9 h-9 flex items-center justify-center text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all" title="Eliminar Registro">
+                                                <i class="fas fa-trash-alt"></i>
                                             </button>
                                         </div>
                                     </td>
                                 </tr>
                             `;
             }).join("")}
-                    </tbody>
-                </table>
+                        </tbody>
+                    </table>
                 </div>
-                <div class="p-4 bg-gray-50 dark:bg-black/20 text-center text-[10px] text-gray-400 border-t border-gray-100 dark:border-white/5 uppercase tracking-widest">
-                    Mostrando últimos ${list.length} registros
+                <div class="p-6 bg-slate-50/50 dark:bg-black/20 text-center">
+                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] italic">Auditoría: Mostrando últimos ${list.length} movimientos detectados</p>
                 </div>
-             `;
+`;
             const tableCont = document.getElementById("hist-table-container");
-            if (tableCont) tableCont.innerHTML = html;
+            if (tableCont) {
+                tableCont.innerHTML = html;
+
+                // Event Listeners for checkboxes
+                tableCont.querySelectorAll('.hist-row-check').forEach(cb => {
+                    cb.onchange = (e) => {
+                        const id = cb.dataset.id;
+                        if (e.target.checked) selectedIds.add(id);
+                        else selectedIds.delete(id);
+                        render();
+                    };
+                });
+
+                const masterCb = tableCont.querySelector('#master-select-hist');
+                if (masterCb) {
+                    masterCb.onchange = (e) => {
+                        if (e.target.checked) {
+                            list.forEach(h => selectedIds.add(h.id));
+                        } else {
+                            list.forEach(h => selectedIds.delete(h.id));
+                        }
+                        render();
+                    };
+                }
+
+                const selectAllBtn = tableCont.querySelector('#hist-select-all-btn');
+                if (selectAllBtn) {
+                    selectAllBtn.onclick = () => {
+                        list.forEach(h => selectedIds.add(h.id));
+                        render();
+                    };
+                }
+
+                const bulkDelBtn = tableCont.querySelector('#hist-bulk-delete');
+                if (bulkDelBtn) {
+                    bulkDelBtn.onclick = async () => {
+                        showCustomConfirm(`¿Estás seguro de eliminar los ${selectedIds.size} registros seleccionados de forma permanente ? `, async () => {
+                            try {
+                                showNotification(`Eliminando ${selectedIds.size} registros...`, "info");
+                                const idsToRemove = Array.from(selectedIds);
+                                for (const id of idsToRemove) {
+                                    await deleteHistoryRecord(id);
+                                }
+                                showNotification(`${idsToRemove.length} registros eliminados con éxito`, "success");
+                                selectedIds.clear();
+                                renderAdvancedHistoryView(container, options);
+                            } catch (e) {
+                                showNotification("Error en eliminación masiva: " + e.message, "error");
+                            }
+                        });
+                    };
+                }
+            }
         };
 
-        const searchEl = document.getElementById("hist-search");
-        if (searchEl) searchEl.addEventListener("input", render);
+        const searchEl = document.getElementById(options.searchInputId || "hist-search");
+        if (searchEl) searchEl.addEventListener("input", () => {
+            selectedIds.clear(); // Clear selection on search to avoid hidden selections
+            render();
+        });
 
         render(); // Initial Render
 
 
     } catch (e) {
         console.error(e);
-        container.innerHTML = `<div class="p-8 text-center text-red-500 border border-red-200 bg-red-50 rounded-xl">Error cargando historial: ${e.message}</div>`;
+        container.innerHTML = `
+    <div class="p-10 text-center">
+                <div class="w-16 h-16 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center text-2xl mx-auto mb-4">
+                    <i class="fas fa-exclamation-circle"></i>
+                </div>
+                <h4 class="text-sm font-black text-slate-800 dark:text-white uppercase">Error en el Centro de Gestión</h4>
+                <p class="text-xs text-slate-400 mt-2">${e.message}</p>
+            </div> `;
     }
 };
-

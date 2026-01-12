@@ -1,6 +1,6 @@
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { initializeApp } from "firebase/app";
+import { getFirestore, doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 const firebaseConfig = {
     apiKey: "AIzaSyDrgpMp04uuFRz61vNIOzD9CCPl8p_wDL0",
@@ -16,13 +16,18 @@ const db = getFirestore(app);
 
 async function setVersion() {
     try {
+        const version = "3.6.8";
+        const ts = Date.now();
         await setDoc(doc(db, "configuracion", "version_control"), {
-            latestVersion: "3.1.5",
-            forceUpdate: true
+            latestVersion: version,
+            forceUpdate: true,
+            forceTimestamp: ts
         });
-        console.log("✅ Firestore version updated to 3.1.5");
+        console.log(`✅ Firestore version updated to ${version} with timestamp ${ts}`);
+        process.exit(0);
     } catch (e) {
         console.error("❌ Error:", e);
+        process.exit(1);
     }
 }
 

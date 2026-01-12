@@ -1,52 +1,63 @@
-import { getHistorialReport, rebuildHistoryFromSchedule, getConfiguracion } from '../data/firestore-services.js?v=3.2.0';
-import { showNotification, generatePlainXLS } from './utils/helpers.js?v=3.2.0';
+import { getHistorialReport, rebuildHistoryFromSchedule, getConfiguracion } from '../data/firestore-services.js?v=3.6.0';
+import { showNotification, generatePlainXLS } from './utils/helpers.js?v=3.6.0';
 
-export const renderHistoryTab = (container) => {
+export const renderHistoryTab = (container, options = {}) => {
+    const showHeader = options.showHeader !== false;
+
     container.innerHTML = `
         <div class="h-full flex flex-col gap-6 animate-fade-in relative">
-            <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-black/10 dark:border-white/10 pb-6">
-                <div>
-                    <h2 class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">
-                        📋 Historial de Asignaciones (S-13)
-                    </h2>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">
-                        Genera reportes detallados para el formulario S-13.
-                    </p>
-                </div>
-                <div class="flex flex-wrap items-end gap-3 bg-black/5 dark:bg-white/5 p-3 rounded-xl border border-black/10 dark:border-white/10">
+            ${showHeader ? `
+            <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 border-b border-slate-100 dark:border-white/5 pb-8">
+                <div class="flex items-center gap-6">
+                    <div class="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-3xl text-primary shadow-inner border border-primary/10 animate-float">
+                        <i class="fas fa-file-invoice"></i>
+                    </div>
                     <div>
-                         <label class="block text-xs uppercase text-gray-500 mb-1 font-bold">Año Servicio</label>
-                         <select id="report-year-select" class="bg-black/10 dark:bg-black/40 border border-white/10 rounded-lg px-2 py-1 text-sm text-gray-800 dark:text-gray-200 focus:border-blue-500 outline-none font-bold">
+                        <h2 class="text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">
+                            Historial S-13
+                        </h2>
+                        <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] mt-1 opacity-70">
+                            Registro Oficial de Asignaciones
+                        </p>
+                    </div>
+                </div>
+                <div class="flex flex-wrap items-end gap-3 bg-slate-50 dark:bg-white/[0.02] p-5 rounded-3xl border border-slate-100 dark:border-white/5 shadow-inner">
+                    <div class="space-y-2">
+                         <label class="block text-[10px] uppercase text-slate-400 font-black tracking-widest ml-1">Año Servicio</label>
+                         <select id="report-year-select" class="bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-xs text-slate-700 dark:text-slate-200 focus:border-primary outline-none font-black uppercase tracking-widest cursor-pointer shadow-sm">
                          </select>
                     </div>
-                    <div>
-                        <label class="block text-xs uppercase text-gray-500 mb-1 font-bold">Desde</label>
-                        <input type="date" id="report-start" class="bg-black/10 dark:bg-black/40 border border-white/10 rounded-lg px-2 py-1 text-sm text-gray-800 dark:text-gray-200 focus:border-blue-500 outline-none">
+                    <div class="space-y-2">
+                        <label class="block text-[10px] uppercase text-slate-400 font-black tracking-widest ml-1">Desde</label>
+                        <input type="date" id="report-start" class="bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-xs text-slate-700 dark:text-slate-200 focus:border-primary outline-none font-black shadow-sm uppercase">
                     </div>
-                     <div>
-                        <label class="block text-xs uppercase text-gray-500 mb-1 font-bold">Hasta</label>
-                        <input type="date" id="report-end" class="bg-black/10 dark:bg-black/40 border border-white/10 rounded-lg px-2 py-1 text-sm text-gray-200 focus:border-blue-500 outline-none">
+                     <div class="space-y-2">
+                        <label class="block text-[10px] uppercase text-slate-400 font-black tracking-widest ml-1">Hasta</label>
+                        <input type="date" id="report-end" class="bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-xs text-slate-700 dark:text-slate-200 focus:border-primary outline-none font-black shadow-sm uppercase">
                     </div>
-                    <button id="btn-generate-report" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-1.5 rounded-lg shadow-lg shadow-blue-500/20 text-sm font-bold transition-all h-fit self-end">
-                        Generar Vista Previa
+                    <button id="btn-generate-report" class="bg-primary hover:bg-primary-light text-white px-8 py-3 rounded-xl shadow-xl shadow-primary/20 text-[10px] font-black uppercase tracking-widest transition-all h-fit self-end active:scale-95 flex items-center gap-2">
+                        <i class="fas fa-magic"></i> Generar
                     </button>
-                    <button id="btn-export-s13-pdf" class="hidden bg-red-600 hover:bg-red-500 text-white px-4 py-1.5 rounded-lg shadow-lg shadow-red-500/20 text-sm font-bold transition-all h-fit self-end flex items-center gap-2">
-                        <span>📄</span> PDF
+                    <button id="btn-export-s13-pdf" class="hidden bg-rose-600 hover:bg-rose-500 text-white px-6 py-3 rounded-xl shadow-xl shadow-rose-500/20 text-[10px] font-black uppercase tracking-widest transition-all h-fit self-end flex items-center gap-3 active:scale-95">
+                        <i class="fas fa-file-pdf"></i> PDF
                     </button>
-                    <button id="btn-export-s13-excel" class="hidden bg-green-700 hover:bg-green-600 text-white px-4 py-1.5 rounded-lg shadow-lg shadow-green-500/20 text-sm font-bold transition-all h-fit self-end flex items-center gap-2">
-                        <span>📊</span> EXCEL
+                    <button id="btn-export-s13-excel" class="hidden bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-xl shadow-xl shadow-emerald-500/20 text-[10px] font-black uppercase tracking-widest transition-all h-fit self-end flex items-center gap-3 active:scale-95">
+                        <i class="fas fa-file-excel"></i> EXCEL
                     </button>
                     <!-- Tools -->
-                    <button id="btn-rebuild-history" class="text-gray-400 hover:text-white p-2 rounded-lg transition-colors h-fit self-end" title="Recuperar historial desde Programa Semanal">
-                        <span class="text-lg">🛠️</span>
+                    <button id="btn-rebuild-history" class="w-12 h-12 bg-slate-200/50 dark:bg-white/5 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-xl transition-all h-fit self-end flex items-center justify-center border border-transparent hover:border-primary/20" title="Recuperar historial desde Programa Semanal">
+                        <i class="fas fa-wrench"></i>
                     </button>
                 </div>
             </header>
+            ` : ''}
 
-            <div id="report-preview" class="flex-1 overflow-auto bg-gray-100/5 dark:bg-[#0a0a0a] rounded-xl border border-white/5 p-8 flex flex-col items-center gap-8 relative min-h-[500px]">
-                 <div class="text-center text-gray-500 mt-20">
-                    <div class="text-4xl mb-4">📅</div>
-                    <p>Selecciona un rango de fechas para generar el reporte.</p>
+            <div id="report-preview" class="flex-1 overflow-auto bg-slate-50 dark:bg-black/20 rounded-[2.5rem] border border-slate-100 dark:border-white/5 p-4 sm:p-12 flex flex-col items-center gap-10 relative min-h-[600px] shadow-inner">
+                 <div class="text-center mt-20 space-y-6 opacity-30 group">
+                    <div class="w-24 h-24 bg-slate-200 dark:bg-white/5 rounded-[2rem] flex items-center justify-center text-4xl mx-auto group-hover:scale-110 transition-transform">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <p class="text-xs font-black uppercase tracking-[0.4em] max-w-xs leading-relaxed">Selecciona un rango de fechas para generar el reporte oficial S-13</p>
                  </div>
             </div>
             
@@ -66,38 +77,38 @@ export const renderHistoryTab = (container) => {
     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
     // Initialize Service Year Selector and Dates
-    const yearSelect = document.getElementById('report-year-select');
-    const startInput = document.getElementById('report-start');
-    const endInput = document.getElementById('report-end');
+    const yearSelect = showHeader ? document.getElementById('report-year-select') : null;
+    const startInput = showHeader ? document.getElementById('report-start') : (options.startInput || null);
+    const endInput = showHeader ? document.getElementById('report-end') : (options.endInput || null);
 
     // Calculate current Service Year
     // Service Year 2026 starts Sept 1, 2025.
-    // If Month is >= 8 (Sept, 0-indexed), Service Year is Next Year.
+    // If Month is>= 8 (Sept, 0-indexed), Service Year is Next Year.
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth(); // 0-11. Sept is 8.
     const serviceYear = currentMonth >= 8 ? currentYear + 1 : currentYear;
 
     // Populate Selector (Range: Current - 5 to Current + 5)
-    for (let y = serviceYear - 5; y <= serviceYear + 5; y++) {
-        const opt = document.createElement('option');
-        opt.value = y;
-        opt.textContent = y;
-        if (y === serviceYear) opt.selected = true;
-        // Style for light mode
-        opt.className = "bg-white text-gray-900 dark:bg-black dark:text-white";
-        yearSelect.appendChild(opt);
+    if (yearSelect) {
+        for (let y = serviceYear - 5; y <= serviceYear + 5; y++) {
+            const opt = document.createElement('option');
+            opt.value = y;
+            opt.textContent = y;
+            if (y === serviceYear) opt.selected = true;
+            // Style for light mode
+            opt.className = "bg-white text-gray-900 dark:bg-black dark:text-white";
+            yearSelect.appendChild(opt);
+        }
     }
 
     // Function to set dates based on Service Year
     const setDatesFromServiceYear = (sy) => {
+        if (!startInput || !endInput) return;
         // SY 2025 = Sept 1, 2024 to Aug 31, 2025
         const y = parseInt(sy);
         const start = new Date(y - 1, 8, 1); // Sept 1, Prev Year
-        const end = new Date(y, 7, 31); // Aug 31, Current SY Year which is actually 8th month index (Aug is 7? No jan=0, aug=7. Aug 31 ok.)
-        // Correction: Month 8 is Sept. Month 7 is Aug.
+        const end = new Date(y, 7, 31); // Aug 31, Current SY Year
 
-        startInput.valueAsDate = start; // Local time issue? valueAsDate expects UTC usually or acts locally. easier to use strings.
-        // Let's use string YYYY-MM-DD
         const fmt = (d) => {
             const yy = d.getFullYear();
             const mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -109,12 +120,14 @@ export const renderHistoryTab = (container) => {
     };
 
     // Initial Set
-    setDatesFromServiceYear(serviceYear);
+    if (showHeader) setDatesFromServiceYear(serviceYear);
 
     // Listener
-    yearSelect.addEventListener('change', (e) => {
-        setDatesFromServiceYear(e.target.value);
-    });
+    if (yearSelect) {
+        yearSelect.addEventListener('change', (e) => {
+            setDatesFromServiceYear(e.target.value);
+        });
+    }
 
     document.getElementById('btn-generate-report').addEventListener('click', async () => {
         const start = document.getElementById('report-start').value;
@@ -129,7 +142,12 @@ export const renderHistoryTab = (container) => {
         loader.classList.remove('hidden');
 
         try {
-            const allHistory = await getHistorialReport();
+            const [allHistory, allTerritorios] = await Promise.all([
+                getHistorialReport(),
+                // Use a local import or global if available. It's usually imported in this file? 
+                // Wait, it is NOT imported. Let's add it to imports.
+                import('../data/firestore-services.js?v=3.5.0').then(m => m.getTerritorios())
+            ]);
 
             // Filter data for the preview range
             const startMs = new Date(start).getTime();
@@ -147,7 +165,7 @@ export const renderHistoryTab = (container) => {
             const congregationName = config?.congregacion?.nombre || 'Mi Congregación';
             const yearLabel = document.getElementById('report-year-select').value;
 
-            renderReport(historyInRange, allHistory, start, end, yearLabel, congregationName);
+            renderReport(historyInRange, allHistory, allTerritorios, start, end, yearLabel, congregationName);
             document.getElementById('btn-export-s13-pdf').classList.remove('hidden');
             document.getElementById('btn-export-s13-excel').classList.remove('hidden');
 
@@ -232,7 +250,7 @@ export const renderHistoryTab = (container) => {
         flatList.sort((a, b) => a.Territorio.localeCompare(b.Territorio, undefined, { numeric: true }));
 
         generatePlainXLS(flatList, `Listado_Asignaciones_S13_${document.getElementById('report-start').value}`);
-        showNotification("Excel generado con éxito. 📊");
+        showNotification("Excel generado con éxito", "success");
     });
 
     // Rebuild Listener
@@ -257,20 +275,31 @@ export const renderHistoryTab = (container) => {
 
 // --- LOGIC ENGINE ---
 
-const renderReport = (dataInRange, allHistory, startDate, endDate, yearLabel, congregationName) => {
+const renderReport = (dataInRange, allHistory, allTerritorios, startDate, endDate, yearLabel, congregationName) => {
     const container = document.getElementById('report-preview');
     container.innerHTML = '';
 
-    // 1. Group by Territory Number (Numerical Sort)
+    // 1. Map all territories
     const territoriesMap = new Map();
 
+    // Sort all territories numerically by number
+    const sortedTerrs = [...allTerritorios].sort((a, b) =>
+        String(a.numero).localeCompare(String(b.numero), undefined, { numeric: true })
+    );
+
+    sortedTerrs.forEach(t => {
+        const numStr = String(t.numero).padStart(2, '0');
+        if (!territoriesMap.has(numStr)) territoriesMap.set(numStr, []);
+    });
+
+    // Populate with assignments in range
     dataInRange.forEach(item => {
         if (!item.numero) return;
-        // Split territory numbers if they are comma or slash separated (e.g. "1, 2" or "1 / 2")
         const nums = item.numero.toString().split(/[,/]/).map(n => n.trim().padStart(2, '0'));
         nums.forEach(num => {
-            if (!territoriesMap.has(num)) territoriesMap.set(num, []);
-            territoriesMap.get(num).push({ ...item, numero: num });
+            if (territoriesMap.has(num)) {
+                territoriesMap.get(num).push({ ...item, numero: num });
+            }
         });
     });
 
@@ -280,7 +309,7 @@ const renderReport = (dataInRange, allHistory, startDate, endDate, yearLabel, co
 
     // 2. Pagination State (Image shows 22 rows per page)
     let pageHtmls = [];
-    const TERR_PER_PAGE = 22;
+    const TERR_PER_PAGE = 20;
     const ASSIGNS_PER_PAGE = 4;
 
     for (let i = 0; i < sortedKeys.length; i += TERR_PER_PAGE) {
@@ -312,7 +341,14 @@ const renderReport = (dataInRange, allHistory, startDate, endDate, yearLabel, co
     }
 
     if (pageHtmls.length === 0) {
-        container.innerHTML = '<div class="text-gray-500 mt-20 text-center flex flex-col items-center"><span class="text-4xl mb-4">📭</span>No hay asignaciones registradas en este rango.</div>';
+        container.innerHTML = `
+            <div class="text-center mt-32 space-y-6 opacity-30">
+                <div class="w-24 h-24 bg-slate-200 dark:bg-white/5 rounded-[2rem] flex items-center justify-center text-4xl mx-auto">
+                    <i class="fas fa-folder-open"></i>
+                </div>
+                <p class="text-xs font-black uppercase tracking-[0.4em]">No hay asignaciones en este rango</p>
+            </div>
+        `;
         return;
     }
 
@@ -467,7 +503,7 @@ const generateS13PageHtmlTable = (keys, map, allHistory, reportStartDate, assign
     const reportStartMs = new Date(reportStartDate).getTime();
 
     let rowsHtml = '';
-    const ROWS_PER_PAGE = 22;
+    const ROWS_PER_PAGE = 20;
 
     for (let r = 0; r < ROWS_PER_PAGE; r++) {
         const key = keys[r];
@@ -480,7 +516,7 @@ const generateS13PageHtmlTable = (keys, map, allHistory, reportStartDate, assign
         let lastCompletionDate = '';
         let foundPrevious = false;
 
-        // 1. If this is a continuation row (offset > 0), check the LAST column of the PREVIOUS row (assignments[assignOffset - 1])
+        // 1. If this is a continuation row (offset> 0), check the LAST column of the PREVIOUS row (assignments[assignOffset - 1])
         if (assignOffset > 0 && assignments[assignOffset - 1]) {
             const prevAssign = assignments[assignOffset - 1];
             if (prevAssign.fecha_entrega) {
@@ -528,7 +564,7 @@ const generateS13PageHtmlTable = (keys, map, allHistory, reportStartDate, assign
                         <div class="flex flex-col h-[10mm]">
                             <!-- Name -->
                             <div class="h-[50%] w-full flex items-end justify-center border-b border-black">
-                                <span class="text-[9px] font-bold text-gray-900 truncate px-1 leading-tight pb-0.5 w-full text-center font-roboto uppercase">
+                                <span class="text-[8.5px] font-bold text-gray-900 truncate px-1 leading-tight pb-0.5 w-full text-center font-roboto">
                                     ${assign.conductor || '-'}
                                 </span>
                             </div>
@@ -555,8 +591,8 @@ const generateS13PageHtmlTable = (keys, map, allHistory, reportStartDate, assign
 
         rowsHtml += `
             <tr class="h-[10mm]">
-                <td class="border border-black text-center font-bold text-sm bg-gray-50/10 w-[12mm]">${key || ''}</td>
-                <td class="border border-black bg-gray-100/10 w-[25mm] text-center text-[9px] font-bold">${lastCompletionDate}</td>
+                <td class="border border-black text-center font-bold text-sm bg-white w-[12mm]">${key || ''}</td>
+                <td class="border border-black bg-white w-[25mm] text-center text-[8.5px] font-bold">${lastCompletionDate}</td>
                 ${colsHtml}
             </tr>
         `;
@@ -570,10 +606,10 @@ const generateS13PageHtmlTable = (keys, map, allHistory, reportStartDate, assign
                 <h1 class="text-2xl font-bold uppercase tracking-wider" style="font-family: 'Arial', sans-serif;">Registro de Asignación de Territorio</h1>
             </div>
             
-            <div class="flex items-end gap-3 mb-2 px-1">
-                <span class="font-bold text-sm uppercase tracking-wider mb-1">Año de servicio</span>
-                <div class="border-b-2 border-black px-4 text-xl font-bold leading-none pb-1 min-w-[30mm] text-center">
-                    ${year}
+            <div class="flex items-end gap-1 mb-2 px-1">
+                <span class="font-bold text-sm uppercase tracking-tight mb-1">Año de servicio:</span>
+                <div class="border-b border-black px-4 text-xl font-bold leading-none pb-0.5 min-w-[30mm] text-center">
+                    &nbsp;&nbsp;&nbsp;${year}&nbsp;&nbsp;&nbsp;
                 </div>
             </div>
 
@@ -589,9 +625,9 @@ const generateS13PageHtmlTable = (keys, map, allHistory, reportStartDate, assign
                         <col style="width: 38mm;"> <!-- Assign 4 -->
                     </colgroup>
                     <thead>
-                        <tr class="bg-gray-100 dark:bg-gray-100 text-[8px] font-black text-center uppercase tracking-tight h-[12mm]">
-                            <td class="border border-black p-1 align-middle">Terr.<br>n.º</td>
-                            <td class="border border-black p-1 align-middle leading-tight bg-gray-50/50">Última fecha<br>en que se<br>completó*</td>
+                        <tr class="bg-gray-100/50 dark:bg-gray-100/50 text-[6.5px] font-black text-center uppercase tracking-tighter h-[11mm] leading-[1.1]">
+                            <td class="border border-black p-0.5 align-middle w-[10mm]">Núm.<br> de terr.</td>
+                            <td class="border border-black p-0.5 align-middle leading-tight w-[20mm]">Última fecha<br> en que se<br> completó*</td>
                             
                             <!-- Assignment Headers Grouped -->
                             ${Array(4).fill(0).map(() => `
@@ -599,11 +635,11 @@ const generateS13PageHtmlTable = (keys, map, allHistory, reportStartDate, assign
                                     <div class="flex flex-col h-full">
                                         <div class="border-b border-black py-1 bg-gray-200">Asignado a</div>
                                         <div class="flex flex-1 h-full">
-                                            <div class="w-1/2 border-r border-black flex items-center justify-center bg-gray-50 px-0.5 leading-none py-1 h-full">
-                                                Fecha de<br>entrega
+                                            <div class="w-1/2 border-r border-black flex items-center justify-center bg-gray-50/30 px-0.5 leading-[1] py-1 h-full text-[6px]">
+                                                Fecha en que<br> se asignó
                                             </div>
-                                            <div class="w-1/2 flex items-center justify-center bg-gray-50 px-0.5 leading-none py-1 h-full">
-                                                Fecha de<br>devolución
+                                            <div class="w-1/2 flex items-center justify-center bg-gray-50/30 px-0.5 leading-[1] py-1 h-full text-[6px]">
+                                                Fecha en que<br> se completó
                                             </div>
                                         </div>
                                     </div>
@@ -613,19 +649,28 @@ const generateS13PageHtmlTable = (keys, map, allHistory, reportStartDate, assign
                     </thead>
                     <tbody>
                         ${rowsHtml}
+                        ${keys.length < ROWS_PER_PAGE ? Array(ROWS_PER_PAGE - keys.length).fill(0).map(() => `
+                            <tr class="h-[11mm]">
+                                <td class="border border-black bg-white"></td>
+                                <td class="border border-black bg-white"></td>
+                                <td class="border border-black bg-white"></td>
+                                <td class="border border-black bg-white"></td>
+                                <td class="border border-black bg-white"></td>
+                                <td class="border border-black bg-white"></td>
+                            </tr>
+                        `).join('') : ''}
                     </tbody>
                 </table>
             </div>
 
             <!-- Footnote -->
-            <div class="mt-2 text-[9px] font-medium pl-1 text-gray-700 italic">
-                * Cuando comience una nueva página, anote en esta columna la última fecha en que los territorios se completaron.
+            <div class="mt-1 text-[8.5px] font-medium pl-1 text-black">
+                *Cuando comience una nueva página, anote en esta columna la última fecha en que los territorios se completaron.
             </div>
-            <div class="flex justify-between items-end mt-1 px-1">
-                 <div class="flex flex-col">
-                    <div class="text-[9px] font-bold text-gray-900">S-13 1/22</div>
-                 </div>
-                 <div class="text-[10px] font-bold text-gray-800 uppercase">${congregation}</div>
+            
+            <div class="mt-6 flex justify-between items-end px-1">
+                 <div class="text-[9px] font-bold text-gray-900">S-13-S 1/22</div>
+                 <div class="text-[8px] font-bold text-gray-400 uppercase tracking-widest">${congregation}</div>
             </div>
         </div>
     `;

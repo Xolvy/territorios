@@ -105,33 +105,45 @@ const logAssignment = async (territorioData, conductorName, details = {}) => {
     }
 };
 
-const logReturn = async (territorioId, fechaEntrega, status = 'Completado', notas = null) => {
+export const logReturn = async (territorioId, fechaEntrega, status = 'Completado', notas = null) => {
     try {
         // Find the open assignment for this territory
-        // We look for the most recent 'Asignado' entry for this territory
+        // We fetch all records for this ID to avoid composite index requirements.
         const q = query(
             collection(db, "historial_territorios"),
-            where("territorio_id", "==", territorioId),
-            where("estado", "==", "Asignado"),
-            orderBy("timestamp", "desc"),
-            limit(1)
+            where("territorio_id", "==", territorioId)
         );
         const snapshot = await getDocs(q);
 
         if (!snapshot.empty) {
-            const updateData = {
-                fecha_entrega: fechaEntrega || new Date().toISOString(),
-                estado: status // 'Completado' or 'Devuelto'
-            };
-            if (notas) updateData.observaciones = notas;
+            // Find the most recent 'Asignado' entry in memory
+            const assignments = snapshot.docs
+                .map(d => ({ id: d.id, ...d.data() }))
+                .filter(rec => rec.estado === 'Asignado');
 
-            const histDoc = snapshot.docs[0];
-            await updateDoc(doc(db, "historial_territorios", histDoc.id), updateData);
-        } else {
-            // Fallback: If no open history found (maybe assigned before update), create a closed one?
-            // Or just ignore. Let's ignore to avoid phantom data, or log a warning.
-            console.warn("No open history found for returned territory", territorioId);
+            // Sort by timestamp desc
+            assignments.sort((a, b) => {
+                const timeA = a.timestamp?.toMillis ? a.timestamp.toMillis() : (a.timestamp || 0);
+                const timeB = b.timestamp?.toMillis ? b.timestamp.toMillis() : (b.timestamp || 0);
+                return timeB - timeA;
+            });
+
+            if (assignments.length > 0) {
+                const histDoc = assignments[0];
+                const updateData = {
+                    fecha_entrega: fechaEntrega || new Date().toISOString(),
+                    estado: status // 'Completado' or 'Devuelto'
+                };
+                if (notas) updateData.observaciones = notas;
+
+                await updateDoc(doc(db, "historial_territorios", histDoc.id), updateData);
+                return;
+            }
         }
+
+        // Fallback: If no open history found (maybe assigned before update), create a closed one?
+        // Or just ignore. Let's ignore to avoid phantom data, or log a warning.
+        console.warn("No open history found for returned territory", territorioId);
     } catch (e) {
         console.error("Error logging return history:", e);
     }
@@ -147,18 +159,21 @@ export const getHistorialReport = async () => {
 
 
 export const getTerritoryHistory = async (territoryId) => {
-
-    // Determine if territoryId is an ID or a Number. History stores 'territorio_id' (doc ID) and 'numero'.
-    // If we pass ID, query by ID. If number, query by number (more robust for S-13 if ID changes?)
-    // History logs 'territorio_id'.
-    // But let's support both if possible or just ID.
+    // We remove orderBy from the query to avoid requiring a composite index in Firestore.
+    // Index creation can take time and requires manual action. Sorting in memory is safe for territory history.
     const q = query(
         collection(db, "historial_territorios"),
-        where("territorio_id", "==", territoryId),
-        orderBy("timestamp", "desc")
+        where("territorio_id", "==", territoryId)
     );
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const history = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    // Sort by timestamp desc in memory
+    return history.sort((a, b) => {
+        const timeA = a.timestamp?.toMillis ? a.timestamp.toMillis() : (a.timestamp || 0);
+        const timeB = b.timestamp?.toMillis ? b.timestamp.toMillis() : (b.timestamp || 0);
+        return timeB - timeA;
+    });
 };
 
 export const addHistoryRecord = async (data) => {
@@ -294,7 +309,7 @@ export const assignTerritorio = async (id, conductorName, details = {}) => {
     }
 };
 
-export const assignTerritorioParcial = async (originalId, manzanasToAssign, conductorName) => {
+export const assignTerritorioParcial = async (originalId, manzanasToAssign, conductorName, details = {}) => {
     try {
         const docRef = doc(db, "territorios", originalId);
         const snap = await getDoc(docRef);
@@ -307,14 +322,24 @@ export const assignTerritorioParcial = async (originalId, manzanasToAssign, cond
         // Validation
         const remaining = allManzanas.filter(m => !toAssign.includes(m));
 
+        const assignmentData = {
+            asignado_a: conductorName,
+            fecha_asignacion: details.fecha_asignacion || new Date().toISOString(),
+            fecha_salida: details.fecha_salida || null,
+            estado: 'Asignado',
+            auxiliar: details.auxiliar || null,
+            lugar: details.lugar || null,
+            hora: details.hora || null,
+            faceta: details.faceta || null,
+            turno: details.turno || null,
+            campana: details.campana || null
+        };
+
         if (remaining.length === 0) {
             // Assign fully if no apples remain
             // Use existing ID to avoid duplicates if possible, or create new if logic demands history
-            await updateDoc(docRef, {
-                asignado_a: conductorName,
-                fecha_asignacion: new Date().toISOString(),
-                estado: 'Asignado'
-            });
+            await updateDoc(docRef, assignmentData);
+            await logAssignment({ id: originalId, ...data }, conductorName, details);
         } else {
             // Split: Update original (Unassigned, remaining apples)
             await updateDoc(docRef, {
@@ -322,21 +347,46 @@ export const assignTerritorioParcial = async (originalId, manzanasToAssign, cond
             });
 
             // Create new (Assigned, selected apples)
-            // Use same Number, Image, etc.
             const newDocRef = await addDoc(collection(db, "territorios"), {
                 ...data, // Copies Number, Image, etc.
                 manzanas: toAssign.join(', '),
-                asignado_a: conductorName,
-                fecha_asignacion: new Date().toISOString(),
-                estado: 'Asignado',
+                ...assignmentData,
                 origen_id: originalId
             });
 
             // Log for partial assignment
-            logAssignment({ id: newDocRef.id, ...data, numero: data.numero + ' (P)' }, conductorName);
+            await logAssignment({ id: newDocRef.id, ...data, numero: data.numero + ' (P)' }, conductorName, details);
         }
     } catch (e) {
         console.error("Error splitting territory:", e);
+        throw e;
+    }
+};
+
+export const transferTerritorio = async (id, newConductor, manzanasToTransfer, details = {}) => {
+    try {
+        // 1. Close current assignment as "Devuelto (Transferido)"
+        await logReturn(id, new Date().toISOString(), 'Devuelto (Transferido)', `Transferido a ${newConductor}`);
+
+        const territoryRef = doc(db, "territorios", id);
+        const snap = await getDoc(territoryRef);
+        if (!snap.exists()) throw new Error("Territorio no encontrado");
+        const tData = snap.data();
+
+        // 2. Update with new Responsible and possibly new apple subset
+        const updateData = {
+            asignado_a: newConductor,
+            fecha_asignacion: new Date().toISOString(),
+            estado: 'Asignado',
+            manzanas: manzanasToTransfer || tData.manzanas
+        };
+
+        await updateDoc(territoryRef, updateData);
+
+        // 3. Log new assignment
+        await logAssignment({ id, ...tData, ...updateData }, newConductor, details);
+    } catch (e) {
+        console.error("Error transferring territory:", e);
         throw e;
     }
 };
@@ -367,7 +417,7 @@ export const returnTerritorio = async (id, notes, customDate, status = 'Completa
         faceta: null,
         turno: null,
         ultima_fecha: dateToUse,
-        estado: status === 'Perdido' ? 'Extraviado' : 'Predicado'
+        estado: status === 'Perdido' ? 'Extraviado' : (status === 'Disponible' ? 'Sin asignar' : 'Predicado')
     });
     await logReturn(id, dateToUse, status, notes);
 };
@@ -556,9 +606,10 @@ export const getMisTerritorios = async (conductorName) => {
 // --- CONDUCTORES ---
 
 export const getConductores = async () => {
-    const q = query(collection(db, "publicadores"), where("es_conductor", "==", true));
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const querySnapshot = await getDocs(collection(db, "publicadores"));
+    return querySnapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter(p => p.es_conductor === true);
 };
 
 export const addConductor = async (conductor) => {

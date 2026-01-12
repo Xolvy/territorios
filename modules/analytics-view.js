@@ -1,4 +1,4 @@
-import { getTerritorios, getConductores, getGlobalSettings, getHistorialReport } from '../data/firestore-services.js?v=3.2.0';
+import { getTerritorios, getConductores, getGlobalSettings, getHistorialReport } from '../data/firestore-services.js?v=3.6.0';
 
 export const renderAnalyticsView = async (container) => {
     // 1. Fetch settings FIRST to use in the template
@@ -10,73 +10,105 @@ export const renderAnalyticsView = async (container) => {
     }
 
     container.innerHTML = `
-        <div class="h-full flex flex-col gap-6 animate-fade-in custom-scrollbar">
-            <header class="flex justify-between items-center border-b border-black/10 dark:border-white/10 pb-6">
-                <div>
-                    <h2 class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-indigo-500">
-                        📊 Panel de Control
-                    </h2>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">
-                        Visión general del estado de la congregación y métricas clave.
-                    </p>
+        <div class="h-full flex flex-col gap-8 animate-fade-in custom-scrollbar pb-10">
+            <header class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-100 dark:border-white/5 pb-8 gap-6">
+                <div class="flex items-center gap-6">
+                    <div class="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-3xl text-primary shadow-inner border border-primary/10 animate-float">
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">
+                            Panel de Control
+                        </h2>
+                        <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] mt-1 opacity-70">
+                            Visión general y métricas clave
+                        </p>
+                    </div>
                 </div>
-                <button id="btn-refresh-analytics" class="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors" title="Actualizar">
-                    <span class="text-xl">↻</span>
+                <button id="btn-refresh-analytics" class="w-full md:w-auto px-8 py-4 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-500 rounded-2xl border border-slate-200 dark:border-white/10 transition-all font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 shadow-sm hover:shadow-md active:scale-95">
+                    <i class="fas fa-sync-alt"></i> Actualizar
                 </button>
             </header>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div class="bg-white dark:bg-[#181a1f] p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 relative overflow-hidden group">
-                    <div class="absolute right-0 top-0 w-24 h-24 bg-teal-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
-                    <h3 class="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Total Territorios</h3>
-                    <div class="text-4xl font-black text-gray-800 dark:text-gray-100" id="stat-total-terr">-</div>
-                    <div class="text-xs text-teal-600 mt-2 font-medium">Cobertura Global</div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="modern-card !p-5 md:!p-8 relative overflow-hidden group hover:border-primary/30 transition-all shadow-xl hover:shadow-primary/5 bg-white dark:bg-white/[0.02]">
+                    <div class="absolute right-0 top-0 w-32 h-32 bg-primary/5 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
+                    <div class="relative z-10">
+                        <p class="text-[10px] text-slate-500 dark:text-slate-400 font-black uppercase tracking-[0.2em] mb-4">Total Territorios</p>
+                        <div class="text-5xl font-black text-slate-800 dark:text-white tabular-nums tracking-tighter" id="stat-total-terr">-</div>
+                        <div class="mt-6 flex items-center gap-2 text-primary font-black text-[10px] uppercase tracking-widest">
+                            <i class="fas fa-globe-americas"></i> Cobertura Global
+                        </div>
+                    </div>
                 </div>
                 
-                <div class="bg-white dark:bg-[#181a1f] p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 relative overflow-hidden group">
-                    <div class="absolute right-0 top-0 w-24 h-24 bg-blue-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
-                    <h3 class="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Asignados</h3>
-                    <div class="text-4xl font-black text-gray-800 dark:text-gray-100" id="stat-assigned">-</div>
-                    <div class="text-xs text-blue-500 mt-2 font-medium" id="stat-assigned-pct">0% del total</div>
+                <div class="modern-card !p-5 md:!p-8 relative overflow-hidden group hover:border-blue-500/30 transition-all shadow-xl hover:shadow-blue-500/5 bg-white dark:bg-white/[0.02]">
+                    <div class="absolute right-0 top-0 w-32 h-32 bg-blue-500/5 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
+                    <div class="relative z-10">
+                        <p class="text-[10px] text-slate-500 dark:text-slate-400 font-black uppercase tracking-[0.2em] mb-4">Asignados</p>
+                        <div class="text-5xl font-black text-slate-800 dark:text-white tabular-nums tracking-tighter" id="stat-assigned">-</div>
+                        <div class="mt-6 flex items-center gap-2 text-blue-500 font-black text-[10px] uppercase tracking-widest" id="stat-assigned-pct">
+                            <i class="fas fa-user-check"></i> 0% del total
+                        </div>
+                    </div>
                 </div>
 
-                <div class="bg-white dark:bg-[#181a1f] p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 relative overflow-hidden group">
-                    <div class="absolute right-0 top-0 w-24 h-24 bg-purple-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
-                    <h3 class="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Conductores</h3>
-                    <div class="text-4xl font-black text-gray-800 dark:text-gray-100" id="stat-conductors">-</div>
-                    <div class="text-xs text-purple-500 mt-2 font-medium">Activos en servicio</div>
+                <div class="modern-card !p-5 md:!p-8 relative overflow-hidden group hover:border-indigo-500/30 transition-all shadow-xl hover:shadow-indigo-500/5 bg-white dark:bg-white/[0.02]">
+                    <div class="absolute right-0 top-0 w-32 h-32 bg-indigo-500/5 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
+                    <div class="relative z-10">
+                        <p class="text-[10px] text-slate-500 dark:text-slate-400 font-black uppercase tracking-[0.2em] mb-4">Conductores</p>
+                        <div class="text-5xl font-black text-slate-800 dark:text-white tabular-nums tracking-tighter" id="stat-conductors">-</div>
+                        <div class="mt-6 flex items-center gap-2 text-indigo-500 font-black text-[10px] uppercase tracking-widest">
+                            <i class="fas fa-users"></i> Activos en servicio
+                        </div>
+                    </div>
                 </div>
 
-                <div class="bg-white dark:bg-[#181a1f] p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 relative overflow-hidden group">
-                    <div class="absolute right-0 top-0 w-24 h-24 bg-red-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
-                    <h3 class="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Atrasados (>${settings?.expiration_days ? Math.round(settings.expiration_days / 30) : 4}m)</h3>
-                    <div class="text-4xl font-black text-gray-800 dark:text-gray-100" id="stat-late">-</div>
-                    <div class="text-xs text-red-500 mt-2 font-medium">Requieren atención</div>
+                <div class="modern-card !p-5 md:!p-8 relative overflow-hidden group hover:border-rose-500/30 transition-all shadow-xl hover:shadow-rose-500/5 bg-white dark:bg-white/[0.02]">
+                    <div class="absolute right-0 top-0 w-32 h-32 bg-rose-500/5 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
+                    <div class="relative z-10">
+                        <p class="text-[10px] text-slate-500 dark:text-slate-400 font-black uppercase tracking-[0.2em] mb-4">Atrasados (>${settings?.expiration_days ? Math.round(settings.expiration_days / 30) : 4}m)</p>
+                        <div class="text-5xl font-black text-slate-800 dark:text-white tabular-nums tracking-tighter" id="stat-late">-</div>
+                        <div class="mt-6 flex items-center gap-2 text-rose-500 font-black text-[10px] uppercase tracking-widest">
+                            <i class="fas fa-exclamation-triangle"></i> Requieren atención
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:h-96">
-                <div class="bg-white dark:bg-[#181a1f] p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 flex flex-col">
-                    <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100 mb-6">Estado de Territorios</h3>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 overflow-hidden">
+                <div class="modern-card p-10 flex flex-col bg-white dark:bg-white/[0.02]">
+                    <h3 class="text-[12px] font-black text-slate-400 uppercase tracking-[0.3em] mb-10 flex items-center gap-3">
+                        <span class="w-8 h-[1px] bg-slate-300 dark:bg-white/10"></span>
+                        Estado de Territorios
+                    </h3>
                     <div class="flex-1 relative min-h-[300px]">
                         <canvas id="chart-status"></canvas>
                     </div>
                 </div>
 
-                <div class="lg:col-span-2 bg-white dark:bg-[#181a1f] p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 flex flex-col">
-                    <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100 mb-6 font-primary">Frecuencia de Trabajo por Territorio</h3>
+                <div class="lg:col-span-2 modern-card p-10 flex flex-col bg-white dark:bg-white/[0.02]">
+                    <h3 class="text-[12px] font-black text-slate-400 uppercase tracking-[0.3em] mb-10 flex items-center gap-3">
+                        <span class="w-8 h-[1px] bg-slate-300 dark:bg-white/10"></span>
+                        Frecuencia de Trabajo
+                    </h3>
                     <div class="flex-1 relative min-h-[300px]">
                         <canvas id="chart-territories"></canvas>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-white dark:bg-[#181a1f] rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 overflow-hidden flex-1 flex flex-col min-h-[300px]">
-                <div class="p-6 border-b border-black/5 dark:border-white/5 flex justify-between items-center">
-                    <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100">🚫 Territorios que requieren atención inmediata</h3>
-                    <span class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-lg font-bold animate-pulse">Prioridad Alta</span>
+            <div class="modern-card !p-0 overflow-hidden flex-1 flex flex-col min-h-[400px] border-rose-500/20 shadow-2xl bg-white dark:bg-white/[0.02]">
+                <div class="p-8 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-rose-500/[0.02]">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 bg-rose-500/10 rounded-xl flex items-center justify-center text-rose-500">
+                            <i class="fas fa-exclamation-circle"></i>
+                        </div>
+                        <h3 class="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Territorios con Atraso Crítico</h3>
+                    </div>
+                    <span class="text-[10px] font-black bg-rose-500 text-white px-4 py-2 rounded-xl uppercase tracking-widest shadow-lg shadow-rose-500/20 animate-pulse">Prioridad Alta</span>
                 </div>
-                <div class="overflow-auto flex-1 p-0">
+                <div class="table-container overflow-auto flex-1 p-0">
                     <table class="w-full text-left border-collapse">
                         <thead class="bg-gray-50 dark:bg-black/20 text-xs uppercase text-gray-500 dark:text-gray-400 sticky top-0 z-10 backdrop-blur-md">
                             <tr>
@@ -93,9 +125,9 @@ export const renderAnalyticsView = async (container) => {
             </div>
             
             <div class="text-center text-xs text-gray-400 py-4">
-                App Territorios v3.1.5 Oficial • Powered by Antigravity
+                App Territorios v3.6.0 Oficial • Powered by Antigravity
             </div>
-        </div >
+        </div>>
     `;
 
     // Load Data
@@ -245,12 +277,19 @@ export const renderAnalyticsView = async (container) => {
             }).join('');
 
             if (lateTerritories.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-gray-400">🎉 ¡Excelente! No hay territorios atrasados.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="4" class="p-20 text-center">
+                    <div class="flex flex-col items-center gap-4 opacity-30 group">
+                        <div class="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-2xl text-emerald-500 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <p class="text-xs font-black text-slate-400 uppercase tracking-[0.4em]">Sin territorios atrasados</p>
+                    </div>
+                </td></tr>`;
             }
 
         } catch (e) {
             console.error(e);
-            container.innerHTML = `< div class="text-red-500 p-5" > Error cargando analytics: ${e.message}</div > `;
+            container.innerHTML = `<div class="text-red-500 p-5"> Error cargando analytics: ${e.message}</div>> `;
         }
     };
 

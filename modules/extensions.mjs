@@ -3,8 +3,8 @@ import Chart from 'chart.js/auto';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 
-// Anime.js v4 changed from 'anime' to 'animate'
 import { animate } from 'animejs';
+window.anime = animate;
 
 import { format, formatDistance, subDays } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -15,8 +15,6 @@ window.Chart = Chart;
 window.jspdf = { jsPDF };
 window.html2canvas = html2canvas;
 window.XLSX = XLSX;
-// Map 'animate' to 'window.anime' for legacy code compatibility
-window.anime = animate;
 
 window.dateFns = {
     format: (date, fmt) => format(date, fmt, { locale: es }),

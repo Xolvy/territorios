@@ -1,6 +1,5 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc } from "firebase/firestore";
-import { getAuth, signInAnonymously } from "firebase/auth";
 
 const firebaseConfig = {
     apiKey: "AIzaSyDrgpMp04uuFRz61vNIOzD9CCPl8p_wDL0",
@@ -13,24 +12,23 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const auth = getAuth(app);
 
-async function setVersion() {
+async function run() {
+    const NEW_VERSION = "3.3.1";
     try {
-        await signInAnonymously(auth);
-        console.log("🔓 Authenticated anonymously");
+        console.log(`🚀 Actualizando versión remota a: ${NEW_VERSION}...`);
         await setDoc(doc(db, "configuracion", "version_control"), {
-            latestVersion: "3.6.0",
+            latestVersion: NEW_VERSION,
             forceUpdate: true,
             forceTimestamp: Date.now(),
-            updatedAt: new Date().toISOString()
+            notes: "Actualización a v3.3.1: MapViewer Pro y Mejoras de PWA"
         });
-        console.log("✅ Firestore version updated to 3.6.0");
+        console.log("✅ Versión remota actualizada con éxito en Firestore.");
         process.exit(0);
     } catch (e) {
-        console.error("❌ Error:", e);
+        console.error("❌ Error al actualizar la versión remota:", e);
         process.exit(1);
     }
 }
 
-setVersion();
+run();

@@ -1,19 +1,32 @@
 import './modules/extensions.mjs';
-import { auth, db } from './firebase-config.js?v=3.2.0';
+import { auth, db } from './firebase-config.js?v=3.6.9';
 import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
-import { renderLogin } from './modules/login.js?v=3.2.0';
-import { renderAdminDashboard } from './modules/admin-dashboard.js?v=3.2.0';
-import { renderConductorDashboard } from './modules/conductor-dashboard.js?v=3.2.0';
-import { getPermisosUsuario, getSystemVersion, migrateConductoresToPublicadores } from './data/firestore-services.js?v=3.2.0';
-import { showNotification } from './modules/utils/helpers.js?v=3.2.0';
-import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js?v=3.2.0';
+import { renderLogin } from './modules/login.js?v=3.6.9';
+import { renderAdminDashboard } from './modules/admin-dashboard.js?v=3.6.9';
+import { renderConductorDashboard } from './modules/conductor-dashboard.js?v=3.6.9';
+import { getPermisosUsuario, getSystemVersion, migrateConductoresToPublicadores } from './data/firestore-services.js?v=3.6.9';
+import { showNotification } from './modules/utils/helpers.js?v=3.6.9';
+import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js?v=3.6.9';
+import { initPWA } from './modules/utils/pwa-manager.js?v=3.6.9';
 
 // Init Theme
 initTheme();
 document.body.appendChild(createThemeToggle());
 
-const APP_VERSION = '3.2.0';
+// Init PWA & Notifications
+initPWA();
+
+const APP_VERSION = '3.6.9';
+
+// FORCE CACHE CLEAR FOR v3.2.9
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function (registrations) {
+        for (let registration of registrations) {
+            registration.unregister();
+        }
+    });
+}
 
 // --- SUCCESS CONFIRMATION AFTER UPDATE ---
 const checkUpdateSuccess = () => {
@@ -109,6 +122,33 @@ initVersionCheck(APP_VERSION);
 
 // --- DIFFUSION LISTENER ---
 const initDiffusionListener = () => {
+    // Inject Power Up Styles
+    const style = document.createElement('style');
+    style.textContent = `
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+        
+        .custom-scrollbar-horizontal::-webkit-scrollbar { height: 6px; }
+        .custom-scrollbar-horizontal::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); border-radius: 10px; }
+        .custom-scrollbar-horizontal::-webkit-scrollbar-thumb { background: rgba(20, 184, 166, 0.2); border-radius: 10px; }
+
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        .animate-float { animation: float 4s ease-in-out infinite; }
+        
+        @keyframes pulse-slow { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.7; } }
+        .animate-pulse-slow { animation: pulse-slow 3s ease-in-out infinite; }
+
+        @keyframes bounce-in { 0% { transform: translate(-50%, 100px); opacity: 0; } 60% { transform: translate(-50%, -10px); opacity: 1; } 100% { transform: translate(-50%, 0); opacity: 1; } }
+        .animate-bounce-in { animation: bounce-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+        .label-premium { font-size: 10px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.2em; display: block; margin-bottom: 0.5rem; }
+        .input-premium { width: 100%; background: rgba(255,255,255,0.03); border: 1px border rgba(255,255,255,0.1); border-radius: 1rem; padding: 1rem; color: white; outline: none; transition: all 0.3s; }
+        .input-premium:focus { border-color: #6366f1; background: rgba(255,255,255,0.05); }
+    `;
+    document.head.appendChild(style);
+
     onSnapshot(doc(db, "configuracion", "diffusion_active"), (docSnap) => {
         let banner = document.getElementById('global-diffusion-banner');
 
@@ -189,85 +229,7 @@ const navigateWithTransition = (renderFn) => {
     }
 };
 
-// --- PWA INSTALLATION LOGIC ---
-window.deferredPrompt = null;
-
-const showInstallBanner = () => {
-    let banner = document.getElementById('pwa-install-banner');
-    if (!banner) {
-        banner = document.createElement('div');
-        banner.id = 'pwa-install-banner';
-        banner.className = 'fixed top-6 left-1/2 -translate-x-1/2 bg-white dark:bg-[#0f172a] text-gray-800 dark:text-white px-6 py-4 rounded-3xl shadow-2xl transition-all duration-700 transform -translate-y-48 flex items-center gap-4 max-w-[90vw] w-max border border-teal-500/30';
-        banner.innerHTML = `
-            <div class="flex items-center justify-center w-12 h-12 bg-teal-500/10 text-teal-600 dark:text-teal-400 rounded-2xl text-2xl animate-bounce">📲</div>
-            <div class="flex flex-col flex-1">
-                <span class="text-sm font-black leading-tight">Instalar Aplicación</span>
-                <span class="text-[10px] text-gray-500 dark:text-gray-400">Para una mejor experiencia y notificaciones</span>
-            </div>
-            <div class="flex gap-2">
-                <button id="btn-pwa-install" class="bg-teal-600 hover:bg-teal-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-lg active:scale-95">INSTALAR</button>
-                <button id="btn-pwa-close" class="text-gray-400 hover:text-gray-600 dark:hover:text-white p-2 text-lg leading-none transition-colors">✕</button>
-            </div>
-        `;
-        document.body.appendChild(banner);
-
-        document.getElementById('btn-pwa-install').onclick = async () => {
-            if (!window.deferredPrompt) return;
-            window.deferredPrompt.prompt();
-            const { outcome } = await window.deferredPrompt.userChoice;
-            console.log(`PWA Install Result: ${outcome}`);
-            window.deferredPrompt = null;
-            banner.classList.add('-translate-y-48');
-            banner.classList.remove('active');
-
-            // Sugerir notificaciones después de instalar
-            if (outcome === 'accepted') {
-                setTimeout(() => requestGlobalNotificationPermission(), 2000);
-            }
-        };
-
-        document.getElementById('btn-pwa-close').onclick = () => {
-            banner.classList.add('-translate-y-48');
-            banner.classList.remove('active');
-        };
-    }
-
-    setTimeout(() => {
-        banner.classList.remove('-translate-y-48');
-        banner.classList.add('active');
-    }, 1000);
-};
-
-const requestGlobalNotificationPermission = async () => {
-    if (!("Notification" in window)) return;
-    if (Notification.permission === 'default') {
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
-            showNotification("¡Notificaciones activadas con éxito!", "success");
-        }
-    }
-};
-
-window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    window.deferredPrompt = e;
-    console.log("📲 PWA Install Trigger Captured");
-    // Show banner after a short delay
-    setTimeout(showInstallBanner, 3000);
-});
-
-window.addEventListener('appinstalled', (e) => {
-    console.log('✅ PWA Instalada con éxito');
-    window.deferredPrompt = null;
-    const banner = document.getElementById('pwa-install-banner');
-    if (banner) {
-        banner.classList.add('-translate-y-48');
-        banner.classList.remove('active');
-    }
-    showNotification("¡Aplicación instalada! Gracias por tu apoyo.", "success");
-});
-
-// Listeners estado de red para PWA
+// Listeners estado de red 
 window.addEventListener('online', () => {
     showNotification("conexión restaurada 🟢", "success");
 });
@@ -320,7 +282,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (!path.startsWith('/conductores')) {
                         window.history.replaceState({}, '', '/conductores');
                     }
-                    navigateWithTransition(() => renderConductorDashboard(appContainer, storedName || 'Conductor'));
+                    navigateWithTransition(() => renderConductorDashboard(appContainer, storedName || 'Conductor', APP_VERSION));
                     return;
                 }
             }
@@ -345,7 +307,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 console.warn(`⛔ Acceso denegado para: ${user.email}`);
                 showNotification("🚫 Acceso Denegado: Usuario no autorizado.", "error");
                 await auth.signOut();
-                renderLogin(appContainer);
+                renderLogin(appContainer, APP_VERSION);
                 return;
             }
 
@@ -378,14 +340,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (!path.startsWith('/conductores')) {
                     window.history.replaceState({}, '', '/conductores');
                 }
-                navigateWithTransition(() => renderConductorDashboard(appContainer, user.email || 'Usuario'));
+                navigateWithTransition(() => renderConductorDashboard(appContainer, user.email || 'Usuario', APP_VERSION));
             }
         } else {
             // No user
             if (path !== '/login' && path !== '/' && path !== '/index.html') {
                 window.history.replaceState({}, '', '/login');
             }
-            navigateWithTransition(() => renderLogin(appContainer));
+            navigateWithTransition(() => renderLogin(appContainer, APP_VERSION));
         }
     });
 
