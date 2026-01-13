@@ -1450,6 +1450,45 @@ const renderAsignacionesView = async (container) => {
                         </div>
                     </div>
                     
+                    <!-- Grupos y Divisiones (Opcional - Sábado/Domingo) -->
+                    <div id="sunday-logic" class="hidden space-y-6 animate-slide-up bg-slate-100/50 dark:bg-black/20 p-6 md:p-8 rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-inner">
+                        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 bg-white dark:bg-white/5 rounded-3xl border border-slate-200 dark:border-white/10 mb-4 shadow-sm">
+                            <div class="flex items-center gap-4 text-center sm:text-left">
+                                <div class="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary text-xl"><i class="fas fa-users-viewfinder"></i></div>
+                                <div>
+                                    <p class="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">División de Grupos</p>
+                                    <p class="text-[9px] text-slate-500 font-bold uppercase tracking-widest">¿Dividir territorio en sub-equipos?</p>
+                                </div>
+                            </div>
+                            <select id="asig-split-count" class="w-full sm:w-auto bg-slate-50 dark:bg-white/10 border border-slate-200 dark:border-white/20 px-6 py-3 rounded-2xl text-[11px] font-black text-primary outline-none appearance-none cursor-pointer uppercase shadow-inner">
+                                <option value="1">No (1 Equipo)</option>
+                                <option value="2">2 Equipos</option>
+                                <option value="3">3 Equipos</option>
+                                <option value="4">4 Equipos</option>
+                            </select>
+                        </div>
+
+                        <div id="asig-group-single" class="space-y-4">
+                            <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 block text-center sm:text-left flex items-center gap-2">
+                                <i class="fas fa-tags text-primary/60"></i> Seleccionar Grupos de Servicio
+                            </label>
+                            <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                                ${['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9', 'G10', 'G11', 'G12'].map(g => `
+                                    <label class="flex items-center gap-3 p-3 bg-white dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/10 cursor-pointer hover:border-primary/50 transition-all group relative overflow-hidden shadow-sm">
+                                        <input type="checkbox" name="asig-group-check" class="peer absolute inset-0 opacity-0 z-10 cursor-pointer" value="${g}">
+                                        <div class="w-5 h-5 rounded-lg border-2 border-slate-200 dark:border-white/10 peer-checked:bg-primary peer-checked:border-primary flex items-center justify-center text-white text-[10px] transition-all bg-slate-50 dark:bg-black/20">
+                                            <i class="fas fa-check opacity-0 peer-checked:opacity-100"></i>
+                                        </div>
+                                        <span class="text-[10px] font-black text-slate-600 dark:text-slate-300 uppercase">${g}</span>
+                                    </label>
+                                `).join('')}
+                            </div>
+                            <input type="hidden" id="asig-grupos" value="${prefill?.grupos || item?.grupos || ''}">
+                        </div>
+
+                        <div id="sunday-blocks" class="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in"></div>
+                    </div>
+                    
                     <!-- Hidden field for compatibility with legacyturno logic if needed -->
                     <input type="hidden" id="asig-turno" value="">
                 </div>
@@ -1472,14 +1511,18 @@ const renderAsignacionesView = async (container) => {
             const hiddenGroupsInput = modal.querySelector('#asig-grupos');
             const checkboxes = modal.querySelectorAll('input[name="asig-group-check"]');
 
+            if (!sunLogic || !splitSelect || !blocksContainer || !hiddenGroupsInput) {
+                console.error("Critical elements missing from Asignacion Modal");
+            }
+
             const renderBlocks = () => {
                 const count = parseInt(splitSelect.value);
                 if (count === 1) {
-                    blocksContainer.innerHTML = '';
-                    singleGroupContainer.classList.remove('hidden');
+                    if (blocksContainer) blocksContainer.innerHTML = '';
+                    if (singleGroupContainer) singleGroupContainer.classList.remove('hidden');
                     return;
                 }
-                singleGroupContainer.classList.add('hidden');
+                if (singleGroupContainer) singleGroupContainer.classList.add('hidden');
 
                 let html = '';
                 for (let i = 1; i <= count; i++) {
@@ -1515,6 +1558,7 @@ const renderAsignacionesView = async (container) => {
             };
 
             const checkSunday = () => {
+                if (!salidaInput || !sunLogic) return;
                 const dayName = salidaInput.value;
                 if (dayName === 'Domingo' || dayName === 'Sábado') sunLogic.classList.remove('hidden');
                 else sunLogic.classList.add('hidden');
