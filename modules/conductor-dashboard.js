@@ -1,4 +1,4 @@
-import { auth } from '../firebase-config.js?v=3.6.9';
+import { auth } from '../firebase-config.js?v=3.6.9.4';
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import {
     getTerritorios, getConductores, getPublicadores, getTelefonos, updateTelefono,
@@ -8,10 +8,10 @@ import {
     addPublicador, updatePublicador, deletePublicador, // Added for management within dashboard
     releaseUnusedTelefonos, solicitarNumeros, updateTelefonoStatus, logSessionSummary,
     logReturn, returnTerritorio, returnTerritorioParcial, transferTerritory
-} from '../data/firestore-services.js?v=3.6.9';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl } from './utils/helpers.js?v=3.6.9';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=3.6.9';
-import { MapViewer } from './map-viewer.js?v=3.6.9';
+} from '../data/firestore-services.js?v=3.6.9.4';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl } from './utils/helpers.js?v=3.6.9.4';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=3.6.9.4';
+import { MapViewer } from './map-viewer.js?v=3.6.9.4';
 
 
 
@@ -201,18 +201,20 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 </div>
             </header>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 px-4 gap-4">
-                        <h3 class="text-xs font-black text-gray-400 uppercase tracking-[0.3em] flex items-center gap-3">
-                           <span class="w-8 h-[1px] bg-gray-300 dark:bg-white/10"></span>
-                           Agenda Inteligente (Mis Turnos)
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 px-2 md:px-4">
+                <div class="lg:col-span-2 space-y-8 animate-fade-in">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between px-4 gap-4">
+                        <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] flex items-center gap-4">
+                           <span class="w-12 h-1 bg-indigo-500/20 rounded-full"></span>
+                           Agenda Inteligente
                         </h3>
-                        <div id="agenda-intelligence-badge" class="animate-fade-in"></div>
+                        <div id="agenda-intelligence-badge"></div>
                     </div>
-                    <div id="calendar-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <div class="skeleton-pro h-32"></div>
+                    <div id="calendar-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+                        <div class="skeleton-pro h-48 rounded-[2.5rem]"></div>
                     </div>
                 </div>
+            </div>
 
                 <!-- Module: Programa Semanal (Global Cards) -->
                 <div class="lg:col-span-2 ${mods.programa !== false ? '' : 'hidden'}">
@@ -1496,23 +1498,23 @@ window.openProgressModal = async (initialId) => {
                     ${myTerritories.map(t => {
         const rawManzanas = t.manzanas ? t.manzanas.split(',').map(s => s.trim()).filter(s => s) : [];
         return `
-                        <div class="return-item-container modern-card !p-0 overflow-hidden transition-all duration-300 shadow-sm border-slate-200">
-                            <div class="p-5 flex items-center gap-4 group cursor-pointer hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
-                                <label class="relative flex items-center cursor-pointer">
-                                    <input type="checkbox" value="${t.id}" class="return-check sr-only peer">
-                                    <div class="w-10 h-10 bg-white dark:bg-white/5 rounded-xl flex items-center justify-center border border-slate-200 peer-checked:border-primary peer-checked:bg-primary transition-all text-white/0 peer-checked:text-white shadow-sm">
-                                        <i class="fas fa-check text-base"></i>
-                                    </div>
-                                </label>
-                                <div class="flex-1 select-none modal-item-trigger">
+                        <div class="return-item-container modern-card !p-0 overflow-hidden transition-all duration-300 shadow-sm border-slate-200 relative">
+                            <input type="checkbox" value="${t.id}" class="return-check absolute opacity-0 pointer-events-none">
+                            <div class="modal-item-trigger p-6 flex items-center gap-5 group cursor-pointer hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
+                                <div class="w-14 h-14 bg-white dark:bg-white/5 rounded-2xl flex flex-col items-center justify-center border border-slate-100 dark:border-white/10 group-[.selected]:border-teal-500/50 group-[.selected]:bg-teal-500 group-[.selected]:text-white transition-all shadow-sm">
+                                    <span class="text-[8px] font-black uppercase opacity-60">Terr.</span>
+                                    <span class="text-xl font-black tracking-tighter">${t.numero}</span>
+                                </div>
+                                <div class="flex-1 select-none">
                                     <div class="flex items-center gap-3">
-                                        <span class="px-2 py-0.5 bg-primary/10 text-primary text-[9px] font-black rounded-md uppercase tracking-widest">T-${t.numero}</span>
-                                        <h5 class="font-black text-lg text-slate-800 dark:text-white tracking-tight uppercase">Territorio ${t.numero}</h5>
+                                        <h5 class="font-black text-xl text-slate-800 dark:text-white tracking-tighter uppercase leading-none">Territorio ${t.numero}</h5>
+                                        <div class="hidden group-[.selected]:block pulse-subtle"><i class="fas fa-check-circle text-teal-500"></i></div>
                                     </div>
-                                    <p class="text-[9px] text-slate-400 font-black uppercase tracking-[0.2em] mt-1 opacity-70">
-                                        <i class="fas fa-layer-group mr-1"></i> ${rawManzanas.length || '---'} Manzanas Pendientes
+                                    <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mt-1.5 opacity-70">
+                                        <i class="fas fa-layer-group mr-1.5"></i> ${rawManzanas.length || '0'} Manzanas Pendientes
                                     </p>
                                 </div>
+                                <i class="fas fa-chevron-right text-slate-200 group-hover:translate-x-1 group-[.selected]:rotate-90 transition-all"></i>
                             </div>
 
 
@@ -1556,20 +1558,24 @@ window.openProgressModal = async (initialId) => {
                                     <button class="btn-sel-all-mz w-full py-3 border-2 border-dashed border-black/5 dark:border-white/5 rounded-xl text-[8px] font-black uppercase text-slate-400 hover:border-teal-500/30 hover:text-teal-500 transition-all" data-tid="${t.id}">Marcar todas las manzanas</button>
                                 </div>
 
-                                <!-- Photo Upload -->
-                                <div class="space-y-3">
-                                    <div class="flex items-center gap-2">
-                                        <div class="h-px flex-1 bg-black/5 dark:bg-white/5"></div>
-                                        <span class="text-[8px] text-slate-400 font-black uppercase tracking-widest text-center">Evidencia Fotográfica (Marcados)</span>
-                                        <div class="h-px flex-1 bg-black/5 dark:bg-white/5"></div>
-                                    </div>
-                                    <div class="flex flex-wrap gap-3 photos-grid" data-tid="${t.id}">
-                                        <label class="w-16 h-16 rounded-2xl border-2 border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center justify-center text-slate-400 cursor-pointer hover:border-primary/20 hover:text-primary transition-all bg-white dark:bg-black/20 shadow-sm">
-                                            <i class="fas fa-camera text-xl mb-1"></i>
-                                            <span class="text-[6px] font-black uppercase tracking-tighter">Subir</span>
-                                            <input type="file" accept="image/*" class="hidden photo-input" data-tid="${t.id}" multiple>
+                                <!-- Per-Territory Data -->
+                                <div class="space-y-6">
+                                    <div class="space-y-3">
+                                        <label class="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                            <i class="fas fa-comment-alt text-teal-500/60"></i> Observaciones y Avance
                                         </label>
+                                        <div class="relative group/notes">
+                                            <textarea data-tid="${t.id}" class="territory-notes w-full bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-2xl p-5 pr-16 text-[11px] font-bold min-h-[110px] outline-none focus:ring-4 focus:ring-teal-500/10 transition-all text-slate-800 dark:text-white resize-none shadow-inner dark:placeholder:text-white/20" placeholder="Describe qué manzanas predicaste o detalles importantes..."></textarea>
+                                            <label class="absolute right-4 bottom-4 w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-800/80 backdrop-blur-md flex flex-col items-center justify-center text-slate-400 cursor-pointer hover:bg-teal-500/10 hover:text-teal-600 transition-all shadow-sm border border-slate-200 dark:border-white/10">
+                                                <i class="fas fa-camera text-xl"></i>
+                                                <span class="text-[5px] font-black uppercase mt-1">Evidencia</span>
+                                                <input type="file" accept="image/*" class="hidden photo-input" data-tid="${t.id}" multiple>
+                                            </label>
+                                        </div>
                                     </div>
+
+                                    <!-- Photos Preview Grid Integration -->
+                                    <div class="photos-grid flex flex-wrap gap-3 empty:hidden" data-tid="${t.id}"></div>
                                 </div>
                             </div>
                         </div>
@@ -1612,18 +1618,20 @@ window.openProgressModal = async (initialId) => {
         const updateVisibility = (cb) => {
             const container = cb.closest('.return-item-container');
             const details = container.querySelector('.return-details');
+            const trigger = container.querySelector('.modal-item-trigger');
             if (cb.checked) {
                 details.classList.remove('hidden');
                 container.classList.add('ring-4', 'ring-teal-500/10', 'border-teal-500/40');
+                trigger.classList.add('selected');
             } else {
                 details.classList.add('hidden');
                 container.classList.remove('ring-4', 'ring-teal-500/10', 'border-teal-500/40');
+                trigger.classList.remove('selected');
             }
         };
 
         checks.forEach(cb => {
-            cb.onchange = () => updateVisibility(cb);
-            // Allow clicking the card to toggle
+            // cb.onchange = () => updateVisibility(cb); // Trigger handles it
             const trigger = cb.closest('.return-item-container').querySelector('.modal-item-trigger');
             trigger.onclick = () => {
                 cb.checked = !cb.checked;
@@ -1669,6 +1677,13 @@ window.openProgressModal = async (initialId) => {
                 const someUnchecked = Array.from(mzs).some(m => !m.checked);
                 mzs.forEach(m => m.checked = someUnchecked);
                 btn.innerText = someUnchecked ? 'Desmarcar todas' : 'Marcar todas las manzanas';
+
+                // Ensure the territory is selected if user marks apples
+                const check = modal.querySelector(`.return-check[value="${tid}"]`);
+                if (someUnchecked && !check.checked) {
+                    check.checked = true;
+                    updateVisibility(check);
+                }
             };
         });
 
@@ -1745,9 +1760,13 @@ window.openProgressModal = async (initialId) => {
                     const isPartial = toggle && toggle.dataset.val === 'parcial';
                     const t = myTerritories.find(x => x.id === tid);
 
-                    // Collect Photos
+                    // Collect Per-Territory Observations & Photos
+                    const tNotes = modal.querySelector(`.territory-notes[data-tid="${tid}"]`)?.value || '';
                     const pGrid = modal.querySelector(`.photos-grid[data-tid="${tid}"]`);
-                    const photos = pGrid ? Array.from(pGrid.querySelectorAll('img')).map(img => img.src) : null;
+                    const tPhotos = pGrid ? Array.from(pGrid.querySelectorAll('img')).map(img => img.src) : null;
+
+                    // Unified notes (territory specific + global if exists)
+                    const finalNotes = tNotes + (notes ? `\n---\nRef: ${notes}` : '');
 
                     const original = t.manzanas ? t.manzanas.split(',').map(m => m.trim()).filter(Boolean) : [];
 
@@ -1761,17 +1780,17 @@ window.openProgressModal = async (initialId) => {
                         if (completed.length === 0) {
                             showNotification(`No seleccionaste manzanas para T-${t.numero}`, "warning");
                             e.target.disabled = false;
-                            e.target.innerHTML = "Confirmar Informe de Actividad";
+                            e.target.innerHTML = "Confirmar Informe";
                             return;
                         }
 
-                        await returnTerritorioParcial(tid, completed, remaining, !keep, notes || 'Avance Parcial', date, photos);
+                        await returnTerritorioParcial(tid, completed, remaining, !keep, finalNotes || 'Avance Parcial', date, tPhotos);
                     } else {
                         // Full
-                        await returnTerritorio(tid, "Terminado", date, "Completado", photos);
-                        if (notes) {
-                            // Link notes as well
-                            await logReturn(tid, date, 'Completado', notes, photos);
+                        await returnTerritorio(tid, finalNotes || "Terminado", date, "Completado", tPhotos);
+                        if (finalNotes) {
+                            // Already logged in returnTerritorio, but let's be double sure if history needs specific log
+                            // await logReturn(tid, date, 'Completado', finalNotes, tPhotos);
                         }
                     }
                 }

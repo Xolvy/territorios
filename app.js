@@ -1,14 +1,14 @@
 import './modules/extensions.mjs';
-import { auth, db } from './firebase-config.js?v=3.6.9.3';
+import { auth, db } from './firebase-config.js?v=3.6.9.4';
 import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
-import { renderLogin } from './modules/login.js?v=3.6.9.3';
-import { renderAdminDashboard } from './modules/admin-dashboard.js?v=3.6.9.3';
-import { renderConductorDashboard } from './modules/conductor-dashboard.js?v=3.6.9.3';
-import { getPermisosUsuario, getSystemVersion, migrateConductoresToPublicadores } from './data/firestore-services.js?v=3.6.9.3';
-import { showNotification } from './modules/utils/helpers.js?v=3.6.9.3';
-import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js?v=3.6.9.3';
-import { initPWA } from './modules/utils/pwa-manager.js?v=3.6.9.3';
+import { renderLogin } from './modules/login.js?v=3.6.9.4';
+import { renderAdminDashboard } from './modules/admin-dashboard.js?v=3.6.9.4';
+import { renderConductorDashboard } from './modules/conductor-dashboard.js?v=3.6.9.4';
+import { getPermisosUsuario, getSystemVersion, migrateConductoresToPublicadores } from './data/firestore-services.js?v=3.6.9.4';
+import { showNotification } from './modules/utils/helpers.js?v=3.6.9.4';
+import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js?v=3.6.9.4';
+import { initPWA } from './modules/utils/pwa-manager.js?v=3.6.9.4';
 
 // Init Theme
 initTheme();
@@ -17,7 +17,7 @@ document.body.appendChild(createThemeToggle());
 // Init PWA & Notifications
 initPWA();
 
-const APP_VERSION = '3.6.9.3';
+const APP_VERSION = '3.6.9.4';
 
 // FORCE CACHE CLEAR FOR v3.2.9
 if ('serviceWorker' in navigator) {
