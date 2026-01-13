@@ -1,14 +1,14 @@
 import './modules/extensions.mjs';
-import { auth, db } from './firebase-config.js?v=3.6.9.9';
+import { auth, db } from './firebase-config.js?v=3.7';
 import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
-import { renderLogin } from './modules/login.js?v=3.6.9.9';
-import { renderAdminDashboard } from './modules/admin-dashboard.js?v=3.6.9.9';
-import { renderConductorDashboard } from './modules/conductor-dashboard.js?v=3.6.9.9';
-import { getPermisosUsuario, getSystemVersion, migrateConductoresToPublicadores } from './data/firestore-services.js?v=3.6.9.9';
-import { showNotification } from './modules/utils/helpers.js?v=3.6.9.9';
-import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js?v=3.6.9.9';
-import { initPWA } from './modules/utils/pwa-manager.js?v=3.6.9.9';
+import { renderLogin } from './modules/login.js?v=3.7';
+import { renderAdminDashboard } from './modules/admin-dashboard.js?v=3.7';
+import { renderConductorDashboard } from './modules/conductor-dashboard.js?v=3.7';
+import { getPermisosUsuario, getSystemVersion, migrateConductoresToPublicadores } from './data/firestore-services.js?v=3.7';
+import { showNotification } from './modules/utils/helpers.js?v=3.7';
+import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js?v=3.7';
+import { initPWA } from './modules/utils/pwa-manager.js?v=3.7';
 
 // Init Theme
 initTheme();
@@ -17,7 +17,7 @@ document.body.appendChild(createThemeToggle());
 // Init PWA & Notifications
 initPWA();
 
-const APP_VERSION = '3.6.9.9';
+const APP_VERSION = '3.7';
 
 // FORCE CACHE CLEAR FOR v3.2.9
 if ('serviceWorker' in navigator) {
@@ -282,7 +282,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (!path.startsWith('/conductores')) {
                         window.history.replaceState({}, '', '/conductores');
                     }
-                    navigateWithTransition(() => renderConductorDashboard(appContainer, storedName || 'Conductor', APP_VERSION));
+                    navigateWithTransition(() => renderConductorDashboard(appContainer, storedName || 'Conductor', APP_VERSION, storedRole));
                     return;
                 }
             }
@@ -342,7 +342,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (!path.startsWith('/conductores')) {
                     window.history.replaceState({}, '', '/conductores');
                 }
-                navigateWithTransition(() => renderConductorDashboard(appContainer, user.email || 'Usuario', APP_VERSION));
+                navigateWithTransition(() => renderConductorDashboard(appContainer, user.email || 'Usuario', APP_VERSION, role));
             }
         } else {
             // No user

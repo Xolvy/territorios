@@ -10,14 +10,14 @@ import {
     getCampanas, saveCampana, deleteCampana,
     getGroupsConfig, saveGroupsConfig,
     getDiffusionMessage, saveDiffusionMessage
-} from '../data/firestore-services.js?v=3.6.9.9';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=3.6.9.9';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=3.6.9.9';
-import { renderHistoryTab } from './report-s13.js?v=3.6.9.9';
-import { renderAnalyticsView } from './analytics-view.js?v=3.6.9.9';
-import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=3.6.9.9';
-import { auth } from '../firebase-config.js?v=3.6.9.9';
-import { animateEntry } from './utils/animations.js?v=3.6.9.9';
+} from '../data/firestore-services.js?v=3.7';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=3.7';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=3.7';
+import { renderHistoryTab } from './report-s13.js?v=3.7';
+import { renderAnalyticsView } from './analytics-view.js?v=3.7';
+import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=3.7';
+import { auth } from '../firebase-config.js?v=3.7';
+import { animateEntry } from './utils/animations.js?v=3.7';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }) : '';
 
@@ -3427,7 +3427,7 @@ const renderS12View = async (container, config, appVersion) => {
                 </div>
                 <div>
                     <label class="block text-xs uppercase text-gray-700 dark:text-gray-400 mb-1 font-bold">Localidad (Recomendado)</label>
-                    <input type="text" id="new-t-localidad" placeholder="Ej: Urbanización ... (Para S-12)" class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-gray-900 dark:text-white shadow-sm focus:border-teal-500 outline-none">
+                    <input type="text" id="new-t-localidad" placeholder="Ej: Urbanización ..." class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-gray-900 dark:text-white shadow-sm focus:border-teal-500 outline-none">
                 </div>
                 <div>
                     <label class="block text-xs uppercase text-gray-700 dark:text-gray-400 mb-1 font-bold">Manzanas / Sectores</label>
@@ -3538,7 +3538,7 @@ const renderS12View = async (container, config, appVersion) => {
                         </div>
                         <div class="space-y-3">
                             <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Localidad (Aparece en S-12)</label>
-                            <input type="text" id="edit-t-localidad" value="${t.localidad || ''}" placeholder="Dejar vacío para usar 'Manzanas'" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-sm font-bold focus:border-primary outline-none shadow-sm transition-all text-slate-700 dark:text-white">
+                            <input type="text" id="edit-t-localidad" value="${t.localidad || ''}" placeholder="Ej: Urbanización ..." class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-sm font-bold focus:border-primary outline-none shadow-sm transition-all text-slate-700 dark:text-white">
                         </div>
                         <div class="space-y-3">
                             <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Manzanas / Sectores</label>
@@ -6934,70 +6934,152 @@ window.exportS12Form = async (territorios, layout = 1) => {
 
     const styles = `
         <style>
-            @import url('https://fonts.googleapis.com/css2?family=Times+New+Roman&display=swap');
-            @page { size: A4; margin: 0; }
-            body { margin: 0; padding: 0; font-family: 'Times New Roman', Times, serif; }
-            .page { width: 210mm; min-height: 297mm; padding: 10mm; margin: 0 auto; background: white; box-sizing: border-box; page-break-after: always; }
+            @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&family=Inter:wght@400;700&display=swap');
             
-            .grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 5mm; height: 277mm; }
-            .grid-half { display: grid; grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; gap: 5mm; height: 277mm; }
+            @page { 
+                size: A4 ${layout === 4 ? 'landscape' : 'portrait'}; 
+                margin: 0; 
+            }
+            
+            body { 
+                margin: 0; 
+                padding: 0; 
+                font-family: 'Inter', sans-serif;
+                background: #f8fafc;
+            }
+
+            .page { 
+                width: ${layout === 4 ? '297mm' : '210mm'}; 
+                height: ${layout === 4 ? '210mm' : '297mm'}; 
+                padding: 5mm;
+                margin: 0 auto; 
+                background: white; 
+                box-sizing: border-box; 
+                page-break-after: always;
+                display: flex;
+                flex-wrap: wrap;
+                align-content: flex-start;
+                justify-content: center;
+                gap: 5mm;
+            }
             
             .s12-card { 
+                width: 148mm;
+                height: 104mm;
                 border: 0.5pt solid #000; 
-                padding: 10mm; 
+                padding: 8mm; 
                 display: flex; 
                 flex-direction: column; 
                 position: relative;
-                height: 100%;
                 box-sizing: border-box;
+                background: white;
+                overflow: hidden;
             }
             
-            .title { text-align: center; font-size: 22pt; font-weight: bold; margin-bottom: 20pt; }
-            .header-info { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 0.5pt solid #000; padding-bottom: 2pt; margin-bottom: 15pt; }
-            .label { font-size: 14pt; font-weight: bold; }
-            .field-val { font-size: 14pt; flex: 1; margin-left: 5pt; border-bottom: 0.5pt dotted #ccc; min-height: 1.2em; }
+            .title { 
+                text-align: center; 
+                font-size: 16pt; 
+                font-weight: 800; 
+                margin-bottom: 8pt; 
+                text-transform: none;
+                font-family: 'Outfit', sans-serif;
+                color: #000;
+            }
+
+            .header-info { 
+                display: flex; 
+                align-items: flex-end; 
+                gap: 4pt;
+                margin-bottom: 8pt; 
+            }
+
+            .label { 
+                font-size: 11pt; 
+                font-weight: 700;
+                white-space: nowrap;
+            }
+
+            .field-val { 
+                font-size: 11pt; 
+                border-bottom: 0.5pt solid #000; 
+                flex: 1;
+                min-height: 1.2em;
+                padding-bottom: 1pt;
+            }
+
+            .territory-num-box {
+                border: 1pt solid #000;
+                padding: 2pt 8pt;
+                font-size: 14pt;
+                font-weight: 800;
+                min-width: 40pt;
+                text-align: center;
+            }
             
             .map-container { 
                 flex: 1; 
-                border: 1pt solid #000; 
-                margin: 5pt 0; 
+                border: 0.5pt solid #000; 
+                margin: 4pt 0; 
                 display: flex; 
                 align-items: center; 
                 justify-content: center; 
                 overflow: hidden; 
-                background: #fdfdfd; 
+                background: #fff; 
+                position: relative;
             }
-            .map-container img { max-width: 100%; max-height: 100%; object-contain: contain; }
-            
-            .footer-note { font-size: 9pt; text-align: justify; line-height: 1.1; margin-top: 5pt; font-weight: bold; }
-            .footer-id { font-size: 8pt; margin-top: 10pt; display: flex; justify-content: space-between; }
 
-            /* One per page adjustments */
-            .single-layout { height: 277mm; justify-content: space-around; }
-            .single-layout .title { font-size: 30pt; }
-            .single-layout .label { font-size: 18pt; }
-            .single-layout .field-val { font-size: 18pt; }
-            .single-layout .footer-note { font-size: 11pt; margin-top: 20pt; }
+            .map-container img { 
+                width: 100%; 
+                height: 100%; 
+                object-fit: contain; 
+                display: block;
+            }
+
+            .map-placeholder {
+                font-size: 10pt;
+                color: #666;
+                text-align: center;
+                font-style: italic;
+            }
+            
+            .footer-note { 
+                font-size: 8.5pt; 
+                text-align: justify; 
+                line-height: 1.2; 
+                margin-top: 6pt; 
+                font-weight: 400;
+                color: #000;
+            }
+
+            .footer-id { 
+                font-size: 8pt; 
+                margin-top: 4pt; 
+                display: flex; 
+                justify-content: space-between;
+                font-weight: 400;
+            }
             
             @media print {
+                body { background: white; }
                 .no-print { display: none !important; }
+                .page { padding: 0; margin: 0; }
             }
         </style>
     `;
 
-    const renderCard = (t, isSingle = false) => `
-        <div class="s12-card ${isSingle ? 'single-layout' : ''}">
+    const renderCard = (t) => `
+        <div class="s12-card">
             <div class="title">Tarjeta del mapa del territorio</div>
+            
             <div class="header-info">
                 <span class="label">Localidad</span>
-                <span class="field-val">${t.localidad || t.manzanas || congregacion}</span>
-                <span class="label" style="margin-left: 10pt;">Terr. núm.</span>
-                <span class="field-val" style="width: 50pt; text-align: center; border-left: 0.5pt solid #000; border-top: 0.5pt solid #000;">${t.numero}</span>
+                <span class="field-val">${t.localidad || ''}</span>
+                <span class="label" style="margin-left: 8pt;">Terr. núm.</span>
+                <div class="territory-num-box">${t.numero}</div>
             </div>
             
             <div class="map-container">
-                <img src="${formatMapUrl(t.imagen) || ''}" onerror="this.style.display='none'">
-                ${!t.imagen ? '<div style="font-size: 10pt; color: #999;">(Pegue el mapa arriba o dibuje el territorio)</div>' : ''}
+                ${t.imagen ? `<img src="${formatMapUrl(t.imagen)}" onerror="this.parentElement.innerHTML='<div class=\"map-placeholder\">(Error al cargar mapa)</div>'">` : '<div class="map-placeholder">(Pegue el mapa arriba o dibuje el territorio)</div>'}
             </div>
 
             <div class="footer-note">
@@ -7014,41 +7096,40 @@ window.exportS12Form = async (territorios, layout = 1) => {
 
     if (layout === 1) {
         sorted.forEach(t => {
-            html += `<div class="page">${renderCard(t, true)}</div>`;
+            html += `<div class="page" style="justify-content: center; align-items: center;">${renderCard(t)}</div>`;
         });
     } else if (layout === 2) {
-        // Half layout (2 per page)
         for (let i = 0; i < sorted.length; i += 2) {
-            html += `<div class="page"><div class="grid-half">`;
-            for (let j = 0; j < 2; j++) {
-                if (sorted[i + j]) {
-                    html += renderCard(sorted[i + j]);
-                } else {
-                    html += `<div class="s12-card" style="border: 0.5pt dashed #ccc; background: #fafafa;"></div>`;
-                }
-            }
-            html += `</div></div>`;
+            html += `<div class="page" style="flex-direction: column; justify-content: center;">`;
+            html += renderCard(sorted[i]);
+            if (sorted[i + 1]) html += renderCard(sorted[i + 1]);
+            html += `</div>`;
         }
-    } else {
-        // Quad layout
+    } else if (layout === 4) {
         for (let i = 0; i < sorted.length; i += 4) {
-            html += `<div class="page"><div class="grid">`;
+            html += `<div class="page">`;
             for (let j = 0; j < 4; j++) {
-                if (sorted[i + j]) {
-                    html += renderCard(sorted[i + j]);
-                } else {
-                    html += `<div class="s12-card" style="border: 0.5pt dashed #ccc; background: #fafafa;"></div>`;
-                }
+                if (sorted[i + j]) html += renderCard(sorted[i + j]);
             }
-            html += `</div></div>`;
+            html += `</div>`;
         }
     }
 
     html += `
-        <div class="no-print" style="position: fixed; top: 20px; right: 20px; background: rgba(0,0,0,0.8); color: white; padding: 20px; border-radius: 15px; font-family: sans-serif; z-index: 9999; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
-            <p style="margin: 0 0 15px 0; font-weight: bold;">Vista de Impresión Lista</p>
-            <button onclick="window.print()" style="background: #14b8a6; border: none; color: white; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%;">Imprimir Ahora</button>
-            <p style="margin: 10px 0 0 0; font-size: 10px; opacity: 0.7;">Asegúrese de activar "Gráficos de fondo" en los ajustes de impresión.</p>
+        <div class="no-print" style="position: fixed; top: 20px; right: 20px; background: rgba(15, 23, 42, 0.95); color: white; padding: 24px; border-radius: 20px; font-family: 'Outfit', sans-serif; z-index: 9999; box-shadow: 0 20px 50px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); width: 280px;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+                <div style="width: 40px; height: 40px; background: #14b8a6; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px;">🖨️</div>
+                <div>
+                    <p style="margin: 0; font-weight: 800; font-size: 14px; text-transform: uppercase; tracking: 0.1em;">Vista de Impresión</p>
+                    <p style="margin: 0; font-size: 11px; opacity: 0.6;">S-12 Configurado</p>
+                </div>
+            </div>
+            <button onclick="window.print()" style="background: #14b8a6; border: none; color: white; padding: 12px 20px; border-radius: 12px; cursor: pointer; font-weight: 800; width: 100%; transition: all 0.3s; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; box-shadow: 0 4px 12px rgba(20, 184, 166, 0.3);">Imprimir S-12</button>
+            <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
+                <p style="margin: 0; font-size: 10px; opacity: 0.7; line-height: 1.4;">
+                    <strong>Nota:</strong> Ajuste el destino a "Guardar como PDF" o su impresora, y asegúrese de que el tamaño sea <b>A4</b> y los márgenes <b>Ninguno</b>.
+                </p>
+            </div>
         </div>
     `;
 

@@ -1,4 +1,4 @@
-import { auth } from '../firebase-config.js?v=3.6.9.9';
+import { auth } from '../firebase-config.js?v=3.7';
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import {
     getTerritorios, getConductores, getPublicadores, getTelefonos, updateTelefono,
@@ -8,10 +8,10 @@ import {
     addPublicador, updatePublicador, deletePublicador, // Added for management within dashboard
     releaseUnusedTelefonos, solicitarNumeros, updateTelefonoStatus, logSessionSummary,
     logReturn, returnTerritorio, returnTerritorioParcial, transferTerritory
-} from '../data/firestore-services.js?v=3.6.9.9';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl } from './utils/helpers.js?v=3.6.9.9';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=3.6.9.9';
-import { MapViewer } from './map-viewer.js?v=3.6.9.9';
+} from '../data/firestore-services.js?v=3.7';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl } from './utils/helpers.js?v=3.7';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=3.7';
+import { MapViewer } from './map-viewer.js?v=3.7';
 
 
 
@@ -142,7 +142,7 @@ const showCustomPrompt = (message, defaultValue, onConfirm) => {
 };
 window.showCustomPrompt = showCustomPrompt;
 
-export const renderConductorDashboard = async (container, nameOrEmail, appVersion) => {
+export const renderConductorDashboard = async (container, nameOrEmail, appVersion, userRole = null) => {
     let displayName = nameOrEmail;
     let conductorData = null;
     let config = null;
@@ -160,7 +160,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
     const hasAgenda = mods.agenda !== false && mods.dashboard !== false; // support legacy key
 
 
-    const wasProgOpen = container.querySelector('.group/prog-details')?.open;
+    const wasProgOpen = container.querySelector('.group\\/prog-details')?.open;
 
     container.innerHTML = `
         <div class="animate-fade-in pb-32 w-full max-w-7xl mx-auto p-4 md:p-8 space-y-20">
@@ -188,7 +188,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                          <p class="text-[8px] font-black text-slate-400 uppercase tracking-[0.3em] mb-0.5">Versión</p>
                          <p class="text-[10px] font-black text-slate-800 dark:text-white tabular-nums">${appVersion || '3.6.0'}</p>
                     </div>
-                    ${conductorData?.privilegios?.includes('Administrador') ? `
+                    ${(userRole === 'Administrador' || userRole === 'SuperAdmin' || conductorData?.privilegios?.includes('Administrador')) ? `
                     <button id="btn-goto-admin" class="flex-1 md:flex-none bg-amber-500/10 hover:bg-amber-500 text-amber-600 hover:text-white px-6 py-3.5 rounded-xl border border-amber-500/20 transition-all font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95">
                         <i class="fas fa-user-shield"></i> Panel Admin
                     </button>
@@ -381,9 +381,8 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                     </div>
                 </div>
 
-                <!-- Module: Mapas Interactivos -->
                 <div class="lg:col-span-2 modern-card border-indigo-500/10 dark:border-indigo-500/5 transition-all overflow-hidden !p-0" id="interactive-maps-module">
-                    <details class="group/maps" ${container.querySelector('.group/maps')?.open ? 'open' : ''}>
+                    <details class="group/maps" ${container.querySelector('.group\\/maps')?.open ? 'open' : ''}>
                         <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-8 cursor-pointer list-none select-none hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
                             <div class="flex items-start gap-6">
                                 <div class="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-2xl text-indigo-600 shadow-inner border border-indigo-500/10 group-open/maps:rotate-6 transition-transform">
