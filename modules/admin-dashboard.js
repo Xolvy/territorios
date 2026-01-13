@@ -675,7 +675,7 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
                             <i class="fas fa-user-circle"></i>
                             Vista Conductor
                         </button>
-                        <button id="logout-btn" class="flex-1 md:flex-none bg-slate-100 dark:bg-white/5 hover:bg-rose-50 dark:hover:bg-rose-500/10 text-slate-600 dark:text-slate-400 px-6 py-4 rounded-xl border border-slate-200 dark:border-white/10 transition-all font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 active:scale-95 shadow-sm">
+                        <button id="logout-btn" class="flex-1 md:flex-none bg-slate-900 dark:bg-white/5 hover:bg-rose-600 dark:hover:bg-rose-500/10 text-white dark:text-slate-300 px-6 py-4 rounded-xl border border-slate-900 dark:border-white/5 transition-all font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 active:scale-95 shadow-lg shadow-black/10">
                             <i class="fas fa-sign-out-alt"></i>
                             Cerrar Sesión
                         </button>
@@ -1412,36 +1412,41 @@ const renderAsignacionesView = async (container) => {
                     </div>
 
                     <!-- Logística -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white/50 dark:bg-black/20 p-8 rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-inner">
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="space-y-3">
-                                <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Fecha</label>
-                                <input type="date" id="asig-date" value="${todayStr}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-[11px] font-black text-primary outline-none shadow-sm">
-                            </div>
-                            <div class="space-y-3">
-                                 <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Día Salida</label>
-                                 <select id="asig-date-salida" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-[11px] font-black text-primary outline-none appearance-none cursor-pointer uppercase shadow-sm text-center">
-                                    <option value="" class="text-slate-900">Elegir...</option>
-                                    ${['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(d => {
+                    <!-- Logística: 2x2 Columnas para mejor uso de espacio -->
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 bg-white/50 dark:bg-black/20 p-6 md:p-8 rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-inner">
+                        <div class="space-y-3">
+                            <label class="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                <i class="far fa-calendar-alt text-primary/60"></i> Fecha
+                            </label>
+                            <input type="date" id="asig-date" value="${todayStr}" class="w-full bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 p-4 rounded-2xl text-[11px] font-black text-primary outline-none shadow-sm focus:border-primary transition-all">
+                        </div>
+                        <div class="space-y-3">
+                             <label class="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                <i class="far fa-clock text-primary/60"></i> Día Salida
+                             </label>
+                             <select id="asig-date-salida" class="w-full bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 p-4 rounded-2xl text-[11px] font-black text-primary outline-none appearance-none cursor-pointer uppercase shadow-sm focus:border-primary transition-all">
+                                <option value="" class="text-slate-900">Elegir...</option>
+                                ${['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(d => {
             const currentSalida = prefill?.salida || (item?.fecha_salida ? ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][new Date(item.fecha_salida).getUTCDay()] : '');
             return `<option value="${d}" ${currentSalida === d ? 'selected' : ''} class="text-slate-900">${d}</option>`;
         }).join('')}
-                                 </select>
-                            </div>
+                             </select>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="space-y-3">
-                                 <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Hora</label>
-                                 <select id="asig-hora" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-[11px] font-black text-primary outline-none appearance-none cursor-pointer uppercase shadow-sm text-center">
-                                    ${horasOptions.map(h => `<option value="${h}" ${(prefill?.hora === h || item?.hora === h || prefill?.turno === h) ? 'selected' : ''} class="text-slate-900">${h}</option>`).join('')}
-                                 </select>
-                            </div>
-                            <div class="space-y-3">
-                                 <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Lugar</label>
-                                 <select id="asig-lugar" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-[11px] font-black text-primary outline-none appearance-none cursor-pointer uppercase shadow-sm text-center">
-                                    ${lugaresOptions.map(l => `<option value="${l}" ${(prefill?.lugar === l || item?.lugar === l) ? 'selected' : ''} class="text-slate-900">${l}</option>`).join('')}
-                                 </select>
-                            </div>
+                        <div class="space-y-3">
+                             <label class="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                <i class="fas fa-hourglass-start text-primary/60"></i> Hora
+                             </label>
+                             <select id="asig-hora" class="w-full bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 p-4 rounded-2xl text-[11px] font-black text-primary outline-none appearance-none cursor-pointer uppercase shadow-sm focus:border-primary transition-all">
+                                ${horasOptions.map(h => `<option value="${h}" ${(prefill?.hora === h || item?.hora === h || prefill?.turno === h) ? 'selected' : ''} class="text-slate-900">${h}</option>`).join('')}
+                             </select>
+                        </div>
+                        <div class="space-y-3">
+                             <label class="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                <i class="fas fa-map-marker-alt text-primary/60"></i> Lugar
+                             </label>
+                             <select id="asig-lugar" class="w-full bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 p-4 rounded-2xl text-[11px] font-black text-primary outline-none appearance-none cursor-pointer uppercase shadow-sm focus:border-primary transition-all">
+                                ${lugaresOptions.map(l => `<option value="${l}" ${(prefill?.lugar === l || item?.lugar === l) ? 'selected' : ''} class="text-slate-900">${l}</option>`).join('')}
+                             </select>
                         </div>
                     </div>
                     
