@@ -1,4 +1,4 @@
-import { auth } from '../firebase-config.js?v=3.6.9.4';
+import { auth } from '../firebase-config.js?v=3.6.9.5';
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import {
     getTerritorios, getConductores, getPublicadores, getTelefonos, updateTelefono,
@@ -8,10 +8,10 @@ import {
     addPublicador, updatePublicador, deletePublicador, // Added for management within dashboard
     releaseUnusedTelefonos, solicitarNumeros, updateTelefonoStatus, logSessionSummary,
     logReturn, returnTerritorio, returnTerritorioParcial, transferTerritory
-} from '../data/firestore-services.js?v=3.6.9.4';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl } from './utils/helpers.js?v=3.6.9.4';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=3.6.9.4';
-import { MapViewer } from './map-viewer.js?v=3.6.9.4';
+} from '../data/firestore-services.js?v=3.6.9.5';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl } from './utils/helpers.js?v=3.6.9.5';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=3.6.9.5';
+import { MapViewer } from './map-viewer.js?v=3.6.9.5';
 
 
 
@@ -1010,23 +1010,31 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
 
                             ${a.attachedTerritories.length > 0 ? `
                             <div class="space-y-4 pt-2">
-                                 <!-- Consolidated Quick Look IA -->
-                                 <div class="bg-slate-950/80 p-5 rounded-[2rem] border border-white/5 shadow-inner backdrop-blur-md">
-                                    <div class="flex items-center gap-3 mb-3 border-b border-white/5 pb-2">
-                                        <div class="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse"></div>
-                                        <span class="text-[9px] font-black text-teal-400 uppercase tracking-[0.2em]">Quick Look IA</span>
-                                    </div>
-                                    <div class="space-y-3">
-                                        ${a.attachedTerritories.map(t => {
+                                 <!-- Consolidated Territory History (Collapsible) -->
+                                 <details class="group bg-slate-950/80 rounded-[2rem] border border-white/5 shadow-inner backdrop-blur-md overflow-hidden">
+                                     <summary class="flex items-center justify-between p-5 cursor-pointer list-none select-none hover:bg-white/5 transition-colors">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse"></div>
+                                            <span class="text-[9px] font-black text-teal-400 uppercase tracking-[0.2em]">Historial de territorio</span>
+                                        </div>
+                                        <i class="fas fa-chevron-down text-[10px] text-slate-500 group-open:rotate-180 transition-transform"></i>
+                                     </summary>
+                                     <div class="p-5 pt-0 space-y-4">
+                                        <div class="px-1 py-2 border-b border-white/5">
+                                            <p class="text-[8px] text-slate-500 font-black uppercase tracking-widest leading-relaxed">Consulta aquí el historial de novedades de estos territorios</p>
+                                        </div>
+                                        <div class="space-y-3">
+                                            ${a.attachedTerritories.map(t => {
             const insightId = `ai-look-${a.rawDate}-${a.turno}-${t.numero}`.replace(/\s+/g, '-');
             return `
-                                            <div class="flex items-start gap-3">
-                                                <span class="text-[9px] font-black text-white/30 mt-0.5">T-${t.numero}</span>
-                                                <p id="${insightId}" class="text-[9px] text-slate-400 italic leading-relaxed">Analizando... 🤖</p>
-                                            </div>`;
+                                                <div class="flex items-start gap-3">
+                                                    <span class="text-[9px] font-black text-white/30 mt-0.5">T-${t.numero}</span>
+                                                    <p id="${insightId}" class="text-[9px] text-slate-400 italic leading-relaxed">Analizando... 🤖</p>
+                                                </div>`;
         }).join('')}
-                                    </div>
-                                </div>
+                                        </div>
+                                     </div>
+                                 </details>
                                 
                                 <!-- Single Report Button per Turn -->
                                 <div class="flex gap-2">
