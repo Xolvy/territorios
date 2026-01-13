@@ -1,6 +1,6 @@
-import { auth } from '../firebase-config.js?v=3.6.9';
+import { auth } from '../firebase-config.js?v=3.6.9.9';
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { getPublicadores, getConfiguracion } from '../data/firestore-services.js?v=3.6.9';
+import { getPublicadores, getConfiguracion } from '../data/firestore-services.js?v=3.6.9.9';
 
 export const renderLogin = (container, appVersion) => {
     container.innerHTML = `
@@ -23,7 +23,7 @@ export const renderLogin = (container, appVersion) => {
                         <h1 class="text-h1 sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
                             Gestión de <span class="bg-clip-text text-transparent bg-gradient-to-r from-teal-600 to-teal-400">Territorios</span>
                         </h1>
-                        <p id="cong-label" class="text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400 tracking-wide uppercase">Cargando congregación...</p>
+                        <p id="cong-label" class="text-xs sm:text-sm font-black text-slate-600 dark:text-slate-300 tracking-wide uppercase">Cargando congregación...</p>
                     </div>
                 </div>
 
@@ -37,7 +37,7 @@ export const renderLogin = (container, appVersion) => {
                         </div>
                         <div class="flex-1">
                             <h3 class="text-sm sm:text-base font-bold text-slate-800 dark:text-white mb-0.5">Administrador</h3>
-                            <p class="text-[11px] sm:text-[13px] text-slate-500 dark:text-slate-400 line-clamp-1">Gestión avanzada del sistema</p>
+                            <p class="text-[11px] sm:text-[13px] text-slate-600 dark:text-slate-400 font-medium line-clamp-1">Gestión avanzada del sistema</p>
                         </div>
                         <i class="fas fa-chevron-right text-slate-300 group-hover:text-teal-500 transition-colors text-[10px] sm:text-xs"></i>
                     </button>
@@ -50,7 +50,7 @@ export const renderLogin = (container, appVersion) => {
                         </div>
                         <div class="flex-1">
                             <h3 class="text-sm sm:text-base font-bold text-slate-800 dark:text-white mb-0.5">Conductor</h3>
-                            <p class="text-[11px] sm:text-[13px] text-slate-500 dark:text-slate-400 line-clamp-1">Asignaciones y registros locales</p>
+                            <p class="text-[11px] sm:text-[13px] text-slate-600 dark:text-slate-400 font-medium line-clamp-1">Asignaciones y registros locales</p>
                         </div>
                         <i class="fas fa-chevron-right text-slate-300 group-hover:text-indigo-500 transition-colors text-[10px] sm:text-xs"></i>
                     </button>
@@ -58,10 +58,10 @@ export const renderLogin = (container, appVersion) => {
 
                 <!-- Footer Info -->
                 <div class="pt-6 sm:pt-10 space-y-2 opacity-60">
-                    <p id="app-version-label" class="text-[11px] text-slate-500 dark:text-slate-400 font-bold tracking-tighter uppercase">
+                    <p id="app-version-label" class="text-[11px] text-slate-600 dark:text-slate-400 font-black tracking-tighter uppercase">
                         Plataforma v${appVersion || '3.6.0'} · Modern 2026
                     </p>
-                    <p class="text-[10px] text-slate-400 font-medium tracking-tight">© Congregation Software Solutions · Ecuador</p>
+                    <p class="text-[10px] text-slate-500 dark:text-slate-400 font-bold tracking-tight">© Congregation Software Solutions · Ecuador</p>
                 </div>
             </div>
         </div>
@@ -138,7 +138,7 @@ const renderConductorSelection = async (container, appVersion) => {
                     <div class="flex items-center justify-between">
                         <div>
                             <h2 class="text-h2 text-slate-900 dark:text-white">Publicadores</h2>
-                            <p class="text-sm text-slate-500 font-medium">Busca tu nombre en el listado</p>
+                            <p class="text-sm text-slate-600 dark:text-slate-400 font-extrabold tracking-tight">Busca tu nombre en el listado</p>
                         </div>
                         <button id="btn-back-c" class="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 shadow-sm flex items-center justify-center text-slate-400 hover:text-primary transition-colors">
                              <i class="fas fa-times text-lg"></i>

@@ -144,7 +144,11 @@ export class TerritoryIntelligence {
 
         // Tomar hasta 15 entradas para un análisis profundo de "Novedades"
         const historyContext = history && history.length > 0
-            ? history.slice(0, 15).map(h => `${h.fecha}: ${h.estado}. Nota: ${h.notas || 'Sin notas'}`).join('\n')
+            ? history.slice(0, 20).map(h => {
+                const d = h.fecha || h.fecha_entrega || h.fecha_asignacion || '';
+                const o = h.notas || h.observaciones || 'Sin notas';
+                return `[${d}] ${h.estado}: ${o}`;
+            }).join('\n')
             : "Sin historial reciente.";
 
         const prompt = `Analiza el historial de predicación del territorio y responde: ¿Qué novedades hay sobre este territorio?

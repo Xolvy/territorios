@@ -16,7 +16,7 @@ const db = getFirestore(app);
 
 async function setVersion() {
     try {
-        const version = "3.6.8";
+        const version = "3.6.9.8";
         const ts = Date.now();
         await setDoc(doc(db, "configuracion", "version_control"), {
             latestVersion: version,

@@ -38,7 +38,7 @@ export const resetThemeToAuto = () => {
  */
 export const createThemeToggle = () => {
     const btn = document.createElement('button');
-    btn.className = "fixed top-4 right-16 z-[9999] p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 shadow-lg hover:scale-110 transition-all text-teal-400 group";
+    btn.className = "fixed top-4 right-16 z-[9999] p-3 rounded-full bg-white dark:bg-white/10 backdrop-blur-md border border-slate-200 dark:border-white/20 shadow-xl hover:scale-110 transition-all text-teal-600 dark:text-teal-400 group ring-4 ring-black/[0.02]";
     btn.title = "Cambiar Tema (Claro/Oscuro)";
 
     const updateIcon = () => {

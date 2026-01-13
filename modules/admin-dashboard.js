@@ -10,15 +10,14 @@ import {
     getCampanas, saveCampana, deleteCampana,
     getGroupsConfig, saveGroupsConfig,
     getDiffusionMessage, saveDiffusionMessage
-} from '../data/firestore-services.js?v=3.6.9';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=3.6.9';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=3.6.9';
-import { renderHistoryTab } from './report-s13.js?v=3.6.9';
-import { renderAnalyticsView } from './analytics-view.js?v=3.6.9';
-import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=3.6.9';
-import { auth } from '../firebase-config.js?v=3.6.9';
-
-import { animateEntry } from './utils/animations.js?v=3.6.9';
+} from '../data/firestore-services.js?v=3.6.9.9';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=3.6.9.9';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=3.6.9.9';
+import { renderHistoryTab } from './report-s13.js?v=3.6.9.9';
+import { renderAnalyticsView } from './analytics-view.js?v=3.6.9.9';
+import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=3.6.9.9';
+import { auth } from '../firebase-config.js?v=3.6.9.9';
+import { animateEntry } from './utils/animations.js?v=3.6.9.9';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }) : '';
 
@@ -41,7 +40,7 @@ const showCustomConfirm = (message, onConfirm) => {
             </div>
             <div>
                 <h3 class="text-h3 text-slate-900 dark:text-white">${message}</h3>
-                <p class="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-widest">Confirmación de Administrador</p>
+                <p class="text-[10px] text-slate-600 dark:text-slate-400 mt-2 font-black uppercase tracking-widest">Confirmación de Administrador</p>
             </div>
             <div class="flex gap-3 w-full mt-4">
                 <button id="confirm-cancel" class="flex-1 py-4 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-500 font-bold hover:bg-slate-200 transition-all text-xs uppercase">Cancelar</button>
@@ -113,7 +112,7 @@ style.textContent = `
         border-radius: var(--radius-md);
         color: hsl(var(--text-muted));
         font-size: 0.875rem;
-        font-weight: 600;
+        font-weight: 700;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         background: transparent;
         white-space: nowrap;
@@ -229,7 +228,7 @@ style.textContent = `
         
         .nav-item.active .nav-label {
             opacity: 1;
-            color: #3b82f6;
+            color: #ffffff;
         }
         
         .nav-item.active .nav-icon {
@@ -245,7 +244,7 @@ style.textContent = `
             height: 3px;
             transform: translateX(-50%);
             border-radius: 0 0 4px 4px;
-            background: #3b82f6;
+            background: #ffffff;
         }
 
         .admin-content-wrapper {
@@ -368,7 +367,7 @@ const showTerritorySelectionModal = (current, territorios, onSelect, containerId
             
             <div class="flex-1 p-6 space-y-6 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-black/20">
                 <div class="relative group">
-                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 group-focus-within:text-primary transition-colors">
                         <i class="fas fa-search"></i>
                     </span>
                     <input type="text" id="modal-terr-search" placeholder="Buscar por número o manzana..." class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 focus:border-primary rounded-2xl pl-12 pr-4 py-4 text-sm font-bold shadow-sm outline-none transition-all">
@@ -637,6 +636,7 @@ window.openGroupSelector = (dayIndex, turnId, btnElement) => {
 // --- Main Render (Admin) ---
 export const renderAdminDashboard = async (container, appVersion, initialTab = 'dashboard') => { // Accepted version for auto-sync
     try {
+        window.isAdminMode = true; // Flag para herramientas compartidas
         // --- AUTO UPDATE REMOTE VERSION LOGIC ---
         if (appVersion) {
             getSystemVersion().then(async (remoteVer) => {
@@ -652,8 +652,8 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
                 <!-- Dashboard Header 2026 -->
                 <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 lg:mb-10 p-5 md:p-8 glass-morphism rounded-2xl lg:rounded-[2rem] gap-6">
                     <div class="flex items-center gap-4 md:gap-5">
-                        <div class="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-primary to-secondary rounded-xl md:rounded-2xl flex items-center justify-center text-2xl md:text-3xl shadow-xl shadow-primary/20 transition-transform hover:scale-105 duration-500">
-                            <i class="fas fa-landmark text-white"></i>
+                        <div class="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-primary to-secondary rounded-xl md:rounded-2xl flex items-center justify-center text-2xl md:text-3xl shadow-xl shadow-primary/30 border border-primary/20 dark:border-white/10 transition-transform hover:scale-105 duration-500">
+                            <i class="fas fa-landmark text-white shadow-sm"></i>
                         </div>
                         <div class="space-y-0.5 md:space-y-1">
                             <h1 class="text-[18px] md:text-h2 font-black text-slate-900 dark:text-white leading-tight">Panel de Administración</h1>
@@ -662,13 +662,13 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-light opacity-75"></span>
                                    <span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
                                 </span>
-                                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Sincronizado con la nube</p>
+                                 <p class="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest">Sincronizado con la nube</p>
                             </div>
                         </div>
                     </div>
                     <div class="flex items-center gap-4 w-full md:w-auto">
                         <div class="hidden sm:flex flex-col items-end mr-4">
-                             <p class="text-[9px] font-black text-slate-500 uppercase tracking-tighter">Versión del Sistema</p>
+                             <p class="text-[9px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-tighter">Versión del Sistema</p>
                              <p class="text-[11px] font-black text-primary bg-primary/5 px-3 py-1 rounded-lg">Build ${appVersion || '3.6.0'}</p>
                         </div>
                         <button onclick="window.location.href='/conductores'" class="flex-1 md:flex-none bg-indigo-600/10 hover:bg-indigo-600 text-indigo-700 hover:text-white px-6 py-4 rounded-xl border border-indigo-500/30 transition-all font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 shadow-sm">
@@ -958,14 +958,14 @@ const renderCasaEnCasaTab = async (container) => {
         <div class="space-y-8 animate-fade-in px-2 lg:px-6">
             <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-8">
                 <div class="flex items-center gap-6">
-                    <div class="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center text-white text-2xl shadow-xl shadow-primary/20">
-                        <i class="fas fa-home"></i>
+                    <div class="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center text-white text-2xl shadow-xl shadow-primary/30 border border-primary/20 dark:border-white/10">
+                        <i class="fas fa-home shadow-sm"></i>
                     </div>
                     <div class="space-y-1">
                         <h2 class="text-h2 text-slate-900 dark:text-white">Predicación Casa en Casa</h2>
                         <div class="flex items-center gap-2">
                              <span class="w-2 h-2 rounded-full bg-accent animate-pulse"></span>
-                             <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Módulo de Territorios JW</p>
+                              <p class="text-[10px] text-slate-600 dark:text-slate-400 font-extrabold uppercase tracking-widest">Módulo de Territorios JW</p>
                         </div>
                     </div>
                 </div>
@@ -979,6 +979,10 @@ const renderCasaEnCasaTab = async (container) => {
                     <button class="sub-tab-casa group px-5 py-3 rounded-xl transition-all flex items-center gap-3 whitespace-nowrap" data-sub="programa">
                         <i class="fas fa-calendar-alt text-sm"></i>
                         <span class="text-[11px] font-bold uppercase tracking-wider">Programa</span>
+                    </button>
+                    <button class="sub-tab-casa group px-5 py-3 rounded-xl transition-all flex items-center gap-3 whitespace-nowrap" data-sub="s12">
+                        <i class="fas fa-map text-sm"></i>
+                        <span class="text-[11px] font-bold uppercase tracking-wider">S-12</span>
                     </button>
                     <button class="sub-tab-casa group px-5 py-3 rounded-xl transition-all flex items-center gap-3 whitespace-nowrap" data-sub="gestion">
                         <i class="fas fa-history text-sm"></i>
@@ -1025,7 +1029,7 @@ const renderCasaEnCasaTab = async (container) => {
             const isActive = btn.dataset.sub === sub;
             btn.classList.toggle('active', isActive);
             if (!isActive) {
-                btn.className = "sub-tab-casa group px-5 py-3 rounded-xl text-slate-500 hover:text-primary dark:text-slate-400 dark:hover:text-primary-light hover:bg-white/80 dark:hover:bg-white/5 transition-all flex items-center gap-3 font-bold";
+                btn.className = "sub-tab-casa group px-5 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary-light hover:bg-white dark:hover:bg-white/5 transition-all flex items-center gap-3 font-extrabold border border-transparent hover:border-slate-200 dark:hover:border-white/10 shadow-sm";
             }
         });
 
@@ -1034,6 +1038,7 @@ const renderCasaEnCasaTab = async (container) => {
             const views = {
                 'asignaciones': renderAsignacionesView,
                 'programa': renderProgramaTab,
+                's12': renderS12View,
                 'gestion': renderS13CommandCenter,
                 'recursos': renderRecursosTab
             };
@@ -1133,7 +1138,7 @@ const renderRecursosTab = async (container) => {
                 <div class="flex-1 overflow-y-auto custom-scrollbar p-10 space-y-8 bg-slate-50 dark:bg-black/20">
                     <div class="space-y-6">
                         <div class="space-y-3">
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Título de la Ayuda</label>
+                            <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Título de la Ayuda</label>
                             <input type="text" id="rec-title" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all uppercase shadow-inner" placeholder="Ej: Video: ¿Por qué estudiar la Biblia?">
                         </div>
                         <div class="space-y-3">
@@ -1345,7 +1350,7 @@ const renderAsignacionesView = async (container) => {
                 <div class="flex-1 p-8 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-black/20 space-y-8">
                     <!-- Territorios -->
                     <div class="space-y-4">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                        <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
                              <i class="fas fa-map-marked-alt text-primary"></i> Territorios Seleccionados
                         </label>
                         ${editId ? `
@@ -1378,7 +1383,7 @@ const renderAsignacionesView = async (container) => {
                     <div class="space-y-6">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="space-y-3">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Conductor Principal</label>
+                                <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Conductor Principal</label>
                                 <select id="asig-cond" class="w-full p-5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-[11px] font-black text-slate-700 dark:text-white hover:border-primary transition-all appearance-none cursor-pointer uppercase shadow-sm">
                                     <option value="" disabled ${(!item && !prefill?.cond) ? 'selected' : ''}>Elegir conductor...</option>
                                     ${activeConductors.map(c => `<option value="${c.nombre}" ${(prefill?.cond ? prefill.cond === c.nombre : item?.asignado_a === c.nombre) ? 'selected' : ''} class="text-slate-900">${c.nombre}</option>`).join('')}
@@ -1401,9 +1406,9 @@ const renderAsignacionesView = async (container) => {
                                 </select>
                             </div>
                             <div class="space-y-3">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Campaña Especial</label>
+                                <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Campaña Especial</label>
                                 <input type="text" id="asig-campana" value="${prefill?.campana || item?.campana || ''}" list="campanas-list" placeholder="Opcional..." 
-                                    class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[11px] font-black text-slate-700 dark:text-white outline-none focus:border-red-400 transition-all placeholder-slate-400 uppercase shadow-sm">
+                                    class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[11px] font-black text-slate-700 dark:text-white outline-none focus:border-red-400 transition-all placeholder-slate-500 uppercase shadow-sm">
                                 <datalist id="campanas-list">
                                     ${[...new Set(allHistory.map(h => h.campana).filter(Boolean))].map(c => `<option value="${c}">`).join('')}
                                 </datalist>
@@ -2554,7 +2559,7 @@ const renderAsignacionesView = async (container) => {
 
             return `
                             <div class="relative group">
-                                <button onclick="window.showTerritoryHistoryAdmin('${t.id}', '${t.numero}')" class="w-full aspect-[4/5] flex flex-col items-center justify-center rounded-[2rem] bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-3 hover:border-primary transition-all duration-500 shadow-sm hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 overflow-hidden relative group">
+                                <button onclick="window.showUnifiedTerritoryHistory('${t.id}', '${t.numero}')" class="w-full aspect-[4/5] flex flex-col items-center justify-center rounded-[2rem] bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-3 hover:border-primary transition-all duration-500 shadow-sm hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 overflow-hidden relative group">
                                     <div class="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                     
                                     ${isAssigned ? `<div class="absolute top-3 right-3 w-2 h-2 rounded-full bg-primary ring-4 ring-primary/10 shadow-sm animate-pulse"></div>` : ''}
@@ -2973,7 +2978,8 @@ const renderAsignacionesView = async (container) => {
 
                         showNotification("Registro de historial guardado exitosamente", "success");
                         modal.classList.add('hidden');
-                        window.showTerritoryHistoryAdmin(territoryId, territoryNum);
+                        if (window.showUnifiedTerritoryHistory) window.showUnifiedTerritoryHistory(territoryId, territoryNum);
+                        else window.showTerritoryHistoryAdmin(territoryId, territoryNum);
                     } catch (e) {
                         showNotification(e.message, "error");
                         btn.disabled = false;
@@ -2989,7 +2995,8 @@ const renderAsignacionesView = async (container) => {
             showCustomConfirm("¿Seguro que quieres eliminar este registro del historial?", async () => {
                 await deleteHistoryRecord(recId);
                 showNotification("Registro eliminado");
-                window.showTerritoryHistoryAdmin(territoryId, territoryNum);
+                if (window.showUnifiedTerritoryHistory) window.showUnifiedTerritoryHistory(territoryId, territoryNum);
+                else window.showTerritoryHistoryAdmin(territoryId, territoryNum);
             });
         };
 
@@ -3176,7 +3183,7 @@ const renderAsignacionesView = async (container) => {
                             </div>
                             
                             <div class="flex flex-col items-end">
-                                <span class="text-[9px] font-black uppercase tracking-widest ${isAssigned ? 'text-primary' : 'text-emerald-500'} mb-1 opacity-60">${isAssigned ? 'ASIGNADO' : 'LIBRE'}</span>
+                                <span class="text-[9px] font-black uppercase tracking-widest ${isAssigned ? 'text-primary' : 'text-emerald-500'} mb-1 opacity-90">${isAssigned ? 'ASIGNADO' : 'LIBRE'}</span>
                                 ${isSelected ? '<span class="text-xl text-primary animate-bounce-in"><i class="fas fa-check-circle"></i></span>' : ''}
                             </div>
                         </div>
@@ -3184,19 +3191,19 @@ const renderAsignacionesView = async (container) => {
                         <!-- Info Content -->
                         <div class="z-10 mt-3">
                              ${isAssigned ? `
-                                <p class="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1.5 opacity-60">Responsable</p>
+                                <p class="text-[9px] text-slate-600 dark:text-slate-400 font-extrabold uppercase tracking-widest mb-1.5">Responsable</p>
                                 <p class="text-base font-black text-slate-800 dark:text-white leading-tight line-clamp-2 uppercase tracking-tight">${item.asignado_a}</p>
                                 ${item.fecha_salida ? `
                                     <div class="mt-3 flex items-center gap-2">
                                         <div class="px-3 py-1 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-100 dark:border-white/10 flex items-center gap-2">
                                             <i class="far fa-calendar-alt text-[10px] text-primary/60"></i>
-                                            <span class="text-[10px] font-black text-slate-500 uppercase">${new Date(item.fecha_salida).toLocaleDateString("es-ES", { weekday: 'short', day: '2-digit', month: 'short' })}</span>
+                                            <span class="text-[10px] font-black text-slate-600 dark:text-slate-300 uppercase">${new Date(item.fecha_salida).toLocaleDateString("es-ES", { weekday: 'short', day: '2-digit', month: 'short' })}</span>
                                         </div>
                                     </div>
                                 ` : ''}
                              ` : `
                                 <div class="h-full flex flex-col justify-end opacity-40">
-                                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Disponible para asignar</p>
+                                    <p class="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest italic opacity-80">Disponible para asignar</p>
                                 </div>
                              `}
                         </div>
@@ -3205,9 +3212,6 @@ const renderAsignacionesView = async (container) => {
                         <div class="absolute bottom-6 right-6 z-20 opacity-0 group-hover/card:opacity-100 transition-all translate-y-2 group-hover/card:translate-y-0 flex gap-2">
                              <button onclick="event.stopPropagation(); window.viewMapFromAdmin('${item.id}')" class="w-10 h-10 bg-primary text-white rounded-xl shadow-xl shadow-primary/20 hover:scale-110 transition-transform flex items-center justify-center" title="Ver Mapa">
                                 <i class="fas fa-map-marked-alt text-xs"></i>
-                             </button>
-                             <button onclick="event.stopPropagation(); window.showTerritoryHistoryAdmin('${item.id}', '${num}')" class="w-10 h-10 bg-white dark:bg-[#222] text-amber-500 rounded-xl shadow-lg border border-slate-100 dark:border-white/10 hover:scale-110 transition-transform flex items-center justify-center" title="Ver Historial">
-                                <i class="fas fa-history text-xs"></i>
                              </button>
                              ${isAssigned ? `
                                 <button onclick="event.stopPropagation(); window.actionTransfer('${item.id}', '${num}', '${item.asignado_a}')" class="w-10 h-10 bg-white dark:bg-[#222] text-slate-600 dark:text-white rounded-xl shadow-lg border border-slate-100 dark:border-white/10 hover:scale-110 transition-transform flex items-center justify-center" title="Transferir">
@@ -3237,7 +3241,7 @@ const renderConfigTab = async (container, initialSub = 'reglas', appVersion) => 
             <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6 p-2">
                 <div>
                     <h2 class="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Configuración del Sistema</h2>
-                    <p class="text-[10px] text-slate-500 dark:text-slate-400 font-black uppercase tracking-[0.3em] mt-1 ml-1">Ajustes globales y gestión técnica</p>
+                    <p class="text-[10px] text-slate-600 dark:text-slate-400 font-extrabold uppercase tracking-[0.3em] mt-1 ml-1">Ajustes globales y gestión técnica</p>
                 </div>
                 <div class="px-4 py-2 bg-slate-100 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 text-[10px] font-black text-slate-400 uppercase tracking-widest">
                     v${appVersion}
@@ -3250,9 +3254,9 @@ const renderConfigTab = async (container, initialSub = 'reglas', appVersion) => 
                     <i class="fas fa-ruler"></i>
                     <span class="text-[10px] md:text-[11px] font-bold uppercase tracking-wider">Reglas</span>
                 </button>
-                <button class="conf-nav-btn group px-4 md:px-5 py-3 rounded-xl transition-all flex items-center gap-3" data-sub="territorios">
+                <button class="conf-nav-btn group px-4 md:px-5 py-3 rounded-xl transition-all flex items-center gap-3" data-sub="s12">
                     <i class="fas fa-map"></i>
-                    <span class="text-[10px] md:text-[11px] font-bold uppercase tracking-wider">Territorios</span>
+                    <span class="text-[10px] md:text-[11px] font-bold uppercase tracking-wider">S-12</span>
                 </button>
                 <button class="conf-nav-btn group px-4 md:px-5 py-3 rounded-xl transition-all flex items-center gap-3" data-sub="personal">
                     <i class="fas fa-users"></i>
@@ -3307,6 +3311,311 @@ const renderConfigTab = async (container, initialSub = 'reglas', appVersion) => 
 
     btns.forEach(b => b.onclick = () => load(b.dataset.sub));
     load(initialSub);
+};
+
+const renderS12View = async (container, config, appVersion) => {
+    const territorios = await getTerritorios();
+
+    container.innerHTML = `
+        <div class="space-y-8 p-2 animate-fade-in">
+            <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
+                <div>
+                    <h3 class="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Registro Maestro S-12</h3>
+                    <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] mt-1 ml-1">Configuración técnica de mapas y sectores</p>
+                </div>
+                
+                <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                    <button id="btn-export-s12-single" class="bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-slate-200 dark:border-white/10 hover:bg-slate-50 transition-all flex items-center gap-2">
+                        <i class="fas fa-file-pdf"></i> S-12 (1 p/h)
+                    </button>
+                    <button id="btn-export-s12-half" class="bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-slate-200 dark:border-white/10 hover:bg-slate-50 transition-all flex items-center gap-2">
+                        <i class="fas fa-columns"></i> S-12 (2 p/h)
+                    </button>
+                    <button id="btn-export-s12-quad" class="bg-white dark:bg-white/5 text-slate-700 dark:text-slate-300 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-slate-200 dark:border-white/10 hover:bg-slate-50 transition-all flex items-center gap-2">
+                        <i class="fas fa-th-large"></i> S-12 (4 p/h)
+                    </button>
+                    <button id="btn-add-territorio" class="bg-primary hover:bg-primary-light text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 transition-all flex items-center gap-2">
+                        <i class="fas fa-plus"></i> Nuevo Territorio
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex flex-col md:flex-row justify-between items-center gap-6 bg-white/40 dark:bg-black/20 backdrop-blur-xl p-6 rounded-[2rem] border border-slate-100 dark:border-white/5 shadow-lg">
+                 <div class="flex items-center gap-5">
+                    <div class="flex flex-col">
+                        <h2 class="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] mb-1">Buscador</h2>
+                        <div id="s12-stats" class="text-[11px] font-black text-primary flex items-center gap-3"></div>
+                    </div>
+                 </div>
+                 
+                 <div class="relative w-full md:w-80 group">
+                     <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500">
+                        <i class="fas fa-search text-xs"></i>
+                     </span>
+                     <input type="text" id="search-s12" placeholder="Filtrar por número..." class="w-full pl-12 pr-5 py-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all">
+                 </div>
+            </div>
+
+            <div id="s12-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                <!-- Grid dinámico -->
+            </div>
+        </div>
+    `;
+
+    const renderGrid = (query = '') => {
+        const grid = document.getElementById('s12-grid');
+        const stats = document.getElementById('s12-stats');
+
+        const filtered = territorios
+            .filter(t => t.numero.toString().includes(query))
+            .sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true, sensitivity: 'base' }));
+
+        stats.innerHTML = `<span class="opacity-60">${filtered.length} territorios encontrados</span>`;
+
+        grid.innerHTML = filtered.map(t => `
+            <div class="bg-white dark:bg-[#151515] rounded-[2.5rem] p-6 border border-slate-100 dark:border-white/5 relative group shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden flex flex-col h-full">
+                <div class="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+                
+                <!-- Mini Actions Overlay -->
+                <div class="absolute top-4 right-4 flex gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 lg:translate-x-4 lg:group-hover:translate-x-0 transition-all z-20">
+                     <button class="w-10 h-10 bg-white dark:bg-[#222] text-amber-500 rounded-xl shadow-lg border border-slate-100 dark:border-white/10 hover:scale-110 transition-transform flex items-center justify-center active:scale-95" onclick="window.showUnifiedTerritoryHistory('${t.id}', '${t.numero}')" title="Ver Historial">
+                        <i class="fas fa-history text-xs"></i>
+                     </button>
+                     <button class="w-10 h-10 bg-white dark:bg-[#222] text-blue-500 rounded-xl shadow-lg border border-slate-100 dark:border-white/10 hover:scale-110 transition-transform flex items-center justify-center active:scale-95" onclick="window.editTerritorio('${t.id}')" title="Editar">
+                        <i class="fas fa-edit text-xs"></i>
+                     </button>
+                    <button class="w-10 h-10 bg-white dark:bg-[#222] text-rose-500 rounded-xl shadow-lg border border-slate-100 dark:border-white/10 hover:scale-110 transition-transform flex items-center justify-center active:scale-95" onclick="window.deleteTerritorio('${t.id}')" title="Eliminar">
+                        <i class="fas fa-trash-alt text-xs"></i>
+                    </button>
+                </div>
+
+                <!-- Map Preview -->
+                <div class="h-44 bg-slate-50 dark:bg-black/40 rounded-[2rem] mb-6 overflow-hidden border border-slate-100 dark:border-white/5 flex items-center justify-center relative shadow-inner group-hover:shadow-none transition-shadow">
+                    <img src="${formatMapUrl(t.imagen) || 'https://via.placeholder.com/300x200?text=No+Map'}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+                </div>
+
+                <!-- Content Info -->
+                <div class="relative z-10 flex-1 flex flex-col">
+                    <div class="flex items-center gap-3 mb-2">
+                        <span class="bg-primary/10 text-primary text-[10px] font-black px-3 py-1 rounded-lg uppercase tracking-widest shadow-inner">#${t.numero}</span>
+                        <h4 class="font-black text-slate-800 dark:text-white uppercase tracking-tight text-lg">Territorio ${t.numero}</h4>
+                    </div>
+                    <div class="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-black tracking-[0.1em] mt-auto border-l-2 border-slate-200 dark:border-white/10 pl-3 py-1 space-y-0.5">
+                        <div class="truncate">${t.localidad ? `<span class="text-primary/70 mr-1">LOC:</span> ${t.localidad}` : (t.manzanas || 'Sin sectores definidos')}</div>
+                        ${t.localidad ? `<div class="truncate opacity-50 text-[8px]">${t.manzanas || ''}</div>` : ''}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    };
+
+    renderGrid();
+
+    document.getElementById('search-s12').oninput = (e) => renderGrid(e.target.value);
+
+    document.getElementById('btn-export-s12-single').onclick = () => window.exportS12Form(territorios, 1);
+    document.getElementById('btn-export-s12-half').onclick = () => window.exportS12Form(territorios, 2);
+    document.getElementById('btn-export-s12-quad').onclick = () => window.exportS12Form(territorios, 4);
+
+    document.getElementById('btn-add-territorio').addEventListener('click', () => {
+        showModal(`
+            <h3 class="text-xl font-bold mb-4 text-teal-600 dark:text-teal-400"> Nuevo Territorio</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs uppercase text-gray-700 dark:text-gray-400 mb-1 font-bold">Número</label>
+                    <input type="text" id="new-t-num" placeholder="Ej: 101" class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-gray-900 dark:text-white shadow-sm focus:border-teal-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs uppercase text-gray-700 dark:text-gray-400 mb-1 font-bold">Localidad (Recomendado)</label>
+                    <input type="text" id="new-t-localidad" placeholder="Ej: Urbanización ... (Para S-12)" class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-gray-900 dark:text-white shadow-sm focus:border-teal-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs uppercase text-gray-700 dark:text-gray-400 mb-1 font-bold">Manzanas / Sectores</label>
+                    <input type="text" id="new-t-manzanas" placeholder="Ej: Mz. 1, Mz. 2" class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-gray-900 dark:text-white shadow-sm focus:border-teal-500 outline-none">
+                </div>
+                
+                <div>
+                    <label class="block text-xs uppercase text-gray-500 dark:text-gray-400 mb-1">Imagen del Mapa</label>
+                    <div class="flex items-center gap-4">
+                        <label class="cursor-pointer bg-teal-600 hover:bg-teal-500 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors">
+                            <span>📂 Subir Imagen</span>
+                            <input type="file" id="new-t-file" accept="image/png, image/jpeg, image/webp" class="hidden">
+                        </label>
+                        <span id="file-name-new" class="text-xs text-gray-500 italic truncate max-w-[150px]">Sin archivo</span>
+                    </div>
+                    <input type="hidden" id="new-t-base64">
+                    <div id="preview-new-container" class="mt-2 hidden">
+                        <img id="preview-new" class="h-32 w-auto max-w-full rounded border border-gray-200 dark:border-white/20 object-contain mx-auto bg-white dark:bg-black">
+                    </div>
+                </div>
+            </div>
+            <button id="save-new-territorio" class="w-full bg-teal-600 py-3 rounded-lg text-white font-bold mt-6 shadow-lg shadow-teal-500/20 hover:scale-[1.02] transition-all">
+                Guardar Territorio
+            </button>
+        `, async (modal) => {
+            const fileInput = document.getElementById('new-t-file');
+            const nameDisplay = document.getElementById('file-name-new');
+            const previewContainer = document.getElementById('preview-new-container');
+            const previewImg = document.getElementById('preview-new');
+            const base64Input = document.getElementById('new-t-base64');
+
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    if (file.size > 800 * 1024) {
+                        showNotification("La imagen es muy grande. Máx 800KB.", "warning");
+                        fileInput.value = '';
+                        return;
+                    }
+                    nameDisplay.textContent = file.name;
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        base64Input.value = ev.target.result;
+                        previewImg.src = ev.target.result;
+                        previewContainer.classList.remove('hidden');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            document.getElementById('save-new-territorio').addEventListener('click', async () => {
+                const num = document.getElementById('new-t-num').value;
+                const img = base64Input.value;
+                if (!num) return showNotification("El número es obligatorio", "error");
+
+                const btn = document.getElementById('save-new-territorio');
+                btn.textContent = "Guardando..."; btn.disabled = true;
+
+                try {
+                    await addTerritorio({
+                        numero: num,
+                        localidad: document.getElementById('new-t-localidad').value.trim(),
+                        manzanas: document.getElementById('new-t-manzanas').value,
+                        imagen: img
+                    });
+                    modal.classList.add('hidden');
+                    renderS12View(container, config, appVersion);
+                    showNotification("Territorio creado exitosamente");
+                } catch (err) {
+                    console.error(err);
+                    showNotification("Error al guardar", "error");
+                    btn.textContent = "Guardar Territorio"; btn.disabled = false;
+                }
+            });
+        });
+    });
+
+    window.deleteTerritorio = async (id) => {
+        showCustomConfirm('¿Eliminar esté territorio?', async () => {
+            await deleteTerritorio(id);
+            renderS12View(container, config, appVersion);
+        });
+    };
+
+    window.editTerritorio = async (id) => {
+        const t = territorios.find(x => x.id === id);
+        if (!t) return;
+
+        showModal(`
+            <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden">
+                <header class="shrink-0 bg-primary p-8 text-white relative overflow-hidden">
+                    <div class="absolute inset-0 bg-white/10 backdrop-blur-3xl"></div>
+                    <div class="relative z-10 flex items-center gap-6">
+                        <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center text-3xl shadow-2xl border border-white/30">
+                            <i class="fas fa-map-marked-alt"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-black uppercase tracking-tight leading-none mb-1">Editar Territorio</h3>
+                            <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Identificador #${t.numero}</p>
+                        </div>
+                    </div>
+                </header>
+                <div class="flex-1 p-8 space-y-8 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-black/20">
+                    <div class="space-y-6">
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Número de Territorio</label>
+                            <input type="text" id="edit-t-num" value="${t.numero}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-sm font-bold focus:border-primary outline-none shadow-sm transition-all text-slate-700 dark:text-white">
+                        </div>
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Localidad (Aparece en S-12)</label>
+                            <input type="text" id="edit-t-localidad" value="${t.localidad || ''}" placeholder="Dejar vacío para usar 'Manzanas'" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-sm font-bold focus:border-primary outline-none shadow-sm transition-all text-slate-700 dark:text-white">
+                        </div>
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Manzanas / Sectores</label>
+                            <input type="text" id="edit-t-manzanas" value="${t.manzanas || ''}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-sm font-bold focus:border-primary outline-none shadow-sm transition-all text-slate-700 dark:text-white">
+                        </div>
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Imagen del Mapa</label>
+                            <div class="bg-white dark:bg-white/5 p-6 rounded-3xl border border-dashed border-slate-200 dark:border-white/10">
+                                <div class="flex items-center gap-6">
+                                    <label class="cursor-pointer bg-primary hover:bg-primary-light text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-primary/20 flex items-center gap-3">
+                                        <i class="fas fa-camera"></i> <span>Actualizar</span>
+                                        <input type="file" id="edit-t-file" accept="image/*" class="hidden">
+                                    </label>
+                                    <div class="flex flex-col min-w-0">
+                                        <span id="file-name-edit" class="text-[10px] text-slate-500 font-black uppercase truncate">Mantener actual</span>
+                                    </div>
+                                </div>
+                                <input type="hidden" id="edit-t-base64" value="${t.imagen || ''}">
+                                <div id="preview-edit-container" class="mt-6 ${t.imagen ? '' : 'hidden'}">
+                                     <div class="relative rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 bg-white dark:bg-black/40">
+                                         <img id="preview-edit" src="${t.imagen || ''}" class="w-full h-auto max-h-48 object-contain mx-auto">
+                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="shrink-0 p-6 bg-white dark:bg-black/40 border-t border-slate-100 dark:border-white/5">
+                    <button id="update-territorio" class="w-full bg-primary py-5 rounded-2xl text-white text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 transition-all">
+                        Confirmar Cambios
+                    </button>
+                </div>
+            </div>
+        `, async (modal) => {
+            const fileInput = modal.querySelector('#edit-t-file');
+            const nameDisplay = modal.querySelector('#file-name-edit');
+            const previewContainer = modal.querySelector('#preview-edit-container');
+            const previewImg = modal.querySelector('#preview-edit');
+            const base64Input = modal.querySelector('#edit-t-base64');
+            const updateBtn = modal.querySelector('#update-territorio');
+
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    if (file.size > 800 * 1024) return showNotification("La imagen es muy grande. Máx 800KB.", "warning");
+                    nameDisplay.textContent = file.name;
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        base64Input.value = ev.target.result;
+                        previewImg.src = ev.target.result;
+                        previewContainer.classList.remove('hidden');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            updateBtn.onclick = async () => {
+                updateBtn.disabled = true;
+                updateBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Actualizando...';
+                try {
+                    await updateTerritorio(id, {
+                        numero: modal.querySelector('#edit-t-num').value.trim(),
+                        localidad: modal.querySelector('#edit-t-localidad').value.trim(),
+                        manzanas: modal.querySelector('#edit-t-manzanas').value.trim(),
+                        imagen: base64Input.value
+                    });
+                    modal.classList.add('hidden');
+                    renderS12View(container, config, appVersion);
+                    showNotification("Territorio actualizado correctamente", "success");
+                } catch (err) {
+                    console.error(err);
+                    showNotification("Error al actualizar territorio", "error");
+                    updateBtn.disabled = false; updateBtn.innerText = "Confirmar Cambios";
+                }
+            };
+        });
+    };
 };
 
 const loadSubTab = async (subTab, container, config, appVersion) => {
@@ -4143,269 +4452,8 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
             }
         });
 
-    } else if (subTab === 'territorios') {
-        const territorios = await getTerritorios();
-        territorios.sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true, sensitivity: 'base' }));
-        container.innerHTML = `
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-6 p-2">
-                <div>
-                    <h3 class="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Gestión de Territorios</h3>
-                    <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] mt-1 ml-1">Configuración técnica de mapas y sectores</p>
-                </div>
-                <button id="btn-add-territorio" class="w-full sm:w-auto bg-primary hover:bg-primary-light text-white px-8 py-4 rounded-[1.5rem] text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-3">
-                    <i class="fas fa-map-marked-alt"></i> Agregar Territorio
-                </button>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 p-2">
-                ${territorios.map(t => `
-                    <div class="bg-white dark:bg-[#151515] rounded-[2.5rem] p-6 border border-slate-100 dark:border-white/5 relative group shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden flex flex-col h-full">
-                        <div class="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
-                        
-                        <!-- Mini Actions Overlay (Visible on Mobile, Hover on Desktop) -->
-                        <div class="absolute top-4 right-4 flex gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 lg:translate-x-4 lg:group-hover:translate-x-0 transition-all z-20">
-                             <button class="w-10 h-10 bg-white dark:bg-[#222] text-amber-500 rounded-xl shadow-lg border border-slate-100 dark:border-white/10 hover:scale-110 transition-transform flex items-center justify-center active:scale-95" onclick="window.showTerritoryHistoryAdmin('${t.id}', '${t.numero}')" title="Ver Historial">
-                                <i class="fas fa-history text-xs"></i>
-                             </button>
-                             <button class="w-10 h-10 bg-white dark:bg-[#222] text-blue-500 rounded-xl shadow-lg border border-slate-100 dark:border-white/10 hover:scale-110 transition-transform flex items-center justify-center active:scale-95" onclick="window.editTerritorio('${t.id}')" title="Editar">
-                                <i class="fas fa-edit text-xs"></i>
-                             </button>
-                            <button class="w-10 h-10 bg-white dark:bg-[#222] text-rose-500 rounded-xl shadow-lg border border-slate-100 dark:border-white/10 hover:scale-110 transition-transform flex items-center justify-center active:scale-95" onclick="window.deleteTerritorio('${t.id}')" title="Eliminar">
-                                <i class="fas fa-trash-alt text-xs"></i>
-                            </button>
-                        </div>
-
-                        <!-- Map Preview -->
-                        <div class="h-44 bg-slate-50 dark:bg-black/40 rounded-[2rem] mb-6 overflow-hidden border border-slate-100 dark:border-white/5 flex items-center justify-center relative shadow-inner group-hover:shadow-none transition-shadow">
-                            <img src="${formatMapUrl(t.imagen) || 'https://via.placeholder.com/300x200?text=No+Map'}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
-                            <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        </div>
-
-                        <!-- Content Info -->
-                        <div class="relative z-10 flex-1 flex flex-col">
-                            <div class="flex items-center gap-3 mb-2">
-                                <span class="bg-primary/10 text-primary text-[10px] font-black px-3 py-1 rounded-lg uppercase tracking-widest shadow-inner">#${t.numero}</span>
-                                <h4 class="font-black text-slate-800 dark:text-white uppercase tracking-tight text-lg line-clamp-1">Territorio ${t.numero}</h4>
-                            </div>
-                            <div class="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-black tracking-[0.1em] mt-auto leading-relaxed border-l-2 border-slate-200 dark:border-white/10 pl-3 py-1" title="${t.manzanas || ''}">
-                                ${t.manzanas ? t.manzanas : 'Sin descripción de sectores'}
-                            </div>
-                        </div>
-
-                        <!-- Decoration -->
-                        <div class="absolute -right-10 -bottom-10 w-32 h-32 bg-primary/5 blur-[40px] rounded-full pointer-events-none group-hover:bg-primary/10 transition-all duration-700"></div>
-                    </div>
-                `).join('')}
-            </div>
-`;
-
-        document.getElementById('btn-add-territorio').addEventListener('click', () => {
-            showModal(`
-    <h3 class="text-xl font-bold mb-4 text-teal-600 dark:text-teal-400"> Nuevo Territorio</h3>
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-xs uppercase text-gray-700 dark:text-gray-400 mb-1 font-bold">Número</label>
-                        <input type="text" id="new-t-num" placeholder="Ej: 101" class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-gray-900 dark:text-white shadow-sm focus:border-teal-500 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs uppercase text-gray-700 dark:text-gray-400 mb-1 font-bold">Manzanas</label>
-                        <input type="text" id="new-t-manzanas" placeholder="Ej: Mz. 1, Mz. 2" class="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 text-gray-900 dark:text-white shadow-sm focus:border-teal-500 outline-none">
-                    </div>
-                    
-                    <div>
-                        <label class="block text-xs uppercase text-gray-500 dark:text-gray-400 mb-1">Imagen del Mapa</label>
-                        <div class="flex items-center gap-4">
-                            <label class="cursor-pointer bg-teal-600 hover:bg-teal-500 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors">
-                                <span>📂 Subir Imagen</span>
-                                <input type="file" id="new-t-file" accept="image/png, image/jpeg, image/webp" class="hidden">
-                            </label>
-                            <span id="file-name-new" class="text-xs text-gray-500 italic truncate max-w-[150px]">Sin archivo</span>
-                        </div>
-                        <input type="hidden" id="new-t-base64">
-                        <div id="preview-new-container" class="mt-2 hidden">
-                            <img id="preview-new" class="h-32 w-auto max-w-full rounded border border-gray-200 dark:border-white/20 object-contain mx-auto bg-white dark:bg-black">
-                        </div>
-                    </div>
-                </div>
-                <button id="save-new-territorio" class="w-full bg-teal-600 py-3 rounded-lg text-white font-bold mt-6 shadow-lg shadow-teal-500/20 hover:scale-[1.02] transition-all">
-                    Guardar Territorio
-                </button>
-`, async (modal) => {
-                // File Handler
-                const fileInput = document.getElementById('new-t-file');
-                const nameDisplay = document.getElementById('file-name-new');
-                const previewContainer = document.getElementById('preview-new-container');
-                const previewImg = document.getElementById('preview-new');
-                const base64Input = document.getElementById('new-t-base64');
-
-                fileInput.addEventListener('change', (e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                        if (file.size > 800 * 1024) { // 800KB limit
-                            showNotification("La imagen es muy grande. Máx 800KB.", "warning");
-                            fileInput.value = '';
-                            return;
-                        }
-                        nameDisplay.textContent = file.name;
-                        const reader = new FileReader();
-                        reader.onload = (ev) => {
-                            const result = ev.target.result;
-                            base64Input.value = result;
-                            previewImg.src = result;
-                            previewContainer.classList.remove('hidden');
-                        };
-                        reader.readAsDataURL(file);
-                    }
-                });
-
-                // Save Logic
-                document.getElementById('save-new-territorio').addEventListener('click', async () => {
-                    const num = document.getElementById('new-t-num').value;
-                    const img = base64Input.value;
-
-                    if (!num) return showNotification("El número es obligatorio", "error");
-
-                    const btn = document.getElementById('save-new-territorio');
-                    btn.textContent = "Guardando...";
-                    btn.disabled = true;
-
-                    try {
-                        await addTerritorio({
-                            numero: num,
-                            manzanas: document.getElementById('new-t-manzanas').value,
-                            imagen: img // Saves Base64 directly
-                        });
-                        modal.classList.add('hidden');
-                        loadSubTab('territorios', container, config);
-                        showNotification("Territorio creado exitosamente");
-                    } catch (err) {
-                        console.error(err);
-                        showNotification("Error al guardar", "error");
-                        btn.textContent = "Guardar Territorio";
-                        btn.disabled = false;
-                    }
-                });
-            });
-        });
-
-        window.deleteTerritorio = async (id) => {
-            showCustomConfirm('¿Eliminar esté territorio?', async () => {
-                await deleteTerritorio(id);
-                loadSubTab('territorios', container, config, appVersion);
-            });
-        };
-
-        window.editTerritorio = async (id) => {
-            const t = territorios.find(x => x.id === id);
-            if (!t) return;
-
-            showModal(`
-    <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden">
-                    <header class="shrink-0 bg-primary p-8 text-white relative overflow-hidden">
-                        <div class="absolute inset-0 bg-white/10 backdrop-blur-3xl"></div>
-                        <div class="relative z-10 flex items-center gap-6">
-                            <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center text-3xl shadow-2xl border border-white/30">
-                                <i class="fas fa-map-marked-alt"></i>
-                            </div>
-                            <div>
-                                <h3 class="text-2xl font-black uppercase tracking-tight leading-none mb-1">Editar Territorio</h3>
-                                <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Identificador #${t.numero}</p>
-                            </div>
-                        </div>
-                    </header>
-
-                    <div class="flex-1 p-8 space-y-8 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-black/20">
-                        <div class="space-y-6">
-                            <div class="space-y-3">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Número de Territorio</label>
-                                <input type="text" id="edit-t-num" value="${t.numero}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-sm font-bold focus:border-primary outline-none shadow-sm transition-all text-slate-700 dark:text-white">
-                            </div>
-                            <div class="space-y-3">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Manzanas / Sectores</label>
-                                <input type="text" id="edit-t-manzanas" value="${t.manzanas || ''}" placeholder="Ej: 1, 2, 3..." class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-sm font-bold focus:border-primary outline-none shadow-sm transition-all text-slate-700 dark:text-white">
-                            </div>
-
-                            <div class="space-y-3">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Imagen del Mapa</label>
-                                <div class="bg-white dark:bg-white/5 p-6 rounded-3xl border border-dashed border-slate-200 dark:border-white/10">
-                                    <div class="flex items-center gap-6">
-                                        <label class="cursor-pointer bg-primary hover:bg-primary-light text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-primary/20 active:scale-95 flex items-center gap-3">
-                                            <i class="fas fa-camera"></i> <span>Actualizar</span>
-                                            <input type="file" id="edit-t-file" accept="image/*" class="hidden">
-                                        </label>
-                                        <div class="flex flex-col min-w-0">
-                                            <span id="file-name-edit" class="text-[10px] text-slate-500 font-black uppercase truncate">Mantener actual</span>
-                                            <p class="text-[9px] text-slate-400 mt-0.5 uppercase tracking-widest font-bold">Máximo 800KB</p>
-                                        </div>
-                                    </div>
-                                    <input type="hidden" id="edit-t-base64" value="${t.imagen || ''}">
-                                    
-                                    <div id="preview-edit-container" class="mt-6 ${t.imagen ? '' : 'hidden'}">
-                                         <div class="relative rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 bg-white dark:bg-black/40">
-                                             <img id="preview-edit" src="${t.imagen || ''}" class="w-full h-auto max-h-48 object-contain mx-auto">
-                                         </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="shrink-0 p-6 bg-white dark:bg-black/40 border-t border-slate-100 dark:border-white/5">
-                        <button id="update-territorio" class="w-full bg-primary py-5 rounded-2xl text-white text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 hover:shadow-primary/40 hover:scale-[1.01] active:scale-[0.99] transition-all">
-                            Confirmar Cambios
-                        </button>
-                    </div>
-                </div> `, async (modal) => {
-                const fileInput = modal.querySelector('#edit-t-file');
-                const nameDisplay = modal.querySelector('#file-name-edit');
-                const previewContainer = modal.querySelector('#preview-edit-container');
-                const previewImg = modal.querySelector('#preview-edit');
-                const base64Input = modal.querySelector('#edit-t-base64');
-                const updateBtn = modal.querySelector('#update-territorio');
-
-                fileInput.addEventListener('change', (e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                        if (file.size > 800 * 1024) {
-                            showNotification("La imagen es muy grande. Máx 800KB.", "warning");
-                            fileInput.value = '';
-                            return;
-                        }
-                        nameDisplay.textContent = file.name;
-                        const reader = new FileReader();
-                        reader.onload = (ev) => {
-                            const result = ev.target.result;
-                            base64Input.value = result;
-                            previewImg.src = result;
-                            previewContainer.classList.remove('hidden');
-                        };
-                        reader.readAsDataURL(file);
-                    }
-                });
-
-                updateBtn.addEventListener('click', async () => {
-                    updateBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Actualizando...';
-                    updateBtn.disabled = true;
-
-                    try {
-                        await updateTerritorio(id, {
-                            numero: modal.querySelector('#edit-t-num').value.trim(),
-                            manzanas: modal.querySelector('#edit-t-manzanas').value.trim(),
-                            imagen: base64Input.value
-                        });
-                        modal.classList.add('hidden');
-                        loadSubTab('territorios', container, config, appVersion);
-                        showNotification("Territorio actualizado correctamente", "success");
-                    } catch (err) {
-                        console.error(err);
-                        showNotification("Error al actualizar territorio", "error");
-                        updateBtn.textContent = "Confirmar Cambios";
-                        updateBtn.disabled = false;
-                    }
-                });
-            });
-        };
-
-
+    } else if (subTab === 'territorios' || subTab === 's12') {
+        await renderS12View(container, config, appVersion);
     } else if (subTab === 'personal') {
         const publicadores = await getPublicadores();
         const groups = await getGroupsConfig();
@@ -4707,12 +4755,9 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                     const list = gender === 'Hombre' ? malePrivs : femalePrivs;
 
                     privsContainer.innerHTML = list.map(pr => `
-                        <label class="flex items-center gap-3 bg-white dark:bg-white/5 px-4 py-3 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-primary/50 cursor-pointer transition-all group shadow-sm active:scale-[0.98] relative overflow-hidden">
-                            <input type="checkbox" class="p-priv-check opacity-0 absolute inset-0 cursor-pointer peer z-10" value="${pr}" ${currentPrivs.includes(pr) ? 'checked' : ''}>
-                            <div class="w-6 h-6 rounded-full border-2 border-slate-200 dark:border-white/20 peer-checked:bg-primary peer-checked:border-primary flex items-center justify-center transition-all bg-slate-50 dark:bg-black/20 group-hover:border-primary/30">
-                                <i class="fas fa-check text-[10px] text-white hidden peer-checked:block animate-scale-in"></i>
-                            </div>
-                            <span class="text-[10px] font-black text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-200 peer-checked:text-primary transition-colors uppercase tracking-widest">${pr}</span>
+                        <label class="flex items-center gap-3 bg-white dark:bg-white/5 px-4 py-3 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-primary/50 cursor-pointer transition-all group shadow-sm active:scale-[0.98] relative">
+                            <input type="checkbox" class="p-priv-check w-5 h-5 accent-primary cursor-pointer" value="${pr}" ${currentPrivs.includes(pr) ? 'checked' : ''}>
+                            <span class="text-[10px] font-black text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-200 uppercase tracking-widest">${pr}</span>
                         </label>
                     `).join('');
 
@@ -6876,4 +6921,139 @@ export const renderAdvancedHistoryView = async (container, options = {}) => {
                 <p class="text-xs text-slate-400 mt-2">${e.message}</p>
             </div> `;
     }
+};
+
+window.exportS12Form = async (territorios, layout = 1) => {
+    const config = await getConfiguracion();
+    const congregacion = config.congregacion?.nombre || "CONGREGACIÓN";
+
+    // Sort territories by number
+    const sorted = [...territorios].sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true, sensitivity: 'base' }));
+
+    const printWindow = window.open('', '_blank');
+
+    const styles = `
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Times+New+Roman&display=swap');
+            @page { size: A4; margin: 0; }
+            body { margin: 0; padding: 0; font-family: 'Times New Roman', Times, serif; }
+            .page { width: 210mm; min-height: 297mm; padding: 10mm; margin: 0 auto; background: white; box-sizing: border-box; page-break-after: always; }
+            
+            .grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 5mm; height: 277mm; }
+            .grid-half { display: grid; grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; gap: 5mm; height: 277mm; }
+            
+            .s12-card { 
+                border: 0.5pt solid #000; 
+                padding: 10mm; 
+                display: flex; 
+                flex-direction: column; 
+                position: relative;
+                height: 100%;
+                box-sizing: border-box;
+            }
+            
+            .title { text-align: center; font-size: 22pt; font-weight: bold; margin-bottom: 20pt; }
+            .header-info { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 0.5pt solid #000; padding-bottom: 2pt; margin-bottom: 15pt; }
+            .label { font-size: 14pt; font-weight: bold; }
+            .field-val { font-size: 14pt; flex: 1; margin-left: 5pt; border-bottom: 0.5pt dotted #ccc; min-height: 1.2em; }
+            
+            .map-container { 
+                flex: 1; 
+                border: 1pt solid #000; 
+                margin: 5pt 0; 
+                display: flex; 
+                align-items: center; 
+                justify-content: center; 
+                overflow: hidden; 
+                background: #fdfdfd; 
+            }
+            .map-container img { max-width: 100%; max-height: 100%; object-contain: contain; }
+            
+            .footer-note { font-size: 9pt; text-align: justify; line-height: 1.1; margin-top: 5pt; font-weight: bold; }
+            .footer-id { font-size: 8pt; margin-top: 10pt; display: flex; justify-content: space-between; }
+
+            /* One per page adjustments */
+            .single-layout { height: 277mm; justify-content: space-around; }
+            .single-layout .title { font-size: 30pt; }
+            .single-layout .label { font-size: 18pt; }
+            .single-layout .field-val { font-size: 18pt; }
+            .single-layout .footer-note { font-size: 11pt; margin-top: 20pt; }
+            
+            @media print {
+                .no-print { display: none !important; }
+            }
+        </style>
+    `;
+
+    const renderCard = (t, isSingle = false) => `
+        <div class="s12-card ${isSingle ? 'single-layout' : ''}">
+            <div class="title">Tarjeta del mapa del territorio</div>
+            <div class="header-info">
+                <span class="label">Localidad</span>
+                <span class="field-val">${t.localidad || t.manzanas || congregacion}</span>
+                <span class="label" style="margin-left: 10pt;">Terr. núm.</span>
+                <span class="field-val" style="width: 50pt; text-align: center; border-left: 0.5pt solid #000; border-top: 0.5pt solid #000;">${t.numero}</span>
+            </div>
+            
+            <div class="map-container">
+                <img src="${formatMapUrl(t.imagen) || ''}" onerror="this.style.display='none'">
+                ${!t.imagen ? '<div style="font-size: 10pt; color: #999;">(Pegue el mapa arriba o dibuje el territorio)</div>' : ''}
+            </div>
+
+            <div class="footer-note">
+                Sírvase mantener esta tarjeta en el sobre. No la manche, marque, ni doble. Cada vez que se haya trabajado completamente el territorio, infórmelo al hermano que atiende los archivos del territorio.
+            </div>
+            
+            <div class="footer-id">
+                <span>S-12-S &nbsp;&nbsp; 6/72</span>
+            </div>
+        </div>
+    `;
+
+    let html = `<html><head><title>Formularios S-12</title>${styles}</head><body>`;
+
+    if (layout === 1) {
+        sorted.forEach(t => {
+            html += `<div class="page">${renderCard(t, true)}</div>`;
+        });
+    } else if (layout === 2) {
+        // Half layout (2 per page)
+        for (let i = 0; i < sorted.length; i += 2) {
+            html += `<div class="page"><div class="grid-half">`;
+            for (let j = 0; j < 2; j++) {
+                if (sorted[i + j]) {
+                    html += renderCard(sorted[i + j]);
+                } else {
+                    html += `<div class="s12-card" style="border: 0.5pt dashed #ccc; background: #fafafa;"></div>`;
+                }
+            }
+            html += `</div></div>`;
+        }
+    } else {
+        // Quad layout
+        for (let i = 0; i < sorted.length; i += 4) {
+            html += `<div class="page"><div class="grid">`;
+            for (let j = 0; j < 4; j++) {
+                if (sorted[i + j]) {
+                    html += renderCard(sorted[i + j]);
+                } else {
+                    html += `<div class="s12-card" style="border: 0.5pt dashed #ccc; background: #fafafa;"></div>`;
+                }
+            }
+            html += `</div></div>`;
+        }
+    }
+
+    html += `
+        <div class="no-print" style="position: fixed; top: 20px; right: 20px; background: rgba(0,0,0,0.8); color: white; padding: 20px; border-radius: 15px; font-family: sans-serif; z-index: 9999; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+            <p style="margin: 0 0 15px 0; font-weight: bold;">Vista de Impresión Lista</p>
+            <button onclick="window.print()" style="background: #14b8a6; border: none; color: white; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%;">Imprimir Ahora</button>
+            <p style="margin: 10px 0 0 0; font-size: 10px; opacity: 0.7;">Asegúrese de activar "Gráficos de fondo" en los ajustes de impresión.</p>
+        </div>
+    `;
+
+    html += `</body></html>`;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
 };

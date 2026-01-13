@@ -3,23 +3,35 @@
 @tailwind utilities;
 
 @layer base {
+    summary::-webkit-details-marker {
+        display: none;
+    }
+
+    summary {
+        list-style: none;
+    }
+}
+
+@layer base {
     :root {
         /* Ultra PRO 2026 - Digital Horizon Theme */
-        --bg-main: 210 40% 98%;
+        --bg-main: 210 33% 98%;
         --bg-card: 0 0% 100%;
-        --primary: 172 66% 35%;
-        /* Teal 700 */
-        --primary-glow: 172 66% 35% / 0.15;
-        --secondary: 199 89% 48%;
-        /* Sky 500 */
-        --accent: 262 83% 58%;
-        /* Indigo 600 */
+        --primary: 200 85% 25%;
+        /* Darker Blue for Light Mode */
+        --primary-glow: 200 85% 25% / 0.12;
+        --secondary: 235 60% 35%;
+        /* Darker Indigo */
+        --accent: 172 66% 30%;
+        /* Darker Teal */
 
-        --text-main: 222 47% 11%;
-        --text-muted: 215 16% 47%;
+        --text-main: 222 47% 8%;
+        /* Very Deep Blue */
+        --text-muted: 215 25% 35%;
+        /* High Contrast Gray (Slate 600 equivalent) */
 
-        --glass-bg: rgba(255, 255, 255, 0.65);
-        --glass-border: rgba(255, 255, 255, 0.7);
+        --glass-bg: hsla(0, 0%, 100%, 0.7);
+        --glass-border: hsla(0, 0%, 100%, 0.9);
         --glass-shadow: 222 47% 11% / 0.05;
 
         --input-bg: rgba(255, 255, 255, 0.8);
@@ -28,18 +40,19 @@
     }
 
     .dark {
-        --bg-main: 222 47% 4%;
-        --bg-card: 222 47% 6%;
+        --bg-main: 222 47% 2%;
+        --bg-card: 222 47% 4%;
         --primary: 172 66% 50%;
-        /* Teal 500 */
-        --primary-glow: 172 66% 50% / 0.2;
+        /* Brighter Teal */
+        --primary-glow: 172 66% 50% / 0.25;
 
         --text-main: 210 40% 98%;
-        --text-muted: 215 20% 65%;
+        --text-muted: 215 15% 75%;
+        /* Brighter Gray for readability */
 
-        --glass-bg: rgba(8, 11, 19, 0.7);
-        --glass-border: rgba(255, 255, 255, 0.05);
-        --glass-shadow: 0 0% 0% / 0.4;
+        --glass-bg: rgba(13, 17, 23, 0.85);
+        --glass-border: rgba(255, 255, 255, 0.08);
+        --glass-shadow: 0 0% 0% / 0.6;
 
         --input-bg: rgba(15, 23, 42, 0.4);
 

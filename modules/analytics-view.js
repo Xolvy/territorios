@@ -20,7 +20,7 @@ export const renderAnalyticsView = async (container) => {
                         <h2 class="text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">
                             Panel de Control
                         </h2>
-                        <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] mt-1 opacity-70">
+                        <p class="text-[10px] text-slate-600 dark:text-slate-400 font-extrabold uppercase tracking-[0.3em] mt-1 opacity-90">
                             Visión general y métricas clave
                         </p>
                     </div>
@@ -34,7 +34,7 @@ export const renderAnalyticsView = async (container) => {
                 <div class="modern-card !p-5 md:!p-8 relative overflow-hidden group hover:border-primary/30 transition-all shadow-xl hover:shadow-primary/5 bg-white dark:bg-white/[0.02]">
                     <div class="absolute right-0 top-0 w-32 h-32 bg-primary/5 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
                     <div class="relative z-10">
-                        <p class="text-[10px] text-slate-500 dark:text-slate-400 font-black uppercase tracking-[0.2em] mb-4">Total Territorios</p>
+                        <p class="text-[10px] text-slate-600 dark:text-slate-400 font-extrabold uppercase tracking-[0.2em] mb-4">Total Territorios</p>
                         <div class="text-5xl font-black text-slate-800 dark:text-white tabular-nums tracking-tighter" id="stat-total-terr">-</div>
                         <div class="mt-6 flex items-center gap-2 text-primary font-black text-[10px] uppercase tracking-widest">
                             <i class="fas fa-globe-americas"></i> Cobertura Global
@@ -45,7 +45,7 @@ export const renderAnalyticsView = async (container) => {
                 <div class="modern-card !p-5 md:!p-8 relative overflow-hidden group hover:border-blue-500/30 transition-all shadow-xl hover:shadow-blue-500/5 bg-white dark:bg-white/[0.02]">
                     <div class="absolute right-0 top-0 w-32 h-32 bg-blue-500/5 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
                     <div class="relative z-10">
-                        <p class="text-[10px] text-slate-500 dark:text-slate-400 font-black uppercase tracking-[0.2em] mb-4">Asignados</p>
+                        <p class="text-[10px] text-slate-600 dark:text-slate-400 font-extrabold uppercase tracking-[0.2em] mb-4">Asignados</p>
                         <div class="text-5xl font-black text-slate-800 dark:text-white tabular-nums tracking-tighter" id="stat-assigned">-</div>
                         <div class="mt-6 flex items-center gap-2 text-blue-500 font-black text-[10px] uppercase tracking-widest" id="stat-assigned-pct">
                             <i class="fas fa-user-check"></i> 0% del total
@@ -56,7 +56,7 @@ export const renderAnalyticsView = async (container) => {
                 <div class="modern-card !p-5 md:!p-8 relative overflow-hidden group hover:border-indigo-500/30 transition-all shadow-xl hover:shadow-indigo-500/5 bg-white dark:bg-white/[0.02]">
                     <div class="absolute right-0 top-0 w-32 h-32 bg-indigo-500/5 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
                     <div class="relative z-10">
-                        <p class="text-[10px] text-slate-500 dark:text-slate-400 font-black uppercase tracking-[0.2em] mb-4">Conductores</p>
+                        <p class="text-[10px] text-slate-600 dark:text-slate-400 font-extrabold uppercase tracking-[0.2em] mb-4">Conductores</p>
                         <div class="text-5xl font-black text-slate-800 dark:text-white tabular-nums tracking-tighter" id="stat-conductors">-</div>
                         <div class="mt-6 flex items-center gap-2 text-indigo-500 font-black text-[10px] uppercase tracking-widest">
                             <i class="fas fa-users"></i> Activos en servicio
@@ -67,7 +67,7 @@ export const renderAnalyticsView = async (container) => {
                 <div class="modern-card !p-5 md:!p-8 relative overflow-hidden group hover:border-rose-500/30 transition-all shadow-xl hover:shadow-rose-500/5 bg-white dark:bg-white/[0.02]">
                     <div class="absolute right-0 top-0 w-32 h-32 bg-rose-500/5 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
                     <div class="relative z-10">
-                        <p class="text-[10px] text-slate-500 dark:text-slate-400 font-black uppercase tracking-[0.2em] mb-4">Atrasados (>${settings?.expiration_days ? Math.round(settings.expiration_days / 30) : 4}m)</p>
+                        <p class="text-[10px] text-slate-600 dark:text-slate-400 font-extrabold uppercase tracking-[0.2em] mb-4">Atrasados (>${settings?.expiration_days ? Math.round(settings.expiration_days / 30) : 4}m)</p>
                         <div class="text-5xl font-black text-slate-800 dark:text-white tabular-nums tracking-tighter" id="stat-late">-</div>
                         <div class="mt-6 flex items-center gap-2 text-rose-500 font-black text-[10px] uppercase tracking-widest">
                             <i class="fas fa-exclamation-triangle"></i> Requieren atención
@@ -78,7 +78,7 @@ export const renderAnalyticsView = async (container) => {
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 overflow-hidden">
                 <div class="modern-card p-10 flex flex-col bg-white dark:bg-white/[0.02]">
-                    <h3 class="text-[12px] font-black text-slate-400 uppercase tracking-[0.3em] mb-10 flex items-center gap-3">
+                    <h3 class="text-[12px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.3em] mb-10 flex items-center gap-3">
                         <span class="w-8 h-[1px] bg-slate-300 dark:bg-white/10"></span>
                         Estado de Territorios
                     </h3>
@@ -88,7 +88,7 @@ export const renderAnalyticsView = async (container) => {
                 </div>
 
                 <div class="lg:col-span-2 modern-card p-10 flex flex-col bg-white dark:bg-white/[0.02]">
-                    <h3 class="text-[12px] font-black text-slate-400 uppercase tracking-[0.3em] mb-10 flex items-center gap-3">
+                    <h3 class="text-[12px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.3em] mb-10 flex items-center gap-3">
                         <span class="w-8 h-[1px] bg-slate-300 dark:bg-white/10"></span>
                         Frecuencia de Trabajo
                     </h3>
@@ -110,7 +110,7 @@ export const renderAnalyticsView = async (container) => {
                 </div>
                 <div class="table-container overflow-auto flex-1 p-0">
                     <table class="w-full text-left border-collapse">
-                        <thead class="bg-gray-50 dark:bg-black/20 text-xs uppercase text-gray-500 dark:text-gray-400 sticky top-0 z-10 backdrop-blur-md">
+                        <thead class="bg-gray-100 dark:bg-black/40 text-xs uppercase text-slate-700 dark:text-slate-300 sticky top-0 z-10 backdrop-blur-md">
                             <tr>
                                 <th class="p-4 font-semibold whitespace-nowrap">Terr.</th>
                                 <th class="p-4 font-semibold whitespace-nowrap">Conductor</th>

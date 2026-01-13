@@ -1,4 +1,4 @@
-import { auth } from '../firebase-config.js?v=3.6.9.7';
+import { auth } from '../firebase-config.js?v=3.6.9.9';
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import {
     getTerritorios, getConductores, getPublicadores, getTelefonos, updateTelefono,
@@ -8,10 +8,10 @@ import {
     addPublicador, updatePublicador, deletePublicador, // Added for management within dashboard
     releaseUnusedTelefonos, solicitarNumeros, updateTelefonoStatus, logSessionSummary,
     logReturn, returnTerritorio, returnTerritorioParcial, transferTerritory
-} from '../data/firestore-services.js?v=3.6.9.7';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl } from './utils/helpers.js?v=3.6.9.7';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=3.6.9.7';
-import { MapViewer } from './map-viewer.js?v=3.6.9.7';
+} from '../data/firestore-services.js?v=3.6.9.9';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl } from './utils/helpers.js?v=3.6.9.9';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=3.6.9.9';
+import { MapViewer } from './map-viewer.js?v=3.6.9.9';
 
 
 
@@ -85,7 +85,7 @@ const showCustomConfirm = (message, onConfirm) => {
                 </div>
                 <div class="space-y-3">
                     <h3 class="text-2xl font-black text-slate-800 dark:text-white tracking-tight leading-tight px-4">${message}</h3>
-                    <p class="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-black tracking-[0.3em] opacity-60">Confirmación Requerida</p>
+                    <p class="text-[10px] text-slate-600 dark:text-slate-400 uppercase font-black tracking-[0.3em] opacity-80">Confirmación Requerida</p>
                 </div>
             </div>
             <div class="grid grid-cols-2 gap-4">
@@ -113,7 +113,7 @@ const showCustomPrompt = (message, defaultValue, onConfirm) => {
                     </div>
                     <div class="space-y-1">
                         <h3 class="text-xl font-black text-slate-800 dark:text-white tracking-tight leading-none">${message}</h3>
-                        <p class="text-[10px] text-primary uppercase font-black tracking-[0.2em] opacity-60">Entrada de Datos</p>
+                        <p class="text-[10px] text-primary uppercase font-black tracking-[0.2em]">Entrada de Datos</p>
                     </div>
                 </div>
                 <div class="space-y-3">
@@ -160,9 +160,11 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
     const hasAgenda = mods.agenda !== false && mods.dashboard !== false; // support legacy key
 
 
+    const wasProgOpen = container.querySelector('.group/prog-details')?.open;
+
     container.innerHTML = `
-        <div class="animate-fade-in pb-24 w-full max-w-7xl mx-auto p-4 md:p-8">
-            <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 px-6 py-6 modern-card !rounded-[2.5rem] border-slate-200 dark:border-white/10 shadow-xl gap-6 relative overflow-hidden group">
+        <div class="animate-fade-in pb-32 w-full max-w-7xl mx-auto p-4 md:p-8 space-y-20">
+            <header class="flex flex-col md:flex-row justify-between items-start md:items-center px-6 py-6 modern-card !rounded-[2.5rem] border-slate-200 dark:border-white/10 shadow-xl gap-6 relative overflow-hidden group">
                 <div class="absolute inset-0 bg-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
                 <div class="flex items-center gap-5 relative z-10">
                     <div class="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center text-2xl text-white shadow-xl shadow-indigo-500/30 rotate-3 hover:rotate-0 transition-all duration-700 animate-float">
@@ -175,7 +177,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                <span class="relative flex h-1.5 w-1.5">
                                   <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                   <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
-                               </span> Panel Conductor PRO
+                               </span> <span class="text-slate-600 dark:text-slate-300 font-extrabold">Panel Conductor PRO</span>
                             </p>
                             <p class="text-[8px] font-black text-indigo-500 uppercase tracking-[0.2em] mt-0.5 opacity-70">${config.congregacion?.nombre || ''}</p>
                         </div>
@@ -200,7 +202,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                     </button>
                 </div>
             </header>
-
+ 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 px-2 md:px-4">
                 <div class="lg:col-span-2 space-y-8 animate-fade-in">
                     <div class="flex flex-col md:flex-row md:items-center justify-between px-4 gap-4">
@@ -215,11 +217,11 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                     </div>
                 </div>
             </div>
-
+ 
                 <!-- Module: Programa Semanal (Global Cards) -->
                 <div class="lg:col-span-2 ${mods.programa !== false ? '' : 'hidden'}">
                     <div class="modern-card !p-0 border-slate-200 dark:border-white/5 shadow-2xl transition-all overflow-hidden group/prog">
-                        <details class="group/prog-details">
+                        <details class="group/prog-details" ${wasProgOpen ? 'open' : ''}>
                             <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-8 cursor-pointer list-none select-none hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
                                 <div class="flex items-start gap-6">
                                     <div class="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-2xl text-indigo-500 shadow-inner border border-indigo-500/10 group-open/prog-details:rotate-6 transition-transform">
@@ -381,7 +383,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
                 <!-- Module: Mapas Interactivos -->
                 <div class="lg:col-span-2 modern-card border-indigo-500/10 dark:border-indigo-500/5 transition-all overflow-hidden !p-0" id="interactive-maps-module">
-                    <details class="group/maps">
+                    <details class="group/maps" ${container.querySelector('.group/maps')?.open ? 'open' : ''}>
                         <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-8 cursor-pointer list-none select-none hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
                             <div class="flex items-start gap-6">
                                 <div class="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-2xl text-indigo-600 shadow-inner border border-indigo-500/10 group-open/maps:rotate-6 transition-transform">
@@ -394,7 +396,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                             <i class="fas fa-chevron-down"></i>
                                         </div>
                                     </div>
-                                    <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mt-1 opacity-70">Visualización digital de la congregación</p>
+                                    <p class="text-[10px] text-slate-600 dark:text-slate-400 font-extrabold uppercase tracking-[0.3em] mt-1 ml-1">Explorador visual de territorios</p>
                                 </div>
                             </div>
                         </summary>
@@ -439,6 +441,16 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
         await auth.signOut();
         // window.location.reload(); // Not strictly necessary if auth state change handles it, but good for clean slate
     });
+
+    const btnAdmin = document.getElementById('btn-goto-admin');
+    if (btnAdmin) {
+        btnAdmin.onclick = () => {
+            window.history.pushState({}, '', '/administrador/dashboard');
+            // Trigger app.js routing logic by reloading or dispatching a popstate if app.js listens for it.
+            // Since app.js uses onAuthStateChanged which runs on load, reload is safest.
+            window.location.reload();
+        };
+    }
 
     // Helper for Phones
     const refreshPhones = async () => {
@@ -1013,19 +1025,20 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
                                  <!-- Territory History Button(s) (Image 2 Style) -->
                                  <div class="space-y-4 pt-2">
                                      ${a.attachedTerritories.map(t => `
-                                         <button class="w-full p-6 bg-slate-900 dark:bg-slate-800/90 rounded-[3rem] text-teal-400 font-black flex items-center justify-between border border-white/5 shadow-2xl backdrop-blur-md active:scale-95 transition-all group territory-history-btn"
+                                         <button class="w-full p-5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 flex items-center gap-4 group/history hover:bg-slate-50 dark:hover:bg-white/5 active:scale-95 transition-all shadow-sm territory-history-btn"
                                              data-tid="${t.id}" data-tnum="${t.numero}">
-                                             <div class="flex items-center gap-4">
-                                                 <div class="flex flex-col text-left">
-                                                     <div class="flex items-center gap-2 mb-1">
-                                                         <span class="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse"></span>
-                                                         <span class="text-[9px] uppercase tracking-[0.2em] opacity-80">Historial de</span>
-                                                     </div>
-                                                     <span class="text-sm font-black uppercase tracking-widest leading-none">Territorio</span>
-                                                 </div>
+                                             <div class="w-10 h-10 bg-slate-100 dark:bg-white/5 rounded-xl flex items-center justify-center text-lg text-slate-500 group-hover/history:scale-110 transition-transform">
+                                                 <i class="fas fa-history"></i>
                                              </div>
-                                             <div class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors">
-                                                 <i class="fas fa-chevron-right text-xs text-slate-500 group-hover:translate-x-1 transition-transform"></i>
+                                             <div class="min-w-0 text-left">
+                                                 <div class="flex items-center gap-2">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse"></span>
+                                                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">HISTORIAL</p>
+                                                 </div>
+                                                 <p class="text-[11px] font-black text-slate-800 dark:text-white truncate uppercase mt-0.5">Terr. ${t.numero}</p>
+                                             </div>
+                                             <div class="ml-auto w-8 h-8 rounded-full bg-slate-50 dark:bg-white/5 flex items-center justify-center group-hover/history:translate-x-1 transition-all">
+                                                 <i class="fas fa-chevron-right text-[10px] text-slate-300"></i>
                                              </div>
                                          </button>
                                      `).join('')}
@@ -1082,7 +1095,7 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
             btn.onclick = () => {
                 const tid = btn.dataset.tid;
                 const tnum = btn.dataset.tnum;
-                window.showTerritoryHistoryModalConductor(tid, tnum);
+                window.showUnifiedTerritoryHistory(tid, tnum);
             };
         });
     }, 0);
@@ -1091,10 +1104,10 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
     renderAISection(name);
     renderRecursosSection(document.getElementById('recursos-container'));
 
-    // Check if user has Rescue module enabled OR if global config had it enabled (legacy)
-    const showRescue = userMods?.rescue || config?.rescue_mode;
+    // Individual setting overrides global config if explicitly set to false
+    const showRescue = userMods?.rescue === true || (userMods?.rescue !== false && config?.rescue_mode);
     if (showRescue) {
-        renderRescueSection(document.getElementById('ayudas-container'), name, allTerritorios, { rescue_mode: true });
+        renderRescueSection(document.getElementById('ayudas-container'), name, allTerritorios, config, programa);
     } else {
         const ayudas = document.getElementById('ayudas-container');
         if (ayudas) ayudas.classList.add('hidden');
@@ -1129,9 +1142,11 @@ async function renderAvailabilitySection(container, name) {
         { id: 'noche', label: 'Noche', icon: 'fas fa-moon', color: 'text-indigo-400' }
     ];
 
+    const wasAvailOpen = container.querySelector('.group/avail')?.open;
+
     container.innerHTML = `
     <div class="modern-card !p-0 mt-8 animate-fade-in shadow-2xl transition-all overflow-hidden border-indigo-500/20">
-        <details class="group/avail">
+        <details class="group/avail" ${wasAvailOpen ? 'open' : ''}>
             <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-8 cursor-pointer list-none select-none hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
                 <div class="flex items-start gap-6">
                     <div class="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-2xl text-indigo-500 shadow-inner border border-indigo-500/10 group-open/avail:rotate-6 transition-transform">
@@ -2671,38 +2686,70 @@ async function renderAISection(name) {
 
 /** --- RESCUE MODE (Ayudas) --- **/
 
-function renderRescueSection(container, currentConductorName, allTerritories, config) {
+function renderRescueSection(container, currentConductorName, allTerritorios, config, programa) {
     if (!container) return;
-
-    if (!config || !config.rescue_mode) {
-        container.classList.add('hidden');
-        container.innerHTML = '';
-        return;
-    }
     container.classList.remove('hidden');
 
     const now = new Date();
-    const rescueCandidates = allTerritories.filter(t => {
+    now.setHours(0, 0, 0, 0); // Normalize today
+
+    // 1. Map planned dates from program
+    const plannedDates = {}; // territoryNum -> Set of Dates
+    if (programa && programa.dias && programa.id) {
+        const monday = new Date(programa.id + "T00:00:00");
+        const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+        const shifts = ['manana', 'tarde', 'noche'];
+
+        programa.dias.forEach(d => {
+            const dayIdx = dayNames.indexOf(d.nombre);
+            if (dayIdx === -1) return;
+
+            const plannedDate = new Date(monday);
+            plannedDate.setDate(monday.getDate() + dayIdx);
+            plannedDate.setHours(0, 0, 0, 0);
+
+            shifts.forEach(s => {
+                if (d[s] && d[s].territorio) {
+                    const nums = d[s].territorio.split(/[,/]+/).map(n => n.trim()).filter(Boolean);
+                    nums.forEach(num => {
+                        if (!plannedDates[num]) plannedDates[num] = new Set();
+                        plannedDates[num].add(plannedDate.getTime());
+                    });
+                }
+            });
+        });
+    }
+
+    const rescueCandidates = allTerritorios.filter(t => {
         if (t.estado !== 'Asignado' && t.estado !== 'Pendiente') return false;
         if (t.asignado_a === currentConductorName) return false;
 
-        const dateToCheck = t.fecha_salida ? new Date(t.fecha_salida) : (t.fecha_asignacion ? new Date(t.fecha_asignacion) : null);
-        if (!dateToCheck) return false;
+        const timestamps = plannedDates[t.numero];
+        if (!timestamps) return false;
 
-        const diffHrs = (now - dateToCheck) / (1000 * 60 * 60);
-        return diffHrs > 24; // Overdue by more than 24 hours
+        let isRescueNeeded = false;
+        for (const ts of timestamps) {
+            const planned = new Date(ts);
+            const diffDays = Math.floor((today - planned) / (1000 * 60 * 60 * 24));
+            if (diffDays >= 2) {
+                isRescueNeeded = true;
+                break;
+            }
+        }
+
+        return isRescueNeeded;
     });
 
     if (rescueCandidates.length === 0) {
         container.innerHTML = `
-            <div class="col-span-full py-16 modern-card text-center border-dashed border-slate-200 opacity-40">
-                <div class="flex flex-col items-center gap-5">
-                    <div class="w-20 h-20 bg-slate-100 dark:bg-white/5 rounded-[2.5rem] flex items-center justify-center text-3xl text-slate-400">
-                        <i class="fas fa-check-circle"></i>
+            <div class="col-span-full py-24 modern-card text-center border-dashed border-slate-200 dark:border-white/10 opacity-60 bg-slate-50/50 dark:bg-white/5 mt-12">
+                <div class="flex flex-col items-center gap-6">
+                    <div class="w-16 h-16 bg-white dark:bg-slate-800 rounded-[2rem] flex items-center justify-center text-3xl text-emerald-500 shadow-sm border border-slate-100 dark:border-white/5">
+                        <i class="fas fa-check-double"></i>
                     </div>
-                    <div class="space-y-1">
-                        <p class="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Todo bajo control</p>
-                        <p class="text-[9px] text-slate-400 italic font-bold">No hay misiones de rescate pendientes</p>
+                    <div class="space-y-2">
+                        <p class="text-[11px] font-black uppercase tracking-[0.5em] text-slate-500 dark:text-slate-400">Territorios al día</p>
+                        <p class="text-[10px] text-slate-400 italic font-bold">Sin misiones de rescate para esta semana</p>
                     </div>
                 </div>
             </div>
@@ -2710,44 +2757,67 @@ function renderRescueSection(container, currentConductorName, allTerritories, co
         return;
     }
 
+    const existingDetails = container.querySelector('details.group/rescue');
+    const wasOpen = existingDetails ? existingDetails.open : (rescueCandidates.length > 0);
+
     container.innerHTML = `
-        <div class="modern-card !p-0 mt-8 animate-fade-in shadow-2xl transition-all overflow-hidden border-rose-500/20">
-            <details class="group/rescue">
-                <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-8 cursor-pointer list-none select-none hover:bg-rose-500/5 transition-colors">
-                    <div class="flex items-start gap-6">
-                        <div class="w-14 h-14 rounded-2xl bg-rose-500/10 flex items-center justify-center text-2xl text-rose-500 shadow-inner border border-rose-500/10 group-open/rescue:rotate-6 transition-transform">
+        <div class="modern-card !p-0 mt-24 animate-fade-in shadow-2xl transition-all overflow-hidden border-rose-500/30 ring-4 ring-rose-500/5 bg-white dark:bg-[#0f1115]">
+            <details class="group/rescue" ${wasOpen ? 'open' : ''}>
+                <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-12 cursor-pointer list-none select-none hover:bg-rose-500/5 transition-colors border-b border-rose-500/10 outline-none">
+                    <div class="flex items-start gap-10">
+                        <div class="w-16 h-16 rounded-[1.75rem] bg-rose-600 flex items-center justify-center text-3xl text-white shadow-2xl shadow-rose-600/40 border-2 border-white/20 group-open/rescue:rotate-6 transition-transform">
                             <i class="fas fa-ambulance"></i>
                         </div>
-                        <div>
-                            <h3 class="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Misiones de Rescate</h3>
-                            <div class="w-6 h-6 rounded-lg bg-slate-100 dark:bg-white/10 flex items-center justify-center text-[10px] group-open/rescue:rotate-180 transition-transform text-slate-400">
-                                <i class="fas fa-chevron-down"></i>
-                            </div>
-                        </div>
-                        <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mt-1 opacity-70">Territorios pendientes de más de 24 horas</p>
-                    </div>
-                </div>
-            </summary>
-
-                <div class="p-8 pt-0 animate-fade-in">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        ${rescueCandidates.map(t => `
-                            <div class="bg-white dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-[2.5rem] p-8 flex flex-col gap-6 group/item hover:border-rose-500/30 transition-all shadow-xl hover:shadow-rose-500/5">
-                                <div class="flex justify-between items-start">
-                                    <div class="space-y-1">
-                                        <h4 class="font-black text-2xl text-slate-800 dark:text-white leading-none uppercase tracking-tighter tabular-nums">T-${t.numero}</h4>
-                                        <p class="text-[9px] text-rose-600 font-black uppercase tracking-[0.2em] opacity-80">${t.asignado_a}</p>
-                                    </div>
-                                    <span class="bg-rose-500/10 text-rose-500 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border border-rose-500/10">Rescate</span>
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-4">
+                                <h3 class="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Misiones de Rescate</h3>
+                                <div class="px-4 py-1.5 bg-rose-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-rose-600/20">
+                                    ${rescueCandidates.length} Pendiente${rescueCandidates.length > 1 ? 's' : ''}
                                 </div>
-                                <div class="p-5 rounded-2xl bg-slate-50 dark:bg-black/20 border border-slate-100 dark:border-white/5 min-h-[5rem] flex items-center">
-                                    <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed font-bold italic line-clamp-2">
-                                        "${t.manzanas || 'Sin observaciones adicionales'}"
+                            </div>
+                            <p class="text-[11px] text-rose-600 dark:text-rose-400 font-black uppercase tracking-[0.25em] opacity-90 flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-rose-600 animate-pulse"></span>
+                                Atraso Crítico: Más de 48 horas sin reporte de actividad
+                            </p>
+                        </div>
+                    </div>
+                    <div class="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-white/5 flex items-center justify-center group-open/rescue:rotate-180 transition-transform text-rose-500 mt-6 md:mt-0">
+                        <i class="fas fa-chevron-down text-lg"></i>
+                    </div>
+                </summary>
+
+                <div class="p-12 animate-fade-in">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
+                        ${rescueCandidates.map(t => `
+                            <div class="bg-white dark:bg-white/5 border-2 border-slate-100 dark:border-white/10 rounded-[3rem] p-10 flex flex-col gap-10 group/item hover:border-rose-500/40 transition-all shadow-xl hover:shadow-rose-500/15 relative overflow-hidden">
+                                <div class="absolute top-0 right-0 w-48 h-48 bg-rose-500/5 blur-3xl -mr-20 -mt-20 group-hover:bg-rose-500/20 transition-colors"></div>
+                                
+                                <div class="flex justify-between items-start relative z-10">
+                                    <div class="space-y-2">
+                                        <div class="flex items-baseline gap-1">
+                                            <span class="text-rose-600 font-black text-xl italic leading-none">T-</span>
+                                            <h4 class="font-black text-5xl text-slate-900 dark:text-white leading-none uppercase tracking-tighter tabular-nums">${t.numero}</h4>
+                                        </div>
+                                        <div class="flex items-center gap-3 mt-1">
+                                            <div class="w-2 h-2 rounded-full bg-rose-500"></div>
+                                            <p class="text-[12px] text-slate-600 dark:text-slate-300 font-black uppercase tracking-[0.1em]">${t.asignado_a}</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex flex-col items-end gap-2">
+                                         <span class="bg-rose-600/10 text-rose-600 px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-rose-500/20">RESCATE</span>
+                                         <p class="text-[9px] font-black text-rose-500/60 uppercase tracking-widest">Atrasado</p>
+                                    </div>
+                                </div>
+
+                                <div class="p-8 rounded-[2rem] bg-rose-50/30 dark:bg-black/40 border border-rose-100/50 dark:border-white/5 min-h-[7rem] flex items-center relative z-10 shadow-inner group-hover:bg-rose-50/50 dark:group-hover:bg-black/60 transition-colors">
+                                    <p class="text-[14px] text-slate-800 dark:text-slate-200 leading-relaxed font-black uppercase tracking-tight line-clamp-3 italic">
+                                        "${t.manzanas || 'Territorio necesita atención inmediata para completar la predicación.'}"
                                     </p>
                                 </div>
+
                                 <button onclick="window.handleRescueTerritory('${t.id}', '${t.numero}', '${currentConductorName}', '${t.manzanas || ''}')" 
-                                        class="w-full bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-black py-5 rounded-2xl shadow-xl shadow-rose-500/30 transition-all uppercase tracking-[0.3em] active:scale-95 flex items-center justify-center gap-3">
-                                    <i class="fas fa-hand-holding-heart"></i> Misión de Ayuda
+                                        class="relative z-10 w-full bg-rose-600 hover:bg-rose-700 text-white text-[13px] font-black py-6 rounded-2xl shadow-2xl shadow-rose-600/40 transition-all uppercase tracking-[0.35em] active:scale-95 flex items-center justify-center gap-4 border border-white/10 group-hover:scale-[1.03]">
+                                    <i class="fas fa-hand-holding-heart text-xl"></i> Asumir Ayuda
                                 </button>
                             </div>
                         `).join('')}
@@ -2813,11 +2883,13 @@ function renderRecursosSection(container) {
             return;
         }
 
+        const wasRecOpen = container.querySelector('.group/recursos')?.open;
+
         container.classList.remove('hidden');
         container.innerHTML = `
-            <div class="modern-card !p-0 mt-8 animate-fade-in shadow-2xl transition-all overflow-hidden border-primary/20">
-                <details class="group/recursos">
-                    <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-8 cursor-pointer list-none select-none hover:bg-primary/5 transition-colors">
+            <div class="modern-card !p-0 mt-20 animate-fade-in shadow-2xl transition-all overflow-hidden border-primary/20">
+                <details class="group/recursos" ${wasRecOpen ? 'open' : ''}>
+                    <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-8 cursor-pointer list-none select-none hover:bg-primary/5 transition-colors border-b border-primary/5 outline-none">
                         <div class="flex items-start gap-6">
                             <div class="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-2xl text-primary shadow-inner border border-primary/10 group-open/recursos:rotate-6 transition-transform">
                                 <i class="fas fa-toolbox"></i>
@@ -2865,55 +2937,13 @@ function renderRecursosSection(container) {
                 </details>
             </div>
         `;
-
-        // Panel Admin Auth Bridge
-        const btnAdmin = document.getElementById('btn-goto-admin');
-        if (btnAdmin) {
-            btnAdmin.onclick = async () => {
-                const originalContent = btnAdmin.innerHTML;
-                try {
-                    const provider = new GoogleAuthProvider();
-                    provider.setCustomParameters({ prompt: 'select_account' });
-
-                    btnAdmin.disabled = true;
-                    btnAdmin.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Entrando...';
-
-                    const result = await signInWithPopup(auth, provider);
-                    const googleUser = result.user;
-
-                    // Match Google Email with conductorData.email
-                    const registeredEmail = (conductorData?.email || '').toLowerCase();
-                    const googleEmail = (googleUser.email || '').toLowerCase();
-
-                    if (!registeredEmail || googleEmail !== registeredEmail) {
-                        showNotification(`Correo "${googleEmail}" no autorizado.`, "error");
-                        await auth.signOut();
-                        setTimeout(() => window.location.reload(), 3000);
-                        return;
-                    }
-
-                    // Success
-                    localStorage.setItem('demo_role', 'Administrador');
-                    showNotification("Identidad confirmada. Cargando Panel Admin...", "success");
-                    setTimeout(() => window.location.href = '/administrador/dashboard', 800);
-
-                } catch (err) {
-                    console.error("Admin Access Error:", err);
-                    if (err.code !== 'auth/popup-closed-by-user') {
-                        showNotification("Fallo al autenticar", "error");
-                    }
-                    btnAdmin.disabled = false;
-                    btnAdmin.innerHTML = originalContent;
-                }
-            };
-        }
     }).catch(err => {
         console.error("Error fetching recursos:", err);
         container.innerHTML = '';
     });
 }
 
-window.showTerritoryHistoryModalConductor = async (territoryId, territoryNum) => {
+window.showUnifiedTerritoryHistory = async (territoryId, territoryNum) => {
     try {
         const history = await getTerritoryHistory(territoryId);
         const config = await getConfiguracion();
@@ -2938,7 +2968,7 @@ window.showTerritoryHistoryModalConductor = async (territoryId, territoryNum) =>
                  </header>
 
                  <div class="flex-1 p-6 md:p-8 overflow-y-auto custom-scrollbar space-y-6 bg-white dark:bg-black/20">
-                     <!-- IA INSIGHT SECTION (MODAL) -->
+                     <!-- IA INSIGHT SECTION -->
                      <div class="modern-card p-6 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/10 border-2 relative overflow-hidden group">
                          <div class="absolute -right-4 -top-4 w-20 h-20 bg-primary/5 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
                          <div class="relative z-10">
@@ -2967,40 +2997,61 @@ window.showTerritoryHistoryModalConductor = async (territoryId, territoryNum) =>
 
                      <!-- HISTORY LIST -->
                      <div class="space-y-6">
-                         ${history.length === 0 ? `
-                            <div class="flex flex-col items-center justify-center py-20 opacity-30 text-center">
-                                <i class="fas fa-scroll text-5xl mb-6"></i>
-                                <p class="text-[10px] font-black uppercase tracking-[0.3em]">Sin comentarios previos registrados</p>
-                            </div>
-                         ` : history.map(rec => {
-            const fmtDate = rec.fecha_entrega ? new Date(rec.fecha_entrega).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
-            return `
-                                <div class="modern-card p-6 border-slate-100 dark:border-white/5 hover:border-primary/20 transition-all group shadow-sm bg-white dark:bg-white/5">
-                                    <div class="flex justify-between items-start mb-4">
-                                        <div class="flex items-center gap-4">
-                                            <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400">
-                                                <i class="fas fa-user-circle text-xl"></i>
-                                            </div>
-                                            <div>
-                                                <p class="text-xs font-black text-slate-800 dark:text-white uppercase truncate max-w-[150px]">${rec.conductor || 'Anónimo'}</p>
-                                                <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-0.5">${fmtDate}</p>
-                                            </div>
-                                        </div>
-                                        <span class="px-3 py-1 bg-slate-100 dark:bg-white/10 rounded-lg text-[8px] font-black text-slate-500 uppercase tracking-widest">${rec.estado || '-'}</span>
+                         ${(() => {
+                const filteredHistory = history.filter(rec => (rec.notas && rec.notas.trim() !== '') || (rec.observaciones && rec.observaciones.trim() !== '') || (rec.fotos && rec.fotos.length > 0));
+                if (filteredHistory.length === 0) {
+                    return `
+                        <div class="flex flex-col items-center justify-center py-20 opacity-30 text-center">
+                            <i class="fas fa-scroll text-5xl mb-6"></i>
+                            <p class="text-[10px] font-black uppercase tracking-[0.3em]">Sin observaciones registradas todavía</p>
+                        </div>
+                    `;
+                }
+                return filteredHistory.map(rec => {
+                    const fmtDate = rec.fecha_entrega ? new Date(rec.fecha_entrega).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : (rec.fecha_asignacion ? new Date(rec.fecha_asignacion).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }) : '-');
+                    const obs = rec.notas || rec.observaciones || '';
+                    const isAdmin = window.isAdminMode === true;
+
+                    return `
+                        <div class="modern-card p-6 border-slate-100 dark:border-white/5 hover:border-primary/20 transition-all group shadow-sm bg-white dark:bg-white/5 relative">
+                            <div class="flex justify-between items-start mb-4">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400">
+                                        <i class="fas fa-user-circle text-xl"></i>
                                     </div>
-                                    ${rec.notas ? `
-                                        <div class="p-4 bg-slate-50 dark:bg-black/20 rounded-xl border border-slate-100 dark:border-white/5">
-                                            <p class="text-xs text-slate-600 dark:text-slate-300 font-bold leading-relaxed">"${rec.notas}"</p>
-                                        </div>
-                                    ` : ''}
-                                    ${rec.fotos && rec.fotos.length > 0 ? `
-                                        <div class="flex gap-2 mt-4 overflow-x-auto pb-2 custom-scrollbar">
-                                            ${rec.fotos.map(f => `<img src="${f}" class="w-20 h-20 object-cover rounded-lg shadow-md hover:scale-110 transition-transform cursor-pointer" onclick="window.viewFullImage('${f}')">`).join('')}
+                                    <div>
+                                        <p class="text-xs font-black text-slate-800 dark:text-white uppercase truncate max-w-[150px]">${rec.conductor || 'Anónimo'}</p>
+                                        <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-0.5">${fmtDate}</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="px-3 py-1 bg-slate-100 dark:bg-white/10 rounded-lg text-[8px] font-black text-slate-500 uppercase tracking-widest">${rec.estado || '-'}</span>
+                                    ${isAdmin ? `
+                                        <div class="flex gap-1 ml-2">
+                                            <button onclick="event.stopPropagation(); window.openHistoryEditor('${rec.id}')" class="w-7 h-7 bg-blue-500/10 text-blue-500 rounded-lg flex items-center justify-center hover:bg-blue-500 hover:text-white transition-all shadow-sm" title="Editar">
+                                                <i class="fas fa-edit text-[10px]"></i>
+                                            </button>
+                                            <button onclick="event.stopPropagation(); window.deleteHistoryEntry('${rec.id}', '${territoryId}')" class="w-7 h-7 bg-rose-500/10 text-rose-500 rounded-lg flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-sm" title="Eliminar">
+                                                <i class="fas fa-trash-alt text-[10px]"></i>
+                                            </button>
                                         </div>
                                     ` : ''}
                                 </div>
-                             `;
-        }).join('')}
+                            </div>
+                            ${obs ? `
+                                <div class="p-4 bg-slate-50 dark:bg-black/20 rounded-xl border border-slate-100 dark:border-white/5">
+                                    <p class="text-xs text-slate-600 dark:text-slate-300 font-bold leading-relaxed">"${obs}"</p>
+                                </div>
+                            ` : ''}
+                            ${rec.fotos && rec.fotos.length > 0 ? `
+                                <div class="flex gap-2 mt-4 overflow-x-auto pb-2 custom-scrollbar">
+                                    ${rec.fotos.map(f => `<img src="${f}" class="w-20 h-20 object-cover rounded-lg shadow-md hover:scale-110 transition-transform cursor-pointer" onclick="window.viewFullImage('${f}')">`).join('')}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                }).join('');
+            })()}
                      </div>
                  </div>
 
@@ -3038,12 +3089,19 @@ window.showTerritoryHistoryModalConductor = async (territoryId, territoryNum) =>
                 askResponse.innerText = "Pensando...";
 
                 try {
-                    const historyContext = history.slice(0, 20).map(h => `${h.fecha}: ${h.notas || 'Sin notas'}`).join('\n');
-                    const prompt = `Basado ÚNICAMENTE en este historial de territorio T-${t.numero}, responde la siguiente pregunta del conductor. Sé específico sobre novedades importantes o tendencias. Responde en español de forma amigable.
-                    Historial Reciente:
-                    ${historyContext}
+                    const historyContext = history.slice(0, 30).map(h => {
+                        const d = h.fecha_entrega || h.fecha_asignacion || h.fecha || 'Sin fecha';
+                        const o = h.notas || h.observaciones || 'Sin notas';
+                        return `[${d}] ${o}`;
+                    }).join('\n');
+
+                    const prompt = `Analiza detalladamente este historial de observaciones para el territorio T-${t.numero}. El usuario (un conductor o administrador) necesita un resumen ejecutivo de lo que ha ocurrido aquí últimamente (fallecidos, mudados, zonas difíciles, etc). 
+                    Basado ÚNICAMENTE en este historial, responde la pregunta al final.
                     
-                    Pregunta: ${q}`;
+                    Historial de Observaciones:
+                    ${historyContext}
+
+            Pregunta: ${q}`;
 
                     const response = await brain.askGemini(config.gemini_key, prompt);
                     askResponse.innerText = response;
