@@ -1,4 +1,4 @@
-import { auth } from '../firebase-config.js?v=3.6.9.6';
+import { auth } from '../firebase-config.js?v=3.6.9.7';
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import {
     getTerritorios, getConductores, getPublicadores, getTelefonos, updateTelefono,
@@ -8,10 +8,10 @@ import {
     addPublicador, updatePublicador, deletePublicador, // Added for management within dashboard
     releaseUnusedTelefonos, solicitarNumeros, updateTelefonoStatus, logSessionSummary,
     logReturn, returnTerritorio, returnTerritorioParcial, transferTerritory
-} from '../data/firestore-services.js?v=3.6.9.6';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl } from './utils/helpers.js?v=3.6.9.6';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=3.6.9.6';
-import { MapViewer } from './map-viewer.js?v=3.6.9.6';
+} from '../data/firestore-services.js?v=3.6.9.7';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl } from './utils/helpers.js?v=3.6.9.7';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=3.6.9.7';
+import { MapViewer } from './map-viewer.js?v=3.6.9.7';
 
 
 
@@ -1010,40 +1010,26 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
 
                             ${a.attachedTerritories.length > 0 ? `
                             <div class="space-y-4 pt-2">
-                                 <!-- Consolidated Territory History (Collapsible) -->
-                                 <details class="group bg-slate-950/80 rounded-[2rem] border border-white/5 shadow-inner backdrop-blur-md overflow-hidden">
-                                     <summary class="flex items-center justify-between p-5 cursor-pointer list-none select-none hover:bg-white/5 transition-colors">
-                                        <div class="flex items-center gap-3">
-                                            <div class="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse"></div>
-                                            <span class="text-[9px] font-black text-teal-400 uppercase tracking-[0.2em]">Historial de territorio</span>
-                                        </div>
-                                        <i class="fas fa-chevron-down text-[10px] text-slate-500 group-open:rotate-180 transition-transform"></i>
-                                     </summary>
-                                     <div class="p-6 pt-0 space-y-6">
-                                        <div class="px-1 py-1 border-b border-white/5 mb-2">
-                                            <p class="text-[8px] text-slate-500 font-black uppercase tracking-widest leading-relaxed">Novedades y observaciones registradas anteriormente</p>
-                                        </div>
-                                        <div class="space-y-5">
-                                            ${a.attachedTerritories.map(t => {
-            const insightId = `ai-look-${a.rawDate}-${a.turno}-${t.numero}`.replace(/\s+/g, '-');
-            const notesId = `hist-notes-${a.rawDate}-${a.turno}-${t.numero}`.replace(/\s+/g, '-');
-            return `
-                                                <div class="space-y-3">
-                                                    <!-- Raw Comments -->
-                                                    <div id="${notesId}" class="space-y-2 pl-3 border-l border-white/10 hidden">
-                                                        <!-- Populate via JS -->
-                                                    </div>
-                                                    
-                                                    <!-- IA Synergy -->
-                                                    <div class="flex items-start gap-3 bg-white/5 p-4 rounded-2xl border border-white/5">
-                                                        <div class="shrink-0 text-teal-500 mt-0.5"><i class="fas fa-sparkles text-[10px]"></i></div>
-                                                        <p id="${insightId}" class="text-[10px] text-slate-300 font-bold leading-relaxed">Analizando novedades... ☕</p>
-                                                    </div>
-                                                </div>`;
-        }).join('')}
-                                        </div>
-                                     </div>
-                                 </details>
+                                 <!-- Territory History Button(s) (Image 2 Style) -->
+                                 <div class="space-y-4 pt-2">
+                                     ${a.attachedTerritories.map(t => `
+                                         <button class="w-full p-6 bg-slate-900 dark:bg-slate-800/90 rounded-[3rem] text-teal-400 font-black flex items-center justify-between border border-white/5 shadow-2xl backdrop-blur-md active:scale-95 transition-all group territory-history-btn"
+                                             data-tid="${t.id}" data-tnum="${t.numero}">
+                                             <div class="flex items-center gap-4">
+                                                 <div class="flex flex-col text-left">
+                                                     <div class="flex items-center gap-2 mb-1">
+                                                         <span class="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse"></span>
+                                                         <span class="text-[9px] uppercase tracking-[0.2em] opacity-80">Historial de</span>
+                                                     </div>
+                                                     <span class="text-sm font-black uppercase tracking-widest leading-none">Territorio</span>
+                                                 </div>
+                                             </div>
+                                             <div class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors">
+                                                 <i class="fas fa-chevron-right text-xs text-slate-500 group-hover:translate-x-1 transition-transform"></i>
+                                             </div>
+                                         </button>
+                                     `).join('')}
+                                 </div>
                                 
                                 <!-- Single Report Button per Turn -->
                                 <div class="flex gap-2">
@@ -1080,54 +1066,23 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
     `).join('');
     }
 
-    // AI Analysis Trigger - Updated for grouped structure
-    const brain = new TerritoryIntelligence(null, null, allTerritorios, programa);
-    dayCards.forEach(d => {
-        d.shifts.forEach(async a => {
-            if (!a.isMember) return;
-            for (const t of a.attachedTerritories) {
-                if (t.isMissingData) continue;
-                const insightId = `ai-look-${a.rawDate}-${a.turno}-${t.numero}`.replace(/\s+/g, '-');
-                const el = document.getElementById(insightId);
-                if (!el) continue;
-
-                try {
-                    const history = await getTerritoryHistory(t.id);
-
-                    // Populate Raw Notes first
-                    const notesId = `hist-notes-${a.rawDate}-${a.turno}-${t.numero}`.replace(/\s+/g, '-');
-                    const notesEl = document.getElementById(notesId);
-                    if (notesEl && history && history.length > 0) {
-                        const obsOnly = history.filter(h => h.notas).slice(0, 5);
-                        if (obsOnly.length > 0) {
-                            notesEl.classList.remove('hidden');
-                            notesEl.innerHTML = obsOnly.map(h => `
-                                <div class="flex flex-col gap-0.5">
-                                    <span class="text-[7px] font-black text-slate-500 uppercase tracking-widest">${h.fecha}</span>
-                                    <p class="text-[9px] text-white/50 font-bold leading-tight line-clamp-2">${h.notas}</p>
-                                </div>
-                            `).join('');
-                        }
-                    }
-
-                    // Then AI Insight
-                    const insight = await brain.getTerritoryQuickLook(t, history, (await getConfiguracion()).gemini_key);
-                    el.innerText = insight;
-                } catch (e) {
-                    el.innerText = "Novedades: Ver historial de la última salida."; // Fallback quietly
-                }
-            }
-        });
-    });
 
     // Final UI Setup
     setTimeout(() => {
-        const btns = agendaContainer.querySelectorAll('.territory-report-btn');
-        btns.forEach(btn => {
+        const btnsReport = agendaContainer.querySelectorAll('.territory-report-btn');
+        btnsReport.forEach(btn => {
             btn.onclick = () => {
                 const ids = btn.dataset.ids.split(',');
-                // Pass the first ID as anchor, openProgressModal will fetch siblings
                 window.openProgressModal(ids[0]);
+            };
+        });
+
+        const btnsHistory = agendaContainer.querySelectorAll('.territory-history-btn');
+        btnsHistory.forEach(btn => {
+            btn.onclick = () => {
+                const tid = btn.dataset.tid;
+                const tnum = btn.dataset.tnum;
+                window.showTerritoryHistoryModalConductor(tid, tnum);
             };
         });
     }, 0);
@@ -2957,3 +2912,153 @@ function renderRecursosSection(container) {
         container.innerHTML = '';
     });
 }
+
+window.showTerritoryHistoryModalConductor = async (territoryId, territoryNum) => {
+    try {
+        const history = await getTerritoryHistory(territoryId);
+        const config = await getConfiguracion();
+        const allT = await getTerritorios();
+        const t = allT.find(x => x.id === territoryId) || { numero: territoryNum };
+
+        showModal(`
+            <div class="flex flex-col h-full bg-slate-50 dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden shadow-2xl">
+                 <header class="shrink-0 bg-gradient-to-br from-amber-500 to-orange-600 p-8 text-white relative overflow-hidden">
+                     <div class="absolute -right-20 -top-20 w-64 h-64 bg-white/10 blur-[80px] rounded-full"></div>
+                     <div class="relative z-10 flex justify-between items-center">
+                        <div class="flex items-center gap-6">
+                            <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center text-3xl shadow-2xl border border-white/30 animate-float">
+                                <i class="fas fa-history"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-2xl font-black uppercase tracking-tight leading-none mb-1">Historial T-${t.numero}</h3>
+                                <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Historial de Predicación</p>
+                            </div>
+                        </div>
+                     </div>
+                 </header>
+
+                 <div class="flex-1 p-6 md:p-8 overflow-y-auto custom-scrollbar space-y-6 bg-white dark:bg-black/20">
+                     <!-- IA INSIGHT SECTION (MODAL) -->
+                     <div class="modern-card p-6 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/10 border-2 relative overflow-hidden group">
+                         <div class="absolute -right-4 -top-4 w-20 h-20 bg-primary/5 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+                         <div class="relative z-10">
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="w-8 h-8 rounded-xl bg-primary text-white flex items-center justify-center text-sm shadow-lg shadow-primary/20">
+                                    <i class="fas fa-sparkles"></i>
+                                </div>
+                                <h4 class="text-[10px] font-black text-primary uppercase tracking-[0.3em]">IA: Novedades Detectadas</h4>
+                            </div>
+                            <p id="ai-history-summary" class="text-sm font-bold text-slate-700 dark:text-slate-200 leading-relaxed italic animate-pulse">Analizando el historial completo... ☕</p>
+                            
+                            <!-- CHAT ASISTENTE -->
+                            <div class="mt-6 pt-6 border-t border-primary/10">
+                                <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Preguntas sobre este territorio</p>
+                                <div class="flex gap-2">
+                                    <input type="text" id="ai-ask-input" placeholder="¿Hay alguna novedad importante?" 
+                                        class="flex-1 bg-white/50 dark:bg-black/20 border border-primary/20 rounded-xl px-4 py-3 text-xs font-bold outline-none focus:ring-2 focus:ring-primary/30 transition-all">
+                                    <button id="ai-ask-btn" class="bg-primary hover:bg-primary-light text-white w-12 h-12 rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 transition-all active:scale-95">
+                                        <i class="fas fa-paper-plane"></i>
+                                    </button>
+                                </div>
+                                <div id="ai-ask-response" class="mt-4 text-[11px] text-slate-600 dark:text-slate-400 font-medium hidden animate-fade-in p-4 bg-white dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5"></div>
+                            </div>
+                         </div>
+                     </div>
+
+                     <!-- HISTORY LIST -->
+                     <div class="space-y-6">
+                         ${history.length === 0 ? `
+                            <div class="flex flex-col items-center justify-center py-20 opacity-30 text-center">
+                                <i class="fas fa-scroll text-5xl mb-6"></i>
+                                <p class="text-[10px] font-black uppercase tracking-[0.3em]">Sin comentarios previos registrados</p>
+                            </div>
+                         ` : history.map(rec => {
+            const fmtDate = rec.fecha_entrega ? new Date(rec.fecha_entrega).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+            return `
+                                <div class="modern-card p-6 border-slate-100 dark:border-white/5 hover:border-primary/20 transition-all group shadow-sm bg-white dark:bg-white/5">
+                                    <div class="flex justify-between items-start mb-4">
+                                        <div class="flex items-center gap-4">
+                                            <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400">
+                                                <i class="fas fa-user-circle text-xl"></i>
+                                            </div>
+                                            <div>
+                                                <p class="text-xs font-black text-slate-800 dark:text-white uppercase truncate max-w-[150px]">${rec.conductor || 'Anónimo'}</p>
+                                                <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-0.5">${fmtDate}</p>
+                                            </div>
+                                        </div>
+                                        <span class="px-3 py-1 bg-slate-100 dark:bg-white/10 rounded-lg text-[8px] font-black text-slate-500 uppercase tracking-widest">${rec.estado || '-'}</span>
+                                    </div>
+                                    ${rec.notas ? `
+                                        <div class="p-4 bg-slate-50 dark:bg-black/20 rounded-xl border border-slate-100 dark:border-white/5">
+                                            <p class="text-xs text-slate-600 dark:text-slate-300 font-bold leading-relaxed">"${rec.notas}"</p>
+                                        </div>
+                                    ` : ''}
+                                    ${rec.fotos && rec.fotos.length > 0 ? `
+                                        <div class="flex gap-2 mt-4 overflow-x-auto pb-2 custom-scrollbar">
+                                            ${rec.fotos.map(f => `<img src="${f}" class="w-20 h-20 object-cover rounded-lg shadow-md hover:scale-110 transition-transform cursor-pointer" onclick="window.viewFullImage('${f}')">`).join('')}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                             `;
+        }).join('')}
+                     </div>
+                 </div>
+
+                 <footer class="shrink-0 p-8 bg-white dark:bg-black/40 border-t border-slate-100 dark:border-white/5">
+                     <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="w-full py-5 rounded-2xl bg-slate-100 dark:bg-white/10 text-slate-500 font-black text-[10px] uppercase tracking-[0.2em] hover:bg-slate-200 dark:hover:bg-white/20 transition-all border border-slate-200 dark:border-white/5 shadow-sm active:scale-95">
+                         Cerrar Historial
+                     </button>
+                 </footer>
+            </div>
+        `, (modal) => {
+            const brain = new TerritoryIntelligence(null, null, allT, null);
+            const summaryEl = modal.querySelector('#ai-history-summary');
+
+            (async () => {
+                try {
+                    const insight = await brain.getTerritoryQuickLook(t, history, config.gemini_key);
+                    summaryEl.innerText = insight;
+                    summaryEl.classList.remove('animate-pulse');
+                } catch (e) {
+                    summaryEl.innerText = "No se pudo generar el resumen automático.";
+                }
+            })();
+
+            const askInput = modal.querySelector('#ai-ask-input');
+            const askBtn = modal.querySelector('#ai-ask-btn');
+            const askResponse = modal.querySelector('#ai-ask-response');
+
+            askBtn.onclick = async () => {
+                const q = askInput.value.trim();
+                if (!q) return;
+
+                askBtn.disabled = true;
+                askBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>';
+                askResponse.classList.remove('hidden');
+                askResponse.innerText = "Pensando...";
+
+                try {
+                    const historyContext = history.slice(0, 20).map(h => `${h.fecha}: ${h.notas || 'Sin notas'}`).join('\n');
+                    const prompt = `Basado ÚNICAMENTE en este historial de territorio T-${t.numero}, responde la siguiente pregunta del conductor. Sé específico sobre novedades importantes o tendencias. Responde en español de forma amigable.
+                    Historial Reciente:
+                    ${historyContext}
+                    
+                    Pregunta: ${q}`;
+
+                    const response = await brain.askGemini(config.gemini_key, prompt);
+                    askResponse.innerText = response;
+                } catch (e) {
+                    askResponse.innerText = "Error: " + e.message;
+                } finally {
+                    askBtn.disabled = false;
+                    askBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+                }
+            };
+
+            askInput.onkeypress = (e) => { if (e.key === 'Enter') askBtn.click(); };
+        }, 'max-w-2xl');
+    } catch (e) {
+        console.error(e);
+        showNotification("Error cargando historial: " + e.message, "error");
+    }
+};
