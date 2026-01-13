@@ -1,4 +1,5 @@
 import { auth } from '../firebase-config.js?v=3.6.9';
+import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import {
     getTerritorios, getConductores, getPublicadores, getTelefonos, updateTelefono,
     getRecursos, getConfiguracion,
@@ -186,7 +187,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                          <p class="text-[10px] font-black text-slate-800 dark:text-white tabular-nums">${appVersion || '3.6.0'}</p>
                     </div>
                     ${conductorData?.privilegios?.includes('Administrador') ? `
-                    <button onclick="window.location.href='/administrador/dashboard'" class="flex-1 md:flex-none bg-amber-500/10 hover:bg-amber-500 text-amber-600 hover:text-white px-6 py-3.5 rounded-xl border border-amber-500/20 transition-all font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95">
+                    <button id="btn-goto-admin" class="flex-1 md:flex-none bg-amber-500/10 hover:bg-amber-500 text-amber-600 hover:text-white px-6 py-3.5 rounded-xl border border-amber-500/20 transition-all font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95">
                         <i class="fas fa-user-shield"></i> Panel Admin
                     </button>
                     ` : `
@@ -201,8 +202,6 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
             </header>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <!-- Module: Agenda Semanal (Personal) -->
-                <div class="lg:col-span-2 ${hasAgenda ? '' : 'hidden'}">
                     <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 px-4 gap-4">
                         <h3 class="text-xs font-black text-gray-400 uppercase tracking-[0.3em] flex items-center gap-3">
                            <span class="w-8 h-[1px] bg-gray-300 dark:bg-white/10"></span>
@@ -2857,6 +2856,48 @@ function renderRecursosSection(container) {
                 </details>
             </div>
         `;
+
+        // Panel Admin Auth Bridge
+        const btnAdmin = document.getElementById('btn-goto-admin');
+        if (btnAdmin) {
+            btnAdmin.onclick = async () => {
+                const originalContent = btnAdmin.innerHTML;
+                try {
+                    const provider = new GoogleAuthProvider();
+                    provider.setCustomParameters({ prompt: 'select_account' });
+
+                    btnAdmin.disabled = true;
+                    btnAdmin.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Entrando...';
+
+                    const result = await signInWithPopup(auth, provider);
+                    const googleUser = result.user;
+
+                    // Match Google Email with conductorData.email
+                    const registeredEmail = (conductorData?.email || '').toLowerCase();
+                    const googleEmail = (googleUser.email || '').toLowerCase();
+
+                    if (!registeredEmail || googleEmail !== registeredEmail) {
+                        showNotification(`Correo "${googleEmail}" no autorizado.`, "error");
+                        await auth.signOut();
+                        setTimeout(() => window.location.reload(), 3000);
+                        return;
+                    }
+
+                    // Success
+                    localStorage.setItem('demo_role', 'Administrador');
+                    showNotification("Identidad confirmada. Cargando Panel Admin...", "success");
+                    setTimeout(() => window.location.href = '/administrador/dashboard', 800);
+
+                } catch (err) {
+                    console.error("Admin Access Error:", err);
+                    if (err.code !== 'auth/popup-closed-by-user') {
+                        showNotification("Fallo al autenticar", "error");
+                    }
+                    btnAdmin.disabled = false;
+                    btnAdmin.innerHTML = originalContent;
+                }
+            };
+        }
     }).catch(err => {
         console.error("Error fetching recursos:", err);
         container.innerHTML = '';

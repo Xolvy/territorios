@@ -4655,12 +4655,12 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                     const list = gender === 'Hombre' ? malePrivs : femalePrivs;
 
                     privsContainer.innerHTML = list.map(pr => `
-                        <label class="flex items-center gap-3 bg-white dark:bg-white/5 px-4 py-3 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-primary/50 cursor-pointer transition-all group">
+                        <label class="flex items-center gap-3 bg-white dark:bg-white/5 px-4 py-3 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-primary/50 cursor-pointer transition-all group shadow-sm active:scale-[0.98]">
                             <input type="checkbox" class="p-priv-check sr-only peer" value="${pr}" ${currentPrivs.includes(pr) ? 'checked' : ''}>
-                            <div class="w-5 h-5 rounded-lg border-2 border-slate-200 dark:border-white/10 peer-checked:bg-primary peer-checked:border-primary flex items-center justify-center transition-all">
-                                <i class="fas fa-check text-[10px] text-white hidden peer-checked:block"></i>
+                            <div class="w-6 h-6 rounded-full border-2 border-slate-200 dark:border-white/20 peer-checked:bg-primary peer-checked:border-primary flex items-center justify-center transition-all bg-slate-50 dark:bg-black/20 group-hover:border-primary/30">
+                                <i class="fas fa-check text-[10px] text-white hidden peer-checked:block animate-scale-in"></i>
                             </div>
-                            <span class="text-[10px] font-black text-slate-400 peer-checked:text-primary transition-colors uppercase tracking-widest">${pr}</span>
+                            <span class="text-[10px] font-black text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 peer-checked:text-primary transition-colors uppercase tracking-widest">${pr}</span>
                         </label>
                     `).join('');
 
@@ -6813,8 +6813,6 @@ export const renderAdvancedHistoryView = async (container, options = {}) => {
         });
 
         render(); // Initial Render
-
-
     } catch (e) {
         console.error(e);
         container.innerHTML = `
