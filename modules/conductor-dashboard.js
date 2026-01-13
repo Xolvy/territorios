@@ -979,98 +979,90 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
         `;
     } else {
         agendaContainer.innerHTML = dayCards.map(dayData => `
-            <div class="group relative overflow-hidden modern-card p-8 transition-all duration-500 hover:scale-[1.02] flex flex-col gap-6 shadow-xl border-slate-200">
-                <div class="flex justify-between items-start gap-4 border-b border-slate-100 dark:border-white/5 pb-6">
-                    <div class="space-y-1">
-                        <h3 class="font-black text-3xl text-slate-800 dark:text-white tracking-tighter uppercase tabular-nums">${dayData.dia}</h3> 
-                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block">${dayData.rawDate}</span>
+            <div class="group relative overflow-hidden modern-card p-5 transition-all duration-500 hover:shadow-2xl flex flex-col gap-4 shadow-lg border-slate-100 dark:border-white/5 bg-white dark:bg-slate-900/40">
+                <div class="flex justify-between items-start gap-3 border-b border-slate-50 dark:border-white/5 pb-4">
+                    <div class="space-y-0.5">
+                        <h3 class="font-black text-2xl text-slate-800 dark:text-white tracking-tighter uppercase tabular-nums leading-none">${dayData.dia}</h3> 
+                        <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest block">${dayData.rawDate}</span>
                     </div>
-                    <div class="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-2xl text-primary shadow-inner border border-primary/10">
+                    <div class="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center text-lg text-primary/60 border border-primary/10">
                         <i class="fas fa-calendar-day"></i>
                     </div>
                 </div>
 
-                <div class="flex flex-col gap-6">
+                <div class="flex flex-col gap-5">
                     ${dayData.shifts.map(a => `
-                        <div class="shift-block space-y-4">
-                            <div class="flex items-center gap-3">
-                                 <span class="w-2 h-2 rounded-full bg-teal-500"></span>
-                                 <h4 class="text-xs font-black text-teal-600 dark:text-teal-400 uppercase tracking-widest">${a.turno}</h4>
+                        <div class="shift-block space-y-3">
+                            <div class="flex items-center gap-2">
+                                 <span class="w-1.5 h-1.5 rounded-full bg-teal-500"></span>
+                                 <h4 class="text-[10px] font-black text-teal-600 dark:text-teal-400 uppercase tracking-widest">${a.turno}</h4>
                             </div>
 
-                            <div class="grid grid-cols-2 gap-3">
-                                <div class="p-4 rounded-[2rem] bg-slate-50 dark:bg-slate-900/50 space-y-1 border border-transparent hover:border-teal-500/20 transition-colors">
-                                    <p class="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Conductor</p>
-                                    <p class="text-xs font-bold ${a.conductor === name ? 'text-teal-600' : 'text-slate-700 dark:text-slate-200'} truncate">${a.conductor || '---'}</p>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div class="p-3 rounded-2xl bg-slate-50/50 dark:bg-black/20 space-y-0.5 border border-transparent">
+                                    <p class="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none">Conductor</p>
+                                    <p class="text-[11px] font-bold ${a.conductor === name ? 'text-teal-600' : 'text-slate-700 dark:text-slate-200'} leading-tight">${a.conductor || '---'}</p>
                                 </div>
-                                <div class="p-4 rounded-[2rem] bg-slate-50 dark:bg-slate-900/50 space-y-1 border border-transparent hover:border-teal-500/20 transition-colors">
-                                    <p class="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Auxiliar</p>
-                                    <p class="text-xs font-bold ${a.auxiliar === name ? 'text-teal-600' : 'text-slate-700 dark:text-slate-200'} truncate">${a.auxiliar || '---'}</p>
+                                <div class="p-3 rounded-2xl bg-slate-50/50 dark:bg-black/20 space-y-0.5 border border-transparent">
+                                    <p class="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none">Auxiliar</p>
+                                    <p class="text-[11px] font-bold ${a.auxiliar === name ? 'text-teal-600' : 'text-slate-700 dark:text-slate-200'} leading-tight">${a.auxiliar || '---'}</p>
                                 </div>
                             </div>
 
-                             <div class="p-5 rounded-2xl bg-primary/5 dark:bg-primary/10 border border-primary/10 flex items-center gap-4 group/lugar hover:bg-primary/10 transition-colors">
-                                <div class="w-10 h-10 bg-white dark:bg-slate-800 rounded-xl flex items-center justify-center text-lg text-primary shadow-sm group-hover/lugar:scale-110 transition-transform">
+                             <div class="p-4 rounded-2xl bg-primary/5 dark:bg-primary/10 border border-primary/5 flex items-center gap-3 group/lugar hover:bg-primary/10 transition-colors">
+                                <div class="w-8 h-8 bg-white dark:bg-slate-800 rounded-lg flex items-center justify-center text-sm text-primary shadow-sm">
                                     <i class="fas fa-map-marker-alt"></i>
                                 </div>
-                                <div class="min-w-0">
-                                    <p class="text-[9px] font-black text-primary uppercase tracking-[0.2em]">Punto de Reunión</p>
-                                    <p class="text-[11px] font-black text-slate-800 dark:text-slate-100 truncate uppercase mt-0.5">${a.lugar || 'Por definir'}</p>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-[8px] font-black text-primary uppercase tracking-widest leading-none mb-1">Punto de Reunión</p>
+                                    <p class="text-[10px] font-extrabold text-slate-800 dark:text-slate-100 uppercase leading-tight">${a.lugar || 'Por definir'}</p>
                                 </div>
                             </div>
 
                             ${a.attachedTerritories.length > 0 ? `
-                            <div class="space-y-4 pt-2">
-                                 <!-- Territory History Button(s) (Image 2 Style) -->
-                                 <div class="space-y-4 pt-2">
+                            <div class="space-y-3 pt-1">
+                                 <!-- Territory History Button(s) -->
+                                 <div class="space-y-2">
                                      ${a.attachedTerritories.map(t => `
-                                         <button class="w-full p-5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 flex items-center gap-4 group/history hover:bg-slate-50 dark:hover:bg-white/5 active:scale-95 transition-all shadow-sm territory-history-btn"
+                                         <button class="w-full p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-white/5 flex items-center gap-3 group/history hover:shadow-md active:scale-95 transition-all territory-history-btn"
                                              data-tid="${t.id}" data-tnum="${t.numero}">
-                                             <div class="w-10 h-10 bg-slate-100 dark:bg-white/5 rounded-xl flex items-center justify-center text-lg text-slate-500 group-hover/history:scale-110 transition-transform">
+                                             <div class="w-8 h-8 bg-slate-50 dark:bg-white/5 rounded-lg flex items-center justify-center text-sm text-slate-400 group-hover/history:text-primary transition-colors">
                                                  <i class="fas fa-history"></i>
                                              </div>
-                                             <div class="min-w-0 text-left">
-                                                 <div class="flex items-center gap-2">
-                                                    <span class="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse"></span>
-                                                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">HISTORIAL</p>
-                                                 </div>
-                                                 <p class="text-[11px] font-black text-slate-800 dark:text-white truncate uppercase mt-0.5">Terr. ${t.numero}</p>
+                                             <div class="flex-1 text-left">
+                                                 <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">HISTORIAL</p>
+                                                 <p class="text-[10px] font-black text-slate-800 dark:text-white uppercase mt-1">Territorio ${t.numero}</p>
                                              </div>
-                                             <div class="ml-auto w-8 h-8 rounded-full bg-slate-50 dark:bg-white/5 flex items-center justify-center group-hover/history:translate-x-1 transition-all">
-                                                 <i class="fas fa-chevron-right text-[10px] text-slate-300"></i>
-                                             </div>
+                                             <i class="fas fa-chevron-right text-[9px] text-slate-300 group-hover/history:translate-x-1 transition-transform"></i>
                                          </button>
                                      `).join('')}
                                  </div>
                                 
                                 <!-- Single Report Button per Turn -->
-                                <div class="flex gap-2">
-                                    <button class="flex-1 p-5 bg-gradient-to-br from-teal-600 to-emerald-700 rounded-[2rem] text-white font-black flex items-center justify-between shadow-xl shadow-teal-500/20 active:scale-95 transition-all group overflow-hidden relative territory-report-btn"
+                                <div class="flex gap-2 h-14">
+                                    <button class="flex-1 px-5 bg-gradient-to-br from-teal-600 to-emerald-700 rounded-2xl text-white font-black flex items-center justify-between shadow-lg shadow-teal-500/10 active:scale-95 transition-all group overflow-hidden relative territory-report-btn"
                                         data-ids="${a.attachedTerritories.map(t => t.id).join(',')}" 
                                         data-nums="${a.attachedTerritories.map(t => t.numero).join(',')}"
                                         data-manzanas="${a.attachedTerritories.map(t => t.manzanas || '').join(';')}"
                                    >
-                                        <div class="absolute inset-0 bg-white/10 translate-x-full group-hover:translate-x-0 transition-transform duration-500"></div>
-                                        <div class="relative z-10 flex items-center gap-4">
-                                            <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-lg shadow-inner border border-white/30 animate-float">📊</div>
+                                        <div class="relative z-10 flex items-center gap-3">
+                                            <div class="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center text-base">📊</div>
                                             <div class="text-left">
-                                                <p class="text-sm font-black leading-tight">Informe</p>
-                                                <p class="text-[9px] font-bold text-teal-200 uppercase tracking-widest">${a.attachedTerritories.map(t => 'T-' + t.numero).join(' & ')}</p>
+                                                <p class="text-xs font-black leading-none mb-1">Informe</p>
+                                                <p class="text-[8px] font-bold text-teal-200 uppercase tracking-widest">${a.attachedTerritories.map(t => 'T-' + t.numero).join(' & ')}</p>
                                             </div>
                                         </div>
-                                        <div class="relative z-10 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center transition-transform group-hover:translate-x-1 border border-white/20">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/></svg>
-                                        </div>
+                                        <i class="fas fa-chevron-right text-[10px] opacity-40 group-hover:translate-x-1 transition-transform"></i>
                                     </button>
                                     ${a.attachedTerritories.length > 0 ? `
-                                    <button onclick="window.viewMapFromReport('${a.attachedTerritories[0].id}')" class="p-5 bg-indigo-600 rounded-[2rem] text-white font-black shadow-xl shadow-indigo-500/20 active:scale-95 transition-all flex items-center justify-center group">
-                                        <span class="text-2xl group-hover:rotate-12 transition-transform">🗺️</span>
+                                    <button onclick="window.viewMapFromReport('${a.attachedTerritories[0].id}')" class="w-14 bg-indigo-600 rounded-2xl text-white font-black shadow-lg shadow-indigo-500/10 active:scale-95 transition-all flex items-center justify-center group overflow-hidden">
+                                        <i class="fas fa-map-marked-alt text-xl group-hover:scale-110 transition-transform"></i>
                                     </button>
                                     ` : ''}
                                 </div>
                             </div>` : ''}
                             
-                            ${dayData.shifts.indexOf(a) < dayData.shifts.length - 1 ? '<div class="h-px bg-black/5 dark:bg-white/5 my-4"></div>' : ''}
+                            ${dayData.shifts.indexOf(a) < dayData.shifts.length - 1 ? '<div class="h-px bg-slate-100 dark:bg-white/5 my-2"></div>' : ''}
                         </div>
                     `).join('')}
                 </div>
@@ -2967,29 +2959,33 @@ window.showUnifiedTerritoryHistory = async (territoryId, territoryNum) => {
                  </header>
 
                  <div class="flex-1 p-6 md:p-8 overflow-y-auto custom-scrollbar space-y-6 bg-white dark:bg-black/20">
-                     <!-- IA INSIGHT SECTION -->
-                     <div class="modern-card p-6 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/10 border-2 relative overflow-hidden group">
-                         <div class="absolute -right-4 -top-4 w-20 h-20 bg-primary/5 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+                     <!-- OBSERVATIONS SECTION -->
+                     <div class="modern-card p-6 bg-slate-50 dark:bg-white/[0.03] border-slate-100 dark:border-white/5 border relative overflow-hidden group">
                          <div class="relative z-10">
-                            <div class="flex items-center gap-3 mb-4">
-                                <div class="w-8 h-8 rounded-xl bg-primary text-white flex items-center justify-center text-sm shadow-lg shadow-primary/20">
-                                    <i class="fas fa-sparkles"></i>
+                            <div class="flex items-center gap-3 mb-6">
+                                <div class="w-8 h-8 rounded-xl bg-teal-500 text-white flex items-center justify-center text-sm shadow-lg shadow-teal-500/20">
+                                    <i class="fas fa-edit"></i>
                                 </div>
-                                <h4 class="text-[10px] font-black text-primary uppercase tracking-[0.3em]">IA: Novedades Detectadas</h4>
+                                <h4 class="text-[10px] font-black text-slate-800 dark:text-white uppercase tracking-[0.3em]">Observaciones</h4>
                             </div>
-                            <p id="ai-history-summary" class="text-sm font-bold text-slate-700 dark:text-slate-200 leading-relaxed italic animate-pulse">Analizando el historial completo... ☕</p>
                             
-                            <!-- CHAT ASISTENTE -->
-                            <div class="mt-6 pt-6 border-t border-primary/10">
-                                <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Preguntas sobre este territorio</p>
-                                <div class="flex gap-2">
+                            <div class="space-y-4">
+                                <div class="flex gap-3 relative">
                                     <input type="text" id="ai-ask-input" placeholder="¿Hay alguna novedad importante?" 
-                                        class="flex-1 bg-white/50 dark:bg-black/20 border border-primary/20 rounded-xl px-4 py-3 text-xs font-bold outline-none focus:ring-2 focus:ring-primary/30 transition-all">
-                                    <button id="ai-ask-btn" class="bg-primary hover:bg-primary-light text-white w-12 h-12 rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 transition-all active:scale-95">
-                                        <i class="fas fa-paper-plane"></i>
-                                    </button>
+                                        class="flex-1 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-2xl px-6 py-4 pr-24 text-[13px] font-bold outline-none focus:ring-4 focus:ring-primary/10 transition-all text-slate-800 dark:text-white shadow-inner">
+                                    
+                                    <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                                        <label class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400 hover:text-primary transition-all cursor-pointer">
+                                            <i class="fas fa-camera"></i>
+                                            <input type="file" id="history-photo-input" accept="image/*" class="hidden" multiple>
+                                        </label>
+                                        <button id="ai-ask-btn" class="bg-primary hover:bg-primary-light text-white w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 transition-all active:scale-95">
+                                            <i class="fas fa-paper-plane"></i>
+                                        </button>
+                                    </div>
                                 </div>
-                                <div id="ai-ask-response" class="mt-4 text-[11px] text-slate-600 dark:text-slate-400 font-medium hidden animate-fade-in p-4 bg-white dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5"></div>
+                                <div id="history-photos-preview" class="flex flex-wrap gap-2 empty:hidden"></div>
+                                <div id="ai-ask-response" class="hidden animate-fade-in p-5 bg-white dark:bg-white/5 rounded-[1.5rem] border border-slate-100 dark:border-white/5 text-[13px] text-slate-600 dark:text-slate-300 font-bold leading-relaxed shadow-sm"></div>
                             </div>
                          </div>
                      </div>
@@ -3060,19 +3056,33 @@ window.showUnifiedTerritoryHistory = async (territoryId, territoryNum) => {
                      </button>
                  </footer>
             </div>
-        `, (modal) => {
+        }, (modal) => {
             const brain = new TerritoryIntelligence(null, null, allT, null);
-            const summaryEl = modal.querySelector('#ai-history-summary');
-
-            (async () => {
-                try {
-                    const insight = await brain.getTerritoryQuickLook(t, history, config.gemini_key);
-                    summaryEl.innerText = insight;
-                    summaryEl.classList.remove('animate-pulse');
-                } catch (e) {
-                    summaryEl.innerText = "No se pudo generar el resumen automático.";
-                }
-            })();
+            
+            // Photo Preview Logic
+            const photoInput = modal.querySelector('#history-photo-input');
+            const photoPreview = modal.querySelector('#history-photos-preview');
+            
+            if (photoInput && photoPreview) {
+                photoInput.onchange = (e) => {
+                    Array.from(e.target.files).forEach(file => {
+                        if (file.size > 800 * 1024) return showNotification("Foto muy grande (max 800KB)", "warning");
+                        const reader = new FileReader();
+                        reader.onload = (ev) => {
+                            const container = document.createElement('div');
+                            container.className = 'relative w-16 h-16 rounded-xl overflow-hidden border border-black/10 group animate-scale-in';
+                            container.innerHTML = `
+            < img src = "${ev.target.result}" class= "w-full h-full object-cover" >
+            <button onclick="this.parentElement.remove()" class="absolute inset-0 bg-rose-500/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <i class="fas fa-trash-alt text-xs"></i>
+            </button>
+                            `;
+                            photoPreview.appendChild(container);
+                        };
+                        reader.readAsDataURL(file);
+                    });
+                };
+            }
 
             const askInput = modal.querySelector('#ai-ask-input');
             const askBtn = modal.querySelector('#ai-ask-btn');
@@ -3080,27 +3090,26 @@ window.showUnifiedTerritoryHistory = async (territoryId, territoryNum) => {
 
             askBtn.onclick = async () => {
                 const q = askInput.value.trim();
-                if (!q) return;
+                const photos = Array.from(photoPreview.querySelectorAll('img')).map(img => img.src);
+                if (!q && photos.length === 0) return;
 
                 askBtn.disabled = true;
                 askBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>';
                 askResponse.classList.remove('hidden');
-                askResponse.innerText = "Pensando...";
+                askResponse.innerText = "Procesando...";
 
                 try {
                     const historyContext = history.slice(0, 30).map(h => {
                         const d = h.fecha_entrega || h.fecha_asignacion || h.fecha || 'Sin fecha';
                         const o = h.notas || h.observaciones || 'Sin notas';
-                        return `[${d}] ${o}`;
+                        return `[${ d }]${ o }`;
                     }).join('\n');
 
-                    const prompt = `Analiza detalladamente este historial de observaciones para el territorio T-${t.numero}. El usuario (un conductor o administrador) necesita un resumen ejecutivo de lo que ha ocurrido aquí últimamente (fallecidos, mudados, zonas difíciles, etc). 
-                    Basado ÚNICAMENTE en este historial, responde la pregunta al final.
+                    const prompt = `Analiza detalladamente este historial de observaciones para el territorio T - ${ t.numero }.El usuario necesita ayuda con estas observaciones.
+                    Responde basado en este historial:
+            ${ historyContext }
                     
-                    Historial de Observaciones:
-                    ${historyContext}
-
-            Pregunta: ${q}`;
+                    Consulta: ${ q }`;
 
                     const response = await brain.askGemini(config.gemini_key, prompt);
                     askResponse.innerText = response;
