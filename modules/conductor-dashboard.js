@@ -1,4 +1,4 @@
-import { auth } from '../firebase-config.js?v=3.6.9.5';
+import { auth } from '../firebase-config.js?v=3.6.9.6';
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import {
     getTerritorios, getConductores, getPublicadores, getTelefonos, updateTelefono,
@@ -8,10 +8,10 @@ import {
     addPublicador, updatePublicador, deletePublicador, // Added for management within dashboard
     releaseUnusedTelefonos, solicitarNumeros, updateTelefonoStatus, logSessionSummary,
     logReturn, returnTerritorio, returnTerritorioParcial, transferTerritory
-} from '../data/firestore-services.js?v=3.6.9.5';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl } from './utils/helpers.js?v=3.6.9.5';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=3.6.9.5';
-import { MapViewer } from './map-viewer.js?v=3.6.9.5';
+} from '../data/firestore-services.js?v=3.6.9.6';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl } from './utils/helpers.js?v=3.6.9.6';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=3.6.9.6';
+import { MapViewer } from './map-viewer.js?v=3.6.9.6';
 
 
 
@@ -1019,17 +1019,26 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
                                         </div>
                                         <i class="fas fa-chevron-down text-[10px] text-slate-500 group-open:rotate-180 transition-transform"></i>
                                      </summary>
-                                     <div class="p-5 pt-0 space-y-4">
-                                        <div class="px-1 py-2 border-b border-white/5">
-                                            <p class="text-[8px] text-slate-500 font-black uppercase tracking-widest leading-relaxed">Consulta aquí el historial de novedades de estos territorios</p>
+                                     <div class="p-6 pt-0 space-y-6">
+                                        <div class="px-1 py-1 border-b border-white/5 mb-2">
+                                            <p class="text-[8px] text-slate-500 font-black uppercase tracking-widest leading-relaxed">Novedades y observaciones registradas anteriormente</p>
                                         </div>
-                                        <div class="space-y-3">
+                                        <div class="space-y-5">
                                             ${a.attachedTerritories.map(t => {
             const insightId = `ai-look-${a.rawDate}-${a.turno}-${t.numero}`.replace(/\s+/g, '-');
+            const notesId = `hist-notes-${a.rawDate}-${a.turno}-${t.numero}`.replace(/\s+/g, '-');
             return `
-                                                <div class="flex items-start gap-3">
-                                                    <span class="text-[9px] font-black text-white/30 mt-0.5">T-${t.numero}</span>
-                                                    <p id="${insightId}" class="text-[9px] text-slate-400 italic leading-relaxed">Analizando... 🤖</p>
+                                                <div class="space-y-3">
+                                                    <!-- Raw Comments -->
+                                                    <div id="${notesId}" class="space-y-2 pl-3 border-l border-white/10 hidden">
+                                                        <!-- Populate via JS -->
+                                                    </div>
+                                                    
+                                                    <!-- IA Synergy -->
+                                                    <div class="flex items-start gap-3 bg-white/5 p-4 rounded-2xl border border-white/5">
+                                                        <div class="shrink-0 text-teal-500 mt-0.5"><i class="fas fa-sparkles text-[10px]"></i></div>
+                                                        <p id="${insightId}" class="text-[10px] text-slate-300 font-bold leading-relaxed">Analizando novedades... ☕</p>
+                                                    </div>
                                                 </div>`;
         }).join('')}
                                         </div>
@@ -1084,10 +1093,28 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
 
                 try {
                     const history = await getTerritoryHistory(t.id);
+
+                    // Populate Raw Notes first
+                    const notesId = `hist-notes-${a.rawDate}-${a.turno}-${t.numero}`.replace(/\s+/g, '-');
+                    const notesEl = document.getElementById(notesId);
+                    if (notesEl && history && history.length > 0) {
+                        const obsOnly = history.filter(h => h.notas).slice(0, 5);
+                        if (obsOnly.length > 0) {
+                            notesEl.classList.remove('hidden');
+                            notesEl.innerHTML = obsOnly.map(h => `
+                                <div class="flex flex-col gap-0.5">
+                                    <span class="text-[7px] font-black text-slate-500 uppercase tracking-widest">${h.fecha}</span>
+                                    <p class="text-[9px] text-white/50 font-bold leading-tight line-clamp-2">${h.notas}</p>
+                                </div>
+                            `).join('');
+                        }
+                    }
+
+                    // Then AI Insight
                     const insight = await brain.getTerritoryQuickLook(t, history, (await getConfiguracion()).gemini_key);
                     el.innerText = insight;
                 } catch (e) {
-                    el.innerText = "Revisar notas de la última salida."; // Fallback quietly
+                    el.innerText = "Novedades: Ver historial de la última salida."; // Fallback quietly
                 }
             }
         });

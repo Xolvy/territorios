@@ -142,13 +142,21 @@ export class TerritoryIntelligence {
     async getTerritoryQuickLook(territory, history, apiKey) {
         if (!apiKey) return "IA Desactivada.";
 
+        // Tomar hasta 15 entradas para un análisis profundo de "Novedades"
         const historyContext = history && history.length > 0
-            ? history.slice(0, 3).map(h => `${h.fecha}: ${h.estado}. Notas: ${h.notas || 'Sin notas'}`).join(' | ')
+            ? history.slice(0, 15).map(h => `${h.fecha}: ${h.estado}. Nota: ${h.notas || 'Sin notas'}`).join('\n')
             : "Sin historial reciente.";
 
-        const prompt = `Como asistente de predicación, da una sugerencia MUY BREVE (máximo 15 palabras) para el territorio ${territory.numero} (${territory.manzanas || 'Todas'}). 
-        Historial reciente: ${historyContext}. 
-        Enfócate en interés, mejor hora o precauciones. Sé específico pero ultra-conciso.`;
+        const prompt = `Analiza el historial de predicación del territorio y responde: ¿Qué novedades hay sobre este territorio?
+        Historial Completo:
+        ${historyContext}
+        
+        Sugerencia técnica: Enfócate en tendencias (ej: "Hay mucho interés en las tardes", "Cuidado con los perros en Mz 4", "Zona difícil, mejor ir en grupo").
+        REGLAS:
+        - Responde en máximo 30 palabras.
+        - Sé amigable y directo.
+        - NO menciones el número del territorio (se sobreentiende).
+        - Si no hay notas relevantes, sugiere algo basado en el tiempo transcurrido.`;
 
         try {
             const response = await this.askGemini(apiKey, prompt);
