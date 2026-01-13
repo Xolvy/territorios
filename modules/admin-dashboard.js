@@ -667,15 +667,15 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
                         </div>
                     </div>
                     <div class="flex items-center gap-4 w-full md:w-auto">
-                        <div class="hidden sm:flex flex-col items-end mr-2">
-                             <p class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Versión del Sistema</p>
-                             <p class="text-xs font-extrabold text-primary">Build ${appVersion || '3.6.0'}</p>
+                        <div class="hidden sm:flex flex-col items-end mr-4">
+                             <p class="text-[9px] font-black text-slate-500 uppercase tracking-tighter">Versión del Sistema</p>
+                             <p class="text-[11px] font-black text-primary bg-primary/5 px-3 py-1 rounded-lg">Build ${appVersion || '3.6.0'}</p>
                         </div>
-                        <button onclick="window.location.href='/conductores'" class="flex-1 md:flex-none bg-indigo-500/10 hover:bg-indigo-500 text-indigo-600 hover:text-white px-6 py-4 rounded-xl border border-indigo-500/20 transition-all font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-3">
-                            <i class="fas fa-user"></i>
+                        <button onclick="window.location.href='/conductores'" class="flex-1 md:flex-none bg-indigo-600/10 hover:bg-indigo-600 text-indigo-700 hover:text-white px-6 py-4 rounded-xl border border-indigo-500/30 transition-all font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 shadow-sm">
+                            <i class="fas fa-user-circle"></i>
                             Vista Conductor
                         </button>
-                        <button id="logout-btn" class="flex-1 md:flex-none bg-white dark:bg-white/5 hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-500 hover:text-red-500 px-6 py-4 rounded-xl border border-slate-100 dark:border-white/5 transition-all font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-3">
+                        <button id="logout-btn" class="flex-1 md:flex-none bg-slate-100 dark:bg-white/5 hover:bg-rose-50 dark:hover:bg-rose-500/10 text-slate-600 dark:text-slate-400 px-6 py-4 rounded-xl border border-slate-200 dark:border-white/10 transition-all font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 active:scale-95 shadow-sm">
                             <i class="fas fa-sign-out-alt"></i>
                             Cerrar Sesión
                         </button>
@@ -1324,7 +1324,8 @@ const renderAsignacionesView = async (container) => {
         const facetasOptions = (config.facetas && config.facetas.length > 0) ? config.facetas : ['Casa en casa', 'Carritos'];
 
         const configuredGroups = await getGroupsConfig();
-        const activeConductors = allPersonnel.filter(p => p.es_conductor).sort((a, b) => a.nombre.localeCompare(b.nombre));
+        const activeConductors = conductores.filter(p => p.es_conductor).sort((a, b) => a.nombre.localeCompare(b.nombre));
+        const activeAuxiliares = conductores.filter(p => !p.es_conductor).sort((a, b) => a.nombre.localeCompare(b.nombre));
 
         showModal(`
             <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden">
@@ -2983,16 +2984,16 @@ const renderAsignacionesView = async (container) => {
                 <div class="flex flex-col md:flex-row justify-between items-center gap-6 bg-white/40 dark:bg-black/20 backdrop-blur-xl p-6 rounded-[2rem] border border-slate-100 dark:border-white/5 shadow-lg">
                      <div class="flex items-center gap-5">
                         <div class="flex flex-col">
-                            <h2 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1" id="hub-view-title">MAPA DE TERRITORIOS</h2>
+                            <h2 class="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] mb-1" id="hub-view-title">MAPA DE TERRITORIOS</h2>
                             <div id="view-stats" class="text-[11px] font-black text-primary flex flex-wrap items-center gap-3"></div>
                         </div>
                      </div>
                      
                      <div class="relative w-full md:w-80 group">
-                         <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary">
+                         <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 transition-colors group-focus-within:text-primary">
                             <i class="fas fa-search text-xs"></i>
                          </span>
-                         <input type="text" id="search-assigns" placeholder="Buscar por número o publicador..." class="w-full pl-12 pr-5 py-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all shadow-inner placeholder-slate-400">
+                         <input type="text" id="search-assigns" placeholder="Buscar por número o publicador..." class="w-full pl-12 pr-5 py-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all shadow-inner placeholder-slate-500">
                      </div>
                 </div>
 
@@ -3537,7 +3538,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                     </div>
                     <div>
                         <h3 class="text-3xl font-black tracking-tighter text-slate-800 dark:text-white uppercase leading-none mb-2">Sistema de Difusión</h3>
-                        <p class="text-[10px] text-slate-400 uppercase tracking-[0.4em] font-black">Comunicación Masiva Directa</p>
+                        <p class="text-[10px] text-slate-500 uppercase tracking-[0.4em] font-black">Comunicación Masiva Directa</p>
                     </div>
                 </div>
 
@@ -3588,8 +3589,10 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
             selectedType = btn.dataset.type;
             typeBtns.forEach(b => {
                 const isSelected = b.dataset.type === selectedType;
-                const activeColor = selectedType === 'info' ? 'blue' : 'red';
-                b.className = `diff - type - btn p - 4 rounded - 2xl border - 2 transition - all font - bold flex flex - col items - center gap - 2 ${isSelected ? `border-${activeColor}-500/50 bg-${activeColor}-500/10 text-${activeColor}-600` : 'border-black/5 dark:border-white/5 opacity-50'} `;
+                const activeColor = selectedType === 'info' ? 'blue' : 'rose';
+                const baseColor = selectedType === 'info' ? 'primary' : 'rose-500';
+
+                b.className = `diff-type-btn p-6 rounded-2xl border-2 transition-all font-black uppercase tracking-widest flex flex-col items-center gap-3 ${isSelected ? `border-${baseColor}/50 bg-${baseColor}/10 text-${baseColor} shadow-lg shadow-${baseColor}/10` : 'border-slate-100 dark:border-white/5 opacity-40 hover:opacity-70'}`;
             });
         });
 
@@ -4655,12 +4658,12 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                     const list = gender === 'Hombre' ? malePrivs : femalePrivs;
 
                     privsContainer.innerHTML = list.map(pr => `
-                        <label class="flex items-center gap-3 bg-white dark:bg-white/5 px-4 py-3 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-primary/50 cursor-pointer transition-all group shadow-sm active:scale-[0.98]">
-                            <input type="checkbox" class="p-priv-check sr-only peer" value="${pr}" ${currentPrivs.includes(pr) ? 'checked' : ''}>
+                        <label class="flex items-center gap-3 bg-white dark:bg-white/5 px-4 py-3 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-primary/50 cursor-pointer transition-all group shadow-sm active:scale-[0.98] relative overflow-hidden">
+                            <input type="checkbox" class="p-priv-check opacity-0 absolute inset-0 cursor-pointer peer z-10" value="${pr}" ${currentPrivs.includes(pr) ? 'checked' : ''}>
                             <div class="w-6 h-6 rounded-full border-2 border-slate-200 dark:border-white/20 peer-checked:bg-primary peer-checked:border-primary flex items-center justify-center transition-all bg-slate-50 dark:bg-black/20 group-hover:border-primary/30">
                                 <i class="fas fa-check text-[10px] text-white hidden peer-checked:block animate-scale-in"></i>
                             </div>
-                            <span class="text-[10px] font-black text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 peer-checked:text-primary transition-colors uppercase tracking-widest">${pr}</span>
+                            <span class="text-[10px] font-black text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-200 peer-checked:text-primary transition-colors uppercase tracking-widest">${pr}</span>
                         </label>
                     `).join('');
 
