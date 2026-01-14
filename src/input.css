@@ -266,6 +266,22 @@ textarea:focus {
     animation: slideDown 0.5s cubic-bezier(0.23, 1, 0.32, 1) forwards;
 }
 
+@keyframes bounce-subtle {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-4px);
+    }
+}
+
+.animate-bounce-subtle {
+    animation: bounce-subtle 2s ease-in-out infinite;
+}
+
 @keyframes slideUp {
     from {
         transform: translateY(30px);
