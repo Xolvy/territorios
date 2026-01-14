@@ -745,17 +745,16 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
         } else {
             mapsGrid.innerHTML = territoriesToShow.map(t => `
                 <div class="modern-card p-5 border-slate-100 dark:border-white/5 hover:border-primary/30 transition-all group/card cursor-pointer" onclick="window.openInteractiveMapFromDashboard('${t.id}')">
-                    <div class="flex justify-between items-center mb-4">
+                    <div class="flex justify-between items-start mb-4">
                         <span class="px-3 py-1 bg-indigo-500/10 text-indigo-600 text-[10px] font-black rounded-lg uppercase tracking-widest">T-${t.numero}</span>
-                        <div class="w-10 h-10 rounded-xl bg-slate-50 dark:bg-white/5 flex items-center justify-center group-hover/card:bg-indigo-600 group-hover/card:text-white transition-all text-slate-400 border border-slate-100 dark:border-white/5">
-                             <i class="fas fa-location-arrow text-xs"></i>
+                        <div class="flex items-center gap-2">
+                             <span class="text-[8px] font-black text-indigo-500 uppercase tracking-widest opacity-0 group-hover/card:opacity-100 transition-all -translate-x-2 group-hover/card:translate-x-0 hidden sm:block">Ver Mapa</span>
+                             <div class="w-10 h-10 rounded-xl bg-slate-50 dark:bg-white/5 flex items-center justify-center group-hover/card:bg-indigo-600 group-hover/card:text-white transition-all text-slate-400 border border-slate-100 dark:border-white/5">
+                                 <i class="fas fa-location-arrow text-xs"></i>
+                             </div>
                         </div>
                     </div>
-                    <h5 class="text-xs font-black text-slate-800 dark:text-gray-100 truncate pr-4 uppercase tracking-tight">${t.manzanas || 'Sin sector'}</h5>
-                    <div class="flex items-center justify-between mt-4">
-                        <p class="text-[9px] text-slate-400 uppercase font-black tracking-widest leading-none opacity-60">Mapa Digital</p>
-                        ${t.asignado_a ? `<span class="text-[8px] font-black text-indigo-600 uppercase bg-indigo-500/5 px-2 py-1 rounded-md max-w-[80px] truncate"><i class="fas fa-user-circle mr-1"></i>${t.asignado_a.split(' ')[0]}</span>` : ''}
-                    </div>
+                    <h5 class="text-xs font-black text-slate-800 dark:text-gray-100 uppercase tracking-tight leading-relaxed line-clamp-2">${t.manzanas || 'Sin sector definido'}</h5>
                 </div>
             `).join('');
         }
@@ -1051,15 +1050,15 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
                                 
                                 <!-- Single Report Button per Turn -->
                                 <div class="flex gap-2 h-14">
-                                    <button class="flex-1 px-8 bg-gradient-to-br from-teal-600 to-emerald-700 rounded-2xl text-white font-black flex items-center justify-between shadow-lg shadow-teal-500/10 active:scale-95 transition-all group overflow-hidden relative territory-report-btn"
+                                    <!-- Refined Informe Button -->
+                                    <button class="flex-1 bg-gradient-to-r from-[#00695c] to-[#00897b] rounded-2xl text-white font-black flex items-center justify-center gap-3 shadow-lg shadow-teal-900/20 active:scale-95 transition-all group overflow-hidden relative territory-report-btn"
                                         data-ids="${a.attachedTerritories.map(t => t.id).join(',')}" 
                                         data-nums="${a.attachedTerritories.map(t => t.numero).join(',')}"
                                         data-manzanas="${a.attachedTerritories.map(t => t.manzanas || '').join(';')}"
                                    >
-                                        <div class="relative z-10">
-                                            <p class="text-sm font-black uppercase tracking-widest">Informe</p>
-                                        </div>
-                                        <i class="fas fa-chevron-right text-xs opacity-40 group-hover:translate-x-1 transition-transform"></i>
+                                        <span class="text-[13px] uppercase tracking-[0.2em] relative z-10">Informe</span>
+                                        <i class="fas fa-chevron-right text-[10px] opacity-40 group-hover:translate-x-1 transition-transform relative z-10"></i>
+                                        <div class="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                     </button>
                                     ${a.attachedTerritories.length > 0 ? `
                                     <button onclick="window.viewMapFromReport('${a.attachedTerritories[0].id}')" class="w-14 bg-indigo-600 rounded-2xl text-white font-black shadow-lg shadow-indigo-500/10 active:scale-95 transition-all flex items-center justify-center group overflow-hidden">
