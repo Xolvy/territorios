@@ -1,5 +1,5 @@
-import { getHistorialReport, rebuildHistoryFromSchedule, getConfiguracion } from '../data/firestore-services.js?v=3.6.0';
-import { showNotification, generatePlainXLS } from './utils/helpers.js?v=3.6.0';
+import { getHistorialReport, rebuildHistoryFromSchedule, getConfiguracion } from '../data/firestore-services.js?v=1.9.3.4';
+import { showNotification, generatePlainXLS } from './utils/helpers.js?v=1.9.3.4';
 
 export const renderHistoryTab = (container, options = {}) => {
     const showHeader = options.showHeader !== false;
@@ -146,7 +146,7 @@ export const renderHistoryTab = (container, options = {}) => {
                 getHistorialReport(),
                 // Use a local import or global if available. It's usually imported in this file? 
                 // Wait, it is NOT imported. Let's add it to imports.
-                import('../data/firestore-services.js?v=3.5.0').then(m => m.getTerritorios())
+                import('../data/firestore-services.js?v=1.9.3.4').then(m => m.getTerritorios())
             ]);
 
             // Filter data for the preview range
@@ -196,7 +196,7 @@ export const renderHistoryTab = (container, options = {}) => {
             const pdfWidth = 210;
             const pdfHeight = 297;
 
-            for (let i = 0; i < pages.length; i++) {
+            for (let i = 0; i <pages.length; i++) {
                 if (i > 0) doc.addPage();
 
                 // Use html2canvas
@@ -312,7 +312,7 @@ const renderReport = (dataInRange, allHistory, allTerritorios, startDate, endDat
     const TERR_PER_PAGE = 20;
     const ASSIGNS_PER_PAGE = 4;
 
-    for (let i = 0; i < sortedKeys.length; i += TERR_PER_PAGE) {
+    for (let i = 0; i <sortedKeys.length; i += TERR_PER_PAGE) {
         const terrChunkKeys = sortedKeys.slice(i, i + TERR_PER_PAGE);
 
         // Calculate Max Assignments across this chunk to see if we need multiple HORIZONTAL pages
@@ -325,7 +325,7 @@ const renderReport = (dataInRange, allHistory, allTerritorios, startDate, endDat
 
         const sheetsNeeded = Math.ceil(maxAssigns / ASSIGNS_PER_PAGE);
 
-        for (let s = 0; s < sheetsNeeded; s++) {
+        for (let s = 0; s <sheetsNeeded; s++) {
             const assignStartIndex = s * ASSIGNS_PER_PAGE;
             pageHtmls.push(generateS13PageHtmlTable(
                 terrChunkKeys,
@@ -539,7 +539,7 @@ const generateS13PageHtmlTable = (keys, map, allHistory, reportStartDate, assign
                     // We assume history data is normalized or we do a loose check.
                     // For robust check: Split h.numero and check if ANY match key.
                     const hNums = h.numero.toString().split(/[,/]/).map(n => n.trim().padStart(2, '0'));
-                    return hNums.includes(key) && new Date(h.fecha_entrega).getTime() < reportStartMs;
+                    return hNums.includes(key) && new Date(h.fecha_entrega).getTime() <reportStartMs;
                 })
                 .sort((a, b) => new Date(b.fecha_entrega).getTime() - new Date(a.fecha_entrega).getTime());
 

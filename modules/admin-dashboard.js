@@ -10,14 +10,14 @@ import {
     getCampanas, saveCampana, deleteCampana,
     getGroupsConfig, saveGroupsConfig,
     getDiffusionMessage, saveDiffusionMessage
-} from '../data/firestore-services.js?v=1.9.1';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=1.9.1';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=1.9.1';
-import { renderHistoryTab } from './report-s13.js?v=1.9.1';
-import { renderAnalyticsView } from './analytics-view.js?v=1.9.1';
-import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=1.9.1';
-import { auth } from '../firebase-config.js?v=1.9.1';
-import { animateEntry } from './utils/animations.js?v=1.9.1';
+} from '../data/firestore-services.js?v=1.9.3.4';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=1.9.3.4';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=1.9.3.4';
+import { renderHistoryTab } from './report-s13.js?v=1.9.3.4';
+import { renderAnalyticsView } from './analytics-view.js?v=1.9.3.4';
+import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=1.9.3.4';
+import { auth } from '../firebase-config.js?v=1.9.3.4';
+import { animateEntry } from './utils/animations.js?v=1.9.3.4';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }) : '';
 
@@ -4376,7 +4376,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
             try {
                 const terrs = await getTerritorios();
                 let fixed = 0;
-                for (let i = 0; i < terrs.length; i++) {
+                for (let i = 0; i <terrs.length; i++) {
                     const t = terrs[i];
                     const num = String(t.numero).trim();
                     if (t.numero !== num) {
@@ -5024,7 +5024,7 @@ const renderTelefonosTab = async (container) => {
     const btnSummaries = document.getElementById('btn-view-session-summaries');
     if (btnSummaries) {
         btnSummaries.addEventListener('click', async () => {
-            const { getSessionSummaries } = await import('../data/firestore-services.js?v=3.2.5');
+            const { getSessionSummaries } = await import('../data/firestore-services.js?v=1.9.3.4');
             const summaries = await getSessionSummaries();
 
             showModal(`
@@ -5313,7 +5313,7 @@ const renderTelefonosTab = async (container) => {
                 return;
             }
 
-            for (let i = 0; i < validLines.length; i++) {
+            for (let i = 0; i <validLines.length; i++) {
                 const line = validLines[i].trim();
                 const parts = line.split(',');
 
@@ -6204,13 +6204,13 @@ const renderProgramaTab = async (container) => {
                     html += `</div>`;
                 });
 
-                html += `</div></div > `;
+                html += `</div></div> `;
             });
 
-            html += `</div ></div > `;
+            html += `</div></div> `;
         });
 
-        html += `</div > `;
+        html += `</div> `;
         tableContainer.innerHTML = html;
     };
 
@@ -6603,7 +6603,7 @@ const renderS13CommandCenter = async (container) => {
 
     container.querySelector('#cc-btn-tools').onclick = () => {
         showModal(`
-    < div class="p-8 space-y-8 animate-fade-in" >
+    <div class="p-8 space-y-8 animate-fade-in">
                 <header class="flex items-center gap-4 border-b border-slate-100 dark:border-white/5 pb-6">
                     <div class="w-12 h-12 bg-indigo-500/10 text-indigo-500 rounded-2xl flex items-center justify-center text-xl shadow-inner">
                         <i class="fas fa-microchip"></i>
@@ -6654,7 +6654,7 @@ const renderS13CommandCenter = async (container) => {
                         <i class="fas fa-exclamation-triangle text-amber-500 mr-2"></i> Estas acciones modifican la base de datos global
                     </p>
                 </footer>
-            </div >
+            </div>
     `, (modal) => {
             modal.querySelector('#tool-rebuild').onclick = () => {
                 modal.classList.add('hidden');
@@ -6679,7 +6679,7 @@ export const renderAdvancedHistoryView = async (container, options = {}) => {
 
     if (options.showHeader !== false) {
         container.innerHTML = `
-    < div class="space-y-6" >
+    <div class="space-y-6">
             <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div>
                     <h3 class="text-h3 text-slate-900 dark:text-white flex items-center gap-3">
@@ -6698,13 +6698,13 @@ export const renderAdvancedHistoryView = async (container, options = {}) => {
             <div class="modern-card !p-0 overflow-hidden border border-slate-200 dark:border-white/5 min-h-[400px]" id="hist-table-container">
                  <!-- Table content -->
             </div>
-        </div >
+        </div>
     `;
     } else {
         container.innerHTML = `
-    < div class="min-h-[400px]" id = "hist-table-container" >
-                < !--Table content-- >
-            </div >
+    <div class="min-h-[400px]" id = "hist-table-container">
+                <!--Table content-->
+            </div>
     `;
     }
 
@@ -6733,7 +6733,7 @@ export const renderAdvancedHistoryView = async (container, options = {}) => {
             ).slice(0, 100);
 
             const bulkBar = `
-    < div id = "hist-bulk-bar" class="${selectedIds.size > 0 ? 'flex' : 'hidden'} flex-col md:flex-row items-start md:items-center gap-4 bg-accent/5 p-4 px-6 rounded-2xl border border-accent/20 animate-fade-in mb-6" >
+    <div id = "hist-bulk-bar" class="${selectedIds.size > 0 ? 'flex' : 'hidden'} flex-col md:flex-row items-start md:items-center gap-4 bg-accent/5 p-4 px-6 rounded-2xl border border-accent/20 animate-fade-in mb-6">
                     <div class="flex items-center gap-4">
                         <div class="w-10 h-10 bg-accent text-white rounded-xl flex items-center justify-center shadow-lg shadow-accent/20">
                             <i class="fas fa-check-double"></i>
@@ -6750,25 +6750,25 @@ export const renderAdvancedHistoryView = async (container, options = {}) => {
                     <button id="hist-bulk-delete" class="ml-auto bg-red-500 hover:bg-red-600 text-white px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-red-500/20 transition-all active:scale-95 flex items-center gap-2">
                         <i class="fas fa-trash-alt"></i> Eliminar Selección
                     </button>
-                </div >
+                </div>
     `;
 
             if (list.length === 0) {
                 const tableTarget = document.getElementById("hist-table-container");
                 if (tableTarget) {
                     tableTarget.innerHTML = `
-    < div class="flex flex-col items-center justify-center py-20 text-slate-300 dark:text-white/10" >
+    <div class="flex flex-col items-center justify-center py-20 text-slate-300 dark:text-white/10">
                             <div class="w-20 h-20 mb-4 bg-slate-50 dark:bg-white/5 rounded-full flex items-center justify-center text-3xl">
                                 <i class="fas fa-search opacity-20"></i>
                             </div>
                             <p class="text-xs font-black uppercase tracking-widest opacity-50">No se encontraron registros</p>
-                        </div > `;
+                        </div> `;
                 }
                 return;
             }
 
             let html = `
-    < div class="p-4" > ${bulkBar}</div >
+    <div class="p-4"> ${bulkBar}</div>
                 <div class="table-container custom-scrollbar">
                     <table class="w-full text-left border-collapse">
                         <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-400 text-[9px] font-bold uppercase tracking-[0.2em] border-b border-slate-200 dark:border-white/5">
@@ -6964,20 +6964,20 @@ window.exportS12Form = async (territorios, layout = 1) => {
     border: 0.5pt solid #000;
     padding: 8mm;
     display: flex;
-    flex - direction: column;
+    flex-direction: column;
     position: relative;
-    box - sizing: border - box;
+    box-sizing: border - box;
     background: white;
     overflow: hidden;
 }
             
             .title {
-    text - align: center;
-    font - size: 16pt;
-    font - weight: 800;
-    margin - bottom: 8pt;
-    text - transform: none;
-    font - family: 'Outfit', sans - serif;
+    text-align: center;
+    font-size: 16pt;
+    font-weight: 800;
+    margin-bottom: 8pt;
+    text-transform: none;
+    font-family: 'Outfit', sans - serif;
     color: #000;
 }
 
@@ -7117,14 +7117,14 @@ window.exportS12Form = async (territorios, layout = 1) => {
             html += `<div class="page" style="justify-content: center; align-items: center;">${renderCard(t)}</div>`;
         });
     } else if (layout === 2) {
-        for (let i = 0; i < sorted.length; i += 2) {
+        for (let i = 0; i <sorted.length; i += 2) {
             html += `<div class="page" style="flex-direction: column; justify-content: center;">`;
             html += renderCard(sorted[i]);
             if (sorted[i + 1]) html += renderCard(sorted[i + 1]);
             html += `</div>`;
         }
     } else if (layout === 4) {
-        for (let i = 0; i < sorted.length; i += 4) {
+        for (let i = 0; i <sorted.length; i += 4) {
             html += `<div class="page">`;
             for (let j = 0; j < 4; j++) {
                 if (sorted[i + j]) html += renderCard(sorted[i + j]);

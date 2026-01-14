@@ -1,4 +1,4 @@
-import { auth } from '../firebase-config.js?v=1.9.2';
+import { auth } from '../firebase-config.js?v=1.9.3.4';
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import {
     getTerritorios, getConductores, getPublicadores, getTelefonos, updateTelefono,
@@ -8,10 +8,10 @@ import {
     addPublicador, updatePublicador, deletePublicador,
     releaseUnusedTelefonos, solicitarNumeros, updateTelefonoStatus, logSessionSummary,
     logReturn, returnTerritorio, returnTerritorioParcial, transferTerritory
-} from '../data/firestore-services.js?v=1.9.2';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl } from './utils/helpers.js?v=1.9.2';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=1.9.2';
-import { MapViewer } from './map-viewer.js?v=1.9.2';
+} from '../data/firestore-services.js?v=1.9.3.4';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl } from './utils/helpers.js?v=1.9.3.4';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=1.9.3.4';
+import { MapViewer } from './map-viewer.js?v=1.9.3.4';
 
 
 
@@ -1049,14 +1049,13 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
                                 <div class="pt-2">
                                     <button class="territory-report-btn w-full bg-slate-900 dark:bg-teal-600/90 hover:bg-black dark:hover:bg-teal-500 py-4 rounded-2xl text-white font-black text-[9px] uppercase tracking-[0.3em] shadow-xl shadow-slate-900/10 active:scale-95 transition-all flex items-center justify-center gap-3"
                                         data-ids="${a.attachedTerritories.map(t => t.id).join(',')}" 
-                                        data-nums="${a.attachedTerritories.map(t => t.numero).join(',')}"
-                                   >
+                                        data-nums="${a.attachedTerritories.map(t => t.numero).join(',')}">
                                         Informar Predicación
                                     </button>
                                 </div>
                             </div>` : ''}
                             
-                            ${shiftIdx < dayData.shifts.length - 1 ? '<div class="h-px bg-slate-50 dark:bg-white/5 my-2"></div>' : ''}
+                            ${shiftIdx <dayData.shifts.length - 1 ? '<div class="h-px bg-slate-50 dark:bg-white/5 my-2"></div>' : ''}
                         </div>
                     `).join('')}
                 </div>
@@ -1976,7 +1975,7 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
         activeRequests = telefonos.filter(t => t.solicitado_por === userId);
 
         if (activeRequests.length === 0) {
-            tbody.innerHTML = `< tr> <td colspan="6" class="p-20 text-center text-gray-400 dark:text-gray-500 italic font-bold">No tienes números solicitados. Usa el botón "Solicitar" en la vista compacta o arriba.</td></tr> `;
+            tbody.innerHTML = `<tr> <td colspan="6" class="p-20 text-center text-gray-400 dark:text-gray-500 italic font-bold">No tienes números solicitados. Usa el botón "Solicitar" en la vista compacta o arriba.</td></tr> `;
             return;
         }
 
@@ -2185,7 +2184,7 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
                     noMsg.classList.remove('hidden');
                 } else {
                     tbody.innerHTML = revisitas.map(r => `
-    < tr id = "rev-row-${r.id}" class="hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-colors">
+    <tr id = "rev-row-${r.id}" class="hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-colors">
                             <td class="p-3 font-mono text-teal-600 dark:text-teal-400">${formatPhoneNumber(r.numero)}</td>
                             <td class="p-3 font-bold text-gray-800 dark:text-gray-200">${r.propietario || '-'}</td>
                             <td class="p-3 text-xs text-gray-500 dark:text-gray-400">${r.direccion || '-'}</td>
