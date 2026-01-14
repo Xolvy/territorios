@@ -7132,3 +7132,4 @@ window.exportS12Form = async (territorios, layout = 1) => {
     printWindow.document.write(html);
     printWindow.document.close();
 };
+
