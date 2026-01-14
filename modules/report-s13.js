@@ -1,5 +1,5 @@
-import { getHistorialReport, rebuildHistoryFromSchedule, getConfiguracion } from '../data/firestore-services.js?v=1.9.4';
-import { showNotification, generatePlainXLS } from './utils/helpers.js?v=1.9.4';
+import { getHistorialReport, rebuildHistoryFromSchedule, getConfiguracion } from '../data/firestore-services.js?v=1.9.5';
+import { showNotification, generatePlainXLS } from './utils/helpers.js?v=1.9.5';
 
 export const renderHistoryTab = (container, options = {}) => {
     const showHeader = options.showHeader !== false;
@@ -146,7 +146,7 @@ export const renderHistoryTab = (container, options = {}) => {
                 getHistorialReport(),
                 // Use a local import or global if available. It's usually imported in this file? 
                 // Wait, it is NOT imported. Let's add it to imports.
-                import('../data/firestore-services.js?v=1.9.4').then(m => m.getTerritorios())
+                import('../data/firestore-services.js?v=1.9.5').then(m => m.getTerritorios())
             ]);
 
             // Filter data for the preview range

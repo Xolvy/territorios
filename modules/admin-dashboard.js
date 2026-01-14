@@ -11,14 +11,14 @@ import {
     getCampanas, saveCampana, deleteCampana,
     getGroupsConfig, saveGroupsConfig,
     getDiffusionMessage, saveDiffusionMessage
-} from '../data/firestore-services.js?v=1.9.4';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=1.9.4';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=1.9.4';
-import { renderHistoryTab } from './report-s13.js?v=1.9.4';
-import { renderAnalyticsView } from './analytics-view.js?v=1.9.4';
-import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=1.9.4';
-import { auth } from '../firebase-config.js?v=1.9.4';
-import { animateEntry } from './utils/animations.js?v=1.9.4';
+} from '../data/firestore-services.js?v=1.9.5';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=1.9.5';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=1.9.5';
+import { renderHistoryTab } from './report-s13.js?v=1.9.5';
+import { renderAnalyticsView } from './analytics-view.js?v=1.9.5';
+import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=1.9.5';
+import { auth } from '../firebase-config.js?v=1.9.5';
+import { animateEntry } from './utils/animations.js?v=1.9.5';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }) : '';
 
@@ -5025,7 +5025,7 @@ const renderTelefonosTab = async (container) => {
     const btnSummaries = document.getElementById('btn-view-session-summaries');
     if (btnSummaries) {
         btnSummaries.addEventListener('click', async () => {
-            const { getSessionSummaries } = await import('../data/firestore-services.js?v=1.9.4');
+            const { getSessionSummaries } = await import('../data/firestore-services.js?v=1.9.5');
             const summaries = await getSessionSummaries();
 
             showModal(`
