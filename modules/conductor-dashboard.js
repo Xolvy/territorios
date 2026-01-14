@@ -744,17 +744,17 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
             `;
         } else {
             mapsGrid.innerHTML = territoriesToShow.map(t => `
-                <div class="modern-card p-5 border-slate-100 dark:border-white/5 hover:border-primary/30 transition-all group/card cursor-pointer" onclick="window.openInteractiveMapFromDashboard('${t.id}')">
-                    <div class="flex justify-between items-start mb-4">
-                        <span class="px-3 py-1 bg-indigo-500/10 text-indigo-600 text-[10px] font-black rounded-lg uppercase tracking-widest">T-${t.numero}</span>
+                <div class="modern-card !p-5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:border-primary/40 hover:shadow-xl transition-all group/card cursor-pointer shadow-sm relative overflow-hidden" onclick="window.openInteractiveMapFromDashboard('${t.id}')">
+                    <div class="absolute inset-0 bg-primary/5 opacity-0 group-hover/card:opacity-100 transition-opacity pointer-events-none"></div>
+                    <div class="flex justify-between items-start mb-4 relative z-10">
+                        <span class="px-3 py-1 bg-primary/10 text-primary text-[10px] font-black rounded-lg uppercase tracking-widest">T-${t.numero}</span>
                         <div class="flex items-center gap-2">
-                             <span class="text-[8px] font-black text-indigo-500 uppercase tracking-widest opacity-0 group-hover/card:opacity-100 transition-all -translate-x-2 group-hover/card:translate-x-0 hidden sm:block">Ver Mapa</span>
-                             <div class="w-10 h-10 rounded-xl bg-slate-50 dark:bg-white/5 flex items-center justify-center group-hover/card:bg-indigo-600 group-hover/card:text-white transition-all text-slate-400 border border-slate-100 dark:border-white/5">
-                                 <i class="fas fa-location-arrow text-xs"></i>
+                             <div class="w-8 h-8 rounded-lg bg-slate-50 dark:bg-white/10 flex items-center justify-center group-hover/card:bg-primary group-hover/card:text-white transition-all text-slate-400 border border-slate-100 dark:border-white/5">
+                                 <i class="fas fa-location-arrow text-[10px]"></i>
                              </div>
                         </div>
                     </div>
-                    <h5 class="text-xs font-black text-slate-800 dark:text-gray-100 uppercase tracking-tight leading-relaxed line-clamp-2">${t.manzanas || 'Sin sector definido'}</h5>
+                    <h5 class="text-[11px] font-bold text-slate-800 dark:text-gray-200 uppercase tracking-tight leading-relaxed line-clamp-2 relative z-10">${t.manzanas || 'Sin sector definido'}</h5>
                 </div>
             `).join('');
         }
@@ -978,83 +978,76 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
         `;
     } else {
         agendaContainer.innerHTML = dayCards.map(dayData => `
-            <div class="group relative modern-card !p-8 transition-all duration-500 hover:shadow-2xl flex flex-col gap-8 shadow-sm border-slate-100 dark:border-white/5 bg-white dark:bg-slate-900/40">
+            <div class="group relative modern-card !p-6 transition-all duration-500 hover:shadow-2xl flex flex-col gap-6 shadow-sm border-slate-100 dark:border-white/5 bg-white dark:bg-slate-900/40">
                 <!-- Header Minimalista -->
-                <div class="flex justify-between items-center border-b border-slate-50 dark:border-white/5 pb-6">
+                <div class="flex justify-between items-center border-b border-slate-100 dark:border-white/5 pb-4">
                     <div>
-                        <h3 class="font-black text-3xl text-slate-800 dark:text-white tracking-tighter uppercase leading-none mb-1.5">${dayData.dia}</h3> 
-                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] block opacity-60">${dayData.rawDate}</span>
+                        <h3 class="font-black text-2xl text-slate-800 dark:text-white tracking-tighter uppercase leading-none mb-1">${dayData.dia}</h3> 
+                        <span class="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] block opacity-60">${dayData.rawDate}</span>
                     </div>
-                    <div class="w-10 h-10 flex items-center justify-center text-slate-200 dark:text-white/10">
-                        <i class="fas fa-calendar-alt text-2xl"></i>
+                    <div class="w-8 h-8 flex items-center justify-center text-slate-200 dark:text-white/10">
+                        <i class="fas fa-calendar-alt text-xl"></i>
                     </div>
                 </div>
 
-                <div class="flex flex-col gap-10">
+                <div class="flex flex-col gap-6">
                     ${dayData.shifts.map((a, shiftIdx) => `
-                        <div class="shift-block space-y-8 animate-fade-in" style="animation-delay: ${shiftIdx * 100}ms">
+                        <div class="shift-block space-y-4 animate-fade-in" style="animation-delay: ${shiftIdx * 100}ms">
                             <!-- Badge de Turno -->
-                            <div class="flex items-center gap-2.5">
+                            <div class="flex items-center gap-2">
                                  <span class="w-1.5 h-1.5 rounded-full ${a.turno.includes('Mañana') ? 'bg-orange-400' : 'bg-indigo-500'}"></span>
-                                 <h4 class="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.4em]">${a.turno}</h4>
+                                 <h4 class="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.4em]">${a.turno}</h4>
                             </div>
 
                             <!-- Staff & Location Minimal -->
-                            <div class="space-y-6">
-                                <div class="grid grid-cols-2 gap-8 px-2">
-                                    <div class="space-y-1.5 text-left border-l-2 border-slate-100 dark:border-white/5 pl-4">
-                                        <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest opacity-70">Conductor</p>
-                                        <p class="text-[11px] font-black ${a.conductor === name ? 'text-teal-600' : 'text-slate-700 dark:text-slate-200'} leading-none">${a.conductor || '---'}</p>
+                            <div class="space-y-3">
+                                <div class="grid grid-cols-2 gap-4 px-1">
+                                    <div class="space-y-0.5 text-left border-l-2 border-slate-100 dark:border-white/5 pl-3">
+                                        <p class="text-[7px] font-black text-slate-400 uppercase tracking-widest opacity-70">Conductor</p>
+                                        <p class="text-[10px] font-black ${a.conductor === name ? 'text-teal-600' : 'text-slate-700 dark:text-slate-200'} leading-none">${a.conductor || '---'}</p>
                                     </div>
-                                    <div class="space-y-1.5 text-left border-l-2 border-slate-100 dark:border-white/5 pl-4">
-                                        <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest opacity-70">Auxiliar</p>
-                                        <p class="text-[11px] font-black ${a.auxiliar === name ? 'text-teal-600' : 'text-slate-700 dark:text-slate-200'} leading-none">${a.auxiliar || '---'}</p>
+                                    <div class="space-y-0.5 text-left border-l-2 border-slate-100 dark:border-white/5 pl-3">
+                                        <p class="text-[7px] font-black text-slate-400 uppercase tracking-widest opacity-70">Auxiliar</p>
+                                        <p class="text-[10px] font-black ${a.auxiliar === name ? 'text-teal-600' : 'text-slate-700 dark:text-slate-200'} leading-none">${a.auxiliar || '---'}</p>
                                     </div>
                                 </div>
 
-                                <div class="flex items-center gap-4 px-2 py-1">
-                                    <i class="fas fa-map-marker-alt text-primary/40 text-xs"></i>
+                                <div class="flex items-center gap-3 px-1">
+                                    <i class="fas fa-map-marker-alt text-primary/40 text-[10px]"></i>
                                     <div class="min-w-0">
-                                        <p class="text-[11px] font-black text-slate-600 dark:text-slate-100 uppercase tracking-tight truncate">${a.lugar || 'Por definir'}</p>
+                                        <p class="text-[10px] font-black text-slate-600 dark:text-slate-100 uppercase tracking-tight truncate">${a.lugar || 'Por definir'}</p>
                                     </div>
                                 </div>
                             </div>
 
                             ${a.attachedTerritories.length > 0 ? `
-                            <div class="space-y-8">
+                            <div class="space-y-4">
                                  <!-- Listado de Territorios Ultra-Slim -->
-                                 <div class="px-2 space-y-5">
+                                 <div class="px-1 space-y-3">
                                     ${a.attachedTerritories.map(t => `
-                                        <div class="flex items-start gap-4 group/titem">
+                                        <div class="flex items-start gap-3 group/titem">
                                             <div class="mt-0.5 flex flex-col items-center">
-                                                <span class="text-[14px] font-black text-slate-800 dark:text-white tracking-widest">T${t.numero}</span>
-                                                <div class="w-4 h-0.5 bg-primary/20 rounded-full mt-0.5"></div>
+                                                <span class="text-[12px] font-black text-slate-800 dark:text-white tracking-widest">T${t.numero}</span>
+                                                <div class="w-3 h-0.5 bg-primary/20 rounded-full mt-0.5"></div>
                                             </div>
                                             <div class="flex-1 pt-0.5">
-                                                <p class="text-[10px] font-bold text-slate-400 dark:text-slate-500 leading-snug uppercase tracking-tight line-clamp-2">Mz: ${t.manzanas || '-'}</p>
+                                                <p class="text-[9px] font-bold text-slate-400 dark:text-slate-500 leading-snug uppercase tracking-tight line-clamp-2">${t.manzanas || '-'}</p>
                                             </div>
                                         </div>
                                     `).join('')}
                                  </div>
                                 
-                                <div class="flex flex-col gap-2 pt-2">
-                                    <button class="territory-report-btn w-full bg-slate-900 dark:bg-teal-600/90 hover:bg-black dark:hover:bg-teal-500 py-4.5 rounded-2xl text-white font-black text-[10px] uppercase tracking-[0.4em] shadow-xl shadow-slate-900/10 active:scale-95 transition-all flex items-center justify-center gap-3"
+                                <div class="pt-2">
+                                    <button class="territory-report-btn w-full bg-slate-900 dark:bg-teal-600/90 hover:bg-black dark:hover:bg-teal-500 py-4 rounded-2xl text-white font-black text-[9px] uppercase tracking-[0.3em] shadow-xl shadow-slate-900/10 active:scale-95 transition-all flex items-center justify-center gap-3"
                                         data-ids="${a.attachedTerritories.map(t => t.id).join(',')}" 
                                         data-nums="${a.attachedTerritories.map(t => t.numero).join(',')}"
                                    >
                                         Informar Predicación
                                     </button>
-                                    
-                                    <button class="territory-history-btn w-full py-3 text-slate-400 hover:text-primary font-black text-[9px] uppercase tracking-[0.4em] transition-all flex items-center justify-center gap-2"
-                                        data-tid="${a.attachedTerritories[0].id}" 
-                                        data-tnum="${a.attachedTerritories[0].numero}"
-                                    >
-                                        <i class="fas fa-history text-[8px] opacity-40"></i> Ver Observaciones
-                                    </button>
                                 </div>
                             </div>` : ''}
                             
-                            ${shiftIdx < dayData.shifts.length - 1 ? '<div class="h-px bg-slate-50 dark:bg-white/5 my-4"></div>' : ''}
+                            ${shiftIdx < dayData.shifts.length - 1 ? '<div class="h-px bg-slate-50 dark:bg-white/5 my-2"></div>' : ''}
                         </div>
                     `).join('')}
                 </div>
