@@ -53,16 +53,6 @@ export const MapViewer = {
                     </div>
                     `}
                 </div>
-
-                <!-- Footer Controls (Conditional) -->
-                ${!readOnly ? `
-                <div class="p-6 bg-white dark:bg-gray-900 border-t dark:border-white/10 z-10">
-                    <button id="btn-done-map" class="w-full bg-teal-600 text-white py-5 rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-xs shadow-xl shadow-teal-500/30 hover:shadow-teal-500/50 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 group">
-                        Confirmar y Reportar Activity 
-                        <span class="group-hover:translate-x-1 transition-transform">➡️</span>
-                    </button>
-                </div>
-                ` : ''}
             </div>
         `;
 
@@ -75,15 +65,6 @@ export const MapViewer = {
 
         document.getElementById('close-map').onclick = hideModal;
 
-        const doneBtn = document.getElementById('btn-done-map');
-        if (doneBtn) {
-            doneBtn.onclick = () => {
-                hideModal();
-                if (window.openProgressModal) {
-                    window.openProgressModal(id);
-                }
-            };
-        }
 
         // --- SHARE / DOWNLOAD ---
         document.getElementById('btn-share-map').onclick = async () => {
