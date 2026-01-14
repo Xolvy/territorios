@@ -597,6 +597,15 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
     const shownTerritoryIds = new Set();
 
     if (programa && programa.dias) {
+        const mondayDate = new Date(currentWeekId + 'T12:00:00Z');
+        programa.dias.forEach((d, idx) => {
+            if (!d.fecha) {
+                const dayDate = new Date(mondayDate);
+                dayDate.setDate(dayDate.getDate() + idx);
+                d.fecha = getSafeDateId(dayDate);
+            }
+        });
+
         programa.dias.forEach(d => {
             turnosArr.forEach(turno => {
                 const tData = d[turno];
@@ -1229,7 +1238,7 @@ const renderFullProgramaCards = (programa, container, territoryMap = {}) => {
                 <div class="flex justify-between items-center relative z-10">
                     <div>
                         <h3 class="font-black text-2xl text-slate-800 dark:text-white uppercase tracking-tighter tabular-nums leading-none">${dayName}</h3>
-                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1.5 opacity-60">Cronograma de Servicio</p>
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1.5 opacity-60">${d.fecha ? d.fecha.split('-').reverse().join('/') : 'Programación de Salidas'}</p>
                     </div>
                     <div class="w-8 h-8 rounded-lg bg-slate-50 dark:bg-white/5 flex items-center justify-center text-slate-400 group-hover:bg-indigo-500/10 group-hover:text-indigo-600 transition-all shadow-inner">
                         <i class="fas fa-calendar-check text-xs"></i>

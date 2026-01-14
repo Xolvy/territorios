@@ -6056,13 +6056,21 @@ const renderProgramaTab = async (container) => {
 
             if (data && data.dias && data.dias.length > 0) {
                 programa = data;
+                // Ensure dates are attached if missing
+                programa.dias.forEach((dia, idx) => {
+                    const dayDate = new Date(currentWeekStart);
+                    dayDate.setDate(dayDate.getDate() + idx);
+                    dia.fecha = formatDateId(dayDate);
+                });
             } else {
                 programa = {
                     id: weekId,
-                    dias: dayNames.map(name => {
+                    dias: dayNames.map((name, idx) => {
+                        const dayDate = new Date(currentWeekStart);
+                        dayDate.setDate(dayDate.getDate() + idx);
                         const turns = { manana: {}, tarde: {}, noche: {} };
                         if (name === 'Martes') turns.zoom = {};
-                        return { nombre: name, ...turns };
+                        return { nombre: name, fecha: formatDateId(dayDate), ...turns };
                     })
                 };
             }
@@ -6138,7 +6146,6 @@ const renderProgramaTab = async (container) => {
                             </div>
                             <div>
                                 <span class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 block mb-0.5">${t.label}</span>
-                                <span class="text-xs font-black text-slate-800 dark:text-white uppercase tracking-widest">${dia.nombre}</span>
                             </div>
                         </div>
 
@@ -6328,6 +6335,7 @@ window.updateWeekData = (dayIndex, turnoId, field, value) => {
                 // If it's a sync-critical field (territory or conductor)
                 if (['conductor', 'territorio', 'auxiliar', 'lugar', 'hora', 'faceta', 'grupos'].includes(field)) {
                     if (tData.territorio && tData.conductor) {
+                        const diaObj = _globalPrograma.dias[dayIndex];
                         const extra = {
                             auxiliar: tData.auxiliar || '',
                             lugar: tData.lugar || '',
@@ -6335,7 +6343,7 @@ window.updateWeekData = (dayIndex, turnoId, field, value) => {
                             turno: turnoId,
                             faceta: tData.faceta || '',
                             grupos: tData.grupos || '',
-                            fecha_asignacion: progWeekDate.toISOString()
+                            fecha_asignacion: diaObj.fecha ? new Date(diaObj.fecha + 'T12:00:00Z').toISOString() : progWeekDate.toISOString()
                         };
 
                         const parts = tData.territorio.split(',').map(s => s.trim());
