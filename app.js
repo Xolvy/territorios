@@ -1,14 +1,14 @@
 import './modules/extensions.mjs';
-import { auth, db } from './firebase-config.js?v=3.7';
+import { auth, db } from './firebase-config.js?v=3.7.1.1';
 import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
-import { renderLogin } from './modules/login.js?v=3.7';
-import { renderAdminDashboard } from './modules/admin-dashboard.js?v=3.7';
-import { renderConductorDashboard } from './modules/conductor-dashboard.js?v=3.7';
-import { getPermisosUsuario, getSystemVersion, migrateConductoresToPublicadores } from './data/firestore-services.js?v=3.7';
-import { showNotification } from './modules/utils/helpers.js?v=3.7';
-import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js?v=3.7';
-import { initPWA } from './modules/utils/pwa-manager.js?v=3.7';
+import { renderLogin } from './modules/login.js?v=3.7.1.1';
+import { renderAdminDashboard } from './modules/admin-dashboard.js?v=3.7.1.1';
+import { renderConductorDashboard } from './modules/conductor-dashboard.js?v=3.7.1.1';
+import { getPermisosUsuario, getSystemVersion, migrateConductoresToPublicadores } from './data/firestore-services.js?v=3.7.1.1';
+import { showNotification } from './modules/utils/helpers.js?v=3.7.1.1';
+import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js?v=3.7.1.1';
+import { initPWA } from './modules/utils/pwa-manager.js?v=3.7.1.1';
 
 // Init Theme
 initTheme();

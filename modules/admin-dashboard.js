@@ -10,14 +10,14 @@ import {
     getCampanas, saveCampana, deleteCampana,
     getGroupsConfig, saveGroupsConfig,
     getDiffusionMessage, saveDiffusionMessage
-} from '../data/firestore-services.js?v=3.7';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=3.7';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=3.7';
-import { renderHistoryTab } from './report-s13.js?v=3.7';
-import { renderAnalyticsView } from './analytics-view.js?v=3.7';
-import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=3.7';
-import { auth } from '../firebase-config.js?v=3.7';
-import { animateEntry } from './utils/animations.js?v=3.7';
+} from '../data/firestore-services.js?v=3.7.1.1';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=3.7.1.1';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=3.7.1.1';
+import { renderHistoryTab } from './report-s13.js?v=3.7.1.1';
+import { renderAnalyticsView } from './analytics-view.js?v=3.7.1.1';
+import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=3.7.1.1';
+import { auth } from '../firebase-config.js?v=3.7.1.1';
+import { animateEntry } from './utils/animations.js?v=3.7.1.1';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }) : '';
 
