@@ -17,7 +17,7 @@ document.body.appendChild(createThemeToggle());
 // Init PWA & Notifications
 initPWA();
 
-const APP_VERSION = '3.7';
+const APP_VERSION = '3.7.1.1';
 
 // FORCE CACHE CLEAR FOR v3.2.9
 if ('serviceWorker' in navigator) {

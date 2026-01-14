@@ -1020,21 +1020,32 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
                             </div>
 
                             ${a.attachedTerritories.length > 0 ? `
-                            <div class="space-y-3 pt-1">
-                                 <!-- Territory History Button(s) -->
-                                 <div class="space-y-2">
+                            <div class="space-y-4 pt-2">
+                                 <!-- Minimalist Territory Cards -->
+                                 <div class="space-y-3">
                                      ${a.attachedTerritories.map(t => `
-                                         <button class="w-full p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-white/5 flex items-center gap-3 group/history hover:shadow-md active:scale-95 transition-all territory-history-btn"
-                                             data-tid="${t.id}" data-tnum="${t.numero}">
-                                             <div class="w-8 h-8 bg-slate-50 dark:bg-white/5 rounded-lg flex items-center justify-center text-sm text-slate-400 group-hover/history:text-primary transition-colors">
-                                                 <i class="fas fa-history"></i>
+                                         <div class="modern-card !p-4 border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-black/20 flex items-center justify-between group/titem hover:border-indigo-500/30 transition-all overflow-hidden relative">
+                                             <div class="absolute inset-0 bg-indigo-500/[0.02] opacity-0 group-hover/titem:opacity-100 transition-opacity pointer-events-none"></div>
+                                             <div class="flex items-center gap-4 relative z-10">
+                                                 <div class="w-12 h-12 bg-white dark:bg-slate-800 rounded-2xl flex flex-col items-center justify-center border border-slate-100 dark:border-white/10 shadow-sm transition-transform group-hover/titem:scale-105 group-hover/titem:rotate-2">
+                                                     <span class="text-[8px] font-black text-slate-400 leading-none mb-0.5 opacity-60">T-</span>
+                                                     <span class="text-lg font-black text-slate-800 dark:text-white leading-none">${t.numero}</span>
+                                                 </div>
+                                                 <div class="flex-1 min-w-0">
+                                                     <p class="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] leading-none mb-1">Sector / Manzanas</p>
+                                                     <p class="text-[11px] font-black text-slate-700 dark:text-slate-200 truncate pr-2 uppercase leading-tight tracking-tight">${t.manzanas || 'Sin sector definido'}</p>
+                                                 </div>
                                              </div>
-                                             <div class="flex-1 text-left">
-                                                 <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">HISTORIAL</p>
-                                                 <p class="text-[10px] font-black text-slate-800 dark:text-white uppercase mt-1">Territorio ${t.numero}</p>
+                                             <div class="flex items-center gap-2 relative z-10">
+                                                 <button class="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-white/5 flex items-center justify-center text-slate-400 hover:text-amber-500 hover:border-amber-500/30 transition-all territory-history-btn active:scale-95 shadow-sm"
+                                                     data-tid="${t.id}" data-tnum="${t.numero}" title="Ver Historial">
+                                                     <i class="fas fa-history text-sm"></i>
+                                                 </button>
+                                                 <button onclick="window.viewMapFromReport('${t.id}')" class="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-white/5 flex items-center justify-center text-slate-400 hover:text-indigo-500 hover:border-indigo-500/30 transition-all active:scale-95 shadow-sm" title="Ver Mapa Interactiva">
+                                                     <i class="fas fa-map-marked-alt text-sm"></i>
+                                                 </button>
                                              </div>
-                                             <i class="fas fa-chevron-right text-[9px] text-slate-300 group-hover/history:translate-x-1 transition-transform"></i>
-                                         </button>
+                                         </div>
                                      `).join('')}
                                  </div>
                                 
@@ -1236,9 +1247,13 @@ const renderFullProgramaCards = (programa, container, territoryMap = {}) => {
         if (activeShifts.length === 0) return '';
 
         return `
-            <div class="group relative overflow-hidden modern-card p-5 border-slate-100 dark:border-white/5 transition-all duration-500 hover:scale-[1.01] flex flex-col gap-4 shadow-lg hover:shadow-indigo-500/5">
-                <div class="flex justify-between items-center border-b border-slate-100 dark:border-white/10 pb-3">
-                    <h3 class="font-black text-lg text-slate-800 dark:text-white uppercase tracking-tighter tabular-nums">${dayName}</h3>
+            <div class="group relative overflow-hidden modern-card p-6 border-slate-100 dark:border-white/5 transition-all duration-500 hover:scale-[1.01] flex flex-col gap-6 shadow-xl hover:shadow-indigo-500/10 bg-white dark:bg-[#0d121b]">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-3xl rounded-full -mr-10 -mt-10"></div>
+                <div class="flex justify-between items-center relative z-10">
+                    <div>
+                        <h3 class="font-black text-2xl text-slate-800 dark:text-white uppercase tracking-tighter tabular-nums leading-none">${dayName}</h3>
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1.5 opacity-60">Cronograma de Servicio</p>
+                    </div>
                     <div class="w-8 h-8 rounded-lg bg-slate-50 dark:bg-white/5 flex items-center justify-center text-slate-400 group-hover:bg-indigo-500/10 group-hover:text-indigo-600 transition-all shadow-inner">
                         <i class="fas fa-calendar-check text-xs"></i>
                     </div>
@@ -1272,15 +1287,26 @@ const renderFullProgramaCards = (programa, container, territoryMap = {}) => {
                                     </div>
                                 </div>
                                 ${tNums.length > 0 ? `
-                                <div class="pt-2 border-t border-slate-100 dark:border-white/10 flex flex-wrap gap-1.5">
-                                    ${tNums.map(num => {
-                const t = territoryMap[num];
-                const isDone = t && (t.estado === 'Predicado' || t.estado === 'Terminado');
-                return `<button onclick="window.viewMapFromReport('${t?.id}')" class="px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all hover:scale-110 active:scale-95 flex items-center gap-1.5 shadow-sm ${isDone ? 'bg-slate-100 text-slate-300 line-through opacity-50 cursor-not-allowed' : 'bg-indigo-500/10 text-indigo-600 hover:bg-indigo-600 hover:text-white'}">
-                            <i class="fas fa-map-marked-alt text-[10px]"></i> T-${num} 
-                        </button>`;
-            }).join('')}
-                                </div>
+                                <div class="pt-2 border-t border-slate-100 dark:border-white/10 flex flex-wrap gap-2">
+                                     ${tNums.map(num => {
+                                         const t = territoryMap[num];
+                                         const isDone = t && (t.estado === 'Predicado' || t.estado === 'Terminado');
+                                         return `
+                                         <div class="flex items-center gap-1 p-1 bg-slate-100/50 dark:bg-white/5 rounded-2xl border border-slate-200/50 dark:border-white/5 shadow-sm transition-all hover:border-indigo-500/20">
+                                             <button onclick="window.viewMapFromReport('${t?.id}')" 
+                                                 class="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all hover:bg-indigo-50 dark:hover:bg-indigo-500/10 active:scale-95 flex items-center gap-2 ${isDone ? 'text-slate-300 line-through opacity-50 cursor-not-allowed' : 'bg-white dark:bg-slate-800 text-indigo-600 shadow-sm border border-indigo-500/10'}">
+                                                 <span class="w-1.5 h-1.5 rounded-full ${isDone ? 'bg-slate-200' : 'bg-indigo-500 animate-pulse'}"></span>
+                                                 T-${num}
+                                             </button>
+                                             <button onclick="window.showUnifiedTerritoryHistory('${t?.id}', '${num}')" 
+                                                 class="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-amber-500 hover:bg-white dark:hover:bg-slate-800 transition-all active:scale-90"
+                                                 title="Ver Historial">
+                                                 <i class="fas fa-history text-xs"></i>
+                                             </button>
+                                         </div>
+                                         `;
+                                     }).join('')}
+                                 </div>
                                 ` : ''}
                             </div>
                         </div>
@@ -3056,13 +3082,13 @@ window.showUnifiedTerritoryHistory = async (territoryId, territoryNum) => {
                      </button>
                  </footer>
             </div>
-        }, (modal) => {
+        `, (modal) => {
             const brain = new TerritoryIntelligence(null, null, allT, null);
-            
+
             // Photo Preview Logic
             const photoInput = modal.querySelector('#history-photo-input');
             const photoPreview = modal.querySelector('#history-photos-preview');
-            
+
             if (photoInput && photoPreview) {
                 photoInput.onchange = (e) => {
                     Array.from(e.target.files).forEach(file => {
@@ -3071,12 +3097,7 @@ window.showUnifiedTerritoryHistory = async (territoryId, territoryNum) => {
                         reader.onload = (ev) => {
                             const container = document.createElement('div');
                             container.className = 'relative w-16 h-16 rounded-xl overflow-hidden border border-black/10 group animate-scale-in';
-                            container.innerHTML = `
-            < img src = "${ev.target.result}" class= "w-full h-full object-cover" >
-            <button onclick="this.parentElement.remove()" class="absolute inset-0 bg-rose-500/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <i class="fas fa-trash-alt text-xs"></i>
-            </button>
-                            `;
+                            container.innerHTML = '<img src="' + ev.target.result + '" class="w-full h-full object-cover"><button onclick="this.parentElement.remove()" class="absolute inset-0 bg-rose-500/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><i class="fas fa-trash-alt text-xs"></i></button>';
                             photoPreview.appendChild(container);
                         };
                         reader.readAsDataURL(file);
@@ -3099,17 +3120,13 @@ window.showUnifiedTerritoryHistory = async (territoryId, territoryNum) => {
                 askResponse.innerText = "Procesando...";
 
                 try {
-                    const historyContext = history.slice(0, 30).map(h => {
+                    const historyCtx = history.slice(0, 30).map(h => {
                         const d = h.fecha_entrega || h.fecha_asignacion || h.fecha || 'Sin fecha';
                         const o = h.notas || h.observaciones || 'Sin notas';
-                        return `[${ d }]${ o }`;
+                        return '[' + d + '] ' + o;
                     }).join('\n');
 
-                    const prompt = `Analiza detalladamente este historial de observaciones para el territorio T - ${ t.numero }.El usuario necesita ayuda con estas observaciones.
-                    Responde basado en este historial:
-            ${ historyContext }
-                    
-                    Consulta: ${ q }`;
+                    const prompt = "Analiza el historial de T-" + (t.numero || territoryNum) + " y responde la consulta.\n\nHistorial:\n" + historyCtx + "\n\nConsulta: " + q;
 
                     const response = await brain.askGemini(config.gemini_key, prompt);
                     askResponse.innerText = response;
