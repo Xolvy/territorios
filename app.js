@@ -19,14 +19,7 @@ initPWA();
 
 const APP_VERSION = '1.9.4';
 
-// FORCE CACHE CLEAR FOR v3.2.9
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(function (registrations) {
-        for (let registration of registrations) {
-            registration.unregister();
-        }
-    });
-}
+// --- PWA INITIALIZATION ---
 
 // --- SUCCESS CONFIRMATION AFTER UPDATE ---
 const checkUpdateSuccess = () => {
