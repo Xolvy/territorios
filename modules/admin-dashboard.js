@@ -10,14 +10,14 @@ import {
     getCampanas, saveCampana, deleteCampana,
     getGroupsConfig, saveGroupsConfig,
     getDiffusionMessage, saveDiffusionMessage
-} from '../data/firestore-services.js?v=3.7.1.1';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=3.7.1.1';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=3.7.1.1';
-import { renderHistoryTab } from './report-s13.js?v=3.7.1.1';
-import { renderAnalyticsView } from './analytics-view.js?v=3.7.1.1';
-import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=3.7.1.1';
-import { auth } from '../firebase-config.js?v=3.7.1.1';
-import { animateEntry } from './utils/animations.js?v=3.7.1.1';
+} from '../data/firestore-services.js?v=1.9.1';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=1.9.1';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=1.9.1';
+import { renderHistoryTab } from './report-s13.js?v=1.9.1';
+import { renderAnalyticsView } from './analytics-view.js?v=1.9.1';
+import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=1.9.1';
+import { auth } from '../firebase-config.js?v=1.9.1';
+import { animateEntry } from './utils/animations.js?v=1.9.1';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }) : '';
 
@@ -5665,9 +5665,7 @@ const renderPredicacionTab = async (container) => {
                 </div>
             </header>
 
-            <div class="md:hidden flex items-center justify-center gap-2 p-3 bg-primary/5 text-primary text-[10px] font-bold uppercase tracking-widest border-y border-primary/10">
-                <i class="fas fa-arrows-alt-h animate-pulse"></i> Desliza para ver más columnas
-            </div>
+            <!-- Sroll Indicator removed as per user feedback -->
 
             <div class="modern-card !p-0 overflow-hidden border border-slate-200 dark:border-white/5 min-h-[400px] overflow-x-auto" id="pdf-content">
                 <div class="table-container custom-scrollbar overflow-x-auto">
@@ -5718,12 +5716,12 @@ const renderPredicacionTab = async (container) => {
                     </select>
                 </td>
                 <td class="p-3">
-                    <div class="flex items-center gap-1.5 justify-center">
-                        <input type="time" class="w-24 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-100 outline-none focus:border-primary transition-all text-center"
+                    <div class="flex items-center gap-1 justify-center">
+                        <input type="time" class="w-20 md:w-24 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-full px-2 md:px-3 py-2 text-[10px] md:text-xs font-bold text-slate-600 dark:text-slate-100 outline-none focus:border-primary transition-all text-center"
                             value="${row.hora || ''}"
                             onchange="updateRow(${index}, 'hora', this.value)">
-                        <span class="text-slate-300 dark:text-white/10">—</span>
-                        <input type="time" class="w-24 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-100 outline-none focus:border-primary transition-all text-center"
+                        <span class="text-slate-300 dark:text-white/10">-</span>
+                        <input type="time" class="w-20 md:w-24 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-full px-2 md:px-3 py-2 text-[10px] md:text-xs font-bold text-slate-600 dark:text-slate-100 outline-none focus:border-primary transition-all text-center"
                             value="${row.hora_fin || ''}"
                             onchange="updateRow(${index}, 'hora_fin', this.value)">
                     </div>
@@ -6095,11 +6093,7 @@ const renderProgramaTab = async (container) => {
         ];
 
         let html = `
-            <!-- Sroll Indicator mobile -->
-            <div class="sm:hidden flex items-center justify-center gap-2 mb-4 animate-pulse">
-                <i class="fas fa-arrows-left-right text-primary"></i>
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Desliza para ver más columnas</span>
-            </div>
+            <!-- Sroll Indicator removed as per user feedback -->
 
             <div class="table-container overflow-x-auto custom-scrollbar">
                 <table class="w-full text-left border-collapse min-w-[1300px] table-fixed">

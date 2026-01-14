@@ -30,50 +30,51 @@ export const renderAnalyticsView = async (container) => {
                 </button>
             </header>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div class="modern-card !p-5 md:!p-8 relative overflow-hidden group hover:border-primary/30 transition-all shadow-xl hover:shadow-primary/5 bg-white dark:bg-white/[0.02]">
-                    <div class="absolute right-0 top-0 w-32 h-32 bg-primary/5 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                <div class="modern-card !p-3 sm:!p-5 md:!p-8 relative overflow-hidden group hover:border-primary/30 transition-all shadow-xl hover:shadow-primary/5 bg-white dark:bg-white/[0.02]">
+                    <div class="absolute right-0 top-0 w-16 h-16 sm:w-32 sm:h-32 bg-primary/5 rounded-bl-full -mr-4 -mt-4 sm:-mr-8 sm:-mt-8 transition-transform group-hover:scale-110"></div>
                     <div class="relative z-10">
-                        <p class="text-[10px] text-slate-600 dark:text-slate-400 font-extrabold uppercase tracking-[0.2em] mb-4">Total Territorios</p>
-                        <div class="text-5xl font-black text-slate-800 dark:text-white tabular-nums tracking-tighter" id="stat-total-terr">-</div>
-                        <div class="mt-6 flex items-center gap-2 text-primary font-black text-[10px] uppercase tracking-widest">
-                            <i class="fas fa-globe-americas"></i> Cobertura Global
+                        <p class="text-[8px] sm:text-[10px] text-slate-600 dark:text-slate-400 font-extrabold uppercase tracking-[0.2em] mb-2 sm:mb-4">Total Territorios</p>
+                        <div class="text-3xl sm:text-5xl font-black text-slate-800 dark:text-white tabular-nums tracking-tighter" id="stat-total-terr">-</div>
+                        <div class="mt-4 sm:mt-6 flex items-center gap-2 text-primary font-black text-[8px] sm:text-[10px] uppercase tracking-widest">
+                            <i class="fas fa-globe-americas"></i> <span class="hidden xs:inline">Cobertura Global</span>
                         </div>
                     </div>
                 </div>
                 
-                <div class="modern-card !p-5 md:!p-8 relative overflow-hidden group hover:border-blue-500/30 transition-all shadow-xl hover:shadow-blue-500/5 bg-white dark:bg-white/[0.02]">
-                    <div class="absolute right-0 top-0 w-32 h-32 bg-blue-500/5 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
+                <div class="modern-card !p-3 sm:!p-5 md:!p-8 relative overflow-hidden group hover:border-blue-500/30 transition-all shadow-xl hover:shadow-blue-500/5 bg-white dark:bg-white/[0.02]">
+                    <div class="absolute right-0 top-0 w-16 h-16 sm:w-32 sm:h-32 bg-blue-500/5 rounded-bl-full -mr-4 -mt-4 sm:-mr-8 sm:-mt-8 transition-transform group-hover:scale-110"></div>
                     <div class="relative z-10">
-                        <p class="text-[10px] text-slate-600 dark:text-slate-400 font-extrabold uppercase tracking-[0.2em] mb-4">Asignados</p>
-                        <div class="text-5xl font-black text-slate-800 dark:text-white tabular-nums tracking-tighter" id="stat-assigned">-</div>
-                        <div class="mt-6 flex items-center gap-2 text-blue-500 font-black text-[10px] uppercase tracking-widest" id="stat-assigned-pct">
-                            <i class="fas fa-user-check"></i> 0% del total
+                        <p class="text-[8px] sm:text-[10px] text-slate-600 dark:text-slate-400 font-extrabold uppercase tracking-[0.2em] mb-2 sm:mb-4">Asignados</p>
+                        <div class="text-3xl sm:text-5xl font-black text-slate-800 dark:text-white tabular-nums tracking-tighter" id="stat-assigned">-</div>
+                        <div class="mt-4 sm:mt-6 flex items-center gap-2 text-blue-500 font-black text-[8px] sm:text-[10px] uppercase tracking-widest" id="stat-assigned-pct">
+                            <i class="fas fa-user-check"></i> <span class="hidden xs:inline">0% del total</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="modern-card !p-5 md:!p-8 relative overflow-hidden group hover:border-indigo-500/30 transition-all shadow-xl hover:shadow-indigo-500/5 bg-white dark:bg-white/[0.02]">
-                    <div class="absolute right-0 top-0 w-32 h-32 bg-indigo-500/5 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
+                <div class="modern-card !p-3 sm:!p-5 md:!p-8 relative overflow-hidden group hover:border-indigo-500/30 transition-all shadow-xl hover:shadow-indigo-500/5 bg-white dark:bg-white/[0.02]">
+                    <div class="absolute right-0 top-0 w-16 h-16 sm:w-32 sm:h-32 bg-indigo-500/5 rounded-bl-full -mr-4 -mt-4 sm:-mr-8 sm:-mt-8 transition-transform group-hover:scale-110"></div>
                     <div class="relative z-10">
-                        <p class="text-[10px] text-slate-600 dark:text-slate-400 font-extrabold uppercase tracking-[0.2em] mb-4">Conductores</p>
-                        <div class="text-5xl font-black text-slate-800 dark:text-white tabular-nums tracking-tighter" id="stat-conductors">-</div>
-                        <div class="mt-6 flex items-center gap-2 text-indigo-500 font-black text-[10px] uppercase tracking-widest">
-                            <i class="fas fa-users"></i> Activos en servicio
+                        <p class="text-[8px] sm:text-[10px] text-slate-600 dark:text-slate-400 font-extrabold uppercase tracking-[0.2em] mb-2 sm:mb-4">Conductores</p>
+                        <div class="text-3xl sm:text-5xl font-black text-slate-800 dark:text-white tabular-nums tracking-tighter" id="stat-conductors">-</div>
+                        <div class="mt-4 sm:mt-6 flex items-center gap-2 text-indigo-500 font-black text-[8px] sm:text-[10px] uppercase tracking-widest">
+                            <i class="fas fa-users"></i> <span class="hidden xs:inline">En servicio</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="modern-card !p-5 md:!p-8 relative overflow-hidden group hover:border-rose-500/30 transition-all shadow-xl hover:shadow-rose-500/5 bg-white dark:bg-white/[0.02]">
-                    <div class="absolute right-0 top-0 w-32 h-32 bg-rose-500/5 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
+                <div class="modern-card !p-3 sm:!p-5 md:!p-8 relative overflow-hidden group hover:border-rose-500/30 transition-all shadow-xl hover:shadow-rose-500/5 bg-white dark:bg-white/[0.02]">
+                    <div class="absolute right-0 top-0 w-16 h-16 sm:w-32 sm:h-32 bg-rose-500/5 rounded-bl-full -mr-4 -mt-4 sm:-mr-8 sm:-mt-8 transition-transform group-hover:scale-110"></div>
                     <div class="relative z-10">
-                        <p class="text-[10px] text-slate-600 dark:text-slate-400 font-extrabold uppercase tracking-[0.2em] mb-4">Atrasados (>${settings?.expiration_days ? Math.round(settings.expiration_days / 30) : 4}m)</p>
-                        <div class="text-5xl font-black text-slate-800 dark:text-white tabular-nums tracking-tighter" id="stat-late">-</div>
-                        <div class="mt-6 flex items-center gap-2 text-rose-500 font-black text-[10px] uppercase tracking-widest">
-                            <i class="fas fa-exclamation-triangle"></i> Requieren atención
+                        <p class="text-[8px] sm:text-[10px] text-slate-600 dark:text-slate-400 font-extrabold uppercase tracking-[0.2em] mb-2 sm:mb-4">Vencidos</p>
+                        <div class="text-3xl sm:text-5xl font-black text-slate-800 dark:text-white tabular-nums tracking-tighter" id="stat-late">-</div>
+                        <div class="mt-4 sm:mt-6 flex items-center gap-2 text-rose-500 font-black text-[8px] sm:text-[10px] uppercase tracking-widest">
+                            <i class="fas fa-exclamation-triangle"></i> <span class="hidden xs:inline">Atrasados</span>
                         </div>
                     </div>
                 </div>
+
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 overflow-hidden">

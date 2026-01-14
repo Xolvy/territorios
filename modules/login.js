@@ -1,6 +1,6 @@
-import { auth } from '../firebase-config.js?v=3.7.1.1';
+import { auth } from '../firebase-config.js?v=1.9.1';
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { getPublicadores, getConfiguracion } from '../data/firestore-services.js?v=3.7.1.1';
+import { getPublicadores, getConfiguracion } from '../data/firestore-services.js?v=1.9.1';
 
 export const renderLogin = (container, appVersion) => {
     container.innerHTML = `
@@ -59,7 +59,7 @@ export const renderLogin = (container, appVersion) => {
                 <!-- Footer Info -->
                 <div class="pt-6 sm:pt-10 space-y-2 opacity-60">
                     <p id="app-version-label" class="text-[11px] text-slate-600 dark:text-slate-400 font-black tracking-tighter uppercase">
-                        Plataforma v${appVersion || '3.7.1.1'} · Modern 2026
+                        Plataforma v${appVersion || '1.9.1'} · Modern 2026
                     </p>
                     <p class="text-[10px] text-slate-500 dark:text-slate-400 font-bold tracking-tight">© Congregation Software Solutions · Ecuador</p>
                 </div>
