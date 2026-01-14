@@ -1038,10 +1038,10 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
                                              </div>
                                              <div class="flex items-center gap-2 relative z-10">
                                                  <button class="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-white/5 flex items-center justify-center text-slate-400 hover:text-amber-500 hover:border-amber-500/30 transition-all territory-history-btn active:scale-95 shadow-sm"
-                                                     data-tid="${t.id}" data-tnum="${t.numero}" title="Ver Historial">
+                                                     data-tid="${t.id}" data-tnum="${t.numero}" title="Ver Historial / Observaciones">
                                                      <i class="fas fa-history text-sm"></i>
                                                  </button>
-                                                 <button onclick="window.viewMapFromReport('${t.id}')" class="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-white/5 flex items-center justify-center text-slate-400 hover:text-indigo-500 hover:border-indigo-500/30 transition-all active:scale-95 shadow-sm" title="Ver Mapa Interactiva">
+                                                 <button onclick="window.viewMapFromReport('${t.id}')" class="hidden sm:flex w-10 h-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-white/5 flex items-center justify-center text-slate-400 hover:text-indigo-500 hover:border-indigo-500/30 transition-all active:scale-95 shadow-sm" title="Ver Mapa Interactiva">
                                                      <i class="fas fa-map-marked-alt text-sm"></i>
                                                  </button>
                                              </div>
@@ -1051,19 +1051,15 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
                                 
                                 <!-- Single Report Button per Turn -->
                                 <div class="flex gap-2 h-14">
-                                    <button class="flex-1 px-5 bg-gradient-to-br from-teal-600 to-emerald-700 rounded-2xl text-white font-black flex items-center justify-between shadow-lg shadow-teal-500/10 active:scale-95 transition-all group overflow-hidden relative territory-report-btn"
+                                    <button class="flex-1 px-8 bg-gradient-to-br from-teal-600 to-emerald-700 rounded-2xl text-white font-black flex items-center justify-between shadow-lg shadow-teal-500/10 active:scale-95 transition-all group overflow-hidden relative territory-report-btn"
                                         data-ids="${a.attachedTerritories.map(t => t.id).join(',')}" 
                                         data-nums="${a.attachedTerritories.map(t => t.numero).join(',')}"
                                         data-manzanas="${a.attachedTerritories.map(t => t.manzanas || '').join(';')}"
                                    >
-                                        <div class="relative z-10 flex items-center gap-3">
-                                            <div class="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center text-base">📊</div>
-                                            <div class="text-left">
-                                                <p class="text-xs font-black leading-none mb-1">Informe</p>
-                                                <p class="text-[8px] font-bold text-teal-200 uppercase tracking-widest">${a.attachedTerritories.map(t => 'T-' + t.numero).join(' & ')}</p>
-                                            </div>
+                                        <div class="relative z-10">
+                                            <p class="text-sm font-black uppercase tracking-widest">Informe</p>
                                         </div>
-                                        <i class="fas fa-chevron-right text-[10px] opacity-40 group-hover:translate-x-1 transition-transform"></i>
+                                        <i class="fas fa-chevron-right text-xs opacity-40 group-hover:translate-x-1 transition-transform"></i>
                                     </button>
                                     ${a.attachedTerritories.length > 0 ? `
                                     <button onclick="window.viewMapFromReport('${a.attachedTerritories[0].id}')" class="w-14 bg-indigo-600 rounded-2xl text-white font-black shadow-lg shadow-indigo-500/10 active:scale-95 transition-all flex items-center justify-center group overflow-hidden">
