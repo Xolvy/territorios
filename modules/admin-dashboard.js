@@ -1028,7 +1028,9 @@ const renderCasaEnCasaTab = async (container) => {
         container.querySelectorAll('.sub-tab-casa').forEach(btn => {
             const isActive = btn.dataset.sub === sub;
             btn.classList.toggle('active', isActive);
-            if (!isActive) {
+            if (isActive) {
+                btn.className = "sub-tab-casa active group px-5 py-3 rounded-xl bg-slate-900 dark:bg-white/10 text-white shadow-xl transition-all flex items-center gap-3 font-extrabold border border-slate-800 dark:border-white/10";
+            } else {
                 btn.className = "sub-tab-casa group px-5 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary-light hover:bg-white dark:hover:bg-white/5 transition-all flex items-center gap-3 font-extrabold border border-transparent hover:border-slate-200 dark:hover:border-white/10 shadow-sm";
             }
         });
@@ -6431,8 +6433,8 @@ const renderS13CommandCenter = async (container) => {
     const daysRezago = rezagoSorted[0] ? Math.floor((new Date() - new Date(latestTouch[rezagoSorted[0].numero])) / (1000 * 60 * 60 * 24)) : 0;
 
     container.innerHTML = `
-                    < div class="space-y-8 animate-fade-in" >
-            < !--Stats Dashboard-- >
+        <div class="space-y-8 animate-fade-in">
+            <!--Stats Dashboard-->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div class="bg-gradient-to-br from-primary to-indigo-600 p-8 rounded-[2rem] text-white shadow-xl shadow-primary/20 group relative overflow-hidden">
                     <div class="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
@@ -6471,7 +6473,7 @@ const renderS13CommandCenter = async (container) => {
                 </div>
             </div>
 
-            <!--Unified Control Bar-- >
+            <!--Unified Control Bar-->
             <div class="modern-card !p-6 flex flex-col lg:flex-row items-center gap-6 border-slate-200 dark:border-white/5 shadow-2xl">
                 <!-- Left: Date Filters -->
                 <div class="flex flex-wrap items-center gap-4 bg-slate-50 dark:bg-white/5 p-4 rounded-2xl border border-slate-200 dark:border-white/5">
@@ -6511,7 +6513,7 @@ const renderS13CommandCenter = async (container) => {
                 </div>
             </div>
 
-            <!--View Toggle & Sub - Content-- >
+            <!--View Toggle & Sub-Content-->
                     <div class="space-y-6">
                         <nav class="flex gap-2 p-1.5 bg-slate-100 dark:bg-white/5 w-fit rounded-2xl border border-slate-200 dark:border-white/5">
                             <button class="cc-view-btn px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 ${activeView === 'management' ? 'bg-white dark:bg-white/10 shadow-lg text-accent' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}" data-view="management">
@@ -6525,8 +6527,7 @@ const renderS13CommandCenter = async (container) => {
                         <div id="cc-main-container" class="min-h-[600px] modern-card !p-0 overflow-hidden border-slate-100 dark:border-white/5">
                             <!-- Dynamic View Content -->
                         </div>
-                    </div>
-        </div >
+        </div>
     `;
 
     // Initialize Year Selector
@@ -6547,8 +6548,8 @@ const renderS13CommandCenter = async (container) => {
 
     const setDatesFromSY = (sy) => {
         const y = parseInt(sy);
-        const start = `${y - 1} -09-01`;
-        const end = `${y} -08 - 31`;
+        const start = `${y - 1}-09-01`;
+        const end = `${y}-08-31`;
         startInput.value = start;
         endInput.value = end;
     };
@@ -6560,16 +6561,18 @@ const renderS13CommandCenter = async (container) => {
         activeView = view;
         const mainCont = container.querySelector('#cc-main-container');
         mainCont.innerHTML = `
-    < div class="flex flex-col items-center justify-center p-40 gap-4 animate-pulse" >
+            <div class="flex flex-col items-center justify-center p-40 gap-4 animate-pulse">
                 <div class="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
                 <p class="text-[10px] font-black uppercase text-primary tracking-[0.2em]">Preparando vista inteligente...</p>
-            </div > `;
+            </div>`;
 
         // Update Buttons
         container.querySelectorAll('.cc-view-btn').forEach(btn => {
             const isActive = btn.dataset.view === view;
             btn.classList.toggle('active', isActive);
-            if (!isActive) {
+            if (isActive) {
+                btn.className = `cc-view-btn active px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 bg-white dark:bg-white/10 shadow-lg ${view === 'management' ? 'text-accent' : 'text-primary'}`;
+            } else {
                 btn.className = "cc-view-btn px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200";
             }
         });
@@ -6905,13 +6908,13 @@ export const renderAdvancedHistoryView = async (container, options = {}) => {
     } catch (e) {
         console.error(e);
         container.innerHTML = `
-    < div class="p-10 text-center" >
+            <div class="p-10 text-center">
                 <div class="w-16 h-16 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center text-2xl mx-auto mb-4">
                     <i class="fas fa-exclamation-circle"></i>
                 </div>
                 <h4 class="text-sm font-black text-slate-800 dark:text-white uppercase">Error en el Centro de Gestión</h4>
                 <p class="text-xs text-slate-400 mt-2">${e.message}</p>
-            </div > `;
+            </div>`;
     }
 };
 
@@ -6925,7 +6928,7 @@ window.exportS12Form = async (territorios, layout = 1) => {
     const printWindow = window.open('', '_blank');
 
     const styles = `
-    < style >
+    <style>
     @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&family=Inter:wght@400;700&display=swap');
 
 @page {
@@ -6936,7 +6939,7 @@ window.exportS12Form = async (territorios, layout = 1) => {
             body {
     margin: 0;
     padding: 0;
-    font - family: 'Inter', sans - serif;
+    font-family: 'Inter', sans-serif;
     background: #f8fafc;
 }
 
@@ -6946,16 +6949,16 @@ window.exportS12Form = async (territorios, layout = 1) => {
     padding: 5mm;
     margin: 0 auto;
     background: white;
-    box - sizing: border - box;
-    page -break-after: always;
+    box-sizing: border-box;
+    page-break-after: always;
     display: flex;
-    flex - wrap: wrap;
-    align - content: flex - start;
-    justify - content: center;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    justify-content: center;
     gap: 5mm;
 }
             
-            .s12 - card {
+            .s12-card {
     width: 148mm;
     height: 104mm;
     border: 0.5pt solid #000;
@@ -6978,89 +6981,112 @@ window.exportS12Form = async (territorios, layout = 1) => {
     color: #000;
 }
 
-            .header - info {
+            .s12-card {
+    width: 148mm;
+    height: 104mm;
+    border: 0.5pt solid #000;
+    padding: 8mm;
     display: flex;
-    align - items: flex - end;
+    flex-direction: column;
+    position: relative;
+    box-sizing: border-box;
+    background: white;
+    overflow: hidden;
+}
+            
+            .title {
+    text-align: center;
+    font-size: 16pt;
+    font-weight: 800;
+    margin-bottom: 8pt;
+    text-transform: none;
+    font-family: 'Outfit', sans-serif;
+    color: #000;
+}
+
+            .header-info {
+    display: flex;
+    align-items: flex-end;
     gap: 4pt;
-    margin - bottom: 8pt;
+    margin-bottom: 8pt;
 }
 
             .label {
-    font - size: 11pt;
-    font - weight: 700;
-    white - space: nowrap;
+    font-size: 11pt;
+    font-weight: 700;
+    white-space: nowrap;
 }
 
-            .field - val {
-    font - size: 11pt;
-    border - bottom: 0.5pt solid #000;
+            .field-val {
+    font-size: 11pt;
+    border-bottom: 0.5pt solid #000;
     flex: 1;
-    min - height: 1.2em;
-    padding - bottom: 1pt;
+    min-height: 1.2em;
+    padding-bottom: 1pt;
 }
 
-            .territory - num - box {
+            .territory-num-box {
     border: 1pt solid #000;
     padding: 2pt 8pt;
-    font - size: 14pt;
-    font - weight: 800;
-    min - width: 40pt;
-    text - align: center;
+    font-size: 14pt;
+    font-weight: 800;
+    min-width: 40pt;
+    text-align: center;
 }
             
-            .map - container {
+            .map-container {
     flex: 1;
     border: 0.5pt solid #000;
     margin: 4pt 0;
     display: flex;
-    align - items: center;
-    justify - content: center;
+    align-items: center;
+    justify-content: center;
     overflow: hidden;
     background: #fff;
     position: relative;
 }
 
-            .map - container img {
-    width: 100 %;
-    height: 100 %;
-    object - fit: contain;
+            .map-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
     display: block;
 }
 
-            .map - placeholder {
-    font - size: 10pt;
+            .map-placeholder {
+    font-size: 10pt;
     color: #666;
-    text - align: center;
-    font - style: italic;
+    text-align: center;
+    font-style: italic;
 }
             
-            .footer - note {
-    font - size: 8.5pt;
-    text - align: justify;
-    line - height: 1.2;
-    margin - top: 6pt;
-    font - weight: 400;
+            .footer-note {
+    font-size: 8.5pt;
+    text-align: justify;
+    line-height: 1.2;
+    margin-top: 6pt;
+    font-weight: 400;
     color: #000;
 }
 
-            .footer - id {
-    font - size: 8pt;
-    margin - top: 4pt;
+            .footer-id {
+    font-size: 8pt;
+    margin-top: 4pt;
     display: flex;
-    justify - content: space - between;
-    font - weight: 400;
+    justify-content: space-between;
+    font-weight: 400;
 }
 
 @media print {
                 body { background: white; }
-                .no - print { display: none!important; }
+                .no-print { display: none!important; }
                 .page { padding: 0; margin: 0; }
 }
-        </style >
+        </style>
     `;
 
     const renderCard = (t) => `
-    < div class="s12-card" >
+    <div class="s12-card">
             <div class="title">Tarjeta del mapa del territorio</div>
             
             <div class="header-info">
@@ -7081,10 +7107,10 @@ window.exportS12Form = async (territorios, layout = 1) => {
             <div class="footer-id">
                 <span>S-12-S &nbsp;&nbsp; 6/72</span>
             </div>
-        </div >
+        </div>
     `;
 
-    let html = `< html ><head><title>Formularios S-12</title>${styles}</head><body>`;
+    let html = `<html><head><title>Formularios S-12</title>${styles}</head><body>`;
 
     if (layout === 1) {
         sorted.forEach(t => {
@@ -7099,16 +7125,16 @@ window.exportS12Form = async (territorios, layout = 1) => {
         }
     } else if (layout === 4) {
         for (let i = 0; i < sorted.length; i += 4) {
-            html += `< div class="page" > `;
+            html += `<div class="page">`;
             for (let j = 0; j < 4; j++) {
                 if (sorted[i + j]) html += renderCard(sorted[i + j]);
             }
-            html += `</div > `;
+            html += `</div>`;
         }
     }
 
     html += `
-    < div class="no-print" style = "position: fixed; top: 20px; right: 20px; background: rgba(15, 23, 42, 0.95); color: white; padding: 24px; border-radius: 20px; font-family: 'Outfit', sans-serif; z-index: 9999; box-shadow: 0 20px 50px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); width: 280px;" >
+    <div class="no-print" style="position: fixed; top: 20px; right: 20px; background: rgba(15, 23, 42, 0.95); color: white; padding: 24px; border-radius: 20px; font-family: 'Outfit', sans-serif; z-index: 9999; box-shadow: 0 20px 50px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); width: 280px;">
             <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
                 <div style="width: 40px; height: 40px; background: #14b8a6; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px;">🖨️</div>
                 <div>
@@ -7122,10 +7148,10 @@ window.exportS12Form = async (territorios, layout = 1) => {
                     <strong>Nota:</strong> Ajuste el destino a "Guardar como PDF" o su impresora, y asegúrese de que el tamaño sea <b>A4</b> y los márgenes <b>Ninguno</b>.
                 </p>
             </div>
-        </div >
+        </div>
     `;
 
-    html += `</body ></html > `;
+    html += `</body></html>`;
 
     printWindow.document.write(html);
     printWindow.document.close();

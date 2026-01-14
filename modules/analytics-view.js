@@ -128,7 +128,7 @@ export const renderAnalyticsView = async (container) => {
             <div class="text-center text-xs text-gray-400 py-4">
                 App Territorios v3.6.0 Oficial • Powered by Antigravity
             </div>
-        </div>>
+        </div>
     `;
 
     // Load Data
@@ -290,7 +290,7 @@ export const renderAnalyticsView = async (container) => {
 
         } catch (e) {
             console.error(e);
-            container.innerHTML = `<div class="text-red-500 p-5"> Error cargando analytics: ${e.message}</div>> `;
+            container.innerHTML = `<div class="text-red-500 p-5"> Error cargando analytics: ${e.message}</div>`;
         }
     };
 
