@@ -6,18 +6,19 @@ import {
     getTelefonos, addTelefono, deleteTelefono, updateTelefono,
     getPredicacionPublica, savePredicacionPublica,
     getProgramaSemanal, saveProgramaSemanal, rebuildHistoryFromSchedule, runSystemDiagnosticsAndRepair, deleteProgramaSemanal,
+    syncSlotWithTerritories,
     getRecursos, addRecurso, deleteRecurso, updateRecurso, restoreSystemBackup,
     getCampanas, saveCampana, deleteCampana,
     getGroupsConfig, saveGroupsConfig,
     getDiffusionMessage, saveDiffusionMessage
-} from '../data/firestore-services.js?v=1.9.3.4';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=1.9.3.4';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=1.9.3.4';
-import { renderHistoryTab } from './report-s13.js?v=1.9.3.4';
-import { renderAnalyticsView } from './analytics-view.js?v=1.9.3.4';
-import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=1.9.3.4';
-import { auth } from '../firebase-config.js?v=1.9.3.4';
-import { animateEntry } from './utils/animations.js?v=1.9.3.4';
+} from '../data/firestore-services.js?v=1.9.4';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=1.9.4';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=1.9.4';
+import { renderHistoryTab } from './report-s13.js?v=1.9.4';
+import { renderAnalyticsView } from './analytics-view.js?v=1.9.4';
+import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=1.9.4';
+import { auth } from '../firebase-config.js?v=1.9.4';
+import { animateEntry } from './utils/animations.js?v=1.9.4';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }) : '';
 
@@ -4376,7 +4377,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
             try {
                 const terrs = await getTerritorios();
                 let fixed = 0;
-                for (let i = 0; i <terrs.length; i++) {
+                for (let i = 0; i < terrs.length; i++) {
                     const t = terrs[i];
                     const num = String(t.numero).trim();
                     if (t.numero !== num) {
@@ -5024,7 +5025,7 @@ const renderTelefonosTab = async (container) => {
     const btnSummaries = document.getElementById('btn-view-session-summaries');
     if (btnSummaries) {
         btnSummaries.addEventListener('click', async () => {
-            const { getSessionSummaries } = await import('../data/firestore-services.js?v=1.9.3.4');
+            const { getSessionSummaries } = await import('../data/firestore-services.js?v=1.9.4');
             const summaries = await getSessionSummaries();
 
             showModal(`
@@ -5313,7 +5314,7 @@ const renderTelefonosTab = async (container) => {
                 return;
             }
 
-            for (let i = 0; i <validLines.length; i++) {
+            for (let i = 0; i < validLines.length; i++) {
                 const line = validLines[i].trim();
                 const parts = line.split(',');
 
@@ -6324,62 +6325,14 @@ window.updateWeekData = (dayIndex, turnoId, field, value) => {
             // 1. Save Weekly Program document
             await saveProgramaSemanal(weekId, _globalPrograma);
 
-            // 2. Bilateral Sync: Check if we need to Create/Cancel Assignment in 'territorios' collection
-            const today = new Date();
-            const thisWeekNum = getMonday(today).getTime();
-            const progWeekDate = new Date(weekId + 'T12:00:00Z');
-            const progWeekNum = progWeekDate.getTime();
+            // 2. Bilateral Sync: Unified slot synchronization
+            const tData = _globalPrograma.dias[dayIndex][turnoId];
+            if (['conductor', 'territorio', 'auxiliar', 'lugar', 'hora', 'faceta', 'grupos'].includes(field)) {
+                const diaObj = _globalPrograma.dias[dayIndex];
+                const progWeekDate = new Date(weekId + 'T12:00:00Z');
+                const dateISO = diaObj.fecha ? new Date(diaObj.fecha + 'T12:00:00Z').toISOString() : progWeekDate.toISOString();
 
-            // Only sync for present or future weeks
-            if (progWeekNum >= (thisWeekNum - 86400000)) { // Small buffer
-                const tData = _globalPrograma.dias[dayIndex][turnoId];
-
-                // If it's a sync-critical field (territory or conductor)
-                if (['conductor', 'territorio', 'auxiliar', 'lugar', 'hora', 'faceta', 'grupos'].includes(field)) {
-                    if (tData.territorio && tData.conductor) {
-                        const diaObj = _globalPrograma.dias[dayIndex];
-                        const extra = {
-                            auxiliar: tData.auxiliar || '',
-                            lugar: tData.lugar || '',
-                            hora: tData.hora || '',
-                            turno: turnoId,
-                            faceta: tData.faceta || '',
-                            grupos: tData.grupos || '',
-                            fecha_asignacion: diaObj.fecha ? new Date(diaObj.fecha + 'T12:00:00Z').toISOString() : progWeekDate.toISOString()
-                        };
-
-                        const parts = tData.territorio.split(',').map(s => s.trim());
-                        for (const part of parts) {
-                            const match = part.match(/^(\d+)(?:\s*\((.*)\))?$/);
-                            if (match) {
-                                const num = match[1];
-                                const mzsStr = match[2];
-                                const conductor = tData.conductor;
-                                const candidates = _globalTerritorios.filter(t => t.numero == num);
-
-                                let targetId = null;
-                                let mzsToAssign = [];
-
-                                if (mzsStr) {
-                                    mzsToAssign = mzsStr.split(',').map(m => m.trim());
-                                    const perfect = candidates.find(c => {
-                                        if (!c.manzanas) return false;
-                                        const cMzs = c.manzanas.split(',').map(s => s.trim());
-                                        return mzsToAssign.every(m => cMzs.includes(m));
-                                    });
-                                    if (perfect) targetId = perfect.id;
-                                } else if (candidates.length > 0) {
-                                    targetId = candidates[0].id;
-                                }
-
-                                if (targetId) {
-                                    if (mzsToAssign.length > 0) await assignTerritorioParcial(targetId, mzsToAssign, conductor, extra);
-                                    else await assignTerritorio(targetId, conductor, extra);
-                                }
-                            }
-                        }
-                    }
-                }
+                await syncSlotWithTerritories(weekId, dayIndex, turnoId, tData, dateISO);
             }
 
             if (statusIndicator) {
@@ -6436,7 +6389,8 @@ const renderS13CommandCenter = async (container) => {
         <div class="space-y-8 animate-fade-in">
             <!--Stats Dashboard-->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div class="bg-gradient-to-br from-primary to-indigo-600 p-8 rounded-[2rem] text-white shadow-xl shadow-primary/20 group relative overflow-hidden">
+                <!-- Cobertura -->
+                <div class="bg-gradient-to-br from-indigo-600 to-blue-700 p-8 rounded-[2rem] text-white shadow-xl shadow-indigo-500/20 group relative overflow-hidden transition-all hover:scale-[1.02]">
                     <div class="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
                     <p class="text-[10px] font-black uppercase tracking-[0.2em] opacity-70 mb-2">Cobertura Global</p>
                     <p class="text-4xl font-black tabular-nums">${coveragePercent}%</p>
@@ -6445,18 +6399,20 @@ const renderS13CommandCenter = async (container) => {
                     </div>
                 </div>
                 
-                <div class="modern-card group border-slate-200 dark:border-white/5 shadow-xl">
+                <!-- Faltantes -->
+                <div class="bg-white dark:bg-white/5 p-8 rounded-[2rem] border border-slate-100 dark:border-white/5 shadow-xl shadow-slate-200/50 dark:shadow-none transition-all hover:scale-[1.02]">
                     <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Territorios Faltantes</p>
                     <p class="text-4xl font-black text-red-500 tabular-nums">${missingCount}</p>
                     <div class="flex items-center gap-3 mt-4">
-                        <div class="flex-1 h-1.5 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+                        <div class="flex-1 h-1.5 bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden">
                             <div class="h-full bg-red-500 rounded-full" style="width: ${100 - coveragePercent}%"></div>
                         </div>
                         <span class="text-[10px] font-black text-red-500 uppercase">Faltan</span>
                     </div>
                 </div>
 
-                <div class="modern-card border-slate-200 dark:border-white/5 shadow-xl">
+                <!-- Uso Frecuente -->
+                <div class="bg-white dark:bg-white/5 p-8 rounded-[2rem] border border-slate-100 dark:border-white/5 shadow-xl shadow-slate-200/50 dark:shadow-none transition-all hover:scale-[1.02]">
                     <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Uso Frecuente</p>
                     <p class="text-2xl font-black text-slate-800 dark:text-white truncate">Territorio ${topTerritory}</p>
                     <div class="flex items-center gap-2 mt-4 text-[9px] text-indigo-500 font-bold uppercase tracking-widest">
@@ -6464,7 +6420,8 @@ const renderS13CommandCenter = async (container) => {
                     </div>
                 </div>
 
-                <div class="modern-card border-slate-200 dark:border-white/5 shadow-xl">
+                <!-- Rezago -->
+                <div class="bg-white dark:bg-white/5 p-8 rounded-[2rem] border border-slate-100 dark:border-white/5 shadow-xl shadow-slate-200/50 dark:shadow-none transition-all hover:scale-[1.02]">
                     <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Mayor Rezago</p>
                     <p class="text-2xl font-black text-orange-600 truncate">#${oldestTerritory}</p>
                     <div class="flex items-center gap-2 mt-4 text-[9px] text-slate-400 font-bold uppercase tracking-widest">
@@ -6516,10 +6473,10 @@ const renderS13CommandCenter = async (container) => {
             <!--View Toggle & Sub-Content-->
                     <div class="space-y-6">
                         <nav class="flex gap-2 p-1.5 bg-slate-100 dark:bg-white/5 w-fit rounded-2xl border border-slate-200 dark:border-white/5">
-                            <button class="cc-view-btn px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 ${activeView === 'management' ? 'bg-white dark:bg-white/10 shadow-lg text-accent' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}" data-view="management">
+                            <button class="cc-view-btn px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3" data-view="management">
                                 <i class="fas fa-database"></i> Gestión de Historial
                             </button>
-                            <button class="cc-view-btn px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 ${activeView === 's13' ? 'bg-white dark:bg-white/10 shadow-lg text-primary' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}" data-view="s13">
+                            <button class="cc-view-btn px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3" data-view="s13">
                                 <i class="fas fa-list-alt"></i> Reporte S-13
                             </button>
                         </nav>
@@ -6566,14 +6523,13 @@ const renderS13CommandCenter = async (container) => {
                 <p class="text-[10px] font-black uppercase text-primary tracking-[0.2em]">Preparando vista inteligente...</p>
             </div>`;
 
-        // Update Buttons
+        // Update Buttons Styling to Match App Sub-Nav
         container.querySelectorAll('.cc-view-btn').forEach(btn => {
             const isActive = btn.dataset.view === view;
-            btn.classList.toggle('active', isActive);
             if (isActive) {
-                btn.className = `cc-view-btn active px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 bg-white dark:bg-white/10 shadow-lg ${view === 'management' ? 'text-accent' : 'text-primary'}`;
+                btn.className = "cc-view-btn px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 bg-slate-900 dark:bg-white/10 text-white shadow-xl";
             } else {
-                btn.className = "cc-view-btn px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200";
+                btn.className = "cc-view-btn px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 text-slate-600 dark:text-slate-400 hover:text-primary";
             }
         });
 
@@ -6593,7 +6549,11 @@ const renderS13CommandCenter = async (container) => {
             });
             const genBtn = container.querySelector('#cc-btn-generate');
             genBtn.innerHTML = '<i class="fas fa-sync"></i> Sincronizar';
-            genBtn.onclick = () => renderS13CommandCenter(container);
+            genBtn.onclick = async () => {
+                showNotification("Iniciando sincronización profunda...", "info");
+                await runSystemDiagnosticsAndRepair();
+                renderS13CommandCenter(container);
+            };
         }
     };
 
@@ -6670,7 +6630,7 @@ const renderS13CommandCenter = async (container) => {
     };
 
     // Initial Load
-    loadView('s13');
+    loadView('management');
 };
 
 
@@ -7117,14 +7077,14 @@ window.exportS12Form = async (territorios, layout = 1) => {
             html += `<div class="page" style="justify-content: center; align-items: center;">${renderCard(t)}</div>`;
         });
     } else if (layout === 2) {
-        for (let i = 0; i <sorted.length; i += 2) {
+        for (let i = 0; i < sorted.length; i += 2) {
             html += `<div class="page" style="flex-direction: column; justify-content: center;">`;
             html += renderCard(sorted[i]);
             if (sorted[i + 1]) html += renderCard(sorted[i + 1]);
             html += `</div>`;
         }
     } else if (layout === 4) {
-        for (let i = 0; i <sorted.length; i += 4) {
+        for (let i = 0; i < sorted.length; i += 4) {
             html += `<div class="page">`;
             for (let j = 0; j < 4; j++) {
                 if (sorted[i + j]) html += renderCard(sorted[i + j]);

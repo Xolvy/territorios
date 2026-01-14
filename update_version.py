@@ -1,38 +1,49 @@
 import os
 import re
 
-NEW_VERSION = '1.9.3.4'
-
-def update_version_params(content):
-    # Update ?v=X.X.X to ?v=NEW_VERSION
-    content = re.sub(r'\?v=[0-9.]+', f'?v={NEW_VERSION}', content)
-    # Also update APP_VERSION constant in app.js
-    content = re.sub(r"const APP_VERSION = '[0-9.]+';", f"const APP_VERSION = '{NEW_VERSION}';", content)
-    # Also update CACHE_NAME in service-worker.js
-    content = re.sub(r"const CACHE_NAME = 'territorios-jw-v[0-9.]+';", f"const CACHE_NAME = 'territorios-jw-v{NEW_VERSION}';", content)
-    return content
-
-files_to_update = [
-    r'd:\_CODE\app-territorios\app.js',
-    r'd:\_CODE\app-territorios\public\service-worker.js',
-    r'd:\_CODE\app-territorios\modules\admin-dashboard.js',
-    r'd:\_CODE\app-territorios\modules\conductor-dashboard.js',
-    r'd:\_CODE\app-territorios\modules\report-s13.js',
-    r'd:\_CODE\app-territorios\modules\analytics-view.js',
-    r'd:\_CODE\app-territorios\modules\login.js',
-    r'd:\_CODE\app-territorios\firebase-config.js'
-]
-
-for path in files_to_update:
-    if os.path.exists(path):
+def update_version(new_version):
+    # Files to update
+    files = [
+        r'app.js',
+        r'public/service-worker.js',
+        r'modules/admin-dashboard.js',
+        r'modules/conductor-dashboard.js',
+        r'modules/report-s13.js',
+        r'modules/analytics-view.js',
+        r'modules/login.js',
+        r'firebase-config.js'
+    ]
+    
+    # 1. Update constants like APP_VERSION = '...' or version: '...'
+    version_patterns = [
+        (r"(APP_VERSION\s*=\s*['\"])[^'\"]+(['\"])", r"\g<1>" + new_version + r"\g<2>"),
+        (r"(version\s*:\s*['\"])[^'\"]+(['\"])", r"\g<1>" + new_version + r"\g<2>"),
+        (r"(territorios-jw-v)[0-9.]+", r"\g<1>" + new_version)
+    ]
+    
+    # 2. Update import version parameters ?v=...
+    import_pattern = (r"(\?v=)[0-9.]+", r"\g<1>" + new_version)
+    
+    for rel_path in files:
+        path = os.path.join(r'd:\_CODE\app-territorios', rel_path)
+        if not os.path.exists(path):
+            print(f"File not found: {path}")
+            continue
+            
         with open(path, 'r', encoding='utf-8') as f:
             content = f.read()
+            
+        new_content = content
+        for pattern, replacement in version_patterns:
+            new_content = re.sub(pattern, replacement, new_content)
         
-        new_content = update_version_params(content)
+        new_content = re.sub(import_pattern[0], import_pattern[1], new_content)
         
         if new_content != content:
-            print(f"Updating version in {os.path.basename(path)}...")
+            print(f"Updating version in {rel_path}...")
             with open(path, 'w', encoding='utf-8') as f:
                 f.write(new_content)
-    else:
-        print(f"File not found: {path}")
+        else:
+            print(f"No changes needed for {rel_path}")
+
+update_version('1.9.4')

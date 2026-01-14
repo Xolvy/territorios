@@ -409,6 +409,15 @@ export const transferTerritorio = async (id, newConductor, manzanasToTransfer, d
 
 export const returnTerritorio = async (id, notes, customDate, status = 'Completado', fotos = null) => {
     const dateToUse = customDate ? new Date(customDate).toISOString() : new Date().toISOString();
+    const snap = await getDoc(doc(db, "territorios", id));
+    if (snap.exists()) {
+        const t = snap.data();
+        // Bilateral Sync: Remove from Weekly Program
+        if (t.fecha_asignacion && t.turno) {
+            await removeAssignmentFromWeeklyProgram(t.numero, t.fecha_asignacion, t.turno);
+        }
+    }
+
     await updateDoc(doc(db, "territorios", id), {
         asignado_a: null,
         fecha_asignacion: null,
@@ -523,6 +532,14 @@ export const returnTerritorioParcial = async (originalId, completedManzanas, rem
 };
 
 export const cancelarAsignacion = async (id) => {
+    const snap = await getDoc(doc(db, "territorios", id));
+    if (snap.exists()) {
+        const t = snap.data();
+        if (t.fecha_asignacion && t.turno) {
+            await removeAssignmentFromWeeklyProgram(t.numero, t.fecha_asignacion, t.turno);
+        }
+    }
+
     // Reset permissions to available
     await updateDoc(doc(db, "territorios", id), {
         asignado_a: null,
@@ -1050,6 +1067,128 @@ export const syncAssignmentToWeeklyProgram = async (territoryData, conductorName
     }
 };
 
+/**
+ * Synchronizes a specific slot in the Weekly Program with the 'territorios' collection.
+ * It will assign new territories and return removed ones.
+ */
+export const syncSlotWithTerritories = async (weekId, dayIdx, turno, tData, dateISO) => {
+    try {
+        // 1. Parse territories in the UI slot
+        const uiTerrs = tData.territorio ? String(tData.territorio).split(/[,/]/).map(s => s.trim()).filter(s => s.length > 0) : [];
+        const conductor = tData.conductor || '';
+
+        // 2. Query all territories currently in 'territorios' collection that match this slot
+        const q = query(
+            collection(db, "territorios"),
+            where("fecha_asignacion", "==", dateISO),
+            where("turno", "==", turno)
+        );
+        const snap = await getDocs(q);
+        const dbTerrs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // 3. REMOVALS:
+        // Territories in DB that are NOT in the UI list should be returned
+        for (const dbT of dbTerrs) {
+            const numStr = String(dbT.numero);
+            if (!uiTerrs.includes(numStr)) {
+                console.log(`Bilateral Sync: Returning Territory ${numStr} (Removed from Program)`);
+                // Clear DB territory WITHOUT triggering program cleanup (circular)
+                await updateDoc(doc(db, "territorios", dbT.id), {
+                    asignado_a: null,
+                    fecha_asignacion: null,
+                    turno: null,
+                    estado: 'Disponible'
+                });
+                // Log return
+                await logReturn(dbT.id, new Date().toISOString(), 'Disponible', 'Removido del programa semanal');
+            }
+        }
+
+        // 4. ADDITIONS / UPDATES:
+        if (conductor.length > 0 && uiTerrs.length > 0) {
+            for (const num of uiTerrs) {
+                const candidates = await getDocs(query(collection(db, "territorios"), where("numero", "==", parseInt(num))));
+                if (!candidates.empty) {
+                    const tDoc = candidates.docs[0];
+                    const tDataDB = tDoc.data();
+
+                    if (tDataDB.asignado_a !== conductor || tDataDB.fecha_asignacion !== dateISO || tDataDB.turno !== turno) {
+                        console.log(`Bilateral Sync: Assigning Territory ${num} to ${conductor}`);
+                        await assignTerritorio(tDoc.id, conductor, {
+                            fecha_asignacion: dateISO,
+                            turno: turno,
+                            auxiliar: tData.auxiliar || '',
+                            lugar: tData.lugar || '',
+                            hora: tData.hora || '',
+                            faceta: tData.faceta || '',
+                            grupos: tData.grupos || ''
+                        });
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        console.error("Error in syncSlotWithTerritories:", e);
+    }
+};
+
+/**
+ * Removes a territory from its weekly program slot if assigned.
+ */
+export const removeAssignmentFromWeeklyProgram = async (territoryNum, fechaISO, turno) => {
+    try {
+        if (!fechaISO || !turno) return;
+
+        // 1. Determine Week ID
+        const baseDateStr = fechaISO.split('T')[0] + 'T12:00:00Z';
+        const baseDate = new Date(baseDateStr);
+        if (isNaN(baseDate.getTime())) return;
+
+        const d = new Date(baseDate);
+        const day = d.getUTCDay();
+        const diff = d.getUTCDate() - (day === 0 ? 6 : day - 1);
+        d.setUTCDate(diff);
+        d.setUTCHours(12, 0, 0, 0);
+        const weekId = d.toISOString().split('T')[0];
+
+        // 2. Day Index (0-6)
+        let dayIdx = baseDate.getUTCDay();
+        dayIdx = dayIdx === 0 ? 6 : dayIdx - 1;
+
+        // 3. Load Program
+        let prog = await getProgramaSemanal(weekId);
+        if (!prog) return;
+
+        // 4. Update slot
+        if (!prog.dias[dayIdx]) return;
+        const t = prog.dias[dayIdx][turno];
+
+        if (t && t.territorio) {
+            const terrs = String(t.territorio).split(/[/,]/).map(s => s.trim());
+            const filtered = terrs.filter(num => num != territoryNum);
+
+            if (filtered.length === 0) {
+                prog.dias[dayIdx][turno] = {
+                    territorio: '',
+                    conductor: '',
+                    auxiliar: '',
+                    grupos: '',
+                    lugar: '',
+                    hora: '',
+                    faceta: ''
+                };
+            } else {
+                t.territorio = filtered.join(' / ');
+            }
+
+            await setDoc(doc(db, "programa_semanal", weekId), prog);
+            console.log(`Bilateral Sync: Removed territory ${territoryNum} from Program ${weekId}`);
+        }
+    } catch (e) {
+        console.error("Error in removeAssignmentFromWeeklyProgram:", e);
+    }
+};
+
 // --- CAMPAIGNS ---
 export const getCampanas = async () => {
     const snap = await getDoc(doc(db, "configuracion", "campanas"));
@@ -1098,13 +1237,92 @@ export const getProgramaSemanal = async (weekId) => {
         }
         return null; // Not found
     }
+    return null;
+};
 
-    // Fallback: Get the most recent one or default
-    // We order by ID (if ID is YYYY-MM-DD, it works chronologically) or just get the first one.
-    // If we migrate to ID-based, the old docs usually had auto-IDs.
-    const querySnapshot = await getDocs(query(collection(db, "programa_semanal"), limit(1)));
-    if (querySnapshot.empty) return null;
-    return { id: querySnapshot.docs[0].id, ...querySnapshot.docs[0].data() };
+/**
+ * Iterates over all programs and all territories to ensure everything is in sync.
+ */
+export const syncAllProgramsToTerritories = async () => {
+    try {
+        // 1. Fetch ALL current territories
+        const territoriesSnap = await getDocs(collection(db, "territorios"));
+        const allTerritories = territoriesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        // index by number
+        const terrByNum = {};
+        allTerritories.forEach(t => terrByNum[t.numero] = t);
+
+        // 2. Fetch ALL weekly programs
+        const programsSnap = await getDocs(collection(db, "programa_semanal"));
+
+        const expectedAssignments = new Set(); // format: "num_dateISO_turno"
+
+        for (const progDoc of programsSnap.docs) {
+            const prog = progDoc.data();
+            const weekId = progDoc.id;
+            const weekStart = new Date(weekId + 'T12:00:00Z');
+            if (isNaN(weekStart.getTime())) continue;
+
+            if (prog.dias && Array.isArray(prog.dias)) {
+                for (let dayIdx = 0; dayIdx < prog.dias.length; dayIdx++) {
+                    const dia = prog.dias[dayIdx];
+                    const dayDate = new Date(weekStart);
+                    dayDate.setDate(weekStart.getDate() + dayIdx);
+                    // Use only the date part for the key to avoid time mismatches
+                    const dateKey = dayDate.toISOString().split('T')[0];
+
+                    for (const turno of ['manana', 'tarde', 'noche', 'zoom']) {
+                        const t = dia[turno];
+                        if (t && t.territorio && t.conductor) {
+                            const nums = String(t.territorio).split(/[,/]/).map(s => s.trim()).filter(s => s.length > 0);
+                            for (const num of nums) {
+                                expectedAssignments.add(`${num}_${dateKey}_${turno}`);
+                                const territory = terrByNum[num];
+                                if (territory) {
+                                    const dbDateKey = territory.fecha_asignacion ? territory.fecha_asignacion.split('T')[0] : null;
+                                    if (territory.asignado_a !== t.conductor || dbDateKey !== dateKey || territory.turno !== turno) {
+                                        console.log(`Diagnostic Fix: Syncing Territory ${num} status to Program`);
+                                        await updateDoc(doc(db, "territorios", territory.id), {
+                                            asignado_a: t.conductor,
+                                            fecha_asignacion: dayDate.toISOString(),
+                                            turno: turno,
+                                            auxiliar: t.auxiliar || '',
+                                            lugar: t.lugar || '',
+                                            hora: t.hora || '',
+                                            faceta: t.faceta || '',
+                                            estado: 'Asignado'
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 3. CLEANUP: Territories that think they are assigned to a program but are NOT in any
+        for (const t of allTerritories) {
+            // Only cleanup if it has a turno and fecha_asignacion (came from program)
+            if (t.estado === 'Asignado' && t.fecha_asignacion && t.turno) {
+                const dbDateKey = t.fecha_asignacion.split('T')[0];
+                const key = `${t.numero}_${dbDateKey}_${t.turno}`;
+                if (!expectedAssignments.has(key)) {
+                    console.log(`Diagnostic Fix: Returning Orphaned Territory ${t.numero} (Key: ${key})`);
+                    await updateDoc(doc(db, "territorios", t.id), {
+                        asignado_a: null,
+                        fecha_asignacion: null,
+                        turno: null,
+                        estado: 'Disponible'
+                    });
+                    await logReturn(t.id, new Date().toISOString(), 'Disponible', 'Sincronización: Removido por desuso en programa');
+                }
+            }
+        }
+    } catch (e) {
+        console.error("Error in syncAllProgramsToTerritories:", e);
+    }
 };
 
 export const deleteProgramaSemanal = async (weekId) => {
@@ -1276,6 +1494,10 @@ export const runSystemDiagnosticsAndRepair = async (onProgress) => {
     // 1. Rebuild History
     reportProgress("Sincronizando historial S-13...", 10);
     report.rebuiltHistory = await rebuildHistoryFromSchedule();
+
+    // 1b. Sync Programs to Territories status
+    reportProgress("Sincronizando estados de territorios...", 20);
+    await syncAllProgramsToTerritories();
 
     // 2. Fix Phone Assignments
     reportProgress("🔍 Iniciando escaneo profundo de la base de datos...", 32);
