@@ -1208,16 +1208,19 @@ async function renderAvailabilitySection(container, name) {
 
 const renderFullProgramaCards = (programa, container, territoryMap = {}) => {
     const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-    const shifts = ['manana', 'tarde', 'noche'];
-    const shiftLabels = { 'manana': 'Mañana', 'tarde': 'Tarde', 'noche': 'Noche' };
-    const shiftIcons = { 'manana': 'fa-sun', 'tarde': 'fa-cloud-sun', 'noche': 'fa-moon' };
-    const shiftColors = { 'manana': 'text-amber-500', 'tarde': 'text-orange-500', 'noche': 'text-indigo-400' };
+    const shifts = ['manana', 'tarde', 'noche', 'zoom'];
+    const shiftLabels = { 'manana': 'Mañana', 'tarde': 'Tarde', 'noche': 'Noche', 'zoom': 'Zoom' };
+    const shiftIcons = { 'manana': 'fa-sun', 'tarde': 'fa-cloud-sun', 'noche': 'fa-moon', 'zoom': 'fa-video' };
+    const shiftColors = { 'manana': 'text-amber-500', 'tarde': 'text-orange-500', 'noche': 'text-indigo-400', 'zoom': 'text-emerald-500' };
 
     container.innerHTML = days.map(dayName => {
         const d = (programa?.dias || []).find(x => x.nombre === dayName);
         if (!d) return '';
 
-        const activeShifts = shifts.filter(s => d[s] && (d[s].conductor || d[s].lugar));
+        const activeShifts = shifts.filter(s => {
+            if (s === 'zoom' && dayName !== 'Martes') return false;
+            return d[s] && (d[s].conductor || d[s].lugar);
+        });
         if (activeShifts.length === 0) return '';
 
         return `

@@ -6059,10 +6059,11 @@ const renderProgramaTab = async (container) => {
             } else {
                 programa = {
                     id: weekId,
-                    dias: dayNames.map(name => ({
-                        nombre: name,
-                        manana: {}, tarde: {}, noche: {}, zoom: {}
-                    }))
+                    dias: dayNames.map(name => {
+                        const turns = { manana: {}, tarde: {}, noche: {} };
+                        if (name === 'Martes') turns.zoom = {};
+                        return { nombre: name, ...turns };
+                    })
                 };
             }
             _globalPrograma = programa;
@@ -6086,7 +6087,7 @@ const renderProgramaTab = async (container) => {
 
     const renderTable = () => {
         const turnos = [
-            { id: 'manana', icon: 'fa-sun', label: 'Mañana', color: 'text-cyan-500', bg: 'bg-cyan-500/10', fields: ['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', 'Grupos', 'Territorio'] },
+            { id: 'manana', icon: 'fa-sun', label: 'Mañana', color: 'text-amber-500', bg: 'bg-amber-500/10', fields: ['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', 'Grupos', 'Territorio'] },
             { id: 'tarde', icon: 'fa-cloud-sun', label: 'Tarde', color: 'text-orange-500', bg: 'bg-orange-500/10', fields: ['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', 'Grupos', 'Territorio'] },
             { id: 'noche', icon: 'fa-moon', label: 'Noche', color: 'text-indigo-500', bg: 'bg-indigo-500/10', fields: ['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', 'Grupos', 'Territorio'] },
             { id: 'zoom', icon: 'fa-video', label: 'Zoom', color: 'text-emerald-500', bg: 'bg-emerald-500/10', fields: ['Lugar', 'Hora', 'Conductor', 'Faceta'] }
@@ -6098,30 +6099,24 @@ const renderProgramaTab = async (container) => {
 
         programa.dias.forEach((dia, dayIndex) => {
             html += `
-                <div class="day-group animate-fade-in">
-                    <div class="flex items-center gap-6 mb-8">
+                <div class="day-group animate-fade-in px-8 ${dayIndex > 0 ? 'mt-32' : 'mt-10'}">
+                    <div class="flex items-center gap-8 mb-12">
                         <div class="flex flex-col">
-                            <h4 class="text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">${dia.nombre}</h4>
-                            <p class="text-[10px] font-black text-primary uppercase tracking-[0.4em] mt-2 opacity-60">Programación de Salidas</p>
+                            <h4 class="text-6xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">${dia.nombre}</h4>
+                            <p class="text-[12px] font-black text-primary uppercase tracking-[0.6em] mt-4 opacity-70">Programación de Salidas</p>
                         </div>
-                        <div class="h-px flex-1 bg-gradient-to-r from-primary/20 via-primary/5 to-transparent"></div>
+                        <div class="h-1 flex-1 bg-gradient-to-r from-primary/40 via-primary/10 to-transparent rounded-full"></div>
                     </div>
 
-                    <div class="flex flex-wrap gap-8">
+                    <div class="flex flex-wrap gap-10">
             `;
 
             turnos.forEach(t => {
                 const turnoId = t.id;
+                if (turnoId === 'zoom' && dia.nombre !== 'Martes') return;
+
                 if (!dia[turnoId]) dia[turnoId] = {};
                 const data = dia[turnoId];
-
-                // User requested Tuesday specifically: Mañana then Noche.
-                // We'll skip Tarde on Tuesday if it's empty to respect the "more ordered" request.
-                const isUsed = Object.values(data).some(v => v);
-                if (dia.nombre === 'Martes' && turnoId === 'tarde' && !isUsed) return;
-
-                // Also skip Zoom if empty on any day to keep it clean, unless it's a weekend
-                if (turnoId === 'zoom' && !isUsed && dia.nombre !== 'Sábado' && dia.nombre !== 'Domingo') return;
 
                 html += `
                     <div class="flex-1 min-w-[300px] max-w-[400px] modern-card !p-8 border-slate-100 dark:border-white/5 shadow-xl hover:shadow-2xl transition-all group/turn relative">
@@ -6200,13 +6195,13 @@ const renderProgramaTab = async (container) => {
                     html += `</div>`;
                 });
 
-                html += `</div></div>`;
+                html += `</div></div > `;
             });
 
-            html += `</div></div>`;
+            html += `</div ></div > `;
         });
 
-        html += `</div>`;
+        html += `</div > `;
         tableContainer.innerHTML = html;
     };
 
@@ -6428,8 +6423,8 @@ const renderS13CommandCenter = async (container) => {
     const daysRezago = rezagoSorted[0] ? Math.floor((new Date() - new Date(latestTouch[rezagoSorted[0].numero])) / (1000 * 60 * 60 * 24)) : 0;
 
     container.innerHTML = `
-    <div class="space-y-8 animate-fade-in">
-            <!--Stats Dashboard-->
+                    < div class="space-y-8 animate-fade-in" >
+            < !--Stats Dashboard-- >
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div class="bg-gradient-to-br from-primary to-indigo-600 p-8 rounded-[2rem] text-white shadow-xl shadow-primary/20 group relative overflow-hidden">
                     <div class="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
@@ -6468,7 +6463,7 @@ const renderS13CommandCenter = async (container) => {
                 </div>
             </div>
 
-            <!--Unified Control Bar-->
+            <!--Unified Control Bar-- >
             <div class="modern-card !p-6 flex flex-col lg:flex-row items-center gap-6 border-slate-200 dark:border-white/5 shadow-2xl">
                 <!-- Left: Date Filters -->
                 <div class="flex flex-wrap items-center gap-4 bg-slate-50 dark:bg-white/5 p-4 rounded-2xl border border-slate-200 dark:border-white/5">
@@ -6508,22 +6503,22 @@ const renderS13CommandCenter = async (container) => {
                 </div>
             </div>
 
-            <!--View Toggle & Sub - Content-->
-    <div class="space-y-6">
-        <nav class="flex gap-2 p-1.5 bg-slate-100 dark:bg-white/5 w-fit rounded-2xl border border-slate-200 dark:border-white/5">
-            <button class="cc-view-btn px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 ${activeView === 'management' ? 'bg-white dark:bg-white/10 shadow-lg text-accent' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}" data-view="management">
-                <i class="fas fa-database"></i> Gestión de Historial
-            </button>
-            <button class="cc-view-btn px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 ${activeView === 's13' ? 'bg-white dark:bg-white/10 shadow-lg text-primary' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}" data-view="s13">
-                <i class="fas fa-list-alt"></i> Reporte S-13
-            </button>
-        </nav>
+            <!--View Toggle & Sub - Content-- >
+                    <div class="space-y-6">
+                        <nav class="flex gap-2 p-1.5 bg-slate-100 dark:bg-white/5 w-fit rounded-2xl border border-slate-200 dark:border-white/5">
+                            <button class="cc-view-btn px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 ${activeView === 'management' ? 'bg-white dark:bg-white/10 shadow-lg text-accent' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}" data-view="management">
+                                <i class="fas fa-database"></i> Gestión de Historial
+                            </button>
+                            <button class="cc-view-btn px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 ${activeView === 's13' ? 'bg-white dark:bg-white/10 shadow-lg text-primary' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}" data-view="s13">
+                                <i class="fas fa-list-alt"></i> Reporte S-13
+                            </button>
+                        </nav>
 
-        <div id="cc-main-container" class="min-h-[600px] modern-card !p-0 overflow-hidden border-slate-100 dark:border-white/5">
-            <!-- Dynamic View Content -->
-        </div>
-    </div>
-        </div>
+                        <div id="cc-main-container" class="min-h-[600px] modern-card !p-0 overflow-hidden border-slate-100 dark:border-white/5">
+                            <!-- Dynamic View Content -->
+                        </div>
+                    </div>
+        </div >
     `;
 
     // Initialize Year Selector
@@ -6557,10 +6552,10 @@ const renderS13CommandCenter = async (container) => {
         activeView = view;
         const mainCont = container.querySelector('#cc-main-container');
         mainCont.innerHTML = `
-    <div class="flex flex-col items-center justify-center p-40 gap-4 animate-pulse">
+    < div class="flex flex-col items-center justify-center p-40 gap-4 animate-pulse" >
                 <div class="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
                 <p class="text-[10px] font-black uppercase text-primary tracking-[0.2em]">Preparando vista inteligente...</p>
-            </div> `;
+            </div > `;
 
         // Update Buttons
         container.querySelectorAll('.cc-view-btn').forEach(btn => {
@@ -6597,7 +6592,7 @@ const renderS13CommandCenter = async (container) => {
 
     container.querySelector('#cc-btn-tools').onclick = () => {
         showModal(`
-    <div class="p-8 space-y-8 animate-fade-in">
+    < div class="p-8 space-y-8 animate-fade-in" >
                 <header class="flex items-center gap-4 border-b border-slate-100 dark:border-white/5 pb-6">
                     <div class="w-12 h-12 bg-indigo-500/10 text-indigo-500 rounded-2xl flex items-center justify-center text-xl shadow-inner">
                         <i class="fas fa-microchip"></i>
@@ -6648,7 +6643,7 @@ const renderS13CommandCenter = async (container) => {
                         <i class="fas fa-exclamation-triangle text-amber-500 mr-2"></i> Estas acciones modifican la base de datos global
                     </p>
                 </footer>
-            </div>
+            </div >
     `, (modal) => {
             modal.querySelector('#tool-rebuild').onclick = () => {
                 modal.classList.add('hidden');
@@ -6673,7 +6668,7 @@ export const renderAdvancedHistoryView = async (container, options = {}) => {
 
     if (options.showHeader !== false) {
         container.innerHTML = `
-    <div class="space-y-6">
+    < div class="space-y-6" >
             <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div>
                     <h3 class="text-h3 text-slate-900 dark:text-white flex items-center gap-3">
@@ -6692,13 +6687,13 @@ export const renderAdvancedHistoryView = async (container, options = {}) => {
             <div class="modern-card !p-0 overflow-hidden border border-slate-200 dark:border-white/5 min-h-[400px]" id="hist-table-container">
                  <!-- Table content -->
             </div>
-        </div>
+        </div >
     `;
     } else {
         container.innerHTML = `
-    <div class="min-h-[400px]" id = "hist-table-container">
-                <!--Table content-->
-            </div>
+    < div class="min-h-[400px]" id = "hist-table-container" >
+                < !--Table content-- >
+            </div >
     `;
     }
 
@@ -6727,7 +6722,7 @@ export const renderAdvancedHistoryView = async (container, options = {}) => {
             ).slice(0, 100);
 
             const bulkBar = `
-    <div id = "hist-bulk-bar" class="${selectedIds.size > 0 ? 'flex' : 'hidden'} flex-col md:flex-row items-start md:items-center gap-4 bg-accent/5 p-4 px-6 rounded-2xl border border-accent/20 animate-fade-in mb-6">
+    < div id = "hist-bulk-bar" class="${selectedIds.size > 0 ? 'flex' : 'hidden'} flex-col md:flex-row items-start md:items-center gap-4 bg-accent/5 p-4 px-6 rounded-2xl border border-accent/20 animate-fade-in mb-6" >
                     <div class="flex items-center gap-4">
                         <div class="w-10 h-10 bg-accent text-white rounded-xl flex items-center justify-center shadow-lg shadow-accent/20">
                             <i class="fas fa-check-double"></i>
@@ -6744,25 +6739,25 @@ export const renderAdvancedHistoryView = async (container, options = {}) => {
                     <button id="hist-bulk-delete" class="ml-auto bg-red-500 hover:bg-red-600 text-white px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-red-500/20 transition-all active:scale-95 flex items-center gap-2">
                         <i class="fas fa-trash-alt"></i> Eliminar Selección
                     </button>
-                </div>
+                </div >
     `;
 
             if (list.length === 0) {
                 const tableTarget = document.getElementById("hist-table-container");
                 if (tableTarget) {
                     tableTarget.innerHTML = `
-    <div class="flex flex-col items-center justify-center py-20 text-slate-300 dark:text-white/10">
+    < div class="flex flex-col items-center justify-center py-20 text-slate-300 dark:text-white/10" >
                             <div class="w-20 h-20 mb-4 bg-slate-50 dark:bg-white/5 rounded-full flex items-center justify-center text-3xl">
                                 <i class="fas fa-search opacity-20"></i>
                             </div>
                             <p class="text-xs font-black uppercase tracking-widest opacity-50">No se encontraron registros</p>
-                        </div> `;
+                        </div > `;
                 }
                 return;
             }
 
             let html = `
-    <div class="p-4"> ${bulkBar}</div>
+    < div class="p-4" > ${bulkBar}</div >
                 <div class="table-container custom-scrollbar">
                     <table class="w-full text-left border-collapse">
                         <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-400 text-[9px] font-bold uppercase tracking-[0.2em] border-b border-slate-200 dark:border-white/5">
@@ -6902,13 +6897,13 @@ export const renderAdvancedHistoryView = async (container, options = {}) => {
     } catch (e) {
         console.error(e);
         container.innerHTML = `
-    <div class="p-10 text-center">
+    < div class="p-10 text-center" >
                 <div class="w-16 h-16 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center text-2xl mx-auto mb-4">
                     <i class="fas fa-exclamation-circle"></i>
                 </div>
                 <h4 class="text-sm font-black text-slate-800 dark:text-white uppercase">Error en el Centro de Gestión</h4>
                 <p class="text-xs text-slate-400 mt-2">${e.message}</p>
-            </div> `;
+            </div > `;
     }
 };
 
@@ -6922,142 +6917,142 @@ window.exportS12Form = async (territorios, layout = 1) => {
     const printWindow = window.open('', '_blank');
 
     const styles = `
-        <style>
-            @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&family=Inter:wght@400;700&display=swap');
+    < style >
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&family=Inter:wght@400;700&display=swap');
+
+@page {
+    size: A4 ${layout === 4 ? 'landscape' : 'portrait'};
+    margin: 0;
+}
             
-            @page { 
-                size: A4 ${layout === 4 ? 'landscape' : 'portrait'}; 
-                margin: 0; 
-            }
+            body {
+    margin: 0;
+    padding: 0;
+    font - family: 'Inter', sans - serif;
+    background: #f8fafc;
+}
+
+            .page {
+    width: ${layout === 4 ? '297mm' : '210mm'};
+    height: ${layout === 4 ? '210mm' : '297mm'};
+    padding: 5mm;
+    margin: 0 auto;
+    background: white;
+    box - sizing: border - box;
+    page -break-after: always;
+    display: flex;
+    flex - wrap: wrap;
+    align - content: flex - start;
+    justify - content: center;
+    gap: 5mm;
+}
             
-            body { 
-                margin: 0; 
-                padding: 0; 
-                font-family: 'Inter', sans-serif;
-                background: #f8fafc;
-            }
-
-            .page { 
-                width: ${layout === 4 ? '297mm' : '210mm'}; 
-                height: ${layout === 4 ? '210mm' : '297mm'}; 
-                padding: 5mm;
-                margin: 0 auto; 
-                background: white; 
-                box-sizing: border-box; 
-                page-break-after: always;
-                display: flex;
-                flex-wrap: wrap;
-                align-content: flex-start;
-                justify-content: center;
-                gap: 5mm;
-            }
+            .s12 - card {
+    width: 148mm;
+    height: 104mm;
+    border: 0.5pt solid #000;
+    padding: 8mm;
+    display: flex;
+    flex - direction: column;
+    position: relative;
+    box - sizing: border - box;
+    background: white;
+    overflow: hidden;
+}
             
-            .s12-card { 
-                width: 148mm;
-                height: 104mm;
-                border: 0.5pt solid #000; 
-                padding: 8mm; 
-                display: flex; 
-                flex-direction: column; 
-                position: relative;
-                box-sizing: border-box;
-                background: white;
-                overflow: hidden;
-            }
+            .title {
+    text - align: center;
+    font - size: 16pt;
+    font - weight: 800;
+    margin - bottom: 8pt;
+    text - transform: none;
+    font - family: 'Outfit', sans - serif;
+    color: #000;
+}
+
+            .header - info {
+    display: flex;
+    align - items: flex - end;
+    gap: 4pt;
+    margin - bottom: 8pt;
+}
+
+            .label {
+    font - size: 11pt;
+    font - weight: 700;
+    white - space: nowrap;
+}
+
+            .field - val {
+    font - size: 11pt;
+    border - bottom: 0.5pt solid #000;
+    flex: 1;
+    min - height: 1.2em;
+    padding - bottom: 1pt;
+}
+
+            .territory - num - box {
+    border: 1pt solid #000;
+    padding: 2pt 8pt;
+    font - size: 14pt;
+    font - weight: 800;
+    min - width: 40pt;
+    text - align: center;
+}
             
-            .title { 
-                text-align: center; 
-                font-size: 16pt; 
-                font-weight: 800; 
-                margin-bottom: 8pt; 
-                text-transform: none;
-                font-family: 'Outfit', sans-serif;
-                color: #000;
-            }
+            .map - container {
+    flex: 1;
+    border: 0.5pt solid #000;
+    margin: 4pt 0;
+    display: flex;
+    align - items: center;
+    justify - content: center;
+    overflow: hidden;
+    background: #fff;
+    position: relative;
+}
 
-            .header-info { 
-                display: flex; 
-                align-items: flex-end; 
-                gap: 4pt;
-                margin-bottom: 8pt; 
-            }
+            .map - container img {
+    width: 100 %;
+    height: 100 %;
+    object - fit: contain;
+    display: block;
+}
 
-            .label { 
-                font-size: 11pt; 
-                font-weight: 700;
-                white-space: nowrap;
-            }
-
-            .field-val { 
-                font-size: 11pt; 
-                border-bottom: 0.5pt solid #000; 
-                flex: 1;
-                min-height: 1.2em;
-                padding-bottom: 1pt;
-            }
-
-            .territory-num-box {
-                border: 1pt solid #000;
-                padding: 2pt 8pt;
-                font-size: 14pt;
-                font-weight: 800;
-                min-width: 40pt;
-                text-align: center;
-            }
+            .map - placeholder {
+    font - size: 10pt;
+    color: #666;
+    text - align: center;
+    font - style: italic;
+}
             
-            .map-container { 
-                flex: 1; 
-                border: 0.5pt solid #000; 
-                margin: 4pt 0; 
-                display: flex; 
-                align-items: center; 
-                justify-content: center; 
-                overflow: hidden; 
-                background: #fff; 
-                position: relative;
-            }
+            .footer - note {
+    font - size: 8.5pt;
+    text - align: justify;
+    line - height: 1.2;
+    margin - top: 6pt;
+    font - weight: 400;
+    color: #000;
+}
 
-            .map-container img { 
-                width: 100%; 
-                height: 100%; 
-                object-fit: contain; 
-                display: block;
-            }
+            .footer - id {
+    font - size: 8pt;
+    margin - top: 4pt;
+    display: flex;
+    justify - content: space - between;
+    font - weight: 400;
+}
 
-            .map-placeholder {
-                font-size: 10pt;
-                color: #666;
-                text-align: center;
-                font-style: italic;
-            }
-            
-            .footer-note { 
-                font-size: 8.5pt; 
-                text-align: justify; 
-                line-height: 1.2; 
-                margin-top: 6pt; 
-                font-weight: 400;
-                color: #000;
-            }
-
-            .footer-id { 
-                font-size: 8pt; 
-                margin-top: 4pt; 
-                display: flex; 
-                justify-content: space-between;
-                font-weight: 400;
-            }
-            
-            @media print {
+@media print {
                 body { background: white; }
-                .no-print { display: none !important; }
+                .no - print { display: none!important; }
                 .page { padding: 0; margin: 0; }
-            }
-        </style>
+}
+        </style >
     `;
 
     const renderCard = (t) => `
-        <div class="s12-card">
+    < div class="s12-card" >
             <div class="title">Tarjeta del mapa del territorio</div>
             
             <div class="header-info">
@@ -7078,10 +7073,10 @@ window.exportS12Form = async (territorios, layout = 1) => {
             <div class="footer-id">
                 <span>S-12-S &nbsp;&nbsp; 6/72</span>
             </div>
-        </div>
+        </div >
     `;
 
-    let html = `<html><head><title>Formularios S-12</title>${styles}</head><body>`;
+    let html = `< html ><head><title>Formularios S-12</title>${styles}</head><body>`;
 
     if (layout === 1) {
         sorted.forEach(t => {
@@ -7096,16 +7091,16 @@ window.exportS12Form = async (territorios, layout = 1) => {
         }
     } else if (layout === 4) {
         for (let i = 0; i < sorted.length; i += 4) {
-            html += `<div class="page">`;
+            html += `< div class="page" > `;
             for (let j = 0; j < 4; j++) {
                 if (sorted[i + j]) html += renderCard(sorted[i + j]);
             }
-            html += `</div>`;
+            html += `</div > `;
         }
     }
 
     html += `
-        <div class="no-print" style="position: fixed; top: 20px; right: 20px; background: rgba(15, 23, 42, 0.95); color: white; padding: 24px; border-radius: 20px; font-family: 'Outfit', sans-serif; z-index: 9999; box-shadow: 0 20px 50px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); width: 280px;">
+    < div class="no-print" style = "position: fixed; top: 20px; right: 20px; background: rgba(15, 23, 42, 0.95); color: white; padding: 24px; border-radius: 20px; font-family: 'Outfit', sans-serif; z-index: 9999; box-shadow: 0 20px 50px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); width: 280px;" >
             <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
                 <div style="width: 40px; height: 40px; background: #14b8a6; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px;">🖨️</div>
                 <div>
@@ -7119,10 +7114,10 @@ window.exportS12Form = async (territorios, layout = 1) => {
                     <strong>Nota:</strong> Ajuste el destino a "Guardar como PDF" o su impresora, y asegúrese de que el tamaño sea <b>A4</b> y los márgenes <b>Ninguno</b>.
                 </p>
             </div>
-        </div>
+        </div >
     `;
 
-    html += `</body></html>`;
+    html += `</body ></html > `;
 
     printWindow.document.write(html);
     printWindow.document.close();
