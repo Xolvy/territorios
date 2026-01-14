@@ -4,34 +4,33 @@ import { showNotification } from './helpers.js?v=3.5.0';
 let deferredPrompt = null;
 
 export const initPWA = () => {
+    console.log("🛠️ PWA Engine Initializing...");
+
     // 1. Listen for install prompt
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
-        console.log("📲 PWA Install Trigger Captured");
+        console.log("📲 PWA: Install Opportunity Detected");
 
-        // Only show if not already standalone
-        if (!isStandalone()) {
-            ensureInstallUI();
-        }
+        // Delay UI slightly to not interrupt initial loading
+        setTimeout(() => {
+            if (!isStandalone() && !sessionStorage.getItem('pwa_banner_dismissed')) {
+                ensureInstallUI();
+            }
+        }, 2000);
     });
 
     // 2. Listen for successful installation
     window.addEventListener('appinstalled', (e) => {
-        console.log('✅ PWA Instalada con éxito');
+        console.log('✅ PWA: Application installed successfully');
         deferredPrompt = null;
         removeInstallUI();
-        showNotification("¡Aplicación instalada con éxito!", "success");
+        showNotification("¡Aplicación instalada con éxito! Ya puedes abrirla desde tu pantalla de inicio.", "success");
     });
 
-    // 3. Initial check
-    if (!isStandalone()) {
-        // We might not have deferredPrompt yet, so we wait or show a generic "how to install" if on iOS
-        setTimeout(() => {
-            if (!isStandalone()) {
-                ensureInstallUI();
-            }
-        }, 3000);
+    // 3. Initial check for non-Chrome/Safari browsers (where prompt might not fire)
+    if (!isStandalone() && !sessionStorage.getItem('pwa_banner_dismissed')) {
+        setTimeout(ensureInstallUI, 4000);
     }
 
     // 4. Notification Request
@@ -39,44 +38,54 @@ export const initPWA = () => {
 };
 
 export const isStandalone = () => {
-    return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone || document.referrer.includes('android-app://');
+    const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches ||
+        window.navigator.standalone ||
+        document.referrer.includes('android-app://');
+
+    // Check for Chrome's "Installed" state via window.clientInformation
+    const isChromeInstalled = window.clientInformation?.managed === false &&
+        /Chrome/.test(navigator.userAgent) &&
+        window.matchMedia('(display-mode: standalone)').matches;
+
+    return isStandaloneMode || isChromeInstalled;
 };
 
 const ensureInstallUI = () => {
     let banner = document.getElementById('pwa-persistence-banner');
-    if (banner) return;
+    if (banner || isStandalone()) return;
 
     banner = document.createElement('div');
     banner.id = 'pwa-persistence-banner';
-    banner.className = 'fixed bottom-20 left-4 right-4 md:left-auto md:right-8 md:w-96 glass-morphism p-6 rounded-[2rem] z-[100] border border-teal-500/30 animate-slide-up shadow-2xl';
+    banner.className = 'fixed bottom-6 left-4 right-4 md:left-auto md:right-8 md:w-[380px] glass-morphism p-6 rounded-[2.5rem] z-[1000] border border-teal-500/30 animate-bounce-in shadow-[0_20px_50px_rgba(13,148,136,0.3)] dark:shadow-none';
 
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
     banner.innerHTML = `
-        <div class="flex flex-col gap-4">
+        <div class="flex flex-col gap-5">
             <div class="flex items-center gap-4">
-                <div class="w-12 h-12 bg-teal-500/10 rounded-2xl flex items-center justify-center text-2xl animate-bounce">
-                    📲
+                <div class="w-14 h-14 bg-teal-500/10 dark:bg-teal-500/20 rounded-2xl flex items-center justify-center text-3xl shadow-inner">
+                    <img src="icon-192.svg" class="w-10 h-10 rounded-xl" alt="App Icon">
                 </div>
                 <div class="flex-1">
-                    <h4 class="text-sm font-black dark:text-white uppercase tracking-tight">App no instalada</h4>
-                    <p class="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest">Para recibir notificaciones y trabajar offline</p>
+                    <h4 class="text-sm font-black dark:text-white uppercase tracking-tight">Experiencia Completa</h4>
+                    <p class="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest leading-none mt-1">Instala para usar offline y recibir avisos</p>
                 </div>
             </div>
             
             <div class="space-y-3">
                 ${isIOS ? `
-                    <div class="p-3 bg-blue-500/5 rounded-xl border border-blue-500/10 text-[10px] text-blue-600 dark:text-blue-400 font-medium">
-                        En iOS: Toca el botón <strong>Compartir</strong> <span class="text-lg">⎋</span> y luego <strong>"Agregar a Inicio"</strong> <span class="text-lg">⊞</span>.
+                    <div class="p-4 bg-teal-500/5 rounded-2xl border border-teal-500/10 text-[11px] text-teal-700 dark:text-teal-400 font-bold uppercase tracking-tight leading-relaxed">
+                        En iOS: Toca <i class="fa-solid fa-share-from-square mx-1"></i> y luego <br>
+                        <span class="text-teal-600 dark:text-teal-300">"Agregar a Pantalla de Inicio" <i class="fa-solid fa-plus-square ml-1"></i></span>
                     </div>
                 ` : `
-                    <button id="btn-pwa-main-install" class="w-full bg-teal-600 hover:bg-teal-500 text-white py-3 rounded-xl text-xs font-black uppercase tracking-[0.2em] shadow-lg transition-all active:scale-95">
-                        Instalar Ahora
+                    <button id="btn-pwa-main-install" class="w-full bg-teal-600 hover:bg-teal-500 text-white py-4 rounded-2xl text-xs font-black uppercase tracking-[0.2em] shadow-xl shadow-teal-600/20 transition-all active:scale-95 flex items-center justify-center gap-3">
+                        <i class="fas fa-download"></i> Instalar Ahora
                     </button>
                 `}
                 
-                <button id="btn-pwa-later" class="w-full py-2 text-[9px] font-black text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 uppercase tracking-widest transition-colors">
-                    Continuar en el navegador (Limitado)
+                <button id="btn-pwa-later" class="w-full py-2 text-[10px] font-black text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 uppercase tracking-[0.15em] transition-colors">
+                    Continuar en el navegador
                 </button>
             </div>
         </div>
@@ -91,17 +100,19 @@ const ensureInstallUI = () => {
                 deferredPrompt.prompt();
                 const { outcome } = await deferredPrompt.userChoice;
                 if (outcome === 'accepted') {
+                    console.log('User accepted the A2HS prompt');
                     removeInstallUI();
                 }
                 deferredPrompt = null;
             } else {
-                showNotification("Busca la opción 'Instalar' en el menú de tu navegador.", "info");
+                showNotification("Busca la opción 'Instalar Aplicación' en el menú de los 3 puntos de tu navegador.", "info");
             }
         };
     }
 
     document.getElementById('btn-pwa-later').onclick = () => {
-        banner.remove();
+        sessionStorage.setItem('pwa_banner_dismissed', 'true');
+        removeInstallUI();
     };
 };
 
