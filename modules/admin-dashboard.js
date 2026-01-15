@@ -11,14 +11,14 @@ import {
     getCampanas, saveCampana, deleteCampana,
     getGroupsConfig, saveGroupsConfig,
     getDiffusionMessage, saveDiffusionMessage
-} from '../data/firestore-services.js?v=1.9.5.1';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=1.9.5.1';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=1.9.5.1';
-import { renderHistoryTab } from './report-s13.js?v=1.9.5.1';
-import { renderAnalyticsView } from './analytics-view.js?v=1.9.5.1';
-import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=1.9.5.1';
-import { auth } from '../firebase-config.js?v=1.9.5.1';
-import { animateEntry } from './utils/animations.js?v=1.9.5.1';
+} from '../data/firestore-services.js?v=1.9.7';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=1.9.7';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=1.9.7';
+import { renderHistoryTab } from './report-s13.js?v=1.9.7';
+import { renderAnalyticsView } from './analytics-view.js?v=1.9.7';
+import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=1.9.7';
+import { auth } from '../firebase-config.js?v=1.9.7';
+import { animateEntry } from './utils/animations.js?v=1.9.7';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }) : '';
 
@@ -1292,13 +1292,18 @@ const renderAsignacionesView = async (container) => {
 
     // Fetch initial data
     const initData = async () => {
-        const [territorios, conductores, programa, allHistory, config] = await Promise.all([
+        const [territoriosRaw, conductoresRaw, programa, allHistory, config] = await Promise.all([
             getTerritorios(),
             getConductores(),
             getProgramaSemanal(),
             getHistorialReport(),
             getConfiguracion()
         ]);
+
+        // PRE-SORT FOR PERFORMANCE
+        const territorios = territoriosRaw.sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true }));
+        const conductores = conductoresRaw.sort((a, b) => a.nombre.localeCompare(b.nombre));
+
         return { territorios, conductores, programa, allHistory, config };
     };
 

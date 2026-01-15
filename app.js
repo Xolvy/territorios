@@ -1,14 +1,37 @@
 import './modules/extensions.mjs';
-import { auth, db } from './firebase-config.js?v=1.9.6.0';
+import { auth, db } from './firebase-config.js?v=1.9.7';
 import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
-import { renderLogin } from './modules/login.js?v=1.9.6.0';
-import { renderAdminDashboard } from './modules/admin-dashboard.js?v=1.9.6.0';
-import { renderConductorDashboard } from './modules/conductor-dashboard.js?v=1.9.6.0';
-import { getPermisosUsuario, getSystemVersion, migrateConductoresToPublicadores } from './data/firestore-services.js?v=1.9.6.0';
-import { showNotification } from './modules/utils/helpers.js?v=1.9.6.0';
-import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js?v=1.9.6.0';
-import { initPWA } from './modules/utils/pwa-manager.js?v=1.9.6.0';
+// Main modules are now lazy-loaded
+// import { renderLogin } from './modules/login.js?v=1.9.7';
+// import { renderAdminDashboard } from './modules/admin-dashboard.js?v=1.9.7';
+// import { renderConductorDashboard } from './modules/conductor-dashboard.js?v=1.9.7';
+import { getPermisosUsuario, getSystemVersion, migrateConductoresToPublicadores } from './data/firestore-services.js?v=1.9.7';
+import { showNotification } from './modules/utils/helpers.js?v=1.9.7';
+import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js?v=1.9.7';
+import { initPWA } from './modules/utils/pwa-manager.js?v=1.9.7';
+
+// Global Module Cache for performance
+const ModuleCache = {
+    login: null,
+    admin: null,
+    conductor: null
+};
+
+async function loadLogin() {
+    if (!ModuleCache.login) ModuleCache.login = await import('./modules/login.js?v=1.9.7');
+    return ModuleCache.login.renderLogin;
+}
+
+async function loadAdmin() {
+    if (!ModuleCache.admin) ModuleCache.admin = await import('./modules/admin-dashboard.js?v=1.9.7');
+    return ModuleCache.admin.renderAdminDashboard;
+}
+
+async function loadConductor() {
+    if (!ModuleCache.conductor) ModuleCache.conductor = await import('./modules/conductor-dashboard.js?v=1.9.7');
+    return ModuleCache.conductor.renderConductorDashboard;
+}
 
 // Init Theme
 initTheme();
@@ -17,7 +40,7 @@ document.body.appendChild(createThemeToggle());
 // Init PWA & Notifications
 initPWA();
 
-const APP_VERSION = '1.9.6.0';
+const APP_VERSION = '1.9.7';
 
 // --- PWA INITIALIZATION ---
 
@@ -287,6 +310,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (!path.startsWith('/conductores')) {
                         window.history.replaceState({}, '', '/conductores');
                     }
+                    const renderConductorDashboard = await loadConductor();
                     navigateWithTransition(() => renderConductorDashboard(appContainer, storedName || 'Conductor', APP_VERSION, storedRole));
                     return;
                 }
@@ -312,6 +336,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 console.warn(`⛔ Acceso denegado para: ${user.email}`);
                 showNotification("🚫 Acceso Denegado: Usuario no autorizado.", "error");
                 await auth.signOut();
+                const renderLogin = await loadLogin();
                 renderLogin(appContainer, APP_VERSION);
                 return;
             }
@@ -323,6 +348,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Enforce /administrador URL
                 if (!path.startsWith('/administrador')) {
                     window.history.replaceState({}, '', '/administrador/dashboard');
+                    const renderAdminDashboard = await loadAdmin();
                     navigateWithTransition(() => renderAdminDashboard(appContainer, APP_VERSION, 'dashboard'));
                 } else {
                     // Extract sub-route
@@ -340,6 +366,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     };
 
                     const tabId = urlToTab[subPath] || 'dashboard';
+                    const renderAdminDashboard = await loadAdmin();
                     navigateWithTransition(() => renderAdminDashboard(appContainer, APP_VERSION, tabId));
                 }
             } else {
@@ -347,6 +374,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (!path.startsWith('/conductores')) {
                     window.history.replaceState({}, '', '/conductores');
                 }
+                const renderConductorDashboard = await loadConductor();
                 navigateWithTransition(() => renderConductorDashboard(appContainer, user.email || 'Usuario', APP_VERSION, role));
             }
         } else {
@@ -354,6 +382,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (path !== '/login' && path !== '/' && path !== '/index.html') {
                 window.history.replaceState({}, '', '/login');
             }
+            const renderLogin = await loadLogin();
             navigateWithTransition(() => renderLogin(appContainer, APP_VERSION));
         }
     });
