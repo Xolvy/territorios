@@ -1,13 +1,27 @@
 
-import { showNotification } from './helpers.js?v=3.5.0';
+import { showNotification } from './helpers.js?v=1.9.5.2';
 
-let deferredPrompt = null;
+let deferredPrompt = window.deferredPWAPrompt || null;
 
-// Listen as early as possible (when module is evaluated)
+// Listen for the global catch in case it happened before this module loaded
+window.addEventListener('pwa-prompt-ready', () => {
+    deferredPrompt = window.deferredPWAPrompt;
+    console.log("📍 PWA: Manager synchronized with Global Prompt");
+    // If the module is already initialized, we might want to show the UI
+    const triggerUI = () => {
+        if (!isStandalone() && !sessionStorage.getItem('pwa_banner_dismissed')) {
+            ensureInstallUI();
+        }
+    };
+    triggerUI();
+});
+
+// Also keep the local listener just in case
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
-    console.log("📲 PWA: Install Opportunity Detected (Event captured)");
+    window.deferredPWAPrompt = e;
+    console.log("📲 PWA: Install Opportunity Detected (Local catch)");
 });
 
 export const initPWA = () => {
@@ -17,6 +31,7 @@ export const initPWA = () => {
     window.addEventListener('appinstalled', (e) => {
         console.log('✅ PWA: Application installed successfully');
         deferredPrompt = null;
+        window.deferredPWAPrompt = null;
         removeInstallUI();
         showNotification("¡Aplicación instalada con éxito! Ya puedes abrirla desde tu pantalla de inicio.", "success");
     });
@@ -28,16 +43,16 @@ export const initPWA = () => {
         }
     };
 
-    // If we already have the prompt, show UI sooner
-    if (deferredPrompt) {
-        setTimeout(triggerUI, 500);
+    // Immediate check if already captured
+    if (deferredPrompt || (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream)) {
+        setTimeout(triggerUI, 1000);
     } else {
-        // Otherwise wait a bit to see if it fires
-        setTimeout(triggerUI, 4500);
+        // Wait up to 6 seconds for it to fire
+        setTimeout(triggerUI, 6000);
     }
 
-    // 4. Notification Request
-    requestNotifications();
+    // 4. Notification Request (Wait a bit more for UX)
+    setTimeout(requestNotifications, 8000);
 };
 
 export const isStandalone = () => {
@@ -67,7 +82,7 @@ const ensureInstallUI = () => {
         <div class="flex flex-col gap-5">
             <div class="flex items-center gap-4">
                 <div class="w-14 h-14 bg-teal-500/10 dark:bg-teal-500/20 rounded-2xl flex items-center justify-center text-3xl shadow-inner">
-                    <img src="icon-192.svg" class="w-10 h-10 rounded-xl" alt="App Icon">
+                    <img src="/icon-192.svg" class="w-10 h-10 rounded-xl" alt="App Icon">
                 </div>
                 <div class="flex-1">
                     <h4 class="text-sm font-black dark:text-white uppercase tracking-tight">Experiencia Completa</h4>
@@ -99,14 +114,23 @@ const ensureInstallUI = () => {
     const installBtn = document.getElementById('btn-pwa-main-install');
     if (installBtn) {
         installBtn.onclick = async () => {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') {
-                    console.log('User accepted the A2HS prompt');
-                    removeInstallUI();
+            // Check global or local
+            const prompt = deferredPrompt || window.deferredPWAPrompt;
+
+            if (prompt) {
+                try {
+                    prompt.prompt();
+                    const { outcome } = await prompt.userChoice;
+                    console.log(`📡 PWA: Install user choice: ${outcome}`);
+                    if (outcome === 'accepted') {
+                        removeInstallUI();
+                        deferredPrompt = null;
+                        window.deferredPWAPrompt = null;
+                    }
+                } catch (err) {
+                    console.error("❌ PWA: Error during prompt:", err);
+                    showNotification("Hubo un problema al abrir el instalador. Intenta desde el menú del navegador.", "warning");
                 }
-                deferredPrompt = null;
             } else {
                 showNotification("Busca la opción 'Instalar Aplicación' en el menú de los 3 puntos de tu navegador.", "info");
             }

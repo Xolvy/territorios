@@ -12,10 +12,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Gestión de territorios - JW</title>
-    <link rel="icon" type="image/svg+xml" href="./favicon.svg">
-    <link rel="apple-touch-icon" href="./icon-192.svg">
-    <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="./styles.css?v=1.9.5.1">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="apple-touch-icon" href="/icon-192.svg">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="/styles.css?v=1.9.5.2">
     <!-- Ultra Modern Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -33,6 +33,18 @@
     <!-- PDF & Canvas Exports (S-13) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+    <!-- Early PWA Catch -->
+    <script>
+        window.deferredPWAPrompt = null;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            window.deferredPWAPrompt = e;
+            console.log("📲 PWA: Install Opportunity Detected (Global catch)");
+            // Dispatch custom event for modules to react
+            window.dispatchEvent(new CustomEvent('pwa-prompt-ready'));
+        });
+    </script>
 </head>
 
 <body
@@ -40,7 +52,7 @@
     <main id="app-container" class="min-h-full">
         <!-- Dynamic Content -->
     </main>
-    <script type="module" src="./app.js?v=1.9.5.1"></script>
+    <script type="module" src="/app.js?v=1.9.5.2"></script>
 </body>
 
 </html>

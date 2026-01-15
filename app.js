@@ -1,14 +1,14 @@
 import './modules/extensions.mjs';
-import { auth, db } from './firebase-config.js?v=1.9.5.1';
+import { auth, db } from './firebase-config.js?v=1.9.5.2';
 import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
-import { renderLogin } from './modules/login.js?v=1.9.5.1';
-import { renderAdminDashboard } from './modules/admin-dashboard.js?v=1.9.5.1';
-import { renderConductorDashboard } from './modules/conductor-dashboard.js?v=1.9.5.1';
-import { getPermisosUsuario, getSystemVersion, migrateConductoresToPublicadores } from './data/firestore-services.js?v=1.9.5.1';
-import { showNotification } from './modules/utils/helpers.js?v=1.9.5.1';
-import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js?v=1.9.5.1';
-import { initPWA } from './modules/utils/pwa-manager.js?v=1.9.5.1';
+import { renderLogin } from './modules/login.js?v=1.9.5.2';
+import { renderAdminDashboard } from './modules/admin-dashboard.js?v=1.9.5.2';
+import { renderConductorDashboard } from './modules/conductor-dashboard.js?v=1.9.5.2';
+import { getPermisosUsuario, getSystemVersion, migrateConductoresToPublicadores } from './data/firestore-services.js?v=1.9.5.2';
+import { showNotification } from './modules/utils/helpers.js?v=1.9.5.2';
+import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js?v=1.9.5.2';
+import { initPWA } from './modules/utils/pwa-manager.js?v=1.9.5.2';
 
 // Init Theme
 initTheme();
@@ -17,7 +17,7 @@ document.body.appendChild(createThemeToggle());
 // Init PWA & Notifications
 initPWA();
 
-const APP_VERSION = '1.9.5.1';
+const APP_VERSION = '1.9.5.2';
 
 // --- PWA INITIALIZATION ---
 
@@ -243,7 +243,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 1. Registrar Service Worker
     if ('serviceWorker' in navigator) {
         const registerSW = () => {
-            navigator.serviceWorker.register('./service-worker.js')
+            navigator.serviceWorker.register('/service-worker.js')
                 .then(reg => {
                     console.log('✅ SW registrado con éxito');
                     // Ensure SW is active to help with PWA installation
