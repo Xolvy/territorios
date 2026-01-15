@@ -1,14 +1,14 @@
 import './modules/extensions.mjs';
-import { auth, db } from './firebase-config.js?v=1.9.5';
+import { auth, db } from './firebase-config.js?v=1.9.5.1';
 import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
-import { renderLogin } from './modules/login.js?v=1.9.5';
-import { renderAdminDashboard } from './modules/admin-dashboard.js?v=1.9.5';
-import { renderConductorDashboard } from './modules/conductor-dashboard.js?v=1.9.5';
-import { getPermisosUsuario, getSystemVersion, migrateConductoresToPublicadores } from './data/firestore-services.js?v=1.9.5';
-import { showNotification } from './modules/utils/helpers.js?v=1.9.5';
-import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js?v=1.9.5';
-import { initPWA } from './modules/utils/pwa-manager.js?v=1.9.5';
+import { renderLogin } from './modules/login.js?v=1.9.5.1';
+import { renderAdminDashboard } from './modules/admin-dashboard.js?v=1.9.5.1';
+import { renderConductorDashboard } from './modules/conductor-dashboard.js?v=1.9.5.1';
+import { getPermisosUsuario, getSystemVersion, migrateConductoresToPublicadores } from './data/firestore-services.js?v=1.9.5.1';
+import { showNotification } from './modules/utils/helpers.js?v=1.9.5.1';
+import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js?v=1.9.5.1';
+import { initPWA } from './modules/utils/pwa-manager.js?v=1.9.5.1';
 
 // Init Theme
 initTheme();
@@ -17,7 +17,7 @@ document.body.appendChild(createThemeToggle());
 // Init PWA & Notifications
 initPWA();
 
-const APP_VERSION = '1.9.5';
+const APP_VERSION = '1.9.5.1';
 
 // --- PWA INITIALIZATION ---
 
@@ -242,11 +242,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 1. Registrar Service Worker
     if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/service-worker.js')
-                .then(reg => console.log('SW registrado'))
-                .catch(err => console.log('SW error', err));
-        });
+        const registerSW = () => {
+            navigator.serviceWorker.register('./service-worker.js')
+                .then(reg => {
+                    console.log('✅ SW registrado con éxito');
+                    // Ensure SW is active to help with PWA installation
+                    if (reg.installing) console.log('SW installing');
+                    if (reg.waiting) console.log('SW waiting');
+                    if (reg.active) console.log('SW active');
+                })
+                .catch(err => console.error('❌ SW error:', err));
+        };
+
+        if (document.readyState === 'complete') {
+            registerSW();
+        } else {
+            window.addEventListener('load', registerSW);
+        }
     }
 
     // 2. Manejar Auth

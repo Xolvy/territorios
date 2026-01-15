@@ -1,4 +1,4 @@
-import { getTerritorios, getConductores, getGlobalSettings, getHistorialReport } from '../data/firestore-services.js?v=1.9.5';
+import { getTerritorios, getConductores, getGlobalSettings, getHistorialReport } from '../data/firestore-services.js?v=1.9.5.1';
 
 export const renderAnalyticsView = async (container) => {
     // 1. Fetch settings FIRST to use in the template
@@ -126,7 +126,7 @@ export const renderAnalyticsView = async (container) => {
             </div>
             
             <div class="text-center text-xs text-gray-400 py-4">
-                App Territorios v3.6.0 Oficial • Powered by Antigravity
+                App Territorios v1.9.5.1 Oficial • Powered by Antigravity
             </div>
         </div>
     `;

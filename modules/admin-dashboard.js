@@ -11,14 +11,14 @@ import {
     getCampanas, saveCampana, deleteCampana,
     getGroupsConfig, saveGroupsConfig,
     getDiffusionMessage, saveDiffusionMessage
-} from '../data/firestore-services.js?v=1.9.5';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=1.9.5';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=1.9.5';
-import { renderHistoryTab } from './report-s13.js?v=1.9.5';
-import { renderAnalyticsView } from './analytics-view.js?v=1.9.5';
-import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=1.9.5';
-import { auth } from '../firebase-config.js?v=1.9.5';
-import { animateEntry } from './utils/animations.js?v=1.9.5';
+} from '../data/firestore-services.js?v=1.9.5.1';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=1.9.5.1';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=1.9.5.1';
+import { renderHistoryTab } from './report-s13.js?v=1.9.5.1';
+import { renderAnalyticsView } from './analytics-view.js?v=1.9.5.1';
+import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=1.9.5.1';
+import { auth } from '../firebase-config.js?v=1.9.5.1';
+import { animateEntry } from './utils/animations.js?v=1.9.5.1';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }) : '';
 

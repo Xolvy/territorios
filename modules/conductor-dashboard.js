@@ -1,4 +1,4 @@
-import { auth } from '../firebase-config.js?v=1.9.5';
+import { auth } from '../firebase-config.js?v=1.9.5.1';
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import {
     getTerritorios, getConductores, getPublicadores, getTelefonos, updateTelefono,
@@ -8,10 +8,10 @@ import {
     addPublicador, updatePublicador, deletePublicador,
     releaseUnusedTelefonos, solicitarNumeros, updateTelefonoStatus, logSessionSummary,
     logReturn, returnTerritorio, returnTerritorioParcial, transferTerritory
-} from '../data/firestore-services.js?v=1.9.5';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl } from './utils/helpers.js?v=1.9.5';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=1.9.5';
-import { MapViewer } from './map-viewer.js?v=1.9.5';
+} from '../data/firestore-services.js?v=1.9.5.1';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl } from './utils/helpers.js?v=1.9.5.1';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=1.9.5.1';
+import { MapViewer } from './map-viewer.js?v=1.9.5.1';
 
 
 
@@ -1055,7 +1055,7 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
                                 </div>
                             </div>` : ''}
                             
-                            ${shiftIdx <dayData.shifts.length - 1 ? '<div class="h-px bg-slate-50 dark:bg-white/5 my-2"></div>' : ''}
+                            ${shiftIdx < dayData.shifts.length - 1 ? '<div class="h-px bg-slate-50 dark:bg-white/5 my-2"></div>' : ''}
                         </div>
                     `).join('')}
                 </div>
@@ -1126,14 +1126,14 @@ async function renderAvailabilitySection(container, name) {
         { id: 'noche', label: 'Noche', icon: 'fas fa-moon', color: 'text-indigo-400' }
     ];
 
-    const wasAvailOpen = container.querySelector('.group/avail')?.open;
+    const wasAvailOpen = container.querySelector('.group-avail')?.open;
 
     container.innerHTML = `
     <div class="modern-card !p-0 mt-8 animate-fade-in shadow-2xl transition-all overflow-hidden border-indigo-500/20">
-        <details class="group/avail" ${wasAvailOpen ? 'open' : ''}>
+        <details class="group-avail" ${wasAvailOpen ? 'open' : ''}>
             <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-8 cursor-pointer list-none select-none hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
                 <div class="flex items-start gap-6">
-                    <div class="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-2xl text-indigo-500 shadow-inner border border-indigo-500/10 group-open/avail:rotate-6 transition-transform">
+                    <div class="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-2xl text-indigo-500 shadow-inner border border-indigo-500/10 group-open-avail:rotate-6 transition-transform">
                         <i class="fas fa-user-clock"></i>
                     </div>
                     <div>
@@ -2885,15 +2885,15 @@ function renderRecursosSection(container) {
             return;
         }
 
-        const wasRecOpen = container.querySelector('.group/recursos')?.open;
+        const wasRecOpen = container.querySelector('.group-recursos')?.open;
 
         container.classList.remove('hidden');
         container.innerHTML = `
             <div class="modern-card !p-0 mt-20 animate-fade-in shadow-2xl transition-all overflow-hidden border-primary/20">
-                <details class="group/recursos" ${wasRecOpen ? 'open' : ''}>
+                <details class="group-recursos" ${wasRecOpen ? 'open' : ''}>
                     <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-8 cursor-pointer list-none select-none hover:bg-primary/5 transition-colors border-b border-primary/5 outline-none">
                         <div class="flex items-start gap-6">
-                            <div class="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-2xl text-primary shadow-inner border border-primary/10 group-open/recursos:rotate-6 transition-transform">
+                            <div class="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-2xl text-primary shadow-inner border border-primary/10 group-open-recursos:rotate-6 transition-transform">
                                 <i class="fas fa-toolbox"></i>
                             </div>
                             <div>

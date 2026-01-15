@@ -52,6 +52,11 @@ export const showNotification = (message, type = 'success') => {
         icon.className = 'w-12 h-12 bg-amber-500/20 text-amber-500 rounded-2xl flex items-center justify-center text-2xl icon-container shadow-inner border border-amber-500/20';
         title.className = 'font-black text-[10px] uppercase tracking-[0.2em] text-amber-600 title mb-1';
         title.textContent = 'Atención';
+    } else if (type === 'info') {
+        icon.textContent = 'ℹ️';
+        icon.className = 'w-12 h-12 bg-blue-500/20 text-blue-500 rounded-2xl flex items-center justify-center text-2xl icon-container shadow-inner border border-blue-500/20';
+        title.className = 'font-black text-[10px] uppercase tracking-[0.2em] text-blue-600 title mb-1';
+        title.textContent = 'Información';
     } else {
         icon.textContent = '✨';
         icon.className = 'w-12 h-12 bg-teal-500/20 text-teal-500 rounded-2xl flex items-center justify-center text-2xl icon-container shadow-inner border border-teal-500/20';

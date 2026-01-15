@@ -3,22 +3,15 @@ import { showNotification } from './helpers.js?v=3.5.0';
 
 let deferredPrompt = null;
 
+// Listen as early as possible (when module is evaluated)
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    console.log("📲 PWA: Install Opportunity Detected (Event captured)");
+});
+
 export const initPWA = () => {
     console.log("🛠️ PWA Engine Initializing...");
-
-    // 1. Listen for install prompt
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        console.log("📲 PWA: Install Opportunity Detected");
-
-        // Delay UI slightly to not interrupt initial loading
-        setTimeout(() => {
-            if (!isStandalone() && !sessionStorage.getItem('pwa_banner_dismissed')) {
-                ensureInstallUI();
-            }
-        }, 2000);
-    });
 
     // 2. Listen for successful installation
     window.addEventListener('appinstalled', (e) => {
@@ -28,9 +21,19 @@ export const initPWA = () => {
         showNotification("¡Aplicación instalada con éxito! Ya puedes abrirla desde tu pantalla de inicio.", "success");
     });
 
-    // 3. Initial check for non-Chrome/Safari browsers (where prompt might not fire)
-    if (!isStandalone() && !sessionStorage.getItem('pwa_banner_dismissed')) {
-        setTimeout(ensureInstallUI, 4000);
+    // 3. Initial check and UI Logic
+    const triggerUI = () => {
+        if (!isStandalone() && !sessionStorage.getItem('pwa_banner_dismissed')) {
+            ensureInstallUI();
+        }
+    };
+
+    // If we already have the prompt, show UI sooner
+    if (deferredPrompt) {
+        setTimeout(triggerUI, 500);
+    } else {
+        // Otherwise wait a bit to see if it fires
+        setTimeout(triggerUI, 4500);
     }
 
     // 4. Notification Request
