@@ -11,14 +11,14 @@ import {
     getCampanas, saveCampana, deleteCampana,
     getGroupsConfig, saveGroupsConfig,
     getDiffusionMessage, saveDiffusionMessage
-} from '../data/firestore-services.js?v=1.9.8.5';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=1.9.8.5';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=1.9.8.5';
-import { renderHistoryTab } from './report-s13.js?v=1.9.8.5';
-import { renderAnalyticsView } from './analytics-view.js?v=1.9.8.5';
-import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=1.9.8.5';
-import { auth } from '../firebase-config.js?v=1.9.8.5';
-import { animateEntry } from './utils/animations.js?v=1.9.8.5';
+} from '../data/firestore-services.js?v=1.9.8.6';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=1.9.8.6';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=1.9.8.6';
+import { renderHistoryTab } from './report-s13.js?v=1.9.8.6';
+import { renderAnalyticsView } from './analytics-view.js?v=1.9.8.6';
+import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=1.9.8.6';
+import { auth } from '../firebase-config.js?v=1.9.8.6';
+import { animateEntry } from './utils/animations.js?v=1.9.8.6';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }) : '';
 
@@ -667,18 +667,18 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
                             </div>
                         </div>
                     </div>
-                    <div class="flex items-center gap-4 w-full md:w-auto">
+                    <div class="flex items-center gap-2.5 w-full md:w-auto">
                         <div class="hidden sm:flex flex-col items-end mr-4">
                              <p class="text-[9px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-tighter">Versión del Sistema</p>
                              <p class="text-[11px] font-black text-primary bg-primary/5 px-3 py-1 rounded-lg">Build ${appVersion || '3.6.0'}</p>
                         </div>
-                        <button onclick="window.location.href='/conductores'" class="flex-1 md:flex-none bg-indigo-600/10 hover:bg-indigo-600 text-indigo-700 hover:text-white px-6 py-4 rounded-xl border border-indigo-500/30 transition-all font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 shadow-sm">
+                        <button onclick="window.location.href='/conductores'" class="flex-1 md:flex-none bg-indigo-600/10 hover:bg-indigo-600 text-indigo-700 hover:text-white px-4 md:px-6 py-4 rounded-xl border border-indigo-500/30 transition-all font-black text-[10px] md:text-xs uppercase tracking-widest flex items-center justify-center gap-2 md:gap-3 shadow-sm min-w-0">
                             <i class="fas fa-user-circle"></i>
-                            Vista Conductor
+                            <span class="truncate">Vista Conductor</span>
                         </button>
-                        <button id="logout-btn" class="flex-1 md:flex-none bg-slate-900 dark:bg-white/5 hover:bg-rose-600 dark:hover:bg-rose-500/10 text-white dark:text-slate-300 px-6 py-4 rounded-xl border border-slate-900 dark:border-white/5 transition-all font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 active:scale-95 shadow-lg shadow-black/10">
+                        <button id="logout-btn" class="flex-1 md:flex-none bg-slate-900 dark:bg-white/5 hover:bg-rose-600 dark:hover:bg-rose-500/10 text-white dark:text-slate-300 px-4 md:px-6 py-4 rounded-xl border border-slate-900 dark:border-white/5 transition-all font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 md:gap-3 active:scale-95 shadow-lg shadow-black/10 min-w-0">
                             <i class="fas fa-sign-out-alt"></i>
-                            Cerrar Sesión
+                            <span class="truncate">Salir</span>
                         </button>
                     </div>
                 </header>
@@ -822,14 +822,14 @@ const renderAdminAI = async () => {
     const aiUI = document.createElement('div');
     aiUI.id = 'admin-ai-overlay';
     aiUI.innerHTML = `
-        <button id="admin-ai-fab" class="fixed bottom-6 right-6 z-50 bg-indigo-900 border border-indigo-400/30 text-white rounded-full p-4 shadow-2xl transition-all hover:scale-110 active:scale-95 group admin-ai-glow">
+        <button id="admin-ai-fab" class="fixed bottom-28 right-6 z-50 bg-indigo-900 border border-indigo-400/30 text-white rounded-full p-4 shadow-2xl transition-all hover:scale-110 active:scale-95 group admin-ai-glow">
             <span class="text-3xl group-hover:rotate-12 transition-transform block">🧠</span>
             <span class="absolute right-full top-1/2 -translate-y-1/2 mr-3 px-3 py-1.5 bg-black/80 backdrop-blur-md text-white text-[10px] font-black uppercase rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none tracking-widest border border-indigo-500/20">
                 Centro de Mando IA
             </span>
         </button>
 
-        <div id="admin-ai-panel" class="fixed bottom-24 right-6 w-[calc(100vw-3rem)] md:w-96 glass-morphism border border-indigo-500/20 rounded-[2.5rem] shadow-[0_35px_60px_-15px_rgba(0,0,0,0.6)] z-50 transform translate-y-10 opacity-0 pointer-events-none transition-all duration-500 ease-out flex flex-col max-h-[75vh] overflow-hidden">
+        <div id="admin-ai-panel" class="fixed bottom-48 right-6 w-[calc(100vw-3rem)] md:w-96 glass-morphism border border-indigo-500/20 rounded-[2.5rem] shadow-[0_35px_60px_-15px_rgba(0,0,0,0.6)] z-50 transform translate-y-10 opacity-0 pointer-events-none transition-all duration-500 ease-out flex flex-col max-h-[75vh] overflow-hidden">
             <div class="flex justify-between items-center p-6 bg-gradient-to-r from-indigo-900/40 to-blue-900/40">
                 <div class="flex items-center gap-3">
                     <div class="w-12 h-12 rounded-2xl bg-indigo-500/20 flex items-center justify-center text-3xl shadow-inner shadow-indigo-500/10">🧠</div>
@@ -1002,7 +1002,7 @@ const renderCasaEnCasaTab = async (container) => {
             </div>
             
             <!-- Sync Indicator -->
-            <div id="super-sync-indicator" class="hidden fixed bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-primary text-white px-6 py-3 rounded-2xl shadow-2xl z-[60] animate-bounce-in">
+            <div id="super-sync-indicator" class="hidden fixed bottom-10 left-0 right-0 mx-auto w-max flex items-center gap-3 bg-primary text-white px-6 py-3 rounded-2xl shadow-2xl z-[60] animate-bounce-in">
                 <i class="fas fa-sync-alt animate-spin"></i>
                 <span class="text-xs font-bold uppercase tracking-widest">Sincronizando...</span>
             </div>
@@ -3065,7 +3065,7 @@ const renderAsignacionesView = async (container) => {
             </div>
 
             ${selectedIds.size > 0 ? `
-                <div class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[60] animate-bounce-in">
+                <div class="fixed bottom-10 left-0 right-0 mx-auto w-max z-[60] animate-bounce-in">
                     <div class="bg-slate-900/95 backdrop-blur-2xl border border-white/20 rounded-3xl p-3 shadow-2xl flex items-center gap-3 ring-[12px] ring-black/5">
                         <div class="px-6 py-2 border-r border-white/10">
                             <p class="text-[9px] font-black text-rose-400 uppercase tracking-widest leading-none mb-1.5">Seleccionados</p>

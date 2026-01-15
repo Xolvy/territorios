@@ -23,9 +23,9 @@ export const showNotification = (message, type = 'success') => {
     if (!banner) {
         banner = document.createElement('div');
         banner.id = 'app-notification-banner';
-        banner.className = 'fixed top-6 left-1/2 -translate-x-1/2 z-[10000] transition-all duration-700 transform -translate-y-32 opacity-0 pointer-events-none scale-90';
+        banner.className = 'fixed top-6 left-0 right-0 mx-auto w-max max-w-[calc(100vw-2rem)] z-[10000] transition-all duration-700 transform -translate-y-32 opacity-0 pointer-events-none scale-90';
         banner.innerHTML = `
-            <div class="glass-morphism bg-white/60 dark:bg-slate-900/60 backdrop-blur-2xl px-8 py-5 rounded-[2.5rem] shadow-[0_30px_90px_-20px_rgba(0,0,0,0.3)] border border-white/40 dark:border-white/10 flex items-center gap-6 min-w-[340px] pointer-events-auto">
+            <div class="glass-morphism bg-white/60 dark:bg-slate-900/60 backdrop-blur-2xl px-6 py-4 sm:px-8 sm:py-5 rounded-[2.5rem] shadow-[0_30px_90px_-20px_rgba(0,0,0,0.3)] border border-white/40 dark:border-white/10 flex items-center gap-4 sm:gap-6 min-w-[280px] sm:min-w-[340px] pointer-events-auto">
                 <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl icon-container shadow-inner border border-white/20">🔔</div>
                 <div class="flex-1 min-w-0">
                     <h4 class="font-black text-[10px] uppercase tracking-[0.2em] title mb-1">Notificación</h4>

@@ -1,15 +1,15 @@
 import './modules/extensions.mjs';
-import { auth, db } from './firebase-config.js?v=1.9.8.5';
+import { auth, db } from './firebase-config.js?v=1.9.8.6';
 import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 // Main modules are now lazy-loaded
-// import { renderLogin } from './modules/login.js?v=1.9.8.5';
-// import { renderAdminDashboard } from './modules/admin-dashboard.js?v=1.9.8.5';
-// import { renderConductorDashboard } from './modules/conductor-dashboard.js?v=1.9.8.5';
-import { getPermisosUsuario, getSystemVersion, migrateConductoresToPublicadores } from './data/firestore-services.js?v=1.9.8.5';
-import { showNotification } from './modules/utils/helpers.js?v=1.9.8.5';
-import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js?v=1.9.8.5';
-import { initPWA } from './modules/utils/pwa-manager.js?v=1.9.8.5';
+// import { renderLogin } from './modules/login.js?v=1.9.8.6';
+// import { renderAdminDashboard } from './modules/admin-dashboard.js?v=1.9.8.6';
+// import { renderConductorDashboard } from './modules/conductor-dashboard.js?v=1.9.8.6';
+import { getPermisosUsuario, getSystemVersion, migrateConductoresToPublicadores } from './data/firestore-services.js?v=1.9.8.6';
+import { showNotification } from './modules/utils/helpers.js?v=1.9.8.6';
+import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js?v=1.9.8.6';
+import { initPWA } from './modules/utils/pwa-manager.js?v=1.9.8.6';
 
 // Global Module Cache for performance
 const ModuleCache = {
@@ -19,17 +19,17 @@ const ModuleCache = {
 };
 
 async function loadLogin() {
-    if (!ModuleCache.login) ModuleCache.login = await import('./modules/login.js?v=1.9.8.5');
+    if (!ModuleCache.login) ModuleCache.login = await import('./modules/login.js?v=1.9.8.6');
     return ModuleCache.login.renderLogin;
 }
 
 async function loadAdmin() {
-    if (!ModuleCache.admin) ModuleCache.admin = await import('./modules/admin-dashboard.js?v=1.9.8.5');
+    if (!ModuleCache.admin) ModuleCache.admin = await import('./modules/admin-dashboard.js?v=1.9.8.6');
     return ModuleCache.admin.renderAdminDashboard;
 }
 
 async function loadConductor() {
-    if (!ModuleCache.conductor) ModuleCache.conductor = await import('./modules/conductor-dashboard.js?v=1.9.8.5');
+    if (!ModuleCache.conductor) ModuleCache.conductor = await import('./modules/conductor-dashboard.js?v=1.9.8.6');
     return ModuleCache.conductor.renderConductorDashboard;
 }
 
@@ -40,7 +40,7 @@ document.body.appendChild(createThemeToggle());
 // Init PWA & Notifications
 initPWA();
 
-const APP_VERSION = '1.9.8.5';
+const APP_VERSION = '1.9.8.6';
 
 // --- PWA INITIALIZATION ---
 
@@ -156,7 +156,7 @@ const initDiffusionListener = () => {
         @keyframes pulse-slow { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.7; } }
         .animate-pulse-slow { animation: pulse-slow 3s ease-in-out infinite; }
 
-        @keyframes bounce-in { 0% { transform: translate(-50%, 100px); opacity: 0; } 60% { transform: translate(-50%, -10px); opacity: 1; } 100% { transform: translate(-50%, 0); opacity: 1; } }
+        @keyframes bounce-in { 0% { transform: translateY(50px); opacity: 0; } 60% { transform: translateY(-5px); opacity: 1; } 100% { transform: translateY(0); opacity: 1; } }
         .animate-bounce-in { animation: bounce-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
         .label-premium { font-size: 10px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.2em; display: block; margin-bottom: 0.5rem; }

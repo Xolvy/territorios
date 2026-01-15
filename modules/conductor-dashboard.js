@@ -1,4 +1,4 @@
-import { auth } from '../firebase-config.js?v=1.9.8.5';
+import { auth } from '../firebase-config.js?v=1.9.8.6';
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import {
     getTerritorios, getConductores, getPublicadores, getTelefonos, updateTelefono,
@@ -8,10 +8,10 @@ import {
     addPublicador, updatePublicador, deletePublicador,
     releaseUnusedTelefonos, solicitarNumeros, updateTelefonoStatus, logSessionSummary,
     logReturn, returnTerritorio, returnTerritorioParcial, transferTerritory
-} from '../data/firestore-services.js?v=1.9.8.5';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl } from './utils/helpers.js?v=1.9.8.5';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=1.9.8.5';
-import { MapViewer } from './map-viewer.js?v=1.9.8.5';
+} from '../data/firestore-services.js?v=1.9.8.6';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl } from './utils/helpers.js?v=1.9.8.6';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=1.9.8.6';
+import { MapViewer } from './map-viewer.js?v=1.9.8.6';
 
 
 
@@ -213,22 +213,22 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                         </div>
                     </div>
                 </div>
-                <div class="flex items-center gap-3 w-full md:w-auto relative z-10">
+                <div class="flex items-center gap-2.5 w-full md:w-auto relative z-10">
                     <div class="hidden sm:flex flex-col items-end mr-4 text-right">
                          <p class="text-[8px] font-black text-slate-400 uppercase tracking-[0.3em] mb-0.5">Versión</p>
                          <p class="text-[10px] font-black text-slate-800 dark:text-white tabular-nums">${appVersion || '3.6.0'}</p>
                     </div>
                     ${(userRole === 'Administrador' || userRole === 'SuperAdmin' || conductorData?.privilegios?.includes('Administrador')) ? `
-                    <button id="btn-goto-admin" class="flex-1 md:flex-none bg-amber-500/10 hover:bg-amber-500 text-amber-600 hover:text-white px-6 py-3.5 rounded-xl border border-amber-500/20 transition-all font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95">
-                        <i class="fas fa-user-shield"></i> Panel Admin
+                    <button id="btn-goto-admin" class="flex-1 md:flex-none bg-amber-500/10 hover:bg-amber-500 text-amber-600 hover:text-white px-4 md:px-6 py-3.5 rounded-xl border border-amber-500/20 transition-all font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95 min-w-0">
+                        <i class="fas fa-user-shield"></i> <span class="truncate">Panel Admin</span>
                     </button>
                     ` : `
-                    <button onclick="window.startOnboarding()" class="flex-1 md:flex-none bg-slate-50 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 px-6 py-3.5 rounded-xl border border-slate-200 dark:border-white/10 transition-all font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95">
-                        <i class="fas fa-circle-info text-indigo-500"></i> Ayuda
+                    <button onclick="window.startOnboarding()" class="flex-1 md:flex-none bg-slate-50 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 px-4 md:px-6 py-3.5 rounded-xl border border-slate-200 dark:border-white/10 transition-all font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95 min-w-0">
+                        <i class="fas fa-circle-info text-indigo-500"></i> <span class="truncate">Ayuda</span>
                     </button>
                     `}
-                    <button id="logout-btn" class="flex-1 md:flex-none bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white px-6 py-3.5 rounded-xl border border-rose-500/20 transition-all font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95">
-                        <i class="fas fa-sign-out-alt"></i> Salir
+                    <button id="logout-btn" class="flex-1 md:flex-none bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white px-4 md:px-6 py-3.5 rounded-xl border border-rose-500/20 transition-all font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95 min-w-0">
+                        <i class="fas fa-sign-out-alt"></i> <span class="truncate">Salir</span>
                     </button>
                 </div>
             </header>
