@@ -32,24 +32,33 @@ export const initPWA = () => {
         console.log('✅ PWA: Application installed successfully');
         deferredPrompt = null;
         window.deferredPWAPrompt = null;
+        localStorage.setItem('pwa_installed', 'true');
         removeInstallUI();
         showNotification("¡Aplicación instalada con éxito! Ya puedes abrirla desde tu pantalla de inicio.", "success");
     });
 
     // 3. Initial check and UI Logic
     const triggerUI = () => {
-        if (!isStandalone() && !sessionStorage.getItem('pwa_banner_dismissed')) {
+        // If already in standalone mode, dismissed in session, or recorded as installed -> exit
+        if (isStandalone() ||
+            sessionStorage.getItem('pwa_banner_dismissed') ||
+            localStorage.getItem('pwa_installed')) {
+            return;
+        }
+
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        const hasPrompt = !!(deferredPrompt || window.deferredPWAPrompt);
+
+        // Only show if we have an actual prompt or if it's iOS (manual instructions)
+        if (hasPrompt || isIOS) {
             ensureInstallUI();
+        } else {
+            console.log("ℹ️ PWA: Banner skipped (No prompt available and not iOS)");
         }
     };
 
-    // Immediate check if already captured
-    if (deferredPrompt || (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream)) {
-        setTimeout(triggerUI, 1000);
-    } else {
-        // Wait up to 6 seconds for it to fire
-        setTimeout(triggerUI, 6000);
-    }
+    // Check availability with a slight delay to allow events to fire
+    setTimeout(triggerUI, 3000);
 
     // 4. Notification Request (Wait a bit more for UX)
     setTimeout(requestNotifications, 8000);
@@ -123,6 +132,7 @@ const ensureInstallUI = () => {
                     const { outcome } = await prompt.userChoice;
                     console.log(`📡 PWA: Install user choice: ${outcome}`);
                     if (outcome === 'accepted') {
+                        localStorage.setItem('pwa_installed', 'true');
                         removeInstallUI();
                         deferredPrompt = null;
                         window.deferredPWAPrompt = null;
