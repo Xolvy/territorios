@@ -55,7 +55,7 @@ export const initPWA = () => {
         console.log('✨ PWA: Application installed successfully');
         localStorage.setItem('pwa_installed', 'true');
         removeInstallUI();
-        showNotification("¡Bienvenido a la experiencia nativa de Xolu!", "success");
+        showNotification("¡Bienvenido a Gestión de Territorios!", "success");
     });
 
     // 3. Initial UI Check
@@ -131,7 +131,7 @@ const ensureInstallUI = () => {
                     <div class="absolute -top-1 -right-1 w-4 h-4 bg-teal-500 rounded-full border-2 border-white dark:border-slate-900 animate-pulse"></div>
                 </div>
                 <div class="flex-1">
-                    <h4 class="text-sm font-black dark:text-white uppercase tracking-tight">Xolu Premium</h4>
+                    <h4 class="text-sm font-black dark:text-white uppercase tracking-tight">Gestión de Territorios</h4>
                     <p class="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest leading-none mt-1">Uso Offline & Notificaciones</p>
                 </div>
             </div>

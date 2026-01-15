@@ -1,6 +1,6 @@
 {
-  "name": "Gestión de Territorios JW - Xolu",
-  "short_name": "Xolu",
+  "name": "Gestión de Territorios",
+  "short_name": "Territorios",
   "description": "Sistema Premium de Gestión de Territorios y Predicación. Optimizado para uso offline y avisos en tiempo real.",
   "start_url": "/?pwa=1",
   "display": "standalone",

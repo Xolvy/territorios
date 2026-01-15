@@ -1,4 +1,4 @@
-const CACHE_NAME = 'xolu-premium-v1.9.8.6';
+const CACHE_NAME = 'territorios-premium-v1.9.8.6';
 
 const ASSETS_CORE = [
     '/',
