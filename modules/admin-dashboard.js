@@ -11,14 +11,14 @@ import {
     getCampanas, saveCampana, deleteCampana,
     getGroupsConfig, saveGroupsConfig,
     getDiffusionMessage, saveDiffusionMessage
-} from '../data/firestore-services.js?v=1.9.8';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=1.9.8';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=1.9.8';
-import { renderHistoryTab } from './report-s13.js?v=1.9.8';
-import { renderAnalyticsView } from './analytics-view.js?v=1.9.8';
-import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=1.9.8';
-import { auth } from '../firebase-config.js?v=1.9.8';
-import { animateEntry } from './utils/animations.js?v=1.9.8';
+} from '../data/firestore-services.js?v=1.9.8.5';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=1.9.8.5';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=1.9.8.5';
+import { renderHistoryTab } from './report-s13.js?v=1.9.8.5';
+import { renderAnalyticsView } from './analytics-view.js?v=1.9.8.5';
+import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=1.9.8.5';
+import { auth } from '../firebase-config.js?v=1.9.8.5';
+import { animateEntry } from './utils/animations.js?v=1.9.8.5';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }) : '';
 
@@ -5882,6 +5882,14 @@ const renderPredicacionTab = async (container) => {
 
     let currentView = 'table';
     const originalTableContent = document.getElementById('pdf-content').innerHTML;
+
+    // Default to Matrix View on mobile (small screens)
+    if (window.innerWidth < 1024) {
+        currentView = 'matrix';
+        const btn = document.getElementById('toggle-view-btn');
+        if (btn) btn.innerHTML = '<i class="fas fa-list"></i> Vista Tabla';
+        renderMatrix();
+    }
 
     document.getElementById('toggle-view-btn')?.addEventListener('click', (e) => {
         const btn = e.currentTarget;
