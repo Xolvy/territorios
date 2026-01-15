@@ -1,4 +1,4 @@
-import { auth } from '../firebase-config.js?v=1.9.7';
+import { auth } from '../firebase-config.js?v=1.9.8';
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import {
     getTerritorios, getConductores, getPublicadores, getTelefonos, updateTelefono,
@@ -8,10 +8,10 @@ import {
     addPublicador, updatePublicador, deletePublicador,
     releaseUnusedTelefonos, solicitarNumeros, updateTelefonoStatus, logSessionSummary,
     logReturn, returnTerritorio, returnTerritorioParcial, transferTerritory
-} from '../data/firestore-services.js?v=1.9.7';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl } from './utils/helpers.js?v=1.9.7';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=1.9.7';
-import { MapViewer } from './map-viewer.js?v=1.9.7';
+} from '../data/firestore-services.js?v=1.9.8';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl } from './utils/helpers.js?v=1.9.8';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=1.9.8';
+import { MapViewer } from './map-viewer.js?v=1.9.8';
 
 
 
@@ -39,13 +39,36 @@ const showModal = (content, onOpen, maxWidth = 'max-w-md') => {
     };
 
     const closeModal = () => {
-        modalContainer.classList.add('hidden');
-        modalContainer.innerHTML = '';
-        window.removeEventListener('keydown', handleEsc);
+        const modalBody = modalContainer.querySelector('.modal-body');
+        if (modalBody) {
+            if (window.innerWidth < 640) {
+                modalBody.classList.remove('translate-y-0');
+                modalBody.classList.add('translate-y-full');
+            } else {
+                modalBody.classList.add('scale-95', 'opacity-0');
+            }
+        }
+
+        setTimeout(() => {
+            modalContainer.classList.add('hidden');
+            modalContainer.innerHTML = '';
+            window.removeEventListener('keydown', handleEsc);
+        }, 300);
     };
 
     modalContainer.innerHTML = `
-        <div class="w-full ${maxWidth} relative animate-slide-up bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl flex flex-col rounded-[3rem] shadow-[0_40px_100px_-20px_hsla(var(--glass-shadow))] max-h-[92vh] border border-white/20 dark:border-white/5 overflow-hidden m-4">
+        <div class="modal-body w-full ${maxWidth} relative transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] 
+                    sm:rounded-[3rem] bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl flex flex-col 
+                    shadow-[0_40px_100px_-20px_hsla(var(--glass-shadow))] max-h-[92vh] sm:max-h-[92vh] 
+                    border border-white/20 dark:border-white/5 overflow-hidden 
+                    fixed bottom-0 sm:bottom-auto sm:relative left-0 right-0 sm:left-auto sm:right-auto
+                    translate-y-full sm:translate-y-0 sm:m-4 rounded-t-[3rem] sm:rounded-b-[3rem]">
+            
+            <!-- Mobile Pull Indicator -->
+            <div class="sm:hidden w-full flex justify-center pt-4 pb-2 shrink-0">
+                <div class="w-12 h-1.5 bg-slate-300 dark:bg-white/10 rounded-full animate-pulse"></div>
+            </div>
+
             <button class="absolute top-6 right-6 text-slate-400 hover:text-teal-500 z-[60] p-2 bg-slate-100 dark:bg-slate-800 rounded-full transition-all border border-transparent hover:border-teal-500/30 group shadow-md" 
                     id="modal-close-btn">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 group-hover:rotate-90 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -58,6 +81,13 @@ const showModal = (content, onOpen, maxWidth = 'max-w-md') => {
         </div>
     `;
     modalContainer.classList.remove('hidden');
+    modalContainer.className = 'fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm transition-opacity duration-300';
+
+    // Trigger Slide Up
+    setTimeout(() => {
+        const body = modalContainer.querySelector('.modal-body');
+        if (body) body.classList.remove('translate-y-full');
+    }, 10);
 
     const closeBtn = modalContainer.querySelector('#modal-close-btn');
     if (closeBtn) closeBtn.onclick = (e) => { e.stopPropagation(); closeModal(); };

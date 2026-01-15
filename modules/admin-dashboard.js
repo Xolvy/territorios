@@ -11,14 +11,14 @@ import {
     getCampanas, saveCampana, deleteCampana,
     getGroupsConfig, saveGroupsConfig,
     getDiffusionMessage, saveDiffusionMessage
-} from '../data/firestore-services.js?v=1.9.7';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=1.9.7';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=1.9.7';
-import { renderHistoryTab } from './report-s13.js?v=1.9.7';
-import { renderAnalyticsView } from './analytics-view.js?v=1.9.7';
-import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=1.9.7';
-import { auth } from '../firebase-config.js?v=1.9.7';
-import { animateEntry } from './utils/animations.js?v=1.9.7';
+} from '../data/firestore-services.js?v=1.9.8';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=1.9.8';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=1.9.8';
+import { renderHistoryTab } from './report-s13.js?v=1.9.8';
+import { renderAnalyticsView } from './analytics-view.js?v=1.9.8';
+import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=1.9.8';
+import { auth } from '../firebase-config.js?v=1.9.8';
+import { animateEntry } from './utils/animations.js?v=1.9.8';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }) : '';
 
@@ -5908,25 +5908,57 @@ const showModal = (content, onOpen, maxWidth = 'max-w-md', containerId = 'modal-
     };
 
     const closeModal = () => {
-        modalContainer.classList.add('hidden');
-        modalContainer.innerHTML = '';
-        window.removeEventListener('keydown', handleEsc);
+        const modalBody = modalContainer.querySelector('.modal-body');
+        if (modalBody) {
+            // Slide out animation
+            if (window.innerWidth < 640) {
+                modalBody.classList.remove('translate-y-0');
+                modalBody.classList.add('translate-y-full');
+            } else {
+                modalBody.classList.add('scale-95', 'opacity-0');
+            }
+        }
+
+        setTimeout(() => {
+            modalContainer.classList.add('hidden');
+            modalContainer.innerHTML = '';
+            window.removeEventListener('keydown', handleEsc);
+        }, 300);
     };
 
     modalContainer.innerHTML = `
-        <div class="w-full ${maxWidth} relative animate-fade-in bg-white dark:bg-[#0a0a0a] flex flex-col rounded-[2.5rem] shadow-[0_40px_80px_-20px_rgba(0,0,0,0.5)] max-h-[95vh] border border-gray-100 dark:border-white/10 overflow-hidden m-2 sm:m-4">
-            <button class="absolute top-4 right-4 text-white/50 hover:text-white z-[60] p-2 bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-full transition-all border border-white/5 group shadow-lg" 
+        <div class="modal-body w-full ${maxWidth} relative transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] 
+                    sm:rounded-[2.5rem] bg-white dark:bg-[#0a0a0a] flex flex-col 
+                    shadow-[0_40px_80px_-20px_rgba(0,0,0,0.5)] max-h-[92vh] sm:max-h-[95vh] 
+                    border border-gray-100 dark:border-white/10 overflow-hidden 
+                    fixed bottom-0 sm:bottom-auto sm:relative left-0 right-0 sm:left-auto sm:right-auto
+                    translate-y-full sm:translate-y-0 sm:m-4 rounded-t-[2.5rem] sm:rounded-b-[2.5rem]">
+            
+            <!-- Mobile Pull Indicator -->
+            <div class="sm:hidden w-full flex justify-center pt-3 pb-1 shrink-0">
+                <div class="w-12 h-1.5 bg-slate-200 dark:bg-white/10 rounded-full"></div>
+            </div>
+
+            <button class="absolute top-4 sm:top-6 right-4 sm:right-6 text-slate-400 hover:text-slate-900 dark:hover:text-white z-[60] p-2 bg-slate-100 dark:bg-white/5 backdrop-blur-md rounded-xl transition-all border border-transparent hover:border-slate-200 dark:hover:border-white/10 group shadow-sm" 
                     id="modal-close-btn">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 group-hover:rotate-90 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
                 </svg>
             </button>
+
             <div class="flex-1 overflow-y-auto custom-scrollbar flex flex-col">
                 ${content}
             </div>
         </div>
     `;
     modalContainer.classList.remove('hidden');
+    modalContainer.className = 'fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm transition-opacity duration-300';
+
+    // Trigger Slide Up
+    setTimeout(() => {
+        const body = modalContainer.querySelector('.modal-body');
+        if (body) body.classList.remove('translate-y-full');
+    }, 10);
 
     const closeBtn = modalContainer.querySelector('#modal-close-btn');
     if (closeBtn) closeBtn.onclick = (e) => { e.stopPropagation(); closeModal(); };
@@ -6734,8 +6766,9 @@ export const renderAdvancedHistoryView = async (container, options = {}) => {
 
             let html = `
     <div class="p-4"> ${bulkBar}</div>
-                <div class="table-container custom-scrollbar">
-                    <table class="w-full text-left border-collapse">
+                <div class="table-container custom-scrollbar px-6 pb-8">
+                    <!-- Desktop Table -->
+                    <table class="w-full text-left border-collapse hidden md:table">
                         <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-400 text-[9px] font-bold uppercase tracking-[0.2em] border-b border-slate-200 dark:border-white/5">
                             <tr>
                                 <th class="p-6 w-12 text-center">
@@ -6787,8 +6820,8 @@ export const renderAdvancedHistoryView = async (container, options = {}) => {
                                             ${h.estado}
                                         </span>
                                     </td>
-                                    <td class="p-6 text-right">
-                                        <div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <td class="p-6 text-right no-print">
+                                        <div class="flex justify-end gap-1 md:opacity-0 group-hover:opacity-100 transition-opacity">
                                             <button onclick="window.editHistoryRecord('${h.id}')" class="w-9 h-9 flex items-center justify-center text-primary hover:bg-primary/10 rounded-xl transition-all" title="Editar Registro">
                                                 <i class="fas fa-edit"></i>
                                             </button>
@@ -6797,16 +6830,58 @@ export const renderAdvancedHistoryView = async (container, options = {}) => {
                                             </button>
                                         </div>
                                     </td>
-                                </tr>
-                            `;
+                                </tr>`;
             }).join("")}
                         </tbody>
                     </table>
+
+                    <!-- Mobile Cards -->
+                    <div class="md:hidden space-y-4 p-4">
+                        ${list.map(h => {
+                const isSelected = selectedIds.has(h.id);
+                const dVal = h.fecha_asignacion || h.timestamp?.toDate();
+                const dateStr = dVal ? new Date(dVal).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" }) : "-";
+
+                const getStatusStyles = (status) => {
+                    const s = (status || "").toLowerCase();
+                    if (s === "asignado") return "bg-blue-500/10 text-blue-500 border-blue-500/20";
+                    if (s === "completado" || s === "predicado") return "bg-emerald-500/10 text-emerald-500 border-emerald-500/20";
+                    if (s === "devuelto") return "bg-orange-500/10 text-orange-500 border-orange-500/20";
+                    return "bg-slate-500/10 text-slate-500 border-slate-500/20";
+                };
+
+                return `
+                            <div class="p-5 bg-white dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-[2rem] shadow-sm space-y-4 relative ${isSelected ? 'ring-2 ring-accent/50 bg-accent/[0.02]' : ''}">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex items-center gap-3">
+                                        <input type="checkbox" class="hist-row-check w-5 h-5 rounded-lg border-2 border-slate-300 dark:border-white/10 accent-accent cursor-pointer transition-all" data-id="${h.id}" ${isSelected ? 'checked' : ''}>
+                                        <div class="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-xs font-black">#${h.numero}</div>
+                                        <div class="flex flex-col">
+                                            <span class="text-sm font-black text-slate-900 dark:text-white">${h.conductor || 'N/A'}</span>
+                                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">${dateStr}</span>
+                                        </div>
+                                    </div>
+                                    <span class="px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-wider border ${getStatusStyles(h.estado)}">
+                                        ${h.estado}
+                                    </span>
+                                </div>
+                                ${h.auxiliar ? `<div class="flex items-center gap-2 px-3 py-2 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5 text-[10px] font-bold text-slate-500 italic"><i class="fas fa-user-friends"></i> ${h.auxiliar}</div>` : ''}
+                                <div class="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-white/5">
+                                    <button onclick="window.editHistoryRecord('${h.id}')" class="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest transition-all">
+                                        <i class="fas fa-edit text-[8px]"></i> Editar
+                                    </button>
+                                    <button onclick="window.deleteHistoryRecordUI('${h.id}', '${h.conductor}', '${h.numero}')" class="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-red-500/10 text-red-500 text-[10px] font-black uppercase tracking-widest transition-all">
+                                        <i class="fas fa-trash-alt text-[8px]"></i> Eliminar
+                                    </button>
+                                </div>
+                            </div>`;
+            }).join("")}
+                    </div>
                 </div>
                 <div class="p-6 bg-slate-50/50 dark:bg-black/20 text-center">
                     <p class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] italic">Auditoría: Mostrando últimos ${list.length} movimientos detectados</p>
                 </div>
-`;
+            `;
             const tableCont = document.getElementById("hist-table-container");
             if (tableCont) {
                 tableCont.innerHTML = html;
@@ -6873,13 +6948,13 @@ export const renderAdvancedHistoryView = async (container, options = {}) => {
     } catch (e) {
         console.error(e);
         container.innerHTML = `
-            <div class="p-10 text-center">
+                < div class="p-10 text-center" >
                 <div class="w-16 h-16 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center text-2xl mx-auto mb-4">
                     <i class="fas fa-exclamation-circle"></i>
                 </div>
                 <h4 class="text-sm font-black text-slate-800 dark:text-white uppercase">Error en el Centro de Gestión</h4>
                 <p class="text-xs text-slate-400 mt-2">${e.message}</p>
-            </div>`;
+            </div > `;
     }
 };
 
@@ -6893,7 +6968,7 @@ window.exportS12Form = async (territorios, layout = 1) => {
     const printWindow = window.open('', '_blank');
 
     const styles = `
-    <style>
+    < style >
     @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&family=Inter:wght@400;700&display=swap');
 
 @page {
@@ -6904,7 +6979,7 @@ window.exportS12Form = async (territorios, layout = 1) => {
             body {
     margin: 0;
     padding: 0;
-    font-family: 'Inter', sans-serif;
+    font - family: 'Inter', sans - serif;
     background: #f8fafc;
 }
 
@@ -6914,144 +6989,144 @@ window.exportS12Form = async (territorios, layout = 1) => {
     padding: 5mm;
     margin: 0 auto;
     background: white;
-    box-sizing: border-box;
-    page-break-after: always;
+    box - sizing: border - box;
+    page -break-after: always;
     display: flex;
-    flex-wrap: wrap;
-    align-content: flex-start;
-    justify-content: center;
+    flex - wrap: wrap;
+    align - content: flex - start;
+    justify - content: center;
     gap: 5mm;
 }
             
-            .s12-card {
+            .s12 - card {
     width: 148mm;
     height: 104mm;
     border: 0.5pt solid #000;
     padding: 8mm;
     display: flex;
-    flex-direction: column;
+    flex - direction: column;
     position: relative;
-    box-sizing: border - box;
+    box - sizing: border - box;
     background: white;
     overflow: hidden;
 }
             
             .title {
-    text-align: center;
-    font-size: 16pt;
-    font-weight: 800;
-    margin-bottom: 8pt;
-    text-transform: none;
-    font-family: 'Outfit', sans - serif;
+    text - align: center;
+    font - size: 16pt;
+    font - weight: 800;
+    margin - bottom: 8pt;
+    text - transform: none;
+    font - family: 'Outfit', sans - serif;
     color: #000;
 }
 
-            .s12-card {
+            .s12 - card {
     width: 148mm;
     height: 104mm;
     border: 0.5pt solid #000;
     padding: 8mm;
     display: flex;
-    flex-direction: column;
+    flex - direction: column;
     position: relative;
-    box-sizing: border-box;
+    box - sizing: border - box;
     background: white;
     overflow: hidden;
 }
             
             .title {
-    text-align: center;
-    font-size: 16pt;
-    font-weight: 800;
-    margin-bottom: 8pt;
-    text-transform: none;
-    font-family: 'Outfit', sans-serif;
+    text - align: center;
+    font - size: 16pt;
+    font - weight: 800;
+    margin - bottom: 8pt;
+    text - transform: none;
+    font - family: 'Outfit', sans - serif;
     color: #000;
 }
 
-            .header-info {
+            .header - info {
     display: flex;
-    align-items: flex-end;
+    align - items: flex - end;
     gap: 4pt;
-    margin-bottom: 8pt;
+    margin - bottom: 8pt;
 }
 
             .label {
-    font-size: 11pt;
-    font-weight: 700;
-    white-space: nowrap;
+    font - size: 11pt;
+    font - weight: 700;
+    white - space: nowrap;
 }
 
-            .field-val {
-    font-size: 11pt;
-    border-bottom: 0.5pt solid #000;
+            .field - val {
+    font - size: 11pt;
+    border - bottom: 0.5pt solid #000;
     flex: 1;
-    min-height: 1.2em;
-    padding-bottom: 1pt;
+    min - height: 1.2em;
+    padding - bottom: 1pt;
 }
 
-            .territory-num-box {
+            .territory - num - box {
     border: 1pt solid #000;
     padding: 2pt 8pt;
-    font-size: 14pt;
-    font-weight: 800;
-    min-width: 40pt;
-    text-align: center;
+    font - size: 14pt;
+    font - weight: 800;
+    min - width: 40pt;
+    text - align: center;
 }
             
-            .map-container {
+            .map - container {
     flex: 1;
     border: 0.5pt solid #000;
     margin: 4pt 0;
     display: flex;
-    align-items: center;
-    justify-content: center;
+    align - items: center;
+    justify - content: center;
     overflow: hidden;
     background: #fff;
     position: relative;
 }
 
-            .map-container img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
+            .map - container img {
+    width: 100 %;
+    height: 100 %;
+    object - fit: contain;
     display: block;
 }
 
-            .map-placeholder {
-    font-size: 10pt;
+            .map - placeholder {
+    font - size: 10pt;
     color: #666;
-    text-align: center;
-    font-style: italic;
+    text - align: center;
+    font - style: italic;
 }
             
-            .footer-note {
-    font-size: 8.5pt;
-    text-align: justify;
-    line-height: 1.2;
-    margin-top: 6pt;
-    font-weight: 400;
+            .footer - note {
+    font - size: 8.5pt;
+    text - align: justify;
+    line - height: 1.2;
+    margin - top: 6pt;
+    font - weight: 400;
     color: #000;
 }
 
-            .footer-id {
-    font-size: 8pt;
-    margin-top: 4pt;
+            .footer - id {
+    font - size: 8pt;
+    margin - top: 4pt;
     display: flex;
-    justify-content: space-between;
-    font-weight: 400;
+    justify - content: space - between;
+    font - weight: 400;
 }
 
 @media print {
                 body { background: white; }
-                .no-print { display: none!important; }
+                .no - print { display: none!important; }
                 .page { padding: 0; margin: 0; }
 }
-        </style>
+        </style >
     `;
 
     const renderCard = (t) => `
-    <div class="s12-card">
+    < div class="s12-card" >
             <div class="title">Tarjeta del mapa del territorio</div>
             
             <div class="header-info">
@@ -7072,10 +7147,10 @@ window.exportS12Form = async (territorios, layout = 1) => {
             <div class="footer-id">
                 <span>S-12-S &nbsp;&nbsp; 6/72</span>
             </div>
-        </div>
+        </div >
     `;
 
-    let html = `<html><head><title>Formularios S-12</title>${styles}</head><body>`;
+    let html = `< html ><head><title>Formularios S-12</title>${styles}</head><body>`;
 
     if (layout === 1) {
         sorted.forEach(t => {
@@ -7090,16 +7165,16 @@ window.exportS12Form = async (territorios, layout = 1) => {
         }
     } else if (layout === 4) {
         for (let i = 0; i < sorted.length; i += 4) {
-            html += `<div class="page">`;
+            html += `< div class="page" > `;
             for (let j = 0; j < 4; j++) {
                 if (sorted[i + j]) html += renderCard(sorted[i + j]);
             }
-            html += `</div>`;
+            html += `</div > `;
         }
     }
 
     html += `
-    <div class="no-print" style="position: fixed; top: 20px; right: 20px; background: rgba(15, 23, 42, 0.95); color: white; padding: 24px; border-radius: 20px; font-family: 'Outfit', sans-serif; z-index: 9999; box-shadow: 0 20px 50px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); width: 280px;">
+    < div class="no-print" style = "position: fixed; top: 20px; right: 20px; background: rgba(15, 23, 42, 0.95); color: white; padding: 24px; border-radius: 20px; font-family: 'Outfit', sans-serif; z-index: 9999; box-shadow: 0 20px 50px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); width: 280px;" >
             <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
                 <div style="width: 40px; height: 40px; background: #14b8a6; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px;">🖨️</div>
                 <div>
@@ -7113,10 +7188,10 @@ window.exportS12Form = async (territorios, layout = 1) => {
                     <strong>Nota:</strong> Ajuste el destino a "Guardar como PDF" o su impresora, y asegúrese de que el tamaño sea <b>A4</b> y los márgenes <b>Ninguno</b>.
                 </p>
             </div>
-        </div>
+        </div >
     `;
 
-    html += `</body></html>`;
+    html += `</body ></html > `;
 
     printWindow.document.write(html);
     printWindow.document.close();
