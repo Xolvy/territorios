@@ -973,26 +973,26 @@ const renderCasaEnCasaTab = async (container) => {
 
                 <!-- 2026 Sub Navigation -->
                 <nav class="flex flex-wrap items-center gap-2 bg-white/50 dark:bg-white/[0.03] p-1.5 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm w-full xl:w-auto backdrop-blur-xl">
-                    <button class="sub-tab-casa group px-5 py-3 rounded-xl transition-all flex items-center gap-3 whitespace-nowrap" data-sub="asignaciones">
+                    <button class="sub-tab-casa group px-4 md:px-5 py-3 rounded-xl transition-all flex items-center gap-3 whitespace-nowrap font-extrabold" data-sub="asignaciones">
                         <i class="fas fa-clipboard-list text-sm"></i>
-                        <span class="text-[11px] font-bold uppercase tracking-wider">Asignaciones</span>
+                        <span class="text-[11px] font-extrabold uppercase tracking-wider">Asignaciones</span>
                     </button>
-                    <button class="sub-tab-casa group px-5 py-3 rounded-xl transition-all flex items-center gap-3 whitespace-nowrap" data-sub="programa">
+                    <button class="sub-tab-casa group px-4 md:px-5 py-3 rounded-xl transition-all flex items-center gap-3 whitespace-nowrap font-extrabold" data-sub="programa">
                         <i class="fas fa-calendar-alt text-sm"></i>
-                        <span class="text-[11px] font-bold uppercase tracking-wider">Programa</span>
+                        <span class="text-[11px] font-extrabold uppercase tracking-wider">Programa</span>
                     </button>
-                    <button class="sub-tab-casa group px-5 py-3 rounded-xl transition-all flex items-center gap-3 whitespace-nowrap" data-sub="s12">
+                    <button class="sub-tab-casa group px-4 md:px-5 py-3 rounded-xl transition-all flex items-center gap-3 whitespace-nowrap font-extrabold" data-sub="s12">
                         <i class="fas fa-map text-sm"></i>
-                        <span class="text-[11px] font-bold uppercase tracking-wider">S-12</span>
+                        <span class="text-[11px] font-extrabold uppercase tracking-wider">S-12</span>
                     </button>
-                    <button class="sub-tab-casa group px-5 py-3 rounded-xl transition-all flex items-center gap-3 whitespace-nowrap" data-sub="gestion">
+                    <button class="sub-tab-casa group px-4 md:px-5 py-3 rounded-xl transition-all flex items-center gap-3 whitespace-nowrap font-extrabold" data-sub="gestion">
                         <i class="fas fa-history text-sm"></i>
-                        <span class="text-[11px] font-bold uppercase tracking-wider">Historial S-13</span>
+                        <span class="text-[11px] font-extrabold uppercase tracking-wider">Historial S-13</span>
                     </button>
                     <div class="w-px h-6 bg-slate-200 dark:bg-white/10 mx-1 shrink-0"></div>
-                    <button class="sub-tab-casa group px-5 py-3 rounded-xl transition-all flex items-center gap-3 whitespace-nowrap" data-sub="recursos">
+                    <button class="sub-tab-casa group px-4 md:px-5 py-3 rounded-xl transition-all flex items-center gap-3 whitespace-nowrap font-extrabold" data-sub="recursos">
                         <i class="fas fa-briefcase text-sm"></i>
-                        <span class="text-[11px] font-bold uppercase tracking-wider">Ayudas</span>
+                        <span class="text-[11px] font-extrabold uppercase tracking-wider">Ayudas</span>
                     </button>
                 </nav>
             </div>
@@ -1029,10 +1029,11 @@ const renderCasaEnCasaTab = async (container) => {
         container.querySelectorAll('.sub-tab-casa').forEach(btn => {
             const isActive = btn.dataset.sub === sub;
             btn.classList.toggle('active', isActive);
+
             if (isActive) {
-                btn.className = "sub-tab-casa active group px-5 py-3 rounded-xl bg-slate-900 dark:bg-white/10 text-white shadow-xl transition-all flex items-center gap-3 font-extrabold border border-slate-800 dark:border-white/10";
+                btn.className = "sub-tab-casa active group px-4 md:px-5 py-3 rounded-xl bg-slate-900 dark:bg-white/10 text-white shadow-xl transition-all flex items-center gap-3 font-extrabold border border-slate-800 dark:border-white/10";
             } else {
-                btn.className = "sub-tab-casa group px-5 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary-light hover:bg-white dark:hover:bg-white/5 transition-all flex items-center gap-3 font-extrabold border border-transparent hover:border-slate-200 dark:hover:border-white/10 shadow-sm";
+                btn.className = "sub-tab-casa group px-4 md:px-5 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary-light hover:bg-white dark:hover:bg-white/5 transition-all flex items-center gap-3 font-extrabold border border-transparent hover:border-slate-200 dark:hover:border-white/10 shadow-sm";
             }
         });
 
@@ -3245,7 +3246,7 @@ const renderAsignacionesView = async (container) => {
 // --- Render Config Tab (Restored) ---
 const renderConfigTab = async (container, initialSub = 'reglas', appVersion) => {
     container.innerHTML = `
-        <div class="space-y-8 animate-fade-in px-2">
+        <div class="space-y-8 animate-fade-in w-full max-w-full overflow-x-hidden px-2 md:px-6">
             <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6 p-2">
                 <div>
                     <h2 class="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Configuración del Sistema</h2>
@@ -3256,39 +3257,39 @@ const renderConfigTab = async (container, initialSub = 'reglas', appVersion) => 
                 </div>
             </header>
 
-            <!-- 2026 Settings Sub Navigation -->
-            <nav class="flex flex-wrap items-center gap-2 bg-white/50 dark:bg-white/[0.03] p-2 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm backdrop-blur-xl mb-8">
-                <button class="conf-nav-btn group px-4 md:px-5 py-3 rounded-xl transition-all flex items-center gap-3" data-sub="reglas">
+            <!-- 2026 Settings Sub Navigation (Optimized for Mobile) -->
+            <nav class="flex flex-wrap items-center gap-1.5 md:gap-2 bg-white/50 dark:bg-white/[0.03] p-1.5 md:p-2 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm backdrop-blur-xl mb-8 w-full">
+                <button class="conf-nav-btn group px-3.5 md:px-5 py-3 rounded-xl transition-all flex items-center gap-2 md:gap-3 font-bold" data-sub="reglas">
                     <i class="fas fa-ruler"></i>
                     <span class="text-[10px] md:text-[11px] font-bold uppercase tracking-wider">Reglas</span>
                 </button>
-                <button class="conf-nav-btn group px-4 md:px-5 py-3 rounded-xl transition-all flex items-center gap-3" data-sub="s12">
+                <button class="conf-nav-btn group px-3.5 md:px-5 py-3 rounded-xl transition-all flex items-center gap-2 md:gap-3 font-bold" data-sub="s12">
                     <i class="fas fa-map"></i>
                     <span class="text-[10px] md:text-[11px] font-bold uppercase tracking-wider">S-12</span>
                 </button>
-                <button class="conf-nav-btn group px-4 md:px-5 py-3 rounded-xl transition-all flex items-center gap-3" data-sub="personal">
+                <button class="conf-nav-btn group px-3.5 md:px-5 py-3 rounded-xl transition-all flex items-center gap-2 md:gap-3 font-bold" data-sub="personal">
                     <i class="fas fa-users"></i>
                     <span class="text-[10px] md:text-[11px] font-bold uppercase tracking-wider">Personal</span>
                 </button>
-                <button class="conf-nav-btn group px-4 md:px-5 py-3 rounded-xl transition-all flex items-center gap-3" data-sub="grupos">
+                <button class="conf-nav-btn group px-3.5 md:px-5 py-3 rounded-xl transition-all flex items-center gap-2 md:gap-3 font-bold" data-sub="grupos">
                     <i class="fas fa-layer-group"></i>
                     <span class="text-[10px] md:text-[11px] font-bold uppercase tracking-wider">Grupos</span>
                 </button>
-                <button class="conf-nav-btn group px-4 md:px-5 py-3 rounded-xl transition-all flex items-center gap-3" data-sub="campanas">
+                <button class="conf-nav-btn group px-3.5 md:px-5 py-3 rounded-xl transition-all flex items-center gap-2 md:gap-3 font-bold" data-sub="campanas">
                     <i class="fas fa-flag-checkered"></i>
                     <span class="text-[10px] md:text-[11px] font-bold uppercase tracking-wider">Campañas</span>
                 </button>
-                <button class="conf-nav-btn group px-4 md:px-5 py-3 rounded-xl transition-all flex items-center gap-3" data-sub="difusion">
+                <button class="conf-nav-btn group px-3.5 md:px-5 py-3 rounded-xl transition-all flex items-center gap-2 md:gap-3 font-bold" data-sub="difusion">
                     <i class="fas fa-bullhorn"></i>
                     <span class="text-[10px] md:text-[11px] font-bold uppercase tracking-wider">Difusión</span>
                 </button>
-                <button class="conf-nav-btn group px-4 md:px-5 py-3 rounded-xl transition-all flex items-center gap-3" data-sub="mantenimiento">
+                <button class="conf-nav-btn group px-3.5 md:px-5 py-3 rounded-xl transition-all flex items-center gap-2 md:gap-3 font-bold" data-sub="mantenimiento">
                     <i class="fas fa-tools"></i>
                     <span class="text-[10px] md:text-[11px] font-bold uppercase tracking-wider">Mantenimiento</span>
                 </button>
             </nav>
 
-            <div id="config-content" class="min-h-[500px] relative">
+            <div id="config-content" class="min-h-[500px] relative w-full overflow-x-hidden">
                  <!-- Contenido dinámico -->
             </div>
         </div>
@@ -3309,9 +3310,9 @@ const renderConfigTab = async (container, initialSub = 'reglas', appVersion) => 
         btns.forEach(b => {
             const isActive = b.dataset.sub === sub;
             if (isActive) {
-                b.className = "conf-nav-btn active group px-5 py-3 rounded-xl bg-primary dark:bg-primary text-white shadow-lg shadow-primary/20 transition-all flex items-center gap-3 scale-105 z-10 font-bold";
+                b.className = "conf-nav-btn active group px-3.5 md:px-5 py-3 rounded-xl bg-primary dark:bg-primary text-white shadow-lg shadow-primary/20 transition-all flex items-center gap-2 md:gap-3 z-10 font-bold";
             } else {
-                b.className = "conf-nav-btn group px-5 py-3 rounded-xl text-slate-500 hover:text-primary dark:text-slate-400 dark:hover:text-primary-light hover:bg-white/80 dark:hover:bg-white/5 transition-all flex items-center gap-3";
+                b.className = "conf-nav-btn group px-3.5 md:px-5 py-3 rounded-xl text-slate-500 hover:text-primary dark:text-slate-400 dark:hover:text-primary-light hover:bg-white/80 dark:hover:bg-white/5 transition-all flex items-center gap-2 md:gap-3 font-bold";
             }
         });
         await loadSubTab(sub, content, await getConfiguracion(), appVersion);
@@ -3631,7 +3632,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
 
     if (subTab === 'reglas') {
         container.innerHTML = `
-            <div class="max-w-4xl mx-auto space-y-8 animate-fade-in pb-12">
+            <div class="max-w-4xl mx-auto space-y-8 animate-fade-in pb-12 w-full overflow-x-hidden px-4">
                 <!-- Header Section -->
                 <div class="flex items-center gap-6 mb-10">
                     <div class="w-16 h-16 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-2xl flex items-center justify-center text-2xl text-white shadow-xl shadow-teal-500/20 transform -rotate-3">
@@ -3998,7 +3999,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
         const pCount = phones.length;
 
         container.innerHTML = `
-            <div class="space-y-8 animate-fade-in p-2 md:p-6 max-w-6xl mx-auto">
+            <div class="space-y-8 animate-fade-in p-2 md:p-6 max-w-6xl mx-auto w-full overflow-x-hidden">
                 <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
                     <div>
                         <h3 class="font-black text-2xl md:text-3xl text-slate-800 dark:text-white flex items-center gap-4">
@@ -4515,10 +4516,10 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
         };
 
         container.innerHTML = `
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-6 px-2">
-                <div>
-                    <h3 class="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Directorio de Personal</h3>
-                    <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] mt-1 ml-1">Gestión centralizada de publicadores</p>
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-6 px-4">
+                <div class="space-y-1">
+                    <h3 class="text-2xl md:text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Directorio de Personal</h3>
+                    <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] ml-1">Gestión centralizada de publicadores</p>
                 </div>
                 
                 <button id="btn-add-person" class="w-full sm:w-auto bg-primary hover:bg-primary-light text-white px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 transition-all active:scale-95 flex items-center justify-center gap-3">
@@ -4526,9 +4527,10 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                 </button>
             </div>
 
-            <div class="modern-card !p-0 overflow-hidden border-slate-200 dark:border-white/5 shadow-2xl">
-                <div class="overflow-x-auto custom-scrollbar">
-                    <table class="w-full text-left border-collapse min-w-[600px]">
+            <!-- Table View (Large Screens Only) -->
+            <div class="hidden md:block modern-card !p-0 overflow-hidden border-slate-200 dark:border-white/5 shadow-2xl">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="bg-slate-50 dark:bg-black/20 text-slate-400 text-[9px] font-black uppercase tracking-[0.2em] border-b border-slate-100 dark:border-white/5">
                                 <th class="p-6">Nombre y Apellido</th>
@@ -4585,6 +4587,58 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                         </tbody>
                     </table>
                 </div>
+            </div>
+
+            <!-- Card View (Mobile Only) -->
+            <div class="md:hidden space-y-4 px-2">
+                ${publicadores.map(p => `
+                    <div class="modern-card p-5 border-slate-200 dark:border-white/5 shadow-xl space-y-4 relative overflow-hidden active:scale-[0.98] transition-all">
+                        <div class="flex items-center justify-between gap-4">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br ${p.genero === 'Mujer' ? 'from-rose-500 to-pink-500' : 'from-primary to-blue-600'} flex items-center justify-center text-white font-black text-lg shadow-lg">
+                                    ${p.nombre.charAt(0)}
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight truncate">${p.nombre}</p>
+                                    <p class="text-[10px] text-slate-400 font-mono font-bold">${p.telefono || 'SIN TELÉFONO'}</p>
+                                </div>
+                            </div>
+                            <div class="flex-shrink-0">
+                                <span class="bg-slate-100 dark:bg-white/5 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 text-[9px] font-black text-slate-500">
+                                    G ${p.grupo || '?'}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100 dark:border-white/5">
+                            ${p.es_conductor ? `
+                                <button onclick="event.stopPropagation(); window.showPublicadorAvailability('${p.id}')" class="text-[8px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-3 py-1.5 rounded-full">
+                                    <i class="fas fa-check-circle mr-1"></i> Conductor
+                                </button>
+                            ` : `
+                                <span class="text-[8px] font-black uppercase tracking-widest text-slate-400 opacity-40 px-3 py-1.5">Publicador</span>
+                            `}
+                            ${p.privilegios?.includes('Administrador') ? `
+                                <span class="text-[8px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-600 border border-amber-500/20 px-3 py-1.5 rounded-full">Admin</span>
+                            ` : ''}
+                        </div>
+
+                        <div class="flex items-center justify-end gap-2 pt-2">
+                            <button onclick="window.editPerson('${p.id}')" class="flex-1 flex items-center justify-center gap-2 bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-300 py-3 rounded-xl border border-slate-200 dark:border-white/10 font-black text-[9px] uppercase tracking-widest">
+                                <i class="fas fa-edit"></i> Editar
+                            </button>
+                            <button onclick="window.deletePerson('${p.id}')" class="flex-1 flex items-center justify-center gap-2 bg-rose-500/10 text-rose-500 py-3 rounded-xl border border-rose-500/20 font-black text-[9px] uppercase tracking-widest">
+                                <i class="fas fa-trash-alt"></i> Borrar
+                            </button>
+                        </div>
+                    </div>
+                `).join('')}
+                ${publicadores.length === 0 ? `
+                    <div class="py-20 text-center opacity-30">
+                        <i class="fas fa-users text-4xl mb-4"></i>
+                        <p class="text-[10px] font-black uppercase tracking-widest">Sin registros</p>
+                    </div>
+                ` : ''}
             </div>
 `;
 
