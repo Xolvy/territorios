@@ -1,15 +1,15 @@
 import './modules/extensions.mjs';
-import { auth, db } from './firebase-config.js?v=1.9.8.6';
+import { auth, db } from './firebase-config.js?v=1.9.9.0';
 import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 // Main modules are now lazy-loaded
-// import { renderLogin } from './modules/login.js?v=1.9.8.6';
-// import { renderAdminDashboard } from './modules/admin-dashboard.js?v=1.9.8.6';
-// import { renderConductorDashboard } from './modules/conductor-dashboard.js?v=1.9.8.6';
-import { getPermisosUsuario, getSystemVersion, migrateConductoresToPublicadores } from './data/firestore-services.js?v=1.9.8.6';
-import { showNotification } from './modules/utils/helpers.js?v=1.9.8.6';
-import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js?v=1.9.8.6';
-import { initPWA } from './modules/utils/pwa-manager.js?v=1.9.8.6';
+// import { renderLogin } from './modules/login.js?v=1.9.9.0';
+// import { renderAdminDashboard } from './modules/admin-dashboard.js?v=1.9.9.0';
+// import { renderConductorDashboard } from './modules/conductor-dashboard.js?v=1.9.9.0';
+import { getPermisosUsuario, getSystemVersion, migrateConductoresToPublicadores } from './data/firestore-services.js?v=1.9.9.0';
+import { showNotification } from './modules/utils/helpers.js?v=1.9.9.0';
+import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js?v=1.9.9.0';
+import { initPWA } from './modules/utils/pwa-manager.js?v=1.9.9.0';
 
 // Global Module Cache for performance
 const ModuleCache = {
@@ -19,17 +19,17 @@ const ModuleCache = {
 };
 
 async function loadLogin() {
-    if (!ModuleCache.login) ModuleCache.login = await import('./modules/login.js?v=1.9.8.6');
+    if (!ModuleCache.login) ModuleCache.login = await import('./modules/login.js?v=1.9.9.0');
     return ModuleCache.login.renderLogin;
 }
 
 async function loadAdmin() {
-    if (!ModuleCache.admin) ModuleCache.admin = await import('./modules/admin-dashboard.js?v=1.9.8.6');
+    if (!ModuleCache.admin) ModuleCache.admin = await import('./modules/admin-dashboard.js?v=1.9.9.0');
     return ModuleCache.admin.renderAdminDashboard;
 }
 
 async function loadConductor() {
-    if (!ModuleCache.conductor) ModuleCache.conductor = await import('./modules/conductor-dashboard.js?v=1.9.8.6');
+    if (!ModuleCache.conductor) ModuleCache.conductor = await import('./modules/conductor-dashboard.js?v=1.9.9.0');
     return ModuleCache.conductor.renderConductorDashboard;
 }
 
@@ -40,7 +40,7 @@ document.body.appendChild(createThemeToggle());
 // Init PWA & Notifications
 initPWA();
 
-const APP_VERSION = '1.9.8.6';
+const APP_VERSION = '1.9.9.0';
 
 // --- PWA INITIALIZATION ---
 

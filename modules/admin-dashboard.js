@@ -11,14 +11,14 @@ import {
     getCampanas, saveCampana, deleteCampana,
     getGroupsConfig, saveGroupsConfig,
     getDiffusionMessage, saveDiffusionMessage
-} from '../data/firestore-services.js?v=1.9.8.6';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=1.9.8.6';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=1.9.8.6';
-import { renderHistoryTab } from './report-s13.js?v=1.9.8.6';
-import { renderAnalyticsView } from './analytics-view.js?v=1.9.8.6';
-import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=1.9.8.6';
-import { auth } from '../firebase-config.js?v=1.9.8.6';
-import { animateEntry } from './utils/animations.js?v=1.9.8.6';
+} from '../data/firestore-services.js?v=1.9.9.0';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=1.9.9.0';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=1.9.9.0';
+import { renderHistoryTab } from './report-s13.js?v=1.9.9.0';
+import { renderAnalyticsView } from './analytics-view.js?v=1.9.9.0';
+import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=1.9.9.0';
+import { auth } from '../firebase-config.js?v=1.9.9.0';
+import { animateEntry } from './utils/animations.js?v=1.9.9.0';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }) : '';
 
@@ -987,7 +987,7 @@ const renderCasaEnCasaTab = async (container) => {
                     </button>
                     <button class="sub-tab-casa group px-4 md:px-5 py-3 rounded-xl transition-all flex items-center gap-3 whitespace-nowrap font-extrabold" data-sub="gestion">
                         <i class="fas fa-history text-sm"></i>
-                        <span class="text-[11px] font-extrabold uppercase tracking-wider">Historial S-13</span>
+                        <span class="text-[11px] font-extrabold uppercase tracking-wider">Gestión y Reportes</span>
                     </button>
                     <div class="w-px h-6 bg-slate-200 dark:bg-white/10 mx-1 shrink-0"></div>
                     <button class="sub-tab-casa group px-4 md:px-5 py-3 rounded-xl transition-all flex items-center gap-3 whitespace-nowrap font-extrabold" data-sub="recursos">
@@ -1338,6 +1338,7 @@ const renderAsignacionesView = async (container) => {
         const facetasOptions = (config.facetas && config.facetas.length > 0) ? config.facetas : ['Casa en casa', 'Carritos'];
 
         const configuredGroups = await getGroupsConfig();
+        const campaigns = await getCampanas();
         const activeConductors = conductores.filter(p => p.es_conductor).sort((a, b) => a.nombre.localeCompare(b.nombre));
         const activeAuxiliares = conductores.filter(p => !p.es_conductor).sort((a, b) => a.nombre.localeCompare(b.nombre));
 
@@ -1416,11 +1417,10 @@ const renderAsignacionesView = async (container) => {
                             </div>
                             <div class="space-y-3">
                                 <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Campaña Especial</label>
-                                <input type="text" id="asig-campana" value="${prefill?.campana || item?.campana || ''}" list="campanas-list" placeholder="Opcional..." 
-                                    class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[11px] font-black text-slate-700 dark:text-white outline-none focus:border-red-400 transition-all placeholder-slate-500 uppercase shadow-sm">
-                                <datalist id="campanas-list">
-                                    ${[...new Set(allHistory.map(h => h.campana).filter(Boolean))].map(c => `<option value="${c}">`).join('')}
-                                </datalist>
+                                <select id="asig-campana" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[11px] font-black text-slate-700 dark:text-white hover:border-primary transition-all appearance-none cursor-pointer uppercase shadow-sm">
+                                    <option value="" class="text-slate-900">Opcional...</option>
+                                    ${campaigns.map(c => `<option value="${c}" ${(prefill?.campana === c || item?.campana === c) ? 'selected' : ''} class="text-slate-900">${c}</option>`).join('')}
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -1698,6 +1698,8 @@ const renderAsignacionesView = async (container) => {
 
                         if (req.manzanas) {
                             await assignTerritorioParcial(req.id, req.manzanas, cond, sharedDetails);
+                        } else if (editId) {
+                            await updateAssignmentData(req.id, { ...sharedDetails, asignado_a: cond });
                         } else {
                             await assignTerritorio(req.id, cond, sharedDetails);
                         }
@@ -1735,7 +1737,7 @@ const renderAsignacionesView = async (container) => {
                         </div>
                         <div>
                             <h3 class="text-2xl font-black uppercase tracking-tight leading-none mb-1">Recepción de Informes</h3>
-                            <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Cierre de Asignaciones y Registro S-13</p>
+                            <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Cierre de Asignaciones y Registro Histórico</p>
                         </div>
                     </div>
                 </header>
@@ -1846,7 +1848,7 @@ const renderAsignacionesView = async (container) => {
                         Confirmar Cierre de Registros
                     </button>
                     <p class="text-[9px] text-slate-400 text-center font-black uppercase tracking-widest opacity-40">
-                        Los datos se archivarán permanentemente en el historial S-13
+                        Los datos se archivarán permanentemente en el módulo de Gestión y Reportes
                     </p>
                 </footer>
             </div>
@@ -2440,9 +2442,7 @@ const renderAsignacionesView = async (container) => {
                     <div class="modern-card !p-6 bg-white dark:bg-white/5 border-primary/10 ring-1 ring-primary/5">
                         <div class="flex items-start gap-4 text-primary mb-6">
                             <div class="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-lg shadow-inner"><i class="fas fa-info-circle"></i></div>
-                            <p class="text-[11px] font-black uppercase tracking-wide leading-relaxed">
-                                Se generará un registro de finalización para <b>${currentConductor}</b> y se abrirá una nueva asignación para el próximo responsable.
-                            </p>
+                            <p class="text-xs font-black uppercase tracking-[0.4em] max-w-xs leading-relaxed">Se generará un registro de finalización para <b>${currentConductor}</b> y se abrirá una nueva asignación para el próximo responsable.</p>
                         </div>
                         
                         ${allMzs.length > 0 ? `
@@ -3387,7 +3387,7 @@ const renderS12View = async (container, config, appVersion) => {
                 
                 <!-- Mini Actions Overlay -->
                 <div class="absolute top-4 right-4 flex gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 lg:translate-x-4 lg:group-hover:translate-x-0 transition-all z-20">
-                     <button class="w-10 h-10 bg-white dark:bg-[#222] text-amber-500 rounded-xl shadow-lg border border-slate-100 dark:border-white/10 hover:scale-110 transition-transform flex items-center justify-center active:scale-95" onclick="window.showUnifiedTerritoryHistory('${t.id}', '${t.numero}')" title="Ver Historial">
+                     <button class="w-10 h-10 bg-white dark:bg-[#222] text-amber-500 rounded-xl shadow-lg border border-slate-100 dark:border-white/10 hover:scale-110 transition-transform flex items-center justify-center active:scale-95" onclick="window.showTerritoryHistoryAdmin('${t.id}', '${t.numero}')" title="Ver Historial">
                         <i class="fas fa-history text-xs"></i>
                      </button>
                      <button class="w-10 h-10 bg-white dark:bg-[#222] text-blue-500 rounded-xl shadow-lg border border-slate-100 dark:border-white/10 hover:scale-110 transition-transform flex items-center justify-center active:scale-95" onclick="window.editTerritorio('${t.id}')" title="Editar">
@@ -4070,7 +4070,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                                         <i class="fas fa-sync"></i>
                                     </div>
                                     <div>
-                                        <p class="text-xs font-black text-slate-700 dark:text-gray-100 uppercase tracking-wide">Sincronizar S-13</p>
+                                        <p class="text-xs font-black text-slate-700 dark:text-gray-100 uppercase tracking-wide">Sincronizar Panel</p>
                                         <p class="text-[9px] text-slate-400 font-bold">Recuperar historial desde programas</p>
                                     </div>
                                 </button>
@@ -4188,7 +4188,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                                         <h5 class="text-[10px] font-black uppercase text-teal-400 tracking-widest">Inteligencia Predictiva Gemini</h5>
                                         <span class="px-2 py-0.5 bg-teal-500/20 text-teal-400 text-[8px] font-bold rounded-full uppercase">Activa</span>
                                     </div>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400 italic">"El mantenimiento proactivo previene discrepancias en el historial S-13 y asegura que el ciclo de predicación telefónica se complete sin redundancias."</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 italic">"El mantenimiento proactivo previene discrepancias en el panel de Gestión y Reportes y asegura que el ciclo de predicación telefónica se complete sin redundancias."</p>
                                 </div>
                             </div>
                         </div>
@@ -4242,8 +4242,8 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
 
         // 1. Rebuild History
         bind('btn-rebuild-history', async (btn) => {
-            showCustomConfirm('¿Quieres reconstruir el historial S-13 desde el programa semanal?', async () => {
-                logToConsole("Iniciando reconstrucción de historial S-13...");
+            showCustomConfirm('¿Quieres reconstruir el panel de Gestión y Reportes desde el programa semanal?', async () => {
+                logToConsole("Iniciando reconstrucción de Gestión y Reportes...");
                 updateProgress(10, "Escaneando programa semanal...");
                 try {
                     const count = await rebuildHistoryFromSchedule();
@@ -6446,7 +6446,7 @@ window.updateWeekData = (dayIndex, turnoId, field, value) => {
 };
 
 
-/* --- S-13 COMMAND CENTER (POWER UP) --- */
+/* --- GESTIÓN Y REPORTES COMMAND CENTER --- */
 const renderS13CommandCenter = async (container) => {
     const [history, config, territories] = await Promise.all([
         getHistorialReport(),
@@ -6515,7 +6515,7 @@ const renderS13CommandCenter = async (container) => {
                     <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Uso Frecuente</p>
                     <p class="text-2xl font-black text-slate-800 dark:text-white truncate">Territorio ${topTerritory}</p>
                     <div class="flex items-center gap-2 mt-4 text-[9px] text-indigo-500 font-bold uppercase tracking-widest">
-                        <i class="fas fa-redo-alt"></i> Predicado ${topCount} veces
+                        <i class="fas fa-redo-alt"></i> Asignado ${topCount} ${topCount === 1 ? 'vez' : 'veces'}
                     </div>
                 </div>
 
@@ -6639,7 +6639,7 @@ const renderS13CommandCenter = async (container) => {
                 endInput: endInput
             });
             const genBtn = container.querySelector('#cc-btn-generate');
-            genBtn.innerHTML = '<i class="fas fa-file-invoice"></i> Generar S-13';
+            genBtn.innerHTML = '<i class="fas fa-file-invoice"></i> Generar Reporte';
             genBtn.onclick = () => document.getElementById('btn-generate-report')?.click();
         } else {
             await renderAdvancedHistoryView(mainCont, {
@@ -6647,10 +6647,93 @@ const renderS13CommandCenter = async (container) => {
                 searchInputId: 'cc-universal-search'
             });
             const genBtn = container.querySelector('#cc-btn-generate');
-            genBtn.innerHTML = '<i class="fas fa-sync"></i> Sincronizar';
+            genBtn.innerHTML = '<i class="fas fa-sync"></i> Ejecutar Power Sync';
             genBtn.onclick = async () => {
-                showNotification("Iniciando sincronización profunda...", "info");
-                await runSystemDiagnosticsAndRepair();
+                const mainCont = container.querySelector('#cc-main-container');
+                const originalHtml = mainCont.innerHTML;
+
+                mainCont.innerHTML = `
+                    <div class="flex flex-col items-center justify-center p-32 gap-10 animate-fade-in">
+                        <div class="relative w-32 h-32">
+                            <svg class="w-full h-full -rotate-90">
+                                <circle cx="64" cy="64" r="58" stroke="currentColor" stroke-width="8" fill="transparent" class="text-slate-100 dark:text-white/5" />
+                                <circle id="diag-progress-circle" cx="64" cy="64" r="58" stroke="currentColor" stroke-width="8" fill="transparent" stroke-dasharray="364.42" stroke-dashoffset="364.42" class="text-primary transition-all duration-500 stroke-round" />
+                            </svg>
+                            <div id="diag-pc" class="absolute inset-0 flex items-center justify-center text-xl font-black text-slate-800 dark:text-white">0%</div>
+                        </div>
+                        <div class="text-center space-y-4 max-w-sm">
+                             <div class="bg-primary/10 text-primary text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-[0.2em] inline-block mb-2">Power Up: Sincronización</div>
+                             <h4 class="text-lg font-black uppercase tracking-tight text-slate-800 dark:text-white">Optimizando Base de Datos</h4>
+                             <p id="diag-msg" class="text-[11px] font-bold text-slate-400 leading-relaxed">Iniciando protocolo de diagnóstico profundo...</p>
+                        </div>
+                    </div>`;
+
+                const circle = mainCont.querySelector('#diag-progress-circle');
+                const pcText = mainCont.querySelector('#diag-pc');
+                const msgText = mainCont.querySelector('#diag-msg');
+                const circumference = 364.42;
+
+                const report = await runSystemDiagnosticsAndRepair((msg, pc) => {
+                    if (pcText) pcText.textContent = `${pc}%`;
+                    if (msgText) msgText.textContent = msg;
+                    if (circle) {
+                        const offset = circumference - (pc / 100) * circumference;
+                        circle.style.strokeDashoffset = offset;
+                    }
+                });
+
+                // Power Up Results Modal
+                showModal(`
+                    <div class="p-10 space-y-8 animate-fade-in">
+                        <header class="flex items-center gap-6 border-b border-slate-100 dark:border-white/5 pb-8">
+                            <div class="w-16 h-16 bg-emerald-500/10 text-emerald-500 rounded-3xl flex items-center justify-center text-2xl shadow-inner">
+                                <i class="fas fa-check-double"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-2xl font-black uppercase tracking-tight leading-none mb-1">Optimización Exitosa</h3>
+                                <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Resultados del Diagnóstico</p>
+                            </div>
+                        </header>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-slate-50 dark:bg-white/5 p-6 rounded-2xl border border-slate-200 dark:border-white/5">
+                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Gestión y Reportes</p>
+                                <p class="text-2xl font-black text-slate-800 dark:text-white">${report.rebuiltHistory} <span class="text-xs opacity-40">Semanas</span></p>
+                            </div>
+                            <div class="bg-slate-50 dark:bg-white/5 p-6 rounded-2xl border border-slate-200 dark:border-white/5">
+                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Territorios</p>
+                                <p class="text-2xl font-black text-slate-800 dark:text-white">${report.fixedTerritories} <span class="text-xs opacity-40">Ajustes</span></p>
+                            </div>
+                            <div class="bg-slate-50 dark:bg-white/5 p-6 rounded-2xl border border-slate-200 dark:border-white/5">
+                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Telefonía</p>
+                                <p class="text-2xl font-black text-slate-800 dark:text-white">${report.fixedPhones} <span class="text-xs opacity-40">Parches</span></p>
+                            </div>
+                            <div class="bg-slate-50 dark:bg-white/5 p-6 rounded-2xl border border-slate-200 dark:border-white/5">
+                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Personal</p>
+                                <p class="text-2xl font-black text-slate-800 dark:text-white">${report.syncPersonnel} <span class="text-xs opacity-40">Sync</span></p>
+                            </div>
+                        </div>
+
+                        ${report.details.length > 0 ? `
+                            <div class="space-y-3">
+                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Bitácora de Ajustes</p>
+                                <div class="bg-slate-900 border border-white/10 rounded-2xl p-6 max-h-48 overflow-y-auto custom-scrollbar">
+                                    <ul class="space-y-2">
+                                        ${report.details.map(d => `<li class="text-[10px] font-mono text-emerald-400 leading-relaxed flex gap-3"><span class="opacity-30">›</span> ${d}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            </div>
+                        ` : `
+                            <div class="bg-emerald-500/5 border border-emerald-500/20 p-6 rounded-2xl flex items-center gap-4">
+                                <i class="fas fa-gem text-emerald-500"></i>
+                                <p class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">La integridad de tus datos es perfecta. No se requirieron correcciones manuales.</p>
+                            </div>
+                        `}
+
+                        <button onclick="closeModal()" class="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-5 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl transition-all active:scale-95">Finalizar Protocolo</button>
+                    </div>
+                `, 'max-w-xl');
+
                 renderS13CommandCenter(container);
             };
         }

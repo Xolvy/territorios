@@ -1,6 +1,6 @@
 {
   "name": "app-territorios",
-  "version": "1.9.8.6",
+  "version": "1.9.9.0",
   "description": "[![Deploy to Firebase](https://github.com/Xolvy/conductores/actions/workflows/firebase-deploy.yml/badge.svg)](https://github.com/Xolvy/conductores/actions/workflows/firebase-deploy.yml)",
   "main": "app.js",
   "scripts": {

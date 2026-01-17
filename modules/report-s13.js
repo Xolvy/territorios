@@ -1,5 +1,5 @@
-import { getHistorialReport, rebuildHistoryFromSchedule, getConfiguracion } from '../data/firestore-services.js?v=1.9.8.6';
-import { showNotification, generatePlainXLS } from './utils/helpers.js?v=1.9.8.6';
+import { getHistorialReport, rebuildHistoryFromSchedule, getConfiguracion } from '../data/firestore-services.js?v=1.9.9.0';
+import { showNotification, generatePlainXLS } from './utils/helpers.js?v=1.9.9.0';
 
 export const renderHistoryTab = (container, options = {}) => {
     const showHeader = options.showHeader !== false;
@@ -14,7 +14,7 @@ export const renderHistoryTab = (container, options = {}) => {
                     </div>
                     <div>
                         <h2 class="text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">
-                            Historial S-13
+                            Gestión y Reportes
                         </h2>
                         <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] mt-1 opacity-70">
                             Registro Oficial de Asignaciones
@@ -57,7 +57,7 @@ export const renderHistoryTab = (container, options = {}) => {
                     <div class="w-24 h-24 bg-slate-200 dark:bg-white/5 rounded-[2rem] flex items-center justify-center text-4xl mx-auto group-hover:scale-110 transition-transform">
                         <i class="fas fa-calendar-alt"></i>
                     </div>
-                    <p class="text-xs font-black uppercase tracking-[0.4em] max-w-xs leading-relaxed">Selecciona un rango de fechas para generar el reporte oficial S-13</p>
+                    <p class="text-xs font-black uppercase tracking-[0.4em] max-w-xs leading-relaxed">Selecciona un rango de fechas para generar el reporte oficial</p>
                  </div>
             </div>
             
@@ -146,7 +146,7 @@ export const renderHistoryTab = (container, options = {}) => {
                 getHistorialReport(),
                 // Use a local import or global if available. It's usually imported in this file? 
                 // Wait, it is NOT imported. Let's add it to imports.
-                import('../data/firestore-services.js?v=1.9.8.6').then(m => m.getTerritorios())
+                import('../data/firestore-services.js?v=1.9.9.0').then(m => m.getTerritorios())
             ]);
 
             // Filter data for the preview range

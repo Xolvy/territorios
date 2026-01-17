@@ -1,7 +1,7 @@
 {
   "name": "Gestión de Territorios",
   "short_name": "Territorios",
-  "description": "Sistema Premium de Gestión de Territorios y Predicación. Optimizado para uso offline y avisos en tiempo real.",
+  "description": "App para gestionar territorios. Permite uso offline y recibir notificaciones.",
   "start_url": "/?pwa=1",
   "display": "standalone",
   "display_override": [
@@ -43,22 +43,7 @@
       "purpose": "maskable"
     }
   ],
-  "screenshots": [
-    {
-      "src": "/icon-512.svg",
-      "sizes": "512x512",
-      "type": "image/svg+xml",
-      "form_factor": "wide",
-      "label": "Escritorio - Dashboard Admin"
-    },
-    {
-      "src": "/icon-512.svg",
-      "sizes": "512x512",
-      "type": "image/svg+xml",
-      "form_factor": "narrow",
-      "label": "Móvil - Panel de Conductor"
-    }
-  ],
+  "screenshots": [],
   "shortcuts": [
     {
       "name": "Programa Semanal",

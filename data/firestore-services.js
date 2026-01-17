@@ -481,8 +481,13 @@ export const returnTerritorioMultiple = async (ids, notes, customDate, status = 
             ultima_fecha: dateToUse,
             estado: status === 'Perdido' ? 'Extraviado' : 'Predicado'
         });
-        // Note: logReturn is async and uses queries, so we can't batch it easily without more complex logic.
-        // We'll call it individually which is fine for small batches.
+        // Bilateral Sync: Remove from Weekly Program if assigned
+        const tSnap = await getDoc(doc(db, "territorios", id));
+        const t = tSnap.data();
+        if (t && t.fecha_asignacion && t.turno) {
+            await removeAssignmentFromWeeklyProgram(t.numero, t.fecha_asignacion, t.turno);
+        }
+
         await logReturn(id, dateToUse, status, notes);
     }
     await batch.commit();
@@ -644,6 +649,12 @@ export const updateAssignmentData = async (id, updates = {}) => {
         }
     } catch (e) {
         console.error("Error updating history:", e);
+    }
+
+    // Bilateral Sync: Update Weekly Program too
+    const finalData = (await getDoc(doc(db, "territorios", id))).data();
+    if (finalData && finalData.fecha_asignacion) {
+        await syncAssignmentToWeeklyProgram({ id, ...finalData }, finalData.asignado_a, finalData);
     }
 };
 
@@ -1102,7 +1113,7 @@ export const syncAssignmentToWeeklyProgram = async (territoryData, conductorName
         t.lugar = details.lugar || t.lugar || '';
         t.hora = details.hora || t.hora || '';
         t.faceta = details.faceta || t.faceta || '';
-        if (details.campana) t.campana = details.campana;
+        if (details.campana !== undefined) t.campana = details.campana;
 
         // Save
         await setDoc(doc(db, "programa_semanal", weekId), prog);
@@ -1157,17 +1168,51 @@ export const syncSlotWithTerritories = async (weekId, dayIdx, turno, tData, date
                     const tDoc = candidates.docs[0];
                     const tDataDB = tDoc.data();
 
-                    if (tDataDB.asignado_a !== conductor || tDataDB.fecha_asignacion !== dateISO || tDataDB.turno !== turno) {
-                        console.log(`Bilateral Sync: Assigning Territory ${num} to ${conductor}`);
-                        await assignTerritorio(tDoc.id, conductor, {
-                            fecha_asignacion: dateISO,
-                            turno: turno,
-                            auxiliar: tData.auxiliar || '',
-                            lugar: tData.lugar || '',
-                            hora: tData.hora || '',
-                            faceta: tData.faceta || '',
-                            grupos: tData.grupos || ''
-                        });
+                    const currentDetails = {
+                        asignado_a: tDataDB.asignado_a,
+                        fecha_asignacion: tDataDB.fecha_asignacion,
+                        turno: tDataDB.turno,
+                        auxiliar: tDataDB.auxiliar || '',
+                        lugar: tDataDB.lugar || '',
+                        hora: tDataDB.hora || '',
+                        faceta: tDataDB.faceta || '',
+                        grupos: tDataDB.grupos || '',
+                        campana: tDataDB.campana || ''
+                    };
+
+                    const newDetails = {
+                        asignado_a: conductor,
+                        fecha_asignacion: dateISO,
+                        turno: turno,
+                        auxiliar: tData.auxiliar || '',
+                        lugar: tData.lugar || '',
+                        hora: tData.hora || '',
+                        faceta: tData.faceta || '',
+                        grupos: tData.grupos || '',
+                        campana: tData.campana || ''
+                    };
+
+                    const hasChanges = Object.keys(newDetails).some(key => newDetails[key] !== currentDetails[key]);
+
+                    if (hasChanges) {
+                        if (currentDetails.asignado_a === newDetails.asignado_a &&
+                            currentDetails.fecha_asignacion === newDetails.fecha_asignacion &&
+                            currentDetails.turno === newDetails.turno) {
+                            // Same assignment event, just update details
+                            console.log(`Bilateral Sync: Updating Assignment Details for Territory ${num}`);
+                            await updateAssignmentData(tDoc.id, {
+                                auxiliar: newDetails.auxiliar,
+                                lugar: newDetails.lugar,
+                                hora: newDetails.hora,
+                                faceta: newDetails.faceta,
+                                grupos: newDetails.grupos,
+                                campana: newDetails.campana
+                            });
+                        } else {
+                            // Different person or different time, new assignment
+                            console.log(`Bilateral Sync: Re-assigning Territory ${num} to ${conductor}`);
+                            await assignTerritorio(tDoc.id, conductor, newDetails);
+                        }
                     }
                 }
             }
@@ -1529,6 +1574,8 @@ export const runSystemDiagnosticsAndRepair = async (onProgress) => {
     const report = {
         rebuiltHistory: 0,
         fixedPhones: 0,
+        fixedTerritories: 0,
+        syncPersonnel: 0,
         details: []
     };
 
@@ -1536,19 +1583,67 @@ export const runSystemDiagnosticsAndRepair = async (onProgress) => {
         if (onProgress) onProgress(msg, pc);
     };
 
-    // 1. Rebuild History
-    reportProgress("Sincronizando historial S-13...", 10);
+    // 1. Rebuild History from Weekly Program
+    reportProgress("Sincronizando Gestión y Reportes...", 10);
     report.rebuiltHistory = await rebuildHistoryFromSchedule();
 
-    // 1b. Sync Programs to Territories status
+    // 1b. Sync Programs to Territories status (Bilateral)
     reportProgress("Sincronizando estados de territorios...", 20);
     await syncAllProgramsToTerritories();
 
-    // 2. Fix Phone Assignments
-    reportProgress("🔍 Iniciando escaneo profundo de la base de datos...", 32);
+    // 2. Territory Integrity Check (Deep Scan)
+    reportProgress("🔍 Escaneando integridad de territorios...", 30);
+    const terrSnap = await getDocs(collection(db, "territorios"));
+    const terrBatch = writeBatch(db);
+    let terrBatchCount = 0;
+
+    for (const d of terrSnap.docs) {
+        const t = d.data();
+        let updates = {};
+        let dirty = false;
+
+        // CASE: Ghost Assignment (Assigned but no conductor)
+        if (t.estado === 'Asignado' && !t.asignado_a) {
+            updates.estado = 'Disponible';
+            updates.fecha_asignacion = null;
+            updates.turno = null;
+            dirty = true;
+            report.details.push(`Territorio ${t.numero}: Corregido estado 'Asignado' sin conductor -> Disponible`);
+        }
+
+        // CASE: Ghost Conductor (Has conductor but state is Available)
+        if (t.estado === 'Disponible' && (t.asignado_a || t.fecha_asignacion)) {
+            updates.asignado_a = null;
+            updates.fecha_asignacion = null;
+            updates.turno = null;
+            dirty = true;
+            report.details.push(`Territorio ${t.numero}: Limpiado conductor en territorio 'Disponible'`);
+        }
+
+        // CASE: Invalid Status
+        if (!['Disponible', 'Asignado', 'Extraviado', 'Predicado', 'Pendiente'].includes(t.estado)) {
+            updates.estado = 'Disponible';
+            dirty = true;
+            report.details.push(`Territorio ${t.numero}: Estado inválido '${t.estado}' -> Disponible`);
+        }
+
+        if (dirty) {
+            terrBatch.update(d.ref, updates);
+            report.fixedTerritories++;
+            terrBatchCount++;
+            if (terrBatchCount >= 500) {
+                await terrBatch.commit();
+                terrBatchCount = 0;
+            }
+        }
+    }
+    if (terrBatchCount > 0) await terrBatch.commit();
+
+    // 3. Fix Phone Assignments
+    reportProgress("📡 Escaneo profundo de base de datos telefónica...", 45);
     const allPhones = await getDocs(collection(db, "telefonos"));
 
-    reportProgress("👤 Indexando tabla de publicadores para validación cruzada...", 35);
+    reportProgress("👤 Indexando publicadores para validación...", 48);
     const allPubs = await getDocs(collection(db, "publicadores"));
     const pubsMap = {};
     allPubs.forEach(d => {
@@ -1558,54 +1653,46 @@ export const runSystemDiagnosticsAndRepair = async (onProgress) => {
     });
 
     const total = allPhones.docs.length;
-    reportProgress(`📡 Analizando integridad de ${total} registros telefónicos...`, 38);
     let count = 0;
-    let batch = writeBatch(db);
-    let batchCount = 0;
+    let phoneBatch = writeBatch(db);
+    let phoneBatchCount = 0;
 
     for (const d of allPhones.docs) {
         count++;
         if (count % 100 === 0) {
-            reportProgress(`⚙️ Procesando bloque de datos (${count}/${total})...`, 40 + Math.floor((count / total) * 55));
+            reportProgress(`⚙️ Procesando telefonía (${count}/${total})...`, 50 + Math.floor((count / total) * 40));
         }
 
         const t = d.data();
         let updates = {};
         let dirty = false;
 
-        // Normalize status
         const rawStatus = (t.estado || '').trim();
         const status = rawStatus.toLowerCase();
-
-        // Determine real 'assigned' vs 'ghost'
         const hasPubId = t.publicador_asignado && t.publicador_asignado !== 'Usuario' && t.publicador_asignado !== '';
         const hasPubName = t.asignado_a && t.asignado_a !== 'Usuario' && t.asignado_a !== 'Sin asignar' && t.asignado_a !== '';
 
-        // CASE 1: Assigned to "Usuario" (Ghost) - This happens if something crashed during assignment
         if (t.asignado_a === 'Usuario' || t.publicador_asignado === 'Usuario') {
             if (hasPubId && pubsMap[t.publicador_asignado]) {
                 updates.asignado_a = pubsMap[t.publicador_asignado];
                 dirty = true;
-                report.details.push(`Phone ${t.numero}: Fixed name 'Usuario' -> '${updates.asignado_a}'`);
+                report.details.push(`Teléfono ${t.numero}: Corregido nombre 'Usuario' -> '${updates.asignado_a}'`);
             } else {
                 updates.asignado_a = null;
                 updates.publicador_asignado = null;
                 updates.estado = 'Sin asignar';
                 updates.fecha_asignacion = null;
                 dirty = true;
-                report.details.push(`Phone ${t.numero}: Unassigned (Invalid 'Usuario' reference)`);
+                report.details.push(`Teléfono ${t.numero}: Desasignado (Referencia 'Usuario' inválida)`);
             }
         }
 
-        // CASE 2: Name Mismatch (ID valid, but Name wrong/empty)
         if (hasPubId && pubsMap[t.publicador_asignado] && t.asignado_a !== pubsMap[t.publicador_asignado]) {
             updates.asignado_a = pubsMap[t.publicador_asignado];
             dirty = true;
-            report.details.push(`Phone ${t.numero}: Synced name '${t.asignado_a}' -> '${updates.asignado_a}'`);
+            report.details.push(`Teléfono ${t.numero}: Sincronizado nombre '${t.asignado_a}' -> '${updates.asignado_a}'`);
         }
 
-        // CASE 3: Status Inconsistency (Has assignment but Status says Free or is missing)
-        // Check for "sin asignar", "", null, undefined or "pendiente" (if shouldn't be)
         const isFreeStatus = status === 'sin asignar' || status === '' || status === 'pendiente';
         if ((hasPubId || hasPubName) && isFreeStatus) {
             updates.asignado_a = null;
@@ -1613,10 +1700,9 @@ export const runSystemDiagnosticsAndRepair = async (onProgress) => {
             updates.estado = 'Sin asignar';
             updates.fecha_asignacion = null;
             dirty = true;
-            report.details.push(`Phone ${t.numero}: Reset due to status mismatch (was '${rawStatus}' but assigned to ${t.asignado_a})`);
+            report.details.push(`Teléfono ${t.numero}: Reset por inconsistencia (estado '${rawStatus}' con asignación)`);
         }
 
-        // CASE 4: Ghost Assignment (Valid Status, but no publisher)
         const hasActiveStatus = status !== 'sin asignar' && status !== '';
         if (hasActiveStatus && !hasPubId && !hasPubName) {
             updates.asignado_a = null;
@@ -1624,67 +1710,54 @@ export const runSystemDiagnosticsAndRepair = async (onProgress) => {
             updates.estado = 'Sin asignar';
             updates.fecha_asignacion = null;
             dirty = true;
-            report.details.push(`Phone ${t.numero}: Reset (Status was '${rawStatus}' but no user assigned)`);
+            report.details.push(`Teléfono ${t.numero}: Reset (Estado '${rawStatus}' sin usuario)`);
         }
 
-        // CASE 5: "Asignado" is an invalid status for telephony (legacy or error)
         if (status === 'asignado') {
             updates.asignado_a = null;
             updates.publicador_asignado = null;
             updates.estado = 'Sin asignar';
             updates.fecha_asignacion = null;
             dirty = true;
-            report.details.push(`Phone ${t.numero}: Invalid status 'Asignado' reset to 'Sin asignar'`);
+            report.details.push(`Teléfono ${t.numero}: Estado 'Asignado' inválido -> Sin asignar`);
         }
 
-        // EXTRA CASE: Case normalization (Pendiente)
         if (rawStatus === 'PENDIENTE') {
             updates.estado = 'Pendiente';
             dirty = true;
         }
 
         if (dirty) {
-            batch.update(doc(db, "telefonos", d.id), updates);
+            phoneBatch.update(d.ref, updates);
             report.fixedPhones++;
-            batchCount++;
-
-            if (batchCount >= 500) {
-                await batch.commit();
-                batch = writeBatch(db);
-                batchCount = 0;
+            phoneBatchCount++;
+            if (phoneBatchCount >= 500) {
+                await phoneBatch.commit();
+                phoneBatch = writeBatch(db);
+                phoneBatchCount = 0;
             }
         }
     }
+    if (phoneBatchCount > 0) await phoneBatch.commit();
 
-    if (batchCount > 0) {
-        await batch.commit();
-    }
-
-    // 3. Unified Personnel Sync (Ensure all in 'Personal' have 'telefonos' module enabled)
-    reportProgress("👥 Sincronizando directorio de personal con telefonía...", 96);
+    // 4. Unified Personnel Sync
+    reportProgress("👥 Sincronizando directorio personal...", 95);
     const pubBatch = writeBatch(db);
     let pubCount = 0;
     allPubs.forEach(d => {
         const p = d.data();
-        // If modulos is missing or telefonos is not explicitly true, enable it
         if (!p.modulos || p.modulos.telefonos !== true) {
-            pubBatch.update(d.ref, {
-                'modulos.telefonos': true
-            });
+            pubBatch.update(d.ref, { 'modulos.telefonos': true });
             pubCount++;
         }
     });
     if (pubCount > 0) {
         await pubBatch.commit();
-        report.details.push(`Sincronización: Se habilitó el acceso a telefonía para ${pubCount} usuarios.`);
+        report.syncPersonnel = pubCount;
+        report.details.push(`Personal: Habilitado módulo de telefonía para ${pubCount} usuarios.`);
     }
 
-    reportProgress("🧹 Depurando referencias huérfanas y normalizando estados...", 100);
-    if (report.fixedPhones > 0 || pubCount > 0) {
-        reportProgress(`✨ Optimización completa.`, 100);
-    } else {
-        reportProgress("💎 Integridad de datos al 100%. No se requirieron parches.", 100);
-    }
+    reportProgress("✨ Limpieza profunda completada.", 100);
     return report;
 };
 

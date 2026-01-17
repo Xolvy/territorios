@@ -15,9 +15,9 @@ const db = getFirestore(app);
 
 async function run() {
     try {
-        console.log("Values updating to: 1.9.8.6");
+        console.log("Values updating to: 1.9.9.0");
         await setDoc(doc(db, "configuracion", "version_control"), {
-            latestVersion: "1.9.8.6",
+            latestVersion: "1.9.9.0",
             forceUpdate: true
         });
         console.log("✅ Remote version updated successfully.");
