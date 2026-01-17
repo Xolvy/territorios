@@ -710,10 +710,14 @@ export const addPublicador = async (publicador) => {
 };
 
 export const deletePublicador = async (id) => {
+    ServiceCache.clear('publicadores');
+    ServiceCache.clear('conductores');
     await deleteDoc(doc(db, "publicadores", id));
 };
 
 export const updatePublicador = async (id, data) => {
+    ServiceCache.clear('publicadores');
+    ServiceCache.clear('conductores');
     await updateDoc(doc(db, "publicadores", id), data);
 };
 

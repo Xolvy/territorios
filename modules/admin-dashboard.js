@@ -4821,7 +4821,6 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
     `, (modal) => {
                 const genderSelect = modal.querySelector('#p-gender');
                 const privsContainer = modal.querySelector('#privs-container');
-                const isCondCheck = modal.querySelector('#p-is-cond');
                 const saveBtn = modal.querySelector('#save-person');
 
                 const syncConductorUI = () => {
