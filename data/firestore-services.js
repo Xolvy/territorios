@@ -1133,14 +1133,21 @@ export const syncSlotWithTerritories = async (weekId, dayIdx, turno, tData, date
         const uiTerrs = tData.territorio ? String(tData.territorio).split(/[,/]/).map(s => s.trim()).filter(s => s.length > 0) : [];
         const conductor = tData.conductor || '';
 
-        // 2. Query all territories currently in 'territorios' collection that match this slot
+        // 2. Query all territories currently assigned to ANY slot (we will filter by date and turn client-side for robustness)
         const q = query(
             collection(db, "territorios"),
-            where("fecha_asignacion", "==", dateISO),
-            where("turno", "==", turno)
+            where("estado", "==", "Asignado")
         );
         const snap = await getDocs(q);
-        const dbTerrs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // Filter client-side by date key (YYYY-MM-DD) and turno to handle variations in ISO time
+        const targetDateKey = dateISO.split('T')[0];
+        const dbTerrs = snap.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .filter(t => {
+                const dbDateKey = t.fecha_asignacion ? String(t.fecha_asignacion).split('T')[0] : null;
+                return dbDateKey === targetDateKey && t.turno === turno;
+            });
 
         // 3. REMOVALS:
         // Territories in DB that are NOT in the UI list should be returned
@@ -1163,7 +1170,12 @@ export const syncSlotWithTerritories = async (weekId, dayIdx, turno, tData, date
         // 4. ADDITIONS / UPDATES:
         if (conductor.length > 0 && uiTerrs.length > 0) {
             for (const num of uiTerrs) {
-                const candidates = await getDocs(query(collection(db, "territorios"), where("numero", "==", parseInt(num))));
+                // Try to find by number (could be stored as string or number in DB)
+                let candidates = await getDocs(query(collection(db, "territorios"), where("numero", "==", num)));
+                if (candidates.empty) {
+                    candidates = await getDocs(query(collection(db, "territorios"), where("numero", "==", parseInt(num))));
+                }
+
                 if (!candidates.empty) {
                     const tDoc = candidates.docs[0];
                     const tDataDB = tDoc.data();

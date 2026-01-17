@@ -287,6 +287,20 @@ style.textContent = `
         color: #94a3b8 !important;
         border: 1px solid rgba(255,255,255,0.1) !important;
     }
+
+    /* Mobile-Specific Overrides for Cards */
+    @media (max-width: 768px) {
+        .hover-actions-mobile {
+            opacity: 1 !important;
+            translate: 0 0 !important;
+            bottom: 1rem !important;
+            right: 1rem !important;
+        }
+        .card-inner-mobile {
+            padding: 1.25rem !important;
+            height: 180px !important;
+        }
+    }
 `;
 document.head.appendChild(style);
 
@@ -1033,7 +1047,7 @@ const renderCasaEnCasaTab = async (container) => {
             if (isActive) {
                 btn.className = "sub-tab-casa active group px-4 md:px-5 py-3 rounded-xl bg-slate-900 dark:bg-white/10 text-white shadow-xl transition-all flex items-center gap-3 font-extrabold border border-slate-800 dark:border-white/10";
             } else {
-                btn.className = "sub-tab-casa group px-4 md:px-5 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary-light hover:bg-white dark:hover:bg-white/5 transition-all flex items-center gap-3 font-extrabold border border-transparent hover:border-slate-200 dark:hover:border-white/10 shadow-sm";
+                btn.className = "sub-tab-casa group px-4 md:px-5 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary-light hover:bg-white dark:hover:bg-white/5 transition-all flex items-center gap-3 font-extrabold border border-transparent shadow-sm";
             }
         });
 
@@ -3183,7 +3197,7 @@ const renderAsignacionesView = async (container) => {
             return `
                 <div class="relative group cursor-pointer transition-all duration-300" onclick="window.actionToggleSelect('${item.id}')">
                      <!-- Card Body -->
-                     <div class="bg-white dark:bg-[#151515] rounded-[2.5rem] p-6 border ${isSelected ? 'border-primary ring-4 ring-primary/10' : 'border-slate-100 dark:border-white/5'} shadow-sm hover:shadow-2xl transition-all flex flex-col justify-between h-52 relative overflow-hidden group/card shadow-primary/5">
+                     <div class="bg-white dark:bg-[#151515] rounded-[2.5rem] p-6 border ${isSelected ? 'border-primary ring-4 ring-primary/10' : 'border-slate-100 dark:border-white/5'} shadow-sm hover:shadow-2xl transition-all flex flex-col justify-between h-52 relative overflow-hidden group/card shadow-primary/5 card-inner-mobile">
                         
                         <!-- Status & Number -->
                         <div class="flex justify-between items-start z-10">
@@ -3202,23 +3216,15 @@ const renderAsignacionesView = async (container) => {
                              ${isAssigned ? `
                                 <p class="text-[9px] text-slate-600 dark:text-slate-400 font-extrabold uppercase tracking-widest mb-1.5">Responsable</p>
                                 <p class="text-base font-black text-slate-800 dark:text-white leading-tight line-clamp-2 uppercase tracking-tight">${item.asignado_a}</p>
-                                ${item.fecha_salida ? `
-                                    <div class="mt-3 flex items-center gap-2">
-                                        <div class="px-3 py-1 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-100 dark:border-white/10 flex items-center gap-2">
-                                            <i class="far fa-calendar-alt text-[10px] text-primary/60"></i>
-                                            <span class="text-[10px] font-black text-slate-600 dark:text-slate-300 uppercase">${new Date(item.fecha_salida).toLocaleDateString("es-ES", { weekday: 'short', day: '2-digit', month: 'short' })}</span>
-                                        </div>
-                                    </div>
-                                ` : ''}
                              ` : `
                                 <div class="h-full flex flex-col justify-end opacity-40">
-                                    <p class="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest italic opacity-80">Disponible para asignar</p>
+                                    <p class="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest italic opacity-80">Disponible</p>
                                 </div>
                              `}
                         </div>
 
                         <!-- Hover Actions -->
-                        <div class="absolute bottom-6 right-6 z-20 opacity-0 group-hover/card:opacity-100 transition-all translate-y-2 group-hover/card:translate-y-0 flex gap-2">
+                        <div class="absolute bottom-6 right-6 z-20 opacity-0 group-hover/card:opacity-100 transition-all translate-y-2 group-hover/card:translate-y-0 flex gap-2 hover-actions-mobile">
                              <button onclick="event.stopPropagation(); window.viewMapFromAdmin('${item.id}')" class="w-10 h-10 bg-primary text-white rounded-xl shadow-xl shadow-primary/20 hover:scale-110 transition-transform flex items-center justify-center" title="Ver Mapa">
                                 <i class="fas fa-map-marked-alt text-xs"></i>
                              </button>
@@ -4046,17 +4052,17 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                             </div>
                         </div>
 
-                        <!-- Main Actions -->
+                        <!-- Critical Maintenance Actions -->
                         <div class="p-8 bg-white/50 dark:bg-white/[0.03] rounded-[2.5rem] border border-slate-200 dark:border-white/5 shadow-xl space-y-6 backdrop-blur-xl">
                             <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
-                                <i class="fas fa-microchip opacity-30"></i> Herramientas de Núcleo
+                                <i class="fas fa-microchip opacity-30"></i> Diagnóstico y Reparación
                             </h4>
                             
                             <button id="btn-smart-repair" class="w-full group relative overflow-hidden bg-primary p-[1.5px] rounded-2xl shadow-xl shadow-primary/20 transition-all hover:-translate-y-1 active:scale-95">
                                 <div class="bg-white dark:bg-[#0f1420] group-hover:bg-transparent transition-colors p-5 rounded-2xl flex items-center justify-between text-left">
                                     <div>
                                         <p class="text-[11px] font-black text-primary group-hover:text-white uppercase tracking-widest">Reparación Cuántica</p>
-                                        <p class="text-[9px] text-slate-500 group-hover:text-white/70 font-bold mt-0.5">Diagnóstico profundo y limpieza total</p>
+                                        <p class="text-[9px] text-slate-500 group-hover:text-white/70 font-bold mt-0.5">Optimización global de toda la plataforma</p>
                                     </div>
                                     <span class="text-xl text-primary group-hover:text-white transition-transform group-hover:scale-125 group-hover:rotate-12">
                                         <i class="fas fa-bolt-lightning"></i>
@@ -4064,31 +4070,39 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                                 </div>
                             </button>
 
-                            <div class="grid grid-cols-1 gap-3">
-                                <button id="btn-rebuild-history" class="w-full flex items-center gap-5 p-5 bg-white dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 hover:border-primary/30 transition-all text-left group">
-                                    <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary text-lg group-hover:scale-110 transition-transform">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <button id="btn-rebuild-history" class="flex items-center gap-4 p-5 bg-white dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 hover:border-primary/30 transition-all text-left group">
+                                    <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary text-sm group-hover:scale-110 transition-transform">
                                         <i class="fas fa-sync"></i>
                                     </div>
-                                    <div>
-                                        <p class="text-xs font-black text-slate-700 dark:text-gray-100 uppercase tracking-wide">Sincronizar Panel</p>
-                                        <p class="text-[9px] text-slate-400 font-bold">Recuperar historial desde programas</p>
-                                    </div>
+                                    <p class="text-[9px] font-black text-slate-700 dark:text-gray-100 uppercase tracking-widest whitespace-nowrap">Sincronizar S-13</p>
                                 </button>
-
-                                <div class="grid grid-cols-2 gap-3">
-                                    <button id="btn-backup-json" class="flex flex-col items-center justify-center gap-3 p-5 bg-white dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 hover:border-indigo-500/30 transition-all group">
-                                        <i class="fas fa-file-export text-xl text-indigo-500 group-hover:scale-110 transition-transform"></i>
-                                        <span class="text-[9px] font-black uppercase text-slate-400 tracking-widest">Backup</span>
-                                    </button>
-                                    <label class="flex flex-col items-center justify-center gap-3 p-5 bg-white dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 hover:border-purple-500/30 transition-all cursor-pointer group">
-                                        <i class="fas fa-file-import text-xl text-purple-500 group-hover:scale-110 transition-transform"></i>
-                                        <span class="text-[9px] font-black uppercase text-slate-400 tracking-widest">Restore</span>
-                                        <input type="file" id="input-restore-json" class="hidden" accept=".json">
-                                    </label>
-                                </div>
+                                <button id="btn-fix-territories" class="flex items-center gap-4 p-5 bg-white dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 hover:border-teal-500/30 transition-all text-left group">
+                                    <div class="w-10 h-10 rounded-xl bg-teal-500/10 flex items-center justify-center text-teal-500 text-sm group-hover:scale-110 transition-transform">
+                                        <i class="fas fa-spell-check"></i>
+                                    </div>
+                                    <p class="text-[9px] font-black text-slate-700 dark:text-white uppercase tracking-widest">Normalizar</p>
+                                </button>
                             </div>
+                        </div>
 
-                            <button id="btn-ai-audit" class="w-full flex items-center gap-5 p-5 bg-indigo-500/5 rounded-2xl border border-indigo-500/10 hover:border-indigo-500/40 transition-all text-left group">
+                        <!-- Data & Security -->
+                        <div class="p-8 bg-white/50 dark:bg-white/[0.03] rounded-[2.5rem] border border-slate-200 dark:border-white/5 shadow-xl space-y-6 backdrop-blur-xl">
+                            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
+                                <i class="fas fa-database opacity-30"></i> Datos y Seguridad
+                            </h4>
+                            <div class="grid grid-cols-2 gap-3">
+                                <button id="btn-backup-json" class="flex flex-col items-center justify-center gap-3 p-5 bg-white dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 hover:border-indigo-500/30 transition-all group">
+                                    <i class="fas fa-file-export text-xl text-indigo-500 group-hover:scale-110 transition-transform"></i>
+                                    <span class="text-[9px] font-black uppercase text-slate-400 tracking-widest">Exportar JSON</span>
+                                </button>
+                                <label class="flex flex-col items-center justify-center gap-3 p-5 bg-white dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 hover:border-purple-500/30 transition-all cursor-pointer group">
+                                    <i class="fas fa-file-import text-xl text-purple-500 group-hover:scale-110 transition-transform"></i>
+                                    <span class="text-[9px] font-black uppercase text-slate-400 tracking-widest">Importar</span>
+                                    <input type="file" id="input-restore-json" class="hidden" accept=".json">
+                                </label>
+                            </div>
+                             <button id="btn-ai-audit" class="w-full flex items-center gap-5 p-5 bg-indigo-500/5 rounded-2xl border border-indigo-500/10 hover:border-indigo-500/40 transition-all text-left group">
                                 <div class="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center text-white text-lg group-hover:scale-110 group-hover:rotate-12 transition-transform shadow-lg shadow-indigo-600/20">
                                     <i class="fas fa-brain"></i>
                                 </div>
@@ -4097,21 +4111,6 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                                     <p class="text-[9px] text-slate-400 font-bold">Detección heurística de discrepancias</p>
                                 </div>
                             </button>
-
-                            <div class="grid grid-cols-2 gap-3">
-                                <button id="btn-fix-territories" class="flex items-center gap-4 p-4 bg-white dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 hover:border-teal-500/30 transition-all text-left group">
-                                    <div class="w-10 h-10 rounded-xl bg-teal-500/10 flex items-center justify-center text-teal-500 text-sm group-hover:scale-110 transition-transform">
-                                        <i class="fas fa-spell-check"></i>
-                                    </div>
-                                    <p class="text-[9px] font-black text-slate-700 dark:text-white uppercase tracking-widest leading-tight">Normalizar</p>
-                                </button>
-                                <button id="btn-ai-predict" class="flex items-center gap-4 p-4 bg-emerald-500/5 rounded-2xl border border-emerald-500/10 hover:border-emerald-500/40 transition-all text-left group">
-                                    <div class="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white text-sm group-hover:scale-110 transition-transform shadow-md">
-                                        <i class="fas fa-wand-magic-sparkles"></i>
-                                    </div>
-                                    <p class="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest leading-tight">Predicción</p>
-                                </button>
-                            </div>
                         </div>
 
                         <!-- System Version Info Card -->
@@ -4208,8 +4207,8 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
             const entry = document.createElement('div');
             const colorClass = type === 'error' ? 'text-red-400' : type === 'success' ? 'text-green-400' : type === 'warning' ? 'text-amber-400' : 'text-teal-400/80';
             const timestamp = new Date().toLocaleTimeString('es-ES', { hour12: false });
-            entry.className = `flex gap - 3 py - 0.5 ${colorClass} `;
-            entry.innerHTML = `<span class="opacity-30 flex-shrink-0"> [${timestamp}]</span> <span>${msg}</span>`;
+            entry.className = `flex gap-3 py-0.5 ${colorClass}`;
+            entry.innerHTML = `<span class="opacity-30 flex-shrink-0">[${timestamp}]</span> <span>${msg}</span>`;
             oStream.appendChild(entry);
             const consoleDiv = container.querySelector('#maint-console');
             consoleDiv.scrollTop = consoleDiv.scrollHeight;
@@ -4340,7 +4339,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
 
         // 5. Force All Update
         bind('btn-set-remote-version', async (btn) => {
-            showCustomConfirm(`¿Publicar v${appVersion} como versión obligatoria ? `, async () => {
+            showCustomConfirm(`¿Publicar v${appVersion} como versión obligatoria?`, async () => {
                 logToConsole(`Enviando señal de actualización remota(v${appVersion})...`);
                 await setSystemVersion(appVersion);
                 logToConsole("🌐 Versión remota sincronizada.", "success");
@@ -4391,7 +4390,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                         fixed++;
                         logToConsole(`Normalizado: #${num} (Espacios corregidos)`);
                     }
-                    if (i % 5 === 0) updateProgress(10 + Math.floor((i / terrs.length) * 80), `Analizando #${num} `);
+                    if (i % 5 === 0) updateProgress(10 + Math.floor((i / terrs.length) * 80), `Analizando #${num}`);
                 }
                 updateProgress(100, "Normalización completa");
                 logToConsole(`✅ Operación finalizada.${fixed} registros normalizados.`, 'success');
@@ -4950,7 +4949,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
             const newId = groups.length > 0 ? (Math.max(...groups.map(g => g.id)) + 1) : 1;
             groups.push({
                 id: newId,
-                nombre: `Grupo ${newId} `,
+                nombre: `Grupo ${newId}`,
                 lider: "",
                 asistente: "",
                 casa_salida: ""
@@ -4966,9 +4965,9 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
 
             const updated = groups.map(g => ({
                 ...g,
-                lider: document.getElementById(`leader - ${g.id} `).value,
-                asistente: document.getElementById(`assistant - ${g.id} `).value,
-                casa_salida: document.getElementById(`house - ${g.id} `).value.trim()
+                lider: document.getElementById(`leader-${g.id}`).value,
+                asistente: document.getElementById(`assistant-${g.id}`).value,
+                casa_salida: document.getElementById(`house-${g.id}`).value.trim()
             }));
 
             try {
@@ -5988,6 +5987,9 @@ const showModal = (content, onOpen, maxWidth = 'max-w-md', containerId = 'modal-
         }, 300);
     };
 
+    // Expose closeModal globally for inline onclick handlers
+    window.closeModal = closeModal;
+
     modalContainer.innerHTML = `
         <div class="modal-body w-full ${maxWidth} relative transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] 
                     sm:rounded-[2.5rem] bg-white dark:bg-[#0a0a0a] flex flex-col 
@@ -6232,7 +6234,7 @@ const renderProgramaTab = async (container) => {
                     <div class="flex-1 min-w-[300px] max-w-[400px] modern-card !p-8 border-slate-100 dark:border-white/5 shadow-xl hover:shadow-2xl transition-all group/turn relative">
                         ${(() => {
                         if (!data.territorio || !data.conductor) return '';
-                        const tNum = data.territorio.split(',')[0].trim();
+                        const tNum = data.territorio.split(/[,/]/)[0].trim();
                         const terr = (territorios || []).find(x => x.numero == tNum);
                         if (!terr) return '';
                         const isSynced = terr.asignado_a === data.conductor;
@@ -6572,10 +6574,10 @@ const renderS13CommandCenter = async (container) => {
             <!--View Toggle & Sub-Content-->
                     <div class="space-y-6">
                         <nav class="flex gap-2 p-1.5 bg-slate-100 dark:bg-white/5 w-fit rounded-2xl border border-slate-200 dark:border-white/5">
-                            <button class="cc-view-btn px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3" data-view="management">
+                            <button class="cc-view-btn px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 whitespace-nowrap" data-view="management">
                                 <i class="fas fa-database"></i> Gestión de Historial
                             </button>
-                            <button class="cc-view-btn px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3" data-view="s13">
+                            <button class="cc-view-btn px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 whitespace-nowrap" data-view="s13">
                                 <i class="fas fa-list-alt"></i> Reporte S-13
                             </button>
                         </nav>
@@ -6625,10 +6627,12 @@ const renderS13CommandCenter = async (container) => {
         // Update Buttons Styling to Match App Sub-Nav
         container.querySelectorAll('.cc-view-btn').forEach(btn => {
             const isActive = btn.dataset.view === view;
+            btn.classList.toggle('active', isActive);
+
             if (isActive) {
-                btn.className = "cc-view-btn px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 bg-slate-900 dark:bg-white/10 text-white shadow-xl";
+                btn.className = "cc-view-btn active px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 bg-slate-900 dark:bg-white/10 text-white shadow-xl whitespace-nowrap";
             } else {
-                btn.className = "cc-view-btn px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 text-slate-600 dark:text-slate-400 hover:text-primary";
+                btn.className = "cc-view-btn px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 text-slate-600 dark:text-slate-400 hover:text-primary whitespace-nowrap";
             }
         });
 
@@ -6647,7 +6651,7 @@ const renderS13CommandCenter = async (container) => {
                 searchInputId: 'cc-universal-search'
             });
             const genBtn = container.querySelector('#cc-btn-generate');
-            genBtn.innerHTML = '<i class="fas fa-sync"></i> Ejecutar Power Sync';
+            genBtn.innerHTML = '<i class="fas fa-bolt-lightning"></i> Power Sync Global';
             genBtn.onclick = async () => {
                 const mainCont = container.querySelector('#cc-main-container');
                 const originalHtml = mainCont.innerHTML;
@@ -6844,7 +6848,7 @@ export const renderAdvancedHistoryView = async (container, options = {}) => {
     `;
     } else {
         container.innerHTML = `
-    <div class="min-h-[400px]" id = "hist-table-container">
+    <div class="min-h-[400px]" id="hist-table-container">
                 <!--Table content-->
             </div>
     `;
@@ -6875,7 +6879,7 @@ export const renderAdvancedHistoryView = async (container, options = {}) => {
             ).slice(0, 100);
 
             const bulkBar = `
-    <div id = "hist-bulk-bar" class="${selectedIds.size > 0 ? 'flex' : 'hidden'} flex-col md:flex-row items-start md:items-center gap-4 bg-accent/5 p-4 px-6 rounded-2xl border border-accent/20 animate-fade-in mb-6">
+    <div id="hist-bulk-bar" class="${selectedIds.size > 0 ? 'flex' : 'hidden'} flex-col md:flex-row items-start md:items-center gap-4 bg-accent/5 p-4 px-6 rounded-2xl border border-accent/20 animate-fade-in mb-6">
                     <div class="flex items-center gap-4">
                         <div class="w-10 h-10 bg-accent text-white rounded-xl flex items-center justify-center shadow-lg shadow-accent/20">
                             <i class="fas fa-check-double"></i>
@@ -7093,13 +7097,13 @@ export const renderAdvancedHistoryView = async (container, options = {}) => {
     } catch (e) {
         console.error(e);
         container.innerHTML = `
-                < div class="p-10 text-center" >
+                <div class="p-10 text-center">
                 <div class="w-16 h-16 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center text-2xl mx-auto mb-4">
                     <i class="fas fa-exclamation-circle"></i>
                 </div>
                 <h4 class="text-sm font-black text-slate-800 dark:text-white uppercase">Error en el Centro de Gestión</h4>
                 <p class="text-xs text-slate-400 mt-2">${e.message}</p>
-            </div > `;
+            </div> `;
     }
 };
 
@@ -7113,7 +7117,7 @@ window.exportS12Form = async (territorios, layout = 1) => {
     const printWindow = window.open('', '_blank');
 
     const styles = `
-    < style >
+    <style>
     @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&family=Inter:wght@400;700&display=swap');
 
 @page {
@@ -7124,7 +7128,7 @@ window.exportS12Form = async (territorios, layout = 1) => {
             body {
     margin: 0;
     padding: 0;
-    font - family: 'Inter', sans - serif;
+    font-family: 'Inter', sans-serif;
     background: #f8fafc;
 }
 
@@ -7134,144 +7138,121 @@ window.exportS12Form = async (territorios, layout = 1) => {
     padding: 5mm;
     margin: 0 auto;
     background: white;
-    box - sizing: border - box;
-    page -break-after: always;
+    box-sizing: border-box;
+    page-break-after: always;
     display: flex;
-    flex - wrap: wrap;
-    align - content: flex - start;
-    justify - content: center;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    justify-content: center;
     gap: 5mm;
 }
             
-            .s12 - card {
+            .s12-card {
     width: 148mm;
     height: 104mm;
     border: 0.5pt solid #000;
     padding: 8mm;
     display: flex;
-    flex - direction: column;
+    flex-direction: column;
     position: relative;
-    box - sizing: border - box;
+    box-sizing: border-box;
     background: white;
     overflow: hidden;
 }
             
             .title {
-    text - align: center;
-    font - size: 16pt;
-    font - weight: 800;
-    margin - bottom: 8pt;
-    text - transform: none;
-    font - family: 'Outfit', sans - serif;
+    text-align: center;
+    font-size: 16pt;
+    font-weight: 800;
+    margin-bottom: 8pt;
+    text-transform: none;
+    font-family: 'Outfit', sans-serif;
     color: #000;
 }
 
-            .s12 - card {
-    width: 148mm;
-    height: 104mm;
-    border: 0.5pt solid #000;
-    padding: 8mm;
+            .header-info {
     display: flex;
-    flex - direction: column;
-    position: relative;
-    box - sizing: border - box;
-    background: white;
-    overflow: hidden;
-}
-            
-            .title {
-    text - align: center;
-    font - size: 16pt;
-    font - weight: 800;
-    margin - bottom: 8pt;
-    text - transform: none;
-    font - family: 'Outfit', sans - serif;
-    color: #000;
-}
-
-            .header - info {
-    display: flex;
-    align - items: flex - end;
+    align-items: flex-end;
     gap: 4pt;
-    margin - bottom: 8pt;
+    margin-bottom: 8pt;
 }
 
             .label {
-    font - size: 11pt;
-    font - weight: 700;
-    white - space: nowrap;
+    font-size: 11pt;
+    font-weight: 700;
+    white-space: nowrap;
 }
 
-            .field - val {
-    font - size: 11pt;
-    border - bottom: 0.5pt solid #000;
+            .field-val {
+    font-size: 11pt;
+    border-bottom: 0.5pt solid #000;
     flex: 1;
-    min - height: 1.2em;
-    padding - bottom: 1pt;
+    min-height: 1.2em;
+    padding-bottom: 1pt;
 }
 
-            .territory - num - box {
+            .territory-num-box {
     border: 1pt solid #000;
     padding: 2pt 8pt;
-    font - size: 14pt;
-    font - weight: 800;
-    min - width: 40pt;
-    text - align: center;
+    font-size: 14pt;
+    font-weight: 800;
+    min-width: 40pt;
+    text-align: center;
 }
             
-            .map - container {
+            .map-container {
     flex: 1;
     border: 0.5pt solid #000;
     margin: 4pt 0;
     display: flex;
-    align - items: center;
-    justify - content: center;
+    align-items: center;
+    justify-content: center;
     overflow: hidden;
     background: #fff;
     position: relative;
 }
 
-            .map - container img {
-    width: 100 %;
-    height: 100 %;
-    object - fit: contain;
+            .map-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
     display: block;
 }
 
-            .map - placeholder {
-    font - size: 10pt;
+            .map-placeholder {
+    font-size: 10pt;
     color: #666;
-    text - align: center;
-    font - style: italic;
+    text-align: center;
+    font-style: italic;
 }
             
-            .footer - note {
-    font - size: 8.5pt;
-    text - align: justify;
-    line - height: 1.2;
-    margin - top: 6pt;
-    font - weight: 400;
+            .footer-note {
+    font-size: 8.5pt;
+    text-align: justify;
+    line-height: 1.2;
+    margin-top: 6pt;
+    font-weight: 400;
     color: #000;
 }
 
-            .footer - id {
-    font - size: 8pt;
-    margin - top: 4pt;
+            .footer-id {
+    font-size: 8pt;
+    margin-top: 4pt;
     display: flex;
-    justify - content: space - between;
-    font - weight: 400;
+    justify-content: space-between;
+    font-weight: 400;
 }
 
 @media print {
                 body { background: white; }
-                .no - print { display: none!important; }
+                .no-print { display: none!important; }
                 .page { padding: 0; margin: 0; }
 }
-        </style >
+        </style>
     `;
 
     const renderCard = (t) => `
-    < div class="s12-card" >
+    <div class="s12-card">
             <div class="title">Tarjeta del mapa del territorio</div>
             
             <div class="header-info">
@@ -7292,10 +7273,10 @@ window.exportS12Form = async (territorios, layout = 1) => {
             <div class="footer-id">
                 <span>S-12-S &nbsp;&nbsp; 6/72</span>
             </div>
-        </div >
+        </div>
     `;
 
-    let html = `< html ><head><title>Formularios S-12</title>${styles}</head><body>`;
+    let html = `<html><head><title>Formularios S-12</title>${styles}</head><body>`;
 
     if (layout === 1) {
         sorted.forEach(t => {
@@ -7310,16 +7291,16 @@ window.exportS12Form = async (territorios, layout = 1) => {
         }
     } else if (layout === 4) {
         for (let i = 0; i < sorted.length; i += 4) {
-            html += `< div class="page" > `;
+            html += `<div class="page">`;
             for (let j = 0; j < 4; j++) {
                 if (sorted[i + j]) html += renderCard(sorted[i + j]);
             }
-            html += `</div > `;
+            html += `</div>`;
         }
     }
 
     html += `
-    < div class="no-print" style = "position: fixed; top: 20px; right: 20px; background: rgba(15, 23, 42, 0.95); color: white; padding: 24px; border-radius: 20px; font-family: 'Outfit', sans-serif; z-index: 9999; box-shadow: 0 20px 50px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); width: 280px;" >
+    <div class="no-print" style="position: fixed; top: 20px; right: 20px; background: rgba(15, 23, 42, 0.95); color: white; padding: 24px; border-radius: 20px; font-family: 'Outfit', sans-serif; z-index: 9999; box-shadow: 0 20px 50px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); width: 280px;">
             <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
                 <div style="width: 40px; height: 40px; background: #14b8a6; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px;">🖨️</div>
                 <div>
@@ -7333,10 +7314,10 @@ window.exportS12Form = async (territorios, layout = 1) => {
                     <strong>Nota:</strong> Ajuste el destino a "Guardar como PDF" o su impresora, y asegúrese de que el tamaño sea <b>A4</b> y los márgenes <b>Ninguno</b>.
                 </p>
             </div>
-        </div >
+        </div>
     `;
 
-    html += `</body ></html > `;
+    html += `</body></html>`;
 
     printWindow.document.write(html);
     printWindow.document.close();
