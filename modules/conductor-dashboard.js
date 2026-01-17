@@ -514,7 +514,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 rescue: false
             };
 
-            await loadUnifiedDashboard(displayName, document.getElementById('calendar-container'), document.getElementById('territorios-container'), userMods, config);
+            await loadUnifiedDashboard(displayName, document.getElementById('calendar-container'), document.getElementById('territorios-container'), userMods, config, conductorData);
             const myPhones = await refreshPhones();
             const publicadores = await getPublicadores();
             initializePhoneModule(myPhones, publicadores, displayName, document.getElementById('phone-tbody'), refreshPhones);
@@ -530,7 +530,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
     }
 };
 
-const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer, userMods, config) => {
+const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer, userMods, config, conductorData) => {
     // We no longer hide the territories container as requested ("fusionar") 
     // to allow seeing all assigned territories independently of the weekly program.
 
@@ -1091,6 +1091,7 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
                                     `).join('')}
                                  </div>
                                 
+                                 ${conductorData?.privilegios?.includes('Superintendente de Circuito') ? '' : `
                                 <div class="pt-2">
                                     <button class="territory-report-btn w-full bg-slate-900 dark:bg-teal-600/90 hover:bg-black dark:hover:bg-teal-500 py-4 rounded-2xl text-white font-black text-[9px] uppercase tracking-[0.3em] shadow-xl shadow-slate-900/10 active:scale-95 transition-all flex items-center justify-center gap-3"
                                         data-ids="${a.attachedTerritories.map(t => t.id).join(',')}" 
@@ -1098,6 +1099,7 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
                                         Informar Predicación
                                     </button>
                                 </div>
+                                `}
                             </div>` : ''}
                             
                             ${shiftIdx < dayData.shifts.length - 1 ? '<div class="h-px bg-slate-50 dark:bg-white/5 my-2"></div>' : ''}
@@ -1136,7 +1138,7 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
     // Link Rescue Module to Smart Agenda
     const showRescue = userMods?.agenda === true || (userMods?.rescue === true) || (userMods?.rescue !== false && config?.rescue_mode);
     if (showRescue) {
-        renderRescueSection(document.getElementById('ayudas-container'), name, allTerritorios, config, programa);
+        renderRescueSection(document.getElementById('ayudas-container'), name, allTerritorios, config, programa, conductorData);
     } else {
         const ayudas = document.getElementById('ayudas-container');
         if (ayudas) ayudas.classList.add('hidden');
@@ -2733,7 +2735,7 @@ async function renderAISection(name) {
 
 /** --- RESCUE MODE (Ayudas) --- **/
 
-function renderRescueSection(container, currentConductorName, allTerritorios, config, programa) {
+function renderRescueSection(container, currentConductorName, allTerritorios, config, programa, conductorData) {
     if (!container) return;
     container.classList.remove('hidden');
 
@@ -2862,10 +2864,12 @@ function renderRescueSection(container, currentConductorName, allTerritorios, co
                                     </p>
                                 </div>
 
+                                 ${conductorData?.privilegios?.includes('Superintendente de Circuito') ? '' : `
                                 <button onclick="window.handleRescueTerritory('${t.id}', '${t.numero}', '${currentConductorName}', '${t.manzanas || ''}')" 
                                         class="relative z-10 w-full bg-rose-600 hover:bg-rose-700 text-white text-[13px] font-black py-6 rounded-2xl shadow-2xl shadow-rose-600/40 transition-all uppercase tracking-[0.35em] active:scale-95 flex items-center justify-center gap-4 border border-white/10 group-hover:scale-[1.03]">
                                     <i class="fas fa-hand-holding-heart text-xl"></i> Asumir Ayuda
                                 </button>
+                                `}
                             </div>
                         `).join('')}
                     </div>

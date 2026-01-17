@@ -173,8 +173,13 @@ const renderConductorSelection = async (container, appVersion) => {
 
     try {
         const people = await getPublicadores();
-        // Filter: Conductors OR people with modules enabled
-        const conductors = people.filter(p => p.es_conductor || p.modulos?.habilitado).sort((a, b) => a.nombre.localeCompare(b.nombre));
+        // Filter: Conductors OR people with modules enabled. 
+        // Special rule: Sup. Circuito only appears if also marked as Conductor.
+        const conductors = people.filter(p => {
+            const isSup = p.privilegios?.includes('Superintendente de Circuito');
+            if (isSup) return p.es_conductor;
+            return p.es_conductor || p.modulos?.habilitado;
+        }).sort((a, b) => a.nombre.localeCompare(b.nombre));
 
         const list = document.getElementById('conductores-list');
         const searchInput = document.getElementById('conductor-search');
@@ -197,21 +202,26 @@ const renderConductorSelection = async (container, appVersion) => {
                 return;
             }
 
-            list.innerHTML = filtered.map(c => `
-                <button data-id="${c.id}" data-name="${c.nombre}" data-phone="${c.telefono || ''}"
-                    class="conductor-btn group w-full p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-white/5 flex items-center justify-between transition-all hover:border-primary/30 hover:shadow-lg active:scale-[0.98]">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center text-primary font-extrabold text-base shadow-inner group-hover:from-primary group-hover:to-primary-light group-hover:text-white transition-all duration-300">
-                            ${c.nombre.charAt(0)}
+            list.innerHTML = filtered.map(c => {
+                const isSup = c.privilegios?.includes('Superintendente de Circuito');
+                const roleLabel = isSup ? 'Sup. Circuito' : (c.es_conductor ? 'Conductor' : 'Publicador');
+
+                return `
+                    <button data-id="${c.id}" data-name="${c.nombre}" data-phone="${c.telefono || ''}"
+                        class="conductor-btn group w-full p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-white/5 flex items-center justify-between transition-all hover:border-primary/30 hover:shadow-lg active:scale-[0.98]">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center text-primary font-extrabold text-base shadow-inner group-hover:from-primary group-hover:to-primary-light group-hover:text-white transition-all duration-300">
+                                ${c.nombre.charAt(0)}
+                            </div>
+                            <div class="text-left">
+                                <h4 class="font-bold text-slate-800 dark:text-slate-100 group-hover:text-primary transition-colors">${c.nombre}</h4>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${roleLabel}</p>
+                            </div>
                         </div>
-                        <div class="text-left">
-                            <h4 class="font-bold text-slate-800 dark:text-slate-100 group-hover:text-primary transition-colors">${c.nombre}</h4>
-                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${c.es_conductor ? 'Conductor' : 'Publicador'}</p>
-                        </div>
-                    </div>
-                    <i class="fas fa-chevron-right text-slate-200 group-hover:text-primary transition-colors text-xs"></i>
-                </button>
-            `).join('');
+                        <i class="fas fa-chevron-right text-slate-200 group-hover:text-primary transition-colors text-xs"></i>
+                    </button>
+                `;
+            }).join('');
 
             list.querySelectorAll('.conductor-btn').forEach(btn => {
                 btn.addEventListener('click', () => {

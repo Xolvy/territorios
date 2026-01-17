@@ -4605,12 +4605,15 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                                     </td>
                                     <td class="p-6">
                                         <div class="flex flex-wrap items-center justify-center gap-2">
+                                            ${p.privilegios?.includes('Superintendente de Circuito') ? `
+                                                <span class="text-[8px] font-black uppercase tracking-widest bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 px-3 py-1 rounded-full">Sup. Circuito</span>
+                                            ` : ''}
                                             ${p.es_conductor ? `
                                                 <button onclick="event.stopPropagation(); window.showPublicadorAvailability('${p.id}')" class="text-[8px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full hover:bg-emerald-500 hover:text-white transition-all">
                                                     <i class="fas fa-check-circle mr-1"></i> Conductor
                                                 </button>
                                             ` : `
-                                                <span class="text-[8px] font-black uppercase tracking-widest text-slate-400 opacity-40">Publicador</span>
+                                                ${!p.privilegios?.includes('Superintendente de Circuito') ? `<span class="text-[8px] font-black uppercase tracking-widest text-slate-400 opacity-40">Publicador</span>` : ''}
                                             `}
                                             ${p.privilegios?.includes('Administrador') ? `
                                                 <span class="text-[8px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-600 border border-amber-500/20 px-3 py-1 rounded-full">Admin</span>
@@ -4656,12 +4659,15 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                         </div>
 
                         <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100 dark:border-white/5">
+                            ${p.privilegios?.includes('Superintendente de Circuito') ? `
+                                <span class="text-[8px] font-black uppercase tracking-widest bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 px-3 py-1.5 rounded-full">Sup. Circuito</span>
+                            ` : ''}
                             ${p.es_conductor ? `
                                 <button onclick="event.stopPropagation(); window.showPublicadorAvailability('${p.id}')" class="text-[8px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-3 py-1.5 rounded-full">
                                     <i class="fas fa-check-circle mr-1"></i> Conductor
                                 </button>
                             ` : `
-                                <span class="text-[8px] font-black uppercase tracking-widest text-slate-400 opacity-40 px-3 py-1.5">Publicador</span>
+                                ${!p.privilegios?.includes('Superintendente de Circuito') ? `<span class="text-[8px] font-black uppercase tracking-widest text-slate-400 opacity-40 px-3 py-1.5">Publicador</span>` : ''}
                             `}
                             ${p.privilegios?.includes('Administrador') ? `
                                 <span class="text-[8px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-600 border border-amber-500/20 px-3 py-1.5 rounded-full">Admin</span>
@@ -4736,7 +4742,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                                     <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Grupo Asignado</label>
                                     <select id="p-group" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-sm font-bold focus:border-primary outline-none shadow-sm transition-all text-slate-700 dark:text-white appearance-none cursor-pointer">
                                         <option value="0" ${!person?.grupo || person?.grupo === 0 ? 'selected' : ''}>Sin asignar</option>
-                                        ${Array.from({ length: 12 }, (_, i) => `<option value="${i + 1}" ${person?.grupo == (i + 1) ? 'selected' : ''}>Grupo ${i + 1}</option>`).join('')}
+                                        ${(groups || []).map(g => `<option value="${g.id}" ${person?.grupo == g.id ? 'selected' : ''}>${g.nombre || `Grupo ${g.id}`}</option>`).join('')}
                                     </select>
                                 </div>
                             </div>
