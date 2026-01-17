@@ -4756,22 +4756,17 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
 
                             <!-- Disponibilidad (Conductor Only) -->
                             <div class="bg-primary/5 rounded-[2rem] border border-primary/10 overflow-hidden">
-                                <div class="p-6 border-b border-primary/10 flex items-center justify-between">
+                                <div class="p-6 border-b border-primary/10 flex items-center justify-between cursor-pointer hover:bg-primary/10 transition-colors group/avail-header" id="header-toggle-avail">
                                     <div class="flex items-center gap-3">
-                                        <i class="fas fa-calendar-check text-primary"></i>
+                                        <i class="fas fa-calendar-check text-primary group-hover/avail-header:rotate-12 transition-transform"></i>
                                         <span class="text-[10px] font-black uppercase text-primary tracking-widest">Disponibilidad de Conductor</span>
                                     </div>
-                                    <div class="flex items-center gap-4">
-                                        <button type="button" id="btn-toggle-avail" class="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 transition-all">
-                                            <i class="fas fa-chevron-down transition-transform duration-300" id="avail-chevron"></i>
-                                        </button>
-                                        <label class="relative inline-flex items-center cursor-pointer">
-                                            <input type="checkbox" id="p-is-cond" class="sr-only peer" ${person?.es_conductor ? 'checked' : ''}>
-                                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                                        </label>
-                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer" onclick="event.stopPropagation()">
+                                        <input type="checkbox" id="p-is-cond" class="sr-only peer" ${person?.es_conductor ? 'checked' : ''}>
+                                        <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                    </label>
                                 </div>
-                                <div id="p-avail-grid" class="p-6 hidden ${person?.es_conductor ? '' : 'opacity-20 pointer-events-none grayscale'} transition-all duration-500 bg-white/40 dark:bg-black/20">
+                                <div id="p-avail-grid" class="p-6 hidden transition-all duration-500 bg-white/40 dark:bg-black/20">
                                      <div class="grid grid-cols-4 gap-2 mb-4 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                          <div class="text-left pl-2">Día</div>
                                          ${shifts.map(s => `<div>${s.label}</div>`).join('')}
@@ -4788,10 +4783,16 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                             </div>
 
                             <!-- Módulos Habilitados -->
-                            <div id="p-modules-section" class="bg-indigo-500/5 rounded-[2rem] border border-indigo-500/10 overflow-hidden ${person?.es_conductor ? '' : 'opacity-20 pointer-events-none grayscale'} transition-all duration-500">
-                                <div class="p-6 border-b border-indigo-500/10 flex items-center gap-3">
-                                    <i class="fas fa-th-large text-indigo-600"></i>
-                                    <label class="text-[10px] font-black uppercase text-indigo-600 tracking-widest">Módulos Habilitados</label>
+                            <div id="p-modules-section" class="bg-indigo-500/5 rounded-[2rem] border border-indigo-500/10 overflow-hidden transition-all duration-500">
+                                <div class="p-6 border-b border-indigo-500/10 flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <i class="fas fa-th-large text-indigo-600"></i>
+                                        <label class="text-[10px] font-black uppercase text-indigo-600 tracking-widest">Módulos Habilitados</label>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="p-mod-enabled" class="sr-only peer" ${person?.modulos?.habilitado !== false ? 'checked' : ''}>
+                                        <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                    </label>
                                 </div>
                                 <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-3 pb-8">
                                     ${[
@@ -4829,18 +4830,21 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                     const availGrid = modal.querySelector('#p-avail-grid');
                     const modulesSection = modal.querySelector('#p-modules-section');
                     const modDisponibilidad = modal.querySelector('#mod-disponibilidad');
-
+                    const isModulesMasterEnabled = modal.querySelector('#p-mod-enabled')?.checked;
                     const isModuleEnabled = modDisponibilidad?.checked;
-                    const isAvailable = isCondCheck.checked && isModuleEnabled;
 
+                    const headerAvail = modal.querySelector('#header-toggle-avail');
+                    const availContainer = headerAvail?.parentElement;
+
+                    // Availability section depends on Conductor privilege
                     if (!isConductor) {
                         isCondCheck.disabled = true;
                         isCondCheck.checked = false;
-                        availGrid.classList.add('opacity-20', 'pointer-events-none', 'grayscale');
-                        modulesSection.classList.add('opacity-20', 'pointer-events-none', 'grayscale');
+                        if (availContainer) availContainer.classList.add('opacity-40', 'pointer-events-none', 'grayscale');
+                        if (availGrid) availGrid.classList.add('opacity-20', 'pointer-events-none', 'grayscale');
                     } else {
+                        if (availContainer) availContainer.classList.remove('opacity-40', 'pointer-events-none', 'grayscale');
                         isCondCheck.disabled = !isModuleEnabled;
-                        modulesSection.classList.remove('opacity-20', 'pointer-events-none', 'grayscale');
 
                         // Si el módulo está deshabilitado, forzamos el switch a OFF
                         if (!isModuleEnabled) {
@@ -4849,13 +4853,30 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
 
                         // El grid se bloquea si el módulo está OFF o el switch está OFF
                         const shouldBeLocked = !isModuleEnabled || !isCondCheck.checked;
-                        availGrid.classList.toggle('opacity-20', shouldBeLocked);
-                        availGrid.classList.toggle('pointer-events-none', shouldBeLocked);
-                        availGrid.classList.toggle('grayscale', shouldBeLocked);
+                        if (availGrid) {
+                            availGrid.classList.toggle('opacity-20', shouldBeLocked);
+                            availGrid.classList.toggle('pointer-events-none', shouldBeLocked);
+                            availGrid.classList.toggle('grayscale', shouldBeLocked);
+                        }
+                    }
 
-                        // Granular modules logic
+                    // Modules section depends on its own master switch
+                    const modChecks = modulesSection ? modulesSection.querySelectorAll('.p-mod-check') : [];
+                    if (!isModulesMasterEnabled) {
+                        if (modulesSection) modulesSection.classList.add('opacity-40');
+                        modChecks.forEach(m => {
+                            m.disabled = true;
+                            m.closest('label').classList.add('pointer-events-none', 'opacity-60');
+                        });
+                    } else {
+                        if (modulesSection) modulesSection.classList.remove('opacity-40');
+                        modChecks.forEach(m => {
+                            m.disabled = false;
+                            m.closest('label').classList.remove('pointer-events-none', 'opacity-60');
+                        });
+
+                        // Granular modules logic (Secondary dependence: Agenda depends on Availability Switch)
                         const modAgenda = modal.querySelector('#mod-agenda');
-
                         if (!isCondCheck.checked) {
                             if (modAgenda) {
                                 modAgenda.disabled = true;
@@ -4871,15 +4892,13 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                     }
                 };
 
-                // Toggle Avail Section
-                const btnToggleAvail = modal.querySelector('#btn-toggle-avail');
+                // Toggle Avail Section via Header click
+                const headerToggleAvail = modal.querySelector('#header-toggle-avail');
                 const pAvailGrid = modal.querySelector('#p-avail-grid');
-                const availChevron = modal.querySelector('#avail-chevron');
 
-                if (btnToggleAvail) {
-                    btnToggleAvail.onclick = () => {
+                if (headerToggleAvail) {
+                    headerToggleAvail.onclick = () => {
                         pAvailGrid.classList.toggle('hidden');
-                        availChevron.classList.toggle('rotate-180');
                     };
                 }
 
@@ -4914,6 +4933,8 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
 
                 isCondCheck.addEventListener('change', syncConductorUI);
                 modal.querySelector('#mod-disponibilidad').addEventListener('change', syncConductorUI);
+                const pModEnabled = modal.querySelector('#p-mod-enabled');
+                if (pModEnabled) pModEnabled.addEventListener('change', syncConductorUI);
 
                 saveBtn.onclick = async () => {
                     const original = saveBtn.innerHTML;
@@ -4930,6 +4951,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                         privilegios: Array.from(modal.querySelectorAll('.p-priv-check:checked')).map(cb => cb.value),
                         disponibilidad: isCondCheck.checked ? Array.from(modal.querySelectorAll('.p-avail-check:checked')).map(cb => cb.value) : [],
                         modulos: {
+                            habilitado: modal.querySelector('#p-mod-enabled').checked,
                             agenda: modal.querySelector('#mod-agenda').checked,
                             programa: modal.querySelector('#mod-programa').checked,
                             disponibilidad: modal.querySelector('#mod-disponibilidad').checked,

@@ -173,7 +173,8 @@ const renderConductorSelection = async (container, appVersion) => {
 
     try {
         const people = await getPublicadores();
-        const conductors = people.filter(p => p.es_conductor).sort((a, b) => a.nombre.localeCompare(b.nombre));
+        // Filter: Conductors OR people with modules enabled
+        const conductors = people.filter(p => p.es_conductor || p.modulos?.habilitado).sort((a, b) => a.nombre.localeCompare(b.nombre));
 
         const list = document.getElementById('conductores-list');
         const searchInput = document.getElementById('conductor-search');
@@ -205,7 +206,7 @@ const renderConductorSelection = async (container, appVersion) => {
                         </div>
                         <div class="text-left">
                             <h4 class="font-bold text-slate-800 dark:text-slate-100 group-hover:text-primary transition-colors">${c.nombre}</h4>
-                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${c.telefono ? 'Identificado' : 'Acceso Público'}</p>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${c.es_conductor ? 'Conductor' : 'Publicador'}</p>
                         </div>
                     </div>
                     <i class="fas fa-chevron-right text-slate-200 group-hover:text-primary transition-colors text-xs"></i>
