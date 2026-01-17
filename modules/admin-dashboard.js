@@ -4761,10 +4761,9 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                                         <i class="fas fa-calendar-check text-primary group-hover/avail-header:rotate-12 transition-transform"></i>
                                         <span class="text-[10px] font-black uppercase text-primary tracking-widest">Disponibilidad de Conductor</span>
                                     </div>
-                                    <label class="relative inline-flex items-center cursor-pointer" onclick="event.stopPropagation()">
-                                        <input type="checkbox" id="p-is-cond" class="sr-only peer" ${person?.es_conductor ? 'checked' : ''}>
-                                        <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                                    </label>
+                                    <button type="button" id="btn-toggle-avail" class="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 transition-all">
+                                        <i class="fas fa-chevron-down transition-transform duration-300" id="avail-chevron"></i>
+                                    </button>
                                 </div>
                                 <div id="p-avail-grid" class="p-6 hidden transition-all duration-500 bg-white/40 dark:bg-black/20">
                                      <div class="grid grid-cols-4 gap-2 mb-4 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">
@@ -4838,21 +4837,17 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
 
                     // Availability section depends on Conductor privilege
                     if (!isConductor) {
-                        isCondCheck.disabled = true;
-                        isCondCheck.checked = false;
                         if (availContainer) availContainer.classList.add('opacity-40', 'pointer-events-none', 'grayscale');
                         if (availGrid) availGrid.classList.add('opacity-20', 'pointer-events-none', 'grayscale');
+                        const btnToggleAvail = modal.querySelector('#btn-toggle-avail');
+                        if (btnToggleAvail) btnToggleAvail.disabled = true;
                     } else {
                         if (availContainer) availContainer.classList.remove('opacity-40', 'pointer-events-none', 'grayscale');
-                        isCondCheck.disabled = !isModuleEnabled;
+                        const btnToggleAvail = modal.querySelector('#btn-toggle-avail');
+                        if (btnToggleAvail) btnToggleAvail.disabled = !isModuleEnabled;
 
-                        // Si el módulo está deshabilitado, forzamos el switch a OFF
-                        if (!isModuleEnabled) {
-                            isCondCheck.checked = false;
-                        }
-
-                        // El grid se bloquea si el módulo está OFF o el switch está OFF
-                        const shouldBeLocked = !isModuleEnabled || !isCondCheck.checked;
+                        // El grid se bloquea si el módulo de disponibilidad está OFF
+                        const shouldBeLocked = !isModuleEnabled;
                         if (availGrid) {
                             availGrid.classList.toggle('opacity-20', shouldBeLocked);
                             availGrid.classList.toggle('pointer-events-none', shouldBeLocked);
@@ -4875,19 +4870,11 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                             m.closest('label').classList.remove('pointer-events-none', 'opacity-60');
                         });
 
-                        // Granular modules logic (Secondary dependence: Agenda depends on Availability Switch)
+                        // Granular modules logic
                         const modAgenda = modal.querySelector('#mod-agenda');
-                        if (!isCondCheck.checked) {
-                            if (modAgenda) {
-                                modAgenda.disabled = true;
-                                modAgenda.checked = false;
-                                modAgenda.closest('label').classList.add('opacity-40', 'pointer-events-none');
-                            }
-                        } else {
-                            if (modAgenda) {
-                                modAgenda.disabled = false;
-                                modAgenda.closest('label').classList.remove('opacity-40', 'pointer-events-none');
-                            }
+                        if (modAgenda) {
+                            modAgenda.disabled = false;
+                            modAgenda.closest('label').classList.remove('opacity-40', 'pointer-events-none');
                         }
                     }
                 };
@@ -4899,6 +4886,8 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                 if (headerToggleAvail) {
                     headerToggleAvail.onclick = () => {
                         pAvailGrid.classList.toggle('hidden');
+                        const chevron = modal.querySelector('#avail-chevron');
+                        if (chevron) chevron.classList.toggle('rotate-180');
                     };
                 }
 
@@ -4931,7 +4920,6 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                 genderSelect.addEventListener('change', updatePrivsList);
                 updatePrivsList();
 
-                isCondCheck.addEventListener('change', syncConductorUI);
                 modal.querySelector('#mod-disponibilidad').addEventListener('change', syncConductorUI);
                 const pModEnabled = modal.querySelector('#p-mod-enabled');
                 if (pModEnabled) pModEnabled.addEventListener('change', syncConductorUI);
@@ -4946,10 +4934,11 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                         telefono: modal.querySelector('#p-phone').value.trim(),
                         genero: modal.querySelector('#p-gender').value,
                         grupo: parseInt(modal.querySelector('#p-group').value),
-                        es_conductor: isCondCheck.checked,
+                        es_conductor: Array.from(modal.querySelectorAll('.p-priv-check:checked')).some(cb => cb.value === 'Conductor'),
                         email: modal.querySelector('#p-email').value.trim().toLowerCase(),
                         privilegios: Array.from(modal.querySelectorAll('.p-priv-check:checked')).map(cb => cb.value),
-                        disponibilidad: isCondCheck.checked ? Array.from(modal.querySelectorAll('.p-avail-check:checked')).map(cb => cb.value) : [],
+                        disponibilidad: Array.from(modal.querySelectorAll('.p-priv-check:checked')).some(cb => cb.value === 'Conductor')
+                            ? Array.from(modal.querySelectorAll('.p-avail-check:checked')).map(cb => cb.value) : [],
                         modulos: {
                             habilitado: modal.querySelector('#p-mod-enabled').checked,
                             agenda: modal.querySelector('#mod-agenda').checked,
