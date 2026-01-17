@@ -724,6 +724,9 @@ export const updatePublicador = async (id, data) => {
  */
 export const migrateConductoresToPublicadores = async () => {
     try {
+        const lastMigration = localStorage.getItem('last_migration_v2');
+        if (lastMigration) return;
+
         const conductoresSnap = await getDocs(collection(db, "conductores"));
         const publicadoresSnap = await getDocs(collection(db, "publicadores"));
 
@@ -733,17 +736,20 @@ export const migrateConductoresToPublicadores = async () => {
 
         for (const condDoc of conductoresSnap.docs) {
             const condData = condDoc.data();
-            if (!existingPublicadores.includes(condData.nombre.toLowerCase())) {
+            const normalizedName = condData.nombre?.toLowerCase();
+            if (normalizedName && !existingPublicadores.includes(normalizedName)) {
                 const newRef = doc(collection(db, "publicadores"));
                 batch.set(newRef, {
                     nombre: condData.nombre,
                     telefono: condData.telefono || "",
                     es_conductor: true,
-                    genero: "Hombre", // Default for old conductors (manual fix later)
-                    grupo: 1, // Default
+                    genero: "Hombre",
+                    grupo: condData.grupo || 1,
                     privilegios: ["Conductor"],
-                    disponibilidad: condData.disponibilidad || {},
-                    migrated_at: Timestamp.now()
+                    disponibilidad: condData.disponibilidad || [],
+                    email: condData.email || "",
+                    migrated_at: Timestamp.now(),
+                    legacy_id: condDoc.id
                 });
                 count++;
             }
@@ -751,12 +757,16 @@ export const migrateConductoresToPublicadores = async () => {
 
         if (count > 0) {
             await batch.commit();
-            console.log(`✅ Migrated ${count} conductors to the unified directory.`);
+            console.log(`🚀 [ENGINE] Migrated ${count} records to Unified Directory 2.0`);
         }
+        localStorage.setItem('last_migration_v2', Date.now().toString());
     } catch (e) {
         console.error("Migration error:", e);
     }
 };
+
+// AUTO-RUN MIGRATION ON START
+migrateConductoresToPublicadores();
 
 // --- GROUPS CONFIGURATION ---
 
@@ -1366,6 +1376,15 @@ export const syncAllProgramsToTerritories = async () => {
             const weekStart = new Date(weekId + 'T12:00:00Z');
             if (isNaN(weekStart.getTime())) continue;
 
+            // FIX: Only sync if program is current (last 14 days or future) 
+            // This prevents old "zombie" assignments from resurrecting during repair
+            const cutoff = new Date();
+            cutoff.setDate(cutoff.getDate() - 14);
+            if (weekStart < cutoff) {
+                console.log(`Diagnostic: Skipping old program record ${weekId}`);
+                continue;
+            }
+
             if (prog.dias && Array.isArray(prog.dias)) {
                 for (let dayIdx = 0; dayIdx < prog.dias.length; dayIdx++) {
                     const dia = prog.dias[dayIdx];
@@ -1639,6 +1658,15 @@ export const runSystemDiagnosticsAndRepair = async (onProgress) => {
             report.details.push(`Territorio ${t.numero}: Estado inválido '${t.estado}' -> Disponible`);
         }
 
+        // CASE: Non-normalized number (NEW: Normalizar)
+        const numStr = String(t.numero);
+        const trimmedNum = numStr.trim();
+        if (numStr !== trimmedNum) {
+            updates.numero = trimmedNum;
+            dirty = true;
+            report.details.push(`Territorio ${numStr}: Número normalizado (espacios removidos)`);
+        }
+
         if (dirty) {
             terrBatch.update(d.ref, updates);
             report.fixedTerritories++;
@@ -1790,6 +1818,50 @@ export const deleteRecurso = async (id) => {
 
 export const updateRecurso = async (id, data) => {
     await updateDoc(doc(db, "recursos", id), data);
+};
+
+// --- MASTER CLEANUP ---
+/**
+ * Completely clears all current assignments from territories and the weekly program.
+ * Does NOT touch S-13 history in 'historial_territorios'.
+ */
+export const masterResetAssignments = async (onProgress) => {
+    const reportProgress = (msg, pc) => { if (onProgress) onProgress(msg, pc); };
+
+    // 1. Reset all territories
+    reportProgress("Buscando territorios asignados...", 10);
+    const terrSnap = await getDocs(collection(db, "territorios"));
+    const terrBatch = writeBatch(db);
+    let tCount = 0;
+    terrSnap.forEach(d => {
+        const t = d.data();
+        if (t.estado === 'Asignado' || t.asignado_a || t.fecha_asignacion) {
+            terrBatch.update(d.ref, {
+                estado: 'Disponible',
+                asignado_a: null,
+                fecha_asignacion: null,
+                turno: null,
+                auxiliar: '',
+                lugar: '',
+                hora: '',
+                faceta: ''
+            });
+            tCount++;
+        }
+    });
+    if (tCount > 0) await terrBatch.commit();
+    reportProgress(`Reseteados ${tCount} territorios.`, 40);
+
+    // 2. Clear Weekly Programs (Current and Future labels)
+    reportProgress("Limpiando programas semanales...", 60);
+    const progSnap = await getDocs(collection(db, "programa_semanal"));
+    for (const d of progSnap.docs) {
+        // We delete the programs to ensure no ghost records remain
+        await deleteDoc(d.ref);
+    }
+    reportProgress("Programas semanales eliminados de la base activa.", 100);
+
+    return { territoriesReset: tCount, programsDeleted: progSnap.docs.length };
 };
 
 // --- RESTORE SYSTEM BACKUP (Batch Write) ---

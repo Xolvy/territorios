@@ -1,4 +1,4 @@
-const CACHE_NAME = 'territorios-premium-v1.9.9.1';
+const CACHE_NAME = 'territorios-elite-v2.0.0';
 
 const ASSETS_CORE = [
     '/',

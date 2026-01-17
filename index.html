@@ -15,7 +15,7 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="apple-touch-icon" href="/icon-192.svg">
     <link rel="manifest" href="/manifest.json">
-    <link rel="stylesheet" href="/styles.css?v=1.9.9.1">
+    <link rel="stylesheet" href="/styles.css?v=2.0.0">
     <!-- Ultra Modern Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -49,10 +49,56 @@
 
 <body
     class="h-full font-['Outfit',sans-serif] antialiased selection:bg-teal-500/30 selection:text-teal-900 overflow-x-hidden">
+    <div class="bg-accents">
+        <div class="accent-blob bg-indigo-500/20 top-[-10%] left-[-10%] animation-delay-0"></div>
+        <div class="accent-blob bg-teal-500/10 bottom-[-10%] right-[-10%] animation-delay-2000"></div>
+        <div class="accent-blob bg-purple-500/10 top-[40%] right-[20%] animation-delay-4000"></div>
+    </div>
     <main id="app-container" class="min-h-full">
         <!-- Dynamic Content -->
     </main>
-    <script type="module" src="/app.js?v=1.9.9.1"></script>
+    <script type="module" src="/app.js?v=2.0.0"></script>
+    <style>
+        .bg-accents {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .accent-blob {
+            position: absolute;
+            width: 60vw;
+            height: 60vw;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.2;
+            animation: drift 25s infinite alternate ease-in-out;
+        }
+
+        @keyframes drift {
+            from {
+                transform: translate(-15%, -15%) rotate(0deg);
+            }
+
+            to {
+                transform: translate(15%, 15%) rotate(30deg);
+            }
+        }
+
+        .animation-delay-2000 {
+            animation-delay: 2s;
+        }
+
+        .animation-delay-4000 {
+            animation-delay: 4s;
+        }
+
+        .dark .accent-blob {
+            opacity: 0.1;
+        }
+    </style>
 </body>
 
 </html>

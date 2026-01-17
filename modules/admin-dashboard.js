@@ -5,7 +5,7 @@ import {
     getPublicadores, addPublicador, deletePublicador, updatePublicador,
     getTelefonos, addTelefono, deleteTelefono, updateTelefono,
     getPredicacionPublica, savePredicacionPublica,
-    getProgramaSemanal, saveProgramaSemanal, rebuildHistoryFromSchedule, runSystemDiagnosticsAndRepair, deleteProgramaSemanal,
+    getProgramaSemanal, saveProgramaSemanal, rebuildHistoryFromSchedule, runSystemDiagnosticsAndRepair, deleteProgramaSemanal, masterResetAssignments,
     syncSlotWithTerritories,
     getRecursos, addRecurso, deleteRecurso, updateRecurso, restoreSystemBackup,
     getCampanas, saveCampana, deleteCampana,
@@ -4084,6 +4084,10 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                                     <p class="text-[9px] font-black text-slate-700 dark:text-white uppercase tracking-widest">Normalizar</p>
                                 </button>
                             </div>
+
+                            <button id="btn-master-reset" class="w-full flex items-center justify-center gap-3 p-4 bg-rose-500/5 hover:bg-rose-600 text-rose-600 hover:text-white rounded-2xl border border-rose-500/10 hover:border-rose-600 transition-all text-[10px] font-black uppercase tracking-widest group">
+                                <i class="fas fa-calendar-minus opacity-50 group-hover:opacity-100"></i> Vaciar Todas las Asignaciones
+                            </button>
                         </div>
 
                         <!-- Data & Security -->
@@ -4185,7 +4189,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                                 <div class="flex-1">
                                     <div class="flex items-center justify-between mb-1">
                                         <h5 class="text-[10px] font-black uppercase text-teal-400 tracking-widest">Inteligencia Predictiva Gemini</h5>
-                                        <span class="px-2 py-0.5 bg-teal-500/20 text-teal-400 text-[8px] font-bold rounded-full uppercase">Activa</span>
+                                        <button id="btn-ai-predict" class="px-2 py-0.5 bg-teal-500/20 hover:bg-teal-500 text-teal-400 hover:text-white text-[8px] font-bold rounded-full uppercase transition-all cursor-pointer">Ejecutar Predicción</button>
                                     </div>
                                     <p class="text-xs text-gray-500 dark:text-gray-400 italic">"El mantenimiento proactivo previene discrepancias en el panel de Gestión y Reportes y asegura que el ciclo de predicación telefónica se complete sin redundancias."</p>
                                 </div>
@@ -4316,9 +4320,21 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
             });
         };
 
-        // 4. Local Reinstall
+        // 4. Local Reinstall & Cache
+        bind('btn-clear-cache', async (btn) => {
+            showCustomConfirm('¿Borrar archivos temporales y recargar?', async () => {
+                logToConsole("Borrando caché local del navegador...");
+                if ('caches' in window) {
+                    const keys = await caches.keys();
+                    await Promise.all(keys.map(k => caches.delete(k)));
+                    logToConsole("✅ Caché eliminada.", "success");
+                }
+                setTimeout(() => window.location.reload(true), 800);
+            });
+        });
+
         bind('btn-force-update', async (btn) => {
-            showCustomConfirm('¿Limpiar caché local y reinstalar?', async () => {
+            showCustomConfirm('¿Limpiar todo (Caché + Service Worker) y reinstalar?', async () => {
                 logToConsole("Iniciando purga de caché local...");
                 updateProgress(40, "Unregistering SW...");
                 if ('serviceWorker' in navigator) {
@@ -4458,6 +4474,36 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                 logToConsole(`❌ Error IA: ${err.message} `, 'error');
                 updateProgress(0, "Fallo en predicción");
             }
+        });
+
+        // 7. Master Reset
+        bind('btn-master-reset', async (btn) => {
+            const warning = `⚠️ ATENCIÓN: Esta acción dejará EN BLANCO todas las asignaciones actuales de territorios y borrará los programas semanales activos. 
+            \nLos registros del Historial S-13 y los Teléfonos NO se verán afectados. 
+            \n¿Deseas continuar?`;
+
+            showCustomConfirm(warning, async () => {
+                logToConsole("🚀 INICIANDO LIMPIEZA TOTAL DE ASIGNACIONES...");
+                updateProgress(10, "Preparando base de datos...");
+                try {
+                    const result = await masterResetAssignments((msg, pc) => {
+                        logToConsole(msg);
+                        updateProgress(pc, "Limpiando...");
+                    });
+
+                    updateProgress(100, "Limpieza Completada");
+                    logToConsole(`✅ ÉXITO: Se liberaron ${result.territoriesReset} territorios y se eliminaron ${result.programsDeleted} programas.`, 'success');
+                    showNotification("El sistema ha sido dejado en blanco.");
+
+                    setTimeout(() => {
+                        progressOverlay.classList.add('hidden');
+                        loadSubTab('mantenimiento', container, config, appVersion);
+                    }, 2500);
+                } catch (err) {
+                    logToConsole(`❌ ERROR DE LIMPIEZA: ${err.message}`, 'error');
+                    updateProgress(0, "Fallo en operación");
+                }
+            });
         });
 
     } else if (subTab === 'territorios' || subTab === 's12') {
@@ -4867,6 +4913,12 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                         return;
                     }
 
+                    if (isEdit && !person?.id) {
+                        showNotification("Error: No se encontró el ID del registro", "error");
+                        saveBtn.innerHTML = original; saveBtn.disabled = false;
+                        return;
+                    }
+
                     try {
                         if (isEdit) await updatePublicador(person.id, data);
                         else await addPublicador(data);
@@ -4874,8 +4926,9 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                         modal.classList.add('hidden');
                         loadSubTab('personal', container, config, appVersion);
                     } catch (e) {
-                        showNotification("Error: " + e.message, "error");
-                        btn.innerText = original; btn.disabled = false;
+                        console.error("Error saving person:", e);
+                        showNotification("Error al guardar: " + e.message, "error");
+                        saveBtn.innerHTML = original; saveBtn.disabled = false;
                     }
                 };
             }, 'max-w-2xl');
