@@ -186,8 +186,15 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
     }
 
     // Default modules if not set (legacy or unconfigured)
-    const mods = conductorData?.modulos || { agenda: true, dashboard: true, programa: true, telefonos: true, rescue: false };
-    const hasAgenda = mods.agenda !== false && mods.dashboard !== false; // support legacy key
+    const mods = conductorData?.modulos || {
+        agenda: true,
+        programa: true,
+        disponibilidad: true,
+        telefonos: true,
+        mapas: true,
+        ayudas: true,
+        rescue: false
+    };
 
 
     const wasProgOpen = container.querySelector('.group\\/prog-details')?.open;
@@ -234,7 +241,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
             </header>
  
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 px-2 md:px-4">
-                <div class="lg:col-span-2 space-y-8 animate-fade-in">
+                <div class="lg:col-span-2 space-y-8 animate-fade-in ${mods.agenda !== false ? '' : 'hidden'}">
                     <div class="flex flex-col md:flex-row md:items-center justify-between px-4 gap-4">
                         <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] flex items-center gap-4">
                            <span class="w-12 h-1 bg-indigo-500/20 rounded-full"></span>
@@ -288,7 +295,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 <!-- Module: Misiones de Rescate (Reordered to be above availability) -->
                 <div class="lg:col-span-2 ${mods.rescue ? '' : 'hidden'}" id="ayudas-container"></div>
                 
-                <div class="lg:col-span-2" id="availability-container">
+                <div class="lg:col-span-2 ${mods.disponibilidad !== false ? '' : 'hidden'}" id="availability-container">
                 </div>
 
                 <!-- Module: Telefonos -->
@@ -411,7 +418,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                     </div>
                 </div>
 
-                <div class="lg:col-span-2 modern-card border-indigo-500/10 dark:border-indigo-500/5 transition-all overflow-hidden !p-0" id="interactive-maps-module">
+                <div class="lg:col-span-2 modern-card border-indigo-500/10 dark:border-indigo-500/5 transition-all overflow-hidden !p-0 ${mods.mapas !== false ? '' : 'hidden'}" id="interactive-maps-module">
                     <details class="group/maps" ${container.querySelector('.group\\/maps')?.open ? 'open' : ''}>
                         <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-8 cursor-pointer list-none select-none hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
                             <div class="flex items-start gap-6">
@@ -458,7 +465,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 </div>
 
                 <!-- Module: Ayudas Ministerio -->
-                <div class="lg:col-span-2" id="recursos-container"></div>
+                <div class="lg:col-span-2 ${mods.ayudas !== false ? '' : 'hidden'}" id="recursos-container"></div>
             </div>
         </div>
     <div id="modal-container" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden overflow-y-auto z-50 p-4 md:p-10 flex justify-center items-start"></div>
@@ -497,7 +504,15 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
             const config = await getConfiguracion();
             const allC = await getConductores();
             const conductorData = allC.find(c => c.nombre === displayName);
-            const userMods = conductorData?.modulos || { agenda: true, dashboard: true, programa: true, telefonos: true, rescue: false };
+            const userMods = conductorData?.modulos || {
+                agenda: true,
+                programa: true,
+                disponibilidad: true,
+                telefonos: true,
+                mapas: true,
+                ayudas: true,
+                rescue: false
+            };
 
             await loadUnifiedDashboard(displayName, document.getElementById('calendar-container'), document.getElementById('territorios-container'), userMods, config);
             const myPhones = await refreshPhones();
@@ -1118,8 +1133,8 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
     renderAISection(name);
     renderRecursosSection(document.getElementById('recursos-container'));
 
-    // Individual setting overrides global config if explicitly set to false
-    const showRescue = userMods?.rescue === true || (userMods?.rescue !== false && config?.rescue_mode);
+    // Link Rescue Module to Smart Agenda
+    const showRescue = userMods?.agenda === true || (userMods?.rescue === true) || (userMods?.rescue !== false && config?.rescue_mode);
     if (showRescue) {
         renderRescueSection(document.getElementById('ayudas-container'), name, allTerritorios, config, programa);
     } else {

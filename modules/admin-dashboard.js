@@ -4761,12 +4761,17 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                                         <i class="fas fa-calendar-check text-primary"></i>
                                         <span class="text-[10px] font-black uppercase text-primary tracking-widest">Disponibilidad de Conductor</span>
                                     </div>
-                                    <label class="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" id="p-is-cond" class="sr-only peer" ${person?.es_conductor ? 'checked' : ''}>
-                                        <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                                    </label>
+                                    <div class="flex items-center gap-4">
+                                        <button type="button" id="btn-toggle-avail" class="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 transition-all">
+                                            <i class="fas fa-chevron-down transition-transform duration-300" id="avail-chevron"></i>
+                                        </button>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" id="p-is-cond" class="sr-only peer" ${person?.es_conductor ? 'checked' : ''}>
+                                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                        </label>
+                                    </div>
                                 </div>
-                                <div id="p-avail-grid" class="p-6 ${person?.es_conductor ? '' : 'opacity-20 pointer-events-none grayscale'} transition-all duration-500 bg-white/40 dark:bg-black/20">
+                                <div id="p-avail-grid" class="p-6 hidden ${person?.es_conductor ? '' : 'opacity-20 pointer-events-none grayscale'} transition-all duration-500 bg-white/40 dark:bg-black/20">
                                      <div class="grid grid-cols-4 gap-2 mb-4 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                          <div class="text-left pl-2">Día</div>
                                          ${shifts.map(s => `<div>${s.label}</div>`).join('')}
@@ -4788,12 +4793,14 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                                     <i class="fas fa-th-large text-indigo-600"></i>
                                     <label class="text-[10px] font-black uppercase text-indigo-600 tracking-widest">Módulos Habilitados</label>
                                 </div>
-                                <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-3 pb-8">
                                     ${[
-                    { id: 'mod-agenda', label: 'Agenda Semanal', checked: person?.modulos?.agenda !== false && person?.modulos?.dashboard !== false },
-                    { id: 'mod-programa', label: 'Programa Semanal', checked: person?.modulos?.programa !== false },
+                    { id: 'mod-agenda', label: 'Agenda Inteligente', checked: person?.modulos?.agenda !== false },
+                    { id: 'mod-programa', label: 'Cronograma de Salidas', checked: person?.modulos?.programa !== false },
+                    { id: 'mod-disponibilidad', label: 'Mi disponibilidad', checked: person?.modulos?.disponibilidad !== false },
                     { id: 'mod-telefonos', label: 'Predicación Telefónica', checked: person?.modulos?.telefonos !== false },
-                    { id: 'mod-rescue', label: 'Misión Rescate', checked: person?.modulos?.rescue, accent: 'accent-red-500' }
+                    { id: 'mod-mapas', label: 'Explorador de Mapas', checked: person?.modulos?.mapas !== false },
+                    { id: 'mod-ayudas', label: 'Ayudas para el Ministerio', checked: person?.modulos?.ayudas !== false }
                 ].map(mod => `
                                         <label class="flex items-center justify-between p-4 modern-card hover:border-indigo-500/30 transition-all cursor-pointer group">
                                             <span class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-tight group-hover:text-indigo-600">${mod.label}</span>
@@ -4821,7 +4828,10 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                     const isConductor = Array.from(privsContainer.querySelectorAll('.p-priv-check:checked')).some(cb => cb.value === 'Conductor');
                     const availGrid = modal.querySelector('#p-avail-grid');
                     const modulesSection = modal.querySelector('#p-modules-section');
-                    const isAvailable = isCondCheck.checked;
+                    const modDisponibilidad = modal.querySelector('#mod-disponibilidad');
+
+                    const isModuleEnabled = modDisponibilidad?.checked;
+                    const isAvailable = isCondCheck.checked && isModuleEnabled;
 
                     if (!isConductor) {
                         isCondCheck.disabled = true;
@@ -4829,30 +4839,49 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                         availGrid.classList.add('opacity-20', 'pointer-events-none', 'grayscale');
                         modulesSection.classList.add('opacity-20', 'pointer-events-none', 'grayscale');
                     } else {
-                        isCondCheck.disabled = false;
-                        availGrid.classList.toggle('opacity-20', !isAvailable);
-                        availGrid.classList.toggle('pointer-events-none', !isAvailable);
-                        availGrid.classList.toggle('grayscale', !isAvailable);
+                        isCondCheck.disabled = !isModuleEnabled;
                         modulesSection.classList.remove('opacity-20', 'pointer-events-none', 'grayscale');
+
+                        // Si el módulo está deshabilitado, forzamos el switch a OFF
+                        if (!isModuleEnabled) {
+                            isCondCheck.checked = false;
+                        }
+
+                        // El grid se bloquea si el módulo está OFF o el switch está OFF
+                        const shouldBeLocked = !isModuleEnabled || !isCondCheck.checked;
+                        availGrid.classList.toggle('opacity-20', shouldBeLocked);
+                        availGrid.classList.toggle('pointer-events-none', shouldBeLocked);
+                        availGrid.classList.toggle('grayscale', shouldBeLocked);
 
                         // Granular modules logic
                         const modAgenda = modal.querySelector('#mod-agenda');
-                        const modRescue = modal.querySelector('#mod-rescue');
 
-                        if (!isAvailable) {
-                            [modAgenda, modRescue].forEach(m => {
-                                m.disabled = true;
-                                m.checked = false;
-                                m.closest('label').classList.add('opacity-40', 'pointer-events-none');
-                            });
+                        if (!isCondCheck.checked) {
+                            if (modAgenda) {
+                                modAgenda.disabled = true;
+                                modAgenda.checked = false;
+                                modAgenda.closest('label').classList.add('opacity-40', 'pointer-events-none');
+                            }
                         } else {
-                            [modAgenda, modRescue].forEach(m => {
-                                m.disabled = false;
-                                m.closest('label').classList.remove('opacity-40', 'pointer-events-none');
-                            });
+                            if (modAgenda) {
+                                modAgenda.disabled = false;
+                                modAgenda.closest('label').classList.remove('opacity-40', 'pointer-events-none');
+                            }
                         }
                     }
                 };
+
+                // Toggle Avail Section
+                const btnToggleAvail = modal.querySelector('#btn-toggle-avail');
+                const pAvailGrid = modal.querySelector('#p-avail-grid');
+                const availChevron = modal.querySelector('#avail-chevron');
+
+                if (btnToggleAvail) {
+                    btnToggleAvail.onclick = () => {
+                        pAvailGrid.classList.toggle('hidden');
+                        availChevron.classList.toggle('rotate-180');
+                    };
+                }
 
                 const updatePrivsList = () => {
                     const gender = genderSelect.value;
@@ -4884,6 +4913,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                 updatePrivsList();
 
                 isCondCheck.addEventListener('change', syncConductorUI);
+                modal.querySelector('#mod-disponibilidad').addEventListener('change', syncConductorUI);
 
                 saveBtn.onclick = async () => {
                     const original = saveBtn.innerHTML;
@@ -4900,10 +4930,13 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                         privilegios: Array.from(modal.querySelectorAll('.p-priv-check:checked')).map(cb => cb.value),
                         disponibilidad: isCondCheck.checked ? Array.from(modal.querySelectorAll('.p-avail-check:checked')).map(cb => cb.value) : [],
                         modulos: {
-                            agenda: isCondCheck.checked ? modal.querySelector('#mod-agenda').checked : (person?.modulos?.agenda || person?.modulos?.dashboard || false),
-                            programa: isCondCheck.checked ? modal.querySelector('#mod-programa').checked : (person?.modulos?.programa || false),
-                            telefonos: isCondCheck.checked ? modal.querySelector('#mod-telefonos').checked : (person?.modulos?.telefonos || false),
-                            rescue: isCondCheck.checked ? modal.querySelector('#mod-rescue').checked : (person?.modulos?.rescue || false)
+                            agenda: modal.querySelector('#mod-agenda').checked,
+                            programa: modal.querySelector('#mod-programa').checked,
+                            disponibilidad: modal.querySelector('#mod-disponibilidad').checked,
+                            telefonos: modal.querySelector('#mod-telefonos').checked,
+                            mapas: modal.querySelector('#mod-mapas').checked,
+                            ayudas: modal.querySelector('#mod-ayudas').checked,
+                            rescue: modal.querySelector('#mod-agenda').checked // Linked to agenda
                         }
                     };
 
