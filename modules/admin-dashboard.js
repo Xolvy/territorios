@@ -19,13 +19,17 @@ import { renderAnalyticsView } from './analytics-view.js?v=1.9.9.0';
 import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=1.9.9.0';
 import { auth } from '../firebase-config.js?v=1.9.9.0';
 import { animateEntry } from './utils/animations.js?v=1.9.9.0';
+import { UIHelpers, showModal } from './services/ui-helpers.js?v=1.9.9.0';
+import { GlassCard, GlassButton, GlassInput } from './services/ui-components.js?v=1.9.9.0';
+import { renderCasaEnCasaTab } from './admin/territories-view.js?v=1.9.9.0';
 
-const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }) : '';
 
 
 
 
-// --- Global UI Helpers ---
+
+
+// --- Replaced with UI Service Components ---
 const showCustomAlert = (message) => {
     if (!message) return;
     const type = message.toLowerCase().includes('error') ? 'error' : 'success';
@@ -249,7 +253,27 @@ style.textContent = `
         }
 
         .admin-content-wrapper {
-            padding-bottom: 6rem;
+            padding-bottom: 7rem;
+            overflow-x: hidden;
+        }
+
+        .dashboard-main-header {
+            padding: 1.25rem !important;
+            margin-bottom: 1.5rem !important;
+            gap: 1rem !important;
+            border-radius: 1.5rem !important;
+        }
+    }
+
+    .modern-card {
+        border-radius: 2rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border-width: 1px;
+    }
+
+    @media (max-width: 768px) {
+        .modern-card {
+            border-radius: 1.5rem;
         }
     }
     
@@ -304,40 +328,11 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-// --- Module Level Globals (Cache/Scope Guard) ---
-let _globalTerritorios = [];
-let _globalPrograma = null;
-
-// Global Date Helpers
-const getMonday = (d) => {
-    d = new Date(d);
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-    return new Date(d.setDate(diff));
-};
-
-const formatDateId = (date) => {
-    const d = new Date(date);
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-};
-
-const formatDisplayDateRange = (date) => {
-    try {
-        const start = new Date(date);
-        if (isNaN(start.getTime())) return '';
-        const end = new Date(date);
-        end.setDate(start.getDate() + 6);
-        // Use premium Date-fns if available, fallback to basic logic
-        if (window.dateFns) {
-            return `${window.dateFns.format(start, 'd MMM')} - ${window.dateFns.format(end, 'd MMM yyyy')}`;
-        }
-        const f = (d) => `${d.getDate()}/${d.getMonth() + 1}`;
-        return `${f(start)} - ${f(end)}, ${start.getFullYear()}`;
-    } catch (e) { return date; }
-};
+// --- Replaced with UI Service Helpers ---
+const fmtDate = UIHelpers.fmtDate;
+const getMonday = UIHelpers.getMonday;
+const formatDateId = UIHelpers.formatDateId;
+const formatDisplayDateRange = UIHelpers.formatDisplayDateRange;
 
 // Ensure functions exist immediately upon module load
 
@@ -663,9 +658,9 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
         }
 
         container.innerHTML = `
-            <div class="animate-fade-in pb-32 lg:pb-8 w-full max-w-[1600px] mx-auto p-4 md:p-8">
+            <div class="animate-fade-in pb-32 lg:pb-8 w-full max-w-[1600px] mx-auto p-4 md:p-8 overflow-x-hidden">
                 <!-- Dashboard Header 2026 -->
-                <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 lg:mb-10 p-5 md:p-8 glass-morphism rounded-2xl lg:rounded-[2rem] gap-6">
+                <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 lg:mb-10 p-5 md:p-8 glass-morphism rounded-2xl lg:rounded-[2rem] gap-6 dashboard-main-header">
                     <div class="flex items-center gap-4 md:gap-5">
                         <div class="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-primary to-secondary rounded-xl md:rounded-2xl flex items-center justify-center text-2xl md:text-3xl shadow-xl shadow-primary/30 border border-primary/20 dark:border-white/10 transition-transform hover:scale-105 duration-500">
                             <i class="fas fa-landmark text-white shadow-sm"></i>
@@ -686,14 +681,8 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
                              <p class="text-[9px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-tighter">Versión del Sistema</p>
                              <p class="text-[11px] font-black text-primary bg-primary/5 px-3 py-1 rounded-lg">Build ${appVersion || '3.6.0'}</p>
                         </div>
-                        <button onclick="window.location.href='/conductores'" class="flex-1 md:flex-none bg-indigo-600/10 hover:bg-indigo-600 text-indigo-700 hover:text-white px-4 md:px-6 py-4 rounded-xl border border-indigo-500/30 transition-all font-black text-[10px] md:text-xs uppercase tracking-widest flex items-center justify-center gap-2 md:gap-3 shadow-sm min-w-0">
-                            <i class="fas fa-user-circle"></i>
-                            <span class="truncate">Vista Conductor</span>
-                        </button>
-                        <button id="logout-btn" class="flex-1 md:flex-none bg-slate-900 dark:bg-white/5 hover:bg-rose-600 dark:hover:bg-rose-500/10 text-white dark:text-slate-300 px-4 md:px-6 py-4 rounded-xl border border-slate-900 dark:border-white/5 transition-all font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 md:gap-3 active:scale-95 shadow-lg shadow-black/10 min-w-0">
-                            <i class="fas fa-sign-out-alt"></i>
-                            <span class="truncate">Salir</span>
-                        </button>
+                        ${GlassButton('Vista Conductor', 'fas fa-user-circle', 'secondary', 'flex-1 md:flex-none', 'btn-goto-conductores')}
+                        ${GlassButton('Salir', 'fas fa-sign-out-alt', 'danger', 'flex-1 md:flex-none uppercase', 'logout-btn')}
                     </div>
                 </header>
 
@@ -741,6 +730,11 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
             await auth.signOut();
             window.location.href = '/login';
         });
+
+        const gotoConductores = document.getElementById('btn-goto-conductores');
+        if (gotoConductores) {
+            gotoConductores.onclick = () => window.location.href = '/conductores';
+        }
 
         const tabs = document.querySelectorAll('.nav-item');
         tabs.forEach(btn => {
@@ -966,125 +960,10 @@ const renderAdminAI = async () => {
 };
 
 
-/* --- CASA EN CASA TAB (SUPER MODULE) --- */
-const renderCasaEnCasaTab = async (container) => {
-    let _activeSub = 'asignaciones';
-    container.innerHTML = `
-        <div class="space-y-8 animate-fade-in px-2 lg:px-6">
-            <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-8">
-                <div class="flex items-center gap-6">
-                    <div class="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center text-white text-2xl shadow-xl shadow-primary/30 border border-primary/20 dark:border-white/10">
-                        <i class="fas fa-home shadow-sm"></i>
-                    </div>
-                    <div class="space-y-1">
-                        <h2 class="text-h2 text-slate-900 dark:text-white">Predicación Casa en Casa</h2>
-                        <div class="flex items-center gap-2">
-                             <span class="w-2 h-2 rounded-full bg-accent animate-pulse"></span>
-                              <p class="text-[10px] text-slate-600 dark:text-slate-400 font-extrabold uppercase tracking-widest">Módulo de Territorios JW</p>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- 2026 Sub Navigation -->
-                <nav class="flex flex-wrap items-center gap-2 bg-white/50 dark:bg-white/[0.03] p-1.5 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm w-full xl:w-auto backdrop-blur-xl">
-                    <button class="sub-tab-casa group px-4 md:px-5 py-3 rounded-xl transition-all flex items-center gap-3 whitespace-nowrap font-extrabold" data-sub="asignaciones">
-                        <i class="fas fa-clipboard-list text-sm"></i>
-                        <span class="text-[11px] font-extrabold uppercase tracking-wider">Asignaciones</span>
-                    </button>
-                    <button class="sub-tab-casa group px-4 md:px-5 py-3 rounded-xl transition-all flex items-center gap-3 whitespace-nowrap font-extrabold" data-sub="programa">
-                        <i class="fas fa-calendar-alt text-sm"></i>
-                        <span class="text-[11px] font-extrabold uppercase tracking-wider">Programa</span>
-                    </button>
-                    <button class="sub-tab-casa group px-4 md:px-5 py-3 rounded-xl transition-all flex items-center gap-3 whitespace-nowrap font-extrabold" data-sub="s12">
-                        <i class="fas fa-map text-sm"></i>
-                        <span class="text-[11px] font-extrabold uppercase tracking-wider">S-12</span>
-                    </button>
-                    <button class="sub-tab-casa group px-4 md:px-5 py-3 rounded-xl transition-all flex items-center gap-3 whitespace-nowrap font-extrabold" data-sub="gestion">
-                        <i class="fas fa-history text-sm"></i>
-                        <span class="text-[11px] font-extrabold uppercase tracking-wider">Gestión y Reportes</span>
-                    </button>
-                    <div class="w-px h-6 bg-slate-200 dark:bg-white/10 mx-1 shrink-0"></div>
-                    <button class="sub-tab-casa group px-4 md:px-5 py-3 rounded-xl transition-all flex items-center gap-3 whitespace-nowrap font-extrabold" data-sub="recursos">
-                        <i class="fas fa-briefcase text-sm"></i>
-                        <span class="text-[11px] font-extrabold uppercase tracking-wider">Ayudas</span>
-                    </button>
-                </nav>
-            </div>
-            
-            <div id="casa-content" class="relative min-h-[60vh]">
-                <!-- Contenido dinámico -->
-            </div>
-            
-            <!-- Sync Indicator -->
-            <div id="super-sync-indicator" class="hidden fixed bottom-10 left-0 right-0 mx-auto w-max flex items-center gap-3 bg-primary text-white px-6 py-3 rounded-2xl shadow-2xl z-[60] animate-bounce-in">
-                <i class="fas fa-sync-alt animate-spin"></i>
-                <span class="text-xs font-bold uppercase tracking-widest">Sincronizando...</span>
-            </div>
-        </div>
-    `;
+// --- Refactored to external module: territories-view.js ---
+// renderCasaEnCasaTab is now imported from ./admin/territories-view.js
 
-    const loadCasaSub = async (sub, isSync = false) => {
-        _activeSub = sub;
-        const subContainer = container.querySelector('#casa-content');
-        const syncIndicator = container.querySelector('#super-sync-indicator');
-
-        if (!isSync) {
-            subContainer.innerHTML = `
-                <div class="flex flex-col items-center justify-center py-48 gap-6 opacity-20">
-                    <div class="w-16 h-16 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
-                    <p class="text-[12px] font-black uppercase tracking-[0.4em]">Iniciando Super Módulo...</p>
-                </div>
-            `;
-        } else {
-            syncIndicator.classList.remove('hidden');
-        }
-
-        // Update Nav UI
-        container.querySelectorAll('.sub-tab-casa').forEach(btn => {
-            const isActive = btn.dataset.sub === sub;
-            btn.classList.toggle('active', isActive);
-
-            if (isActive) {
-                btn.className = "sub-tab-casa active group px-4 md:px-5 py-3 rounded-xl bg-slate-900 dark:bg-white/10 text-white shadow-xl transition-all flex items-center gap-3 font-extrabold border border-slate-800 dark:border-white/10";
-            } else {
-                btn.className = "sub-tab-casa group px-4 md:px-5 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary-light hover:bg-white dark:hover:bg-white/5 transition-all flex items-center gap-3 font-extrabold border border-transparent shadow-sm";
-            }
-        });
-
-        try {
-            // Unified render mapping
-            const views = {
-                'asignaciones': renderAsignacionesView,
-                'programa': renderProgramaTab,
-                's12': renderS12View,
-                'gestion': renderS13CommandCenter,
-                'recursos': renderRecursosTab
-            };
-
-            if (views[sub]) {
-                await views[sub](subContainer);
-                setTimeout(() => syncIndicator.classList.add('hidden'), 1000);
-            }
-        } catch (error) {
-            console.error(`Error loading Super Module [${sub}]:`, error);
-            subContainer.innerHTML = `<div class="p-10 text-center text-red-500 font-bold">Error al cargar el módulo: ${error.message}</div>`;
-            syncIndicator.classList.add('hidden');
-        }
-    };
-
-    // Shared Module Broadcaster
-    window.dispatchModuleSync = () => {
-        console.log("[SuperModule] Remote Sync Triggered");
-        loadCasaSub(_activeSub, true);
-    };
-
-    container.querySelectorAll('.sub-tab-casa').forEach(btn => {
-        btn.addEventListener('click', (e) => loadCasaSub(e.currentTarget.dataset.sub));
-    });
-
-    // Default to Asignaciones
-    loadCasaSub('asignaciones');
-};
 
 const renderRecursosTab = async (container) => {
     const recursos = await getRecursos();
@@ -6061,80 +5940,7 @@ const renderPredicacionTab = async (container) => {
     });
 };
 
-// --- UTILS ---
-
-const showModal = (content, onOpen, maxWidth = 'max-w-md', containerId = 'modal-container') => {
-    const modalContainer = document.getElementById(containerId);
-
-    const handleEsc = (e) => {
-        if (e.key === 'Escape') closeModal();
-    };
-
-    const closeModal = () => {
-        const modalBody = modalContainer.querySelector('.modal-body');
-        if (modalBody) {
-            // Slide out animation
-            if (window.innerWidth < 640) {
-                modalBody.classList.remove('translate-y-0');
-                modalBody.classList.add('translate-y-full');
-            } else {
-                modalBody.classList.add('scale-95', 'opacity-0');
-            }
-        }
-
-        setTimeout(() => {
-            modalContainer.classList.add('hidden');
-            modalContainer.innerHTML = '';
-            window.removeEventListener('keydown', handleEsc);
-        }, 300);
-    };
-
-    // Expose closeModal globally for inline onclick handlers
-    window.closeModal = closeModal;
-
-    modalContainer.innerHTML = `
-        <div class="modal-body w-full ${maxWidth} relative transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] 
-                    sm:rounded-[2.5rem] bg-white dark:bg-[#0a0a0a] flex flex-col 
-                    shadow-[0_40px_80px_-20px_rgba(0,0,0,0.5)] max-h-[92vh] sm:max-h-[95vh] 
-                    border border-gray-100 dark:border-white/10 overflow-hidden 
-                    fixed bottom-0 sm:bottom-auto sm:relative left-0 right-0 sm:left-auto sm:right-auto
-                    translate-y-full sm:translate-y-0 sm:m-4 rounded-t-[2.5rem] sm:rounded-b-[2.5rem]">
-            
-            <!-- Mobile Pull Indicator -->
-            <div class="sm:hidden w-full flex justify-center pt-3 pb-1 shrink-0">
-                <div class="w-12 h-1.5 bg-slate-200 dark:bg-white/10 rounded-full"></div>
-            </div>
-
-            <button class="absolute top-4 sm:top-6 right-4 sm:right-6 text-slate-400 hover:text-slate-900 dark:hover:text-white z-[60] p-2 bg-slate-100 dark:bg-white/5 backdrop-blur-md rounded-xl transition-all border border-transparent hover:border-slate-200 dark:hover:border-white/10 group shadow-sm" 
-                    id="modal-close-btn">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 group-hover:rotate-90 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-
-            <div class="flex-1 overflow-y-auto custom-scrollbar flex flex-col">
-                ${content}
-            </div>
-        </div>
-    `;
-    modalContainer.classList.remove('hidden');
-    modalContainer.className = 'fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm transition-opacity duration-300';
-
-    // Trigger Slide Up
-    setTimeout(() => {
-        const body = modalContainer.querySelector('.modal-body');
-        if (body) body.classList.remove('translate-y-full');
-    }, 10);
-
-    const closeBtn = modalContainer.querySelector('#modal-close-btn');
-    if (closeBtn) closeBtn.onclick = (e) => { e.stopPropagation(); closeModal(); };
-
-    modalContainer.onclick = (e) => { if (e.target === modalContainer) closeModal(); };
-
-    window.addEventListener('keydown', handleEsc);
-
-    if (onOpen) onOpen(modalContainer);
-};
+// --- UTILS (Shared showModal from ui-helpers) ---
 
 // showCustomAlert and showCustomConfirm were moved to top level
 const renderProgramaTab = async (container) => {
