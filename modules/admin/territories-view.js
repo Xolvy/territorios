@@ -1,6 +1,6 @@
 
 import {
-    getConfiguracion, getTerritories, addTerritorio, deleteTerritorio, updateTerritorio,
+    getConfiguracion, getTerritorios, addTerritorio, deleteTerritorio, updateTerritorio,
     assignTerritorioParcial, assignTerritorio, returnTerritorio, returnTerritorioMultiple,
     transferTerritory, getTerritoryHistory, getHistorialReport, addHistoryRecord,
     updateHistoryRecord, deleteHistoryRecord, cancelarAsignacion, updateAssignmentData,
@@ -281,7 +281,7 @@ const renderRecursosTab = async (container) => {
 const renderAsignacionesView = async (container) => {
     const loadData = async () => {
         const [t, c, h, conf] = await Promise.all([
-            getTerritories(), getConductores(), getHistorialReport(), getConfiguracion()
+            getTerritorios(), getConductores(), getHistorialReport(), getConfiguracion()
         ]);
         _globalTerritorios = t.sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true }));
         _globalConductores = c.sort((a, b) => a.nombre.localeCompare(b.nombre));
@@ -566,6 +566,7 @@ const renderAsignacionesView = async (container) => {
         // Logic to update existing assignment
         await window.handleNewAssignment(id);
     };
+    window.actionEditActive = window.handleEditActive;
 
     window.viewHistoryPhoto = (src) => {
         const overlay = document.createElement('div');
@@ -864,7 +865,7 @@ const renderAsignacionesView = async (container) => {
 };
 
 const renderS12View = async (container) => {
-    const territorios = await getTerritories();
+    const territorios = await getTerritorios();
     const config = await getConfiguracion();
 
     container.innerHTML = `

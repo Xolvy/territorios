@@ -2779,7 +2779,7 @@ function renderRescueSection(container, currentConductorName, allTerritorios, co
         let isRescueNeeded = false;
         for (const ts of timestamps) {
             const planned = new Date(ts);
-            const diffDays = Math.floor((today - planned) / (1000 * 60 * 60 * 24));
+            const diffDays = Math.floor((now - planned) / (1000 * 60 * 60 * 24));
             if (diffDays >= 2) {
                 isRescueNeeded = true;
                 break;

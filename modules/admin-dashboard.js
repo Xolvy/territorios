@@ -19,9 +19,11 @@ import { renderAnalyticsView } from './analytics-view.js?v=1.9.9.0';
 import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=1.9.9.0';
 import { auth } from '../firebase-config.js?v=1.9.9.0';
 import { animateEntry } from './utils/animations.js?v=1.9.9.0';
-import { UIHelpers, showModal } from './services/ui-helpers.js?v=1.9.9.0';
+import { UIHelpers, showModal, showCustomConfirm, showCustomPrompt } from './services/ui-helpers.js?v=1.9.9.0';
 import { GlassCard, GlassButton, GlassInput } from './services/ui-components.js?v=1.9.9.0';
 import { renderCasaEnCasaTab } from './admin/territories-view.js?v=1.9.9.0';
+import * as XLSX from 'xlsx';
+import html2canvas from 'html2canvas';
 
 
 
@@ -30,77 +32,7 @@ import { renderCasaEnCasaTab } from './admin/territories-view.js?v=1.9.9.0';
 
 
 // --- Replaced with UI Service Components ---
-const showCustomAlert = (message) => {
-    if (!message) return;
-    const type = message.toLowerCase().includes('error') ? 'error' : 'success';
-    showNotification(message, type);
-};
-window.showCustomAlert = showCustomAlert;
-
-const showCustomConfirm = (message, onConfirm) => {
-    showModal(`
-        <div class="p-8 text-center space-y-6 flex flex-col items-center">
-            <div class="w-16 h-16 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500 text-2xl">
-                <i class="fas fa-question-circle"></i>
-            </div>
-            <div>
-                <h3 class="text-h3 text-slate-900 dark:text-white">${message}</h3>
-                <p class="text-[10px] text-slate-600 dark:text-slate-400 mt-2 font-black uppercase tracking-widest">Confirmación de Administrador</p>
-            </div>
-            <div class="flex gap-3 w-full mt-4">
-                <button id="confirm-cancel" class="flex-1 py-4 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-500 font-bold hover:bg-slate-200 transition-all text-xs uppercase">Cancelar</button>
-                <button id="confirm-ok" class="flex-[1.5] py-4 rounded-xl bg-primary text-white font-bold hover:bg-primary-light shadow-lg shadow-primary/20 transition-all text-xs uppercase">Confirmar</button>
-            </div>
-        </div>
-    `, (modal) => {
-        modal.querySelector('#confirm-cancel').onclick = () => modal.classList.add('hidden');
-        modal.querySelector('#confirm-ok').onclick = () => {
-            modal.classList.add('hidden');
-            onConfirm();
-        };
-    }, 'max-w-sm');
-};
-window.showCustomConfirm = showCustomConfirm;
-
-const showCustomPrompt = (message, defaultValue, onConfirm) => {
-    showModal(`
-        <div class="p-8 space-y-6">
-            <div class="text-center">
-                <h3 class="text-h3 text-slate-900 dark:text-white">${message}</h3>
-                <p class="text-[10px] text-primary font-bold uppercase tracking-widest mt-1 italic">Entrada de Sistema</p>
-            </div>
-            <div class="relative">
-                <input type="text" id="prompt-input" value="${defaultValue || ''}" 
-                    class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 focus:border-primary/50 rounded-2xl p-4 text-slate-900 dark:text-white outline-none font-bold text-center text-base transition-all">
-            </div>
-            <div class="flex gap-3 mt-4">
-                <button id="prompt-cancel" class="flex-1 py-4 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-500 font-bold hover:bg-slate-200 transition-all text-xs uppercase">Omitir</button>
-                <button id="prompt-ok" class="flex-[1.5] py-4 rounded-xl bg-primary text-white font-bold hover:bg-primary-light shadow-lg shadow-primary/20 transition-all text-xs uppercase">Guardar</button>
-            </div>
-        </div>
-    `, (modal) => {
-        const input = modal.querySelector('#prompt-input');
-        input.focus();
-        input.select();
-
-        const handleConfirm = () => {
-            const val = input.value.trim();
-            if (val) {
-                modal.classList.add('hidden');
-                onConfirm(val);
-            }
-        };
-
-        input.onkeydown = (e) => {
-            if (e.key === 'Enter') handleConfirm();
-            if (e.key === 'Escape') modal.classList.add('hidden');
-        };
-
-        modal.querySelector('#prompt-cancel').onclick = () => modal.classList.add('hidden');
-        modal.querySelector('#prompt-ok').onclick = handleConfirm;
-    }, 'max-w-sm');
-};
-window.showCustomPrompt = showCustomPrompt;
+// --- Replaced with UI Service Components in ui-helpers.js ---
 
 // Add scrollbar-hide style
 const style = document.createElement('style');
@@ -643,166 +575,8 @@ window.openGroupSelector = (dayIndex, turnId, btnElement) => {
 };
 
 
-// --- Main Render (Admin) ---
-export const renderAdminDashboard = async (container, appVersion, initialTab = 'dashboard') => { // Accepted version for auto-sync
-    try {
-        window.isAdminMode = true; // Flag para herramientas compartidas
-        // --- AUTO UPDATE REMOTE VERSION LOGIC ---
-        if (appVersion) {
-            getSystemVersion().then(async (remoteVer) => {
-                if (appVersion !== remoteVer) {
-                    console.log(`[Auto-Update] Bumping remote version from ${remoteVer} to ${appVersion}`);
-                    await setSystemVersion(appVersion);
-                }
-            }).catch(e => console.warn("Auto-update check failed", e));
-        }
-
-        container.innerHTML = `
-            <div class="animate-fade-in pb-32 lg:pb-8 w-full max-w-[1600px] mx-auto p-4 md:p-8 overflow-x-hidden">
-                <!-- Dashboard Header 2026 -->
-                <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 lg:mb-10 p-5 md:p-8 glass-morphism rounded-2xl lg:rounded-[2rem] gap-6 dashboard-main-header">
-                    <div class="flex items-center gap-4 md:gap-5">
-                        <div class="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-primary to-secondary rounded-xl md:rounded-2xl flex items-center justify-center text-2xl md:text-3xl shadow-xl shadow-primary/30 border border-primary/20 dark:border-white/10 transition-transform hover:scale-105 duration-500">
-                            <i class="fas fa-landmark text-white shadow-sm"></i>
-                        </div>
-                        <div class="space-y-0.5 md:space-y-1">
-                            <h1 class="text-[18px] md:text-h2 font-black text-slate-900 dark:text-white leading-tight">Panel de Administración</h1>
-                            <div class="flex items-center gap-2">
-                                <span class="relative flex h-2 w-2">
-                                   <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-light opacity-75"></span>
-                                   <span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-                                </span>
-                                 <p class="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest">Sincronizado con la nube</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2.5 w-full md:w-auto">
-                        <div class="hidden sm:flex flex-col items-end mr-4">
-                             <p class="text-[9px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-tighter">Versión del Sistema</p>
-                             <p class="text-[11px] font-black text-primary bg-primary/5 px-3 py-1 rounded-lg">Build ${appVersion || '3.6.0'}</p>
-                        </div>
-                        ${GlassButton('Vista Conductor', 'fas fa-user-circle', 'secondary', 'flex-1 md:flex-none', 'btn-goto-conductores')}
-                        ${GlassButton('Salir', 'fas fa-sign-out-alt', 'danger', 'flex-1 md:flex-none uppercase', 'logout-btn')}
-                    </div>
-                </header>
-
-                <div class="admin-grid">
-                    <!-- Sidebar Navigation -->
-                    <aside class="sticky-nav">
-                        <nav class="flex flex-row lg:flex-col gap-1.5 overflow-x-auto scrollbar-hide">
-                            <button class="nav-item ${initialTab === 'dashboard' ? 'active' : ''} group" data-tab="dashboard">
-                                <span class="nav-icon"><i class="fas fa-chart-pie"></i></span>
-                                <span class="nav-label hidden lg:block">Dashboard</span>
-                            </button>
-                            <button class="nav-item ${initialTab === 'casa-en-casa' ? 'active' : ''} group" data-tab="casa-en-casa">
-                                <span class="nav-icon"><i class="fas fa-map-marked-alt"></i></span>
-                                <span class="nav-label hidden lg:block">Territorios</span>
-                            </button>
-                            <button class="nav-item ${initialTab === 'predicacion' ? 'active' : ''} group" data-tab="predicacion">
-                                <span class="nav-icon"><i class="fas fa-broadcast-tower"></i></span>
-                                <span class="nav-label hidden lg:block">P. Pública</span>
-                            </button>
-                            <button class="nav-item ${initialTab === 'telefonos' ? 'active' : ''} group" data-tab="telefonos">
-                                <span class="nav-icon"><i class="fas fa-phone-alt"></i></span>
-                                <span class="nav-label hidden lg:block">Telefonía</span>
-                            </button>
-                            <div class="hidden lg:block h-px mx-4 my-3 bg-slate-200 dark:bg-white/5"></div>
-                            <button class="nav-item ${initialTab === 'config' ? 'active' : ''} group" data-tab="config">
-                                <span class="nav-icon"><i class="fas fa-cog"></i></span>
-                                <span class="nav-label hidden lg:block">Ajustes</span>
-                            </button>
-                        </nav>
-                    </aside>
-
-                    <!-- Content Area -->
-                    <main id="admin-content" class="w-full min-h-[70vh] admin-content-wrapper">
-                        <!-- Dynamic Content -->
-                    </main>
-                </div>
-            </div>
-            
-            <div id="modal-container" class="fixed inset-0 bg-slate-950/40 backdrop-blur-sm hidden overflow-y-auto z-[100] p-4 flex justify-center items-center transition-all duration-300"></div>
-            <div id="modal-container-nested" class="fixed inset-0 bg-slate-950/60 backdrop-blur-md hidden overflow-y-auto z-[500] p-4 flex justify-center items-center transition-all duration-300"></div>
-        `;
-
-        document.getElementById('logout-btn').addEventListener('click', async () => {
-            localStorage.removeItem('demo_role');
-            await auth.signOut();
-            window.location.href = '/login';
-        });
-
-        const gotoConductores = document.getElementById('btn-goto-conductores');
-        if (gotoConductores) {
-            gotoConductores.onclick = () => window.location.href = '/conductores';
-        }
-
-        const tabs = document.querySelectorAll('.nav-item');
-        tabs.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                tabs.forEach(t => t.classList.remove('active'));
-                const target = e.currentTarget;
-                target.classList.add('active');
-
-                const tabId = target.dataset.tab;
-                const urlMap = {
-                    'dashboard': 'dashboard',
-                    'casa-en-casa': 'territorios',
-                    'predicacion': 'predicacion',
-                    'telefonos': 'telefonos',
-                    'config': 'config'
-                };
-
-                const newPath = `/administrador/${urlMap[tabId] || 'dashboard'}`;
-                window.history.pushState({}, '', newPath);
-                loadTab(tabId, appVersion);
-            });
-        });
-
-        loadTab(initialTab, appVersion);
-        renderAdminAI();
-    } catch (e) {
-        console.error("Error in Admin Dashboard:", e);
-        showNotification("Error cargando panel: " + e.message, "error");
-    }
-};
-
-const renderSkeleton = (container) => {
-    container.innerHTML = `
-        <div class="p-8 space-y-10">
-            <header class="flex justify-between items-center mb-12">
-                <div class="h-14 w-64 skeleton-pro rounded-3xl"></div>
-                <div class="h-14 w-40 skeleton-pro rounded-full"></div>
-            </header>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-                <div class="h-72 skeleton-pro rounded-[2.5rem]"></div>
-                <div class="h-72 skeleton-pro rounded-[2.5rem]"></div>
-                <div class="h-72 skeleton-pro rounded-[2.5rem]"></div>
-            </div>
-            <div class="h-[400px] skeleton-pro rounded-[3rem] mt-10"></div>
-        </div>
-    `;
-};
-
-const loadTab = async (tabName, appVersion) => {
-    const contentDiv = document.getElementById('admin-content');
-    renderSkeleton(contentDiv); // Premium Loading State
-
-    if (tabName === 'config') {
-        await renderConfigTab(contentDiv, 'reglas', appVersion);
-    } else if (tabName === 'casa-en-casa') {
-        await renderCasaEnCasaTab(contentDiv);
-    } else if (tabName === 'predicacion') {
-        await renderPredicacionTab(contentDiv);
-    } else if (tabName === 'telefonos') {
-        await renderTelefonosTab(contentDiv);
-    } else if (tabName === 'dashboard') {
-        await renderAnalyticsView(contentDiv);
-    }
-};
-
 /* --- FLOATING AI (ADMIN) --- */
-/* --- FLOATING AI (ADMIN) --- */
-const renderAdminAI = async () => {
+const renderAdminAI = async (appVersion) => {
     const config = await getConfiguracion();
     if (!config.gemini_key) return;
 
@@ -958,6 +732,168 @@ const renderAdminAI = async () => {
     send.addEventListener('click', handleSend);
     input.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSend(); });
 };
+
+
+// --- Main Render (Admin) ---
+export const renderAdminDashboard = async (container, appVersion, initialTab = 'dashboard') => { // Accepted version for auto-sync
+    try {
+        window.isAdminMode = true; // Flag para herramientas compartidas
+        // --- AUTO UPDATE REMOTE VERSION LOGIC ---
+        if (appVersion) {
+            getSystemVersion().then(async (remoteVer) => {
+                if (appVersion !== remoteVer) {
+                    console.log(`[Auto-Update] Bumping remote version from ${remoteVer} to ${appVersion}`);
+                    await setSystemVersion(appVersion);
+                }
+            }).catch(e => console.warn("Auto-update check failed", e));
+        }
+
+        container.innerHTML = `
+            <div class="animate-fade-in pb-32 lg:pb-8 w-full max-w-[1600px] mx-auto p-4 md:p-8 overflow-x-hidden">
+                <!-- Dashboard Header 2026 -->
+                <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 lg:mb-10 p-5 md:p-8 glass-morphism rounded-2xl lg:rounded-[2rem] gap-6 dashboard-main-header">
+                    <div class="flex items-center gap-4 md:gap-5">
+                        <div class="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-primary to-secondary rounded-xl md:rounded-2xl flex items-center justify-center text-2xl md:text-3xl shadow-xl shadow-primary/30 border border-primary/20 dark:border-white/10 transition-transform hover:scale-105 duration-500">
+                            <i class="fas fa-landmark text-white shadow-sm"></i>
+                        </div>
+                        <div class="space-y-0.5 md:space-y-1">
+                            <h1 class="text-[18px] md:text-h2 font-black text-slate-900 dark:text-white leading-tight">Panel de Administración</h1>
+                            <div class="flex items-center gap-2">
+                                <span class="relative flex h-2 w-2">
+                                   <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-light opacity-75"></span>
+                                   <span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                                </span>
+                                 <p class="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest">Sincronizado con la nube</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2.5 w-full md:w-auto">
+                        <div class="hidden sm:flex flex-col items-end mr-4">
+                             <p class="text-[9px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-tighter">Versión del Sistema</p>
+                             <p class="text-[11px] font-black text-primary bg-primary/5 px-3 py-1 rounded-lg">Build ${appVersion || '3.6.0'}</p>
+                        </div>
+                        ${GlassButton('Vista Conductor', 'fas fa-user-circle', 'secondary', 'flex-1 md:flex-none', 'btn-goto-conductores')}
+                        ${GlassButton('Salir', 'fas fa-sign-out-alt', 'danger', 'flex-1 md:flex-none uppercase', 'logout-btn')}
+                    </div>
+                </header>
+
+                <div class="admin-grid">
+                    <!-- Sidebar Navigation -->
+                    <aside class="sticky-nav">
+                        <nav class="flex flex-row lg:flex-col gap-1.5 overflow-x-auto scrollbar-hide">
+                            <button class="nav-item ${initialTab === 'dashboard' ? 'active' : ''} group" data-tab="dashboard">
+                                <span class="nav-icon"><i class="fas fa-chart-pie"></i></span>
+                                <span class="nav-label hidden lg:block">Dashboard</span>
+                            </button>
+                            <button class="nav-item ${initialTab === 'casa-en-casa' ? 'active' : ''} group" data-tab="casa-en-casa">
+                                <span class="nav-icon"><i class="fas fa-map-marked-alt"></i></span>
+                                <span class="nav-label hidden lg:block">Territorios</span>
+                            </button>
+                            <button class="nav-item ${initialTab === 'predicacion' ? 'active' : ''} group" data-tab="predicacion">
+                                <span class="nav-icon"><i class="fas fa-broadcast-tower"></i></span>
+                                <span class="nav-label hidden lg:block">P. Pública</span>
+                            </button>
+                            <button class="nav-item ${initialTab === 'telefonos' ? 'active' : ''} group" data-tab="telefonos">
+                                <span class="nav-icon"><i class="fas fa-phone-alt"></i></span>
+                                <span class="nav-label hidden lg:block">Telefonía</span>
+                            </button>
+                            <div class="hidden lg:block h-px mx-4 my-3 bg-slate-200 dark:bg-white/5"></div>
+                            <button class="nav-item ${initialTab === 'config' ? 'active' : ''} group" data-tab="config">
+                                <span class="nav-icon"><i class="fas fa-cog"></i></span>
+                                <span class="nav-label hidden lg:block">Ajustes</span>
+                            </button>
+                        </nav>
+                    </aside>
+
+                    <!-- Content Area -->
+                    <main id="admin-content" class="w-full min-h-[70vh] admin-content-wrapper">
+                        <!-- Dynamic Content -->
+                    </main>
+                </div>
+            </div>
+            
+            <div id="modal-container" class="fixed inset-0 bg-slate-950/40 backdrop-blur-sm hidden overflow-y-auto z-[100] p-4 flex justify-center items-center transition-all duration-300"></div>
+            <div id="modal-container-nested" class="fixed inset-0 bg-slate-950/60 backdrop-blur-md hidden overflow-y-auto z-[500] p-4 flex justify-center items-center transition-all duration-300"></div>
+        `;
+
+        document.getElementById('logout-btn').addEventListener('click', async () => {
+            localStorage.removeItem('demo_role');
+            await auth.signOut();
+            window.location.href = '/login';
+        });
+
+        const gotoConductores = document.getElementById('btn-goto-conductores');
+        if (gotoConductores) {
+            gotoConductores.onclick = () => window.location.href = '/conductores';
+        }
+
+        const tabs = document.querySelectorAll('.nav-item');
+        tabs.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                tabs.forEach(t => t.classList.remove('active'));
+                const target = e.currentTarget;
+                target.classList.add('active');
+
+                const tabId = target.dataset.tab;
+                const urlMap = {
+                    'dashboard': 'dashboard',
+                    'casa-en-casa': 'territorios',
+                    'predicacion': 'predicacion',
+                    'telefonos': 'telefonos',
+                    'config': 'config'
+                };
+
+                const newPath = `/administrador/${urlMap[tabId] || 'dashboard'}`;
+                window.history.pushState({}, '', newPath);
+                loadTab(tabId, appVersion);
+            });
+        });
+
+        loadTab(initialTab, appVersion);
+        renderAdminAI(appVersion);
+        window.renderAdminAI = renderAdminAI;
+    } catch (e) {
+        console.error("Error in Admin Dashboard:", e);
+        showNotification("Error cargando panel: " + e.message, "error");
+    }
+};
+
+const renderSkeleton = (container) => {
+    container.innerHTML = `
+        <div class="p-8 space-y-10">
+            <header class="flex justify-between items-center mb-12">
+                <div class="h-14 w-64 skeleton-pro rounded-3xl"></div>
+                <div class="h-14 w-40 skeleton-pro rounded-full"></div>
+            </header>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                <div class="h-72 skeleton-pro rounded-[2.5rem]"></div>
+                <div class="h-72 skeleton-pro rounded-[2.5rem]"></div>
+                <div class="h-72 skeleton-pro rounded-[2.5rem]"></div>
+            </div>
+            <div class="h-[400px] skeleton-pro rounded-[3rem] mt-10"></div>
+        </div>
+    `;
+};
+
+const loadTab = async (tabName, appVersion) => {
+    const contentDiv = document.getElementById('admin-content');
+    renderSkeleton(contentDiv); // Premium Loading State
+
+    if (tabName === 'config') {
+        await renderConfigTab(contentDiv, 'reglas', appVersion);
+    } else if (tabName === 'casa-en-casa') {
+        await renderCasaEnCasaTab(contentDiv);
+    } else if (tabName === 'predicacion') {
+        await renderPredicacionTab(contentDiv);
+    } else if (tabName === 'telefonos') {
+        await renderTelefonosTab(contentDiv);
+    } else if (tabName === 'dashboard') {
+        await renderAnalyticsView(contentDiv);
+    }
+};
+
+
+// renderAdminAI moved up to ensure hoisting-safe accessibility
 
 
 
@@ -1869,10 +1805,14 @@ const renderAsignacionesView = async (container) => {
         });
     };
 
+    window.actionEditActive = handleNewAssignment;
+
+
 
     const handleEditActive = async (id, num, conductor) => {
         const t = territorios.find(x => x.id === id);
         if (!t) return;
+
 
         showModal(`
              <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden">
@@ -2048,6 +1988,8 @@ const renderAsignacionesView = async (container) => {
             };
         });
     };
+
+
 
     const handleHistory = (territoryId, territoryNum) => {
         const history = allHistory.filter(h => h.territorio_id === territoryId || h.numero === territoryNum)
@@ -2420,6 +2362,8 @@ const renderAsignacionesView = async (container) => {
             };
         });
     };
+
+    window.actionTransfer = handleTransfer;
 
     window.actionDeleteHistUI = (id, c, n) => showDeleteHistoryModal(id, c, n);
     window.editHistoryRecord = (id) => showEditHistoryModal(id);
@@ -6018,10 +5962,13 @@ const renderProgramaTab = async (container) => {
                         <button id="btn-clear-week" class="p-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-400 hover:text-red-500 rounded-xl transition-all" title="Limpiar Semana">
                             <i class="fas fa-trash-alt"></i>
                         </button>
-                        <button id="export-excel-plain" class="p-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-400 hover:text-emerald-500 rounded-xl transition-all" title="Exportar Excel">
+                        <button id="export-excel-prog" class="p-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-400 hover:text-emerald-500 rounded-xl transition-all" title="Exportar Excel">
                             <i class="fas fa-file-excel"></i>
                         </button>
-                        <button id="export-png" class="p-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-400 hover:text-amber-500 rounded-xl transition-all" title="Imprimir / PDF">
+                         <button id="export-png-prog" class="p-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-400 hover:text-sky-500 rounded-xl transition-all" title="Exportar PNG">
+                            <i class="fas fa-file-image"></i>
+                        </button>
+                        <button id="btn-print-prog" class="p-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-400 hover:text-amber-500 rounded-xl transition-all" title="Vista Previa e Imprimir">
                             <i class="fas fa-print"></i>
                         </button>
                     </div>
@@ -6300,13 +6247,202 @@ const renderProgramaTab = async (container) => {
         });
     };
 
-    container.querySelector('#export-excel-plain').onclick = () => {
-        generatePlainXLS(programa, `Programa_${formatDateId(currentWeekStart)} `);
-        showNotification("Generando Excel...", "info");
+    const getExportableData = () => {
+        const rows = [];
+        const turnosMap = { manana: 'Mañana', tarde: 'Tarde', noche: 'Noche', zoom: 'Zoom' };
+        programa.dias.forEach(dia => {
+            ['manana', 'tarde', 'noche', 'zoom'].forEach(turnoId => {
+                const data = dia[turnoId];
+                if (data && (data.conductor || data.territorio)) {
+                    rows.push({
+                        "Día": dia.nombre,
+                        "Fecha": dia.fecha || '',
+                        "Turno": turnosMap[turnoId],
+                        "Territorio": data.territorio || '',
+                        "Conductor": data.conductor || '',
+                        "Auxiliar": data.auxiliar || '',
+                        "Lugar": data.lugar || '',
+                        "Hora": data.hora || '',
+                        "Faceta": data.faceta || '',
+                        "Grupos": data.grupos || ''
+                    });
+                }
+            });
+        });
+        return rows;
     };
 
-    container.querySelector('#export-png').onclick = async () => {
-        window.print();
+    container.querySelector('#export-excel-prog').onclick = () => {
+        const data = getExportableData();
+        if (data.length === 0) {
+            showNotification("No hay datos para exportar", "warning");
+            return;
+        }
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Programa");
+        XLSX.writeFile(wb, `Programa_${programa.id}.xlsx`);
+        showNotification("Excel generado correctamente", "success");
+    };
+
+    const generatePreviewHTML = () => {
+        const data = getExportableData();
+        if (data.length === 0) return '<div class="p-20 text-center opacity-30 font-black uppercase tracking-widest">No hay salidas programadas</div>';
+
+        // Group by day for visual consistency
+        const days = {};
+        data.forEach(row => {
+            if (!days[row.Día]) days[row.Día] = [];
+            days[row.Día].push(row);
+        });
+
+        return `
+            <div id="print-preview-content" class="bg-white p-12 text-slate-900 font-['Outfit'] space-y-10">
+                <header class="flex justify-between items-end border-b-2 border-slate-900 pb-6">
+                    <div>
+                        <h1 class="text-4xl font-black uppercase tracking-tighter">Programa de Salidas</h1>
+                        <p class="text-[10px] font-black uppercase tracking-[0.4em] opacity-50 mt-1">${programa.id}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs font-black uppercase tracking-widest">Congregación Local</p>
+                    </div>
+                </header>
+
+                <div class="grid grid-cols-1 gap-8">
+                    ${Object.keys(days).map(dayName => `
+                        <div class="space-y-4">
+                            <h2 class="text-2xl font-black border-l-4 border-slate-900 pl-4 uppercase tracking-tight">${dayName}</h2>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                ${days[dayName].map(slot => `
+                                    <div class="border border-slate-200 p-5 rounded-xl space-y-3 bg-slate-50/50">
+                                        <div class="flex justify-between items-center mb-2">
+                                            <span class="text-[9px] font-black bg-slate-900 text-white px-2 py-0.5 rounded uppercase tracking-widest">${slot.Turno}</span>
+                                            <span class="text-[10px] font-bold">${slot.Hora}</span>
+                                        </div>
+                                        <div class="space-y-1">
+                                            <p class="text-[8px] font-black uppercase text-slate-400 tracking-widest">Conductor</p>
+                                            <p class="text-sm font-black uppercase leading-none">${slot.Conductor}</p>
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <div class="space-y-1">
+                                                <p class="text-[8px] font-black uppercase text-slate-400 tracking-widest">Territorio</p>
+                                                <p class="text-[11px] font-bold">#${slot.Territorio}</p>
+                                            </div>
+                                            <div class="space-y-1">
+                                                <p class="text-[8px] font-black uppercase text-slate-400 tracking-widest">Lugar</p>
+                                                <p class="text-[11px] font-bold truncate">${slot.Lugar}</p>
+                                            </div>
+                                        </div>
+                                        ${slot.Auxiliar ? `
+                                            <div class="pt-2 border-t border-slate-200">
+                                                <p class="text-[8px] font-black uppercase text-slate-400 tracking-widest">Apoyo: <span class="text-slate-900">${slot.Auxiliar}</span></p>
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <footer class="pt-12 border-t border-slate-100 text-center">
+                    <p class="text-[8px] font-bold uppercase tracking-[0.3em] opacity-30 italic">Documento generado automáticamente por Sistema de Territorios</p>
+                </footer>
+            </div>
+        `;
+    };
+
+    container.querySelector('#export-png-prog').onclick = async () => {
+        const previewHTML = generatePreviewHTML();
+        const tempDiv = document.createElement('div');
+        tempDiv.style.position = 'absolute';
+        tempDiv.style.left = '-9999px';
+        tempDiv.style.width = '1200px';
+        tempDiv.innerHTML = previewHTML;
+        document.body.appendChild(tempDiv);
+
+        try {
+            showNotification("Preparando imagen...", "info");
+            const canvas = await html2canvas(tempDiv.querySelector('#print-preview-content'), {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#ffffff'
+            });
+            const link = document.createElement('a');
+            link.download = `Programa_${programa.id}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            showNotification("Imagen exportada con éxito", "success");
+        } catch (e) {
+            console.error(e);
+            showNotification("Error al generar PNG", "error");
+        } finally {
+            document.body.removeChild(tempDiv);
+        }
+    };
+
+    container.querySelector('#btn-print-prog').onclick = () => {
+        const previewHTML = generatePreviewHTML();
+        showModal(`
+            <div class="flex flex-col h-full bg-slate-50 dark:bg-slate-900 rounded-[2.5rem] overflow-hidden">
+                <header class="p-8 bg-white dark:bg-slate-800 border-b flex justify-between items-center">
+                    <div>
+                        <h3 class="text-xl font-black uppercase tracking-tight">Vista Previa de Impresión</h3>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Solo se imprimirán los cuadros con contenido</p>
+                    </div>
+                    <div class="flex gap-4">
+                         <button id="btn-do-print" class="bg-primary text-white px-8 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20 hover:scale-105 transition-all">
+                            <i class="fas fa-print mr-2"></i> Imprimir Ahora
+                         </button>
+                    </div>
+                </header>
+                <div class="flex-1 overflow-y-auto p-10 bg-slate-200/50 dark:bg-black/50">
+                    <div id="print-area-wrapper" class="max-w-[800px] mx-auto shadow-2xl">
+                        ${previewHTML}
+                    </div>
+                </div>
+            </div>
+        `, (modal) => {
+            modal.querySelector('#btn-do-print').onclick = () => {
+                const printContents = modal.querySelector('#print-preview-content').outerHTML;
+                const originalContents = document.body.innerHTML;
+
+                // Create a temporary print frame
+                const printFrame = document.createElement('iframe');
+                printFrame.style.position = 'fixed';
+                printFrame.style.right = '0';
+                printFrame.style.bottom = '0';
+                printFrame.style.width = '0';
+                printFrame.style.height = '0';
+                printFrame.style.border = '0';
+                document.body.appendChild(printFrame);
+
+                const frameDoc = printFrame.contentWindow.document;
+                frameDoc.write(`
+                    <html>
+                        <head>
+                            <title>Programa Semanal</title>
+                            <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+                            <script src="https://cdn.tailwindcss.com"></script>
+                            <style>
+                                @page { size: auto; margin: 10mm; }
+                                body { font-family: 'Outfit', sans-serif; }
+                            </style>
+                        </head>
+                        <body>
+                            ${printContents}
+                        </body>
+                    </html>
+                `);
+                frameDoc.close();
+
+                setTimeout(() => {
+                    printFrame.contentWindow.focus();
+                    printFrame.contentWindow.print();
+                    setTimeout(() => document.body.removeChild(printFrame), 1000);
+                }, 500);
+            };
+        }, 'max-w-4xl');
     };
 
     loadWeekData();
