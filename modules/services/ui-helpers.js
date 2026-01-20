@@ -37,7 +37,8 @@ export const showModal = (html, onRender, maxWidth = 'max-w-2xl', containerId = 
     if (!modal) return;
 
     modal.innerHTML = `
-        <div class="relative w-full ${maxWidth} bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border border-black/5 dark:border-white/10 animate-scale-in overflow-hidden">
+        <div class="modal-backdrop-area absolute inset-0 cursor-default"></div>
+        <div class="relative w-full ${maxWidth} bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border border-black/5 dark:border-white/10 animate-scale-in overflow-hidden z-10">
             ${html}
         </div>
     `;
@@ -47,14 +48,18 @@ export const showModal = (html, onRender, maxWidth = 'max-w-2xl', containerId = 
 
     if (onRender) onRender(modal);
 
+    const close = () => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        window.removeEventListener('keydown', handleEsc);
+    };
+
     const handleEsc = (e) => {
-        if (e.key === 'Escape') {
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-            window.removeEventListener('keydown', handleEsc);
-        }
+        if (e.key === 'Escape') close();
     };
     window.addEventListener('keydown', handleEsc);
+
+    modal.querySelector('.modal-backdrop-area').onclick = close;
 };
 
 export const showCustomConfirm = (message, onConfirm) => {

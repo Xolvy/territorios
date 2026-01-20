@@ -1,6 +1,6 @@
-import { auth } from '../firebase-config.js?v=1.9.9.0';
+import { auth } from '../firebase-config.js?v=2.0.1';
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { getPublicadores, getConfiguracion } from '../data/firestore-services.js?v=1.9.9.0';
+import { getPublicadores, getConfiguracion } from '../data/firestore-services.js?v=2.0.1';
 
 export const renderLogin = (container, appVersion) => {
     container.innerHTML = `
@@ -150,7 +150,7 @@ const renderConductorSelection = async (container, appVersion) => {
                             <i class="fas fa-search"></i>
                         </div>
                         <input type="text" id="conductor-search" placeholder="Escribe tu nombre..." 
-                            class="w-full !pl-14 !py-5 bg-white dark:bg-slate-900 !border-transparent shadow-sm focus:!border-primary/30 transition-all font-bold text-base text-slate-900 dark:text-white">
+                            class="w-full !pl-16 !py-5 bg-white dark:bg-slate-900 !border-transparent shadow-sm focus:!border-primary/30 transition-all font-bold text-base text-slate-900 dark:text-white">
                     </div>
                 </div>
             </div>

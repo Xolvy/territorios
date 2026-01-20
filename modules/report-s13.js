@@ -1,6 +1,408 @@
-import { getHistorialReport, rebuildHistoryFromSchedule, getConfiguracion } from '../data/firestore-services.js?v=1.9.9.0';
-import { showNotification, generatePlainXLS } from './utils/helpers.js?v=1.9.9.0';
-import { S13Exporter } from './services/s13-exporter.js?v=1.9.9.0';
+import { getHistorialReport, rebuildHistoryFromSchedule, getConfiguracion, getTerritorios, runSystemDiagnosticsAndRepair } from '../data/firestore-services.js?v=2.0.1';
+import { showNotification, generatePlainXLS } from './utils/helpers.js?v=2.0.1';
+import { S13Exporter } from './services/s13-exporter.js?v=2.0.1';
+
+export const renderS13CommandCenter = async (container) => {
+    const [history, config, territories] = await Promise.all([
+        getHistorialReport(),
+        getConfiguracion(),
+        getTerritorios()
+    ]);
+
+    let activeView = 'management';
+
+    // --- Metric Calculations ---
+    const touchedNums = new Set(history.map(h => String(h.numero)));
+    const totalT = territories.length;
+    const coveragePercent = totalT > 0 ? Math.round((touchedNums.size / totalT) * 100) : 0;
+    const missingCount = territories.filter(t => !touchedNums.has(String(t.numero))).length;
+
+    const territoryFreq = {};
+    history.forEach(h => {
+        if (!h.numero) return;
+        territoryFreq[h.numero] = (territoryFreq[h.numero] || 0) + 1;
+    });
+    const mostFreqSorted = Object.entries(territoryFreq).sort((a, b) => b[1] - a[1]);
+    const topTerritory = mostFreqSorted[0]?.[0] || '--';
+    const topCount = mostFreqSorted[0]?.[1] || 0;
+
+    const latestTouch = {};
+    history.forEach(h => {
+        const d = h.fecha_entrega || h.fecha_asignacion;
+        if (!d) return;
+        if (!latestTouch[h.numero] || new Date(d) > new Date(latestTouch[h.numero])) {
+            latestTouch[h.numero] = d;
+        }
+    });
+
+    const rezagoSorted = territories.filter(t => latestTouch[t.numero]).sort((a, b) => new Date(latestTouch[a.numero]) - new Date(latestTouch[b.numero]));
+    const oldestTerritory = rezagoSorted[0]?.numero || '--';
+    const daysRezago = rezagoSorted[0] ? Math.floor((new Date() - new Date(latestTouch[rezagoSorted[0].numero])) / (1000 * 60 * 60 * 24)) : 0;
+
+    container.innerHTML = `
+        <div class="space-y-8 animate-fade-in">
+            <!--Stats Dashboard-->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Cobertura -->
+                <div class="bg-gradient-to-br from-indigo-600 to-blue-700 p-8 rounded-[2rem] text-white shadow-xl shadow-indigo-500/20 group relative overflow-hidden transition-all hover:scale-[1.02]">
+                    <div class="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+                    <p class="text-[10px] font-black uppercase tracking-[0.2em] opacity-70 mb-2">Cobertura Global</p>
+                    <p class="text-4xl font-black tabular-nums">${coveragePercent}%</p>
+                    <div class="flex items-center gap-2 mt-4 text-[9px] font-bold uppercase tracking-widest opacity-60">
+                         <i class="fas fa-chart-pie"></i> ${touchedNums.size} de ${totalT} abarcados
+                    </div>
+                </div>
+                
+                <!-- Faltantes -->
+                <div class="bg-white dark:bg-white/5 p-8 rounded-[2rem] border border-slate-100 dark:border-white/5 shadow-xl shadow-slate-200/50 dark:shadow-none transition-all hover:scale-[1.02]">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Territorios Faltantes</p>
+                    <p class="text-4xl font-black text-red-500 tabular-nums">${missingCount}</p>
+                    <div class="flex items-center gap-3 mt-4">
+                        <div class="flex-1 h-1.5 bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden">
+                            <div class="h-full bg-red-500 rounded-full" style="width: ${100 - coveragePercent}%"></div>
+                        </div>
+                        <span class="text-[10px] font-black text-red-500 uppercase">Faltan</span>
+                    </div>
+                </div>
+
+                <!-- Uso Frecuente -->
+                <div class="bg-white dark:bg-white/5 p-8 rounded-[2rem] border border-slate-100 dark:border-white/5 shadow-xl shadow-slate-200/50 dark:shadow-none transition-all hover:scale-[1.02]">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Uso Frecuente</p>
+                    <p class="text-2xl font-black text-slate-800 dark:text-white truncate">Territorio ${topTerritory}</p>
+                    <div class="flex items-center gap-2 mt-4 text-[9px] text-indigo-500 font-bold uppercase tracking-widest">
+                        <i class="fas fa-redo-alt"></i> Asignado ${topCount} ${topCount === 1 ? 'vez' : 'veces'}
+                    </div>
+                </div>
+
+                <!-- Rezago -->
+                <div class="bg-white dark:bg-white/5 p-8 rounded-[2rem] border border-slate-100 dark:border-white/5 shadow-xl shadow-slate-200/50 dark:shadow-none transition-all hover:scale-[1.02]">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Mayor Rezago</p>
+                    <p class="text-2xl font-black text-orange-600 truncate">#${oldestTerritory}</p>
+                    <div class="flex items-center gap-2 mt-4 text-[9px] text-slate-400 font-bold uppercase tracking-widest">
+                        <i class="fas fa-history"></i> Hace ${daysRezago} días
+                    </div>
+                </div>
+            </div>
+
+            <!--Unified Control Bar-->
+            <div class="modern-card !p-6 flex flex-col lg:flex-row items-center gap-6 border-slate-200 dark:border-white/5 shadow-2xl">
+                <!-- Left: Date Filters -->
+                <div class="flex flex-wrap items-center gap-4 bg-slate-50 dark:bg-white/5 p-4 rounded-2xl border border-slate-200 dark:border-white/5">
+                    <div class="space-y-1">
+                        <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Año</label>
+                        <select id="report-year-select" class="bg-white dark:bg-slate-800 border-none rounded-xl px-4 p-2 text-xs font-bold outline-none text-slate-700 dark:text-white shadow-sm cursor-pointer">
+                             <!-- Year options -->
+                        </select>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Desde</label>
+                        <input type="date" id="report-start" class="bg-white dark:bg-slate-800 border-none rounded-xl px-4 p-2 text-xs font-bold outline-none text-slate-700 dark:text-white shadow-sm">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Hasta</label>
+                        <input type="date" id="report-end" class="bg-white dark:bg-slate-800 border-none rounded-xl px-4 p-2 text-xs font-bold outline-none text-slate-700 dark:text-white shadow-sm">
+                    </div>
+                </div>
+
+                <!-- Center: Universal Search -->
+                <div class="relative flex-1 group min-w-[200px] w-full lg:w-auto">
+                    <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary">
+                        <i class="fas fa-search"></i>
+                    </span>
+                    <input type="text" id="cc-universal-search" placeholder="Búsqueda global (Conductor, #, Estado)..." class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-2xl pl-14 pr-6 py-4 text-xs font-bold shadow-sm outline-none focus:border-primary transition-all text-slate-700 dark:text-white placeholder:text-slate-400">
+                </div>
+
+                <!-- Right: Actions -->
+                <div class="flex items-center gap-3">
+                    <button id="cc-btn-generate" class="bg-primary hover:bg-primary-light text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 transition-all active:scale-95 flex items-center gap-3 whitespace-nowrap">
+                        <i class="fas fa-file-invoice"></i> Generar Reporte
+                    </button>
+                    <div class="h-10 w-px bg-slate-200 dark:bg-white/10 mx-2"></div>
+                    <button id="cc-btn-tools" class="w-12 h-12 flex items-center justify-center bg-slate-100 dark:bg-white/5 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-all border border-slate-200 dark:border-white/5" title="Herramientas Avanzadas">
+                        <i class="fas fa-tools"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!--View Toggle & Sub-Content-->
+                    <div class="space-y-6">
+                        <nav class="flex gap-2 p-1.5 bg-slate-100 dark:bg-white/5 w-fit rounded-2xl border border-slate-200 dark:border-white/5">
+                            <button class="cc-view-btn px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 whitespace-nowrap" data-view="management">
+                                <i class="fas fa-database"></i> Gestión de Historial
+                            </button>
+                            <button class="cc-view-btn px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 whitespace-nowrap" data-view="s13">
+                                <i class="fas fa-list-alt"></i> Reporte S-13
+                            </button>
+                        </nav>
+
+                        <div id="cc-main-container" class="min-h-[600px] modern-card !p-0 overflow-hidden border-slate-100 dark:border-white/5">
+                            <!-- Dynamic View Content -->
+                        </div>
+                    </div>
+        </div>
+    `;
+
+    // Initialize Year Selector
+    const yearSelect = container.querySelector('#report-year-select');
+    const startInput = container.querySelector('#report-start');
+    const endInput = container.querySelector('#report-end');
+
+    const now = new Date();
+    const serviceYear = now.getMonth() >= 8 ? now.getFullYear() + 1 : now.getFullYear();
+    for (let y = serviceYear - 5; y <= serviceYear + 5; y++) {
+        const opt = document.createElement('option');
+        opt.value = y;
+        opt.textContent = y;
+        if (y === serviceYear) opt.selected = true;
+        opt.className = "dark:bg-slate-800 text-slate-800 dark:text-white";
+        yearSelect.appendChild(opt);
+    }
+
+    const setDatesFromSY = (sy) => {
+        const y = parseInt(sy);
+        const start = `${y - 1}-09-01`;
+        const end = `${y}-08-31`;
+        if (startInput) startInput.value = start;
+        if (endInput) endInput.value = end;
+    };
+    setDatesFromSY(serviceYear);
+    if (yearSelect) yearSelect.onchange = (e) => setDatesFromSY(e.target.value);
+
+    // View Loading Logic
+    const loadView = async (view) => {
+        activeView = view;
+        const mainCont = container.querySelector('#cc-main-container');
+        if (!mainCont) return;
+
+        mainCont.innerHTML = `
+            <div class="flex flex-col items-center justify-center p-40 gap-4 animate-pulse">
+                <div class="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+                <p class="text-[10px] font-black uppercase text-primary tracking-[0.2em]">Preparando vista inteligente...</p>
+            </div>`;
+
+        // Update Buttons Styling
+        container.querySelectorAll('.cc-view-btn').forEach(btn => {
+            const isActive = btn.dataset.view === view;
+            btn.classList.toggle('active', isActive);
+
+            if (isActive) {
+                btn.className = "cc-view-btn active px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 bg-slate-900 dark:bg-white/10 text-white shadow-xl whitespace-nowrap";
+            } else {
+                btn.className = "cc-view-btn px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 text-slate-600 dark:text-slate-400 hover:text-primary whitespace-nowrap";
+            }
+        });
+
+        if (view === 's13') {
+            await renderHistoryTab(mainCont, {
+                showHeader: false,
+                startInput: startInput,
+                endInput: endInput
+            });
+            const genBtn = container.querySelector('#cc-btn-generate');
+            if (genBtn) {
+                genBtn.innerHTML = '<i class="fas fa-file-invoice"></i> Generar Reporte';
+                genBtn.onclick = () => document.getElementById('btn-generate-report')?.click();
+            }
+        } else {
+            await renderAdvancedHistoryView(mainCont, {
+                showHeader: false,
+                searchInputId: 'cc-universal-search'
+            });
+            const genBtn = container.querySelector('#cc-btn-generate');
+            if (genBtn) {
+                genBtn.innerHTML = '<i class="fas fa-bolt-lightning"></i> Power Sync Global';
+                genBtn.onclick = async () => {
+                    const innerCont = container.querySelector('#cc-main-container');
+                    innerCont.innerHTML = `
+                        <div class="flex flex-col items-center justify-center p-32 gap-10 animate-fade-in">
+                            <div class="relative w-32 h-32">
+                                <svg class="w-full h-full -rotate-90">
+                                    <circle cx="64" cy="64" r="58" stroke="currentColor" stroke-width="8" fill="transparent" class="text-slate-100 dark:text-white/5" />
+                                    <circle id="diag-progress-circle" cx="64" cy="64" r="58" stroke="currentColor" stroke-width="8" fill="transparent" stroke-dasharray="364.42" stroke-dashoffset="364.42" class="text-primary transition-all duration-500 stroke-round" />
+                                </svg>
+                                <div id="diag-pc" class="absolute inset-0 flex items-center justify-center text-xl font-black text-slate-800 dark:text-white">0%</div>
+                            </div>
+                            <div class="text-center space-y-4 max-w-sm">
+                                 <div class="bg-primary/10 text-primary text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-[0.2em] inline-block mb-2">Power Up: Sincronización</div>
+                                 <h4 class="text-lg font-black uppercase tracking-tight text-slate-800 dark:text-white">Optimizando Base de Datos</h4>
+                                 <p id="diag-msg" class="text-[11px] font-bold text-slate-400 leading-relaxed">Iniciando protocolo de diagnóstico profundo...</p>
+                            </div>
+                        </div>`;
+
+                    const circle = innerCont.querySelector('#diag-progress-circle');
+                    const pcText = innerCont.querySelector('#diag-pc');
+                    const msgText = innerCont.querySelector('#diag-msg');
+                    const circumference = 364.42;
+
+                    const report = await runSystemDiagnosticsAndRepair((msg, pc) => {
+                        if (pcText) pcText.textContent = `${pc}%`;
+                        if (msgText) msgText.textContent = msg;
+                        if (circle) {
+                            const offset = circumference - (pc / 100) * circumference;
+                            circle.style.strokeDashoffset = offset;
+                        }
+                    });
+
+                    // Results Modal
+                    showModal(`
+                        <div class="p-10 space-y-8 animate-fade-in">
+                            <header class="flex items-center gap-6 border-b border-slate-100 dark:border-white/5 pb-8">
+                                <div class="w-16 h-16 bg-emerald-500/10 text-emerald-500 rounded-3xl flex items-center justify-center text-2xl shadow-inner">
+                                    <i class="fas fa-check-double"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-2xl font-black uppercase tracking-tight leading-none mb-1">Optimización Exitosa</h3>
+                                    <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Resultados del Diagnóstico</p>
+                                </div>
+                            </header>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="bg-slate-50 dark:bg-white/5 p-6 rounded-2xl border border-slate-200 dark:border-white/5 text-center">
+                                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">S13</p>
+                                    <p class="text-2xl font-black text-slate-800 dark:text-white">\${report.rebuiltHistory}</p>
+                                </div>
+                                <div class="bg-slate-50 dark:bg-white/5 p-6 rounded-2xl border border-slate-200 dark:border-white/5 text-center">
+                                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Ajustes</p>
+                                    <p class="text-2xl font-black text-slate-800 dark:text-white">\${report.fixedTerritories}</p>
+                                </div>
+                            </div>
+                            <button onclick="closeModal(); renderS13CommandCenter(document.getElementById('cc-main-container').parentElement.parentElement)" class="w-full bg-primary text-white py-5 rounded-2xl text-[11px] font-black uppercase tracking-widest">Finalizar</button>
+                        </div>
+                    `);
+                    renderS13CommandCenter(container);
+                };
+            }
+        }
+    };
+
+    container.querySelectorAll('.cc-view-btn').forEach(btn => {
+        btn.onclick = () => loadView(btn.dataset.view);
+    });
+
+    const toolBtn = container.querySelector('#cc-btn-tools');
+    if (toolBtn) {
+        toolBtn.onclick = () => {
+            showModal(`
+                <div class="p-8 space-y-6">
+                    <h3 class="text-xl font-black uppercase">Mantenimiento Global</h3>
+                    <button id="tool-rebuild" class="w-full text-left p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200">Reconstruir Historial</button>
+                </div>
+            `, (modal) => {
+                modal.querySelector('#tool-rebuild').onclick = () => {
+                    modal.classList.add('hidden');
+                    document.getElementById('btn-rebuild-history')?.click();
+                };
+            });
+        };
+    }
+
+    loadView('management');
+};
+
+
+export const renderAdvancedHistoryView = async (container, options = {}) => {
+    const history = await getHistorialReport();
+    const config = await getConfiguracion();
+    const territories = await getTerritorios();
+
+    let filteredHistory = [...history].sort((a, b) => new Date(b.fecha_asignacion || 0) - new Date(a.fecha_asignacion || 0));
+    let currentPage = 1;
+    const itemsPerPage = 20;
+
+    const render = () => {
+        const start = (currentPage - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+        const pageItems = filteredHistory.slice(start, end);
+        const totalPages = Math.ceil(filteredHistory.length / itemsPerPage);
+
+        container.innerHTML = `
+            <div class="flex flex-col h-full bg-white dark:bg-black/20 rounded-[2.5rem] overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 dark:bg-white/5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 border-b border-slate-100 dark:border-white/10">
+                                <th class="p-6">Territorio</th>
+                                <th class="p-6">Conductor</th>
+                                <th class="p-6">Periodo</th>
+                                <th class="p-6">Estado</th>
+                                <th class="p-6 text-right">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 dark:divide-white/5 font-bold">
+                            \${pageItems.map(h => {
+            const getStatusStyles = (status) => {
+                switch (status) {
+                    case 'Completado': return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
+                    case 'Pendiente': return 'bg-amber-500/10 text-amber-600 border-amber-500/20';
+                    case 'Cancelado': return 'bg-rose-500/10 text-rose-500 border-rose-500/20';
+                    default: return 'bg-slate-100 text-slate-500 border-slate-200';
+                }
+            };
+            return \`
+                                    <tr class="group hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
+                                        <td class="p-6">
+                                            <div class="flex items-center gap-4">
+                                                <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-black text-sm">#\${h.numero}</div>
+                                                <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">\${territories.find(t => String(t.numero) === String(h.numero))?.localidad || '—'}</span>
+                                            </div>
+                                        </td>
+                                        <td class="p-6 text-sm text-slate-700 dark:text-slate-200 uppercase tracking-tight font-black">\${h.conductor}</td>
+                                        <td class="p-6 text-[10px] text-slate-500 uppercase tracking-widest">
+                                            \${h.fecha_asignacion ? new Date(h.fecha_asignacion).toLocaleDateString() : '—'} 
+                                            <span class="mx-2 opacity-30">→</span> 
+                                            \${h.fecha_entrega ? new Date(h.fecha_entrega).toLocaleDateString() : (h.estado === 'Pendiente' ? '<span class="text-amber-500">Activo</span>' : '—')}
+                                        </td>
+                                        <td class="p-6">
+                                            <span class="px-3 py-1.5 rounded-lg border text-[9px] font-black uppercase tracking-widest \${getStatusStyles(h.estado)}">
+                                                \${h.estado}
+                                            </span>
+                                        </td>
+                                        <td class="p-6 text-right">
+                                            <div class="flex justify-end gap-2 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button onclick="window.editHistoryRecord('\${h.id}')" class="w-9 h-9 flex items-center justify-center bg-white dark:bg-slate-800 text-slate-500 hover:text-primary rounded-xl border border-slate-200 dark:border-white/10 shadow-sm transition-all"><i class="fas fa-edit text-[10px]"></i></button>
+                                                <button onclick="window.deleteHistoryRecordUI('\${h.id}', '\${h.conductor}', '\${h.numero}')" class="w-9 h-9 flex items-center justify-center bg-white dark:bg-slate-800 text-slate-500 hover:text-rose-500 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm transition-all"><i class="fas fa-trash-alt text-[10px]"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                \`;
+        }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="p-8 bg-slate-50 dark:bg-white/5 border-t border-slate-100 dark:border-white/10 flex justify-between items-center">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Página \${currentPage} de \${totalPages} <span class="mx-2 opacity-30">|</span> \${filteredHistory.length} Registros</p>
+                    <div class="flex gap-2">
+                        <button id="prev-page" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-400 hover:text-primary disabled:opacity-30 transition-all shadow-sm" \${currentPage === 1 ? 'disabled' : ''}><i class="fas fa-chevron-left text-[10px]"></i></button>
+                        <button id="next-page" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-400 hover:text-primary disabled:opacity-30 transition-all shadow-sm" \${currentPage === totalPages ? 'disabled' : ''}><i class="fas fa-chevron-right text-[10px]"></i></button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        if (options.searchInputId) {
+            const s = document.getElementById(options.searchInputId);
+            if (s) s.oninput = (e) => {
+                const q = e.target.value.toLowerCase();
+                filteredHistory = history.filter(h =>
+                    h.conductor.toLowerCase().includes(q) ||
+                    String(h.numero).includes(q) ||
+                    h.estado.toLowerCase().includes(q)
+                );
+                currentPage = 1;
+                render();
+            };
+        }
+
+        const prevBtn = container.querySelector('#prev-page');
+        if (prevBtn) prevBtn.onclick = () => { if (currentPage > 1) { currentPage--; render(); } };
+        const nextBtn = container.querySelector('#next-page');
+        if (nextBtn) nextBtn.onclick = () => { if (currentPage < totalPages) { currentPage++; render(); } };
+    };
+
+    render();
+};
+
 
 export const renderHistoryTab = (container, options = {}) => {
     const showHeader = options.showHeader !== false;
@@ -84,7 +486,7 @@ export const renderHistoryTab = (container, options = {}) => {
 
     // Calculate current Service Year
     // Service Year 2026 starts Sept 1, 2025.
-    // If Month is>= 8 (Sept, 0-indexed), Service Year is Next Year.
+    // If Month is >= 8 (Sept, 0-indexed), Service Year is Next Year.
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth(); // 0-11. Sept is 8.
     const serviceYear = currentMonth >= 8 ? currentYear + 1 : currentYear;
@@ -145,9 +547,7 @@ export const renderHistoryTab = (container, options = {}) => {
         try {
             const [allHistory, allTerritorios] = await Promise.all([
                 getHistorialReport(),
-                // Use a local import or global if available. It's usually imported in this file? 
-                // Wait, it is NOT imported. Let's add it to imports.
-                import('../data/firestore-services.js?v=1.9.9.0').then(m => m.getTerritorios())
+                getTerritorios()
             ]);
 
             // Filter data for the preview range
@@ -164,7 +564,7 @@ export const renderHistoryTab = (container, options = {}) => {
 
             const config = await getConfiguracion();
             const congregationName = config?.congregacion?.nombre || 'Mi Congregación';
-            const yearLabel = document.getElementById('report-year-select').value;
+            const yearLabel = document.getElementById('report-year-select') ? document.getElementById('report-year-select').value : serviceYear;
 
             renderReport(historyInRange, allHistory, allTerritorios, start, end, yearLabel, congregationName);
             document.getElementById('btn-export-s13-pdf').classList.remove('hidden');
@@ -278,6 +678,7 @@ export const renderHistoryTab = (container, options = {}) => {
 
 const renderReport = (dataInRange, allHistory, allTerritorios, startDate, endDate, yearLabel, congregationName) => {
     const container = document.getElementById('report-preview');
+    if (!container) return;
     container.innerHTML = '';
 
     // 1. Map all territories
