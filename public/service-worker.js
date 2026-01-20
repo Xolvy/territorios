@@ -23,21 +23,27 @@ const ASSETS_CORE = [
 ];
 
 const ASSETS_EXTERNAL = [
-    'https://cdn.jsdelivr.net/npm/chart.js',
+    'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js',
     'https://fonts.googleapis.com/css2?family=Outfit:wght@100;300;400;500;600;700;800;900&display=swap',
     'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
     'https://html2canvas.hertzen.com/dist/html2canvas.min.js',
     'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
     'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
-    'https://fonts.gstatic.com/s/outfit/v11/QGYsz_ueSjtS_GSAp-0.woff2', // Cache specific font files
     'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css'
 ];
 
 self.addEventListener('install', (event) => {
-    // console.log('[SW] Install');
     event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => {
-            return cache.addAll([...ASSETS_CORE, ...ASSETS_EXTERNAL]);
+        caches.open(CACHE_NAME).then(async (cache) => {
+            // Attempt to cache each asset individually to prevent one failure from breaking everything
+            const assets = [...ASSETS_CORE, ...ASSETS_EXTERNAL];
+            for (const asset of assets) {
+                try {
+                    await cache.add(asset);
+                } catch (err) {
+                    console.warn(`[SW] Failed to cache: ${asset}`);
+                }
+            }
         })
     );
     self.skipWaiting();

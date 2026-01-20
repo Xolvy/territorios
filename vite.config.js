@@ -6,8 +6,9 @@ export default defineConfig({
         port: 3000,
         open: true,
         headers: {
-            'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
-            'Cross-Origin-Embedder-Policy': 'credentialless'
+            // Relaxed headers to avoid blocking Firebase/Auth popups
+            'Cross-Origin-Opener-Policy': 'unsafe-none',
+            'Cross-Origin-Embedder-Policy': 'unsafe-none'
         }
     },
     build: {
