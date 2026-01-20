@@ -1,4 +1,4 @@
-import { auth } from '../firebase-config.js?v=2.1.2';
+import { auth } from '../firebase-config.js?v=2.1.4';
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import {
     getTerritorios, getConductores, getPublicadores, getTelefonos, updateTelefono,
@@ -8,10 +8,10 @@ import {
     addPublicador, updatePublicador, deletePublicador,
     releaseUnusedTelefonos, solicitarNumeros, updateTelefonoStatus, logSessionSummary,
     logReturn, returnTerritorio, returnTerritorioParcial, transferTerritory
-} from '../data/firestore-services.js?v=2.1.2';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, formatManzanas } from './utils/helpers.js?v=2.1.2';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=2.1.2';
-import { MapViewer } from './map-viewer.js?v=2.1.2';
+} from '../data/firestore-services.js?v=2.1.4';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, formatManzanas } from './utils/helpers.js?v=2.1.4';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=2.1.4';
+import { MapViewer } from './map-viewer.js?v=2.1.4';
 
 
 
@@ -257,7 +257,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
  
                 <!-- Module: Programa Semanal (Global Cards) -->
                 <div class="lg:col-span-2 ${mods.programa !== false ? '' : 'hidden'}">
-                    <div class="modern-card !p-0 border-slate-200 dark:border-white/5 shadow-2xl transition-all overflow-hidden group/prog">
+                    <div class="modern-card !p-0 border-slate-200 dark:border-white/10 shadow-2xl transition-all overflow-hidden group/prog bg-white dark:bg-slate-900/40">
                         <details class="group/prog-details" ${wasProgOpen ? 'open' : ''}>
                             <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-8 cursor-pointer list-none select-none hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
                                 <div class="flex items-start gap-6">
@@ -299,7 +299,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 </div>
 
                 <!-- Module: Telefonos -->
-                <div class="lg:col-span-2 modern-card p-6 md:p-8 ${mods.telefonos !== false ? '' : 'hidden'} border-primary/20 transition-all duration-500" id="phone-module-card">
+                <div class="lg:col-span-2 modern-card p-6 md:p-8 ${mods.telefonos !== false ? '' : 'hidden'} border-slate-200 dark:border-white/10 shadow-2xl transition-all duration-500 bg-white dark:bg-slate-900/40" id="phone-module-card">
                     <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 mb-8">
                         <div class="flex items-center gap-5 select-none group/phone-header">
                             <h3 class="text-2xl font-black text-slate-800 dark:text-white flex items-center gap-4 uppercase tracking-tight">
@@ -421,7 +421,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                     </div>
                 </div>
 
-                <div class="lg:col-span-2 modern-card border-indigo-500/10 dark:border-indigo-500/5 transition-all overflow-hidden !p-0 ${mods.mapas !== false ? '' : 'hidden'}" id="interactive-maps-module">
+                <div class="lg:col-span-2 modern-card border-slate-200 dark:border-white/10 shadow-2xl transition-all overflow-hidden !p-0 ${mods.mapas !== false ? '' : 'hidden'} bg-white dark:bg-slate-900/40" id="interactive-maps-module">
                     <details class="group/maps" ${container.querySelector('.group\\/maps')?.open ? 'open' : ''}>
                         <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-8 cursor-pointer list-none select-none hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
                             <div class="flex items-start gap-6">
@@ -1264,7 +1264,7 @@ async function renderAvailabilitySection(container, name) {
     const wasAvailOpen = container.querySelector('.group-avail')?.open;
 
     container.innerHTML = `
-    <div class="modern-card !p-0 mt-8 animate-fade-in shadow-2xl transition-all overflow-hidden border-indigo-500/20">
+    <div class="modern-card !p-0 mt-8 animate-fade-in shadow-2xl transition-all overflow-hidden border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900/40">
         <details class="group-avail" ${wasAvailOpen ? 'open' : ''}>
             <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-8 cursor-pointer list-none select-none hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
                 <div class="flex items-start gap-6">
@@ -2904,7 +2904,7 @@ function renderRescueSection(container, currentConductorName, allTerritorios, co
     const wasOpen = existingDetails ? existingDetails.open : (rescueCandidates.length > 0);
 
     container.innerHTML = `
-        <div class="modern-card !p-0 mt-24 animate-fade-in shadow-2xl transition-all overflow-hidden border-rose-500/30 ring-4 ring-rose-500/5 bg-white dark:bg-[#0f1115]">
+        <div class="modern-card !p-0 mt-24 animate-fade-in shadow-2xl transition-all overflow-hidden border-slate-200 dark:border-white/10 bg-white dark:bg-[#0f1115]">
             <details class="group/rescue" ${wasOpen ? 'open' : ''}>
                 <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-12 cursor-pointer list-none select-none hover:bg-rose-500/5 transition-colors border-b border-rose-500/10 outline-none">
                     <div class="flex items-start gap-10">
@@ -3048,7 +3048,7 @@ function renderRecursosSection(container) {
                         
                         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
                             ${recursos.map(r => `
-                                <div class="modern-card !p-0 overflow-hidden border-slate-200 dark:border-white/5 hover:border-teal-500/30 transition-all hover:shadow-2xl hover:shadow-teal-500/10 group/item flex flex-col h-full bg-white dark:bg-[#0a0f18]">
+                                <div class="modern-card !p-0 overflow-hidden border-slate-200 dark:border-white/10 transition-all shadow-2xl hover:shadow-primary/10 hover:border-primary/30 group/item flex flex-col h-full bg-white dark:bg-[#0a0f18]">
                                     <div class="h-44 bg-slate-50 dark:bg-black/40 relative overflow-hidden flex items-center justify-center">
                                          ${r.imagen ? `<img src="${r.imagen}" class="w-full h-full object-cover transition-transform duration-700 group-hover/item:scale-110">` : `
                                             <div class="flex flex-col items-center gap-3 opacity-20">
