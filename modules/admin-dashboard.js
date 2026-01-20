@@ -11,17 +11,17 @@ import {
     getCampanas, saveCampana, deleteCampana,
     getGroupsConfig, saveGroupsConfig,
     getDiffusionMessage, saveDiffusionMessage
-} from '../data/firestore-services.js?v=2.1.4';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS, formatManzanas } from './utils/helpers.js?v=2.1.4';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=2.1.4';
+} from '../data/firestore-services.js?v=2.1.5';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS, formatManzanas } from './utils/helpers.js?v=2.1.5';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=2.1.5';
 
-import { renderAnalyticsView } from './analytics-view.js?v=2.1.4';
-import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=2.1.4';
-import { auth } from '../firebase-config.js?v=2.1.4';
-import { animateEntry } from './utils/animations.js?v=2.1.4';
-import { UIHelpers, showModal, showCustomConfirm, showCustomPrompt } from './services/ui-helpers.js?v=2.1.4';
-import { GlassCard, GlassButton, GlassInput } from './services/ui-components.js?v=2.1.4';
-import { renderCasaEnCasaTab } from './admin/territories-view.js?v=2.1.4';
+import { renderAnalyticsView } from './analytics-view.js?v=2.1.5';
+import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=2.1.5';
+import { auth } from '../firebase-config.js?v=2.1.5';
+import { animateEntry } from './utils/animations.js?v=2.1.5';
+import { UIHelpers, showModal, showCustomConfirm, showCustomPrompt } from './services/ui-helpers.js?v=2.1.5';
+import { GlassCard, GlassButton, GlassInput } from './services/ui-components.js?v=2.1.5';
+import { renderCasaEnCasaTab } from './admin/territories-view.js?v=2.1.5';
 import * as XLSX from 'xlsx';
 import html2canvas from 'html2canvas';
 

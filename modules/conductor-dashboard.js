@@ -1,4 +1,4 @@
-import { auth } from '../firebase-config.js?v=2.1.4';
+import { auth } from '../firebase-config.js?v=2.1.5';
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import {
     getTerritorios, getConductores, getPublicadores, getTelefonos, updateTelefono,
@@ -8,10 +8,10 @@ import {
     addPublicador, updatePublicador, deletePublicador,
     releaseUnusedTelefonos, solicitarNumeros, updateTelefonoStatus, logSessionSummary,
     logReturn, returnTerritorio, returnTerritorioParcial, transferTerritory
-} from '../data/firestore-services.js?v=2.1.4';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, formatManzanas } from './utils/helpers.js?v=2.1.4';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=2.1.4';
-import { MapViewer } from './map-viewer.js?v=2.1.4';
+} from '../data/firestore-services.js?v=2.1.5';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, formatManzanas } from './utils/helpers.js?v=2.1.5';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=2.1.5';
+import { MapViewer } from './map-viewer.js?v=2.1.5';
 
 
 
@@ -544,27 +544,42 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
             {
                 title: 'Agenda Inteligente',
                 icon: 'fas fa-bolt-lightning',
-                msg: 'No es solo una lista. Analiza tu carga semanal y te sugiere por cuál territorio empezar hoy según la urgencia.'
-            },
-            {
-                title: 'Predicación Telefónica',
-                icon: 'fas fa-phone-alt',
-                msg: 'Gestiona llamadas grupales. Solicita números, asigna publicadores y registra resultados en tiempo real.'
-            },
-            {
-                title: 'Explorador de Mapas',
-                icon: 'fas fa-map-marked-alt',
-                msg: 'Accede a la cartografía digital de todos tus territorios asignados. Navega por manzanas y calles con precisión.'
+                msg: 'Analiza tu carga semanal y te sugiere por cuál territorio empezar hoy según la urgencia y tus asignaciones.'
             },
             {
                 title: 'Cronograma Grupal',
                 icon: 'fas fa-calendar-check',
-                msg: 'Mantente al tanto de quién conduce cada salida y los puntos de reunión de toda la congregación.'
+                msg: 'Consulta quién conduce cada salida y los puntos de reunión oficiales de toda la congregación.'
             },
             {
-                title: 'Cerebro IA',
+                title: 'Misiones de Rescate',
+                icon: 'fas fa-life-ring',
+                msg: 'Identifica y atiende territorios que llevan mucho tiempo sin trabajarse o que requieren atención inmediata.'
+            },
+            {
+                title: 'Mi Disponibilidad',
+                icon: 'fas fa-user-clock',
+                msg: 'Indica los días y turnos en los que puedes conducir el grupo para facilitar la organización de la salida.'
+            },
+            {
+                title: 'Predicación Telefónica',
+                icon: 'fas fa-phone-alt',
+                msg: 'Sistema unificado para gestionar llamadas: solicita números, asigna compañeros y registra resultados al instante.'
+            },
+            {
+                title: 'Explorador de Mapas',
+                icon: 'fas fa-map-marked-alt',
+                msg: 'Cartografía digital interactiva. Visualiza manzanas, calles y límites de tus territorios asignados con precisión.'
+            },
+            {
+                title: 'Ayudas para el Ministerio',
+                icon: 'fas fa-book-open',
+                msg: 'Repositorio de recursos, videos instructivos y metodologías para potenciar tu predicación y enseñanza.'
+            },
+            {
+                title: 'Asistente de Inteligencia Artificial',
                 icon: 'fas fa-brain',
-                msg: 'Tu asistente personal. Pregúntale cualquier duda sobre la App o sobre la gestión del territorio.'
+                msg: 'Cerebro Territorial: tu guía 24/7. Pregúntale sobre la App, gestión de territorios o sugerencias para tu grupo.'
             }
         ];
 
@@ -1201,11 +1216,15 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
         });
     }, 0);
 
-    renderAvailabilitySection(document.getElementById('availability-container'), name);
-    if (userRole !== 'Administrador' && userRole !== 'SuperAdmin') {
+    if (userMods.disponibilidad !== false) {
+        renderAvailabilitySection(document.getElementById('availability-container'), name);
+    }
+    if (userRole !== 'Administrador' && userRole !== 'SuperAdmin' && userMods.agenda !== false) {
         renderAISection(name);
     }
-    renderRecursosSection(document.getElementById('recursos-container'));
+    if (userMods.ayudas !== false) {
+        renderRecursosSection(document.getElementById('recursos-container'));
+    }
 
     // Link Rescue Module to Smart Agenda
     const showRescue = userMods?.agenda === true || (userMods?.rescue === true) || (userMods?.rescue !== false && config?.rescue_mode);
@@ -3022,13 +3041,23 @@ function renderRecursosSection(container) {
     if (!container) return;
 
     getRecursos().then(recursos => {
+        container.classList.remove('hidden');
         if (recursos.length === 0) {
-            container.innerHTML = '';
-            container.classList.add('hidden');
+            container.innerHTML = `
+                <div class="modern-card p-12 text-center space-y-4 bg-white dark:bg-slate-900/40 border-slate-200 dark:border-white/10 shadow-2xl animate-fade-in group">
+                    <div class="w-20 h-20 bg-slate-100 dark:bg-white/5 rounded-3xl flex items-center justify-center text-3xl text-slate-400 mx-auto shadow-inner border border-slate-100 dark:border-white/10 group-hover:rotate-6 transition-transform">
+                        <i class="fas fa-book-open opacity-30"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Ayudas para el Ministerio</h3>
+                        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-2">Próximamente Recursos Digitales</p>
+                    </div>
+                </div>
+            `;
             return;
         }
 
-        const wasRecOpen = container.querySelector('.group-recursos')?.open;
+        // const wasRecOpen = container.querySelector('.group-recursos')?.open;
 
         container.classList.remove('hidden');
         container.innerHTML = `
@@ -3048,7 +3077,7 @@ function renderRecursosSection(container) {
                         
                         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
                             ${recursos.map(r => `
-                                <div class="modern-card !p-0 overflow-hidden border-slate-200 dark:border-white/10 transition-all shadow-2xl hover:shadow-primary/10 hover:border-primary/30 group/item flex flex-col h-full bg-white dark:bg-[#0a0f18]">
+                                <div class="modern-card !p-0 overflow-hidden border-slate-200 dark:border-white/10 transition-all shadow-2xl hover:shadow-primary/10 hover:border-primary/30 group/item flex flex-col h-full bg-white dark:bg-slate-900/40">
                                     <div class="h-44 bg-slate-50 dark:bg-black/40 relative overflow-hidden flex items-center justify-center">
                                          ${r.imagen ? `<img src="${r.imagen}" class="w-full h-full object-cover transition-transform duration-700 group-hover/item:scale-110">` : `
                                             <div class="flex flex-col items-center gap-3 opacity-20">
