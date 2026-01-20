@@ -758,26 +758,79 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
             colorClass = "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20";
         }
 
-        // Feature 8: Integration of Rescue Missions into Smart Agenda
-        const overdueMissionsCount = allTerritorios.filter(t => {
+        // Feature 8: Integration of Rescue Missions into Smart Agenda (Refined as requested)
+        const rescueCount = allTerritorios.filter(t => {
             if (t.estado !== 'Asignado' && t.estado !== 'Pendiente') return false;
-            // Simplified overdue logic: older than 3 months without activity? 
-            // Or better: use the rescue module logic if we have access.
-            // For now, let's use a placeholder check or common logic.
-            return false; // To be implemented with actual rescue data
+            // Overdue check: 120 days
+            const days = t.fecha_asignacion ? Math.floor((new Date() - new Date(t.fecha_asignacion)) / (1000 * 60 * 60 * 24)) : 0;
+            return days > 120;
         }).length;
 
+        const rescueBtnClass = rescueCount > 0
+            ? "bg-rose-600 text-white border-rose-500/20"
+            : "bg-white dark:bg-white/5 text-rose-500 border-rose-500/30";
+
         intelligenceBadge.innerHTML = `
-            <div class="flex items-center gap-3">
-                <button onclick="document.getElementById('weekly-program-cards')?.scrollIntoView({behavior:'smooth'})" class="flex items-center gap-3 ${colorClass} py-3 px-5 rounded-2xl border text-[10px] font-black uppercase tracking-[0.2em] shadow-sm backdrop-blur-md hover:scale-105 transition-transform">
+            <div class="flex flex-wrap items-center gap-3">
+                <button onclick="document.getElementById('weekly-program-cards')?.scrollIntoView({behavior:'smooth'}); document.querySelector('.group\\/prog-details')?.setAttribute('open', '');" 
+                        class="flex items-center gap-3 ${colorClass} py-3.5 px-6 rounded-2xl border text-[10px] font-black uppercase tracking-[0.15em] shadow-sm backdrop-blur-md hover:scale-105 active:scale-95 transition-all">
                     <i class="fas fa-calendar-alt animate-pulse"></i> Programa de predicación
                 </button>
-                <button id="btn-smart-rescue" onclick="document.getElementById('ayudas-container')?.scrollIntoView({behavior:'smooth'})" class="hidden items-center gap-3 border-2 border-rose-500/30 text-rose-500 py-3 px-5 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-sm backdrop-blur-md hover:scale-105 hover:bg-rose-500 hover:text-white transition-all">
-                    <i class="fas fa-ambulance"></i> Misiones <span id="smart-rescue-count">0</span>
+                <button id="btn-smart-rescue-trigger" onclick="window.showRescueMissionsModal()" 
+                        class="flex items-center gap-3 ${rescueBtnClass} py-3.5 px-6 rounded-2xl border-2 text-[10px] font-black uppercase tracking-[0.15em] shadow-sm backdrop-blur-md hover:scale-105 active:scale-95 transition-all">
+                    <i class="fas fa-ambulance ${rescueCount > 0 ? 'animate-bounce' : ''}"></i> Misiones ${rescueCount > 0 ? `<span class="bg-white text-rose-600 px-2 py-0.5 rounded-lg ml-1 font-black">${rescueCount}</span>` : ''}
                 </button>
             </div>
         `;
     }
+
+    window.showRescueMissionsModal = async () => {
+        const allT = await getTerritorios();
+        const rescueCandidates = allT.filter(t => {
+            if (t.estado !== 'Asignado' && t.estado !== 'Pendiente') return false;
+            const days = t.fecha_asignacion ? Math.floor((new Date() - new Date(t.fecha_asignacion)) / (1000 * 60 * 60 * 24)) : 0;
+            return days > 120;
+        });
+
+        showModal(`
+        <div class="p-8">
+            <header class="flex items-center gap-4 mb-10">
+                <div class="w-14 h-14 bg-rose-500/10 rounded-2xl flex items-center justify-center text-3xl text-rose-600 shadow-inner">
+                    <i class="fas fa-ambulance animate-pulse"></i>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Misiones de Rescate</h3>
+                    <p class="text-[9px] text-rose-500 font-bold uppercase tracking-widest mt-1">Territorios atrasados que necesitan ayuda</p>
+                </div>
+            </header>
+
+            <div class="space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                ${rescueCandidates.length === 0 ? `
+                    <div class="py-10 text-center text-slate-400">
+                        <i class="fas fa-check-circle text-4xl mb-4 opacity-20"></i>
+                        <p class="text-[10px] font-black uppercase tracking-widest leading-relaxed">¡Todo al día! No hay misiones pendientes.</p>
+                    </div>
+                ` : rescueCandidates.map(t => `
+                    <div class="modern-card !p-6 border-rose-500/10 hover:border-rose-500 transition-all group flex items-center justify-between gap-4">
+                        <div>
+                            <div class="flex items-baseline gap-1">
+                                <span class="text-rose-600 font-black text-xs">T-</span>
+                                <span class="text-2xl font-black text-slate-900 dark:text-white">${t.numero}</span>
+                            </div>
+                            <p class="text-[9px] text-slate-400 font-bold uppercase mt-1">A cargo de: ${t.asignado_a}</p>
+                        </div>
+                        <button onclick="window.handleRescueTerritory('${t.id}', '${t.numero}', '${currentConductorName}', '${t.manzanas || ''}')" 
+                                class="bg-rose-600 text-white px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg shadow-rose-600/20">
+                            Coger
+                        </button>
+                    </div>
+                `).join('')}
+            </div>
+
+            <button onclick="this.closest('#modal-container').classList.add('hidden')" class="w-full mt-10 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-slate-600 transition-colors">Cerrar</button>
+        </div>
+    `);
+    };
 
     // --- RENDER MAPS GRID ---
     const mapsGrid = document.getElementById('conductor-maps-grid');
@@ -1149,7 +1202,9 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
     }, 0);
 
     renderAvailabilitySection(document.getElementById('availability-container'), name);
-    renderAISection(name);
+    if (userRole !== 'Administrador' && userRole !== 'SuperAdmin') {
+        renderAISection(name);
+    }
     renderRecursosSection(document.getElementById('recursos-container'));
 
     // Link Rescue Module to Smart Agenda
@@ -1218,12 +1273,12 @@ async function renderAvailabilitySection(container, name) {
                     </div>
                     <div>
                         <div class="flex items-center gap-3">
-                            <h3 class="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Mi Disponibilidad</h3>
+                            <h3 class="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Mi Disponibilidad</h3>
                             <div class="w-6 h-6 rounded-lg bg-slate-100 dark:bg-white/10 flex items-center justify-center text-[10px] group-open/avail:rotate-180 transition-transform text-slate-400">
                                 <i class="fas fa-chevron-down"></i>
                             </div>
                         </div>
-                        <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mt-1 opacity-70">Indica tu disponibilidad para conducir un grupo de predicación</p>
+                        <p class="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-[0.3em] mt-1 ml-1 opacity-80 italic">Indica tu disponibilidad para conducir un grupo de predicación</p>
                     </div>
                 </div>
             </summary>
@@ -1592,8 +1647,8 @@ window.openProgressModal = async (initialId, filterIds = null) => {
                         <div class="return-item-container modern-card !p-0 overflow-hidden transition-all duration-300 shadow-sm border-slate-200 relative">
                             <input type="checkbox" value="${t.id}" class="return-check absolute opacity-0 pointer-events-none">
                             <div class="modal-item-trigger p-6 flex items-center gap-5 group cursor-pointer hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
-                                <div class="w-14 h-14 bg-white dark:bg-white/5 rounded-2xl flex flex-col items-center justify-center border border-slate-100 dark:border-white/10 group-[.selected]:border-teal-500/50 group-[.selected]:bg-teal-500 group-[.selected]:text-white transition-all shadow-sm shrink-0">
-                                    <span class="text-[12px] font-black tracking-tighter">Terr. ${t.numero}</span>
+                                <div class="w-12 h-12 bg-white dark:bg-white/5 rounded-2xl flex flex-col items-center justify-center border border-slate-100 dark:border-white/10 group-[.selected]:border-teal-500/50 group-[.selected]:bg-teal-500 group-[.selected]:text-white transition-all shadow-sm shrink-0">
+                                    <span class="text-[10px] font-black tracking-tight">Terr. ${t.numero}</span>
                                 </div>
                                 <div class="flex-1 select-none">
                                     <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] opacity-70">
@@ -1607,18 +1662,18 @@ window.openProgressModal = async (initialId, filterIds = null) => {
                             <!-- Detail Section (Hidden by default) -->
                             <div class="return-details hidden p-6 bg-slate-50/50 dark:bg-black/40 border-t border-slate-100 dark:border-white/10 space-y-6 animate-fade-in">
                                 <!-- Completion Toggle -->
-                                <div class="grid grid-cols-2 gap-4">
-                                    <button class="completion-toggle flex items-center justify-center gap-3 p-3 rounded-2xl border-2 border-slate-200 dark:border-white/5 active transition-all group hover:bg-white dark:hover:bg-white/5" data-tid="${t.id}" data-val="full">
-                                        <div class="w-8 h-8 rounded-xl bg-slate-100 dark:bg-white/10 flex items-center justify-center text-slate-400 group-[.active]:bg-emerald-500 group-[.active]:text-white transition-all shadow-inner group-[.active]:shadow-lg group-[.active]:shadow-emerald-500/30">
-                                            <i class="fas fa-check-circle text-lg"></i>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <button class="completion-toggle flex items-center justify-center gap-2 p-2 rounded-xl border-2 border-slate-200 dark:border-white/5 active transition-all group hover:bg-white dark:hover:bg-white/5" data-tid="${t.id}" data-val="full">
+                                        <div class="w-6 h-6 rounded-lg bg-slate-100 dark:bg-white/10 flex items-center justify-center text-slate-400 group-[.active]:bg-emerald-500 group-[.active]:text-white transition-all shadow-inner group-[.active]:shadow-lg group-[.active]:shadow-emerald-500/30">
+                                            <i class="fas fa-check-circle text-xs"></i>
                                         </div>
-                                        <span class="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 group-[.active]:text-emerald-600 dark:group-[.active]:text-emerald-400 group-[.active]:opacity-100 opacity-60">Lleno</span>
+                                        <span class="text-[8px] font-black uppercase tracking-widest text-slate-500 group-[.active]:text-emerald-600 dark:group-[.active]:text-emerald-400 group-[.active]:opacity-100 opacity-60">Lleno</span>
                                     </button>
-                                    <button class="completion-toggle flex items-center justify-center gap-3 p-3 rounded-2xl border-2 border-slate-200 dark:border-white/5 grayscale opacity-40 transition-all group hover:bg-white dark:hover:bg-white/5" data-tid="${t.id}" data-val="parcial">
-                                        <div class="w-8 h-8 rounded-xl bg-slate-100 dark:bg-white/10 flex items-center justify-center text-slate-400 group-[.active]:bg-amber-500 group-[.active]:text-white transition-all shadow-inner group-[.active]:shadow-lg group-[.active]:shadow-amber-500/30">
-                                            <i class="fas fa-adjust text-lg rotate-45"></i>
+                                    <button class="completion-toggle flex items-center justify-center gap-2 p-2 rounded-xl border-2 border-slate-200 dark:border-white/5 grayscale opacity-40 transition-all group hover:bg-white dark:hover:bg-white/5" data-tid="${t.id}" data-val="parcial">
+                                        <div class="w-6 h-6 rounded-lg bg-slate-100 dark:bg-white/10 flex items-center justify-center text-slate-400 group-[.active]:bg-amber-500 group-[.active]:text-white transition-all shadow-inner group-[.active]:shadow-lg group-[.active]:shadow-amber-500/30">
+                                            <i class="fas fa-adjust text-xs rotate-45"></i>
                                         </div>
-                                        <span class="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 group-[.active]:text-amber-600 dark:group-[.active]:text-amber-400 group-[.active]:opacity-100 opacity-60">Parcial</span>
+                                        <span class="text-[8px] font-black uppercase tracking-widest text-slate-500 group-[.active]:text-amber-600 dark:group-[.active]:text-amber-400 group-[.active]:opacity-100 opacity-60">Parcial</span>
                                     </button>
                                 </div>
 
@@ -1648,10 +1703,10 @@ window.openProgressModal = async (initialId, filterIds = null) => {
                                 <div class="space-y-6">
                                     <div class="space-y-3">
                                         <label class="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
-                                            <i class="fas fa-comment-alt text-teal-500/60"></i> Observaciones y Avance
+                                            <i class="fas fa-comment-alt text-primary/50 text-xs text-[12px] opacity-70"></i> Notas de la actividad
                                         </label>
                                         <div class="relative group/notes">
-                                            <textarea id="notes-${t.id}" data-tid="${t.id}" class="territory-notes w-full bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-2xl p-5 pr-28 text-[11px] font-bold min-h-[110px] outline-none focus:ring-4 focus:ring-teal-500/10 transition-all text-slate-800 dark:text-white resize-none shadow-inner dark:placeholder:text-white/20" placeholder="Describe qué manzanas predicaste o detalles importantes..."></textarea>
+                                            <textarea id="notes-${t.id}" data-tid="${t.id}" class="territory-notes w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-5 pr-28 text-[11px] font-bold min-h-[110px] outline-none focus:ring-4 focus:ring-primary/10 transition-all text-slate-800 dark:text-white resize-none shadow-inner dark:placeholder:text-white/20" placeholder="Escribe detalles importantes para la próxima visita..."></textarea>
                                             
                                             <div class="absolute right-3 bottom-3 flex items-center gap-2">
                                                 <button onclick="window.startVoiceDictation('notes-${t.id}', 'mic-icon-${t.id}')" class="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-800/80 backdrop-blur-md flex flex-col items-center justify-center text-teal-600 hover:bg-teal-500 hover:text-white transition-all shadow-sm border border-slate-200 dark:border-white/10 group/mic">
@@ -2038,7 +2093,7 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
         const statusVal = statusFilter ? statusFilter.value : '';
 
         // Filter and Sort
-        let filtered = telefonos.filter(t => {
+        let filtered = activeRequests.filter(t => {
             const matchSearch = !searchVal || t.numero.includes(searchVal) || (t.propietario && t.propietario.toLowerCase().includes(searchVal));
             const matchStatus = !statusVal || t.estado === statusVal;
             return matchSearch && matchStatus;
@@ -2049,8 +2104,6 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
             const dateB = b.fecha_asignacion ? new Date(b.fecha_asignacion) : new Date(0);
             return dateB - dateA;
         });
-
-        activeRequests = telefonos.filter(t => t.solicitado_por === userId);
 
         if (activeRequests.length === 0) {
             tbody.innerHTML = `<tr> <td colspan="6" class="p-20 text-center text-gray-400 dark:text-gray-500 italic font-bold">No tienes números solicitados. Usa el botón "Solicitar" en la vista compacta o arriba.</td></tr> `;
@@ -2167,6 +2220,8 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
             newBtn.disabled = true;
             newBtn.innerHTML = '<span class="animate-pulse">PROCESANDO...</span>';
             try {
+                // Ensure fresh start: release previous unassigned/unused ones first
+                await releaseUnusedTelefonos(userId);
                 const count = await solicitarNumeros(30, userId);
                 if (count > 0) {
                     showNotification(`¡Se te han asignado ${count} números nuevos!`, "success");
@@ -2240,8 +2295,8 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
                          </div>
                     </div>
 
-                    <div class="shrink-0 p-8 border-t border-slate-100 dark:border-white/5 bg-white dark:bg-[#0b0e14]">
-                        <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="w-full bg-slate-100 dark:bg-white/5 py-4 rounded-2xl text-[10px] font-black text-slate-400 hover:text-amber-500 transition-all uppercase tracking-[0.4em] border border-slate-200 dark:border-white/10">
+                    <div class="shrink-0 p-6 border-t border-slate-100 dark:border-white/5 bg-white dark:bg-[#0b0e14]">
+                        <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="w-full bg-slate-100 dark:bg-white/5 py-2.5 rounded-xl text-[9px] font-black text-slate-400 hover:text-amber-500 transition-all uppercase tracking-[0.2em] border border-slate-200 dark:border-white/10">
                             Cerrar
                         </button>
                     </div>
@@ -2362,9 +2417,10 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
     };
 
     // End Session Logic
-    const btnFinalizar = document.getElementById('btn-finalizar-sesion');
-    if (btnFinalizar) {
-        btnFinalizar.addEventListener('click', async () => {
+    const bindFinalizar = (id) => {
+        const btn = document.getElementById(id);
+        if (!btn) return;
+        btn.onclick = async () => {
             const activeRequests = telefonos.filter(t => t.solicitado_por === userId);
             if (activeRequests.length === 0) return;
 
@@ -2393,7 +2449,7 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
 
             const modal = document.getElementById('modal-container');
             showModal(`
-    <div class="p-12 text-center space-y-12 animate-fade-in bg-slate-50 dark:bg-[#0b0e14]">
+                <div class="p-12 text-center space-y-12 animate-fade-in bg-slate-50 dark:bg-[#0b0e14]">
                     <div class="relative inline-block">
                         <div class="w-32 h-32 bg-primary/10 dark:bg-primary/20 rounded-[3rem] flex items-center justify-center text-6xl text-primary shadow-inner border border-primary/20 animate-float">
                             <i class="fas fa-flag-checkered"></i>
@@ -2428,56 +2484,57 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
                     <button id="btn-share-results" class="w-full bg-primary hover:bg-primary-dark py-6 rounded-3xl text-white font-black shadow-2xl shadow-primary/30 hover:shadow-primary/50 hover:scale-[1.02] active:scale-[0.98] transition-all uppercase tracking-[0.4em] text-xs flex items-center justify-center gap-5 group">
                          <i class="fas fa-share-nodes text-xl group-hover:rotate-12 transition-transform"></i> Compartir Reporte
                     </button>
+                    <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-primary transition-colors">Volver</button>
                 </div>
-    `);
-            modal.classList.remove('hidden');
-
-            // Log summary to backend
-            await logSessionSummary({
-                conductor_id: userId,
-                stats: summary.stats,
-                total: summary.total
+            `, (modal) => {
+                // Modal callback
             });
 
-            // RELEASE UNUSED NUMBERS (Numbers that were requested but never assigned or worked on)
+            // Log summary and release numbers immediately on click "Finalizar"
             try {
+                await logSessionSummary({
+                    conductor_id: userId,
+                    stats: summary.stats,
+                    total: summary.total
+                });
                 await releaseUnusedTelefonos(userId);
             } catch (e) {
-                console.error("Error releasing numbers:", e);
+                console.error("Error finalizing session:", e);
             }
 
             // Automatic collapse after finishing
             setPhoneOpen(false);
 
-            document.getElementById('btn-share-results').onclick = async () => {
-                const message = `📋 * Resumen de Predicación Telefónica *\n` +
-                    `👤 * Conductor:* ${userId} \n` +
-                    `📊 * Total procesado:* ${summary.total} \n\n` +
-                    `${statsText} \n\n` +
-                    `_Enviado desde App Territorios_`;
+            const shareBtn = document.getElementById('btn-share-results');
+            if (shareBtn) {
+                shareBtn.onclick = async () => {
+                    const message = `📋 *Resumen de Predicación Telefónica*\n` +
+                        `👤 *Conductor:* ${userId} \n` +
+                        `📊 *Total procesado:* ${summary.total} \n\n` +
+                        `${statsText} \n\n` +
+                        `_Enviado desde App Territorios_`;
 
-                if (navigator.share) {
-                    try {
-                        await navigator.share({
-                            title: 'Resumen de Predicación',
-                            text: message
-                        });
-                    } catch (err) {
-                        console.log("Share failed or cancelled", err);
+                    if (navigator.share) {
+                        try {
+                            await navigator.share({
+                                title: 'Resumen de Predicación',
+                                text: message
+                            });
+                        } catch (err) {
+                            console.log("Share failed or cancelled", err);
+                        }
+                    } else {
+                        window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
                     }
-                } else {
-                    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
-                }
+                    // Close modal after sharing
+                    document.getElementById('modal-container').classList.add('hidden');
+                };
+            }
+        };
+    };
 
-                // Close modal and refresh view
-                modal.classList.add('hidden');
-                if (refreshCallback) {
-                    telefonos = await refreshCallback();
-                    render();
-                }
-            };
-        });
-    }
+    bindFinalizar('btn-finalizar-sesion');
+    bindFinalizar('btn-finalizar');
 
     // Search and Filter Listeners
     const searchPhone = document.getElementById('search-phone');
@@ -2615,8 +2672,11 @@ async function renderAISection(name) {
                 </button>
             </div>
             
-            <div id="conductor-chat-log" class="flex-1 overflow-y-auto p-8 space-y-6 text-xs custom-scrollbar min-h-[350px] bg-white/40 dark:bg-slate-900/40">
-                <div class="bg-white dark:bg-white/5 p-6 rounded-[2rem] rounded-tl-none border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 leading-relaxed shadow-sm font-bold text-[13px]">
+            <div id="conductor-chat-log" class="flex-1 overflow-y-auto p-8 space-y-6 text-xs custom-scrollbar min-h-[350px] bg-slate-50/50 dark:bg-black/20">
+                <div class="bg-white dark:bg-slate-800 p-6 rounded-[2rem] rounded-tl-none border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 leading-relaxed shadow-sm font-bold text-[13px]">
+                    <p class="text-[9px] font-black text-primary uppercase tracking-[0.2em] mb-2 opacity-50">
+                        Hoy es ${new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                    </p>
                     Hola <b>${name.split(' ')[0]}</b>. He analizado el estado del territorio de la congregación. ✨<br><br>
                     ¿Necesitas que te recomiende un territorio estratégico o tienes alguna consulta sobre cómo usar la App?
                 </div>
@@ -2748,7 +2808,7 @@ async function renderAISection(name) {
 
             document.getElementById(loadingId)?.remove();
 
-            log.innerHTML += `<div class="flex justify-start"><div class="bg-white/10 text-gray-200 px-4 py-3 rounded-3xl rounded-tl-none text-xs border border-white/10 max-w-[90%] leading-relaxed shadow-sm">
+            log.innerHTML += `<div class="flex justify-start"><div class="bg-white dark:bg-slate-800 text-slate-700 dark:text-gray-200 px-5 py-4 rounded-3xl rounded-tl-none text-[13px] border border-slate-100 dark:border-white/10 max-w-[90%] leading-relaxed shadow-md font-medium">
                 ${htmlResponse}
              </div></div>`;
 
@@ -3000,12 +3060,12 @@ function renderRecursosSection(container) {
                                     </div>
                                     <div class="p-8 flex flex-col gap-6 flex-1">
                                         <div class="space-y-2">
-                                            <h4 class="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">${r.titulo}</h4>
-                                            <p class="text-[12px] text-slate-500 dark:text-slate-400 font-bold leading-relaxed line-clamp-3">${r.descripcion || 'Herramienta optimizada para el ministerio cristiano.'}</p>
+                                            <h4 class="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">${r.titulo || r.nombre}</h4>
+                                            <p class="text-[12px] text-slate-500 dark:text-slate-400 font-bold leading-relaxed line-clamp-3">${r.descripcion || ''}</p>
                                         </div>
                                         <div class="mt-auto pt-6 border-t border-slate-100 dark:border-white/5">
-                                            <a href="${r.url || '#'}" target="_blank" class="w-full bg-slate-50 dark:bg-white/5 py-4 rounded-xl text-[10px] font-black text-teal-600 dark:text-teal-400 uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-teal-500 hover:text-white transition-all shadow-sm border border-slate-200 dark:border-white/10 active:scale-95">
-                                                Explorar Recurso <i class="fas fa-external-link-alt text-[8px]"></i>
+                                            <a href="${r.url || '#'}" target="_blank" class="w-full bg-slate-900 dark:bg-white/5 py-4 rounded-xl text-[10px] font-black text-white dark:text-teal-400 uppercase tracking-[0.3em] flex items-center justify-center gap-2 hover:bg-black dark:hover:bg-white/10 transition-all shadow-lg active:scale-95">
+                                                Ver <i class="fas fa-external-link-alt text-[8px]"></i>
                                             </a>
                                         </div>
                                     </div>

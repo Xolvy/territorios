@@ -12,7 +12,7 @@ import {
     getGroupsConfig, saveGroupsConfig,
     getDiffusionMessage, saveDiffusionMessage
 } from '../data/firestore-services.js?v=2.1.2';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=2.1.2';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS, formatManzanas } from './utils/helpers.js?v=2.1.2';
 import { TerritoryIntelligence } from './utils/intelligence.js?v=2.1.2';
 
 import { renderAnalyticsView } from './analytics-view.js?v=2.1.2';
@@ -6024,23 +6024,23 @@ const renderProgramaTab = async (container) => {
                                 </div>`;
                     })()}
 
-                        <div class="flex items-center gap-2 mb-3">
-                            <div class="w-8 h-8 ${t.bg} ${t.color} rounded-lg flex items-center justify-center text-sm shadow-inner group-hover/turn:scale-110 transition-transform duration-500">
+                        <div class="flex items-center gap-2 mb-2">
+                            <div class="w-7 h-7 ${t.bg} ${t.color} rounded-lg flex items-center justify-center text-xs shadow-inner group-hover/turn:scale-110 transition-transform duration-500">
                                 <i class="fas ${t.icon}"></i>
                             </div>
                             <div>
                                 ${isWeekend && t.id !== 'zoom' ? `
                                     <div class="relative">
                                         <select onchange="window.updateWeekData(${dayIndex}, '${turnoId}', 'jornada', this.value)" 
-                                                class="bg-transparent text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 outline-none cursor-pointer hover:text-primary transition-colors appearance-none pr-4">
+                                                class="bg-transparent text-[9px] font-black uppercase tracking-widest text-slate-400 outline-none cursor-pointer hover:text-primary transition-colors appearance-none pr-3">
                                             <option value="Mañana" ${(fieldValJornada || t.label) === 'Mañana' ? 'selected' : ''}>Mañana</option>
                                             <option value="Tarde" ${(fieldValJornada || t.label) === 'Tarde' ? 'selected' : ''}>Tarde</option>
                                             <option value="Noche" ${(fieldValJornada || t.label) === 'Noche' ? 'selected' : ''}>Noche</option>
                                         </select>
-                                        <i class="fas fa-chevron-down absolute right-0 top-1/2 -translate-y-1/2 text-[7px] opacity-30 pointer-events-none"></i>
+                                        <i class="fas fa-chevron-down absolute right-0 top-1/2 -translate-y-1/2 text-[6px] opacity-30 pointer-events-none"></i>
                                     </div>
                                 ` : `
-                                    <span class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 block mb-0.5">${t.label}</span>
+                                    <span class="text-[9px] font-black uppercase tracking-widest text-slate-400 block">${t.label}</span>
                                 `}
                             </div>
                         </div>
@@ -6067,41 +6067,43 @@ const renderProgramaTab = async (container) => {
                             <button onclick="window.openTerritorySelector(${dayIndex}, '${turnoId}', this)" 
                                     data-current="${val.replace(/"/g, '&quot;')}"
                                      class="w-full text-left bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-2.5 rounded-xl hover:border-primary transition-all flex items-center justify-between group/btn shadow-sm">
-                                <span class="text-[10px] font-black truncate ${val ? 'text-primary' : 'text-slate-400 opacity-40'}">${val || '—'}</span>
+                                <span class="text-[10px] font-black truncate ${val ? 'text-primary' : 'text-slate-400 opacity-40'}">${formatManzanas(val) || '—'}</span>
                                 <i class="fas fa-chevron-down text-[8px] opacity-10 group-hover/btn:opacity-50"></i>
                             </button>`;
                     } else if (field === 'Grupos') {
                         html += `
-                            <label class="text-[9px] font-black text-slate-400 tracking-[0.2em] uppercase ml-1 flex items-center gap-2">
-                                <i class="fas fa-users opacity-30"></i> ${field}
+                            <label class="text-[8px] font-black text-slate-400 tracking-widest uppercase ml-1 flex items-center gap-1.5 opacity-60">
+                                <i class="fas fa-users"></i> ${field}
                             </label>
                             <button onclick="window.openGroupSelector(${dayIndex}, '${turnoId}', this)" 
                                     data-current="${val.replace(/"/g, '&quot;')}"
-                                    class="w-full text-left bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-3.5 rounded-2xl hover:border-indigo-500 transition-all flex items-center justify-between group/btn shadow-sm">
-                                <span class="text-[11px] font-black truncate ${val ? 'text-indigo-500' : 'text-slate-400 opacity-40'}">${val || '—'}</span>
-                                <i class="fas fa-chevron-down text-[9px] opacity-10 group-hover/btn:opacity-50"></i>
+                                    class="w-full text-left bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-2.5 rounded-xl hover:border-indigo-500 transition-all flex items-center justify-between group/btn shadow-sm">
+                                <span class="text-[10px] font-black truncate ${val ? 'text-indigo-500' : 'text-slate-400 opacity-40'}">${val || '—'}</span>
+                                <i class="fas fa-chevron-down text-[8px] opacity-10 group-hover/btn:opacity-50"></i>
                             </button>`;
                     } else if (opts.length > 0) {
                         html += `
-                            <label class="text-[9px] font-black text-slate-400 tracking-[0.2em] uppercase ml-1 flex items-center gap-2">
-                                <i class="fas ${icon} opacity-30"></i> ${field}
+                            <label class="text-[8px] font-black text-slate-400 tracking-widest uppercase ml-1 flex items-center gap-1.5 opacity-60">
+                                <i class="fas ${icon}"></i> ${field}
                             </label>
                             <div class="relative">
                                 <select onchange="window.updateWeekData(${dayIndex}, '${turnoId}', '${fieldId}', this.value)" 
                                         class="w-full bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-2 rounded-xl text-[9px] font-black text-slate-700 dark:text-white outline-none focus:border-primary appearance-none cursor-pointer shadow-sm transition-all focus:ring-1 focus:ring-primary/20">
                                     <option value="">—</option>
                                     ${opts.map(o => {
-                            let extra = '';
+                            let availableTag = '';
                             if (field === 'Conductor' || field === 'Auxiliar') {
                                 const p = allPersonnel.find(x => x.nombre === o);
                                 const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
                                 const dayName = dayNames[dayIndex];
-                                const availKey = `${dayName}_${turnoId}`;
+                                // Check both fixed turnoId and a potentially overridden 'jornada' value if it's weekend
+                                const jornadaVal = data['jornada'] || (turnoId === 'manana' ? 'Mañana' : turnoId === 'tarde' ? 'Tarde' : 'Noche');
+                                const availKey = `${dayName}_${jornadaVal.toLowerCase()}`;
                                 if (p?.disponibilidad?.includes(availKey)) {
-                                    extra = ' 🟢';
+                                    availableTag = ' [DISPONIBLE]';
                                 }
                             }
-                            return `<option value="${o}" ${val === o ? 'selected' : ''}>${o}${extra}</option>`;
+                            return `<option value="${o}" ${val === o ? 'selected' : ''}>${o}${availableTag}</option>`;
                         }).join('')}
                                 </select>
                                 <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-[8px] opacity-20 pointer-events-none"></i>

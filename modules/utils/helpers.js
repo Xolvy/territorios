@@ -162,6 +162,16 @@ export const formatManzanas = (text) => {
     return text.toString().replace(/Salmo/gi, 'Mz.');
 };
 
+// Global click-outside to close modals
+if (typeof document !== 'undefined') {
+    document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('modal-overlay')) {
+            const modal = e.target.closest('.modal-container') || e.target;
+            modal.remove();
+        }
+    });
+}
+
 export const isIOS = () => {
     return [
         'iPad Simulator',
