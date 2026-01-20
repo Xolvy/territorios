@@ -811,66 +811,94 @@ export const addTelefono = async (telefono) => {
 };
 
 export const solicitarNumeros = async (cantidad = 30, userId) => {
-    // Optimization: Limit to a reasonable buffer (e.g., 200) to find valid ones without fetching the whole collection
+    // 1. Try to find unassigned and unrequested numbers
     const q = query(collection(db, "telefonos"),
         where("estado", "==", "Sin asignar"),
         where("publicador_asignado", "==", null),
         limit(200)
     );
-    const snapshot = await getDocs(q);
+    let snapshot = await getDocs(q);
 
-    let count = 0;
-    const batch = writeBatch(db);
+    const getAvailableFromSnapshot = (snap) => {
+        let count = 0;
+        const batch = writeBatch(db);
+        const now = new Date();
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(now.getMonth() - 6);
+        const selectedIds = [];
 
-    // Filter out 'No llamar' that are still within 6 months
-    const now = new Date();
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(now.getMonth() - 6);
+        for (const d of snap.docs) {
+            if (count >= cantidad) break;
+            const data = d.data();
 
-    for (const d of snapshot.docs) {
-        if (count >= cantidad) break;
-        const data = d.data();
+            // Check 'No llamar' timer
+            if (data.ultimo_estado === 'No llamar') {
+                const lastDate = data.fecha_ultimo_estado ? new Date(data.fecha_ultimo_estado) : new Date(0);
+                if (lastDate > sixMonthsAgo) continue;
+            }
 
-        // Check 'No llamar' timer
-        if (data.ultimo_estado === 'No llamar') {
-            const lastDate = data.fecha_ultimo_estado ? new Date(data.fecha_ultimo_estado) : new Date(0);
-            if (lastDate > sixMonthsAgo) continue;
+            // Extra safety check for requested_by (solicitado_por)
+            if (!data.solicitado_por) {
+                batch.update(doc(db, "telefonos", d.id), {
+                    solicitado_por: userId,
+                    publicador_asignado: null,
+                    asignado_a: null,
+                    fecha_asignacion: new Date().toISOString()
+                });
+                count++;
+                selectedIds.push(d.id);
+            }
         }
+        return { count, batch, ids: selectedIds };
+    };
 
-        // Extra safety check for requested_by (solicitado_por)
-        if (!data.solicitado_por) {
-            batch.update(doc(db, "telefonos", d.id), {
-                solicitado_por: userId,
-                publicador_asignado: null,
-                asignado_a: null,
-                fecha_asignacion: new Date().toISOString()
-            });
-            count++;
+    let result = getAvailableFromSnapshot(snapshot);
+
+    // 2. If no numbers found, the cycle might be exhausted. Trigger reset and try again.
+    if (result.count === 0) {
+        console.log("No numbers available. Checking for cycle reset...");
+        const resetDone = await checkAndResetTelephoneCycle(true);
+        if (resetDone) {
+            // Re-fetch after reset
+            snapshot = await getDocs(q);
+            result = getAvailableFromSnapshot(snapshot);
         }
     }
 
-    if (count > 0) {
-        await batch.commit();
+    if (result.count > 0) {
+        await result.batch.commit();
     }
-    return count;
+    return result.count;
 };
 
-// Check if all 1124 (or total) records are processed and reset cycle
-export const checkAndResetTelephoneCycle = async () => {
+// Check if all records are processed (have status OR are requested) and reset cycle
+export const checkAndResetTelephoneCycle = async (forceRequested = false) => {
     try {
         const snapshot = await getDocs(collection(db, "telefonos"));
         const total = snapshot.docs.length;
         if (total === 0) return false;
 
-        // Count those that have a status DIFFERENT from 'Sin asignar' 
-        // OR have been assigned previously in this cycle.
-        // Actually, requirement says: "una vez que todos tengan un estado registrado, todos los registros se pondrán en blanco"
-        const recordsWithStatus = snapshot.docs.filter(d => {
-            const st = d.data().estado;
-            return st && st !== 'Sin asignar';
+        // A record is "worked" or "given" if:
+        // - status is not 'Sin asignar'
+        // - OR it is currently requested by someone (solicitado_por exists)
+        const processedRecords = snapshot.docs.filter(d => {
+            const data = d.data();
+            const hasStatus = data.estado && data.estado !== 'Sin asignar';
+            const isRequested = data.solicitado_por !== null && data.solicitado_por !== undefined;
+            return hasStatus || isRequested;
         });
 
-        if (recordsWithStatus.length === total) {
+        // We reset ONLY if all numbers have been distributed/worked
+        if (processedRecords.length === total || forceRequested) {
+            // If it's a forced check from solicitarNumeros, we only proceed if there are zero available numbers
+            if (forceRequested) {
+                const anyAvailable = snapshot.docs.some(d => {
+                    const data = d.data();
+                    return data.estado === 'Sin asignar' && !data.solicitado_por;
+                });
+                if (anyAvailable) return false; // Don't reset if there are still some virgin numbers
+            }
+
             console.log("🚀 Telephone Cycle Complete! Resetting all records...");
             const batch = writeBatch(db);
             const now = new Date().toISOString();
@@ -879,11 +907,8 @@ export const checkAndResetTelephoneCycle = async () => {
                 const data = d.data();
                 const currentStatus = data.estado;
 
-                // Rules:
-                // Contestaron, No contestan, Colgaron -> Sin asignar, clear publisher
-                // Observations kept internally for Admin with date
-
-                if (['Contestaron', 'No contestan', 'Colgaron'].includes(currentStatus)) {
+                // Reset logic
+                if (!currentStatus || ['Contestaron', 'No contestan', 'Colgaron', 'Sin asignar'].includes(currentStatus)) {
                     batch.update(doc(db, "telefonos", d.id), {
                         estado: 'Sin asignar',
                         publicador_asignado: null,
@@ -895,11 +920,8 @@ export const checkAndResetTelephoneCycle = async () => {
                         fecha_ultimo_ciclo: now
                     });
                 } else if (currentStatus === 'Revisita') {
-                    // Keep Revisita until manually returned (Requirement: "hasta que se marque como Devuelto")
-                    // We don't reset it here.
+                    // Keep Revisita until manually returned
                 } else if (currentStatus === 'No llamar') {
-                    // "permanecerá oculto por 6 meses, después de ese tiempo el estado pasará a ser Sin asignar"
-                    // This is handled in solicitarNumeros filter, but let's mark it for clarity
                     batch.update(doc(db, "telefonos", d.id), {
                         ultimo_estado: 'No llamar',
                         estado: 'Sin asignar',
