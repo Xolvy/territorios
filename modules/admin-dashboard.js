@@ -11,17 +11,17 @@ import {
     getCampanas, saveCampana, deleteCampana,
     getGroupsConfig, saveGroupsConfig,
     getDiffusionMessage, saveDiffusionMessage
-} from '../data/firestore-services.js?v=2.0.1';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=2.0.1';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=2.0.1';
+} from '../data/firestore-services.js?v=2.1.0';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=2.1.0';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=2.1.0';
 
-import { renderAnalyticsView } from './analytics-view.js?v=2.0.1';
-import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=2.0.1';
-import { auth } from '../firebase-config.js?v=2.0.1';
-import { animateEntry } from './utils/animations.js?v=1.9.9.0';
-import { UIHelpers, showModal, showCustomConfirm, showCustomPrompt } from './services/ui-helpers.js?v=1.9.9.0';
-import { GlassCard, GlassButton, GlassInput } from './services/ui-components.js?v=1.9.9.0';
-import { renderCasaEnCasaTab } from './admin/territories-view.js?v=1.9.9.0';
+import { renderAnalyticsView } from './analytics-view.js?v=2.1.0';
+import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=2.1.0';
+import { auth } from '../firebase-config.js?v=2.1.0';
+import { animateEntry } from './utils/animations.js?v=2.1.0';
+import { UIHelpers, showModal, showCustomConfirm, showCustomPrompt } from './services/ui-helpers.js?v=2.1.0';
+import { GlassCard, GlassButton, GlassInput } from './services/ui-components.js?v=2.1.0';
+import { renderCasaEnCasaTab } from './admin/territories-view.js?v=2.1.0';
 import * as XLSX from 'xlsx';
 import html2canvas from 'html2canvas';
 
@@ -2616,7 +2616,7 @@ const renderAsignacionesView = async (container) => {
                                 <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Auxiliar</label>
                                 <select id="h-edit-aux" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-sm font-bold shadow-sm outline-none focus:border-primary transition-all text-slate-700 dark:text-white appearance-none">
                                     <option value="">Ninguno</option>
-                                    ${allP.map(p => `<option value="${p.nombre}" ${rec?.auxiliar === p.nombre ? 'selected' : ''}>${p.nombre}</option>`).join('')}
+                                    ${allP.filter(p => p.es_conductor).map(p => `<option value="${p.nombre}" ${rec?.auxiliar === p.nombre ? 'selected' : ''}>${p.nombre}</option>`).join('')}
                                 </select>
                             </div>
                             <div class="space-y-2">

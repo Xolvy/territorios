@@ -8,16 +8,16 @@ import {
     deleteProgramaSemanal, syncSlotWithTerritories, getRecursos, addRecurso,
     updateRecurso, getCampanas, saveCampana, getGroupsConfig, returnTerritorioParcial,
     rebuildHistoryFromSchedule, runSystemDiagnosticsAndRepair, masterResetAssignments
-} from '../../data/firestore-services.js?v=2.0.1';
+} from '../../data/firestore-services.js?v=2.1.0';
 import {
     formatPhoneNumber, getStatusColor, showNotification, formatMapUrl,
     ensureOnline, generatePlainXLS
-} from '../utils/helpers.js?v=2.0.1';
-import { UIHelpers, showModal, showCustomConfirm, showCustomPrompt } from '../services/ui-helpers.js?v=2.0.1';
-import { GlassCard, GlassButton, GlassInput } from '../services/ui-components.js?v=2.0.1';
+} from '../utils/helpers.js?v=2.1.0';
+import { UIHelpers, showModal, showCustomConfirm, showCustomPrompt } from '../services/ui-helpers.js?v=2.1.0';
+import { GlassCard, GlassButton, GlassInput } from '../services/ui-components.js?v=2.1.0';
 import * as XLSX from 'xlsx';
 import html2canvas from 'html2canvas';
-import { renderHistoryTab, renderS13CommandCenter } from '../report-s13.js?v=2.0.1';
+import { renderHistoryTab, renderS13CommandCenter } from '../report-s13.js?v=2.1.0';
 
 const fmtDate = UIHelpers.fmtDate;
 const getMonday = UIHelpers.getMonday;
@@ -148,13 +148,13 @@ export const renderCasaEnCasaTab = async (container) => {
                         <i class="fas fa-calendar-alt text-xs md:text-sm"></i>
                         <span class="text-[10px] md:text-[11px] font-extrabold uppercase tracking-wider">Programa</span>
                     </button>
-                    <button class="sub-tab-casa group px-3 md:px-5 py-2.5 md:py-3 rounded-xl transition-all flex items-center gap-2 md:gap-3 whitespace-nowrap font-extrabold" data-sub="s12">
-                        <i class="fas fa-map text-xs md:text-sm"></i>
-                        <span class="text-[10px] md:text-[11px] font-extrabold uppercase tracking-wider">S-12</span>
-                    </button>
                     <button class="sub-tab-casa group px-3 md:px-5 py-2.5 md:py-3 rounded-xl transition-all flex items-center gap-2 md:gap-3 whitespace-nowrap font-extrabold" data-sub="gestion">
                         <i class="fas fa-history text-xs md:text-sm"></i>
                         <span class="text-[10px] md:text-[11px] font-extrabold uppercase tracking-wider">Reportes</span>
+                    </button>
+                    <button class="sub-tab-casa group px-3 md:px-5 py-2.5 md:py-3 rounded-xl transition-all flex items-center gap-2 md:gap-3 whitespace-nowrap font-extrabold" data-sub="s12">
+                        <i class="fas fa-map text-xs md:text-sm"></i>
+                        <span class="text-[10px] md:text-[11px] font-extrabold uppercase tracking-wider">S-12</span>
                     </button>
                     <div class="w-px h-6 bg-slate-200 dark:bg-white/10 mx-0.5 md:mx-1 shrink-0"></div>
                     <button class="sub-tab-casa group px-3 md:px-5 py-2.5 md:py-3 rounded-xl transition-all flex items-center gap-2 md:gap-3 whitespace-nowrap font-extrabold" data-sub="recursos">
@@ -534,13 +534,12 @@ const renderAsignacionesView = async (container) => {
                                     <h4 class="font-black text-lg text-slate-800 dark:text-white truncate uppercase tracking-tight">${t.asignado_a || 'Disponible'}</h4>
                                     <p class="text-[10px] text-slate-500 dark:text-slate-400 truncate uppercase font-bold tracking-widest">${t.localidad || 'Ubicación General'}</p>
                                 </div>
-                                <div class="flex gap-2 relative z-10" onclick="event.stopPropagation()">
+                                <div class="flex items-center justify-center gap-3 relative z-10" onclick="event.stopPropagation()">
+                                     <button class="flex-1 h-12 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-xs text-slate-400 hover:text-primary transition-all shadow-sm flex items-center justify-center" onclick="window.actionHistory('${t.id}', '${t.numero}')" title="Ver Historial">
+                                        <i class="fas fa-history text-sm"></i>
+                                     </button>
                                      ${isAssigned ? `
-                                        <button class="flex-1 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 py-3 rounded-xl text-xs text-slate-600 dark:text-slate-300 font-bold hover:bg-primary hover:text-white hover:border-primary transition-all shadow-sm" onclick="window.handleEditActive('${t.id}', '${t.numero}', '${t.asignado_a}')"><i class="fas fa-edit"></i></button>
-                                     ` : ''}
-                                     <button class="flex-1 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 py-3 rounded-xl text-xs text-slate-400 hover:text-primary transition-all shadow-sm" onclick="window.actionHistory('${t.id}', '${t.numero}')"><i class="fas fa-history"></i></button>
-                                     ${isAssigned ? `
-                                        <label class="w-12 h-12 flex items-center justify-center bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl cursor-pointer hover:border-primary transition-all">
+                                        <label class="flex-1 h-12 flex items-center justify-center bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl cursor-pointer hover:border-primary transition-all shadow-sm">
                                             <input type="checkbox" class="sr-only" onchange="window.actionToggleSelect('${t.id}')" ${isSelected ? 'checked' : ''}>
                                             <i class="fas fa-check-circle ${isSelected ? 'text-primary' : 'text-slate-200 dark:text-white/5'} text-lg"></i>
                                         </label>
@@ -642,14 +641,14 @@ const renderAsignacionesView = async (container) => {
                             <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Auxiliar (Opcional)</label>
                             <select id="asig-aux" class="w-full p-5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-[11px] font-black text-slate-700 dark:text-white outline-none">
                                 <option value="">Ninguno</option>
-                                ${_globalConductores.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('')}
+                                ${activeConductors.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('')}
                             </select>
                         </div>
                     </div>
 
                     <div class="grid grid-cols-2 gap-6 bg-white/50 dark:bg-black/20 p-8 rounded-[2.5rem] border border-slate-100 dark:border-white/5">
                         <div class="space-y-3">
-                            <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest block text-center">Fecha Planificada</label>
+                            <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest block text-center">Fecha en que se asignó</label>
                             <input type="date" id="asig-date" value="${todayStr}" class="w-full bg-white dark:bg-white/10 border-none p-4 rounded-2xl font-black text-primary text-center outline-none">
                         </div>
                         <div class="space-y-3">
@@ -807,7 +806,7 @@ const renderAsignacionesView = async (container) => {
                             <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Auxiliar</label>
                             <select id="h-edit-aux" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-sm font-bold shadow-sm outline-none focus:border-primary transition-all text-slate-700 dark:text-white appearance-none">
                                 <option value="">Ninguno</option>
-                                ${allP.map(p => `<option value="${p.nombre}" ${rec?.auxiliar === p.nombre ? 'selected' : ''}>${p.nombre}</option>`).join('')}
+                                ${allP.filter(p => p.es_conductor).map(p => `<option value="${p.nombre}" ${rec?.auxiliar === p.nombre ? 'selected' : ''}>${p.nombre}</option>`).join('')}
                             </select>
                         </div>
                         <div class="space-y-2">
@@ -1214,6 +1213,10 @@ const renderProgramaTab = async (container) => {
                         <button id="btn-print-prog" class="p-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-400 hover:text-amber-500 rounded-xl transition-all" title="Vista Previa e Imprimir">
                             <i class="fas fa-print"></i>
                         </button>
+                        <div class="w-px h-10 bg-slate-200 dark:bg-white/10 mx-1"></div>
+                        <button id="btn-resync-prog" class="p-4 bg-primary/10 border border-primary/20 text-primary hover:bg-primary hover:text-white rounded-xl transition-all shadow-lg shadow-primary/5" title="Sincronizar Panel y Historial">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
                     </div>
                 </div>
             </header>
@@ -1470,36 +1473,87 @@ const renderProgramaTab = async (container) => {
         });
     };
 
-    const getExportableData = () => {
-        const rows = [];
-        const turnosMap = { manana: 'Mañana', tarde: 'Tarde', noche: 'Noche', zoom: 'Zoom' };
-        programa.dias.forEach(dia => {
-            ['manana', 'tarde', 'noche', 'zoom'].forEach(turnoId => {
-                const data = dia[turnoId];
-                // ONLY COMPLETE RECORDS (Both Conductor and Territory)
-                if (data && data.conductor && data.territorio) {
-                    rows.push({
-                        "Día": dia.nombre,
-                        "Fecha": dia.fecha || '',
-                        "Turno": turnosMap[turnoId],
-                        "Territorio": data.territorio || '',
-                        "Conductor": data.conductor || '',
-                        "Auxiliar": data.auxiliar || '',
-                        "Lugar": data.lugar || '',
-                        "Hora": data.hora || '',
-                        "Faceta": data.faceta || '',
-                        "Grupos": data.grupos || ''
-                    });
-                }
+    const getExportableDataAOA = () => {
+        const header = ['', 'LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO', 'DOMINGO', 'GRUPOS'];
+        const aoa = [header];
+        const fieldLabels = ['LUGAR', 'HORA', 'CONDUCTOR', 'AUXILIAR', 'FACETA'];
+        const turns = ['manana', 'tarde', 'noche', 'zoom'];
+
+        turns.forEach(turnoId => {
+            const turnRows = fieldLabels.map(label => {
+                const row = [label];
+                // Fill day columns
+                programa.dias.forEach(dia => {
+                    const data = dia[turnoId] || {};
+                    row.push(data[label.toLowerCase()] || '');
+                });
+
+                // Grupos Column: Check weekend or first non-empty
+                let groupVal = '';
+                const domGrupos = (programa.dias[6] && programa.dias[6][turnoId]) ? programa.dias[6][turnoId].grupos : '';
+                const sabGrupos = (programa.dias[5] && programa.dias[5][turnoId]) ? programa.dias[5][turnoId].grupos : '';
+                groupVal = domGrupos || sabGrupos || '';
+                row.push(groupVal);
+
+                return row;
             });
+
+            // Check if turn has any data
+            const hasData = turnRows.some(r => r.slice(1, 8).some(cell => cell !== ''));
+            if (hasData) {
+                aoa.push(...turnRows);
+                aoa.push(['']); // Spacer row
+            }
         });
-        return rows;
+        return aoa;
+    };
+
+    container.querySelector('#btn-resync-prog').onclick = async () => {
+        showCustomConfirm(`
+            <div class="text-left space-y-4">
+                <div class="flex items-center gap-4 text-primary">
+                    <div class="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-xl shadow-inner"><i class="fas fa-sync-alt"></i></div>
+                    <h4 class="font-black uppercase tracking-tight text-xl">Sincronización Global</h4>
+                </div>
+                <p class="text-[11px] font-bold text-slate-600 dark:text-slate-400 leading-relaxed uppercase tracking-wide">
+                    Este proceso analizará todos los programas semanales para reconstruir el historial de asignaciones y sincronizar el estado actual de los territorios en las tarjetas.
+                </p>
+                <div class="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-2xl">
+                    <p class="text-[10px] text-amber-700 dark:text-amber-400 font-bold uppercase tracking-widest leading-relaxed">
+                        Recomendado si notas discrepancias entre el programa y las tarjetas de territorios.
+                    </p>
+                </div>
+            </div>
+        `, async () => {
+            const overlay = container.querySelector('#prog-loading-overlay');
+            if (overlay) {
+                overlay.querySelector('p').innerText = "Sincronizando Todo...";
+                overlay.classList.remove('hidden');
+            }
+            try {
+                // 1. Rebuild history (S-13)
+                const countWeeks = await rebuildHistoryFromSchedule();
+                // 2. Sync territory cards states (Responsible, etc)
+                await syncAllProgramsToTerritories();
+
+                showNotification(`Sincronización completa. Se procesaron ${countWeeks} semanas.`, "success");
+
+                // Reload current view
+                if (window.reloadData) window.reloadData();
+                loadWeekData(); // Refresh current week table
+            } catch (e) {
+                console.error(e);
+                showNotification("Error en sincronización: " + e.message, "error");
+            } finally {
+                if (overlay) overlay.classList.add('hidden');
+            }
+        });
     };
 
     container.querySelector('#export-excel-prog').onclick = () => {
-        const data = getExportableData();
-        if (data.length === 0) return showNotification("No hay registros completos para exportar", "warning");
-        const ws = XLSX.utils.json_to_sheet(data);
+        const aoa = getExportableDataAOA();
+        if (aoa.length <= 1) return showNotification("No hay datos para exportar", "warning");
+        const ws = XLSX.utils.aoa_to_sheet(aoa);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Programa");
         XLSX.writeFile(wb, `Programa_${programa.id}.xlsx`);
@@ -1507,71 +1561,94 @@ const renderProgramaTab = async (container) => {
     };
 
     const generatePreviewHTML = () => {
-        const data = getExportableData();
-        if (data.length === 0) return '<div class="p-20 text-center opacity-30 font-black uppercase tracking-widest">No hay registros completos para imprimir</div>';
+        const turnos = [
+            { id: 'manana', icon: 'fa-sun', label: 'MAÑANA', color: '#f59e0b', bg: '#fef3c7' },
+            { id: 'tarde', icon: 'fa-cloud-sun', label: 'TARDE', color: '#f97316', bg: '#ffedd5' },
+            { id: 'noche', icon: 'fa-moon', label: 'NOCHE', color: '#6366f1', bg: '#e0e7ff' },
+            { id: 'zoom', icon: 'fa-video', label: 'ZOOM', color: '#10b981', bg: '#dcfce7' }
+        ];
 
-        const days = {};
-        data.forEach(row => {
-            if (!days[row.Día]) days[row.Día] = [];
-            days[row.Día].push(row);
-        });
-
-        return `
-            <div id="print-preview-content" class="bg-white p-10 text-slate-900 font-['Outfit'] space-y-8" style="max-width: 1000px; margin: auto;">
-                <header class="flex justify-between items-end border-b-4 border-slate-900 pb-5">
+        let html = `
+            <div id="print-preview-content" class="bg-slate-50 p-12 text-slate-900 font-['Outfit'] space-y-20" style="max-width: 1200px; margin: auto;">
+                <header class="flex justify-between items-center border-b-8 border-slate-900 pb-10">
                     <div>
-                        <h1 class="text-3xl font-black uppercase tracking-tighter">Programa de Salidas</h1>
-                        <p class="text-[9px] font-black uppercase tracking-[0.4em] opacity-50 mt-1">SEMANA: ${programa.id}</p>
+                        <h1 class="text-5xl font-black uppercase tracking-tighter leading-none">Programa Semanal</h1>
+                        <p class="text-[11px] font-black uppercase tracking-[0.5em] text-primary mt-4">Gestión Estratégica de Salidas</p>
                     </div>
                     <div class="text-right">
-                        <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Congregación Local</p>
+                        <p class="text-[12px] font-black uppercase tracking-[0.4em] opacity-30 italic">Semana: ${programa.id}</p>
                     </div>
                 </header>
 
-                <div class="space-y-6">
-                    ${Object.keys(days).map(dayName => `
-                        <div class="page-break-inside-avoid">
-                            <h2 class="text-xl font-black border-l-4 border-primary pl-3 uppercase tracking-tight mb-4">${dayName}</h2>
-                            <div class="grid grid-cols-2 gap-4">
-                                ${days[dayName].map(slot => `
-                                    <div class="border border-slate-200 p-4 rounded-xl space-y-2 bg-slate-50/30">
-                                        <div class="flex justify-between items-center mb-1">
-                                            <span class="text-[8px] font-black bg-slate-900 text-white px-2 py-0.5 rounded uppercase tracking-widest">${slot.Turno}</span>
-                                            <span class="text-[9px] font-bold text-primary">${slot.Hora}</span>
-                                        </div>
-                                        <div class="space-y-0.5">
-                                            <p class="text-[7px] font-black uppercase text-slate-400 tracking-widest">Conductor</p>
-                                            <p class="text-[12px] font-black uppercase text-slate-800">${slot.Conductor}</p>
-                                        </div>
-                                        <div class="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
-                                            <div class="space-y-0.5">
-                                                <p class="text-[7px] font-black uppercase text-slate-400 tracking-widest">Territorio</p>
-                                                <p class="text-[10px] font-bold">#${slot.Territorio}</p>
-                                            </div>
-                                            <div class="space-y-0.5">
-                                                <p class="text-[7px] font-black uppercase text-slate-400 tracking-widest">Lugar</p>
-                                                <p class="text-[10px] font-bold truncate">${slot.Lugar}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
+                <div class="space-y-32">
+        `;
 
-                <footer class="pt-8 border-t border-slate-100 text-center">
-                    <p class="text-[7px] font-bold uppercase tracking-[0.3em] opacity-30 italic">Documento generado automáticamente • ${new Date().toLocaleDateString()}</p>
+        programa.dias.forEach((dia) => {
+            const activeTurns = turnos.filter(t => {
+                const data = dia[t.id];
+                return data && (data.conductor || data.lugar);
+            });
+
+            if (activeTurns.length === 0) return;
+
+            html += `
+                <div class="page-break-inside-avoid space-y-12">
+                     <div class="flex items-center gap-8 mb-12">
+                        <h2 class="text-6xl font-black text-slate-900 uppercase tracking-tighter leading-none">${dia.nombre}</h2>
+                        <div class="h-1 flex-1 bg-gradient-to-r from-slate-200 to-transparent rounded-full"></div>
+                    </div>
+                    
+                    <div class="flex flex-wrap gap-8">
+                        ${activeTurns.map(t => {
+                const data = dia[t.id];
+                return `
+                                <div class="flex-1 min-w-[320px] bg-white rounded-[2.5rem] p-10 shadow-xl border border-slate-100 flex flex-col gap-8 relative overflow-hidden">
+                                    <div class="flex items-center gap-5">
+                                        <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-xl shadow-inner" style="background-color: ${t.bg}; color: ${t.color}">
+                                            <i class="fas ${t.icon}"></i>
+                                        </div>
+                                        <span class="text-[12px] font-black uppercase tracking-[0.4em] text-slate-400">${t.label}</span>
+                                    </div>
+                                    
+                                    <div class="space-y-6">
+                                        ${['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', 'Grupos'].map(field => {
+                    const val = data[field.toLowerCase()];
+                    if (!val || val === '—') return '';
+                    return `
+                                                <div class="space-y-2">
+                                                    <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 opacity-60 ml-1">${field}</p>
+                                                    <p class="text-base font-black text-slate-800 uppercase tracking-tight leading-tight">${val}</p>
+                                                </div>
+                                            `;
+                }).join('')}
+                                    </div>
+                                    
+                                    <!-- Decoration -->
+                                    <div class="absolute -right-8 -bottom-8 w-24 h-24 rounded-full blur-[40px] opacity-10" style="background-color: ${t.color}"></div>
+                                </div>
+                            `;
+            }).join('')}
+                    </div>
+                </div>
+            `;
+        });
+
+        html += `
+                </div>
+                <footer class="pt-20 border-t-2 border-slate-100 text-center">
+                    <p class="text-[9px] font-bold uppercase tracking-[0.6em] opacity-20 italic">Elite Territorios 2.0 • Registro Oficial de Predicación • ${new Date().toLocaleDateString()}</p>
                 </footer>
             </div>
             <style>
                 .page-break-inside-avoid { page-break-inside: avoid; }
                 @media print {
-                    #print-preview-content { padding: 0 !important; width: 100% !important; max-width: none !important; }
-                    body { -webkit-print-color-adjust: exact; }
+                    body { background: white !important; }
+                    #print-preview-content { padding: 0 !important; box-shadow: none !important; width: 100% !important; max-width: none !important; background: white !important; }
+                    .bg-white { border: 1px solid #eee !important; }
                 }
             </style>
         `;
+        return html;
     };
 
     container.querySelector('#export-png-prog').onclick = async () => {
