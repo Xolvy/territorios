@@ -7,7 +7,8 @@ import {
     getConductores, getPublicadores, getProgramaSemanal, saveProgramaSemanal,
     deleteProgramaSemanal, syncSlotWithTerritories, getRecursos, addRecurso,
     updateRecurso, getCampanas, saveCampana, getGroupsConfig, returnTerritorioParcial,
-    rebuildHistoryFromSchedule, runSystemDiagnosticsAndRepair, masterResetAssignments
+    rebuildHistoryFromSchedule, runSystemDiagnosticsAndRepair, masterResetAssignments,
+    syncAllProgramsToTerritories
 } from '../../data/firestore-services.js?v=2.1.0';
 import {
     formatPhoneNumber, getStatusColor, showNotification, formatMapUrl,
