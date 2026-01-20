@@ -11,6 +11,7 @@ export const getStatusColor = (status) => {
     if (s === 'No llamar') return 'text-red-600 dark:text-red-400';
     if (s === 'Colgaron') return 'text-gray-600 dark:text-gray-400';
     if (s === 'Revisita') return 'text-yellow-600 dark:text-yellow-400';
+    if (s === 'Predicado') return 'text-teal-600 dark:text-teal-400';
     if (s === 'Suspendido') return 'text-orange-700 dark:text-orange-500';
     if (s === 'Testigo') return 'text-purple-600 dark:text-purple-400';
     if (s === 'Asignado') return 'text-teal-600 dark:text-teal-400';
@@ -153,4 +154,23 @@ export const ensureOnline = () => {
         return false;
     }
     return true;
+};
+
+export const formatManzanas = (text) => {
+    if (!text) return text;
+    // Replace Salmo with Mz. to correct terminology (Imagen 5)
+    return text.toString().replace(/Salmo/gi, 'Mz.');
+};
+
+export const isIOS = () => {
+    return [
+        'iPad Simulator',
+        'iPhone Simulator',
+        'iPod Simulator',
+        'iPad',
+        'iPhone',
+        'iPod'
+    ].includes(navigator.platform)
+        // iPad on iOS 13 detection
+        || (navigator.userAgent.includes("Mac") && "ontouchend" in document);
 };

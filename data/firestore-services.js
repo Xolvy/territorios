@@ -915,6 +915,7 @@ export const checkAndResetTelephoneCycle = async (forceRequested = false) => {
                         asignado_a: null,
                         solicitado_por: null,
                         fecha_asignacion: null,
+                        comentario: '', // Clear old comments for blank records (Request)
                         // Preserve historical observations
                         ultima_observacion_ciclo: data.comentario || '',
                         fecha_ultimo_ciclo: now

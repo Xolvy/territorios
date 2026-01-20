@@ -96,10 +96,11 @@ export class TerritoryIntelligence {
         // Simple logic first: if has no territory, suggest one
         if (myTerrs.length === 0 && available.length > 0) {
             const best = available.sort((a, b) => new Date(a.ultima_fecha || 0) - new Date(b.ultima_fecha || 0))[0];
+            const dateFormatted = best.ultima_fecha ? new Date(best.ultima_fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }) : 'hace mucho';
             return {
                 type: 'SUGGESTION',
                 title: '💡 Sugerencia Proactiva',
-                message: `Hola ${conductorName.split(' ')[0]}, noto que no tienes territorios asignados. El territorio **#${best.numero}** no se ha visitado desde ${best.ultima_fecha || 'hace mucho'}. ¿Te gustaría tomarlo?`,
+                message: `Hola ${conductorName.split(' ')[0]}, noto que no tienes territorios asignados. El territorio **#${best.numero}** no se ha visitado desde ${dateFormatted}. ¿Te gustaría tomarlo?`,
                 action: `Solicitar territorio #${best.numero}`,
                 territoryId: best.id
             };

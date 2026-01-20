@@ -11,19 +11,25 @@ import {
     getCampanas, saveCampana, deleteCampana,
     getGroupsConfig, saveGroupsConfig,
     getDiffusionMessage, saveDiffusionMessage
-} from '../data/firestore-services.js?v=2.1.0';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=2.1.0';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=2.1.0';
+} from '../data/firestore-services.js?v=2.1.2';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS } from './utils/helpers.js?v=2.1.2';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=2.1.2';
 
-import { renderAnalyticsView } from './analytics-view.js?v=2.1.0';
-import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=2.1.0';
-import { auth } from '../firebase-config.js?v=2.1.0';
-import { animateEntry } from './utils/animations.js?v=2.1.0';
-import { UIHelpers, showModal, showCustomConfirm, showCustomPrompt } from './services/ui-helpers.js?v=2.1.0';
-import { GlassCard, GlassButton, GlassInput } from './services/ui-components.js?v=2.1.0';
-import { renderCasaEnCasaTab } from './admin/territories-view.js?v=2.1.0';
+import { renderAnalyticsView } from './analytics-view.js?v=2.1.2';
+import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=2.1.2';
+import { auth } from '../firebase-config.js?v=2.1.2';
+import { animateEntry } from './utils/animations.js?v=2.1.2';
+import { UIHelpers, showModal, showCustomConfirm, showCustomPrompt } from './services/ui-helpers.js?v=2.1.2';
+import { GlassCard, GlassButton, GlassInput } from './services/ui-components.js?v=2.1.2';
+import { renderCasaEnCasaTab } from './admin/territories-view.js?v=2.1.2';
 import * as XLSX from 'xlsx';
 import html2canvas from 'html2canvas';
+
+// State persistence for Telefonía Tab
+let currentSearch = '';
+let currentPub = '';
+let currentStatus = '';
+
 
 
 
@@ -752,8 +758,7 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
         });
 
         loadTab(initialTab, appVersion);
-        renderAdminAI(appVersion);
-        window.renderAdminAI = renderAdminAI;
+        // Removed renderAdminAI as per requirement 12
     } catch (e) {
         console.error("Error in Admin Dashboard:", e);
         showNotification("Error cargando panel: " + e.message, "error");
@@ -3155,8 +3160,8 @@ const renderS12View = async (container, config, appVersion) => {
                         <h4 class="font-black text-slate-800 dark:text-white uppercase tracking-tight text-lg">Territorio ${t.numero}</h4>
                     </div>
                     <div class="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-black tracking-[0.1em] mt-auto border-l-2 border-slate-200 dark:border-white/10 pl-3 py-1 space-y-0.5">
-                        <div class="truncate">${t.localidad ? `<span class="text-primary/70 mr-1">LOC:</span> ${t.localidad}` : (t.manzanas || 'Sin sectores definidos')}</div>
-                        ${t.localidad ? `<div class="truncate opacity-50 text-[8px]">${t.manzanas || ''}</div>` : ''}
+                        <div class="truncate">${t.localidad ? `<span class="text-primary/70 mr-1">LOC:</span> ${t.localidad}` : (formatManzanas(t.manzanas) || 'Sin sectores definidos')}</div>
+                        ${t.localidad ? `<div class="truncate opacity-50 text-[8px]">${formatManzanas(t.manzanas) || ''}</div>` : ''}
                     </div>
                 </div>
             </div>
@@ -4900,6 +4905,7 @@ const renderTelefonosTab = async (container) => {
                         <option value="No contestan">No contestan</option>
                         <option value="Colgaron">Colgaron</option>
                         <option value="Revisita">Revisita</option>
+                        <option value="Predicado">Predicado</option>
                         <option value="No llamar">No llamar</option>
                         <option value="Suspendido">Suspendido</option>
                         <option value="Testigo">Testigo</option>
@@ -5066,6 +5072,7 @@ const renderTelefonosTab = async (container) => {
             'Colgaron': { class: 'bg-amber-500/10 text-amber-600', icon: 'fa-phone-slash' },
             'No llamar': { class: 'bg-red-500/10 text-red-600', icon: 'fa-ban' },
             'Revisita': { class: 'bg-blue-500/10 text-blue-600', icon: 'fa-history' },
+            'Predicado': { class: 'bg-teal-500/10 text-teal-600', icon: 'fa-check-double' },
             'Sin asignar': { class: 'bg-slate-50 dark:bg-white/5 text-slate-400', icon: 'fa-question-circle' },
             'Suspendido': { class: 'bg-rose-500/10 text-rose-600', icon: 'fa-pause-circle' },
             'Testigo': { class: 'bg-indigo-500/10 text-indigo-600', icon: 'fa-user-check' }
@@ -5336,7 +5343,7 @@ const renderTelefonosTab = async (container) => {
         const t = telefonos.find(x => x.id === id);
         if (!t) return;
 
-        const estados = ['Sin asignar', 'Asignado', 'Contestaron', 'No contestan', 'Colgaron', 'Revisita', 'No llamar', 'Suspendido', 'Testigo'];
+        const estados = ['Sin asignar', 'Asignado', 'Contestaron', 'No contestan', 'Colgaron', 'Revisita', 'Predicado', 'No llamar', 'Suspendido', 'Testigo'];
 
         showModal(`
     <div class="flex flex-col h-full bg-white dark:bg-slate-900 overflow-hidden">
@@ -6000,9 +6007,11 @@ const renderProgramaTab = async (container) => {
 
                 if (!dia[turnoId]) dia[turnoId] = {};
                 const data = dia[turnoId];
+                const isWeekend = dia.nombre === 'Sábado' || dia.nombre === 'Domingo';
+                const fieldValJornada = data['jornada'];
 
                 html += `
-                    <div class="flex-1 min-w-[300px] max-w-[400px] modern-card !p-8 border-slate-100 dark:border-white/5 shadow-xl hover:shadow-2xl transition-all group/turn relative">
+                    <div class="flex-1 min-w-[200px] max-w-[280px] modern-card !p-4 border-slate-100 dark:border-white/5 shadow-sm hover:shadow-xl transition-all group/turn relative">
                         ${(() => {
                         if (!data.territorio || !data.conductor) return '';
                         const tNum = data.territorio.split(/[,/]/)[0].trim();
@@ -6015,16 +6024,28 @@ const renderProgramaTab = async (container) => {
                                 </div>`;
                     })()}
 
-                        <div class="flex items-center gap-4 mb-8">
-                            <div class="w-12 h-12 ${t.bg} ${t.color} rounded-2xl flex items-center justify-center text-lg shadow-inner group-hover/turn:scale-110 transition-transform duration-500">
+                        <div class="flex items-center gap-2 mb-3">
+                            <div class="w-8 h-8 ${t.bg} ${t.color} rounded-lg flex items-center justify-center text-sm shadow-inner group-hover/turn:scale-110 transition-transform duration-500">
                                 <i class="fas ${t.icon}"></i>
                             </div>
                             <div>
-                                <span class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 block mb-0.5">${t.label}</span>
+                                ${isWeekend && t.id !== 'zoom' ? `
+                                    <div class="relative">
+                                        <select onchange="window.updateWeekData(${dayIndex}, '${turnoId}', 'jornada', this.value)" 
+                                                class="bg-transparent text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 outline-none cursor-pointer hover:text-primary transition-colors appearance-none pr-4">
+                                            <option value="Mañana" ${(fieldValJornada || t.label) === 'Mañana' ? 'selected' : ''}>Mañana</option>
+                                            <option value="Tarde" ${(fieldValJornada || t.label) === 'Tarde' ? 'selected' : ''}>Tarde</option>
+                                            <option value="Noche" ${(fieldValJornada || t.label) === 'Noche' ? 'selected' : ''}>Noche</option>
+                                        </select>
+                                        <i class="fas fa-chevron-down absolute right-0 top-1/2 -translate-y-1/2 text-[7px] opacity-30 pointer-events-none"></i>
+                                    </div>
+                                ` : `
+                                    <span class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 block mb-0.5">${t.label}</span>
+                                `}
                             </div>
                         </div>
 
-                        <div class="space-y-5">
+                        <div class="space-y-3">
                 `;
 
                 t.fields.forEach(field => {
@@ -6045,9 +6066,9 @@ const renderProgramaTab = async (container) => {
                             </label>
                             <button onclick="window.openTerritorySelector(${dayIndex}, '${turnoId}', this)" 
                                     data-current="${val.replace(/"/g, '&quot;')}"
-                                    class="w-full text-left bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-3.5 rounded-2xl hover:border-primary transition-all flex items-center justify-between group/btn shadow-sm">
-                                <span class="text-[11px] font-black truncate ${val ? 'text-primary' : 'text-slate-400 opacity-40'}">${val || '—'}</span>
-                                <i class="fas fa-chevron-down text-[9px] opacity-10 group-hover/btn:opacity-50"></i>
+                                     class="w-full text-left bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-2.5 rounded-xl hover:border-primary transition-all flex items-center justify-between group/btn shadow-sm">
+                                <span class="text-[10px] font-black truncate ${val ? 'text-primary' : 'text-slate-400 opacity-40'}">${val || '—'}</span>
+                                <i class="fas fa-chevron-down text-[8px] opacity-10 group-hover/btn:opacity-50"></i>
                             </button>`;
                     } else if (field === 'Grupos') {
                         html += `
@@ -6067,11 +6088,23 @@ const renderProgramaTab = async (container) => {
                             </label>
                             <div class="relative">
                                 <select onchange="window.updateWeekData(${dayIndex}, '${turnoId}', '${fieldId}', this.value)" 
-                                        class="w-full bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-3.5 rounded-2xl text-[11px] font-black text-slate-700 dark:text-white outline-none focus:border-primary appearance-none cursor-pointer shadow-sm transition-all focus:ring-1 focus:ring-primary/20">
+                                        class="w-full bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-2 rounded-xl text-[9px] font-black text-slate-700 dark:text-white outline-none focus:border-primary appearance-none cursor-pointer shadow-sm transition-all focus:ring-1 focus:ring-primary/20">
                                     <option value="">—</option>
-                                    ${opts.map(o => `<option value="${o}" ${val === o ? 'selected' : ''}>${o}</option>`).join('')}
+                                    ${opts.map(o => {
+                            let extra = '';
+                            if (field === 'Conductor' || field === 'Auxiliar') {
+                                const p = allPersonnel.find(x => x.nombre === o);
+                                const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+                                const dayName = dayNames[dayIndex];
+                                const availKey = `${dayName}_${turnoId}`;
+                                if (p?.disponibilidad?.includes(availKey)) {
+                                    extra = ' 🟢';
+                                }
+                            }
+                            return `<option value="${o}" ${val === o ? 'selected' : ''}>${o}${extra}</option>`;
+                        }).join('')}
                                 </select>
-                                <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-[9px] opacity-20 pointer-events-none"></i>
+                                <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-[8px] opacity-20 pointer-events-none"></i>
                             </div>`;
                     }
                     html += `</div>`;
