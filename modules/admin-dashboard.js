@@ -2049,6 +2049,11 @@ const renderAsignacionesView = async (container) => {
                             </div>
                         </div>
 
+                        <div class="space-y-3 ${rec.estado === 'Asignado' ? 'hidden' : ''}" id="edit-h-delivery-container">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Fecha de Entrega (S-13)</label>
+                            <input type="date" id="edit-h-delivery-date" value="${rec.fecha_entrega ? rec.fecha_entrega.split("T")[0] : ""}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[11px] font-black text-emerald-600 outline-none focus:border-emerald-500 transition-all shadow-inner uppercase">
+                        </div>
+
                         <div class="p-6 bg-primary/5 rounded-[2rem] border border-primary/10 space-y-4">
                             <label class="flex items-start gap-4 cursor-pointer group">
                                 <div class="relative mt-1">
@@ -2077,6 +2082,12 @@ const renderAsignacionesView = async (container) => {
             </div>
         `, (modal) => {
             modal.querySelector("#btn-cancel-hist").onclick = () => modal.classList.add("hidden");
+            modal.querySelector("#edit-h-status").onchange = (e) => {
+                const container = modal.querySelector("#edit-h-delivery-container");
+                if (e.target.value === 'Asignado') container.classList.add('hidden');
+                else container.classList.remove('hidden');
+            };
+
             modal.querySelector("#btn-save-hist").onclick = async (e) => {
                 const btn = e.currentTarget;
                 btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Guardando...'; btn.disabled = true;
@@ -2084,9 +2095,12 @@ const renderAsignacionesView = async (container) => {
                     const newDate = modal.querySelector("#edit-h-date").value;
                     const newC = modal.querySelector("#edit-h-cond").value;
                     const newS = modal.querySelector("#edit-h-status").value;
+                    const newDdate = modal.querySelector("#edit-h-delivery-date").value;
                     const sync = modal.querySelector("#edit-h-sync").checked;
                     const payload = { conductor: newC, estado: newS };
                     if (newDate) payload.fecha_asignacion = new Date(newDate + 'T12:00:00Z').toISOString();
+                    if (newDdate && newS !== 'Asignado') payload.fecha_entrega = new Date(newDdate + 'T12:00:00Z').toISOString();
+                    else if (newS === 'Asignado') payload.fecha_entrega = null;
                     await updateHistoryRecord(recordId, payload);
                     if (sync && rec.territorio_id) {
                         const tUpdate = { asignado_a: newC, estado: newS };

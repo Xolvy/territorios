@@ -811,19 +811,16 @@ export const addTelefono = async (telefono) => {
 };
 
 export const solicitarNumeros = async (cantidad = 30, userId) => {
-    // 1. Fetch all processed records vs total to check cycle
-    // (Optimization: We handle specific picking here)
-
-    // Only pick numbers that are 'Sin asignar' and DO NOT have a solicitor or current publisher
-    // Status MUST be 'Sin asignar' (means blank/not assigned)
+    // Optimization: Limit to a reasonable buffer (e.g., 200) to find valid ones without fetching the whole collection
     const q = query(collection(db, "telefonos"),
         where("estado", "==", "Sin asignar"),
-        where("publicador_asignado", "==", null)
+        where("publicador_asignado", "==", null),
+        limit(200)
     );
     const snapshot = await getDocs(q);
 
     let count = 0;
-    const batchPromises = [];
+    const batch = writeBatch(db);
 
     // Filter out 'No llamar' that are still within 6 months
     const now = new Date();
@@ -837,22 +834,24 @@ export const solicitarNumeros = async (cantidad = 30, userId) => {
         // Check 'No llamar' timer
         if (data.ultimo_estado === 'No llamar') {
             const lastDate = data.fecha_ultimo_estado ? new Date(data.fecha_ultimo_estado) : new Date(0);
-            if (lastDate > sixMonthsAgo) continue; // Skip if it's been less than 6 months
+            if (lastDate > sixMonthsAgo) continue;
         }
 
         // Extra safety check for requested_by (solicitado_por)
         if (!data.solicitado_por) {
-            batchPromises.push(updateDoc(doc(db, "telefonos", d.id), {
+            batch.update(doc(db, "telefonos", d.id), {
                 solicitado_por: userId,
                 publicador_asignado: null,
                 asignado_a: null,
                 fecha_asignacion: new Date().toISOString()
-            }));
+            });
             count++;
         }
     }
 
-    await Promise.all(batchPromises);
+    if (count > 0) {
+        await batch.commit();
+    }
     return count;
 };
 

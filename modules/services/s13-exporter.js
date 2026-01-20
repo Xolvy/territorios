@@ -108,7 +108,7 @@ export class S13Exporter {
                         <thead>
                             <tr class="bg-gray-100/50 text-[6.5px] font-black text-center uppercase tracking-tighter h-[11mm] leading-[1.1]">
                                 <td class="border border-black p-0.5 align-middle w-[10mm]">Núm.<br> de terr.</td>
-                                <td class="border border-black p-0.5 align-middle leading-tight w-[20mm]">Última fecha<br> en que se<br> completó*</td>
+                                <td class="border border-black p-0.5 align-middle leading-tight w-[20mm]">Última fecha<br> en que se<br> entregó*</td>
                                 ${Array(4).fill(0).map(() => `
                                     <td class="border border-black p-0 align-top">
                                         <div class="flex flex-col h-full">
@@ -118,7 +118,7 @@ export class S13Exporter {
                                                     Fecha en que<br> se asignó
                                                 </div>
                                                 <div class="w-1/2 flex items-center justify-center bg-gray-50/30 px-0.5 leading-[1] py-1 h-full text-[6px]">
-                                                    Fecha en que<br> se completó
+                                                    Fecha en que<br> se entregó
                                                 </div>
                                             </div>
                                         </div>
