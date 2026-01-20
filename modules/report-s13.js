@@ -258,11 +258,11 @@ export const renderS13CommandCenter = async (container) => {
                             <div class="grid grid-cols-2 gap-4">
                                 <div class="bg-slate-50 dark:bg-white/5 p-6 rounded-2xl border border-slate-200 dark:border-white/5 text-center">
                                     <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">S13</p>
-                                    <p class="text-2xl font-black text-slate-800 dark:text-white">\${report.rebuiltHistory}</p>
+                                    <p class="text-2xl font-black text-slate-800 dark:text-white">${report.rebuiltHistory}</p>
                                 </div>
                                 <div class="bg-slate-50 dark:bg-white/5 p-6 rounded-2xl border border-slate-200 dark:border-white/5 text-center">
                                     <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Ajustes</p>
-                                    <p class="text-2xl font-black text-slate-800 dark:text-white">\${report.fixedTerritories}</p>
+                                    <p class="text-2xl font-black text-slate-800 dark:text-white">${report.fixedTerritories}</p>
                                 </div>
                             </div>
                             <button onclick="closeModal(); renderS13CommandCenter(document.getElementById('cc-main-container').parentElement.parentElement)" class="w-full bg-primary text-white py-5 rounded-2xl text-[11px] font-black uppercase tracking-widest">Finalizar</button>
@@ -328,7 +328,7 @@ export const renderAdvancedHistoryView = async (container, options = {}) => {
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 dark:divide-white/5 font-bold">
-                            \${pageItems.map(h => {
+                            ${pageItems.map(h => {
             const getStatusStyles = (status) => {
                 switch (status) {
                     case 'Completado': return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
@@ -337,33 +337,33 @@ export const renderAdvancedHistoryView = async (container, options = {}) => {
                     default: return 'bg-slate-100 text-slate-500 border-slate-200';
                 }
             };
-            return \`
+            return `
                                     <tr class="group hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
                                         <td class="p-6">
                                             <div class="flex items-center gap-4">
-                                                <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-black text-sm">#\${h.numero}</div>
-                                                <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">\${territories.find(t => String(t.numero) === String(h.numero))?.localidad || '—'}</span>
+                                                <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-black text-sm">#${h.numero}</div>
+                                                <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">${territories.find(t => String(t.numero) === String(h.numero))?.localidad || '—'}</span>
                                             </div>
                                         </td>
-                                        <td class="p-6 text-sm text-slate-700 dark:text-slate-200 uppercase tracking-tight font-black">\${h.conductor}</td>
+                                        <td class="p-6 text-sm text-slate-700 dark:text-slate-200 uppercase tracking-tight font-black">${h.conductor}</td>
                                         <td class="p-6 text-[10px] text-slate-500 uppercase tracking-widest">
-                                            \${h.fecha_asignacion ? new Date(h.fecha_asignacion).toLocaleDateString() : '—'} 
+                                            ${h.fecha_asignacion ? new Date(h.fecha_asignacion).toLocaleDateString() : '—'} 
                                             <span class="mx-2 opacity-30">→</span> 
-                                            \${h.fecha_entrega ? new Date(h.fecha_entrega).toLocaleDateString() : (h.estado === 'Pendiente' ? '<span class="text-amber-500">Activo</span>' : '—')}
+                                            ${h.fecha_entrega ? new Date(h.fecha_entrega).toLocaleDateString() : (h.estado === 'Pendiente' ? '<span class="text-amber-500">Activo</span>' : '—')}
                                         </td>
                                         <td class="p-6">
-                                            <span class="px-3 py-1.5 rounded-lg border text-[9px] font-black uppercase tracking-widest \${getStatusStyles(h.estado)}">
-                                                \${h.estado}
+                                            <span class="px-3 py-1.5 rounded-lg border text-[9px] font-black uppercase tracking-widest ${getStatusStyles(h.estado)}">
+                                                ${h.estado}
                                             </span>
                                         </td>
                                         <td class="p-6 text-right">
                                             <div class="flex justify-end gap-2 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button onclick="window.editHistoryRecord('\${h.id}')" class="w-9 h-9 flex items-center justify-center bg-white dark:bg-slate-800 text-slate-500 hover:text-primary rounded-xl border border-slate-200 dark:border-white/10 shadow-sm transition-all"><i class="fas fa-edit text-[10px]"></i></button>
-                                                <button onclick="window.deleteHistoryRecordUI('\${h.id}', '\${h.conductor}', '\${h.numero}')" class="w-9 h-9 flex items-center justify-center bg-white dark:bg-slate-800 text-slate-500 hover:text-rose-500 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm transition-all"><i class="fas fa-trash-alt text-[10px]"></i></button>
+                                                <button onclick="window.editHistoryRecord('${h.id}')" class="w-9 h-9 flex items-center justify-center bg-white dark:bg-slate-800 text-slate-500 hover:text-primary rounded-xl border border-slate-200 dark:border-white/10 shadow-sm transition-all"><i class="fas fa-edit text-[10px]"></i></button>
+                                                <button onclick="window.deleteHistoryRecordUI('${h.id}', '${h.conductor}', '${h.numero}')" class="w-9 h-9 flex items-center justify-center bg-white dark:bg-slate-800 text-slate-500 hover:text-rose-500 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm transition-all"><i class="fas fa-trash-alt text-[10px]"></i></button>
                                             </div>
                                         </td>
                                     </tr>
-                                \`;
+                                `;
         }).join('')}
                         </tbody>
                     </table>
@@ -371,10 +371,10 @@ export const renderAdvancedHistoryView = async (container, options = {}) => {
 
                 <!-- Pagination -->
                 <div class="p-8 bg-slate-50 dark:bg-white/5 border-t border-slate-100 dark:border-white/10 flex justify-between items-center">
-                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Página \${currentPage} de \${totalPages} <span class="mx-2 opacity-30">|</span> \${filteredHistory.length} Registros</p>
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Página ${currentPage} de ${totalPages} <span class="mx-2 opacity-30">|</span> ${filteredHistory.length} Registros</p>
                     <div class="flex gap-2">
-                        <button id="prev-page" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-400 hover:text-primary disabled:opacity-30 transition-all shadow-sm" \${currentPage === 1 ? 'disabled' : ''}><i class="fas fa-chevron-left text-[10px]"></i></button>
-                        <button id="next-page" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-400 hover:text-primary disabled:opacity-30 transition-all shadow-sm" \${currentPage === totalPages ? 'disabled' : ''}><i class="fas fa-chevron-right text-[10px]"></i></button>
+                        <button id="prev-page" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-400 hover:text-primary disabled:opacity-30 transition-all shadow-sm" ${currentPage === 1 ? 'disabled' : ''}><i class="fas fa-chevron-left text-[10px]"></i></button>
+                        <button id="next-page" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-400 hover:text-primary disabled:opacity-30 transition-all shadow-sm" ${currentPage === totalPages ? 'disabled' : ''}><i class="fas fa-chevron-right text-[10px]"></i></button>
                     </div>
                 </div>
             </div>
