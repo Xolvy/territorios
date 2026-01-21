@@ -1530,12 +1530,11 @@ const renderProgramaTab = async (container) => {
     const getExportableDataAOA = () => {
         const header = ['', 'LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO', 'DOMINGO', 'GRUPOS'];
         const aoa = [header];
-        const turns = ['manana', 'tarde', 'noche', 'zoom'];
+        const turns = ['manana', 'tarde', 'noche']; // Zoom removed as requested
 
         turns.forEach(turnoId => {
             const fieldLabels = ['LUGAR', 'HORA', 'CONDUCTOR', 'AUXILIAR', 'FACETA', 'TERRITORIO'];
-            // Requirement: No AUXILIAR for zoom turn
-            const filteredLabels = turnoId === 'zoom' ? fieldLabels.filter(l => l !== 'AUXILIAR') : fieldLabels;
+            const filteredLabels = fieldLabels;
 
             const turnRows = filteredLabels.map((label, rowIndex) => {
                 const row = [label];
@@ -1562,7 +1561,6 @@ const renderProgramaTab = async (container) => {
             const hasData = turnRows.some(r => r.slice(1, 8).some(cell => cell !== ''));
             if (hasData) {
                 aoa.push(...turnRows);
-                aoa.push(['']); // Spacer row
             }
         });
         return aoa;
