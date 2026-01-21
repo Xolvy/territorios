@@ -1631,25 +1631,21 @@ const renderProgramaTab = async (container) => {
 
             return `
                             <div class="bg-white rounded-[2rem] flex flex-col shadow-xl shadow-slate-200/40 border border-slate-100/50 overflow-hidden relative h-full">
-                                <div class="${activeTurns.length > 2 ? 'px-4 py-3' : 'px-5 py-4'} border-b border-slate-50 bg-slate-50/20 shrink-0">
+                                <div class="${activeTurns.length > 2 ? 'px-4 py-2' : 'px-5 py-4'} border-b border-slate-50 bg-slate-50/20 shrink-0">
                                     <h2 class="${activeTurns.length > 2 ? 'text-2xl' : 'text-3xl'} font-black uppercase tracking-tighter text-slate-900 leading-none mb-1">${dia.nombre}</h2>
                                     <span class="text-[10px] font-bold uppercase tracking-widest text-slate-300 opacity-80">${dia.fecha ? dia.fecha.split('-').reverse().join('/') : ''}</span>
                                 </div>
                                 
-                                <div class="${activeTurns.length > 2 ? 'p-3 space-y-4' : 'p-4 space-y-6'} flex-1 overflow-visible">
+                                <div class="${activeTurns.length > 2 ? 'p-2.5 space-y-2' : 'p-4 space-y-6'} flex-1 overflow-visible">
                                     ${activeTurns.map(t => {
                 const data = dia[t.id];
                 const isSunday = dia.nombre.toLowerCase() === 'domingo';
                 const hourInt = data.hora ? parseInt(data.hora) : (t.id === 'manana' ? 9 : t.id === 'tarde' ? 15 : 19);
 
-                let labelText = t.label;
-                let displayIcon = t.icon;
-                let displayColor = t.color;
+                let labelText = t.label; let displayIcon = t.icon; let displayColor = t.color;
 
                 if (isSunday && data.hora && hourInt < 12) {
-                    labelText = 'MAÑANA';
-                    displayIcon = 'fa-sun';
-                    displayColor = '#b45309';
+                    labelText = 'MAÑANA'; displayIcon = 'fa-sun'; displayColor = '#b45309';
                 } else if (isSunday) {
                     if (hourInt < 12) { labelText = 'MAÑANA'; displayIcon = 'fa-sun'; displayColor = '#b45309'; }
                     else if (hourInt < 17) { labelText = 'TARDE'; displayIcon = 'fa-cloud-sun'; displayColor = '#c2410c'; }
@@ -1657,7 +1653,7 @@ const renderProgramaTab = async (container) => {
                 }
 
                 return `
-                                            <div class="space-y-4">
+                                            <div class="${activeTurns.length > 2 ? 'space-y-1.5' : 'space-y-4'}">
                                                 <div class="flex items-center gap-2">
                                                     <i class="fas ${displayIcon} text-[12px]" style="color: ${displayColor}"></i>
                                                     <span class="text-[13px] font-black uppercase tracking-[0.35em]" style="color: ${displayColor}">${labelText}</span>
@@ -1673,7 +1669,7 @@ const renderProgramaTab = async (container) => {
                     const fontSize = isKeyField ? (activeTurns.length > 2 ? '17px' : '22px') : (activeTurns.length > 2 ? '13px' : '15px');
                     return `
                                                             <div class="flex flex-col leading-tight">
-                                                                 <span class="text-[7px] font-black uppercase tracking-widest text-slate-300 mb-0.5">${field}</span>
+                                                                 <span class="text-[6px] font-black uppercase tracking-widest text-slate-300 mb-0.5">${field}</span>
                                                                  <span class="text-[${fontSize}] font-black uppercase tracking-tight text-slate-900">${val}</span>
                                                             </div>
                                                         `;
