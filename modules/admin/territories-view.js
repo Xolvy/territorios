@@ -1664,10 +1664,11 @@ const renderProgramaTab = async (container) => {
                                                 </div>
                                                 
                                                 <div class="space-y-5">
-                                                    ${['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta'].map(field => {
+                                                    ${['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', 'Grupos'].map(field => {
                     if (t.id === 'zoom' && field === 'Auxiliar') return '';
-                    const val = data[field.toLowerCase()];
+                    let val = data[field.toLowerCase()];
                     if (!val || val === '—' || val === '') return '';
+                    if (field === 'Grupos') { val = val.replace(/grupo\(s\)?\s*/gi, '').trim(); }
                     return `
                                                             <div class="flex flex-col leading-tight">
                                                                  <span class="text-[8px] font-black uppercase tracking-widest text-slate-300 mb-0.5">${field}</span>
