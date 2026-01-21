@@ -1613,19 +1613,11 @@ const renderProgramaTab = async (container) => {
 
         let html = `
             <div id="landscape-preview-content" class="bg-white text-slate-900 font-['Outfit'] relative overflow-hidden flex flex-col p-16" style="width: 1920px; height: 1080px; box-sizing: border-box;">
-                <header class="relative z-10 flex justify-between items-center mb-16 border-b-8 border-slate-900 pb-10">
-                    <div class="flex items-center gap-10">
-                        <div class="w-28 h-28 bg-slate-900 rounded-[2.5rem] flex items-center justify-center text-5xl text-white shadow-2xl">
-                            <i class="fas fa-calendar-check"></i>
-                        </div>
-                        <div>
-                            <h1 class="text-8xl font-black uppercase tracking-tighter leading-none mb-3">Programa Semanal</h1>
-                            <p class="text-2xl font-black uppercase tracking-[1em] text-primary opacity-90">Planificación de Salidas • Salón del Reino</p>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-lg font-black uppercase tracking-[0.5em] text-slate-400 italic mb-2">Identificador de Semana</p>
-                        <p class="text-5xl font-black text-slate-900">${programa.id}</p>
+                <header class="relative z-10 flex flex-col items-center mb-16 border-b-4 border-slate-900 pb-10">
+                    <h1 class="text-6xl font-black uppercase tracking-[0.2em] leading-none mb-4">Programa de Predicación</h1>
+                    <p class="text-4xl font-black uppercase tracking-[0.1em] text-slate-800">Congregación "Nueve de Octubre" 14282</p>
+                    <div class="absolute right-0 bottom-10 text-right">
+                        <p class="text-sm font-black uppercase tracking-[0.3em] text-slate-400 italic">Semana ID: ${programa.id}</p>
                     </div>
                 </header>
 
@@ -1652,7 +1644,9 @@ const renderProgramaTab = async (container) => {
                                                     <div class="w-7 h-7 rounded-lg flex items-center justify-center text-xs" style="background-color: ${t.bg}; color: ${t.color}">
                                                         <i class="fas ${t.icon}"></i>
                                                     </div>
-                                                    <span class="text-[9px] font-black uppercase tracking-[0.2em]" style="color: ${t.color}">${t.label}</span>
+                                                    <span class="text-[9px] font-black uppercase tracking-[0.2em]" style="color: ${t.color}">
+                                                        ${(dia.nombre.toLowerCase() === 'domingo' && data.hora && parseInt(data.hora) < 12) ? 'MAÑANA' : t.label}
+                                                    </span>
                                                 </div>
                                                 
                                                 <div class="grid grid-cols-1 gap-2.5">
@@ -1723,13 +1717,11 @@ const renderProgramaTab = async (container) => {
 
         let html = `
             <div id="print-preview-content" class="bg-white p-6 text-slate-900 font-['Outfit'] space-y-8" style="width: 210mm; margin: auto; min-height: 297mm; box-sizing: border-box;">
-                <header class="flex justify-between items-center border-b-4 border-slate-900 pb-4">
-                    <div>
-                        <h1 class="text-3xl font-black uppercase tracking-tighter leading-none">Programa Semanal</h1>
-                        <p class="text-[9px] font-black uppercase tracking-[0.4em] text-primary mt-2">Planificación de Salidas de Campo</p>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-[10px] font-black uppercase tracking-[0.4em] opacity-30 italic">Semana: ${programa.id}</p>
+                <header class="flex flex-col items-center border-b-2 border-slate-900 pb-4">
+                    <h1 class="text-xl font-black uppercase tracking-[0.1em] leading-none mb-1">Programa de Predicación</h1>
+                    <p class="text-xs font-black uppercase text-slate-700">Congregación "Nueve de Octubre" 14282</p>
+                    <div class="w-full text-right mt-1">
+                        <p class="text-[7px] font-black uppercase tracking-widest text-slate-400 italic">Semana: ${programa.id}</p>
                     </div>
                 </header>
 
@@ -1760,7 +1752,9 @@ const renderProgramaTab = async (container) => {
                                         <div class="w-10 h-10 rounded-xl flex items-center justify-center text-sm shadow-inner" style="background-color: ${t.bg}; color: ${t.color}">
                                             <i class="fas ${t.icon}"></i>
                                         </div>
-                                        <span class="text-[9px] font-black uppercase tracking-[0.4em] text-slate-400">${t.label}</span>
+                                        <span class="text-[9px] font-black uppercase tracking-[0.4em] text-slate-400">
+                                            ${(dia.nombre.toLowerCase() === 'domingo' && data.hora && parseInt(data.hora) < 12) ? 'MAÑANA' : t.label}
+                                        </span>
                                     </div>
                                     
                                     <div class="grid grid-cols-1 gap-3">
