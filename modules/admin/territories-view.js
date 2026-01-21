@@ -9,6 +9,21 @@ import {
     rebuildHistoryFromSchedule, runSystemDiagnosticsAndRepair, masterResetAssignments,
     syncAllProgramsToTerritories
 } from '../../data/firestore-services.js?v=2.1.7';
+
+const formatGroups = (val) => {
+    if (!val) return '—';
+    // Remove "Grupo", "Grupos", colons, and leading/trailing punctuation
+    let cleanVal = val.replace(/grupos?/gi, '').replace(/[:\s,]+$/, '').replace(/^[:\s,]+/, '').trim();
+    if (!cleanVal) return '—';
+
+    // Split by comma
+    let parts = cleanVal.split(',').map(p => p.trim()).filter(Boolean);
+    if (parts.length <= 1) return cleanVal;
+
+    const last = parts.pop();
+    return parts.join(', ') + ' y ' + last;
+};
+
 import {
     formatPhoneNumber, getStatusColor, showNotification, formatMapUrl,
     ensureOnline, generatePlainXLS
@@ -1158,7 +1173,7 @@ const showGroupSelectionModal = async (current, onSelect) => {
         modal.querySelector('#modal-grp-confirm').onclick = () => {
             const selected = Array.from(modal.querySelectorAll('input[name="grp-check"]:checked')).map(i => i.value);
             modal.classList.add('hidden');
-            // Clean "Grupo " from results
+            // Clean "Grupo " from results and join with comma for storage
             const cleaned = selected.map(g => g.replace(/grupos?/gi, '').trim()).join(', ');
             onSelect(cleaned);
         };
@@ -1426,7 +1441,7 @@ const renderProgramaTab = async (container) => {
                                     data-current="${val.replace(/"/g, '&quot;')}"
                                     class="w-full text-left bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-3.5 rounded-2xl hover:border-indigo-500 transition-all flex items-center justify-between group/btn shadow-sm">
                                 <span class="text-[11px] font-black truncate ${val ? 'text-indigo-500' : 'text-slate-400 opacity-40'}">
-                                    ${val ? val.replace(/grupos?/gi, '').replace(/[:\s,]+$/, '').replace(/^[:\s,]+/, '').trim() : '—'}
+                                    ${formatGroups(val)}
                                 </span>
                                 <i class="fas fa-chevron-down text-[9px] opacity-10 group-hover/btn:opacity-50"></i>
                             </button>`;
@@ -1637,7 +1652,7 @@ const renderProgramaTab = async (container) => {
                                     <span class="text-[10px] font-bold uppercase tracking-widest text-slate-300 opacity-80">${dia.fecha ? dia.fecha.split('-').reverse().join('/') : ''}</span>
                                 </div>
                                 
-                                <div class="${activeTurns.length > 2 ? 'p-2.5 space-y-2' : 'p-4 space-y-6'} flex-1 overflow-visible">
+                                <div class="${activeTurns.length > 2 ? 'p-2.5 space-y-4' : 'p-4 space-y-8'} flex-1 overflow-visible">
                                     ${activeTurns.map(t => {
                 const data = dia[t.id];
                 const isSunday = dia.nombre.toLowerCase() === 'domingo';
@@ -1665,7 +1680,7 @@ const renderProgramaTab = async (container) => {
                     if (t.id === 'zoom' && field === 'Auxiliar') return '';
                     let val = data[field.toLowerCase()];
                     if (!val || val === '—' || val === '') return '';
-                    if (field === 'Grupos') { val = val.replace(/grupos?\s*:\s*/gi, '').replace(/[:\s,]+$/, '').replace(/^[:\s,]+/, '').trim(); }
+                    if (field === 'Grupos') { val = formatGroups(val); }
                     const isKeyField = field === 'Lugar' || field === 'Hora';
                     const fontSize = isKeyField ? (activeTurns.length > 2 ? '17px' : '22px') : (activeTurns.length > 2 ? '13px' : '15px');
                     return `
@@ -1767,7 +1782,7 @@ const renderProgramaTab = async (container) => {
                     if (t.id === 'zoom' && field === 'Auxiliar') return ''; // Zoom does not use Auxiliar
                     let val = data[field.toLowerCase()];
                     if (!val || val === '—') return '';
-                    if (field === 'Grupos') { val = val.replace(/grupos?/gi, '').replace(/[:\s,]+$/, '').replace(/^[:\s,]+/, '').trim(); }
+                    if (field === 'Grupos') { val = formatGroups(val); }
                     return `
                                                 <div class="space-y-0.5">
                                                     <p class="text-[7px] font-black uppercase tracking-widest text-slate-400 opacity-60 ml-1">${field}</p>
