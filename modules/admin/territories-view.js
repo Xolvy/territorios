@@ -1612,14 +1612,14 @@ const renderProgramaTab = async (container) => {
         ];
 
         let html = `
-            <div id="landscape-preview-content" class="bg-white text-slate-900 font-['Outfit'] relative overflow-hidden flex flex-col p-8 pt-6" style="width: 1920px; height: 1080px; box-sizing: border-box;">
+            <div id="landscape-preview-content" class="bg-slate-50 text-slate-900 font-['Outfit'] relative overflow-hidden flex flex-col p-8 pt-4" style="width: 1920px; height: 1080px; box-sizing: border-box;">
                 <header class="relative z-10 flex flex-col items-center mb-8 px-10 w-full">
                     <div class="w-full flex justify-end mb-1">
                         <span class="text-[14px] font-black uppercase tracking-[0.2em] text-slate-300">Semana: ${programa.id}</span>
                     </div>
-                    <h1 class="text-[110px] font-black uppercase tracking-[0.1em] leading-none mb-2 text-slate-900">Programa de Predicación</h1>
-                    <p class="text-5xl font-black uppercase tracking-[0.2em] text-slate-700 mb-8">Congregación "Nueve de Octubre" 14282</p>
-                    <div class="w-full h-2 bg-slate-900 rounded-full"></div>
+                    <h1 class="text-[100px] font-black uppercase tracking-[0.1em] leading-none mb-1 text-slate-900">Programa de Predicación</h1>
+                    <p class="text-5xl font-black uppercase tracking-[0.15em] text-slate-600 mb-8">Congregación "Nueve de Octubre" 14282</p>
+                    <div class="w-full h-2.5 bg-slate-900 rounded-full"></div>
                 </header>
 
                 <div class="relative z-10 grid grid-cols-7 gap-4 flex-1 overflow-hidden px-4">
@@ -1630,13 +1630,13 @@ const renderProgramaTab = async (container) => {
             });
 
             return `
-                            <div class="flex flex-col relative h-full">
-                                <div class="px-2 py-6 mb-4">
-                                    <h2 class="text-[54px] font-black uppercase tracking-tighter text-slate-900 leading-none mb-1">${dia.nombre}</h2>
-                                    <span class="text-xs font-bold uppercase tracking-widest text-slate-300 opacity-80">${dia.fecha ? dia.fecha.split('-').reverse().join('/') : ''}</span>
+                            <div class="bg-white rounded-[2.5rem] flex flex-col shadow-xl shadow-slate-200/40 border border-slate-100/50 overflow-hidden relative h-full">
+                                <div class="px-6 py-6 border-b border-slate-50 bg-slate-50/20 shrink-0">
+                                    <h2 class="text-4xl font-black uppercase tracking-tighter text-slate-900 leading-none mb-1">${dia.nombre}</h2>
+                                    <span class="text-[11px] font-bold uppercase tracking-widest text-slate-300 opacity-80">${dia.fecha ? dia.fecha.split('-').reverse().join('/') : ''}</span>
                                 </div>
                                 
-                                <div class="p-2 space-y-12 flex-1 overflow-visible">
+                                <div class="p-6 space-y-10 flex-1 overflow-visible">
                                     ${activeTurns.map(t => {
                 const data = dia[t.id];
                 const isSunday = dia.nombre.toLowerCase() === 'domingo';
@@ -1660,18 +1660,18 @@ const renderProgramaTab = async (container) => {
                                             <div class="space-y-6">
                                                 <div class="flex items-center gap-2">
                                                     <i class="fas ${displayIcon} text-[10px]" style="color: ${displayColor}"></i>
-                                                    <span class="text-[10px] font-black uppercase tracking-[0.3em]" style="color: ${displayColor}">${labelText}</span>
+                                                    <span class="text-[10px] font-black uppercase tracking-[0.35em]" style="color: ${displayColor}">${labelText}</span>
                                                 </div>
                                                 
-                                                <div class="space-y-4">
+                                                <div class="space-y-5">
                                                     ${['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta'].map(field => {
                     if (t.id === 'zoom' && field === 'Auxiliar') return '';
                     const val = data[field.toLowerCase()];
                     if (!val || val === '—' || val === '') return '';
                     return `
                                                             <div class="flex flex-col leading-tight">
-                                                                <span class="text-[8px] font-black uppercase tracking-widest text-[#cbd5e1] mb-1 opacity-80">${field}</span>
-                                                                <span class="text-[20px] font-black uppercase tracking-tight text-slate-900">${val}</span>
+                                                                 <span class="text-[8px] font-black uppercase tracking-widest text-slate-300 mb-0.5">${field}</span>
+                                                                 <span class="text-[19px] font-black uppercase tracking-tight text-slate-900">${val}</span>
                                                             </div>
                                                         `;
                 }).join('')}
