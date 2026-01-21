@@ -1637,8 +1637,8 @@ const renderProgramaTab = async (container) => {
         let html = `
             <div id="landscape-preview-content" class="bg-slate-50 text-slate-900 font-['Outfit'] relative overflow-hidden flex flex-col p-6 pt-0" style="width: 1920px; height: 1080px; box-sizing: border-box;">
                 <header class="relative z-10 flex flex-col items-center mb-3 px-10 pt-4 w-full">
-                    <h1 class="text-[70px] font-black uppercase tracking-[0.1em] leading-none mb-1 text-slate-900">Programa de Predicación</h1>
-                    <p class="text-2xl font-black uppercase tracking-[0.15em] text-slate-600 mb-3">Congregación "Nueve de Octubre" 14282</p>
+                    <h1 class="text-[54px] font-black uppercase tracking-[0.1em] leading-none mb-1 text-slate-900">Programa de Predicación</h1>
+                    <p class="text-lg font-black uppercase tracking-[0.15em] text-slate-600 mb-3">Congregación "Nueve de Octubre" 14282</p>
                     <div class="w-full h-1.5 bg-slate-900 rounded-full"></div>
                 </header>
 
