@@ -1605,19 +1605,19 @@ const renderProgramaTab = async (container) => {
 
     const generateLandscapePreviewHTML = () => {
         const turnos = [
-            { id: 'manana', icon: 'fa-sun', label: 'MAÑANA', color: '#f59e0b', bg: '#fff7ed' },
-            { id: 'tarde', icon: 'fa-cloud-sun', label: 'TARDE', color: '#f97316', bg: '#fff7ed' },
-            { id: 'noche', icon: 'fa-moon', label: 'NOCHE', color: '#6366f1', bg: '#eef2ff' },
-            { id: 'zoom', icon: 'fa-video', label: 'ZOOM', color: '#10b981', bg: '#ecfdf5' }
+            { id: 'manana', icon: 'fa-sun', label: 'MAÑANA', color: '#b45309', bg: '#fffbeb' },
+            { id: 'tarde', icon: 'fa-cloud-sun', label: 'TARDE', color: '#c2410c', bg: '#fff7ed' },
+            { id: 'noche', icon: 'fa-moon', label: 'NOCHE', color: '#3730a3', bg: '#f5f3ff' },
+            { id: 'zoom', icon: 'fa-video', label: 'ZOOM', color: '#065f46', bg: '#f0fdf4' }
         ];
 
         let html = `
-            <div id="landscape-preview-content" class="bg-white text-slate-900 font-['Outfit'] relative overflow-hidden flex flex-col p-16" style="width: 1920px; height: 1080px; box-sizing: border-box;">
-                <header class="relative z-10 flex flex-col items-center mb-16 border-b-4 border-slate-900 pb-10">
-                    <h1 class="text-6xl font-black uppercase tracking-[0.2em] leading-none mb-4">Programa de Predicación</h1>
-                    <p class="text-4xl font-black uppercase tracking-[0.1em] text-slate-800">Congregación "Nueve de Octubre" 14282</p>
-                    <div class="absolute right-0 bottom-10 text-right">
-                        <p class="text-sm font-black uppercase tracking-[0.3em] text-slate-400 italic">Semana ID: ${programa.id}</p>
+            <div id="landscape-preview-content" class="bg-slate-50 text-slate-900 font-['Outfit'] relative overflow-hidden flex flex-col p-12" style="width: 1920px; height: 1080px; box-sizing: border-box;">
+                <header class="relative z-10 flex flex-col items-center mb-10 border-b-[6px] border-slate-900 pb-8 mx-10">
+                    <h1 class="text-7xl font-black uppercase tracking-[0.2em] leading-none mb-3">Programa de Predicación</h1>
+                    <p class="text-4xl font-black uppercase tracking-[0.05em] text-slate-500">Congregación "Nueve de Octubre" 14282</p>
+                    <div class="absolute right-0 bottom-8 text-right">
+                        <p class="text-xs font-black uppercase tracking-widest text-slate-300">Semana: ${programa.id}</p>
                     </div>
                 </header>
 
@@ -1629,35 +1629,33 @@ const renderProgramaTab = async (container) => {
             });
 
             return `
-                            <div class="bg-slate-50 rounded-[3rem] p-8 border border-slate-100 flex flex-col gap-8 shadow-sm relative overflow-hidden">
-                                <div class="border-b-2 border-slate-200 pb-4">
-                                    <h2 class="text-4xl font-black uppercase tracking-tighter text-slate-900 mb-1">${dia.nombre}</h2>
-                                    <span class="text-xs font-bold uppercase tracking-widest text-slate-400">${dia.fecha ? dia.fecha.split('-').reverse().join('/') : ''}</span>
+                            <div class="bg-white rounded-[2rem] flex flex-col shadow-2xl shadow-slate-200/50 border border-slate-100 overflow-hidden relative">
+                                <div class="px-8 py-6 border-b border-slate-50 bg-slate-50/50">
+                                    <h2 class="text-4xl font-black uppercase tracking-tighter text-slate-900 leading-none">${dia.nombre}</h2>
+                                    <span class="text-xs font-bold uppercase tracking-widest text-slate-300 opacity-80">${dia.fecha ? dia.fecha.split('-').reverse().join('/') : ''}</span>
                                 </div>
                                 
-                                <div class="space-y-6 flex-1 overflow-visible">
+                                <div class="p-6 space-y-10 flex-1 overflow-visible">
                                     ${activeTurns.map(t => {
                 const data = dia[t.id];
                 return `
-                                            <div class="space-y-4">
-                                                <div class="flex items-center gap-3">
-                                                    <div class="w-7 h-7 rounded-lg flex items-center justify-center text-xs" style="background-color: ${t.bg}; color: ${t.color}">
-                                                        <i class="fas ${t.icon}"></i>
-                                                    </div>
-                                                    <span class="text-[9px] font-black uppercase tracking-[0.2em]" style="color: ${t.color}">
+                                            <div class="relative pl-6 border-l-4" style="border-color: ${t.color}20">
+                                                <div class="flex items-center gap-2 mb-4">
+                                                    <i class="fas ${t.icon} text-[10px]" style="color: ${t.color}"></i>
+                                                    <span class="text-[10px] font-black uppercase tracking-[0.3em]" style="color: ${t.color}">
                                                         ${(dia.nombre.toLowerCase() === 'domingo' && data.hora && parseInt(data.hora) < 12) ? 'MAÑANA' : t.label}
                                                     </span>
                                                 </div>
                                                 
-                                                <div class="grid grid-cols-1 gap-2.5">
+                                                <div class="space-y-4">
                                                     ${['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta'].map(field => {
                     if (t.id === 'zoom' && field === 'Auxiliar') return '';
                     const val = data[field.toLowerCase()];
-                    if (!val || val === '—') return '';
+                    if (!val || val === '—' || val === '') return '';
                     return `
-                                                            <div class="flex flex-col gap-0.5">
-                                                                <span class="text-[7px] font-black uppercase tracking-widest text-slate-400 opacity-70">${field}</span>
-                                                                <span class="text-[12px] font-black uppercase tracking-tight text-slate-800 leading-none">${val}</span>
+                                                            <div class="flex flex-col">
+                                                                <span class="text-[8px] font-black uppercase tracking-widest text-slate-400 opacity-60 mb-0.5">${field}</span>
+                                                                <span class="text-[14px] font-black uppercase tracking-tight text-slate-900 leading-[1.2]">${val}</span>
                                                             </div>
                                                         `;
                 }).join('')}
@@ -1672,12 +1670,12 @@ const renderProgramaTab = async (container) => {
         }).join('')}
                 </div>
 
-                <footer class="mt-12 pt-8 border-t-2 border-slate-100 flex justify-between items-center relative z-10 shrink-0">
-                    <p class="text-xs font-black uppercase tracking-[0.5em] text-slate-300 italic">Generado el ${new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
-                    <div class="flex items-center gap-8 text-slate-200 text-xl">
-                         <i class="fas fa-check-double"></i>
-                         <i class="fas fa-fingerprint"></i>
-                         <i class="fas fa-shield-alt"></i>
+                <footer class="mt-8 pt-8 border-t border-slate-100 flex justify-between items-center relative z-10 shrink-0 mx-10">
+                    <p class="text-[10px] font-black uppercase tracking-[0.6em] text-slate-300">Generado el ${new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+                    <div class="flex items-center gap-10 text-slate-200">
+                         <i class="fas fa-check-circle"></i>
+                         <i class="fas fa-fingerprint text-lg"></i>
+                         <p class="text-[9px] font-black uppercase tracking-widest opacity-20">Elite Workspace 2026</p>
                     </div>
                 </footer>
             </div>
@@ -1692,27 +1690,27 @@ const renderProgramaTab = async (container) => {
         tempDiv.innerHTML = previewHTML;
         document.body.appendChild(tempDiv);
         try {
-            showNotification("Generando formato Minimal 16:9...", "info");
+            showNotification("Generando formato Premium 16:9...", "info");
             const canvas = await html2canvas(tempDiv.querySelector('#landscape-preview-content'), {
-                scale: 1,
+                scale: 2,
                 useCORS: true,
-                backgroundColor: '#ffffff'
+                backgroundColor: '#f8fafc'
             });
             const link = document.createElement('a');
-            link.download = `Programa_Minimal_16-9_${programa.id}.png`;
+            link.download = `Programa_Premium_16-9_${programa.id}.png`;
             link.href = canvas.toDataURL('image/png'); link.click();
-            showNotification("Imagen Minimalista exportada", "success");
+            showNotification("Imagen Premium exportada en alta resolución", "success");
         } catch (e) {
-            console.error(e); showNotification("Error al generar Minimal Landscape", "error");
+            console.error(e); showNotification("Error al generar formato Premium", "error");
         } finally { document.body.removeChild(tempDiv); }
     };
 
     const generatePreviewHTML = () => {
         const turnos = [
-            { id: 'manana', icon: 'fa-sun', label: 'MAÑANA', color: '#f59e0b', bg: '#fef3c7' },
-            { id: 'tarde', icon: 'fa-cloud-sun', label: 'TARDE', color: '#f97316', bg: '#ffedd5' },
-            { id: 'noche', icon: 'fa-moon', label: 'NOCHE', color: '#6366f1', bg: '#e0e7ff' },
-            { id: 'zoom', icon: 'fa-video', label: 'ZOOM', color: '#10b981', bg: '#dcfce7' }
+            { id: 'manana', icon: 'fa-sun', label: 'MAÑANA', color: '#b45309', bg: '#fffbeb' },
+            { id: 'tarde', icon: 'fa-cloud-sun', label: 'TARDE', color: '#c2410c', bg: '#fff7ed' },
+            { id: 'noche', icon: 'fa-moon', label: 'NOCHE', color: '#3730a3', bg: '#f5f3ff' },
+            { id: 'zoom', icon: 'fa-video', label: 'ZOOM', color: '#065f46', bg: '#f0fdf4' }
         ];
 
         let html = `
