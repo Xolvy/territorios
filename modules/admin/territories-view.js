@@ -1612,13 +1612,14 @@ const renderProgramaTab = async (container) => {
         ];
 
         let html = `
-            <div id="landscape-preview-content" class="bg-slate-50 text-slate-900 font-['Outfit'] relative overflow-hidden flex flex-col p-6 pb-2" style="width: 1920px; height: 1080px; box-sizing: border-box;">
-                <header class="relative z-10 flex flex-col items-center mb-4 border-b-[6px] border-slate-900 pb-4 mx-10">
-                    <h1 class="text-6xl font-black uppercase tracking-[0.2em] leading-none mb-1">Programa de Predicación</h1>
-                    <p class="text-3xl font-black uppercase tracking-[0.05em] text-slate-500">Congregación "Nueve de Octubre" 14282</p>
-                    <div class="absolute right-0 bottom-4 text-right">
-                        <p class="text-xs font-black uppercase tracking-widest text-slate-300">Semana: ${programa.id}</p>
+            <div id="landscape-preview-content" class="bg-white text-slate-900 font-['Outfit'] relative overflow-hidden flex flex-col p-8 pt-6" style="width: 1920px; height: 1080px; box-sizing: border-box;">
+                <header class="relative z-10 flex flex-col items-center mb-8 px-10 w-full">
+                    <div class="w-full flex justify-end mb-1">
+                        <span class="text-[14px] font-black uppercase tracking-[0.2em] text-slate-300">Semana: ${programa.id}</span>
                     </div>
+                    <h1 class="text-[110px] font-black uppercase tracking-[0.1em] leading-none mb-2 text-slate-900">Programa de Predicación</h1>
+                    <p class="text-5xl font-black uppercase tracking-[0.2em] text-slate-700 mb-8">Congregación "Nueve de Octubre" 14282</p>
+                    <div class="w-full h-2 bg-slate-900 rounded-full"></div>
                 </header>
 
                 <div class="relative z-10 grid grid-cols-7 gap-4 flex-1 overflow-hidden px-4">
@@ -1629,13 +1630,13 @@ const renderProgramaTab = async (container) => {
             });
 
             return `
-                            <div class="bg-white rounded-[2rem] flex flex-col shadow-xl shadow-slate-200/40 border border-slate-100 overflow-hidden relative h-full">
-                                <div class="px-6 py-4 border-b border-slate-50 bg-slate-50/50 shrink-0">
-                                    <h2 class="text-3xl font-black uppercase tracking-tighter text-slate-900 leading-none mb-1">${dia.nombre}</h2>
-                                    <span class="text-[10px] font-bold uppercase tracking-widest text-slate-300 opacity-80">${dia.fecha ? dia.fecha.split('-').reverse().join('/') : ''}</span>
+                            <div class="flex flex-col relative h-full">
+                                <div class="px-2 py-6 mb-4">
+                                    <h2 class="text-[54px] font-black uppercase tracking-tighter text-slate-900 leading-none mb-1">${dia.nombre}</h2>
+                                    <span class="text-xs font-bold uppercase tracking-widest text-slate-300 opacity-80">${dia.fecha ? dia.fecha.split('-').reverse().join('/') : ''}</span>
                                 </div>
                                 
-                                <div class="p-4 space-y-6 flex-1 overflow-visible">
+                                <div class="p-2 space-y-12 flex-1 overflow-visible">
                                     ${activeTurns.map(t => {
                 const data = dia[t.id];
                 const isSunday = dia.nombre.toLowerCase() === 'domingo';
@@ -1656,21 +1657,21 @@ const renderProgramaTab = async (container) => {
                 }
 
                 return `
-                                            <div class="relative pl-4 border-l-4" style="border-color: ${displayColor}20">
-                                                <div class="flex items-center gap-2 mb-2">
-                                                    <i class="fas ${displayIcon} text-[9px]" style="color: ${displayColor}"></i>
-                                                    <span class="text-[9px] font-black uppercase tracking-[0.2em]" style="color: ${displayColor}">${labelText}</span>
+                                            <div class="space-y-6">
+                                                <div class="flex items-center gap-2">
+                                                    <i class="fas ${displayIcon} text-[10px]" style="color: ${displayColor}"></i>
+                                                    <span class="text-[10px] font-black uppercase tracking-[0.3em]" style="color: ${displayColor}">${labelText}</span>
                                                 </div>
                                                 
-                                                <div class="space-y-2.5">
+                                                <div class="space-y-4">
                                                     ${['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta'].map(field => {
                     if (t.id === 'zoom' && field === 'Auxiliar') return '';
                     const val = data[field.toLowerCase()];
                     if (!val || val === '—' || val === '') return '';
                     return `
                                                             <div class="flex flex-col leading-tight">
-                                                                <span class="text-[7px] font-black uppercase tracking-widest text-slate-400 opacity-60 mb-0.5">${field}</span>
-                                                                <span class="text-[${(field === 'Lugar' || field === 'Hora') ? '16px' : '13px'}] font-black uppercase tracking-tight text-slate-900">${val}</span>
+                                                                <span class="text-[8px] font-black uppercase tracking-widest text-[#cbd5e1] mb-1 opacity-80">${field}</span>
+                                                                <span class="text-[20px] font-black uppercase tracking-tight text-slate-900">${val}</span>
                                                             </div>
                                                         `;
                 }).join('')}
@@ -1678,7 +1679,7 @@ const renderProgramaTab = async (container) => {
                                             </div>
                                         `;
             }).join('')}
-                                    ${activeTurns.length === 0 ? '<div class="h-full flex items-center justify-center opacity-20 text-xs italic font-bold uppercase tracking-widest">Sin Actividad</div>' : ''}
+                                    ${activeTurns.length === 0 ? '' : ''}
                                 </div>
                             </div>
                         `;
