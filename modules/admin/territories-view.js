@@ -1158,7 +1158,9 @@ const showGroupSelectionModal = async (current, onSelect) => {
         modal.querySelector('#modal-grp-confirm').onclick = () => {
             const selected = Array.from(modal.querySelectorAll('input[name="grp-check"]:checked')).map(i => i.value);
             modal.classList.add('hidden');
-            onSelect(selected.join(', '));
+            // Clean "Grupo " from results
+            const cleaned = selected.map(g => g.replace(/grupos?/gi, '').trim()).join(', ');
+            onSelect(cleaned);
         };
         modal.querySelector('#modal-grp-none').onclick = () => {
             modal.classList.add('hidden');
@@ -1423,7 +1425,9 @@ const renderProgramaTab = async (container) => {
                             <button onclick="window.openGroupSelector(${dayIndex}, '${turnoId}', this)" 
                                     data-current="${val.replace(/"/g, '&quot;')}"
                                     class="w-full text-left bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-3.5 rounded-2xl hover:border-indigo-500 transition-all flex items-center justify-between group/btn shadow-sm">
-                                <span class="text-[11px] font-black truncate ${val ? 'text-indigo-500' : 'text-slate-400 opacity-40'}">${val || '—'}</span>
+                                <span class="text-[11px] font-black truncate ${val ? 'text-indigo-500' : 'text-slate-400 opacity-40'}">
+                                    ${val ? val.replace(/grupos?/gi, '').replace(/[:\s,]+$/, '').replace(/^[:\s,]+/, '').trim() : '—'}
+                                </span>
                                 <i class="fas fa-chevron-down text-[9px] opacity-10 group-hover/btn:opacity-50"></i>
                             </button>`;
                     } else if (opts.length > 0) {
@@ -1612,11 +1616,8 @@ const renderProgramaTab = async (container) => {
         ];
 
         let html = `
-            <div id="landscape-preview-content" class="bg-slate-50 text-slate-900 font-['Outfit'] relative overflow-hidden flex flex-col p-6 pt-2" style="width: 1920px; height: 1080px; box-sizing: border-box;">
-                <header class="relative z-10 flex flex-col items-center mb-3 px-10 w-full">
-                    <div class="w-full flex justify-end mb-0.5">
-                        <span class="text-[12px] font-black uppercase tracking-[0.2em] text-slate-300">Semana: ${programa.id}</span>
-                    </div>
+            <div id="landscape-preview-content" class="bg-slate-50 text-slate-900 font-['Outfit'] relative overflow-hidden flex flex-col p-6 pt-0" style="width: 1920px; height: 1080px; box-sizing: border-box;">
+                <header class="relative z-10 flex flex-col items-center mb-3 px-10 pt-4 w-full">
                     <h1 class="text-[70px] font-black uppercase tracking-[0.1em] leading-none mb-1 text-slate-900">Programa de Predicación</h1>
                     <p class="text-2xl font-black uppercase tracking-[0.15em] text-slate-600 mb-3">Congregación "Nueve de Octubre" 14282</p>
                     <div class="w-full h-1.5 bg-slate-900 rounded-full"></div>
@@ -1655,8 +1656,8 @@ const renderProgramaTab = async (container) => {
                 return `
                                             <div class="${activeTurns.length > 2 ? 'space-y-1.5' : 'space-y-4'}">
                                                 <div class="flex items-center gap-2">
-                                                    <i class="fas ${displayIcon} text-[12px]" style="color: ${displayColor}"></i>
-                                                    <span class="text-[13px] font-black uppercase tracking-[0.35em]" style="color: ${displayColor}">${labelText}</span>
+                                                    <i class="fas ${displayIcon} text-[18px]" style="color: ${displayColor}"></i>
+                                                    <span class="text-[18px] font-black uppercase tracking-[0.35em]" style="color: ${displayColor}">${labelText}</span>
                                                 </div>
                                                 
                                                 <div class="${activeTurns.length > 2 ? 'space-y-1' : 'space-y-3'}">
@@ -1664,7 +1665,7 @@ const renderProgramaTab = async (container) => {
                     if (t.id === 'zoom' && field === 'Auxiliar') return '';
                     let val = data[field.toLowerCase()];
                     if (!val || val === '—' || val === '') return '';
-                    if (field === 'Grupos') { val = val.replace(/grupos?/gi, '').replace(/^[:\s,]+/, '').trim(); }
+                    if (field === 'Grupos') { val = val.replace(/grupos?\s*:\s*/gi, '').replace(/[:\s,]+$/, '').replace(/^[:\s,]+/, '').trim(); }
                     const isKeyField = field === 'Lugar' || field === 'Hora';
                     const fontSize = isKeyField ? (activeTurns.length > 2 ? '17px' : '22px') : (activeTurns.length > 2 ? '13px' : '15px');
                     return `
@@ -1764,8 +1765,9 @@ const renderProgramaTab = async (container) => {
                                     <div class="grid grid-cols-1 gap-3">
                                         ${['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', 'Grupos'].map(field => {
                     if (t.id === 'zoom' && field === 'Auxiliar') return ''; // Zoom does not use Auxiliar
-                    const val = data[field.toLowerCase()];
+                    let val = data[field.toLowerCase()];
                     if (!val || val === '—') return '';
+                    if (field === 'Grupos') { val = val.replace(/grupos?/gi, '').replace(/[:\s,]+$/, '').replace(/^[:\s,]+/, '').trim(); }
                     return `
                                                 <div class="space-y-0.5">
                                                     <p class="text-[7px] font-black uppercase tracking-widest text-slate-400 opacity-60 ml-1">${field}</p>
