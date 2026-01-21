@@ -1533,7 +1533,7 @@ const renderProgramaTab = async (container) => {
         const turns = ['manana', 'tarde', 'noche', 'zoom'];
 
         turns.forEach(turnoId => {
-            const fieldLabels = ['LUGAR', 'HORA', 'CONDUCTOR', 'AUXILIAR', 'FACETA'];
+            const fieldLabels = ['LUGAR', 'HORA', 'CONDUCTOR', 'AUXILIAR', 'FACETA', 'TERRITORIO'];
             // Requirement: No AUXILIAR for zoom turn
             const filteredLabels = turnoId === 'zoom' ? fieldLabels.filter(l => l !== 'AUXILIAR') : fieldLabels;
 
@@ -1549,7 +1549,8 @@ const renderProgramaTab = async (container) => {
                 if (rowIndex === 0) {
                     const domGrupos = (programa.dias[6] && programa.dias[6][turnoId]) ? programa.dias[6][turnoId].grupos : '';
                     const sabGrupos = (programa.dias[5] && programa.dias[5][turnoId]) ? programa.dias[5][turnoId].grupos : '';
-                    row.push(domGrupos || sabGrupos || '');
+                    const finalGrupos = domGrupos || sabGrupos;
+                    row.push(finalGrupos ? formatGroups(finalGrupos).replace('—', '') : '');
                 } else {
                     row.push('');
                 }
