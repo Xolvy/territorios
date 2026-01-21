@@ -1613,13 +1613,13 @@ const renderProgramaTab = async (container) => {
 
         let html = `
             <div id="landscape-preview-content" class="bg-slate-50 text-slate-900 font-['Outfit'] relative overflow-hidden flex flex-col p-6 pt-2" style="width: 1920px; height: 1080px; box-sizing: border-box;">
-                <header class="relative z-10 flex flex-col items-center mb-4 px-10 w-full">
-                    <div class="w-full flex justify-end mb-1">
+                <header class="relative z-10 flex flex-col items-center mb-3 px-10 w-full">
+                    <div class="w-full flex justify-end mb-0.5">
                         <span class="text-[12px] font-black uppercase tracking-[0.2em] text-slate-300">Semana: ${programa.id}</span>
                     </div>
-                    <h1 class="text-[75px] font-black uppercase tracking-[0.1em] leading-none mb-1 text-slate-900">Programa de Predicación</h1>
-                    <p class="text-3xl font-black uppercase tracking-[0.15em] text-slate-600 mb-4">Congregación "Nueve de Octubre" 14282</p>
-                    <div class="w-full h-2 bg-slate-900 rounded-full"></div>
+                    <h1 class="text-[70px] font-black uppercase tracking-[0.1em] leading-none mb-1 text-slate-900">Programa de Predicación</h1>
+                    <p class="text-2xl font-black uppercase tracking-[0.15em] text-slate-600 mb-3">Congregación "Nueve de Octubre" 14282</p>
+                    <div class="w-full h-1.5 bg-slate-900 rounded-full"></div>
                 </header>
 
                 <div class="relative z-10 grid grid-cols-7 gap-3 flex-1 overflow-hidden px-4 pb-4">
@@ -1631,12 +1631,12 @@ const renderProgramaTab = async (container) => {
 
             return `
                             <div class="bg-white rounded-[2rem] flex flex-col shadow-xl shadow-slate-200/40 border border-slate-100/50 overflow-hidden relative h-full">
-                                <div class="px-5 py-4 border-b border-slate-50 bg-slate-50/20 shrink-0">
-                                    <h2 class="text-3xl font-black uppercase tracking-tighter text-slate-900 leading-none mb-1">${dia.nombre}</h2>
+                                <div class="${activeTurns.length > 2 ? 'px-4 py-3' : 'px-5 py-4'} border-b border-slate-50 bg-slate-50/20 shrink-0">
+                                    <h2 class="${activeTurns.length > 2 ? 'text-2xl' : 'text-3xl'} font-black uppercase tracking-tighter text-slate-900 leading-none mb-1">${dia.nombre}</h2>
                                     <span class="text-[10px] font-bold uppercase tracking-widest text-slate-300 opacity-80">${dia.fecha ? dia.fecha.split('-').reverse().join('/') : ''}</span>
                                 </div>
                                 
-                                <div class="p-4 space-y-6 flex-1 overflow-visible">
+                                <div class="${activeTurns.length > 2 ? 'p-3 space-y-4' : 'p-4 space-y-6'} flex-1 overflow-visible">
                                     ${activeTurns.map(t => {
                 const data = dia[t.id];
                 const isSunday = dia.nombre.toLowerCase() === 'domingo';
@@ -1663,14 +1663,14 @@ const renderProgramaTab = async (container) => {
                                                     <span class="text-[13px] font-black uppercase tracking-[0.35em]" style="color: ${displayColor}">${labelText}</span>
                                                 </div>
                                                 
-                                                <div class="space-y-3">
+                                                <div class="${activeTurns.length > 2 ? 'space-y-1' : 'space-y-3'}">
                                                     ${['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', 'Grupos'].map(field => {
                     if (t.id === 'zoom' && field === 'Auxiliar') return '';
                     let val = data[field.toLowerCase()];
                     if (!val || val === '—' || val === '') return '';
-                    if (field === 'Grupos') { val = val.replace(/grupo\(s\)?\s*/gi, '').trim(); }
+                    if (field === 'Grupos') { val = val.replace(/grupos?/gi, '').replace(/^[:\s,]+/, '').trim(); }
                     const isKeyField = field === 'Lugar' || field === 'Hora';
-                    const fontSize = isKeyField ? '22px' : '15px';
+                    const fontSize = isKeyField ? (activeTurns.length > 2 ? '17px' : '22px') : (activeTurns.length > 2 ? '13px' : '15px');
                     return `
                                                             <div class="flex flex-col leading-tight">
                                                                  <span class="text-[7px] font-black uppercase tracking-widest text-slate-300 mb-0.5">${field}</span>
