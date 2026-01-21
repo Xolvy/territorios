@@ -1605,37 +1605,31 @@ const renderProgramaTab = async (container) => {
 
     const generateLandscapePreviewHTML = () => {
         const turnos = [
-            { id: 'manana', icon: 'fa-sun', label: 'MAÑANA', color: '#fbbf24', bg: 'rgba(251, 191, 36, 0.1)' },
-            { id: 'tarde', icon: 'fa-cloud-sun', label: 'TARDE', color: '#fb923c', bg: 'rgba(251, 146, 60, 0.1)' },
-            { id: 'noche', icon: 'fa-moon', label: 'NOCHE', color: '#818cf8', bg: 'rgba(129, 140, 248, 0.1)' },
-            { id: 'zoom', icon: 'fa-video', label: 'ZOOM', color: '#34d399', bg: 'rgba(52, 211, 153, 0.1)' }
+            { id: 'manana', icon: 'fa-sun', label: 'MAÑANA', color: '#f59e0b', bg: '#fff7ed' },
+            { id: 'tarde', icon: 'fa-cloud-sun', label: 'TARDE', color: '#f97316', bg: '#fff7ed' },
+            { id: 'noche', icon: 'fa-moon', label: 'NOCHE', color: '#6366f1', bg: '#eef2ff' },
+            { id: 'zoom', icon: 'fa-video', label: 'ZOOM', color: '#10b981', bg: '#ecfdf5' }
         ];
 
         let html = `
-            <div id="landscape-preview-content" class="bg-[#0f172a] text-white font-['Outfit'] relative overflow-hidden flex flex-col p-12" style="width: 1920px; height: 1080px; box-sizing: border-box;">
-                <!-- Mesh Background Decoration -->
-                <div class="absolute top-0 right-0 w-[800px] h-[800px] bg-primary/20 rounded-full blur-[150px] -mr-96 -mt-96 opacity-50"></div>
-                <div class="absolute bottom-0 left-0 w-[600px] h-[600px] bg-indigo-500/10 rounded-full blur-[120px] -ml-64 -mb-64 opacity-30"></div>
-                
-                <header class="relative z-10 flex justify-between items-end mb-12 border-b border-white/10 pb-8">
-                    <div class="flex items-center gap-8">
-                        <div class="w-24 h-24 bg-gradient-to-br from-primary to-indigo-600 rounded-[2rem] flex items-center justify-center text-5xl shadow-2xl shadow-primary/40 border border-white/20">
-                            <i class="fas fa-calendar-alt"></i>
+            <div id="landscape-preview-content" class="bg-white text-slate-900 font-['Outfit'] relative overflow-hidden flex flex-col p-16" style="width: 1920px; height: 1080px; box-sizing: border-box;">
+                <header class="relative z-10 flex justify-between items-center mb-16 border-b-8 border-slate-900 pb-10">
+                    <div class="flex items-center gap-10">
+                        <div class="w-28 h-28 bg-slate-900 rounded-[2.5rem] flex items-center justify-center text-5xl text-white shadow-2xl">
+                            <i class="fas fa-calendar-check"></i>
                         </div>
                         <div>
-                            <h1 class="text-7xl font-black uppercase tracking-tighter leading-none mb-2">Programa Semanal</h1>
-                            <p class="text-xl font-black uppercase tracking-[0.8em] text-primary opacity-80">Gestión de Salidas • Salón del Reino</p>
+                            <h1 class="text-8xl font-black uppercase tracking-tighter leading-none mb-3">Programa Semanal</h1>
+                            <p class="text-2xl font-black uppercase tracking-[1em] text-primary opacity-90">Planificación de Salidas • Salón del Reino</p>
                         </div>
                     </div>
                     <div class="text-right">
-                        <div class="inline-block bg-white/5 backdrop-blur-md px-8 py-4 rounded-3xl border border-white/10 shadow-2xl">
-                             <p class="text-sm font-black uppercase tracking-[0.4em] opacity-40 italic mb-1">Semana ID</p>
-                             <p class="text-3xl font-black text-indigo-400 font-mono">${programa.id}</p>
-                        </div>
+                        <p class="text-lg font-black uppercase tracking-[0.5em] text-slate-400 italic mb-2">Identificador de Semana</p>
+                        <p class="text-5xl font-black text-slate-900">${programa.id}</p>
                     </div>
                 </header>
 
-                <div class="relative z-10 grid grid-cols-4 grid-rows-2 gap-8 flex-1">
+                <div class="relative z-10 grid grid-cols-7 gap-6 flex-1">
                     ${programa.dias.map((dia, idx) => {
             const activeTurns = turnos.filter(t => {
                 const data = dia[t.id];
@@ -1643,34 +1637,33 @@ const renderProgramaTab = async (container) => {
             });
 
             return `
-                            <div class="bg-white/5 backdrop-blur-xl rounded-[2.5rem] p-8 border border-white/10 flex flex-col gap-6 shadow-2xl hover:border-white/20 transition-all group overflow-hidden relative">
-                                <!-- Day Header -->
-                                <div class="flex items-center justify-between">
-                                    <h2 class="text-4xl font-black uppercase tracking-tighter group-hover:text-primary transition-colors">${dia.nombre}</h2>
-                                    <span class="text-[10px] font-black uppercase tracking-widest opacity-30">${dia.fecha ? dia.fecha.split('-').reverse().join('/') : ''}</span>
+                            <div class="bg-slate-50 rounded-[3rem] p-8 border border-slate-100 flex flex-col gap-8 shadow-sm relative overflow-hidden">
+                                <div class="border-b-2 border-slate-200 pb-4">
+                                    <h2 class="text-4xl font-black uppercase tracking-tighter text-slate-900 mb-1">${dia.nombre}</h2>
+                                    <span class="text-xs font-bold uppercase tracking-widest text-slate-400">${dia.fecha ? dia.fecha.split('-').reverse().join('/') : ''}</span>
                                 </div>
                                 
-                                <div class="space-y-4 overflow-y-auto custom-scrollbar flex-1 pr-2">
+                                <div class="space-y-6 flex-1 overflow-visible">
                                     ${activeTurns.map(t => {
                 const data = dia[t.id];
                 return `
-                                            <div class="bg-black/20 rounded-2xl p-4 border border-white/5 space-y-4">
+                                            <div class="space-y-4">
                                                 <div class="flex items-center gap-3">
-                                                    <div class="w-8 h-8 rounded-lg flex items-center justify-center text-sm" style="background-color: ${t.bg}; color: ${t.color}">
+                                                    <div class="w-7 h-7 rounded-lg flex items-center justify-center text-xs" style="background-color: ${t.bg}; color: ${t.color}">
                                                         <i class="fas ${t.icon}"></i>
                                                     </div>
-                                                    <span class="text-[10px] font-black uppercase tracking-[0.2em]" style="color: ${t.color}">${t.label}</span>
+                                                    <span class="text-[9px] font-black uppercase tracking-[0.2em]" style="color: ${t.color}">${t.label}</span>
                                                 </div>
                                                 
-                                                <div class="grid grid-cols-1 gap-2">
+                                                <div class="grid grid-cols-1 gap-2.5">
                                                     ${['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta'].map(field => {
                     if (t.id === 'zoom' && field === 'Auxiliar') return '';
                     const val = data[field.toLowerCase()];
                     if (!val || val === '—') return '';
                     return `
-                                                            <div class="flex justify-between items-baseline gap-2">
-                                                                <span class="text-[7px] font-black uppercase tracking-widest text-white/30 truncate w-16">${field}</span>
-                                                                <span class="text-[11px] font-black uppercase tracking-tight text-white/90 text-right leading-tight">${val}</span>
+                                                            <div class="flex flex-col gap-0.5">
+                                                                <span class="text-[7px] font-black uppercase tracking-widest text-slate-400 opacity-70">${field}</span>
+                                                                <span class="text-[12px] font-black uppercase tracking-tight text-slate-800 leading-none">${val}</span>
                                                             </div>
                                                         `;
                 }).join('')}
@@ -1678,36 +1671,19 @@ const renderProgramaTab = async (container) => {
                                             </div>
                                         `;
             }).join('')}
-                                    ${activeTurns.length === 0 ? '<div class="h-full flex items-center justify-center opacity-10 text-xs italic">Sin actividades</div>' : ''}
+                                    ${activeTurns.length === 0 ? '<div class="h-full flex items-center justify-center opacity-20 text-xs italic font-bold uppercase tracking-widest">Sin Actividad</div>' : ''}
                                 </div>
-                                
-                                <!-- Decorative index -->
-                                <div class="absolute -right-4 -bottom-4 text-8xl font-black text-white/[0.02] pointer-events-none">${idx + 1}</div>
                             </div>
                         `;
         }).join('')}
-                    
-                    <!-- Branding Slot (8th slot) -->
-                    <div class="bg-gradient-to-br from-primary/10 to-indigo-600/10 backdrop-blur-xl rounded-[2.5rem] p-10 border border-white/10 flex flex-col justify-center items-center text-center relative overflow-hidden group shadow-2xl">
-                         <div class="relative z-10 space-y-4">
-                            <div class="w-20 h-20 bg-white/10 rounded-3xl flex items-center justify-center text-4xl mx-auto shadow-inner border border-white/10">
-                                <i class="fas fa-shield-alt text-primary"></i>
-                            </div>
-                            <div>
-                                <h4 class="text-2xl font-black uppercase tracking-tighter">Elite Workspace</h4>
-                                <p class="text-[10px] font-bold uppercase tracking-[0.4em] text-white/40">Sincronización Total 2026</p>
-                            </div>
-                         </div>
-                         <div class="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none blur-3xl"></div>
-                    </div>
                 </div>
 
-                <footer class="mt-8 pt-8 border-t border-white/10 flex justify-between items-center relative z-10">
-                    <p class="text-[10px] font-black uppercase tracking-[0.6em] opacity-30 italic">Documento Generado el ${new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
-                    <div class="flex items-center gap-4 text-white/20">
-                         <i class="fas fa-print"></i>
-                         <i class="fas fa-cloud"></i>
-                         <i class="fas fa-lock"></i>
+                <footer class="mt-12 pt-8 border-t-2 border-slate-100 flex justify-between items-center relative z-10 shrink-0">
+                    <p class="text-xs font-black uppercase tracking-[0.5em] text-slate-300 italic">Generado el ${new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+                    <div class="flex items-center gap-8 text-slate-200 text-xl">
+                         <i class="fas fa-check-double"></i>
+                         <i class="fas fa-fingerprint"></i>
+                         <i class="fas fa-shield-alt"></i>
                     </div>
                 </footer>
             </div>
@@ -1722,18 +1698,18 @@ const renderProgramaTab = async (container) => {
         tempDiv.innerHTML = previewHTML;
         document.body.appendChild(tempDiv);
         try {
-            showNotification("Generando formato 16:9...", "info");
+            showNotification("Generando formato Minimal 16:9...", "info");
             const canvas = await html2canvas(tempDiv.querySelector('#landscape-preview-content'), {
-                scale: 1, // Already 1920x1080
+                scale: 1,
                 useCORS: true,
-                backgroundColor: '#0f172a'
+                backgroundColor: '#ffffff'
             });
             const link = document.createElement('a');
-            link.download = `Programa_Landscape_${programa.id}.png`;
+            link.download = `Programa_Minimal_16-9_${programa.id}.png`;
             link.href = canvas.toDataURL('image/png'); link.click();
-            showNotification("Imagen 16:9 exportada", "success");
+            showNotification("Imagen Minimalista exportada", "success");
         } catch (e) {
-            console.error(e); showNotification("Error al generar Landscape", "error");
+            console.error(e); showNotification("Error al generar Minimal Landscape", "error");
         } finally { document.body.removeChild(tempDiv); }
     };
 
