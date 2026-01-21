@@ -1744,7 +1744,7 @@ const renderProgramaTab = async (container) => {
                 </header>
                 <div class="flex-1 overflow-y-auto p-10 bg-black/5 dark:bg-black/50">
                     <div id="print-area-wrapper" class="w-full max-w-[1200px] mx-auto shadow-3xl bg-white rounded-3xl overflow-hidden" style="aspect-ratio: 16/9;">
-                        <div style="zoom: 0.625; origin: top left; width: 1920px; height: 1080px;">
+                        <div style="zoom: 0.625; origin: top left; width: 1920px; height: 1080px; border-radius: 1.5rem; overflow: hidden;">
                             ${previewHTML}
                         </div>
                     </div>
@@ -1762,11 +1762,25 @@ const renderProgramaTab = async (container) => {
                         <head>
                             <title>Programa Semanal</title>
                             <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+                            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
                             <script src="https://cdn.tailwindcss.com"></script>
                             <style>
                                 @page { size: landscape; margin: 0; }
-                                body { font-family: 'Outfit', sans-serif; margin: 0; padding: 0; background-color: #f8fafc; }
-                                #landscape-preview-content { width: 100vw !important; height: 100vh !important; }
+                                body { 
+                                    font-family: 'Outfit', sans-serif; 
+                                    margin: 0; padding: 0; 
+                                    background-color: #f8fafc;
+                                    -webkit-print-color-adjust: exact !important;
+                                    print-color-adjust: exact !important;
+                                }
+                                #landscape-preview-content { 
+                                    width: 100vw !important; 
+                                    height: 100vh !important; 
+                                    -webkit-print-color-adjust: exact !important;
+                                    print-color-adjust: exact !important;
+                                }
+                                .bg-white { background-color: white !important; }
+                                .bg-slate-50 { background-color: #f8fafc !important; }
                             </style>
                         </head>
                         <body>${printContents}</body>
@@ -1776,8 +1790,8 @@ const renderProgramaTab = async (container) => {
                 setTimeout(() => {
                     printFrame.contentWindow.focus();
                     printFrame.contentWindow.print();
-                    setTimeout(() => document.body.removeChild(printFrame), 1000);
-                }, 1000);
+                    setTimeout(() => document.body.removeChild(printFrame), 1500);
+                }, 1500);
             };
         }, 'max-w-4xl');
     };
