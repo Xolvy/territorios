@@ -1612,16 +1612,16 @@ const renderProgramaTab = async (container) => {
         ];
 
         let html = `
-            <div id="landscape-preview-content" class="bg-slate-50 text-slate-900 font-['Outfit'] relative overflow-hidden flex flex-col p-12" style="width: 1920px; height: 1080px; box-sizing: border-box;">
-                <header class="relative z-10 flex flex-col items-center mb-10 border-b-[6px] border-slate-900 pb-8 mx-10">
-                    <h1 class="text-7xl font-black uppercase tracking-[0.2em] leading-none mb-3">Programa de Predicación</h1>
-                    <p class="text-4xl font-black uppercase tracking-[0.05em] text-slate-500">Congregación "Nueve de Octubre" 14282</p>
-                    <div class="absolute right-0 bottom-8 text-right">
+            <div id="landscape-preview-content" class="bg-slate-50 text-slate-900 font-['Outfit'] relative overflow-hidden flex flex-col p-8" style="width: 1920px; height: 1080px; box-sizing: border-box;">
+                <header class="relative z-10 flex flex-col items-center mb-6 border-b-[6px] border-slate-900 pb-6 mx-10">
+                    <h1 class="text-6xl font-black uppercase tracking-[0.2em] leading-none mb-2">Programa de Predicación</h1>
+                    <p class="text-3xl font-black uppercase tracking-[0.05em] text-slate-500">Congregación "Nueve de Octubre" 14282</p>
+                    <div class="absolute right-0 bottom-6 text-right">
                         <p class="text-xs font-black uppercase tracking-widest text-slate-300">Semana: ${programa.id}</p>
                     </div>
                 </header>
 
-                <div class="relative z-10 grid grid-cols-7 gap-6 flex-1">
+                <div class="relative z-10 grid grid-cols-7 gap-4 flex-1 overflow-hidden px-4">
                     ${programa.dias.map((dia, idx) => {
             const activeTurns = turnos.filter(t => {
                 const data = dia[t.id];
@@ -1629,33 +1629,48 @@ const renderProgramaTab = async (container) => {
             });
 
             return `
-                            <div class="bg-white rounded-[2rem] flex flex-col shadow-2xl shadow-slate-200/50 border border-slate-100 overflow-hidden relative">
-                                <div class="px-8 py-6 border-b border-slate-50 bg-slate-50/50">
-                                    <h2 class="text-4xl font-black uppercase tracking-tighter text-slate-900 leading-none">${dia.nombre}</h2>
-                                    <span class="text-xs font-bold uppercase tracking-widest text-slate-300 opacity-80">${dia.fecha ? dia.fecha.split('-').reverse().join('/') : ''}</span>
+                            <div class="bg-white rounded-[2rem] flex flex-col shadow-xl shadow-slate-200/40 border border-slate-100 overflow-hidden relative h-full">
+                                <div class="px-6 py-4 border-b border-slate-50 bg-slate-50/50 shrink-0">
+                                    <h2 class="text-3xl font-black uppercase tracking-tighter text-slate-900 leading-none mb-1">${dia.nombre}</h2>
+                                    <span class="text-[10px] font-bold uppercase tracking-widest text-slate-300 opacity-80">${dia.fecha ? dia.fecha.split('-').reverse().join('/') : ''}</span>
                                 </div>
                                 
-                                <div class="p-6 space-y-10 flex-1 overflow-visible">
+                                <div class="p-4 space-y-6 flex-1 overflow-visible">
                                     ${activeTurns.map(t => {
                 const data = dia[t.id];
+                const isSunday = dia.nombre.toLowerCase() === 'domingo';
+                const hourInt = data.hora ? parseInt(data.hora) : (t.id === 'manana' ? 9 : t.id === 'tarde' ? 15 : 19);
+
+                let labelText = t.label;
+                let displayIcon = t.icon;
+                let displayColor = t.color;
+
+                if (isSunday && data.hora && hourInt < 12) {
+                    labelText = 'MAÑANA';
+                    displayIcon = 'fa-sun';
+                    displayColor = '#b45309';
+                } else if (isSunday) {
+                    if (hourInt < 12) { labelText = 'MAÑANA'; displayIcon = 'fa-sun'; displayColor = '#b45309'; }
+                    else if (hourInt < 17) { labelText = 'TARDE'; displayIcon = 'fa-cloud-sun'; displayColor = '#c2410c'; }
+                    else { labelText = 'NOCHE'; displayIcon = 'fa-moon'; displayColor = '#3730a3'; }
+                }
+
                 return `
-                                            <div class="relative pl-6 border-l-4" style="border-color: ${t.color}20">
-                                                <div class="flex items-center gap-2 mb-4">
-                                                    <i class="fas ${t.icon} text-[10px]" style="color: ${t.color}"></i>
-                                                    <span class="text-[10px] font-black uppercase tracking-[0.3em]" style="color: ${t.color}">
-                                                        ${(dia.nombre.toLowerCase() === 'domingo' && data.hora && parseInt(data.hora) < 12) ? 'MAÑANA' : t.label}
-                                                    </span>
+                                            <div class="relative pl-4 border-l-4" style="border-color: ${displayColor}20">
+                                                <div class="flex items-center gap-2 mb-2">
+                                                    <i class="fas ${displayIcon} text-[9px]" style="color: ${displayColor}"></i>
+                                                    <span class="text-[9px] font-black uppercase tracking-[0.2em]" style="color: ${displayColor}">${labelText}</span>
                                                 </div>
                                                 
-                                                <div class="space-y-4">
+                                                <div class="space-y-2.5">
                                                     ${['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta'].map(field => {
                     if (t.id === 'zoom' && field === 'Auxiliar') return '';
                     const val = data[field.toLowerCase()];
                     if (!val || val === '—' || val === '') return '';
                     return `
-                                                            <div class="flex flex-col">
-                                                                <span class="text-[8px] font-black uppercase tracking-widest text-slate-400 opacity-60 mb-0.5">${field}</span>
-                                                                <span class="text-[14px] font-black uppercase tracking-tight text-slate-900 leading-[1.2]">${val}</span>
+                                                            <div class="flex flex-col leading-tight">
+                                                                <span class="text-[7px] font-black uppercase tracking-widest text-slate-400 opacity-60 mb-0.5">${field}</span>
+                                                                <span class="text-[13px] font-black uppercase tracking-tight text-slate-900">${val}</span>
                                                             </div>
                                                         `;
                 }).join('')}
@@ -1670,12 +1685,12 @@ const renderProgramaTab = async (container) => {
         }).join('')}
                 </div>
 
-                <footer class="mt-8 pt-8 border-t border-slate-100 flex justify-between items-center relative z-10 shrink-0 mx-10">
-                    <p class="text-[10px] font-black uppercase tracking-[0.6em] text-slate-300">Generado el ${new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+                <footer class="mt-4 pt-4 border-t border-slate-100 flex justify-between items-center relative z-10 shrink-0 mx-10">
+                    <p class="text-[9px] font-black uppercase tracking-[0.5em] text-slate-300 italic">Generado el ${new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
                     <div class="flex items-center gap-10 text-slate-200">
                          <i class="fas fa-check-circle"></i>
-                         <i class="fas fa-fingerprint text-lg"></i>
-                         <p class="text-[9px] font-black uppercase tracking-widest opacity-20">Elite Workspace 2026</p>
+                         <i class="fas fa-layer-group text-lg"></i>
+                         <p class="text-[8px] font-black uppercase tracking-widest opacity-20">Elite Workspace 2026</p>
                     </div>
                 </footer>
             </div>
