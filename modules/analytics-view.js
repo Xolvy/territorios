@@ -1,4 +1,4 @@
-import { getTerritorios, getConductores, getGlobalSettings, getHistorialReport } from '../data/firestore-services.js?v=2.1.6';
+import { getTerritorios, getConductores, getGlobalSettings, getHistorialReport } from '../data/firestore-services.js?v=2.1.7';
 
 export const renderAnalyticsView = async (container) => {
     // 1. Fetch settings FIRST to use in the template
@@ -140,17 +140,13 @@ export const renderAnalyticsView = async (container) => {
                 getHistorialReport()
             ]);
 
-            // Reuse settings fetched at top
-
-            const expDays = settings?.expiration_days || 120; // Default 120
-
             // Calculate Stats
+            const expDays = settings?.expiration_days || 120;
             const total = territorios.length;
             const assigned = territorios.filter(t => t.estado === 'Asignado');
             const assignedCount = assigned.length;
             const assignedPct = total > 0 ? Math.round((assignedCount / total) * 100) : 0;
 
-            // Check Late (> 4 months / 120 days)
             const now = new Date();
             const lateTerritories = assigned.filter(t => {
                 if (!t.fecha_asignacion) return false;
@@ -160,6 +156,9 @@ export const renderAnalyticsView = async (container) => {
                 return diffDays > expDays;
             });
 
+            // Safety check: is the container still in the DOM and has our elements?
+            if (!document.getElementById('stat-total-terr')) return;
+
             // Update DOM Stats
             document.getElementById('stat-total-terr').innerText = total;
             document.getElementById('stat-assigned').innerText = assignedCount;
@@ -167,35 +166,25 @@ export const renderAnalyticsView = async (container) => {
             document.getElementById('stat-conductors').innerText = conductores.length;
             document.getElementById('stat-late').innerText = lateTerritories.length;
 
-            // Render Chart 1: Status
-            const ctxStatus = document.getElementById('chart-status').getContext('2d');
-            new Chart(ctxStatus, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Disponible', 'Asignado', 'Atrasado'],
-                    datasets: [{
-                        data: [
-                            total - assignedCount,
-                            assignedCount - lateTerritories.length,
-                            lateTerritories.length
-                        ],
-                        backgroundColor: ['#e2e8f0', '#0f766e', '#ef4444'],
-                        borderWidth: 0,
-                        hoverOffset: 10
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    cutout: '70%',
-                    plugins: {
-                        legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20, font: { family: 'Inter' } } }
-                    }
-                }
-            });
+            // Render Chart 1
+            const chartStatusEl = document.getElementById('chart-status');
+            if (chartStatusEl) {
+                new Chart(chartStatusEl.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Disponible', 'Asignado', 'Atrasado'],
+                        datasets: [{
+                            data: [total - assignedCount, assignedCount - lateTerritories.length, lateTerritories.length],
+                            backgroundColor: ['#e2e8f0', '#0f766e', '#ef4444'],
+                            borderWidth: 0,
+                            hoverOffset: 10
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20, font: { family: 'Inter' } } } } }
+                });
+            }
 
-            // Render Chart 2: Most Worked Territories
-            // Count completions per territory
+            // Render Chart 2
             const terrFreqMap = {};
             historial.forEach(entry => {
                 if (entry.estado === 'Completado' && entry.numero) {
@@ -203,105 +192,48 @@ export const renderAnalyticsView = async (container) => {
                     terrFreqMap[num] = (terrFreqMap[num] || 0) + 1;
                 }
             });
+            const sortedTerrFreq = Object.entries(terrFreqMap).sort((a, b) => b[1] - a[1]).slice(0, 10);
 
-            // If history is empty, maybe count assignments (even if not yet completed)
-            if (Object.keys(terrFreqMap).length === 0) {
-                historial.forEach(entry => {
-                    if (entry.numero) {
-                        const num = entry.numero.toString().trim();
-                        terrFreqMap[num] = (terrFreqMap[num] || 0) + 1;
-                    }
+            const chartTerrEl = document.getElementById('chart-territories');
+            if (chartTerrEl && sortedTerrFreq.length > 0) {
+                new Chart(chartTerrEl.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: sortedTerrFreq.map(x => `Terr.${x[0]} `),
+                        datasets: [{ label: 'Veces Trabajado', data: sortedTerrFreq.map(x => x[1]), backgroundColor: '#0f766e', borderRadius: 6, barThickness: 20 }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { precision: 0 } }, x: { grid: { display: false }, ticks: { maxRotation: 45, minRotation: 45, autoSkip: true } } }, plugins: { legend: { display: false } } }
                 });
             }
 
-            // Sort top 10
-            const sortedTerrFreq = Object.entries(terrFreqMap)
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, 10);
-
-            const ctxTerr = document.getElementById('chart-territories').getContext('2d');
-            new Chart(ctxTerr, {
-                type: 'bar',
-                data: {
-                    labels: sortedTerrFreq.map(x => `Terr.${x[0]} `),
-                    datasets: [{
-                        label: 'Veces Trabajado',
-                        data: sortedTerrFreq.map(x => x[1]),
-                        backgroundColor: '#0f766e', // Teal color for consistency
-                        borderRadius: 6,
-                        barThickness: 20
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: { color: 'rgba(0,0,0,0.05)' },
-                            ticks: { precision: 0 }
-                        },
-                        x: {
-                            grid: { display: false },
-                            ticks: {
-                                maxRotation: 45,
-                                minRotation: 45,
-                                autoSkip: true
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: (context) => `Trabajado ${context.raw} veces`
-                            }
-                        }
-                    }
-                }
-            });
-
             // Render Late Table
             const tbody = document.getElementById('late-table-body');
-            tbody.innerHTML = lateTerritories.sort((a, b) => new Date(a.fecha_asignacion) - new Date(b.fecha_asignacion)).map(t => {
-                const d = new Date(t.fecha_asignacion);
-                const diffTime = Math.abs(now - d);
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                return `
-                    <tr class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group cursor-pointer">
-                        <td class="p-4 font-bold text-gray-800 dark:text-gray-200">${t.numero}</td>
-                        <td class="p-4 text-gray-600 dark:text-gray-400">${t.asignado_a}</td>
-                        <td class="p-4 text-gray-500">${d.toLocaleDateString()}</td>
-                        <td class="p-4 font-bold text-red-500">${diffDays} días</td>
-                    </tr>
-                `;
-            }).join('');
-
-            if (lateTerritories.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="p-20 text-center">
-                    <div class="flex flex-col items-center gap-4 opacity-30 group">
-                        <div class="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-2xl text-emerald-500 group-hover:scale-110 transition-transform">
-                            <i class="fas fa-check-circle"></i>
-                        </div>
-                        <p class="text-xs font-black text-slate-400 uppercase tracking-[0.4em]">Sin territorios atrasados</p>
-                    </div>
-                </td></tr>`;
+            if (tbody) {
+                if (lateTerritories.length > 0) {
+                    tbody.innerHTML = lateTerritories.sort((a, b) => new Date(a.fecha_asignacion) - new Date(b.fecha_asignacion)).map(t => {
+                        const d = new Date(t.fecha_asignacion);
+                        const diffDays = Math.ceil(Math.abs(now - d) / (1000 * 60 * 60 * 24));
+                        return `<tr class="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group cursor-pointer">
+                            <td class="p-4 font-bold text-gray-800 dark:text-gray-200">${t.numero}</td>
+                            <td class="p-4 text-gray-600 dark:text-gray-400">${t.asignado_a}</td>
+                            <td class="p-4 text-gray-500">${d.toLocaleDateString()}</td>
+                            <td class="p-4 font-bold text-red-500">${diffDays} días</td>
+                        </tr>`;
+                    }).join('');
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="4" class="p-20 text-center"><div class="flex flex-col items-center gap-4 opacity-30 group"><div class="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-2xl text-emerald-500 group-hover:scale-110 transition-transform"><i class="fas fa-check-circle"></i></div><p class="text-xs font-black text-slate-400 uppercase tracking-[0.4em]">Sin territorios atrasados</p></div></td></tr>`;
+                }
             }
 
         } catch (e) {
-            console.error(e);
-            container.innerHTML = `<div class="text-red-500 p-5"> Error cargando analytics: ${e.message}</div>`;
+            console.error("Error in loadData:", e);
+            if (container) container.innerHTML = `<div class="text-red-500 p-5"> Error cargando analytics: ${e.message}</div>`;
         }
     };
 
     loadData();
-    document.getElementById('btn-refresh-analytics').addEventListener('click', () => {
-        // Simple re-render
-        renderAnalyticsView(container);
-    });
+    const refreshBtn = document.getElementById('btn-refresh-analytics');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => renderAnalyticsView(container));
+    }
 };
-
-
-
-
-

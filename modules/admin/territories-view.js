@@ -1,4 +1,3 @@
-
 import {
     getConfiguracion, getTerritorios, addTerritorio, deleteTerritorio, updateTerritorio,
     assignTerritorioParcial, assignTerritorio, returnTerritorio, returnTerritorioMultiple,
@@ -9,16 +8,16 @@ import {
     updateRecurso, getCampanas, saveCampana, getGroupsConfig, returnTerritorioParcial,
     rebuildHistoryFromSchedule, runSystemDiagnosticsAndRepair, masterResetAssignments,
     syncAllProgramsToTerritories
-} from '../../data/firestore-services.js?v=2.1.0';
+} from '../../data/firestore-services.js?v=2.1.7';
 import {
     formatPhoneNumber, getStatusColor, showNotification, formatMapUrl,
     ensureOnline, generatePlainXLS
-} from '../utils/helpers.js?v=2.1.0';
-import { UIHelpers, showModal, showCustomConfirm, showCustomPrompt } from '../services/ui-helpers.js?v=2.1.0';
-import { GlassCard, GlassButton, GlassInput } from '../services/ui-components.js?v=2.1.0';
+} from '../utils/helpers.js?v=2.1.7';
+import { UIHelpers, showModal, showCustomConfirm, showCustomPrompt } from '../services/ui-helpers.js?v=2.1.7';
+import { GlassCard, GlassButton, GlassInput } from '../services/ui-components.js?v=2.1.7';
 import * as XLSX from 'xlsx';
 import html2canvas from 'html2canvas';
-import { renderHistoryTab, renderS13CommandCenter } from '../report-s13.js?v=2.1.0';
+import { renderHistoryTab, renderS13CommandCenter } from '../report-s13.js?v=2.1.7';
 
 const fmtDate = UIHelpers.fmtDate;
 const getMonday = UIHelpers.getMonday;
@@ -717,40 +716,75 @@ const renderAsignacionesView = async (container) => {
         if (assigned.length === 0) return showNotification("No hay territorios para devolver", "info");
 
         showModal(`
-            <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden">
-                <header class="shrink-0 bg-primary p-8 text-white relative">
-                    <div class="absolute inset-0 bg-white/10 backdrop-blur-md"></div>
-                    <div class="relative z-10 flex items-center gap-6">
-                        <div class="w-16 h-16 bg-white/20 rounded-3xl flex items-center justify-center text-3xl"><i class="fas fa-file-import"></i></div>
-                        <div><h3 class="text-2xl font-black uppercase">Recepción de Informes</h3></div>
+            <div class="flex flex-col h-full bg-white dark:bg-[#0a1120] rounded-[2.5rem] overflow-hidden">
+                <header class="shrink-0 p-10 flex items-center justify-between border-b border-slate-100 dark:border-white/5">
+                    <div class="flex items-center gap-6">
+                        <div class="w-14 h-14 bg-rose-500/10 rounded-2xl flex items-center justify-center text-rose-500 text-2xl shadow-inner">
+                            <i class="fas fa-file-import"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Recepción</h3>
+                            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em]">Selecciona territorios devueltos</p>
+                        </div>
                     </div>
                 </header>
-                <div class="flex-1 p-8 overflow-y-auto space-y-6">
-                    ${assigned.map(t => `
-                        <div class="p-5 bg-slate-50 dark:bg-white/5 rounded-3xl border border-slate-100 flex items-center justify-between">
-                            <div class="flex items-center gap-4">
-                                <input type="checkbox" class="return-check w-6 h-6 rounded-lg accent-primary" value="${t.id}">
-                                <div><p class="font-black text-sm">#${t.numero}</p><p class="text-[10px] opacity-60">${t.asignado_a}</p></div>
-                            </div>
-                        </div>
-                    `).join('')}
+
+                <div class="flex-1 p-8 overflow-y-auto custom-scrollbar space-y-4 bg-slate-50/50 dark:bg-black/20">
+                    <div class="grid grid-cols-1 gap-4">
+                        ${assigned.map(t => `
+                            <label class="group relative flex items-center justify-between p-6 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-3xl transition-all hover:border-primary/40 cursor-pointer shadow-sm hover:shadow-xl active:scale-[0.98]">
+                                <div class="flex items-center gap-6">
+                                    <div class="relative w-7 h-7 flex items-center justify-center">
+                                        <input type="checkbox" class="return-check sr-only" value="${t.id}" onchange="this.parentElement.nextElementSibling.classList.toggle('text-primary', this.checked)">
+                                        <div class="check-box w-7 h-7 border-2 border-slate-200 dark:border-white/10 rounded-xl flex items-center justify-center transition-all group-hover:border-primary/50">
+                                            <i class="fas fa-check text-[10px] text-white opacity-0 transition-opacity"></i>
+                                        </div>
+                                    </div>
+                                    <div class="space-y-1">
+                                        <p class="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">Territorio ${t.numero}</p>
+                                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">${t.asignado_a}</p>
+                                    </div>
+                                </div>
+                                <div class="px-4 py-2 bg-slate-100 dark:bg-white/10 rounded-xl text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                                    Asignado: ${fmtDate(t.fecha_asignacion)}
+                                </div>
+                        `).join('')}
+                    </div>
                 </div>
-                <footer class="p-8 border-t"><button id="btn-confirm-return" class="w-full py-5 bg-primary text-white rounded-2xl font-black uppercase">Finalizar Seleccionados</button></footer>
+                <style>
+                    .return-check:checked + .check-box { background: #3b82f6 !important; border-color: #3b82f6 !important; box-shadow: 0 4px 12px rgba(59,130,246,0.3); }
+                    .return-check:checked + .check-box i { opacity: 1 !important; }
+                </style>
+
+                <footer class="p-8 border-t border-slate-100 dark:border-white/5 bg-white dark:bg-black/40">
+                    <button id="btn-confirm-return" class="w-full py-5 bg-primary hover:bg-primary-light text-white rounded-2xl font-black uppercase tracking-[0.2em] text-xs shadow-2xl shadow-primary/20 transition-all active:scale-95 flex items-center justify-center gap-3">
+                        <i class="fas fa-check-double"></i>
+                        Confirmar Devolución
+                    </button>
+                </footer>
             </div>
         `, (modal) => {
             modal.querySelector('#btn-confirm-return').onclick = async () => {
                 const ids = Array.from(modal.querySelectorAll('.return-check:checked')).map(c => c.value);
-                if (ids.length === 0) return showNotification("Selecciona al menos uno", "warning");
+                if (ids.length === 0) return showNotification("Selecciona al menos un territorio", "warning");
+
+                const btn = modal.querySelector('#btn-confirm-return');
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Procesando...';
 
                 try {
                     for (const id of ids) {
-                        await returnTerritorio(id, "Devolución masiva", new Date().toISOString().split('T')[0], "Completado");
+                        await returnTerritorio(id, "Devolución masiva", new Date().toISOString(), "Completado");
                     }
-                    showNotification("Procesado.");
+                    showNotification("Territorios devueltos con éxito", "success");
                     modal.remove();
                     await loadData();
                     if (window.dispatchModuleSync) window.dispatchModuleSync();
-                } catch (e) { showNotification(e.message, "error"); }
+                } catch (e) {
+                    showNotification(e.message, "error");
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-check-double"></i> Confirmar Devolución';
+                }
             };
         });
     };
@@ -1477,11 +1511,14 @@ const renderProgramaTab = async (container) => {
     const getExportableDataAOA = () => {
         const header = ['', 'LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO', 'DOMINGO', 'GRUPOS'];
         const aoa = [header];
-        const fieldLabels = ['LUGAR', 'HORA', 'CONDUCTOR', 'AUXILIAR', 'FACETA'];
         const turns = ['manana', 'tarde', 'noche', 'zoom'];
 
         turns.forEach(turnoId => {
-            const turnRows = fieldLabels.map(label => {
+            const fieldLabels = ['LUGAR', 'HORA', 'CONDUCTOR', 'AUXILIAR', 'FACETA'];
+            // Requirement: No AUXILIAR for zoom turn
+            const filteredLabels = turnoId === 'zoom' ? fieldLabels.filter(l => l !== 'AUXILIAR') : fieldLabels;
+
+            const turnRows = filteredLabels.map((label, rowIndex) => {
                 const row = [label];
                 // Fill day columns
                 programa.dias.forEach(dia => {
@@ -1489,12 +1526,14 @@ const renderProgramaTab = async (container) => {
                     row.push(data[label.toLowerCase()] || '');
                 });
 
-                // Grupos Column: Check weekend or first non-empty
-                let groupVal = '';
-                const domGrupos = (programa.dias[6] && programa.dias[6][turnoId]) ? programa.dias[6][turnoId].grupos : '';
-                const sabGrupos = (programa.dias[5] && programa.dias[5][turnoId]) ? programa.dias[5][turnoId].grupos : '';
-                groupVal = domGrupos || sabGrupos || '';
-                row.push(groupVal);
+                // Grupos Column: Only show once per turn block (on first row)
+                if (rowIndex === 0) {
+                    const domGrupos = (programa.dias[6] && programa.dias[6][turnoId]) ? programa.dias[6][turnoId].grupos : '';
+                    const sabGrupos = (programa.dias[5] && programa.dias[5][turnoId]) ? programa.dias[5][turnoId].grupos : '';
+                    row.push(domGrupos || sabGrupos || '');
+                } else {
+                    row.push('');
+                }
 
                 return row;
             });
@@ -1570,18 +1609,18 @@ const renderProgramaTab = async (container) => {
         ];
 
         let html = `
-            <div id="print-preview-content" class="bg-slate-50 p-12 text-slate-900 font-['Outfit'] space-y-20" style="max-width: 1200px; margin: auto;">
-                <header class="flex justify-between items-center border-b-8 border-slate-900 pb-10">
+            <div id="print-preview-content" class="bg-white p-6 text-slate-900 font-['Outfit'] space-y-8" style="width: 210mm; margin: auto; min-height: 297mm; box-sizing: border-box;">
+                <header class="flex justify-between items-center border-b-4 border-slate-900 pb-4">
                     <div>
-                        <h1 class="text-5xl font-black uppercase tracking-tighter leading-none">Programa Semanal</h1>
-                        <p class="text-[11px] font-black uppercase tracking-[0.5em] text-primary mt-4">Gestión Estratégica de Salidas</p>
+                        <h1 class="text-3xl font-black uppercase tracking-tighter leading-none">Programa Semanal</h1>
+                        <p class="text-[9px] font-black uppercase tracking-[0.4em] text-primary mt-2">Planificación de Salidas de Campo</p>
                     </div>
                     <div class="text-right">
-                        <p class="text-[12px] font-black uppercase tracking-[0.4em] opacity-30 italic">Semana: ${programa.id}</p>
+                        <p class="text-[10px] font-black uppercase tracking-[0.4em] opacity-30 italic">Semana: ${programa.id}</p>
                     </div>
                 </header>
 
-                <div class="space-y-32">
+                <div class="space-y-12">
         `;
 
         programa.dias.forEach((dia) => {
@@ -1593,39 +1632,39 @@ const renderProgramaTab = async (container) => {
             if (activeTurns.length === 0) return;
 
             html += `
-                <div class="page-break-inside-avoid space-y-12">
-                     <div class="flex items-center gap-8 mb-12">
-                        <h2 class="text-6xl font-black text-slate-900 uppercase tracking-tighter leading-none">${dia.nombre}</h2>
-                        <div class="h-1 flex-1 bg-gradient-to-r from-slate-200 to-transparent rounded-full"></div>
+                <div class="page-break-inside-avoid space-y-6">
+                     <div class="flex items-center gap-4 mb-6">
+                        <h2 class="text-3xl font-black text-slate-900 uppercase tracking-tighter leading-none">${dia.nombre}</h2>
+                        <div class="h-0.5 flex-1 bg-gradient-to-r from-slate-200 to-transparent rounded-full"></div>
                     </div>
                     
-                    <div class="flex flex-wrap gap-8">
+                    <div class="grid grid-cols-2 gap-4">
                         ${activeTurns.map(t => {
                 const data = dia[t.id];
                 return `
-                                <div class="flex-1 min-w-[320px] bg-white rounded-[2.5rem] p-10 shadow-xl border border-slate-100 flex flex-col gap-8 relative overflow-hidden">
-                                    <div class="flex items-center gap-5">
-                                        <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-xl shadow-inner" style="background-color: ${t.bg}; color: ${t.color}">
+                                <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex flex-col gap-4 relative overflow-hidden">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-sm shadow-inner" style="background-color: ${t.bg}; color: ${t.color}">
                                             <i class="fas ${t.icon}"></i>
                                         </div>
-                                        <span class="text-[12px] font-black uppercase tracking-[0.4em] text-slate-400">${t.label}</span>
+                                        <span class="text-[9px] font-black uppercase tracking-[0.4em] text-slate-400">${t.label}</span>
                                     </div>
                                     
-                                    <div class="space-y-6">
+                                    <div class="grid grid-cols-1 gap-3">
                                         ${['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', 'Grupos'].map(field => {
+                    if (t.id === 'zoom' && field === 'Auxiliar') return ''; // Zoom does not use Auxiliar
                     const val = data[field.toLowerCase()];
                     if (!val || val === '—') return '';
                     return `
-                                                <div class="space-y-2">
-                                                    <p class="text-[9px] font-black uppercase tracking-widest text-slate-400 opacity-60 ml-1">${field}</p>
-                                                    <p class="text-base font-black text-slate-800 uppercase tracking-tight leading-tight">${val}</p>
+                                                <div class="space-y-0.5">
+                                                    <p class="text-[7px] font-black uppercase tracking-widest text-slate-400 opacity-60 ml-1">${field}</p>
+                                                    <p class="text-xs font-black text-slate-800 uppercase tracking-tight leading-tight">${val}</p>
                                                 </div>
                                             `;
                 }).join('')}
                                     </div>
                                     
-                                    <!-- Decoration -->
-                                    <div class="absolute -right-8 -bottom-8 w-24 h-24 rounded-full blur-[40px] opacity-10" style="background-color: ${t.color}"></div>
+                                    <div class="absolute -right-6 -bottom-6 w-16 h-16 rounded-full blur-[30px] opacity-10" style="background-color: ${t.color}"></div>
                                 </div>
                             `;
             }).join('')}
@@ -1636,16 +1675,17 @@ const renderProgramaTab = async (container) => {
 
         html += `
                 </div>
-                <footer class="pt-20 border-t-2 border-slate-100 text-center">
-                    <p class="text-[9px] font-bold uppercase tracking-[0.6em] opacity-20 italic">Elite Territorios 2.0 • Registro Oficial de Predicación • ${new Date().toLocaleDateString()}</p>
+                <footer class="pt-10 border-t border-slate-100 text-center">
+                    <p class="text-[7px] font-bold uppercase tracking-[0.5em] opacity-30 italic">Generado automáticamente • ${new Date().toLocaleDateString()}</p>
                 </footer>
             </div>
             <style>
                 .page-break-inside-avoid { page-break-inside: avoid; }
                 @media print {
-                    body { background: white !important; }
-                    #print-preview-content { padding: 0 !important; box-shadow: none !important; width: 100% !important; max-width: none !important; background: white !important; }
-                    .bg-white { border: 1px solid #eee !important; }
+                    body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                    #print-preview-content { padding: 10mm !important; box-shadow: none !important; width: 210mm !important; max-width: none !important; background: white !important; margin: 0 auto !important; }
+                    header { border-bottom-width: 4px !important; border-color: #000 !important; }
+                    .bg-white { border: 1px solid #ddd !important; }
                 }
             </style>
         `;
@@ -1655,7 +1695,7 @@ const renderProgramaTab = async (container) => {
     container.querySelector('#export-png-prog').onclick = async () => {
         const previewHTML = generatePreviewHTML();
         const tempDiv = document.createElement('div');
-        tempDiv.style.position = 'absolute'; tempDiv.style.left = '-9999px'; tempDiv.style.width = '1000px';
+        tempDiv.style.position = 'absolute'; tempDiv.style.left = '-9999px'; tempDiv.style.width = '210mm';
         tempDiv.innerHTML = previewHTML;
         document.body.appendChild(tempDiv);
         try {
@@ -1716,7 +1756,7 @@ const renderProgramaTab = async (container) => {
                     printFrame.contentWindow.focus();
                     printFrame.contentWindow.print();
                     setTimeout(() => document.body.removeChild(printFrame), 1000);
-                }, 800);
+                }, 1000);
             };
         }, 'max-w-4xl');
     };

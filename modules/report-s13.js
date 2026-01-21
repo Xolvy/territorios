@@ -1,6 +1,6 @@
-import { getHistorialReport, rebuildHistoryFromSchedule, getConfiguracion, getTerritorios, runSystemDiagnosticsAndRepair } from '../data/firestore-services.js?v=2.0.1';
-import { showNotification, generatePlainXLS } from './utils/helpers.js?v=2.0.1';
-import { S13Exporter } from './services/s13-exporter.js?v=2.0.1';
+import { getHistorialReport, rebuildHistoryFromSchedule, getConfiguracion, getTerritorios, runSystemDiagnosticsAndRepair } from '../data/firestore-services.js?v=2.1.7';
+import { showNotification, generatePlainXLS } from './utils/helpers.js?v=2.1.7';
+import { S13Exporter } from './services/s13-exporter.js?v=2.1.7';
 
 export const renderS13CommandCenter = async (container) => {
     const [history, config, territories] = await Promise.all([
@@ -174,6 +174,10 @@ export const renderS13CommandCenter = async (container) => {
         const mainCont = container.querySelector('#cc-main-container');
         if (!mainCont) return;
 
+        window.dispatchModuleSync = () => {
+            loadView(view);
+        };
+
         mainCont.innerHTML = `
             <div class="flex flex-col items-center justify-center p-40 gap-4 animate-pulse">
                 <div class="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
@@ -304,7 +308,25 @@ export const renderAdvancedHistoryView = async (container, options = {}) => {
     const config = await getConfiguracion();
     const territories = await getTerritorios();
 
-    let filteredHistory = [...history].sort((a, b) => new Date(b.fecha_asignacion || 0) - new Date(a.fecha_asignacion || 0));
+    // Set sync global for admin actions
+    window.dispatchModuleSync = () => {
+        renderAdvancedHistoryView(container, options);
+    };
+
+    // Flatten history: one row per territory number
+    const flatHistory = [];
+    history.forEach(item => {
+        if (!item.numero) return;
+        const nums = item.numero.toString().split(/[,;]/).map(n => n.trim()).filter(n => n);
+        nums.forEach(num => {
+            flatHistory.push({
+                ...item,
+                numero: num // Virtual override for display
+            });
+        });
+    });
+
+    let filteredHistory = [...flatHistory].sort((a, b) => new Date(b.fecha_asignacion || 0) - new Date(a.fecha_asignacion || 0));
     let currentPage = 1;
     const itemsPerPage = 20;
 
@@ -357,7 +379,7 @@ export const renderAdvancedHistoryView = async (container, options = {}) => {
                                             </span>
                                         </td>
                                         <td class="p-6 text-right">
-                                            <div class="flex justify-end gap-2 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <div class="flex justify-end gap-2 transition-all">
                                                 <button onclick="window.editHistoryRecord('${h.id}')" class="w-9 h-9 flex items-center justify-center bg-white dark:bg-slate-800 text-slate-500 hover:text-primary rounded-xl border border-slate-200 dark:border-white/10 shadow-sm transition-all"><i class="fas fa-edit text-[10px]"></i></button>
                                                 <button onclick="window.deleteHistoryRecordUI('${h.id}', '${h.conductor}', '${h.numero}')" class="w-9 h-9 flex items-center justify-center bg-white dark:bg-slate-800 text-slate-500 hover:text-rose-500 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm transition-all"><i class="fas fa-trash-alt text-[10px]"></i></button>
                                             </div>
@@ -384,7 +406,7 @@ export const renderAdvancedHistoryView = async (container, options = {}) => {
             const s = document.getElementById(options.searchInputId);
             if (s) s.oninput = (e) => {
                 const q = e.target.value.toLowerCase();
-                filteredHistory = history.filter(h =>
+                filteredHistory = flatHistory.filter(h =>
                     h.conductor.toLowerCase().includes(q) ||
                     String(h.numero).includes(q) ||
                     h.estado.toLowerCase().includes(q)

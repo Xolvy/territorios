@@ -1,4 +1,4 @@
-import { auth } from '../firebase-config.js?v=2.1.6';
+import { auth } from '../firebase-config.js?v=2.1.7';
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import {
     getTerritorios, getConductores, getPublicadores, getTelefonos, updateTelefono,
@@ -8,10 +8,10 @@ import {
     addPublicador, updatePublicador, deletePublicador,
     releaseUnusedTelefonos, solicitarNumeros, updateTelefonoStatus, logSessionSummary,
     logReturn, returnTerritorio, returnTerritorioParcial, transferTerritory
-} from '../data/firestore-services.js?v=2.1.6';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, formatManzanas } from './utils/helpers.js?v=2.1.6';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=2.1.6';
-import { MapViewer } from './map-viewer.js?v=2.1.6';
+} from '../data/firestore-services.js?v=2.1.7';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, formatManzanas } from './utils/helpers.js?v=2.1.7';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=2.1.7';
+import { MapViewer } from './map-viewer.js?v=2.1.7';
 
 
 
@@ -787,7 +787,7 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
 
         intelligenceBadge.innerHTML = `
             <div class="flex flex-wrap items-center gap-3">
-                <button onclick="const det=document.querySelector('.group\\/prog-details'); if(det) det.open=true; setTimeout(()=>document.getElementById('programa-semanal-section')?.scrollIntoView({behavior:'smooth'}), 10);" 
+                <button onclick="const det=document.querySelector('.group\\/prog-details'); if(det) { det.open=true; setTimeout(() => { document.getElementById('programa-semanal-section')?.scrollIntoView({behavior:'smooth', block:'start'}); }, 50); }" 
                         class="flex items-center gap-3 ${colorClass} py-3.5 px-6 rounded-2xl border text-[10px] font-black uppercase tracking-[0.15em] shadow-sm backdrop-blur-md hover:scale-105 active:scale-95 transition-all">
                     <i class="fas fa-calendar-alt animate-pulse"></i> Programa de predicación
                 </button>
