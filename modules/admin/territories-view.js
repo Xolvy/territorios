@@ -1256,14 +1256,11 @@ const renderProgramaTab = async (container) => {
                         <button id="btn-clear-week" class="p-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-400 hover:text-red-500 rounded-xl transition-all" title="Limpiar Semana">
                             <i class="fas fa-trash-alt"></i>
                         </button>
-                        <button id="export-excel-prog" class="p-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-400 hover:text-emerald-500 rounded-xl transition-all" title="Exportar Excel">
+                         <button id="export-excel-prog" class="p-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-400 hover:text-emerald-500 rounded-xl transition-all" title="Exportar Excel">
                             <i class="fas fa-file-excel"></i>
                         </button>
-                         <button id="export-png-prog" class="p-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-400 hover:text-sky-500 rounded-xl transition-all" title="Exportar PNG (A4)">
+                         <button id="export-png-prog" class="p-4 bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 hover:bg-indigo-500 hover:text-white rounded-xl transition-all shadow-lg shadow-indigo-500/5" title="Exportar Imagen 16:9">
                             <i class="fas fa-file-image"></i>
-                        </button>
-                        <button id="export-landscape-prog" class="p-4 bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 hover:bg-indigo-500 hover:text-white rounded-xl transition-all shadow-lg shadow-indigo-500/5 text-xs font-black" title="Exportar 16:9 Horizontal">
-                            <i class="fas fa-tv mr-1"></i> 16:9
                         </button>
                         <button id="btn-print-prog" class="p-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-400 hover:text-amber-500 rounded-xl transition-all" title="Vista Previa e Imprimir">
                             <i class="fas fa-print"></i>
@@ -1646,7 +1643,7 @@ const renderProgramaTab = async (container) => {
                     <div class="w-full h-1.5 bg-slate-900 rounded-full"></div>
                 </header>
 
-                <div class="relative z-10 grid grid-cols-7 gap-3 flex-1 overflow-hidden px-4 pb-10">
+                <div class="relative z-10 grid grid-cols-7 gap-3 flex-1 overflow-hidden px-4 pb-7">
                     ${programa.dias.map((dia, idx) => {
             const activeTurns = turnos.filter(t => {
                 const data = dia[t.id];
@@ -1711,7 +1708,7 @@ const renderProgramaTab = async (container) => {
         return html;
     };
 
-    container.querySelector('#export-landscape-prog').onclick = async () => {
+    container.querySelector('#export-png-prog').onclick = async () => {
         const previewHTML = generateLandscapePreviewHTML();
         const tempDiv = document.createElement('div');
         tempDiv.style.position = 'absolute'; tempDiv.style.left = '-9999px'; tempDiv.style.width = '1920px'; tempDiv.style.height = '1080px';
@@ -1733,139 +1730,30 @@ const renderProgramaTab = async (container) => {
         } finally { document.body.removeChild(tempDiv); }
     };
 
-    const generatePreviewHTML = () => {
-        const turnos = [
-            { id: 'manana', icon: 'fa-sun', label: 'MAÑANA', color: '#b45309', bg: '#fffbeb' },
-            { id: 'tarde', icon: 'fa-cloud-sun', label: 'TARDE', color: '#c2410c', bg: '#fff7ed' },
-            { id: 'noche', icon: 'fa-moon', label: 'NOCHE', color: '#3730a3', bg: '#f5f3ff' },
-            { id: 'zoom', icon: 'fa-video', label: 'ZOOM', color: '#065f46', bg: '#f0fdf4' }
-        ];
-
-        let html = `
-            <div id="print-preview-content" class="bg-white p-6 text-slate-900 font-['Outfit'] space-y-8" style="width: 210mm; margin: auto; min-height: 297mm; box-sizing: border-box;">
-                <header class="flex flex-col items-center border-b-2 border-slate-900 pb-4">
-                    <h1 class="text-xl font-black uppercase tracking-[0.1em] leading-none mb-1">Programa de Predicación</h1>
-                    <p class="text-xs font-black uppercase text-slate-700">Congregación "Nueve de Octubre" 14282</p>
-                    <div class="w-full text-right mt-1">
-                        <p class="text-[7px] font-black uppercase tracking-widest text-slate-400 italic">Semana: ${programa.id}</p>
-                    </div>
-                </header>
-
-                <div class="space-y-12">
-        `;
-
-        programa.dias.forEach((dia) => {
-            const activeTurns = turnos.filter(t => {
-                const data = dia[t.id];
-                return data && (data.conductor || data.lugar);
-            });
-
-            if (activeTurns.length === 0) return;
-
-            html += `
-                <div class="page-break-inside-avoid space-y-6">
-                     <div class="flex items-center gap-4 mb-6">
-                        <h2 class="text-3xl font-black text-slate-900 uppercase tracking-tighter leading-none">${dia.nombre}</h2>
-                        <div class="h-0.5 flex-1 bg-gradient-to-r from-slate-200 to-transparent rounded-full"></div>
-                    </div>
-                    
-                    <div class="grid grid-cols-2 gap-4">
-                        ${activeTurns.map(t => {
-                const data = dia[t.id];
-                return `
-                                <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex flex-col gap-4 relative overflow-hidden">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-sm shadow-inner" style="background-color: ${t.bg}; color: ${t.color}">
-                                            <i class="fas ${t.icon}"></i>
-                                        </div>
-                                        <span class="text-[9px] font-black uppercase tracking-[0.4em] text-slate-400">
-                                            ${(dia.nombre.toLowerCase() === 'domingo' && data.hora && parseInt(data.hora) < 12) ? 'MAÑANA' : t.label}
-                                        </span>
-                                    </div>
-                                    
-                                    <div class="grid grid-cols-1 gap-3">
-                                        ${['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', 'Grupos'].map(field => {
-                    if (t.id === 'zoom' && field === 'Auxiliar') return ''; // Zoom does not use Auxiliar
-                    let val = data[field.toLowerCase()];
-                    if (!val || val === '—') return '';
-                    if (field === 'Grupos') { val = formatGroups(val); }
-                    return `
-                                                <div class="space-y-0.5">
-                                                    <p class="text-[7px] font-black uppercase tracking-widest text-slate-400 opacity-60 ml-1">${field}</p>
-                                                    <p class="text-xs font-black text-slate-800 uppercase tracking-tight leading-tight">${val}</p>
-                                                </div>
-                                            `;
-                }).join('')}
-                                    </div>
-                                    
-                                    <div class="absolute -right-6 -bottom-6 w-16 h-16 rounded-full blur-[30px] opacity-10" style="background-color: ${t.color}"></div>
-                                </div>
-                            `;
-            }).join('')}
-                    </div>
-                </div>
-            `;
-        });
-
-        html += `
-                </div>
-                <footer class="pt-10 border-t border-slate-100 text-center">
-                    <p class="text-[7px] font-bold uppercase tracking-[0.5em] opacity-30 italic">Generado automáticamente • ${new Date().toLocaleDateString()}</p>
-                </footer>
-            </div>
-            <style>
-                .page-break-inside-avoid { page-break-inside: avoid; }
-                @media print {
-                    body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                    #print-preview-content { padding: 10mm !important; box-shadow: none !important; width: 210mm !important; max-width: none !important; background: white !important; margin: 0 auto !important; }
-                    header { border-bottom-width: 4px !important; border-color: #000 !important; }
-                    .bg-white { border: 1px solid #ddd !important; }
-                }
-            </style>
-        `;
-        return html;
-    };
-
-    container.querySelector('#export-png-prog').onclick = async () => {
-        const previewHTML = generatePreviewHTML();
-        const tempDiv = document.createElement('div');
-        tempDiv.style.position = 'absolute'; tempDiv.style.left = '-9999px'; tempDiv.style.width = '210mm';
-        tempDiv.innerHTML = previewHTML;
-        document.body.appendChild(tempDiv);
-        try {
-            showNotification("Preparando imagen...", "info");
-            const canvas = await html2canvas(tempDiv.querySelector('#print-preview-content'), { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
-            const link = document.createElement('a');
-            link.download = `Programa_${programa.id}.png`;
-            link.href = canvas.toDataURL('image/png'); link.click();
-            showNotification("Imagen exportada con éxito", "success");
-        } catch (e) {
-            console.error(e); showNotification("Error al generar PNG", "error");
-        } finally { document.body.removeChild(tempDiv); }
-    };
-
     container.querySelector('#btn-print-prog').onclick = () => {
-        const previewHTML = generatePreviewHTML();
+        const previewHTML = generateLandscapePreviewHTML();
         showModal(`
             <div class="flex flex-col h-full bg-slate-50 dark:bg-slate-900 rounded-[2.5rem] overflow-hidden">
                 <header class="p-8 bg-white dark:bg-slate-800 border-b flex justify-between items-center shrink-0">
                     <div>
-                        <h3 class="text-xl font-black uppercase tracking-tight">Vista Previa Mejorada</h3>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Se imprimirán solo registros con Conductor + Territorio</p>
+                        <h3 class="text-xl font-black uppercase tracking-tight">Vista Previa Horizontal</h3>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Se preparará el formato 16:9 para impresión optimizada</p>
                     </div>
                     <button id="btn-do-print" class="bg-primary text-white px-8 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20 hover:scale-105 transition-all">
-                        <i class="fas fa-print mr-2"></i> Imprimir a una página
+                        <i class="fas fa-print mr-2"></i> Imprimir en horizontal
                     </button>
                 </header>
                 <div class="flex-1 overflow-y-auto p-10 bg-black/5 dark:bg-black/50">
-                    <div id="print-area-wrapper" class="max-w-[800px] mx-auto shadow-3xl bg-white">
-                        ${previewHTML}
+                    <div id="print-area-wrapper" class="w-full max-w-[1200px] mx-auto shadow-3xl bg-white rounded-3xl overflow-hidden" style="aspect-ratio: 16/9;">
+                        <div style="zoom: 0.625; origin: top left; width: 1920px; height: 1080px;">
+                            ${previewHTML}
+                        </div>
                     </div>
                 </div>
             </div>
         `, (modal) => {
             modal.querySelector('#btn-do-print').onclick = () => {
-                const printContents = modal.querySelector('#print-preview-content').outerHTML;
+                const printContents = modal.querySelector('#landscape-preview-content').outerHTML;
                 const printFrame = document.createElement('iframe');
                 Object.assign(printFrame.style, { position: 'fixed', right: '0', bottom: '0', width: '0', height: '0', border: '0' });
                 document.body.appendChild(printFrame);
@@ -1877,9 +1765,9 @@ const renderProgramaTab = async (container) => {
                             <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
                             <script src="https://cdn.tailwindcss.com"></script>
                             <style>
-                                @page { size: portrait; margin: 10mm; }
-                                body { font-family: 'Outfit', sans-serif; }
-                                .page-break-inside-avoid { page-break-inside: avoid; }
+                                @page { size: landscape; margin: 0; }
+                                body { font-family: 'Outfit', sans-serif; margin: 0; padding: 0; background-color: #f8fafc; }
+                                #landscape-preview-content { width: 100vw !important; height: 100vh !important; }
                             </style>
                         </head>
                         <body>${printContents}</body>
