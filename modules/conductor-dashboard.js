@@ -1,4 +1,4 @@
-import { auth } from '../firebase-config.js?v=2.1.5';
+import { auth } from '../firebase-config.js?v=2.1.6';
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import {
     getTerritorios, getConductores, getPublicadores, getTelefonos, updateTelefono,
@@ -8,10 +8,10 @@ import {
     addPublicador, updatePublicador, deletePublicador,
     releaseUnusedTelefonos, solicitarNumeros, updateTelefonoStatus, logSessionSummary,
     logReturn, returnTerritorio, returnTerritorioParcial, transferTerritory
-} from '../data/firestore-services.js?v=2.1.5';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, formatManzanas } from './utils/helpers.js?v=2.1.5';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=2.1.5';
-import { MapViewer } from './map-viewer.js?v=2.1.5';
+} from '../data/firestore-services.js?v=2.1.6';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, formatManzanas } from './utils/helpers.js?v=2.1.6';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=2.1.6';
+import { MapViewer } from './map-viewer.js?v=2.1.6';
 
 
 
@@ -256,7 +256,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
             </div>
  
                 <!-- Module: Programa Semanal (Global Cards) -->
-                <div class="lg:col-span-2 ${mods.programa !== false ? '' : 'hidden'}">
+                <div id="programa-semanal-section" class="lg:col-span-2 ${mods.programa !== false ? '' : 'hidden'}">
                     <div class="modern-card !p-0 border-slate-200 dark:border-white/10 shadow-2xl transition-all overflow-hidden group/prog bg-white dark:bg-slate-900/40">
                         <details class="group/prog-details" ${wasProgOpen ? 'open' : ''}>
                             <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-8 cursor-pointer list-none select-none hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
@@ -517,7 +517,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 rescue: false
             };
 
-            await loadUnifiedDashboard(displayName, document.getElementById('calendar-container'), document.getElementById('territorios-container'), userMods, config, conductorData);
+            await loadUnifiedDashboard(displayName, document.getElementById('calendar-container'), document.getElementById('territorios-container'), userMods, config, conductorData, userRole);
             const myPhones = await refreshPhones();
             const publicadores = await getPublicadores();
             initializePhoneModule(myPhones, publicadores, displayName, document.getElementById('phone-tbody'), refreshPhones);
@@ -533,7 +533,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
     }
 };
 
-const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer, userMods, config, conductorData) => {
+const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer, userMods, config, conductorData, userRole) => {
     // We no longer hide the territories container as requested ("fusionar") 
     // to allow seeing all assigned territories independently of the weekly program.
 
@@ -787,7 +787,7 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
 
         intelligenceBadge.innerHTML = `
             <div class="flex flex-wrap items-center gap-3">
-                <button onclick="document.getElementById('weekly-program-cards')?.scrollIntoView({behavior:'smooth'}); document.querySelector('.group\\/prog-details')?.setAttribute('open', '');" 
+                <button onclick="const det=document.querySelector('.group\\/prog-details'); if(det) det.open=true; setTimeout(()=>document.getElementById('programa-semanal-section')?.scrollIntoView({behavior:'smooth'}), 10);" 
                         class="flex items-center gap-3 ${colorClass} py-3.5 px-6 rounded-2xl border text-[10px] font-black uppercase tracking-[0.15em] shadow-sm backdrop-blur-md hover:scale-105 active:scale-95 transition-all">
                     <i class="fas fa-calendar-alt animate-pulse"></i> Programa de predicación
                 </button>
@@ -1463,8 +1463,8 @@ const renderFullProgramaCards = (programa, container, territoryMap = {}) => {
                     <i class="fas fa-calendar-day"></i>
                 </div>
                 <div class="space-y-2">
-                    <p class="text-xs font-black text-slate-400 uppercase tracking-[0.4em]">Sincronizando la semana</p>
-                    <p class="text-[10px] text-slate-400 italic font-bold">Vuelve a consultar en unos minutos</p>
+                    <p class="text-xs font-black text-slate-400 uppercase tracking-[0.4em]">No hay actividades para esta semana</p>
+                    <p class="text-[10px] text-slate-400 italic font-bold uppercase tracking-widest">Consulta con el responsable del grupo</p>
                 </div>
             </div>`;
     }
