@@ -1630,6 +1630,14 @@ const renderProgramaTab = async (container) => {
             { id: 'zoom', icon: 'fa-video', label: 'ZOOM', color: '#065f46', bg: '#f0fdf4' }
         ];
 
+        const hasBusyDay = programa.dias.some(dia => {
+            const active = turnos.filter(t => {
+                const data = dia[t.id];
+                return data && (data.conductor || data.lugar);
+            });
+            return active.length > 2;
+        });
+
         let html = `
             <div id="landscape-preview-content" class="bg-slate-50 text-slate-900 font-['Outfit'] relative overflow-hidden flex flex-col p-6 pt-0" style="width: 1920px; height: 1080px; box-sizing: border-box;">
                 <header class="relative z-10 flex flex-col items-center mb-3 px-10 pt-4 w-full">
@@ -1638,7 +1646,7 @@ const renderProgramaTab = async (container) => {
                     <div class="w-full h-1.5 bg-slate-900 rounded-full"></div>
                 </header>
 
-                <div class="relative z-10 grid grid-cols-7 gap-3 flex-1 overflow-hidden px-4 pb-4">
+                <div class="relative z-10 grid grid-cols-7 gap-3 flex-1 overflow-hidden px-4 pb-10">
                     ${programa.dias.map((dia, idx) => {
             const activeTurns = turnos.filter(t => {
                 const data = dia[t.id];
@@ -1647,12 +1655,12 @@ const renderProgramaTab = async (container) => {
 
             return `
                             <div class="bg-white rounded-[2rem] flex flex-col shadow-xl shadow-slate-200/40 border border-slate-100/50 overflow-hidden relative h-full">
-                                <div class="${activeTurns.length > 2 ? 'px-4 py-2' : 'px-5 py-4'} border-b border-slate-50 bg-slate-50/20 shrink-0">
-                                    <h2 class="${activeTurns.length > 2 ? 'text-2xl' : 'text-3xl'} font-black uppercase tracking-tighter text-slate-900 leading-none mb-1">${dia.nombre}</h2>
+                                <div class="${hasBusyDay ? 'px-4 py-3 min-h-[100px]' : 'px-5 py-6 min-h-[140px]'} border-b border-slate-50 bg-slate-50/20 shrink-0 flex flex-col justify-center">
+                                    <h2 class="${hasBusyDay ? 'text-2xl' : 'text-3xl'} font-black uppercase tracking-tighter text-slate-900 leading-none mb-1">${dia.nombre}</h2>
                                     <span class="text-[10px] font-bold uppercase tracking-widest text-slate-300 opacity-80">${dia.fecha ? dia.fecha.split('-').reverse().join('/') : ''}</span>
                                 </div>
                                 
-                                <div class="${activeTurns.length > 2 ? 'p-2.5 space-y-4' : 'p-4 space-y-8'} flex-1 overflow-visible">
+                                <div class="${hasBusyDay ? 'p-2.5 space-y-5' : 'p-4 space-y-10'} flex-1 overflow-visible">
                                     ${activeTurns.map(t => {
                 const data = dia[t.id];
                 const isSunday = dia.nombre.toLowerCase() === 'domingo';
@@ -1660,29 +1668,28 @@ const renderProgramaTab = async (container) => {
 
                 let labelText = t.label; let displayIcon = t.icon; let displayColor = t.color;
 
-                if (isSunday && data.hora && hourInt < 12) {
-                    labelText = 'MAÑANA'; displayIcon = 'fa-sun'; displayColor = '#b45309';
-                } else if (isSunday) {
-                    if (hourInt < 12) { labelText = 'MAÑANA'; displayIcon = 'fa-sun'; displayColor = '#b45309'; }
-                    else if (hourInt < 17) { labelText = 'TARDE'; displayIcon = 'fa-cloud-sun'; displayColor = '#c2410c'; }
+                if (isSunday && data.hora) {
+                    if (hourInt < 11) { labelText = 'MAÑANA'; displayIcon = 'fa-sun'; displayColor = '#b45309'; }
+                    else if (hourInt < 16) { labelText = 'MEDIODÍA'; displayIcon = 'fa-cloud-sun'; displayColor = '#c2410c'; }
+                    else if (hourInt < 19) { labelText = 'TARDE'; displayIcon = 'fa-sun-haze'; displayColor = '#c2410c'; }
                     else { labelText = 'NOCHE'; displayIcon = 'fa-moon'; displayColor = '#3730a3'; }
                 }
 
                 return `
-                                            <div class="${activeTurns.length > 2 ? 'space-y-1.5' : 'space-y-4'}">
+                                            <div class="${hasBusyDay ? 'space-y-1.5' : 'space-y-4'}">
                                                 <div class="flex items-center gap-2">
                                                     <i class="fas ${displayIcon} text-[18px]" style="color: ${displayColor}"></i>
                                                     <span class="text-[18px] font-black uppercase tracking-[0.35em]" style="color: ${displayColor}">${labelText}</span>
                                                 </div>
                                                 
-                                                <div class="${activeTurns.length > 2 ? 'space-y-1' : 'space-y-3'}">
+                                                <div class="${hasBusyDay ? 'space-y-1' : 'space-y-3'}">
                                                     ${['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', 'Grupos'].map(field => {
                     if (t.id === 'zoom' && field === 'Auxiliar') return '';
                     let val = data[field.toLowerCase()];
                     if (!val || val === '—' || val === '') return '';
                     if (field === 'Grupos') { val = formatGroups(val); }
                     const isKeyField = field === 'Lugar' || field === 'Hora';
-                    const fontSize = isKeyField ? (activeTurns.length > 2 ? '17px' : '22px') : (activeTurns.length > 2 ? '13px' : '15px');
+                    const fontSize = isKeyField ? (hasBusyDay ? '17px' : '22px') : (hasBusyDay ? '13px' : '15px');
                     return `
                                                             <div class="flex flex-col leading-tight">
                                                                  <span class="text-[6px] font-black uppercase tracking-widest text-slate-300 mb-0.5">${field}</span>
@@ -1694,7 +1701,6 @@ const renderProgramaTab = async (container) => {
                                             </div>
                                         `;
             }).join('')}
-                                    ${activeTurns.length === 0 ? '' : ''}
                                 </div>
                             </div>
                         `;
