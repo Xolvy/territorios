@@ -1612,11 +1612,11 @@ const renderProgramaTab = async (container) => {
         ];
 
         let html = `
-            <div id="landscape-preview-content" class="bg-slate-50 text-slate-900 font-['Outfit'] relative overflow-hidden flex flex-col p-8" style="width: 1920px; height: 1080px; box-sizing: border-box;">
-                <header class="relative z-10 flex flex-col items-center mb-6 border-b-[6px] border-slate-900 pb-6 mx-10">
-                    <h1 class="text-6xl font-black uppercase tracking-[0.2em] leading-none mb-2">Programa de Predicación</h1>
+            <div id="landscape-preview-content" class="bg-slate-50 text-slate-900 font-['Outfit'] relative overflow-hidden flex flex-col p-6 pb-2" style="width: 1920px; height: 1080px; box-sizing: border-box;">
+                <header class="relative z-10 flex flex-col items-center mb-4 border-b-[6px] border-slate-900 pb-4 mx-10">
+                    <h1 class="text-6xl font-black uppercase tracking-[0.2em] leading-none mb-1">Programa de Predicación</h1>
                     <p class="text-3xl font-black uppercase tracking-[0.05em] text-slate-500">Congregación "Nueve de Octubre" 14282</p>
-                    <div class="absolute right-0 bottom-6 text-right">
+                    <div class="absolute right-0 bottom-4 text-right">
                         <p class="text-xs font-black uppercase tracking-widest text-slate-300">Semana: ${programa.id}</p>
                     </div>
                 </header>
@@ -1670,7 +1670,7 @@ const renderProgramaTab = async (container) => {
                     return `
                                                             <div class="flex flex-col leading-tight">
                                                                 <span class="text-[7px] font-black uppercase tracking-widest text-slate-400 opacity-60 mb-0.5">${field}</span>
-                                                                <span class="text-[13px] font-black uppercase tracking-tight text-slate-900">${val}</span>
+                                                                <span class="text-[${(field === 'Lugar' || field === 'Hora') ? '16px' : '13px'}] font-black uppercase tracking-tight text-slate-900">${val}</span>
                                                             </div>
                                                         `;
                 }).join('')}
@@ -1684,15 +1684,6 @@ const renderProgramaTab = async (container) => {
                         `;
         }).join('')}
                 </div>
-
-                <footer class="mt-4 pt-4 border-t border-slate-100 flex justify-between items-center relative z-10 shrink-0 mx-10">
-                    <p class="text-[9px] font-black uppercase tracking-[0.5em] text-slate-300 italic">Generado el ${new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
-                    <div class="flex items-center gap-10 text-slate-200">
-                         <i class="fas fa-check-circle"></i>
-                         <i class="fas fa-layer-group text-lg"></i>
-                         <p class="text-[8px] font-black uppercase tracking-widest opacity-20">Elite Workspace 2026</p>
-                    </div>
-                </footer>
             </div>
         `;
         return html;
