@@ -22,6 +22,7 @@ import { animateEntry } from './utils/animations.js?v=2.1.8';
 import { UIHelpers, showModal, showCustomConfirm, showCustomPrompt } from './services/ui-helpers.js?v=2.1.8';
 import { GlassCard, GlassButton, GlassInput } from './services/ui-components.js?v=2.1.8';
 import { renderCasaEnCasaTab } from './admin/territories-view.js?v=2.1.8';
+import { renderAdvancedHistoryView, renderHistoryTab } from './report-s13.js?v=2.1.8';
 import * as XLSX from 'xlsx';
 import html2canvas from 'html2canvas';
 
@@ -1224,7 +1225,7 @@ const renderRecursosTab = async (container) => {
     };
 };
 
-const renderAsignacionesView = async (container) => {
+const renderHistorialView = async (container) => {
     let currentView = 'activas'; // dashboard, activas, historial, campañas
     let selectedIds = new Set();
 
@@ -2806,85 +2807,180 @@ const renderAsignacionesView = async (container) => {
     };
 
     const renderMain = () => {
+        // --- Metric Calculations (Power Up) ---
+        const touchedNums = new Set(allHistory.map(h => String(h.numero)));
+        const totalT = territorios.length;
+        const coveragePercent = totalT > 0 ? Math.round((touchedNums.size / totalT) * 100) : 0;
+        const missingCount = territorios.filter(t => !touchedNums.has(String(t.numero))).length;
+
+        const territoryFreq = {};
+        allHistory.forEach(h => {
+            if (!h.numero) return;
+            territoryFreq[h.numero] = (territoryFreq[h.numero] || 0) + 1;
+        });
+        const mostFreqSorted = Object.entries(territoryFreq).sort((a, b) => b[1] - a[1]);
+        const topTerritory = mostFreqSorted[0]?.[0] || '--';
+        const topCount = mostFreqSorted[0]?.[1] || 0;
+
+        const latestTouch = {};
+        allHistory.forEach(h => {
+            const d = h.fecha_entrega || h.fecha_asignacion;
+            if (!d) return;
+            if (!latestTouch[h.numero] || new Date(d) > new Date(latestTouch[h.numero])) {
+                latestTouch[h.numero] = d;
+            }
+        });
+
+        const rezagoSorted = territorios.filter(t => latestTouch[t.numero]).sort((a, b) => new Date(latestTouch[a.numero]) - new Date(latestTouch[b.numero]));
+        const oldestTerritory = rezagoSorted[0]?.numero || '--';
+        const daysRezago = rezagoSorted[0] ? Math.floor((new Date() - new Date(latestTouch[rezagoSorted[0].numero])) / (1000 * 60 * 60 * 24)) : 0;
+
         container.innerHTML = `
-            <div class="space-y-8 animate-fade-in px-2">
+            <div class="space-y-12 animate-fade-in px-2 pb-32">
                 
+                <!-- Power-Up Metrics Dashboard -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-gradient-to-br from-primary to-indigo-700 p-8 rounded-[2.5rem] text-white shadow-2xl shadow-primary/20 group relative overflow-hidden transition-all hover:scale-[1.02]">
+                        <div class="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+                        <p class="text-[10px] font-black uppercase tracking-[0.3em] opacity-70 mb-2">Cobertura Global</p>
+                        <p class="text-4xl font-black tabular-nums">${coveragePercent}%</p>
+                        <div class="flex items-center gap-2 mt-4 text-[9px] font-bold uppercase tracking-widest opacity-60">
+                             <i class="fas fa-chart-pie"></i> ${touchedNums.size} de ${totalT} abarcados
+                        </div>
+                    </div>
+                    
+                    <div class="glass-morphism p-8 rounded-[2.5rem] border border-slate-200/50 dark:border-white/5 shadow-xl transition-all hover:scale-[1.02]">
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">Faltantes</p>
+                        <p class="text-4xl font-black text-rose-500 tabular-nums">${missingCount}</p>
+                        <div class="flex items-center gap-3 mt-4">
+                            <div class="flex-1 h-1.5 bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden">
+                                <div class="h-full bg-rose-500 rounded-full" style="width: ${100 - coveragePercent}%"></div>
+                            </div>
+                            <span class="text-[9px] font-black text-rose-500 uppercase tracking-widest">En espera</span>
+                        </div>
+                    </div>
+
+                    <div class="glass-morphism p-8 rounded-[2.5rem] border border-slate-200/50 dark:border-white/5 shadow-xl transition-all hover:scale-[1.02]">
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">Uso Frecuente</p>
+                        <p class="text-2xl font-black text-slate-800 dark:text-white truncate">Territorio ${topTerritory}</p>
+                        <div class="flex items-center gap-2 mt-4 text-[9px] text-primary font-bold uppercase tracking-widest">
+                            <i class="fas fa-redo-alt"></i> Asignado ${topCount} ${topCount === 1 ? 'vez' : 'veces'}
+                        </div>
+                    </div>
+
+                    <div class="glass-morphism p-8 rounded-[2.5rem] border border-slate-200/50 dark:border-white/5 shadow-xl transition-all hover:scale-[1.02]">
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">Mayor Rezago</p>
+                        <p class="text-2xl font-black text-orange-600 truncate">#${oldestTerritory}</p>
+                        <div class="flex items-center gap-2 mt-4 text-[9px] text-slate-400 font-bold uppercase tracking-widest">
+                            <i class="fas fa-history"></i> Hace ${daysRezago} días
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Actions Grid -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                    <!-- Nueva Asignación Card -->
-                    <button id="hub-btn-assign" class="group relative bg-white dark:bg-[#121212]/40 backdrop-blur-3xl overflow-hidden p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-slate-200 dark:border-white/10 shadow-2xl transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_60px_-10px_rgba(59,130,246,0.3)]">
+                    <button id="hub-btn-assign" class="group relative bg-white dark:bg-[#121212]/40 backdrop-blur-3xl overflow-hidden p-6 md:p-10 rounded-[2.5rem] border border-slate-200 dark:border-white/10 shadow-2xl transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_60px_-10px_rgba(59,130,246,0.3)]">
                         <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-primary/10 blur-[60px] rounded-full group-hover:bg-primary/30 transition-all duration-700"></div>
                         <div class="flex items-center gap-4 md:gap-6">
-                            <div class="w-12 h-12 md:w-16 md:h-16 rounded-[1.2rem] md:rounded-[1.5rem] bg-primary flex items-center justify-center text-2xl md:text-3xl text-white group-hover:scale-110 group-hover:rotate-6 transition-all shadow-lg shadow-primary/30">
+                            <div class="w-14 h-14 md:w-20 md:h-20 rounded-[1.5rem] md:rounded-[2rem] bg-primary flex items-center justify-center text-3xl md:text-4xl text-white group-hover:scale-110 group-hover:rotate-6 transition-all shadow-lg shadow-primary/30">
                                 <i class="fas fa-plus"></i>
                             </div>
                             <div class="text-left">
-                                <p class="text-[8px] md:text-[10px] font-black text-primary uppercase tracking-[0.3em] mb-0.5 md:mb-1">Operación</p>
-                                <p class="text-lg md:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Nueva Asignación</p>
+                                <p class="text-[8px] md:text-[10px] font-black text-primary uppercase tracking-[0.4em] mb-1">Operación</p>
+                                <p class="text-xl md:text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Nueva Asignación</p>
                             </div>
                         </div>
                     </button>
-                    <!-- Devolver Territorios Card -->
-                    <button id="hub-btn-return" class="group relative bg-white dark:bg-[#121212]/40 backdrop-blur-3xl overflow-hidden p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-slate-200 dark:border-white/10 shadow-2xl transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_60px_-10px_rgba(244,63,94,0.3)]">
+                    <button id="hub-btn-return" class="group relative bg-white dark:bg-[#121212]/40 backdrop-blur-3xl overflow-hidden p-6 md:p-10 rounded-[2.5rem] border border-slate-200 dark:border-white/10 shadow-2xl transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_60px_-10px_rgba(244,63,94,0.3)]">
                         <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-rose-600/10 blur-[60px] rounded-full group-hover:bg-rose-600/30 transition-all duration-700"></div>
                         <div class="flex items-center gap-4 md:gap-6">
-                            <div class="w-12 h-12 md:w-16 md:h-16 rounded-[1.2rem] md:rounded-[1.5rem] bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center text-2xl md:text-3xl text-white group-hover:scale-110 group-hover:-rotate-6 transition-all shadow-lg shadow-rose-500/30">
+                            <div class="w-14 h-14 md:w-20 md:h-20 rounded-[1.5rem] md:rounded-[2rem] bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center text-3xl md:text-4xl text-white group-hover:scale-110 group-hover:-rotate-6 transition-all shadow-lg shadow-rose-500/30">
                                 <i class="fas fa-file-import"></i>
                             </div>
                             <div class="text-left relative">
-                                <p class="text-[8px] md:text-[10px] font-black text-rose-500 uppercase tracking-[0.3em] mb-0.5 md:mb-1">Recepción</p>
-                                <p class="text-lg md:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Devolver Territorios</p>
-                                ${selectedIds.size > 0 ? `<div class="absolute -top-3 -right-8 md:-top-4 md:-right-12 bg-rose-600 text-white w-6 h-6 md:w-8 md:h-8 rounded-full text-[10px] md:text-xs font-black flex items-center justify-center animate-bounce shadow-lg ring-4 ring-white dark:ring-[#121212]">${selectedIds.size}</div>` : ''}
+                                <p class="text-[8px] md:text-[10px] font-black text-rose-500 uppercase tracking-[0.4em] mb-1">Recepción</p>
+                                <p class="text-xl md:text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Devolver Territorios</p>
+                                ${selectedIds.size > 0 ? `<div class="absolute -top-4 -right-10 md:-top-6 md:-right-16 bg-rose-600 text-white w-8 h-8 md:w-10 md:h-10 rounded-full text-[12px] md:text-sm font-black flex items-center justify-center animate-bounce shadow-lg ring-4 ring-white dark:ring-[#121212]">${selectedIds.size}</div>` : ''}
                             </div>
                         </div>
                     </button>
                 </div>
 
-                <div class="flex flex-col md:flex-row justify-between items-center gap-6 bg-white/40 dark:bg-black/20 backdrop-blur-xl p-6 rounded-[2rem] border border-slate-100 dark:border-white/5 shadow-lg">
-                     <div class="flex items-center gap-5">
-                        <div class="flex flex-col">
-                            <h2 class="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] mb-1" id="hub-view-title">MAPA DE TERRITORIOS</h2>
-                            <div id="view-stats" class="text-[11px] font-black text-primary flex flex-wrap items-center gap-3"></div>
-                        </div>
-                     </div>
-                     
-                     <div class="relative w-full md:w-80 group">
-                         <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 transition-colors group-focus-within:text-primary">
-                            <i class="fas fa-search text-xs"></i>
-                         </span>
-                         <input type="text" id="search-assigns" placeholder="Buscar por número o publicador..." class="w-full pl-12 pr-5 py-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all shadow-inner placeholder-slate-500">
-                     </div>
+                <!-- Section: Active Grid -->
+                <div class="space-y-8">
+                    <div class="flex flex-col md:flex-row justify-between items-center gap-6 bg-white/40 dark:bg-black/20 backdrop-blur-3xl p-8 rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-xl">
+                         <div class="flex items-center gap-5">
+                            <div class="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary text-xl"><i class="fas fa-map-marked-alt"></i></div>
+                            <div class="flex flex-col">
+                                <h2 class="text-[12px] font-black text-slate-800 dark:text-white uppercase tracking-[0.3em] mb-0.5">Gestión de Asignaciones</h2>
+                                <div id="view-stats" class="text-[10px] font-black text-primary flex flex-wrap items-center gap-3 uppercase opacity-60"></div>
+                            </div>
+                         </div>
+                         
+                         <div class="relative w-full md:w-96 group">
+                             <span class="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary">
+                                <i class="fas fa-search"></i>
+                             </span>
+                             <input type="text" id="search-assigns" placeholder="Búsqueda rápida (Num, Cond, Campaña)..." class="w-full pl-14 pr-6 py-5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-[1.5rem] text-sm font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all shadow-inner placeholder-slate-400">
+                         </div>
+                    </div>
+    
+                    <div id="assigns-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 animate-fade-in"></div>
                 </div>
 
-                <div id="assigns-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-fade-in pb-20"></div>
+                <!-- Section Title: Historical Activity -->
+                <div class="pt-8 space-y-8">
+                    <div class="flex items-center gap-4 ml-2">
+                        <div class="w-10 h-10 bg-slate-100 dark:bg-white/10 rounded-xl flex items-center justify-center text-slate-400 shadow-inner"><i class="fas fa-history"></i></div>
+                        <div>
+                            <h3 class="text-[14px] font-black text-slate-900 dark:text-white uppercase tracking-[0.4em] leading-none mb-1">Historial de Actividad</h3>
+                            <p class="text-[10px] text-slate-500 font-extrabold uppercase tracking-widest opacity-60">Registros y trazabilidad de los últimos movimientos</p>
+                        </div>
+                    </div>
+
+                    <div class="modern-card !p-0 overflow-hidden border-slate-200 dark:border-white/5">
+                        <div id="unified-history-table-container"></div>
+                    </div>
+
+                    <div class="flex justify-center pt-4">
+                         <button id="btn-power-sync" class="group bg-slate-900 dark:bg-white/10 text-white px-10 py-5 rounded-[2rem] text-[11px] font-black uppercase tracking-[0.5em] shadow-2xl transition-all hover:scale-105 active:scale-95 flex items-center gap-4">
+                            <i class="fas fa-bolt text-yellow-400 group-hover:animate-pulse"></i> Power Sync Histórico
+                         </button>
+                    </div>
+                </div>
             </div>
 
             ${selectedIds.size > 0 ? `
                 <div class="fixed bottom-10 left-0 right-0 mx-auto w-max z-[60] animate-bounce-in">
-                    <div class="bg-slate-900/95 backdrop-blur-2xl border border-white/20 rounded-3xl p-3 shadow-2xl flex items-center gap-3 ring-[12px] ring-black/5">
-                        <div class="px-6 py-2 border-r border-white/10">
-                            <p class="text-[9px] font-black text-rose-400 uppercase tracking-widest leading-none mb-1.5">Seleccionados</p>
-                            <p class="text-2xl font-black text-white leading-none">${selectedIds.size}</p>
+                    <div class="bg-slate-900/95 backdrop-blur-2xl border border-white/20 rounded-[2.5rem] p-4 shadow-2xl flex items-center gap-4 ring-[15px] ring-black/5">
+                        <div class="px-8 py-2 border-r border-white/10">
+                            <p class="text-[10px] font-black text-rose-400 uppercase tracking-widest leading-none mb-2">Seleccionados</p>
+                            <p class="text-3xl font-black text-white leading-none">${selectedIds.size}</p>
                         </div>
                         
-                        <div class="flex items-center gap-2">
-                            <button id="fab-delete" class="flex items-center gap-3 px-6 py-4 rounded-2xl hover:bg-red-500/20 text-red-500 transition-all group">
-                                 <i class="fas fa-trash-alt text-lg group-hover:scale-110 transition-transform"></i>
-                                 <span class="text-[10px] font-black uppercase tracking-widest hidden sm:block">Eliminar</span>
+                        <div class="flex items-center gap-3">
+                            <button id="fab-delete" class="flex items-center gap-4 px-8 py-5 rounded-2xl hover:bg-red-500/20 text-red-500 transition-all group">
+                                 <i class="fas fa-trash-alt text-xl group-hover:scale-110 transition-transform"></i>
+                                 <span class="text-[11px] font-black uppercase tracking-widest hidden sm:block">Eliminar</span>
                             </button>
                             
-                            <button id="fab-complete" class="flex items-center gap-4 px-8 py-4 bg-primary hover:bg-primary-light text-white rounded-2xl shadow-xl shadow-primary/20 transition-all group active:scale-95">
-                                 <i class="fas fa-check-double text-lg group-hover:rotate-12 transition-transform"></i>
-                                 <span class="text-[10px] font-black uppercase tracking-widest">Devolver</span>
+                            <button id="fab-complete" class="flex items-center gap-6 px-10 py-5 bg-primary hover:bg-primary-light text-white rounded-2xl shadow-xl shadow-primary/20 transition-all group active:scale-95">
+                                 <i class="fas fa-check-double text-xl group-hover:rotate-12 transition-transform"></i>
+                                 <span class="text-[11px] font-black uppercase tracking-widest">Proceder Devolución</span>
                             </button>
     
-                            <button id="fab-clear" class="w-12 h-12 hover:bg-white/10 text-white/40 hover:text-white rounded-2xl transition-all flex items-center justify-center">
-                                 <i class="fas fa-times text-lg"></i>
+                            <button id="fab-clear" class="w-14 h-14 hover:bg-white/10 text-white/40 hover:text-white rounded-2xl transition-all flex items-center justify-center">
+                                 <i class="fas fa-times text-xl"></i>
                             </button>
                         </div>
                     </div>
                 </div>
             ` : ''}
         `;
+
+        // Render History Table at the bottom
+        const histContainer = container.querySelector('#unified-history-table-container');
+        if (histContainer) renderAdvancedHistoryView(histContainer);
 
         if (selectedIds.size > 0) {
             container.querySelector('#fab-delete').onclick = () => {
@@ -2894,31 +2990,30 @@ const renderAsignacionesView = async (container) => {
                              <div class="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center text-xl shadow-inner"><i class="fas fa-trash-alt"></i></div>
                              <h4 class="font-black uppercase tracking-tight text-xl">¿Eliminar selección?</h4>
                         </div>
-                        <p class="text-[11px] font-bold text-slate-600 dark:text-slate-400 leading-relaxed uppercase tracking-wide">Estás a punto de eliminar <b>${selectedIds.size}</b> asignaciones. Esta acción no se puede deshacer.</p>
+                        <p class="text-[11px] font-bold text-slate-600 dark:text-slate-400 leading-relaxed uppercase tracking-wide">Estás a punto de eliminar <b>${selectedIds.size}</b> asignaciones activas. Esta acción no se puede deshacer.</p>
                     </div>
                 `, async () => {
                     try {
-                        for (const id of selectedIds) {
-                            await cancelarAsignacion(id);
-                        }
+                        for (const id of selectedIds) { await cancelarAsignacion(id); }
                         showNotification(`${selectedIds.size} asignaciones eliminadas`, "success");
                         selectedIds.clear();
                         reloadData();
-                    } catch (e) {
-                        showNotification("Error: " + e.message, "error");
-                    }
+                    } catch (e) { showNotification("Error: " + e.message, "error"); }
                 });
             };
             container.querySelector('#fab-complete').onclick = () => handleBulkReturn();
-            container.querySelector('#fab-clear').onclick = () => {
-                selectedIds.clear();
-                renderMain();
-            };
+            container.querySelector('#fab-clear').onclick = () => { selectedIds.clear(); renderMain(); };
         }
-
 
         container.querySelector('#hub-btn-assign').onclick = () => handleNewAssignment();
         container.querySelector('#hub-btn-return').onclick = () => handleBulkReturn();
+        container.querySelector('#btn-power-sync').onclick = async () => {
+            showCustomConfirm("¿Ejecutar sincronización masiva de historial? Esto reconstruirá coherencia entre registros y maestros.", async () => {
+                showNotification("Iniciando Power Sync...", "info");
+                await rebuildHistoryFromSchedule(); // Using existing service or similar
+                reloadData();
+            });
+        };
 
         const search = container.querySelector('#search-assigns');
         search.oninput = () => renderGrid();
@@ -3026,6 +3121,7 @@ const renderAsignacionesView = async (container) => {
     };
 
     renderMain();
+    window.renderHistorialView = renderHistorialView;
 };
 
 // --- Render Config Tab (Restored) ---

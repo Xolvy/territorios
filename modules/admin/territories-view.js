@@ -157,21 +157,21 @@ export const renderCasaEnCasaTab = async (container) => {
                 </div>
 
                 <nav class="flex flex-row overflow-x-auto scrollbar-hide items-center gap-1.5 bg-white/50 dark:bg-white/[0.03] p-1 md:p-1.5 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm w-full xl:w-auto backdrop-blur-xl">
-                    <button class="sub-tab-casa group px-3 md:px-5 py-2.5 md:py-3 rounded-xl transition-all flex items-center gap-2 md:gap-3 whitespace-nowrap font-extrabold" data-sub="asignaciones">
-                        <i class="fas fa-map-location-dot text-xs md:text-sm"></i>
-                        <span class="text-[10px] md:text-[11px] font-extrabold uppercase tracking-wider">Asignaciones</span>
-                    </button>
                     <button class="sub-tab-casa group px-3 md:px-5 py-2.5 md:py-3 rounded-xl transition-all flex items-center gap-2 md:gap-3 whitespace-nowrap font-extrabold" data-sub="programa">
                         <i class="fas fa-calendar-check text-xs md:text-sm"></i>
                         <span class="text-[10px] md:text-[11px] font-extrabold uppercase tracking-wider">Programa</span>
                     </button>
-                    <button class="sub-tab-casa group px-3 md:px-5 py-2.5 md:py-3 rounded-xl transition-all flex items-center gap-2 md:gap-3 whitespace-nowrap font-extrabold" data-sub="gestion">
-                        <i class="fas fa-chart-pie text-xs md:text-sm"></i>
-                        <span class="text-[10px] md:text-[11px] font-extrabold uppercase tracking-wider">Reportes</span>
+                    <button class="sub-tab-casa group px-3 md:px-5 py-2.5 md:py-3 rounded-xl transition-all flex items-center gap-2 md:gap-3 whitespace-nowrap font-extrabold" data-sub="historial">
+                        <i class="fas fa-history text-xs md:text-sm"></i>
+                        <span class="text-[10px] md:text-[11px] font-extrabold uppercase tracking-wider">Historial</span>
                     </button>
                     <button class="sub-tab-casa group px-3 md:px-5 py-2.5 md:py-3 rounded-xl transition-all flex items-center gap-2 md:gap-3 whitespace-nowrap font-extrabold" data-sub="s12">
                         <i class="fas fa-shield-alt text-xs md:text-sm"></i>
                         <span class="text-[10px] md:text-[11px] font-extrabold uppercase tracking-wider">S-12</span>
+                    </button>
+                    <button class="sub-tab-casa group px-3 md:px-5 py-2.5 md:py-3 rounded-xl transition-all flex items-center gap-2 md:gap-3 whitespace-nowrap font-extrabold" data-sub="s13">
+                        <i class="fas fa-file-invoice text-xs md:text-sm"></i>
+                        <span class="text-[10px] md:text-[11px] font-extrabold uppercase tracking-wider">S-13</span>
                     </button>
                     <div class="w-px h-6 bg-slate-200 dark:bg-white/10 mx-0.5 md:mx-1 shrink-0"></div>
                     <button class="sub-tab-casa group px-3.5 md:px-5 py-2.5 md:py-3 rounded-xl transition-all flex items-center gap-2 md:gap-3 whitespace-nowrap font-extrabold" data-sub="personal">
@@ -227,10 +227,10 @@ export const renderCasaEnCasaTab = async (container) => {
 
         try {
             const views = {
-                'asignaciones': renderAsignacionesView,
                 'programa': renderProgramaTab,
+                'historial': renderHistorialView,
                 's12': renderS12View,
-                'gestion': renderS13CommandCenter,
+                's13': renderHistoryTab,
                 'recursos': renderRecursosTab,
                 'personal': renderPersonalTab,
                 'grupos': renderGruposTab
