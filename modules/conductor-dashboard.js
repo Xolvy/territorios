@@ -787,7 +787,7 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
 
         intelligenceBadge.innerHTML = `
             <div class="flex flex-wrap items-center gap-3">
-                <button onclick="const det=document.querySelector('.group\\/prog-details'); if(det) { det.open=true; setTimeout(() => { document.getElementById('programa-semanal-section')?.scrollIntoView({behavior:'smooth', block:'start'}); }, 50); }" 
+                <button onclick="const section = document.getElementById('programa-semanal-section'); if(section) { section.classList.remove('hidden'); section.style.display = 'block'; } const det = document.querySelector('.group\\\\/prog-details'); if(det) { det.open = true; setTimeout(() => { det.scrollIntoView({behavior:'smooth', block:'start'}); }, 100); }" 
                         class="flex items-center gap-3 ${colorClass} py-3.5 px-6 rounded-2xl border text-[10px] font-black uppercase tracking-[0.15em] shadow-sm backdrop-blur-md hover:scale-105 active:scale-95 transition-all">
                     <i class="fas fa-calendar-alt animate-pulse"></i> Programa de predicación
                 </button>

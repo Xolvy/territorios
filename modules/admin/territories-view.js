@@ -2276,7 +2276,7 @@ window.exportS12Form = async (territorios, layout = 1) => {
 
     const styles = `
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&family=Inter:wght@400;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&family=Inter:wght@400;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap');
     @page { 
         size: A4 ${layout === 4 ? 'landscape' : 'portrait'}; 
         margin: 0; 
@@ -2290,7 +2290,7 @@ window.exportS12Form = async (territorios, layout = 1) => {
     .page { 
         width: ${layout === 4 ? '297mm' : '210mm'}; 
         height: ${layout === 4 ? '210mm' : '297mm'}; 
-        padding: ${layout === 4 ? '0' : '5mm'}; 
+        padding: 0; 
         margin: 0 auto; 
         background: white; 
         box-sizing: border-box; 
@@ -2298,70 +2298,78 @@ window.exportS12Form = async (territorios, layout = 1) => {
         display: flex; 
         flex-wrap: wrap; 
         align-content: flex-start; 
-        justify-content: ${layout === 4 ? 'flex-start' : 'center'}; 
-        gap: ${layout === 4 ? '0' : '5mm'}; 
+        justify-content: flex-start; 
     }
     .s12-card { 
-        width: ${layout === 4 ? '50%' : '148mm'}; 
-        height: ${layout === 4 ? '50%' : '104mm'}; 
-        border: 0.5pt solid #000; 
-        padding: 6mm 8mm; 
+        width: ${layout === 4 ? '148.5mm' : '210mm'}; 
+        height: ${layout === 4 ? '105mm' : '148.5mm'}; 
+        border: 0.2pt solid #eee; 
+        padding: 10mm 15mm; 
         display: flex; 
         flex-direction: column; 
         position: relative; 
         box-sizing: border-box; 
         background: white; 
         overflow: hidden; 
+        ${layout === 1 ? 'margin: auto;' : ''}
     }
-    .card-header { position: relative; width: 100%; border-bottom: 1.5pt solid #000; margin-bottom: 8pt; padding-bottom: 4pt; }
-    .title { text-align: center; font-size: 14pt; font-weight: 800; font-family: 'Outfit', sans-serif; text-transform: uppercase; margin: 0; }
-    .congregation-name { text-align: center; font-size: 8pt; font-weight: 700; color: #666; text-transform: uppercase; margin-top: 2pt; }
-    .header-info { display: flex; align-items: flex-end; gap: 4pt; margin-bottom: 6pt; width: 100%; }
-    .label { font-size: 10pt; font-weight: 800; white-space: nowrap; text-transform: uppercase; }
-    .field-val { font-size: 11pt; border-bottom: 0.5pt solid #000; flex: 1; min-height: 1.2em; padding-bottom: 1pt; font-weight: 400; }
-    .territory-num-box { border: 1.5pt solid #000; padding: 2pt 8pt; font-size: 16pt; font-weight: 900; min-width: 45pt; text-align: center; margin-left: auto; background: #f0f0f0; }
-    .map-container { flex: 1; border: 0.5pt solid #000; margin: 2pt 0; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #fff; position: relative; }
-    .map-container img { width: 100%; height: 100%; object-fit: contain; }
-    .footer-note { font-size: 8pt; text-align: justify; line-height: 1.1; margin-top: 6pt; font-style: italic; color: #333; }
-    .footer-id { font-size: 7.5pt; margin-top: 4pt; display: flex; justify-content: space-between; font-weight: 700; border-top: 0.5pt solid #eee; padding-top: 2pt; }
+    .title { text-align: center; font-size: 19pt; font-weight: 700; font-family: 'Libre Baskerville', serif; margin: 0 0 15pt 0; color: #000; }
+    
+    .field-row { display: flex; align-items: baseline; width: 100%; margin-bottom: 10pt; font-family: 'Libre Baskerville', serif; }
+    .label { font-size: 12pt; font-weight: 700; white-space: nowrap; margin-right: 4pt; }
+    .dots { flex: 1; border-bottom: 1.5pt dotted #000; height: 1.1em; position: relative; display: flex; align-items: flex-end; padding: 0 4pt; font-family: 'Inter', sans-serif; font-weight: 400; font-size: 11pt; }
+    .num-label { font-size: 12pt; font-weight: 700; margin-left: 10pt; margin-right: 4pt; white-space: nowrap; }
+    .num-dots { width: 60pt; border-bottom: 1.5pt dotted #000; height: 1.1em; display: flex; align-items: flex-end; justify-content: center; font-family: 'Inter', sans-serif; font-weight: 700; font-size: 13pt; }
+
+    .map-area { flex: 1; margin: 10pt 0; display: flex; align-items: center; justify-content: center; position: relative; border: 0.5pt dashed #ccc; }
+    .map-area img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .map-note { font-size: 9pt; text-align: center; font-family: 'Libre Baskerville', serif; margin-bottom: 15pt; }
+
+    .instructions { font-size: 10pt; text-align: justify; line-height: 1.3; font-family: 'Libre Baskerville', serif; font-weight: 400; margin-top: auto; }
+    .footer-id { font-size: 8pt; margin-top: 10pt; font-family: 'Libre Baskerville', serif; font-weight: 400; }
+
     @media print { 
         body { background: white; } 
         .no-print { display: none!important; } 
         .page { padding: 0; margin: 0; border: none; } 
-        .s12-card { border: 0.25pt solid #000; }
+        .s12-card { border: 0.1pt solid #ddd; }
+        ${layout === 4 ? '.s12-card:nth-child(odd) { border-right: 0.1pt dashed #ccc; } .s12-card:nth-child(-n+2) { border-bottom: 0.1pt dashed #ccc; }' : ''}
     }
     </style>`;
 
     const renderCard = (t) => `
     <div class="s12-card">
-        <div class="card-header">
-            <div class="title">Tarjeta del mapa del territorio</div>
-            <div class="congregation-name">${config.nombre_congregacion || ''}</div>
-        </div>
-        <div class="header-info">
+        <div class="title">Tarjeta del mapa del territorio</div>
+        
+        <div class="field-row">
             <span class="label">Localidad</span>
-            <span class="field-val">${t.localidad || ''}</span>
+            <div class="dots">${t.localidad || ''}</div>
+            <span class="num-label">Terr. núm.</span>
+            <div class="num-dots">${t.numero}</div>
         </div>
-        <div class="header-info">
-            <span class="label">Sectores</span>
-            <span class="field-val" style="font-size: 9pt;">${t.manzanas || ''}</span>
-            <div class="territory-num-box">${t.numero}</div>
+
+        <div class="map-area">
+            ${t.imagen ? `<img src="${formatMapUrl(t.imagen)}" onerror="this.parentElement.style.border='none'; this.parentElement.innerHTML='(Error mapa)'">` : ''}
         </div>
-        <div class="map-container">
-            ${t.imagen ? `<img src="${formatMapUrl(t.imagen)}" onerror="this.parentElement.innerHTML='(Error mapa)'">` : '(No hay mapa)'}
-        </div>
-        <div class="footer-note">Sírvase mantener esta tarjeta en el sobre. No la manche, marque ni doble. Infórmese al superintendente si se ha extraviado o deteriorado.</div>
+
+        <div class="map-note">(Pegue el mapa arriba o dibuje el territorio)</div>
+
+        <div class="instructions">Sírvase mantener esta tarjeta en el sobre. No la manche, marque, ni doble. Cada vez que se haya trabajado completamente el territorio, infórmelo al hermano que atiende los archivos del territorio.</div>
+        
         <div class="footer-id">
-            <span>S-12-S &nbsp;&nbsp; 1/21</span>
-            <span>App Territorios</span>
+            S-12-S &nbsp;&nbsp; 6/72
         </div>
     </div>`;
 
     let html = `<html><head><title>S-12</title>${styles}</head><body>`;
-    if (layout === 1) sorted.forEach(t => html += `<div class="page" style="align-items: center;">${renderCard(t)}</div>`);
-    else if (layout === 2) {
+    if (layout === 1) {
+        sorted.forEach(t => {
+            html += `<div class="page">${renderCard(t)}</div>`;
+        });
+    } else if (layout === 2) {
+        // Adapt to 2 per page (A5 each roughly)
         for (let i = 0; i < sorted.length; i += 2) {
-            html += `<div class="page" style="flex-direction: column; justify-content: center;">${renderCard(sorted[i])}`;
+            html += `<div class="page" style="flex-direction: column;">${renderCard(sorted[i])}`;
             if (sorted[i + 1]) html += renderCard(sorted[i + 1]);
             html += `</div>`;
         }
