@@ -331,57 +331,147 @@ export const renderAdvancedHistoryView = async (container, options = {}) => {
     const itemsPerPage = 20;
 
     const render = () => {
+        // --- Metric Calculations (Sync with Dashboard Logic) ---
+        const touchedNums = new Set(history.map(h => String(h.numero)));
+        const totalT = territories.length;
+        const coveragePercent = totalT > 0 ? Math.round((touchedNums.size / totalT) * 100) : 0;
+        const missingCount = territories.filter(t => !touchedNums.has(String(t.numero))).length;
+
+        const territoryFreq = {};
+        history.forEach(h => {
+            if (!h.numero) return;
+            territoryFreq[h.numero] = (territoryFreq[h.numero] || 0) + 1;
+        });
+        const mostFreqSorted = Object.entries(territoryFreq).sort((a, b) => b[1] - a[1]);
+        const topTerritory = mostFreqSorted[0]?.[0] || '--';
+        const topCount = mostFreqSorted[0]?.[1] || 0;
+
+        const latestTouch = {};
+        history.forEach(h => {
+            const d = h.fecha_entrega || h.fecha_asignacion;
+            if (!d) return;
+            if (!latestTouch[h.numero] || new Date(d) > new Date(latestTouch[h.numero])) {
+                latestTouch[h.numero] = d;
+            }
+        });
+
+        const rezagoSorted = territories.filter(t => latestTouch[t.numero]).sort((a, b) => new Date(latestTouch[a.numero]) - new Date(latestTouch[b.numero]));
+        const oldestTerritory = rezagoSorted[0]?.numero || '--';
+        const daysRezago = rezagoSorted[0] ? Math.floor((new Date() - new Date(latestTouch[rezagoSorted[0].numero])) / (1000 * 60 * 60 * 24)) : 0;
+
         const start = (currentPage - 1) * itemsPerPage;
         const end = start + itemsPerPage;
         const pageItems = filteredHistory.slice(start, end);
         const totalPages = Math.ceil(filteredHistory.length / itemsPerPage);
 
         container.innerHTML = `
-            <div class="flex flex-col h-full bg-white dark:bg-black/20 rounded-[2.5rem] overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
+            <div class="space-y-8 animate-fade-in">
+                <!-- Metrics Header (Consolidated) -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-gradient-to-br from-primary to-indigo-700 p-8 rounded-[2.5rem] text-white shadow-2xl shadow-primary/20 group relative overflow-hidden transition-all hover:scale-[1.02]">
+                        <div class="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+                        <p class="text-[10px] font-black uppercase tracking-[0.3em] opacity-70 mb-2">Cobertura Global</p>
+                        <p class="text-4xl font-black tabular-nums">${coveragePercent}%</p>
+                        <div class="flex items-center gap-2 mt-4 text-[9px] font-bold uppercase tracking-widest opacity-60">
+                             <i class="fas fa-chart-pie"></i> ${touchedNums.size} de ${totalT} abarcados
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white dark:bg-white/[0.03] p-8 rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-xl transition-all hover:scale-[1.02]">
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">Faltantes</p>
+                        <p class="text-4xl font-black text-rose-500 tabular-nums">${missingCount}</p>
+                        <div class="flex items-center gap-3 mt-4">
+                            <div class="flex-1 h-1.5 bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden">
+                                <div class="h-full bg-rose-500 rounded-full" style="width: ${100 - coveragePercent}%"></div>
+                            </div>
+                            <span class="text-[9px] font-black text-rose-500 uppercase tracking-widest">En espera</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-white/[0.03] p-8 rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-xl transition-all hover:scale-[1.02]">
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">Uso Frecuente</p>
+                        <p class="text-2xl font-black text-slate-800 dark:text-white truncate">Territorio ${topTerritory}</p>
+                        <div class="flex items-center gap-2 mt-4 text-[9px] text-primary font-bold uppercase tracking-widest">
+                            <i class="fas fa-redo-alt"></i> Asignado ${topCount} ${topCount === 1 ? 'vez' : 'veces'}
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-white/[0.03] p-8 rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-xl transition-all hover:scale-[1.02]">
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">Mayor Rezago</p>
+                        <p class="text-2xl font-black text-orange-600 truncate">#${oldestTerritory}</p>
+                        <div class="flex items-center gap-2 mt-4 text-[9px] text-slate-400 font-bold uppercase tracking-widest">
+                            <i class="fas fa-history"></i> Hace ${daysRezago} días
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col h-full bg-white dark:bg-black/20 rounded-[2.5rem] overflow-hidden border border-slate-100 dark:border-white/5 shadow-2xl">
+                <div class="overflow-x-auto custom-scrollbar-horizontal px-6 pt-6">
+                    <table class="w-full text-left border-separate border-spacing-y-4">
                         <thead>
-                            <tr class="bg-slate-50 dark:bg-white/5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 border-b border-slate-100 dark:border-white/10">
-                                <th class="p-6">Territorio</th>
-                                <th class="p-6">Conductor</th>
-                                <th class="p-6">Periodo</th>
-                                <th class="p-6">Estado</th>
-                                <th class="p-6 text-right">Acciones</th>
+                            <tr class="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">
+                                <th class="px-8 pb-4">Territorio</th>
+                                <th class="px-8 pb-4">Conductor / Asignado</th>
+                                <th class="px-8 pb-4">Periodo Activo</th>
+                                <th class="px-8 pb-4">Estado</th>
+                                <th class="px-8 pb-4 text-right">Trazabilidad</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-100 dark:divide-white/5 font-bold">
+                        <tbody class="font-bold">
                             ${pageItems.map(h => {
             const getStatusStyles = (status) => {
                 switch (status) {
                     case 'Completado': return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
                     case 'Pendiente': return 'bg-amber-500/10 text-amber-600 border-amber-500/20';
                     case 'Cancelado': return 'bg-rose-500/10 text-rose-500 border-rose-500/20';
-                    default: return 'bg-slate-100 text-slate-500 border-slate-200';
+                    case 'Asignado': return 'bg-primary/10 text-primary border-primary/20';
+                    default: return 'bg-slate-50 text-slate-400 border-slate-200';
                 }
             };
+            const terr = territories.find(t => String(t.numero) === String(h.numero));
             return `
-                                    <tr class="group hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
-                                        <td class="p-6">
-                                            <div class="flex items-center gap-4">
-                                                <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-black text-sm">#${h.numero}</div>
-                                                <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">${territories.find(t => String(t.numero) === String(h.numero))?.localidad || '—'}</span>
+                                    <tr class="group bg-white dark:bg-white/[0.03] hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-all duration-300 shadow-sm rounded-[2rem]">
+                                        <td class="px-8 py-5 first:rounded-l-[1.5rem] last:rounded-r-[1.5rem] border-y border-l border-slate-100 dark:border-white/5">
+                                            <div class="flex items-center gap-5">
+                                                <div class="w-12 h-12 rounded-2xl bg-slate-900 text-white dark:bg-white/10 flex items-center justify-center font-black text-lg shadow-lg group-hover:scale-110 transition-transform">
+                                                    ${h.numero}
+                                                </div>
+                                                <div class="flex flex-col">
+                                                    <span class="text-[9px] font-black uppercase tracking-widest text-slate-400 opacity-60">Ubicación</span>
+                                                    <span class="text-[11px] font-black uppercase tracking-tight text-slate-800 dark:text-white truncate max-w-[150px]">${terr?.localidad || 'N/A'}</span>
+                                                </div>
                                             </div>
                                         </td>
-                                        <td class="p-6 text-sm text-slate-700 dark:text-slate-200 uppercase tracking-tight font-black">${h.conductor}</td>
-                                        <td class="p-6 text-[10px] text-slate-500 uppercase tracking-widest">
-                                            ${h.fecha_asignacion ? new Date(h.fecha_asignacion).toLocaleDateString() : '—'} 
-                                            <span class="mx-2 opacity-30">→</span> 
-                                            ${h.fecha_entrega ? new Date(h.fecha_entrega).toLocaleDateString() : (h.estado === 'Pendiente' ? '<span class="text-amber-500">Activo</span>' : '—')}
+                                        <td class="px-8 py-5 border-y border-slate-100 dark:border-white/5">
+                                            <div class="flex flex-col">
+                                                <span class="text-[9px] font-black uppercase tracking-widest text-slate-400 opacity-60 mb-1">Responsable</span>
+                                                <span class="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight">${h.conductor}</span>
+                                            </div>
                                         </td>
-                                        <td class="p-6">
-                                            <span class="px-3 py-1.5 rounded-lg border text-[9px] font-black uppercase tracking-widest ${getStatusStyles(h.estado)}">
+                                        <td class="px-8 py-5 border-y border-slate-100 dark:border-white/5 whitespace-nowrap">
+                                            <div class="flex items-center gap-3">
+                                                <div class="px-3 py-2 bg-slate-100 dark:bg-white/5 rounded-xl text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">
+                                                    ${h.fecha_asignacion ? new Date(h.fecha_asignacion).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'}
+                                                </div>
+                                                <i class="fas fa-chevron-right text-[8px] text-slate-300"></i>
+                                                <div class="px-3 py-2 bg-slate-100 dark:bg-white/5 rounded-xl text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">
+                                                    ${h.fecha_entrega ? new Date(h.fecha_entrega).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : (h.estado === 'Pendiente' || h.estado === 'Asignado' ? '<span class="text-primary">—</span>' : '—')}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-8 py-5 border-y border-slate-100 dark:border-white/5">
+                                            <span class="px-4 py-2 rounded-xl border-2 text-[8px] font-black uppercase tracking-[0.2em] shadow-sm ${getStatusStyles(h.estado)}">
                                                 ${h.estado}
                                             </span>
                                         </td>
-                                        <td class="p-6 text-right">
-                                            <div class="flex justify-end gap-2 transition-all">
-                                                <button onclick="window.editHistoryRecord('${h.id}')" class="w-9 h-9 flex items-center justify-center bg-white dark:bg-slate-800 text-slate-500 hover:text-primary rounded-xl border border-slate-200 dark:border-white/10 shadow-sm transition-all"><i class="fas fa-edit text-[10px]"></i></button>
-                                                <button onclick="window.deleteHistoryRecordUI('${h.id}', '${h.conductor}', '${h.numero}')" class="w-9 h-9 flex items-center justify-center bg-white dark:bg-slate-800 text-slate-500 hover:text-rose-500 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm transition-all"><i class="fas fa-trash-alt text-[10px]"></i></button>
+                                        <td class="px-8 py-5 border-y border-r border-slate-100 dark:border-white/5 text-right first:rounded-l-[1.5rem] last:rounded-r-[1.5rem]">
+                                            <div class="flex justify-end gap-3 translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all">
+                                                <button onclick="window.editHistoryRecord('${h.id}')" class="w-10 h-10 flex items-center justify-center bg-white dark:bg-white/10 text-slate-600 dark:text-white hover:bg-primary hover:text-white rounded-[1rem] border border-slate-200 dark:border-white/10 shadow-xl transition-all active:scale-90" title="Editar Registro">
+                                                    <i class="fas fa-edit text-xs"></i>
+                                                </button>
+                                                <button onclick="window.deleteHistoryRecordUI('${h.id}', '${h.conductor}', '${h.numero}')" class="w-10 h-10 flex items-center justify-center bg-white dark:bg-white/10 text-rose-500 hover:bg-rose-500 hover:text-white rounded-[1rem] border border-slate-200 dark:border-white/10 shadow-xl transition-all active:scale-90" title="Eliminar">
+                                                    <i class="fas fa-trash-alt text-xs"></i>
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -391,12 +481,28 @@ export const renderAdvancedHistoryView = async (container, options = {}) => {
                     </table>
                 </div>
 
-                <!-- Pagination -->
-                <div class="p-8 bg-slate-50 dark:bg-white/5 border-t border-slate-100 dark:border-white/10 flex justify-between items-center">
-                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Página ${currentPage} de ${totalPages} <span class="mx-2 opacity-30">|</span> ${filteredHistory.length} Registros</p>
-                    <div class="flex gap-2">
-                        <button id="prev-page" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-400 hover:text-primary disabled:opacity-30 transition-all shadow-sm" ${currentPage === 1 ? 'disabled' : ''}><i class="fas fa-chevron-left text-[10px]"></i></button>
-                        <button id="next-page" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-400 hover:text-primary disabled:opacity-30 transition-all shadow-sm" ${currentPage === totalPages ? 'disabled' : ''}><i class="fas fa-chevron-right text-[10px]"></i></button>
+                <!-- Footer / Paging -->
+                <div class="p-8 bg-slate-50 dark:bg-white/5 border-t border-slate-100 dark:border-white/10 flex flex-col md:flex-row justify-between items-center gap-6">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 bg-white dark:bg-slate-900 rounded-xl flex items-center justify-center text-primary text-xs shadow-inner">
+                            <i class="fas fa-list-ul"></i>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Mostrando registros</p>
+                            <p class="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tighter">${start + 1}-${Math.min(end, filteredHistory.length)} de ${filteredHistory.length} totales</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-4">
+                        <span class="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Pág. ${currentPage} / ${totalPages}</span>
+                        <div class="flex gap-2">
+                            <button id="prev-page" class="w-12 h-12 flex items-center justify-center rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-400 hover:text-primary disabled:opacity-30 transition-all shadow-xl hover:-translate-y-1" ${currentPage === 1 ? 'disabled' : ''}>
+                                <i class="fas fa-chevron-left text-xs"></i>
+                            </button>
+                            <button id="next-page" class="w-12 h-12 flex items-center justify-center rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-400 hover:text-primary disabled:opacity-30 transition-all shadow-xl hover:-translate-y-1" ${currentPage === totalPages ? 'disabled' : ''}>
+                                <i class="fas fa-chevron-right text-xs"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

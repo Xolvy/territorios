@@ -1226,7 +1226,7 @@ const renderRecursosTab = async (container) => {
 };
 
 const renderHistorialView = async (container) => {
-    let currentView = 'activas'; // dashboard, activas, historial, campañas
+    let currentView = 'todos'; // dashboard, activas, historial, campañas
     let selectedIds = new Set();
 
     // Fetch initial data
@@ -2807,76 +2807,9 @@ const renderHistorialView = async (container) => {
     };
 
     const renderMain = () => {
-        // --- Metric Calculations (Power Up) ---
-        const touchedNums = new Set(allHistory.map(h => String(h.numero)));
-        const totalT = territorios.length;
-        const coveragePercent = totalT > 0 ? Math.round((touchedNums.size / totalT) * 100) : 0;
-        const missingCount = territorios.filter(t => !touchedNums.has(String(t.numero))).length;
-
-        const territoryFreq = {};
-        allHistory.forEach(h => {
-            if (!h.numero) return;
-            territoryFreq[h.numero] = (territoryFreq[h.numero] || 0) + 1;
-        });
-        const mostFreqSorted = Object.entries(territoryFreq).sort((a, b) => b[1] - a[1]);
-        const topTerritory = mostFreqSorted[0]?.[0] || '--';
-        const topCount = mostFreqSorted[0]?.[1] || 0;
-
-        const latestTouch = {};
-        allHistory.forEach(h => {
-            const d = h.fecha_entrega || h.fecha_asignacion;
-            if (!d) return;
-            if (!latestTouch[h.numero] || new Date(d) > new Date(latestTouch[h.numero])) {
-                latestTouch[h.numero] = d;
-            }
-        });
-
-        const rezagoSorted = territorios.filter(t => latestTouch[t.numero]).sort((a, b) => new Date(latestTouch[a.numero]) - new Date(latestTouch[b.numero]));
-        const oldestTerritory = rezagoSorted[0]?.numero || '--';
-        const daysRezago = rezagoSorted[0] ? Math.floor((new Date() - new Date(latestTouch[rezagoSorted[0].numero])) / (1000 * 60 * 60 * 24)) : 0;
-
         container.innerHTML = `
             <div class="space-y-12 animate-fade-in px-2 pb-32">
                 
-                <!-- Power-Up Metrics Dashboard -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div class="bg-gradient-to-br from-primary to-indigo-700 p-8 rounded-[2.5rem] text-white shadow-2xl shadow-primary/20 group relative overflow-hidden transition-all hover:scale-[1.02]">
-                        <div class="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
-                        <p class="text-[10px] font-black uppercase tracking-[0.3em] opacity-70 mb-2">Cobertura Global</p>
-                        <p class="text-4xl font-black tabular-nums">${coveragePercent}%</p>
-                        <div class="flex items-center gap-2 mt-4 text-[9px] font-bold uppercase tracking-widest opacity-60">
-                             <i class="fas fa-chart-pie"></i> ${touchedNums.size} de ${totalT} abarcados
-                        </div>
-                    </div>
-                    
-                    <div class="glass-morphism p-8 rounded-[2.5rem] border border-slate-200/50 dark:border-white/5 shadow-xl transition-all hover:scale-[1.02]">
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">Faltantes</p>
-                        <p class="text-4xl font-black text-rose-500 tabular-nums">${missingCount}</p>
-                        <div class="flex items-center gap-3 mt-4">
-                            <div class="flex-1 h-1.5 bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden">
-                                <div class="h-full bg-rose-500 rounded-full" style="width: ${100 - coveragePercent}%"></div>
-                            </div>
-                            <span class="text-[9px] font-black text-rose-500 uppercase tracking-widest">En espera</span>
-                        </div>
-                    </div>
-
-                    <div class="glass-morphism p-8 rounded-[2.5rem] border border-slate-200/50 dark:border-white/5 shadow-xl transition-all hover:scale-[1.02]">
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">Uso Frecuente</p>
-                        <p class="text-2xl font-black text-slate-800 dark:text-white truncate">Territorio ${topTerritory}</p>
-                        <div class="flex items-center gap-2 mt-4 text-[9px] text-primary font-bold uppercase tracking-widest">
-                            <i class="fas fa-redo-alt"></i> Asignado ${topCount} ${topCount === 1 ? 'vez' : 'veces'}
-                        </div>
-                    </div>
-
-                    <div class="glass-morphism p-8 rounded-[2.5rem] border border-slate-200/50 dark:border-white/5 shadow-xl transition-all hover:scale-[1.02]">
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">Mayor Rezago</p>
-                        <p class="text-2xl font-black text-orange-600 truncate">#${oldestTerritory}</p>
-                        <div class="flex items-center gap-2 mt-4 text-[9px] text-slate-400 font-bold uppercase tracking-widest">
-                            <i class="fas fa-history"></i> Hace ${daysRezago} días
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Main Actions Grid -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                     <button id="hub-btn-assign" class="group relative bg-white dark:bg-[#121212]/40 backdrop-blur-3xl overflow-hidden p-6 md:p-10 rounded-[2.5rem] border border-slate-200 dark:border-white/10 shadow-2xl transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_60px_-10px_rgba(59,130,246,0.3)]">
@@ -2925,7 +2858,7 @@ const renderHistorialView = async (container) => {
                          </div>
                     </div>
     
-                    <div id="assigns-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 animate-fade-in"></div>
+                    <div id="assigns-grid" class="flex flex-col gap-4 animate-fade-in"></div>
                 </div>
 
                 <!-- Section Title: Historical Activity -->
@@ -2938,9 +2871,7 @@ const renderHistorialView = async (container) => {
                         </div>
                     </div>
 
-                    <div class="modern-card !p-0 overflow-hidden border-slate-200 dark:border-white/5">
-                        <div id="unified-history-table-container"></div>
-                    </div>
+                    <div id="unified-history-table-container" class="space-y-8"></div>
 
                     <div class="flex justify-center pt-4">
                          <button id="btn-power-sync" class="group bg-slate-900 dark:bg-white/10 text-white px-10 py-5 rounded-[2rem] text-[11px] font-black uppercase tracking-[0.5em] shadow-2xl transition-all hover:scale-105 active:scale-95 flex items-center gap-4">
@@ -3031,11 +2962,6 @@ const renderHistorialView = async (container) => {
 
         let items = [...territorios].sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true }));
 
-        // Filter for "Active" view: Only show Assigned or Pendiente
-        if (currentView === 'activas' && !query) {
-            items = items.filter(t => t.estado === 'Asignado' || t.estado === 'Pendiente');
-        }
-
         const filtered = items.filter(t => {
             const num = (t.numero || '').toString();
             const cond = (t.asignado_a || t.conductor || '').toLowerCase();
@@ -3070,50 +2996,48 @@ const renderHistorialView = async (container) => {
 
             return `
                 <div class="relative group cursor-pointer transition-all duration-300" onclick="window.actionToggleSelect('${item.id}')">
-                     <!-- Card Body -->
-                     <div class="bg-white dark:bg-[#151515] rounded-[2.5rem] p-6 border ${isSelected ? 'border-primary ring-4 ring-primary/10' : 'border-slate-100 dark:border-white/5'} shadow-sm hover:shadow-2xl transition-all flex flex-col justify-between h-52 relative overflow-hidden group/card shadow-primary/5 card-inner-mobile">
+                     <!-- Row Body -->
+                     <div class="bg-white dark:bg-[#151515] rounded-[1.5rem] p-4 md:p-6 border ${isSelected ? 'border-primary ring-4 ring-primary/10' : 'border-slate-100 dark:border-white/5'} shadow-sm hover:shadow-xl transition-all flex flex-col md:flex-row items-center justify-between gap-4 md:gap-8 group/card">
                         
-                        <!-- Status & Number -->
-                        <div class="flex justify-between items-start z-10">
-                            <div class="w-14 h-14 rounded-2xl ${isAssigned ? 'bg-primary/10 text-primary' : 'bg-emerald-500/10 text-emerald-500'} flex items-center justify-center text-2xl font-black shadow-inner">
+                        <div class="flex items-center gap-6 w-full md:w-auto">
+                            <!-- Number -->
+                            <div class="w-12 h-12 md:w-16 md:h-16 rounded-[1.2rem] ${isAssigned ? 'bg-primary text-white' : 'bg-slate-100 dark:bg-white/10 text-slate-400'} flex items-center justify-center text-xl md:text-2xl font-black shadow-lg shrink-0 group-hover:scale-110 transition-transform">
                                 ${num}
                             </div>
-                            
-                            <div class="flex flex-col items-end">
-                                <span class="text-[9px] font-black uppercase tracking-widest ${isAssigned ? 'text-primary' : 'text-emerald-500'} mb-1 opacity-90">${isAssigned ? 'ASIGNADO' : 'LIBRE'}</span>
-                                ${isSelected ? '<span class="text-xl text-primary animate-bounce-in"><i class="fas fa-check-circle"></i></span>' : ''}
+
+                            <!-- Info -->
+                            <div class="flex flex-col min-w-0">
+                                <div class="flex items-center gap-3">
+                                    <span class="text-[9px] font-black uppercase tracking-[0.2em] ${isAssigned ? 'text-primary' : 'text-slate-400'}">${isAssigned ? 'Asignado' : 'Disponible'}</span>
+                                    ${isSelected ? '<span class="text-primary text-sm animate-bounce-in"><i class="fas fa-check-circle"></i></span>' : ''}
+                                </div>
+                                <p class="text-sm md:text-lg font-black text-slate-800 dark:text-white truncate uppercase tracking-tight">
+                                    ${isAssigned ? item.asignado_a : '<span class="opacity-30 italic font-bold">Sin asignar</span>'}
+                                </p>
                             </div>
                         </div>
-                        
-                        <!-- Info Content -->
-                        <div class="z-10 mt-3">
-                             ${isAssigned ? `
-                                <p class="text-[9px] text-slate-600 dark:text-slate-400 font-extrabold uppercase tracking-widest mb-1.5">Responsable</p>
-                                <p class="text-base font-black text-slate-800 dark:text-white leading-tight line-clamp-2 uppercase tracking-tight">${item.asignado_a}</p>
-                             ` : `
-                                <div class="h-full flex flex-col justify-end opacity-40">
-                                    <p class="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest italic opacity-80">Disponible</p>
-                                </div>
-                             `}
+
+                        <!-- Details (Optional/Contextual) -->
+                        <div class="hidden lg:flex flex-col items-center">
+                            <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Localidad</span>
+                            <span class="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase truncate max-w-[150px]">${item.localidad || '—'}</span>
                         </div>
 
-                        <!-- Hover Actions -->
-                        <div class="absolute bottom-6 right-6 z-20 opacity-0 group-hover/card:opacity-100 transition-all translate-y-2 group-hover/card:translate-y-0 flex gap-2 hover-actions-mobile">
-                             <button onclick="event.stopPropagation(); window.viewMapFromAdmin('${item.id}')" class="w-10 h-10 bg-primary text-white rounded-xl shadow-xl shadow-primary/20 hover:scale-110 transition-transform flex items-center justify-center" title="Ver Mapa">
-                                <i class="fas fa-map-marked-alt text-xs"></i>
+                        <!-- Actions Row -->
+                        <div class="flex items-center gap-3 w-full md:w-auto justify-end">
+                             <button onclick="event.stopPropagation(); window.viewMapFromAdmin('${item.id}')" class="w-10 h-10 md:w-12 md:h-12 bg-slate-50 dark:bg-white/5 text-slate-400 hover:bg-primary hover:text-white rounded-xl shadow-sm transition-all flex items-center justify-center group/btn" title="Ver Mapa">
+                                <i class="fas fa-map-marked-alt text-xs md:text-sm group-hover/btn:scale-110 transition-transform"></i>
                              </button>
                              ${isAssigned ? `
-                                <button onclick="event.stopPropagation(); window.actionTransfer('${item.id}', '${num}', '${item.asignado_a}')" class="w-10 h-10 bg-white dark:bg-[#222] text-slate-600 dark:text-white rounded-xl shadow-lg border border-slate-100 dark:border-white/10 hover:scale-110 transition-transform flex items-center justify-center" title="Transferir">
-                                    <i class="fas fa-exchange-alt text-xs"></i>
+                                <button onclick="event.stopPropagation(); window.actionTransfer('${item.id}', '${num}', '${item.asignado_a}')" class="w-10 h-10 md:w-12 md:h-12 bg-slate-50 dark:bg-white/5 text-slate-400 hover:bg-amber-500 hover:text-white rounded-xl shadow-sm transition-all flex items-center justify-center group/btn" title="Transferir">
+                                    <i class="fas fa-exchange-alt text-xs md:text-sm group-hover/btn:rotate-180 transition-transform duration-500"></i>
                                 </button>
                              ` : ''}
-                             <button onclick="event.stopPropagation(); window.actionEditActive('${item.id}', '${num}', '${item.asignado_a || ''}')" class="w-10 h-10 bg-white dark:bg-[#222] text-slate-600 dark:text-white rounded-xl shadow-lg border border-slate-100 dark:border-white/10 hover:scale-110 transition-transform flex items-center justify-center" title="Editar">
-                                <i class="fas fa-edit text-xs"></i>
+                             <button onclick="event.stopPropagation(); window.actionEditActive('${item.id}', '${num}', '${item.asignado_a || ''}')" class="w-10 h-10 md:w-12 md:h-12 bg-slate-50 dark:bg-white/5 text-slate-400 hover:bg-slate-800 dark:hover:bg-white dark:hover:text-black hover:text-white rounded-xl shadow-sm transition-all flex items-center justify-center group/btn" title="Editar">
+                                <i class="fas fa-edit text-xs md:text-sm group-hover/btn:scale-110 transition-transform"></i>
                              </button>
                         </div>
-                        
-                        <!-- Decoration -->
-                        <div class="absolute -right-8 -bottom-8 w-24 h-24 rounded-full blur-[30px] ${isAssigned ? 'bg-primary/5' : 'bg-emerald-500/5'} pointer-events-none group-hover/card:scale-150 transition-transform duration-700"></div>
+
                      </div>
                 </div>
             `;
