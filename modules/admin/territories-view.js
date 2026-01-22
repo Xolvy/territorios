@@ -1201,6 +1201,8 @@ const renderProgramaTab = async (container) => {
     const today = new Date();
     let currentWeekStart = getMonday(today);
     let programa = { dias: [] };
+    let activeDayIndex = today.getDay() === 0 ? 6 : today.getDay() - 1; // Default to today
+    let activeTurns = new Set(['manana', 'tarde', 'noche', 'zoom']);
 
     const saveCurrentWeek = async () => {
         const weekId = formatDateId(currentWeekStart);
@@ -1302,16 +1304,90 @@ const renderProgramaTab = async (container) => {
                     <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-2">
                         <i class="fas fa-cloud-upload-alt text-emerald-500"></i> Autoguardado inteligente activado
                     </p>
-                    <div class="flex items-center gap-6 text-[9px] font-black uppercase tracking-widest opacity-60">
-                        <span id="save-status" class="text-emerald-500 transition-opacity opacity-0 mr-4 font-bold flex items-center gap-2"></span>
-                        <span class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-cyan-500 shadow-lg shadow-cyan-500/40"></span> Mañana</span>
-                        <span class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-orange-500 shadow-lg shadow-orange-500/40"></span> Tarde</span>
-                        <span class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-indigo-500 shadow-lg shadow-indigo-500/40"></span> Noche</span>
+                    <div id="turn-filters" class="flex items-center gap-2">
+                        <!-- Turn filters will be injected here -->
                     </div>
                 </div>
             </div>
         </div>
     `;
+
+    const renderFilters = () => {
+        const turnFilters = container.querySelector('#turn-filters');
+        if (!turnFilters) return;
+
+        const turnosArr = [
+            { id: 'manana', icon: 'fa-sun', label: 'Mañana', color: 'text-amber-500', bg: 'bg-amber-500/10' },
+            { id: 'tarde', icon: 'fa-cloud-sun', label: 'Tarde', color: 'text-orange-500', bg: 'bg-orange-500/10' },
+            { id: 'noche', icon: 'fa-moon', label: 'Noche', color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
+            { id: 'zoom', icon: 'fa-video', label: 'Zoom', color: 'text-emerald-500', bg: 'bg-emerald-500/10' }
+        ];
+
+        turnFilters.innerHTML = `
+            <div class="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10">
+                ${turnosArr.map(t => {
+            const isActive = activeTurns.has(t.id);
+            return `
+                        <button onclick="window.toggleTurnFilter('${t.id}')" 
+                                class="flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all text-[9px] font-black uppercase tracking-wider ${isActive ? t.bg + ' ' + t.color : 'text-slate-400 opacity-40 hover:opacity-100'}">
+                            <i class="fas ${t.icon}"></i>
+                            ${t.label}
+                        </button>
+                    `;
+        }).join('')}
+            </div>
+        `;
+    };
+
+    window.toggleTurnFilter = (id) => {
+        if (activeTurns.has(id)) {
+            if (activeTurns.size > 1) activeTurns.delete(id);
+            else showNotification("Debes mantener al menos un turno activo", "warning");
+        } else {
+            activeTurns.add(id);
+        }
+        renderFilters();
+        renderTable();
+    };
+
+    window.setActiveDay = (idx) => {
+        activeDayIndex = idx;
+        renderDaySelector();
+        renderTable();
+    };
+
+    const renderDaySelector = () => {
+        const selectorContainer = container.querySelector('#day-selector-container');
+        if (!selectorContainer) {
+            const header = container.querySelector('header');
+            const dayBar = document.createElement('div');
+            dayBar.id = 'day-selector-container';
+            dayBar.className = 'flex flex-wrap items-center justify-center gap-2 mt-8 animate-fade-in';
+            header.after(dayBar);
+        }
+
+        const dayBar = container.querySelector('#day-selector-container');
+        dayBar.innerHTML = `
+            <div class="flex flex-wrap items-center justify-center gap-1.5 p-1.5 bg-slate-100 dark:bg-white/5 rounded-[2rem] border border-slate-200 dark:border-white/10">
+                ${dayNames.map((n, i) => {
+            const isActive = activeDayIndex === i;
+            const isToday = new Date().getDay() === (i === 6 ? 0 : i + 1);
+            return `
+                        <button onclick="window.setActiveDay(${i})" 
+                                class="relative px-5 py-2.5 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${isActive ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-105' : 'text-slate-500 hover:text-primary hover:bg-white dark:hover:bg-white/10'}">
+                            ${n}
+                            ${isToday ? '<span class="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-800"></span>' : ''}
+                        </button>
+                    `;
+        }).join('')}
+                <div class="w-px h-6 bg-slate-200 dark:bg-white/10 mx-2"></div>
+                <button onclick="window.setActiveDay(-1)" 
+                        class="px-5 py-2.5 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${activeDayIndex === -1 ? 'bg-slate-800 dark:bg-slate-700 text-white shadow-xl' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'}">
+                    Ver Toda la Semana
+                </button>
+            </div>
+        `;
+    };
 
     const tableContainer = document.getElementById('admin-prog-table');
 
@@ -1354,6 +1430,8 @@ const renderProgramaTab = async (container) => {
                 lblRange.innerText = rangeText;
             }
 
+            renderDaySelector();
+            renderFilters();
             renderTable();
         } catch (error) {
             console.error(error);
@@ -1374,14 +1452,16 @@ const renderProgramaTab = async (container) => {
         let html = `<div class="space-y-12 pb-20">`;
 
         programa.dias.forEach((dia, dayIndex) => {
+            if (activeDayIndex !== -1 && activeDayIndex !== dayIndex) return;
+
             html += `
-                <div class="day-group animate-fade-in px-8 ${dayIndex > 0 ? 'mt-32' : 'mt-10'}">
+                <div class="day-group animate-fade-in px-8 ${activeDayIndex === -1 && dayIndex > 0 ? 'mt-32' : 'mt-10'}">
                     <div class="flex items-center gap-8 mb-12">
                         <div class="flex flex-col">
-                            <h4 class="text-6xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">${dia.nombre}</h4>
-                            <p class="text-[12px] font-black text-primary uppercase tracking-[0.6em] mt-4 opacity-70">Programación de Salidas</p>
+                            <h4 class="text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">${dia.nombre}</h4>
+                            <p class="text-[10px] font-black text-primary uppercase tracking-[0.4em] mt-3 opacity-60">Programación de Salidas</p>
                         </div>
-                        <div class="h-1 flex-1 bg-gradient-to-r from-primary/40 via-primary/10 to-transparent rounded-full"></div>
+                        <div class="h-0.5 flex-1 bg-gradient-to-r from-primary/30 to-transparent rounded-full opacity-30"></div>
                     </div>
 
                     <div class="flex flex-wrap gap-10">
@@ -1390,6 +1470,7 @@ const renderProgramaTab = async (container) => {
             turnos.forEach(t => {
                 const turnoId = t.id;
                 if (turnoId === 'zoom' && dia.nombre !== 'Martes') return;
+                if (!activeTurns.has(turnoId)) return;
 
                 if (!dia[turnoId]) dia[turnoId] = {};
                 const data = dia[turnoId];
