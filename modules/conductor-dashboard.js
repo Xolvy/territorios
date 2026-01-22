@@ -1362,35 +1362,34 @@ async function renderAvailabilitySection(container, name) {
                     </button>
                 </div>
 
-                <div class="overflow-x-auto pb-4 custom-scrollbar">
-                    <div class="min-w-[700px] grid grid-cols-7 gap-3">
-                        <div class="col-span-1"></div>
-                        ${shifts.map(s => `
-                                <div class="col-span-2 text-center py-4 bg-slate-50 dark:bg-white/[0.02] rounded-2xl border border-slate-100 dark:border-white/5 mb-2 group/header">
-                                    <div class="w-10 h-10 mx-auto rounded-xl bg-white dark:bg-white/5 flex items-center justify-center text-lg ${s.color} shadow-sm border border-slate-100 dark:border-white/5 mb-2 group-hover/header:scale-110 transition-transform">
-                                        <i class="${s.icon}"></i>
-                                    </div>
-                                    <span class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 group-hover/header:text-primary transition-colors">${s.label}</span>
-                                </div>
-                            `).join('')}
-
-                        ${days.map(day => `
-                                <div class="col-span-1 flex items-center py-2">
-                                    <span class="text-xs font-black text-gray-700 dark:text-gray-300 uppercase tracking-tight">${day}</span>
-                                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    ${days.map(day => `
+                        <div class="bg-slate-50 dark:bg-white/[0.02] p-6 rounded-[2rem] border border-slate-100 dark:border-white/5 space-y-4">
+                            <div class="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-3">
+                                <span class="text-xs font-black text-slate-800 dark:text-white uppercase tracking-widest">${day}</span>
+                                <i class="fas fa-calendar-day text-slate-300 dark:text-slate-600"></i>
+                            </div>
+                            <div class="grid grid-cols-1 gap-2">
                                 ${shifts.map(sh => {
         const val = `${day}_${sh.id}`;
         const isChecked = currentAvail.includes(val);
         return `
-                                        <div class="col-span-2 flex justify-center py-3 bg-white/50 dark:bg-white/5 rounded-2xl border border-black/5 dark:border-white/5 hover:border-indigo-500/30 transition-all group/cell">
-                                            <label class="cursor-pointer w-full flex justify-center">
-                                                <input type="checkbox" class="avail-check w-6 h-6 accent-indigo-600 transition-transform group-hover/cell:scale-110" value="${val}" ${isChecked ? 'checked' : ''}>
-                                            </label>
+                                    <label class="flex items-center justify-between p-4 rounded-xl border border-black/5 dark:border-white/5 bg-white/50 dark:bg-black/20 cursor-pointer active:scale-95 transition-all group/opt">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/5 flex items-center justify-center text-sm ${sh.color}">
+                                                <i class="${sh.icon}"></i>
+                                            </div>
+                                            <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tight">${sh.label}</span>
                                         </div>
-                                    `;
+                                        <div class="relative flex items-center">
+                                            <input type="checkbox" class="avail-check w-5 h-5 accent-indigo-600 rounded-lg" value="${val}" ${isChecked ? 'checked' : ''}>
+                                        </div>
+                                    </label>
+                                `;
     }).join('')}
-                            `).join('')}
-                    </div>
+                            </div>
+                        </div>
+                    `).join('')}
                 </div>
             </div>
         </details>
@@ -1443,78 +1442,87 @@ const renderFullProgramaCards = (programa, container, territoryMap = {}, current
     }
 
     let html = `
-    <div class="col-span-full overflow-x-auto pb-6 custom-scrollbar">
-        <div class="min-w-[1000px] modern-card !p-0 shadow-2xl border-slate-100 dark:border-white/5 overflow-hidden bg-white dark:bg-[#0d121b]">
-            <div class="grid grid-cols-[140px_1fr_1fr_1fr_1fr] bg-slate-50 dark:bg-white/[0.02] border-b border-slate-100 dark:border-white/5">
-                <div class="p-6 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 flex items-center justify-center border-r border-slate-100 dark:border-white/5">Día / Fecha</div>
-                ${shifts.map(s => `
-                    <div class="p-6 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 text-center flex items-center justify-center gap-3">
-                        <i class="fas ${shiftIcons[s]} ${shiftColors[s]} text-sm"></i> ${shiftLabels[s]}
-                    </div>
-                `).join('')}
-            </div>
-            <div class="divide-y divide-black/5 dark:divide-white/5">
+    <div class="col-span-full">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
                 ${days.map((dayName, dayIndex) => {
         const d = (programa.dias || []).find(x => x.nombre === dayName);
+        const hasData = shifts.some(s => d && d[s] && (d[s].conductor || d[s].lugar));
+        if (!hasData) return '';
+
         return `
-                    <div class="grid grid-cols-[140px_1fr_1fr_1fr_1fr] hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors group">
-                        <div class="p-6 flex flex-col items-center justify-center border-r border-black/5 dark:border-white/5 bg-slate-50/30 dark:bg-white/[0.02]">
-                            <span class="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tighter">${dayName}</span>
-                            <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">${d?.fecha ? d.fecha.split('-').reverse().join('/') : '-'}</span>
+                    <div class="modern-card !p-6 border-slate-100 dark:border-white/10 shadow-xl bg-white dark:bg-slate-900/40 space-y-6">
+                        <div class="flex justify-between items-center border-b border-slate-100 dark:border-white/5 pb-4">
+                            <div>
+                                <h3 class="font-black text-xl text-slate-800 dark:text-white tracking-tighter uppercase leading-none mb-1">${dayName}</h3>
+                                <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">${d?.fecha ? d.fecha.split('-').reverse().join('/') : '-'}</span>
+                            </div>
+                            <div class="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-500">
+                                <i class="fas fa-calendar-day"></i>
+                            </div>
                         </div>
-                        ${shifts.map(shift => {
-            if (shift === 'zoom' && dayName !== 'Martes') return `<div class="p-4 border-r border-black/5 dark:border-white/5 last:border-0 opacity-20"></div>`;
+
+                        <div class="space-y-4">
+                            ${shifts.map(shift => {
+            if (shift === 'zoom' && dayName !== 'Martes') return '';
 
             const sData = d ? d[shift] : null;
-            if (!sData || (!sData.conductor && !sData.lugar)) return `<div class="p-4 border-r border-black/5 dark:border-white/5 last:border-0"></div>`;
+            if (!sData || (!sData.conductor && !sData.lugar)) return '';
 
             const isConductor = sData.conductor === currentConductorName;
             const isAuxiliar = sData.auxiliar === currentConductorName;
             const isImpacted = isConductor || isAuxiliar;
 
             return `
-                            <div class="p-5 border-r border-slate-100 dark:border-white/5 last:border-0 relative group/cell hover:bg-white dark:hover:bg-white/[0.01] transition-colors ${isImpacted ? 'bg-primary/5 dark:bg-primary/5' : ''}">
-                                ${sData.lugar ? `
-                                <div class="text-[9px] font-black text-slate-400 mb-2.5 truncate uppercase tracking-tight flex items-center gap-2">
-                                    <i class="fas fa-map-marker-alt text-slate-300"></i> ${sData.lugar}
-                                </div>` : ''}
-                                
-                                <div class="space-y-1.5">
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-1 h-4 ${isConductor ? 'bg-primary' : 'bg-slate-200 dark:bg-white/10'} rounded-full"></div>
-                                        <div class="text-[10px] font-black ${isConductor ? 'text-primary' : 'text-slate-700 dark:text-slate-200'} leading-none uppercase truncate">${sData.conductor || '—'}</div>
+                                <div class="p-4 rounded-2xl border border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02] ${isImpacted ? 'ring-2 ring-primary/20 bg-primary/5' : ''}">
+                                    <div class="flex items-center gap-2 mb-3">
+                                        <i class="fas ${shiftIcons[shift]} ${shiftColors[shift]} text-[10px]"></i>
+                                        <span class="text-[9px] font-black uppercase tracking-widest text-slate-400">${shiftLabels[shift]}</span>
                                     </div>
-                                    ${sData.auxiliar ? `
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-1 h-3 ${isAuxiliar ? 'bg-indigo-500' : 'bg-slate-200 dark:bg-white/5'} rounded-full"></div>
-                                        <div class="text-[8px] font-bold ${isAuxiliar ? 'text-indigo-500' : 'text-slate-400'} leading-none uppercase truncate">${sData.auxiliar}</div>
-                                    </div>` : ''}
-                                </div>
+                                    
+                                    <div class="space-y-3">
+                                        ${sData.lugar ? `
+                                            <div class="flex items-start gap-2">
+                                                <i class="fas fa-map-marker-alt text-slate-300 mt-1 text-[8px]"></i>
+                                                <p class="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase leading-snug">${sData.lugar}</p>
+                                            </div>` : ''}
 
-                                <div class="mt-4 pt-3 border-t border-black/5 dark:border-white/5">
-                                    <p class="text-[7px] font-black text-slate-300 dark:text-slate-500 uppercase tracking-[0.2em] mb-2 leading-none">Territorio</p>
-                                    ${isConductor ? `
-                                        <button onclick="window.openTerritorySelector(${dayIndex}, '${shift}', this)" 
-                                                data-current="${(sData.territorio || '').replace(/"/g, '&quot;')}"
-                                                class="w-full text-left bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-2.5 rounded-xl hover:border-primary transition-all flex items-center justify-between group/btn shadow-sm">
-                                            <span class="text-[10px] font-black truncate ${sData.territorio ? 'text-primary' : 'text-slate-400 opacity-40'}">${sData.territorio || '—'}</span>
-                                            <i class="fas fa-chevron-down text-[8px] opacity-20 group-hover/btn:opacity-60 transition-opacity"></i>
-                                        </button>
-                                    ` : `
-                                        <div class="flex flex-wrap gap-1.5">
-                                            ${sData.territorio ? sData.territorio.split(',').map(num => `
-                                                <span class="px-2.5 py-1.5 bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 rounded-lg text-[10px] font-black border border-slate-200 dark:border-white/10 uppercase tracking-widest">${num.trim()}</span>
-                                            `).join('') : '<span class="text-[10px] font-black text-slate-300 dark:text-slate-600 italic">No definido</span>'}
+                                        <div class="grid grid-cols-1 gap-1.5">
+                                            <div class="flex items-center gap-2">
+                                                <div class="w-1 h-3 ${isConductor ? 'bg-primary' : 'bg-slate-300'} rounded-full"></div>
+                                                <span class="text-[10px] font-black ${isConductor ? 'text-primary' : 'text-slate-700 dark:text-slate-200'} truncate uppercase">${sData.conductor || '—'}</span>
+                                            </div>
+                                            ${sData.auxiliar ? `
+                                            <div class="flex items-center gap-2">
+                                                <div class="w-1 h-2 ${isAuxiliar ? 'bg-indigo-400' : 'bg-slate-200'} rounded-full"></div>
+                                                <span class="text-[8px] font-bold ${isAuxiliar ? 'text-indigo-500' : 'text-slate-400'} truncate uppercase">${sData.auxiliar}</span>
+                                            </div>` : ''}
                                         </div>
-                                    `}
-                                </div>
-                            </div>`;
+
+                                        <div class="mt-2 pt-2 border-t border-black/5 dark:border-white/5">
+                                            ${isConductor ? `
+                                                <button onclick="window.openTerritorySelector(${dayIndex}, '${shift}', this)" 
+                                                        data-current="${(sData.territorio || '').replace(/"/g, '&quot;')}"
+                                                        class="w-full text-left bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 p-2.5 rounded-xl hover:border-primary transition-all flex items-center justify-between group/btn">
+                                                    <span class="text-[9px] font-black truncate ${sData.territorio ? 'text-primary' : 'text-slate-400 italic'}">${sData.territorio || 'Asignar'}</span>
+                                                    <i class="fas fa-plus-circle text-[8px] text-slate-300"></i>
+                                                </button>
+                                            ` : `
+                                                <div class="flex flex-wrap gap-1">
+                                                    ${sData.territorio ? sData.territorio.split(',').map(num => `
+                                                        <span class="px-2 py-1 bg-slate-100 dark:bg-white/10 text-slate-500 dark:text-slate-400 rounded-lg text-[8px] font-black border border-slate-200 dark:border-white/10 uppercase">${num.trim()}</span>
+                                                    `).join('') : '<span class="text-[8px] font-bold text-slate-300 italic uppercase">Libre</span>'}
+                                                </div>
+                                            `}
+                                        </div>
+                                    </div>
+                                </div>`;
         }).join('')}
+                        </div>
                     </div>`;
     }).join('')}
-            </div>
         </div>
-    </div>`;
+    </div>
+`;
 
     container.innerHTML = html;
 };

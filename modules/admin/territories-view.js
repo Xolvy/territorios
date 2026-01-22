@@ -70,36 +70,36 @@ export const renderCasaEnCasaTab = async (container) => {
                     </div>
                 </div>
 
-                <nav class="flex flex-row overflow-x-auto scrollbar-hide items-center gap-1.5 bg-white/50 dark:bg-white/[0.03] p-1 md:p-1.5 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm w-full xl:w-auto backdrop-blur-xl">
-                    <button class="sub-tab-casa group px-3 md:px-5 py-2.5 md:py-3 rounded-xl transition-all flex items-center gap-2 md:gap-3 whitespace-nowrap font-extrabold" data-sub="programa">
-                        <i class="fas fa-calendar-check text-xs md:text-sm"></i>
-                        <span class="text-[10px] md:text-[11px] font-extrabold uppercase tracking-wider">Programa</span>
+                <nav class="flex flex-row overflow-x-auto scrollbar-hide items-center gap-1 bg-white/50 dark:bg-white/[0.03] p-1 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm w-full xl:w-auto backdrop-blur-xl">
+                    <button class="sub-tab-casa group px-2 md:px-5 py-2 md:py-3 rounded-xl transition-all flex items-center gap-1.5 md:gap-3 whitespace-nowrap font-extrabold" data-sub="programa">
+                        <i class="fas fa-calendar-check text-[10px] md:text-sm"></i>
+                        <span class="text-[9px] md:text-[11px] font-extrabold uppercase tracking-wider">Programa</span>
                     </button>
-                    <button class="sub-tab-casa group px-3 md:px-5 py-2.5 md:py-3 rounded-xl transition-all flex items-center gap-2 md:gap-3 whitespace-nowrap font-extrabold" data-sub="historial">
-                        <i class="fas fa-history text-xs md:text-sm"></i>
-                        <span class="text-[10px] md:text-[11px] font-extrabold uppercase tracking-wider">Historial</span>
+                    <button class="sub-tab-casa group px-2 md:px-5 py-2 md:py-3 rounded-xl transition-all flex items-center gap-1.5 md:gap-3 whitespace-nowrap font-extrabold" data-sub="historial">
+                        <i class="fas fa-history text-[10px] md:text-sm"></i>
+                        <span class="text-[9px] md:text-[11px] font-extrabold uppercase tracking-wider">Historial</span>
                     </button>
-                    <button class="sub-tab-casa group px-3 md:px-5 py-2.5 md:py-3 rounded-xl transition-all flex items-center gap-2 md:gap-3 whitespace-nowrap font-extrabold" data-sub="s12">
-                        <i class="fas fa-shield-alt text-xs md:text-sm"></i>
-                        <span class="text-[10px] md:text-[11px] font-extrabold uppercase tracking-wider">S-12</span>
+                    <button class="sub-tab-casa group px-2 md:px-5 py-2 md:py-3 rounded-xl transition-all flex items-center gap-1.5 md:gap-3 whitespace-nowrap font-extrabold" data-sub="s12">
+                        <i class="fas fa-shield-alt text-[10px] md:text-sm"></i>
+                        <span class="text-[9px] md:text-[11px] font-extrabold uppercase tracking-wider">S-12</span>
                     </button>
-                    <button class="sub-tab-casa group px-3 md:px-5 py-2.5 md:py-3 rounded-xl transition-all flex items-center gap-2 md:gap-3 whitespace-nowrap font-extrabold" data-sub="s13">
-                        <i class="fas fa-file-invoice text-xs md:text-sm"></i>
-                        <span class="text-[10px] md:text-[11px] font-extrabold uppercase tracking-wider">S-13</span>
+                    <button class="sub-tab-casa group px-2 md:px-5 py-2 md:py-3 rounded-xl transition-all flex items-center gap-1.5 md:gap-3 whitespace-nowrap font-extrabold" data-sub="s13">
+                        <i class="fas fa-file-invoice text-[10px] md:text-sm"></i>
+                        <span class="text-[9px] md:text-[11px] font-extrabold uppercase tracking-wider">S-13</span>
                     </button>
-                    <div class="w-px h-6 bg-slate-200 dark:bg-white/10 mx-0.5 md:mx-1 shrink-0"></div>
-                    <button class="sub-tab-casa group px-3.5 md:px-5 py-2.5 md:py-3 rounded-xl transition-all flex items-center gap-2 md:gap-3 whitespace-nowrap font-extrabold" data-sub="personal">
-                        <i class="fas fa-users text-xs md:text-sm"></i>
-                        <span class="text-[10px] md:text-[11px] font-extrabold uppercase tracking-wider">Personal</span>
+                    <div class="w-px h-5 bg-slate-200 dark:bg-white/10 mx-0.5 shrink-0"></div>
+                    <button class="sub-tab-casa group px-2 md:px-5 py-2 md:py-3 rounded-xl transition-all flex items-center gap-1.5 md:gap-3 whitespace-nowrap font-extrabold" data-sub="personal">
+                        <i class="fas fa-users text-[10px] md:text-sm"></i>
+                        <span class="text-[9px] md:text-[11px] font-extrabold uppercase tracking-wider">Pernl.</span>
                     </button>
-                    <button class="sub-tab-casa group px-3.5 md:px-5 py-2.5 md:py-3 rounded-xl transition-all flex items-center gap-2 md:gap-3 whitespace-nowrap font-extrabold" data-sub="grupos">
-                        <i class="fas fa-layer-group text-xs md:text-sm"></i>
-                        <span class="text-[10px] md:text-[11px] font-extrabold uppercase tracking-wider">Grupos</span>
+                    <button class="sub-tab-casa group px-2 md:px-5 py-2 md:py-3 rounded-xl transition-all flex items-center gap-1.5 md:gap-3 whitespace-nowrap font-extrabold" data-sub="grupos">
+                        <i class="fas fa-layer-group text-[10px] md:text-sm"></i>
+                        <span class="text-[9px] md:text-[11px] font-extrabold uppercase tracking-wider">Grp.</span>
                     </button>
-                    <div class="w-px h-6 bg-slate-200 dark:bg-white/10 mx-0.5 md:mx-1 shrink-0"></div>
-                    <button class="sub-tab-casa group px-3.5 md:px-5 py-2.5 md:py-3 rounded-xl transition-all flex items-center gap-2 md:gap-3 whitespace-nowrap font-extrabold" data-sub="recursos">
-                        <i class="fas fa-briefcase text-xs md:text-sm"></i>
-                        <span class="text-[10px] md:text-[11px] font-extrabold uppercase tracking-wider">Ayudas</span>
+                    <div class="w-px h-5 bg-slate-200 dark:bg-white/10 mx-0.5 shrink-0"></div>
+                    <button class="sub-tab-casa group px-2 md:px-5 py-2 md:py-3 rounded-xl transition-all flex items-center gap-1.5 md:gap-3 whitespace-nowrap font-extrabold" data-sub="recursos">
+                        <i class="fas fa-briefcase text-[10px] md:text-sm"></i>
+                        <span class="text-[9px] md:text-[11px] font-extrabold uppercase tracking-wider">Ayudas</span>
                     </button>
                 </nav>
             </div>
@@ -133,9 +133,9 @@ export const renderCasaEnCasaTab = async (container) => {
             const isActive = btn.dataset.sub === sub;
             btn.classList.toggle('active', isActive);
             if (isActive) {
-                btn.className = "sub-tab-casa active group px-3 md:px-5 py-2.5 md:py-3 rounded-xl bg-slate-900 dark:bg-white/10 text-white shadow-xl transition-all flex items-center gap-2 md:gap-3 font-extrabold border border-slate-800 dark:border-white/10 whitespace-nowrap";
+                btn.className = "sub-tab-casa active group px-2 md:px-5 py-2 md:py-3 rounded-xl bg-slate-900 dark:bg-white/10 text-white shadow-xl transition-all flex items-center gap-1.5 md:gap-3 font-extrabold border border-slate-800 dark:border-white/10 whitespace-nowrap";
             } else {
-                btn.className = "sub-tab-casa group px-3 md:px-5 py-2.5 md:py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary-light hover:bg-white dark:hover:bg-white/5 transition-all flex items-center gap-2 md:gap-3 font-extrabold border border-transparent shadow-sm whitespace-nowrap";
+                btn.className = "sub-tab-casa group px-2 md:px-5 py-2 md:py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary-light hover:bg-white dark:hover:bg-white/5 transition-all flex items-center gap-1.5 md:gap-3 font-extrabold border border-transparent shadow-sm whitespace-nowrap";
             }
         });
 
@@ -1378,7 +1378,7 @@ const renderProgramaTab = async (container) => {
                         <div class="h-0.5 flex-1 bg-gradient-to-r from-primary/30 to-transparent rounded-full opacity-30"></div>
                     </div>
 
-                    <div class="flex flex-wrap gap-10">
+                    <div class="flex flex-wrap gap-6 md:gap-8">
             `;
 
             turnos.forEach(t => {
@@ -1390,7 +1390,7 @@ const renderProgramaTab = async (container) => {
                 const data = dia[turnoId];
 
                 html += `
-                    <div class="flex-1 min-w-[300px] max-w-[400px] modern-card !p-8 border-slate-100 dark:border-white/5 shadow-xl hover:shadow-2xl transition-all group/turn relative">
+                    <div class="flex-1 min-w-[300px] max-w-full lg:max-w-[400px] modern-card !p-8 border-slate-100 dark:border-white/5 shadow-xl hover:shadow-2xl transition-all group/turn relative">
                         ${(() => {
                         if (!data.territorio || !data.conductor) return '';
                         const tNums = String(data.territorio).split(/[,/]/).map(s => s.trim()).filter(Boolean);
@@ -1416,7 +1416,7 @@ const renderProgramaTab = async (container) => {
                             </div>
                         </div>
 
-                        <div class="space-y-5">
+                        <div class="space-y-6">
                 `;
 
                 t.fields.forEach(field => {

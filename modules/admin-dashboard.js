@@ -251,6 +251,20 @@ style.textContent = `
         border: 1px solid rgba(255,255,255,0.1) !important;
     }
 
+    /* Additional Mobile Improvements */
+    @media (max-width: 640px) {
+        .dashboard-main-header h1 {
+            font-size: 1.25rem !important;
+        }
+        .dashboard-main-header .w-16 {
+            width: 3.5rem !important;
+            height: 3.5rem !important;
+        }
+        .nav-label {
+            font-size: 7px !important;
+        }
+    }
+
     /* Mobile-Specific Overrides for Cards */
     @media (max-width: 768px) {
         .hover-actions-mobile {
