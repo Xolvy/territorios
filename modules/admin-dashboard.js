@@ -11,17 +11,17 @@ import {
     getCampanas, saveCampana, deleteCampana,
     getGroupsConfig, saveGroupsConfig,
     getDiffusionMessage, saveDiffusionMessage
-} from '../data/firestore-services.js?v=2.1.7';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS, formatManzanas } from './utils/helpers.js?v=2.1.7';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=2.1.7';
+} from '../data/firestore-services.js?v=2.1.8';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS, formatManzanas } from './utils/helpers.js?v=2.1.8';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=2.1.8';
 
-import { renderAnalyticsView } from './analytics-view.js?v=2.1.7';
-import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=2.1.7';
-import { auth } from '../firebase-config.js?v=2.1.7';
-import { animateEntry } from './utils/animations.js?v=2.1.7';
-import { UIHelpers, showModal, showCustomConfirm, showCustomPrompt } from './services/ui-helpers.js?v=2.1.7';
-import { GlassCard, GlassButton, GlassInput } from './services/ui-components.js?v=2.1.7';
-import { renderCasaEnCasaTab } from './admin/territories-view.js?v=2.1.7';
+import { renderAnalyticsView } from './analytics-view.js?v=2.1.8';
+import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=2.1.8';
+import { auth } from '../firebase-config.js?v=2.1.8';
+import { animateEntry } from './utils/animations.js?v=2.1.8';
+import { UIHelpers, showModal, showCustomConfirm, showCustomPrompt } from './services/ui-helpers.js?v=2.1.8';
+import { GlassCard, GlassButton, GlassInput } from './services/ui-components.js?v=2.1.8';
+import { renderCasaEnCasaTab } from './admin/territories-view.js?v=2.1.8';
 import * as XLSX from 'xlsx';
 import html2canvas from 'html2canvas';
 
@@ -646,6 +646,29 @@ const renderAdminAI = async (appVersion) => {
 export const renderAdminDashboard = async (container, appVersion, initialTab = 'dashboard') => { // Accepted version for auto-sync
     try {
         window.isAdminMode = true; // Flag para herramientas compartidas
+
+        // --- EXPOSE GLOBAL HELPERS ---
+        window.editHistoryRecord = async (id) => {
+            const history = await getHistorialReport();
+            const rec = history.find(r => r.id === id);
+            if (!rec) return showNotification("Registro no encontrado", "error");
+
+            if (window.showEditHistoryModal) {
+                window.showEditHistoryModal(id, history);
+            } else {
+                console.error("showEditHistoryModal not initialized");
+                showNotification("Error: Módulo de edición no listo", "error");
+            }
+        };
+
+        window.deleteHistoryRecordUI = (id, cond, num) => {
+            if (window.showDeleteHistoryModal) {
+                window.showDeleteHistoryModal(id, cond, num);
+            } else {
+                console.error("showDeleteHistoryModal not initialized");
+                showNotification("Error: Módulo de eliminación no listo", "error");
+            }
+        };
         // --- AUTO UPDATE REMOTE VERSION LOGIC ---
         if (appVersion) {
             getSystemVersion().then(async (remoteVer) => {
@@ -2124,8 +2147,10 @@ const renderAsignacionesView = async (container) => {
             };
         });
     };
+    window.showEditHistoryModal = showEditHistoryModal;
 
     const showDeleteHistoryModal = (recordId, cond, num, sourceData = null) => {
+
         showCustomConfirm(`
              <div class="text-left space-y-4">
                 <div class="flex items-center gap-4 text-red-600">
@@ -2172,6 +2197,7 @@ const renderAsignacionesView = async (container) => {
             } catch (e) { showNotification(e.message, "error"); }
         });
     };
+    window.showDeleteHistoryModal = showDeleteHistoryModal;
 
     const handleTransfer = async (id, num, currentConductor) => {
         const t = territorios.find(x => x.id === id);
@@ -2286,9 +2312,8 @@ const renderAsignacionesView = async (container) => {
 
     window.actionTransfer = handleTransfer;
 
-    window.actionDeleteHistUI = (id, c, n) => showDeleteHistoryModal(id, c, n);
-    window.editHistoryRecord = (id) => showEditHistoryModal(id);
-    window.deleteHistoryRecordUI = (id, c, n) => showDeleteHistoryModal(id, c, n);
+    window.actionDeleteHistUI = (id, c, n) => window.deleteHistoryRecordUI(id, c, n);
+    window.actionEditHist = (id) => window.editHistoryRecord(id);
 
     // --- EXPOSE GLOBAL HISTORY ---
     const handleGlobalHistory = async () => {
@@ -3013,18 +3038,6 @@ const renderConfigTab = async (container, initialSub = 'reglas', appVersion) => 
                     <i class="fas fa-ruler"></i>
                     <span class="text-[10px] md:text-[11px] font-bold uppercase tracking-wider">Reglas</span>
                 </button>
-                <button class="conf-nav-btn group px-3.5 md:px-5 py-3 rounded-xl transition-all flex items-center gap-2 md:gap-3 font-bold" data-sub="s12">
-                    <i class="fas fa-map"></i>
-                    <span class="text-[10px] md:text-[11px] font-bold uppercase tracking-wider">S-12</span>
-                </button>
-                <button class="conf-nav-btn group px-3.5 md:px-5 py-3 rounded-xl transition-all flex items-center gap-2 md:gap-3 font-bold" data-sub="personal">
-                    <i class="fas fa-users"></i>
-                    <span class="text-[10px] md:text-[11px] font-bold uppercase tracking-wider">Personal</span>
-                </button>
-                <button class="conf-nav-btn group px-3.5 md:px-5 py-3 rounded-xl transition-all flex items-center gap-2 md:gap-3 font-bold" data-sub="grupos">
-                    <i class="fas fa-layer-group"></i>
-                    <span class="text-[10px] md:text-[11px] font-bold uppercase tracking-wider">Grupos</span>
-                </button>
                 <button class="conf-nav-btn group px-3.5 md:px-5 py-3 rounded-xl transition-all flex items-center gap-2 md:gap-3 font-bold" data-sub="campanas">
                     <i class="fas fa-flag-checkered"></i>
                     <span class="text-[10px] md:text-[11px] font-bold uppercase tracking-wider">Campañas</span>
@@ -3523,8 +3536,11 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                             </span>
                         </div>
                         <div class="h-8 w-px bg-slate-200 dark:bg-white/10 hidden sm:block"></div>
-                        <button id="save-reglas" class="bg-slate-900 dark:bg-teal-600 hover:bg-teal-500 dark:hover:bg-teal-500 text-white px-10 py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] shadow-xl shadow-teal-500/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-3">
-                            <i class="fas fa-cloud-upload-alt"></i> Aplicar Cambios
+                        <button id="save-reglas" class="bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] shadow-xl transition-all flex items-center gap-3">
+                            <i class="fas fa-save"></i> Aplicar Cambios
+                        </button>
+                        <button id="btn-sync-master-reglas" class="bg-primary hover:bg-primary-light text-white px-8 py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] shadow-xl shadow-primary/20 transition-all flex items-center gap-3">
+                            <i class="fas fa-sync-alt"></i> Sincronizar Maestro
                         </button>
                     </div>
                 </div>
@@ -3590,6 +3606,30 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                 btn.disabled = false;
             }
         };
+
+        const syncMasterBtn = container.querySelector('#btn-sync-master-reglas');
+        if (syncMasterBtn) {
+            syncMasterBtn.onclick = async () => {
+                const btn = syncMasterBtn;
+                const originalHTML = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sincronizando...';
+                btn.disabled = true;
+                try {
+                    // Smart repair protocol
+                    await runSystemDiagnosticsAndRepair((msg, pc) => {
+                        console.log(`[SyncMaster] ${msg} (${pc}%)`);
+                    });
+                    showNotification("Sincronización maestra completada", "success");
+                    loadSubTab('reglas', container, config, appVersion);
+                } catch (e) {
+                    console.error(e);
+                    showNotification("Error: " + e.message, "error");
+                } finally {
+                    btn.innerHTML = originalHTML;
+                    btn.disabled = false;
+                }
+            };
+        }
 
 
     } else if (subTab === 'campanas') {
@@ -4726,6 +4766,7 @@ const loadSubTab = async (subTab, container, config, appVersion) => {
                 };
             }, 'max-w-2xl');
         };
+        window.openPersonModal = openPersonModal;
 
         container.querySelector('#btn-add-person').onclick = () => openPersonModal();
         window.editPerson = (id) => openPersonModal(publicadores.find(x => x.id === id));

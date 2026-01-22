@@ -8,7 +8,7 @@ import {
     updateRecurso, getCampanas, saveCampana, getGroupsConfig, returnTerritorioParcial,
     rebuildHistoryFromSchedule, runSystemDiagnosticsAndRepair, masterResetAssignments,
     syncAllProgramsToTerritories
-} from '../../data/firestore-services.js?v=2.1.7';
+} from '../../data/firestore-services.js?v=2.1.8';
 
 const formatGroups = (val) => {
     if (!val) return '—';
@@ -27,12 +27,14 @@ const formatGroups = (val) => {
 import {
     formatPhoneNumber, getStatusColor, showNotification, formatMapUrl,
     ensureOnline, generatePlainXLS
-} from '../utils/helpers.js?v=2.1.7';
-import { UIHelpers, showModal, showCustomConfirm, showCustomPrompt } from '../services/ui-helpers.js?v=2.1.7';
-import { GlassCard, GlassButton, GlassInput } from '../services/ui-components.js?v=2.1.7';
+} from '../utils/helpers.js?v=2.1.8';
+import { UIHelpers, showModal, showCustomConfirm, showCustomPrompt } from '../services/ui-helpers.js?v=2.1.8';
+import { GlassCard, GlassButton, GlassInput } from '../services/ui-components.js?v=2.1.8';
 import * as XLSX from 'xlsx';
 import html2canvas from 'html2canvas';
-import { renderHistoryTab, renderS13CommandCenter } from '../report-s13.js?v=2.1.7';
+import { renderHistoryTab, renderS13CommandCenter } from '../report-s13.js?v=2.1.8';
+import { renderPersonalTab } from './personal-view.js?v=2.1.8';
+import { renderGruposTab } from './grupos-view.js?v=2.1.8';
 
 const fmtDate = UIHelpers.fmtDate;
 const getMonday = UIHelpers.getMonday;
@@ -156,23 +158,32 @@ export const renderCasaEnCasaTab = async (container) => {
 
                 <nav class="flex flex-row overflow-x-auto scrollbar-hide items-center gap-1.5 bg-white/50 dark:bg-white/[0.03] p-1 md:p-1.5 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm w-full xl:w-auto backdrop-blur-xl">
                     <button class="sub-tab-casa group px-3 md:px-5 py-2.5 md:py-3 rounded-xl transition-all flex items-center gap-2 md:gap-3 whitespace-nowrap font-extrabold" data-sub="asignaciones">
-                        <i class="fas fa-clipboard-list text-xs md:text-sm"></i>
+                        <i class="fas fa-map-location-dot text-xs md:text-sm"></i>
                         <span class="text-[10px] md:text-[11px] font-extrabold uppercase tracking-wider">Asignaciones</span>
                     </button>
                     <button class="sub-tab-casa group px-3 md:px-5 py-2.5 md:py-3 rounded-xl transition-all flex items-center gap-2 md:gap-3 whitespace-nowrap font-extrabold" data-sub="programa">
-                        <i class="fas fa-calendar-alt text-xs md:text-sm"></i>
+                        <i class="fas fa-calendar-check text-xs md:text-sm"></i>
                         <span class="text-[10px] md:text-[11px] font-extrabold uppercase tracking-wider">Programa</span>
                     </button>
                     <button class="sub-tab-casa group px-3 md:px-5 py-2.5 md:py-3 rounded-xl transition-all flex items-center gap-2 md:gap-3 whitespace-nowrap font-extrabold" data-sub="gestion">
-                        <i class="fas fa-history text-xs md:text-sm"></i>
+                        <i class="fas fa-chart-pie text-xs md:text-sm"></i>
                         <span class="text-[10px] md:text-[11px] font-extrabold uppercase tracking-wider">Reportes</span>
                     </button>
                     <button class="sub-tab-casa group px-3 md:px-5 py-2.5 md:py-3 rounded-xl transition-all flex items-center gap-2 md:gap-3 whitespace-nowrap font-extrabold" data-sub="s12">
-                        <i class="fas fa-map text-xs md:text-sm"></i>
+                        <i class="fas fa-shield-alt text-xs md:text-sm"></i>
                         <span class="text-[10px] md:text-[11px] font-extrabold uppercase tracking-wider">S-12</span>
                     </button>
                     <div class="w-px h-6 bg-slate-200 dark:bg-white/10 mx-0.5 md:mx-1 shrink-0"></div>
-                    <button class="sub-tab-casa group px-3 md:px-5 py-2.5 md:py-3 rounded-xl transition-all flex items-center gap-2 md:gap-3 whitespace-nowrap font-extrabold" data-sub="recursos">
+                    <button class="sub-tab-casa group px-3.5 md:px-5 py-2.5 md:py-3 rounded-xl transition-all flex items-center gap-2 md:gap-3 whitespace-nowrap font-extrabold" data-sub="personal">
+                        <i class="fas fa-users text-xs md:text-sm"></i>
+                        <span class="text-[10px] md:text-[11px] font-extrabold uppercase tracking-wider">Personal</span>
+                    </button>
+                    <button class="sub-tab-casa group px-3.5 md:px-5 py-2.5 md:py-3 rounded-xl transition-all flex items-center gap-2 md:gap-3 whitespace-nowrap font-extrabold" data-sub="grupos">
+                        <i class="fas fa-layer-group text-xs md:text-sm"></i>
+                        <span class="text-[10px] md:text-[11px] font-extrabold uppercase tracking-wider">Grupos</span>
+                    </button>
+                    <div class="w-px h-6 bg-slate-200 dark:bg-white/10 mx-0.5 md:mx-1 shrink-0"></div>
+                    <button class="sub-tab-casa group px-3.5 md:px-5 py-2.5 md:py-3 rounded-xl transition-all flex items-center gap-2 md:gap-3 whitespace-nowrap font-extrabold" data-sub="recursos">
                         <i class="fas fa-briefcase text-xs md:text-sm"></i>
                         <span class="text-[10px] md:text-[11px] font-extrabold uppercase tracking-wider">Ayudas</span>
                     </button>
@@ -220,7 +231,9 @@ export const renderCasaEnCasaTab = async (container) => {
                 'programa': renderProgramaTab,
                 's12': renderS12View,
                 'gestion': renderS13CommandCenter,
-                'recursos': renderRecursosTab
+                'recursos': renderRecursosTab,
+                'personal': renderPersonalTab,
+                'grupos': renderGruposTab
             };
 
             if (views[sub]) {
@@ -2178,36 +2191,84 @@ window.exportS12Form = async (territorios, layout = 1) => {
     const styles = `
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&family=Inter:wght@400;700&display=swap');
-    @page { size: A4 ${layout === 4 ? 'landscape' : 'portrait'}; margin: 0; }
-    body { margin: 0; padding: 0; font-family: 'Inter', sans-serif; background: #f8fafc; }
-    .page { width: ${layout === 4 ? '297mm' : '210mm'}; height: ${layout === 4 ? '210mm' : '297mm'}; padding: 5mm; margin: 0 auto; background: white; box-sizing: border-box; page-break-after: always; display: flex; flex-wrap: wrap; align-content: flex-start; justify-content: center; gap: 5mm; }
-    .s12-card { width: 148mm; height: 104mm; border: 0.5pt solid #000; padding: 8mm; display: flex; flex-direction: column; position: relative; box-sizing: border-box; background: white; overflow: hidden; }
-    .title { text-align: center; font-size: 16pt; font-weight: 800; margin-bottom: 8pt; font-family: 'Outfit', sans-serif; }
-    .header-info { display: flex; align-items: flex-end; gap: 4pt; margin-bottom: 8pt; }
-    .label { font-size: 11pt; font-weight: 700; white-space: nowrap; }
-    .field-val { font-size: 11pt; border-bottom: 0.5pt solid #000; flex: 1; min-height: 1.2em; padding-bottom: 1pt; }
-    .territory-num-box { border: 1pt solid #000; padding: 2pt 8pt; font-size: 14pt; font-weight: 800; min-width: 40pt; text-align: center; }
-    .map-container { flex: 1; border: 0.5pt solid #000; margin: 4pt 0; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #fff; position: relative; }
+    @page { 
+        size: A4 ${layout === 4 ? 'landscape' : 'portrait'}; 
+        margin: 0; 
+    }
+    body { 
+        margin: 0; padding: 0; 
+        font-family: 'Inter', sans-serif; 
+        background: #f8fafc; 
+        -webkit-print-color-adjust: exact;
+    }
+    .page { 
+        width: ${layout === 4 ? '297mm' : '210mm'}; 
+        height: ${layout === 4 ? '210mm' : '297mm'}; 
+        padding: ${layout === 4 ? '0' : '5mm'}; 
+        margin: 0 auto; 
+        background: white; 
+        box-sizing: border-box; 
+        page-break-after: always; 
+        display: flex; 
+        flex-wrap: wrap; 
+        align-content: flex-start; 
+        justify-content: ${layout === 4 ? 'flex-start' : 'center'}; 
+        gap: ${layout === 4 ? '0' : '5mm'}; 
+    }
+    .s12-card { 
+        width: ${layout === 4 ? '50%' : '148mm'}; 
+        height: ${layout === 4 ? '50%' : '104mm'}; 
+        border: 0.5pt solid #000; 
+        padding: 6mm 8mm; 
+        display: flex; 
+        flex-direction: column; 
+        position: relative; 
+        box-sizing: border-box; 
+        background: white; 
+        overflow: hidden; 
+    }
+    .card-header { position: relative; width: 100%; border-bottom: 1.5pt solid #000; margin-bottom: 8pt; padding-bottom: 4pt; }
+    .title { text-align: center; font-size: 14pt; font-weight: 800; font-family: 'Outfit', sans-serif; text-transform: uppercase; margin: 0; }
+    .congregation-name { text-align: center; font-size: 8pt; font-weight: 700; color: #666; text-transform: uppercase; margin-top: 2pt; }
+    .header-info { display: flex; align-items: flex-end; gap: 4pt; margin-bottom: 6pt; width: 100%; }
+    .label { font-size: 10pt; font-weight: 800; white-space: nowrap; text-transform: uppercase; }
+    .field-val { font-size: 11pt; border-bottom: 0.5pt solid #000; flex: 1; min-height: 1.2em; padding-bottom: 1pt; font-weight: 400; }
+    .territory-num-box { border: 1.5pt solid #000; padding: 2pt 8pt; font-size: 16pt; font-weight: 900; min-width: 45pt; text-align: center; margin-left: auto; background: #f0f0f0; }
+    .map-container { flex: 1; border: 0.5pt solid #000; margin: 2pt 0; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #fff; position: relative; }
     .map-container img { width: 100%; height: 100%; object-fit: contain; }
-    .footer-note { font-size: 8.5pt; text-align: justify; line-height: 1.2; margin-top: 6pt; }
-    .footer-id { font-size: 8pt; margin-top: 4pt; display: flex; justify-content: space-between; }
-    @media print { body { background: white; } .no-print { display: none!important; } .page { padding: 0; margin: 0; } }
+    .footer-note { font-size: 8pt; text-align: justify; line-height: 1.1; margin-top: 6pt; font-style: italic; color: #333; }
+    .footer-id { font-size: 7.5pt; margin-top: 4pt; display: flex; justify-content: space-between; font-weight: 700; border-top: 0.5pt solid #eee; padding-top: 2pt; }
+    @media print { 
+        body { background: white; } 
+        .no-print { display: none!important; } 
+        .page { padding: 0; margin: 0; border: none; } 
+        .s12-card { border: 0.25pt solid #000; }
+    }
     </style>`;
 
     const renderCard = (t) => `
     <div class="s12-card">
-        <div class="title">Tarjeta del mapa del territorio</div>
+        <div class="card-header">
+            <div class="title">Tarjeta del mapa del territorio</div>
+            <div class="congregation-name">${config.nombre_congregacion || ''}</div>
+        </div>
         <div class="header-info">
             <span class="label">Localidad</span>
             <span class="field-val">${t.localidad || ''}</span>
-            <span class="label" style="margin-left: 8pt;">Terr. núm.</span>
+        </div>
+        <div class="header-info">
+            <span class="label">Sectores</span>
+            <span class="field-val" style="font-size: 9pt;">${t.manzanas || ''}</span>
             <div class="territory-num-box">${t.numero}</div>
         </div>
         <div class="map-container">
             ${t.imagen ? `<img src="${formatMapUrl(t.imagen)}" onerror="this.parentElement.innerHTML='(Error mapa)'">` : '(No hay mapa)'}
         </div>
-        <div class="footer-note">Sírvase mantener esta tarjeta en el sobre. No la manche, marque, ni doble...</div>
-        <div class="footer-id"><span>S-12-S &nbsp;&nbsp; 6/72</span></div>
+        <div class="footer-note">Sírvase mantener esta tarjeta en el sobre. No la manche, marque ni doble. Infórmese al superintendente si se ha extraviado o deteriorado.</div>
+        <div class="footer-id">
+            <span>S-12-S &nbsp;&nbsp; 1/21</span>
+            <span>App Territorios v${appVersion}</span>
+        </div>
     </div>`;
 
     let html = `<html><head><title>S-12</title>${styles}</head><body>`;

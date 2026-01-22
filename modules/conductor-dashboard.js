@@ -1,4 +1,4 @@
-import { auth } from '../firebase-config.js?v=2.1.7';
+import { auth } from '../firebase-config.js?v=2.1.8';
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import {
     getTerritorios, getConductores, getPublicadores, getTelefonos, updateTelefono,
@@ -8,10 +8,10 @@ import {
     addPublicador, updatePublicador, deletePublicador,
     releaseUnusedTelefonos, solicitarNumeros, updateTelefonoStatus, logSessionSummary,
     logReturn, returnTerritorio, returnTerritorioParcial, transferTerritory
-} from '../data/firestore-services.js?v=2.1.7';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, formatManzanas } from './utils/helpers.js?v=2.1.7';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=2.1.7';
-import { MapViewer } from './map-viewer.js?v=2.1.7';
+} from '../data/firestore-services.js?v=2.1.8';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, formatManzanas } from './utils/helpers.js?v=2.1.8';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=2.1.8';
+import { MapViewer } from './map-viewer.js?v=2.1.8';
 
 
 
