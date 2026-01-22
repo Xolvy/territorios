@@ -139,7 +139,7 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
 // --- CORE RENDERER ---
 
 export const renderCasaEnCasaTab = async (container) => {
-    let _activeSub = 'asignaciones';
+    let _activeSub = 'programa';
     container.innerHTML = `
         <div class="space-y-6 md:space-y-8 animate-fade-in px-1 md:px-6">
             <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 md:gap-8">
@@ -228,7 +228,7 @@ export const renderCasaEnCasaTab = async (container) => {
         try {
             const views = {
                 'programa': renderProgramaTab,
-                'historial': renderHistorialView,
+                'historial': window.renderHistorialView || renderAsignacionesView,
                 's12': renderS12View,
                 's13': renderHistoryTab,
                 'recursos': renderRecursosTab,
@@ -255,7 +255,7 @@ export const renderCasaEnCasaTab = async (container) => {
         btn.addEventListener('click', (e) => loadCasaSub(e.currentTarget.dataset.sub));
     });
 
-    loadCasaSub('asignaciones');
+    loadCasaSub('programa');
 };
 
 // --- HELPER LOGIC DE EXTRACCIÓN ---

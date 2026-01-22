@@ -3121,8 +3121,8 @@ const renderHistorialView = async (container) => {
     };
 
     renderMain();
-    window.renderHistorialView = renderHistorialView;
 };
+window.renderHistorialView = renderHistorialView;
 
 // --- Render Config Tab (Restored) ---
 const renderConfigTab = async (container, initialSub = 'reglas', appVersion) => {
