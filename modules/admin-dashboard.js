@@ -12,17 +12,17 @@ import {
     getGroupsConfig, saveGroupsConfig,
     getDiffusionMessage, saveDiffusionMessage
 } from '../data/firestore-services.js?v=2.1.8';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS, formatManzanas } from './utils/helpers.js?v=2.1.8';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=2.1.8';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS, formatManzanas } from './utils/helpers.js?v=2.2.0';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=2.2.0';
 
-import { renderAnalyticsView } from './analytics-view.js?v=2.1.8';
-import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=2.1.8';
-import { auth } from '../firebase-config.js?v=2.1.8';
-import { animateEntry } from './utils/animations.js?v=2.1.8';
-import { UIHelpers, showModal, showCustomConfirm, showCustomPrompt } from './services/ui-helpers.js?v=2.1.8';
-import { GlassCard, GlassButton, GlassInput } from './services/ui-components.js?v=2.1.8';
-import { renderCasaEnCasaTab } from './admin/territories-view.js?v=2.1.8';
-import { renderAdvancedHistoryView, renderHistoryTab } from './report-s13.js?v=2.1.8';
+import { renderAnalyticsView } from './analytics-view.js?v=2.2.0';
+import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=2.2.0';
+import { auth } from '../firebase-config.js?v=2.2.0';
+import { animateEntry } from './utils/animations.js?v=2.2.0';
+import { UIHelpers, showModal, showCustomConfirm, showCustomPrompt } from './services/ui-helpers.js?v=2.2.0';
+import { GlassCard, GlassButton, GlassInput } from './services/ui-components.js?v=2.2.0';
+import { renderCasaEnCasaTab } from './admin/territories-view.js?v=2.2.0';
+import { renderAdvancedHistoryView, renderHistoryTab } from './report-s13.js?v=2.2.0';
 import * as XLSX from 'xlsx';
 import html2canvas from 'html2canvas';
 
@@ -500,7 +500,7 @@ const showTerritorySelectionModal = (current, territorios, onSelect, containerId
                     <input type="text" id="modal-terr-search" placeholder="Buscar por número o manzana..." class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 focus:border-primary rounded-2xl pl-12 pr-4 py-4 text-sm font-bold shadow-sm outline-none transition-all">
                 </div>
 
-                <div id="modal-terr-list" class="space-y-3">
+                <div id="modal-terr-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     <!-- Injected via render -->
                 </div>
             </div>
@@ -555,13 +555,13 @@ const showTerritorySelectionModal = (current, territorios, onSelect, containerId
 
                 return `
                     <div class="modern-card !p-2 transition-all duration-300 group ${isSelected ? 'border-primary shadow-lg ring-1 ring-primary/20' : 'border-slate-100 dark:border-white/5 shadow-sm'}">
-                        <label class="flex items-center gap-4 p-3 cursor-pointer">
-                             <input type="checkbox" class="terr-check w-6 h-6 rounded-lg border-2 border-slate-300 dark:border-white/10 text-primary focus:ring-primary transition-all cursor-pointer" 
+                        <label class="flex items-center gap-3 p-2 cursor-pointer">
+                             <input type="checkbox" class="terr-check w-5 h-5 rounded border-2 border-slate-300 dark:border-white/10 text-primary focus:ring-primary transition-all cursor-pointer" 
                                     data-num="${t.numero}" ${isSelected ? 'checked' : ''}>
-                             <div class="flex-1">
-                                 <div class="flex items-center justify-between">
-                                     <span class="font-black text-slate-800 dark:text-white uppercase tracking-tight">Territorio ${t.numero}</span>
-                                     <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 dark:bg-white/10 px-2 py-1 rounded-md">${allMzs.length} Manzanas</span>
+                             <div class="flex-1 min-w-0">
+                                 <div class="flex items-baseline justify-between gap-2">
+                                     <span class="text-[11px] font-black text-slate-800 dark:text-white uppercase truncate">#${t.numero}</span>
+                                     <span class="text-[8px] font-black text-slate-400 uppercase tracking-tighter shrink-0">${allMzs.length} MZ</span>
                                  </div>
                              </div>
                         </label>
@@ -1680,56 +1680,66 @@ const renderHistorialView = async (container) => {
                     </div>
                 </header>
 
-                <div class="flex-1 p-8 overflow-y-auto custom-scrollbar space-y-8 bg-slate-50 dark:bg-black/20">
-                    <!-- Registros Seleccionados -->
-                    <div class="space-y-4">
-                        <div class="flex justify-between items-center px-1">
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Territorios en curso</label>
-                            <button id="select-all-returns" class="text-[10px] font-black text-primary uppercase hover:text-primary-light transition-colors tracking-widest">Seleccionar Todos</button>
+                <div class="flex-1 flex flex-col overflow-hidden bg-slate-50 dark:bg-black/20">
+                    <!-- Search and Selection Bar -->
+                    <div class="shrink-0 p-8 pb-4 space-y-4">
+                        <div class="relative group">
+                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">
+                                <i class="fas fa-search"></i>
+                            </span>
+                            <input type="text" id="bulk-return-search" placeholder="Buscar por número o publicador..." 
+                                class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 focus:border-primary rounded-2xl pl-12 pr-4 py-4 text-sm font-bold shadow-sm outline-none transition-all">
                         </div>
-                        
-                        <div class="grid grid-cols-1 gap-3">
+
+                        <div class="flex justify-between items-center px-1 text-[10px] font-black uppercase tracking-widest">
+                            <span class="text-slate-400" id="bulk-return-count">${assignedTerritories.length} Territorios en curso</span>
+                            <button id="select-all-returns" class="text-primary hover:text-primary-light transition-colors">Seleccionar Todos</button>
+                        </div>
+                    </div>
+                    
+                    <div class="flex-1 p-8 pt-0 overflow-y-auto custom-scrollbar space-y-8">
+                        <!-- Registros Seleccionados -->
+                        <div id="bulk-return-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                             ${assignedTerritories.map(t => {
             const isChecked = selectedIds.has(t.id);
             return `
-                                    <div class="return-item-container modern-card !p-4 border ${isChecked ? 'border-primary/50 ring-2 ring-primary/5' : 'border-slate-100 dark:border-white/5'} transition-all group">
-                                        <div class="flex items-center justify-between">
-                                            <div class="flex items-center gap-4">
-                                                <div class="relative">
+                                    <div class="return-item-container modern-card !p-2 px-3 border ${isChecked ? 'border-primary/50 ring-2 ring-primary/5' : 'border-slate-100 dark:border-white/5'} transition-all group shrink-0" data-num="${t.numero}" data-pub="${(t.asignado_a || '').toLowerCase()}" style="height: fit-content;">
+                                        <div class="flex items-center justify-between gap-2">
+                                            <div class="flex items-center gap-2 flex-1 min-w-0">
+                                                <div class="relative shrink-0 flex items-center">
                                                     <input type="checkbox" class="return-check peer sr-only" value="${t.id}" ${isChecked ? 'checked' : ''}>
-                                                    <div class="w-6 h-6 rounded-lg border-2 border-slate-200 dark:border-white/10 peer-checked:bg-primary peer-checked:border-primary transition-all flex items-center justify-center text-white text-[10px]">
+                                                    <div class="w-4 h-4 rounded border-2 border-slate-200 dark:border-white/10 peer-checked:bg-primary peer-checked:border-primary transition-all flex items-center justify-center text-white text-[8px]">
                                                         <i class="fas fa-check"></i>
                                                     </div>
                                                 </div>
-                                                <div class="text-left">
-                                                    <div class="flex items-center gap-2">
-                                                        <span class="text-xs font-black text-slate-900 dark:text-white">#${t.numero}</span>
-                                                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate max-w-[150px]">${t.asignado_a}</span>
+                                                <div class="flex flex-1 items-center justify-between min-w-0">
+                                                    <div class="truncate flex flex-col">
+                                                        <span class="text-[10px] font-black text-slate-800 dark:text-white leading-tight">#${t.numero}</span>
+                                                        <span class="text-[9px] font-bold text-slate-400 uppercase truncate">${t.asignado_a}</span>
                                                     </div>
-                                                    <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">${t.manzanas ? t.manzanas.split(',').length + ' Manzanas' : 'Territorio Completo'}</p>
                                                 </div>
                                             </div>
-                                            <div class="return-details ${isChecked ? '' : 'hidden'} flex gap-3">
-                                                <button class="completion-toggle w-10 h-10 rounded-xl flex items-center justify-center text-sm active border border-primary/20 bg-primary/10 text-primary shadow-sm hover:scale-105 transition-transform" data-val="full" data-tid="${t.id}" title="Completo">
+                                            <div class="return-details ${isChecked ? '' : 'hidden'} flex gap-1.5 shrink-0">
+                                                <button class="completion-toggle w-6 h-6 rounded flex items-center justify-center text-[10px] active border border-primary/20 bg-primary/10 text-primary shadow-sm transition-transform hover:scale-110" data-val="full" data-tid="${t.id}" title="Completo">
                                                     <i class="fas fa-check-double"></i>
                                                 </button>
-                                                <button class="completion-toggle w-10 h-10 rounded-xl flex items-center justify-center text-sm opacity-40 grayscale border border-slate-200 dark:border-white/10 hover:opacity-100 hover:grayscale-0 transition-all hover:scale-105" data-val="partial" data-tid="${t.id}" title="Parcial">
+                                                <button class="completion-toggle w-6 h-6 rounded flex items-center justify-center text-[10px] opacity-40 grayscale border border-slate-200 dark:border-white/10 hover:opacity-100 hover:grayscale-0 transition-all hover:scale-110" data-val="partial" data-tid="${t.id}" title="Parcial">
                                                     <i class="fas fa-adjust"></i>
                                                 </button>
                                             </div>
                                         </div>
 
                                         <!-- Partial selection (hidden by default) -->
-                                        <div class="partial-selector hidden mt-4 pt-4 border-t border-slate-100 dark:border-white/5" data-tid="${t.id}">
-                                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Marcar sectores completados:</p>
-                                            <div class="flex flex-wrap gap-2">
+                                        <div class="partial-selector hidden mt-3 pt-3 border-t border-slate-100 dark:border-white/5" data-tid="${t.id}">
+                                            <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2">Marcar sectores completados:</p>
+                                            <div class="flex flex-wrap gap-1.5">
                                                 ${(t.manzanas || '').split(',').map(m => m.trim()).filter(Boolean).map(mz => `
-                                                    <label class="flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-100 dark:border-white/10 cursor-pointer hover:border-primary/50 transition-all">
+                                                    <label class="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-white/5 rounded-md border border-slate-100 dark:border-white/5 cursor-pointer hover:border-primary/50 transition-all">
                                                         <input type="checkbox" class="mz-done-check peer sr-only" value="${mz}" data-tid="${t.id}">
-                                                        <div class="w-4 h-4 rounded border border-slate-300 dark:border-white/20 peer-checked:bg-primary peer-checked:border-primary flex items-center justify-center text-white text-[8px]">
+                                                        <div class="w-3.5 h-3.5 rounded border border-slate-300 dark:border-white/20 peer-checked:bg-primary peer-checked:border-primary flex items-center justify-center text-white text-[7px]">
                                                             <i class="fas fa-check"></i>
                                                         </div>
-                                                        <span class="text-[10px] font-bold text-slate-600 dark:text-white uppercase">${mz}</span>
+                                                        <span class="text-[9px] font-bold text-slate-600 dark:text-white uppercase">${mz}</span>
                                                     </label>
                                                 `).join('')}
                                             </div>
@@ -1793,6 +1803,20 @@ const renderHistorialView = async (container) => {
         `, (modal) => {
             const selectAll = modal.querySelector('#select-all-returns');
             const checks = modal.querySelectorAll('.return-check');
+            const searchInput = modal.querySelector('#bulk-return-search');
+            const items = modal.querySelectorAll('.return-item-container');
+            const countLabel = modal.querySelector('#bulk-return-count');
+
+            searchInput.oninput = () => {
+                const q = searchInput.value.toLowerCase().trim();
+                let visibleCount = 0;
+                items.forEach(item => {
+                    const match = item.dataset.num.includes(q) || item.dataset.pub.includes(q);
+                    item.classList.toggle('hidden', !match);
+                    if (match) visibleCount++;
+                });
+                countLabel.innerText = `${visibleCount} Territorios ${q ? 'encontrados' : 'en curso'}`;
+            };
 
             const updateItemVisibility = (cb) => {
                 const container = cb.closest('.return-item-container');
@@ -1814,12 +1838,18 @@ const renderHistorialView = async (container) => {
             });
 
             selectAll.onclick = () => {
-                const someUnchecked = Array.from(checks).some(c => !c.checked);
-                checks.forEach(c => {
+                const visibleChecks = Array.from(checks).filter(c => !c.closest('.return-item-container').classList.contains('hidden'));
+                if (visibleChecks.length === 0) return;
+
+                const someUnchecked = visibleChecks.some(c => !c.checked);
+                visibleChecks.forEach(c => {
                     c.checked = someUnchecked;
                     updateItemVisibility(c);
                 });
-                selectAll.innerText = someUnchecked ? 'Deseleccionar Todos' : 'Seleccionar Todos';
+                // Temporarily change text
+                const oldText = selectAll.innerText;
+                selectAll.innerText = someUnchecked ? 'Deseleccionados' : 'Seleccionados';
+                setTimeout(() => { selectAll.innerText = someUnchecked ? 'Deseleccionar Todos' : 'Seleccionar Todos'; }, 1000);
             };
 
             // Logic for Full/Partial Toggle

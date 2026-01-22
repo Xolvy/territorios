@@ -8,7 +8,7 @@ import {
     updateRecurso, getCampanas, saveCampana, getGroupsConfig, returnTerritorioParcial,
     rebuildHistoryFromSchedule, runSystemDiagnosticsAndRepair, masterResetAssignments,
     syncAllProgramsToTerritories
-} from '../../data/firestore-services.js?v=2.1.8';
+} from '../../data/firestore-services.js?v=2.2.0';
 
 const formatGroups = (val) => {
     if (!val) return '—';
@@ -27,14 +27,14 @@ const formatGroups = (val) => {
 import {
     formatPhoneNumber, getStatusColor, showNotification, formatMapUrl,
     ensureOnline, generatePlainXLS
-} from '../utils/helpers.js?v=2.1.8';
-import { UIHelpers, showModal, showCustomConfirm, showCustomPrompt } from '../services/ui-helpers.js?v=2.1.8';
-import { GlassCard, GlassButton, GlassInput } from '../services/ui-components.js?v=2.1.8';
+} from '../utils/helpers.js?v=2.2.0';
+import { UIHelpers, showModal, showCustomConfirm, showCustomPrompt } from '../services/ui-helpers.js?v=2.2.0';
+import { GlassCard, GlassButton, GlassInput } from '../services/ui-components.js?v=2.2.0';
 import * as XLSX from 'xlsx';
 import html2canvas from 'html2canvas';
-import { renderHistoryTab, renderS13CommandCenter } from '../report-s13.js?v=2.1.8';
-import { renderPersonalTab } from './personal-view.js?v=2.1.8';
-import { renderGruposTab } from './grupos-view.js?v=2.1.8';
+import { renderHistoryTab, renderS13CommandCenter } from '../report-s13.js?v=2.2.0';
+import { renderPersonalTab } from './personal-view.js?v=2.2.0';
+import { renderGruposTab } from './grupos-view.js?v=2.2.0';
 
 const fmtDate = UIHelpers.fmtDate;
 const getMonday = UIHelpers.getMonday;
