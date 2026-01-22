@@ -1,4 +1,4 @@
-import { getTerritorios, getConductores, getGlobalSettings, getHistorialReport } from '../data/firestore-services.js?v=2.2.0';
+import { getTerritorios, getConductores, getGlobalSettings, getHistorialReport } from '../data/firestore-services.js?v=2.2.1';
 
 export const renderAnalyticsView = async (container) => {
     // 1. Fetch settings FIRST to use in the template

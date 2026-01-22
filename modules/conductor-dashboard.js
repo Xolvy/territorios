@@ -1,4 +1,4 @@
-import { auth } from '../firebase-config.js?v=2.2.0';
+import { auth } from '../firebase-config.js?v=2.2.1';
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import {
     getTerritorios, getConductores, getPublicadores, getTelefonos, updateTelefono,
@@ -8,10 +8,10 @@ import {
     addPublicador, updatePublicador, deletePublicador,
     releaseUnusedTelefonos, solicitarNumeros, updateTelefonoStatus, logSessionSummary,
     logReturn, returnTerritorio, returnTerritorioParcial, transferTerritory
-} from '../data/firestore-services.js?v=2.2.0';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, formatManzanas } from './utils/helpers.js?v=2.2.0';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=2.2.0';
-import { MapViewer } from './map-viewer.js?v=2.2.0';
+} from '../data/firestore-services.js?v=2.2.1';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, formatManzanas } from './utils/helpers.js?v=2.2.1';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=2.2.1';
+import { MapViewer } from './map-viewer.js?v=2.2.1';
 
 
 
@@ -259,7 +259,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 <div id="programa-semanal-section" class="lg:col-span-2 ${mods.programa !== false ? '' : 'hidden'}">
                     <div class="modern-card !p-0 border-slate-200 dark:border-white/10 shadow-2xl transition-all overflow-hidden group/prog bg-white dark:bg-slate-900/40">
                         <details class="group/prog-details" ${wasProgOpen ? 'open' : ''}>
-                            <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-8 cursor-pointer list-none select-none hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
+                             <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-8 cursor-pointer list-none select-none hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors border-b border-transparent group-open/prog-details:border-slate-100 dark:group-open/prog-details:border-white/5">
                                 <div class="flex items-start gap-6">
                                     <div class="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-2xl text-indigo-500 shadow-inner border border-indigo-500/10 group-open/prog-details:rotate-6 transition-transform">
                                         <i class="fas fa-calendar-alt"></i>
@@ -276,8 +276,37 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                 </div>
                             </summary>
 
-                            <div class="p-8 pt-0 animate-fade-in">
-                                <div id="weekly-program-cards" class="w-full">
+                            <div class="p-4 md:p-8 space-y-8 animate-fade-in group-open/prog-details:block hidden">
+                                <div id="program-header-controls" class="flex flex-col xl:flex-row items-center justify-between gap-6">
+                                     <!-- Week Range & Nav -->
+                                     <div class="flex items-center bg-slate-100 dark:bg-white/5 rounded-2xl p-1 border border-slate-200 dark:border-white/5 shadow-inner">
+                                         <button id="prog-prev-week" class="p-3 hover:bg-white dark:hover:bg-white/10 rounded-xl transition-all text-slate-400 hover:text-primary"><i class="fas fa-chevron-left"></i></button>
+                                         <div class="px-6 py-2 min-w-[180px] text-center">
+                                             <span id="prog-week-range" class="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest">Cargando...</span>
+                                         </div>
+                                         <button id="prog-next-week" class="p-3 hover:bg-white dark:hover:bg-white/10 rounded-xl transition-all text-slate-400 hover:text-primary"><i class="fas fa-chevron-right"></i></button>
+                                     </div>
+
+                                     <!-- Filter & Actions -->
+                                     <div class="flex flex-wrap items-center justify-center gap-3">
+                                         <button id="prog-btn-today" class="bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 px-6 py-3 rounded-xl font-black hover:bg-slate-50 transition-all text-[9px] uppercase tracking-widest shadow-sm">Hoy</button>
+                                         <div class="w-px h-8 bg-slate-200 dark:bg-white/10 mx-1"></div>
+                                         <div id="prog-turn-filters" class="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10">
+                                             <!-- Turn buttons -->
+                                         </div>
+                                         <div class="w-px h-8 bg-slate-200 dark:bg-white/10 mx-1"></div>
+                                         <button id="prog-export-png" class="p-4 bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 hover:bg-indigo-500 hover:text-white rounded-xl transition-all shadow-lg shadow-indigo-500/5 group/dl" title="Descargar como Imagen">
+                                            <i class="fas fa-download group-hover/dl:scale-110 transition-transform"></i>
+                                            <span class="hidden sm:inline ml-2 text-[9px] font-black uppercase tracking-widest">Descargar</span>
+                                         </button>
+                                     </div>
+                                </div>
+
+                                <div id="prog-day-selector" class="flex flex-wrap items-center justify-center gap-1.5 p-1.5 bg-slate-100 dark:bg-white/5 rounded-[2rem] border border-slate-200 dark:border-white/10">
+                                    <!-- Day buttons -->
+                                </div>
+
+                                <div id="weekly-program-cards" class="w-full relative min-h-[300px]">
                                     <div class="col-span-full py-20 flex flex-col items-center justify-center text-center space-y-4 opacity-40">
                                         <div class="w-20 h-20 bg-slate-100 dark:bg-white/5 rounded-3xl flex items-center justify-center text-4xl animate-pulse">
                                             <i class="fas fa-clock"></i>
@@ -637,6 +666,10 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
     };
 
     const currentWeekId = getSafeDateId(getMonday(new Date()));
+
+    let currentWeekStart = getMonday(new Date());
+    let activeDayIndex = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1; // 0=Lunes
+    let activeTurns = new Set(['manana', 'tarde', 'noche', 'zoom']);
 
     let programa, allTerritorios;
     try {
@@ -1254,12 +1287,135 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
     // Module: Programa Semanal (Global)
     if (userMods.programa !== false) {
         const programCardsContainer = document.getElementById('weekly-program-cards');
-        if (programCardsContainer) {
-            // Store globals for selector
-            window._globalPrograma = programa;
-            window._globalTerritorios = allTerritorios;
-            renderFullProgramaCards(programa, programCardsContainer, territoryMap, name);
-        }
+        const weekRangeLabel = document.getElementById('prog-week-range');
+        const daySelector = document.getElementById('prog-day-selector');
+        const turnFilters = document.getElementById('prog-turn-filters');
+
+        const loadWeekData = async () => {
+            const weekId = getSafeDateId(currentWeekStart);
+            const monday = new Date(currentWeekStart);
+            const sunday = new Date(monday);
+            sunday.setDate(sunday.getDate() + 6);
+
+            if (weekRangeLabel) {
+                const fmt = (d) => d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }).toUpperCase();
+                weekRangeLabel.innerText = `${fmt(monday)} - ${fmt(sunday)}`;
+            }
+
+            // Show loading
+            programCardsContainer.innerHTML = `
+                <div class="col-span-full py-20 flex flex-col items-center justify-center text-center space-y-4 opacity-30">
+                    <div class="w-16 h-16 border-4 border-slate-200 border-t-indigo-500 rounded-full animate-spin"></div>
+                    <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Cargando programación...</p>
+                </div>`;
+
+            try {
+                const prog = await getProgramaSemanal(weekId);
+                window._globalPrograma = prog;
+                window._globalTerritorios = allTerritorios;
+                renderFilters();
+                renderDaySelector();
+                renderFullProgramaCards(prog, programCardsContainer, territoryMap, name, activeDayIndex, activeTurns);
+            } catch (err) {
+                console.error("Error loading week:", err);
+                programCardsContainer.innerHTML = '<p class="text-center text-rose-500 font-bold p-10">Error al cargar la programación</p>';
+            }
+        };
+
+        const renderFilters = () => {
+            if (!turnFilters) return;
+            const turnosArr = [
+                { id: 'manana', icon: 'fa-sun', label: 'M', color: 'text-amber-500', bg: 'bg-amber-500/10', full: 'Mañana' },
+                { id: 'tarde', icon: 'fa-cloud-sun', label: 'T', color: 'text-orange-500', bg: 'bg-orange-500/10', full: 'Tarde' },
+                { id: 'noche', icon: 'fa-moon', label: 'N', color: 'text-indigo-400', bg: 'bg-indigo-400/10', full: 'Noche' },
+                { id: 'zoom', icon: 'fa-video', label: 'Z', color: 'text-emerald-500', bg: 'bg-emerald-500/10', full: 'Zoom' }
+            ];
+
+            turnFilters.innerHTML = turnosArr.map(t => {
+                const isActive = activeTurns.has(t.id);
+                return `
+                    <button onclick="window.toggleProgTurn('${t.id}')" 
+                            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all text-[9px] font-black uppercase tracking-wider ${isActive ? t.bg + ' ' + t.color : 'text-slate-400 opacity-40 hover:opacity-100'}">
+                        <i class="fas ${t.icon}"></i>
+                        <span class="hidden sm:inline">${t.full}</span>
+                        <span class="inline sm:hidden">${t.label}</span>
+                    </button>
+                `;
+            }).join('');
+        };
+
+        const renderDaySelector = () => {
+            if (!daySelector) return;
+            const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+            daySelector.innerHTML = `
+                ${dayNames.map((n, i) => {
+                const isActive = activeDayIndex === i;
+                const isToday = new Date().getDay() === (i === 6 ? 0 : i + 1);
+                return `
+                    <button onclick="window.setProgActiveDay(${i})" 
+                            class="relative px-4 sm:px-5 py-2 rounded-[1.25rem] text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${isActive ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20 scale-105' : 'text-slate-500 hover:text-indigo-500 hover:bg-white dark:hover:bg-white/10'}">
+                        ${n.substring(0, 3)}
+                        ${isToday ? '<span class="absolute top-1 right-1 w-1.5 h-1.5 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-800"></span>' : ''}
+                    </button>
+                `;
+            }).join('')}
+                <div class="w-px h-5 bg-slate-200 dark:bg-white/10 mx-1"></div>
+                <button onclick="window.setProgActiveDay(-1)" 
+                        class="px-4 py-2 rounded-[1.25rem] text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${activeDayIndex === -1 ? 'bg-slate-800 dark:bg-slate-700 text-white shadow-xl' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'}">
+                    Toda
+                </button>
+            `;
+        };
+
+        window.toggleProgTurn = (id) => {
+            if (activeTurns.has(id)) {
+                if (activeTurns.size > 1) activeTurns.delete(id);
+            } else {
+                activeTurns.add(id);
+            }
+            renderFilters();
+            renderFullProgramaCards(window._globalPrograma, programCardsContainer, territoryMap, name, activeDayIndex, activeTurns);
+        };
+
+        window.setProgActiveDay = (idx) => {
+            activeDayIndex = idx;
+            renderDaySelector();
+            renderFullProgramaCards(window._globalPrograma, programCardsContainer, territoryMap, name, activeDayIndex, activeTurns);
+        };
+
+        // Navigation Events
+        const btnPrev = document.getElementById('prog-prev-week');
+        const btnNext = document.getElementById('prog-next-week');
+        const btnToday = document.getElementById('prog-btn-today');
+
+        if (btnPrev) btnPrev.onclick = () => { currentWeekStart.setDate(currentWeekStart.getDate() - 7); loadWeekData(); };
+        if (btnNext) btnNext.onclick = () => { currentWeekStart.setDate(currentWeekStart.getDate() + 7); loadWeekData(); };
+        if (btnToday) btnToday.onclick = () => { currentWeekStart = getMonday(new Date()); activeDayIndex = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1; loadWeekData(); };
+
+        document.getElementById('prog-export-png').onclick = async () => {
+            const previewHTML = generateLandscapePreviewHTML(window._globalPrograma);
+            const tempDiv = document.createElement('div');
+            tempDiv.style.position = 'absolute'; tempDiv.style.left = '-9999px'; tempDiv.style.width = '1920px'; tempDiv.style.height = '1080px';
+            tempDiv.innerHTML = previewHTML;
+            document.body.appendChild(tempDiv);
+            try {
+                showNotification("Generando programa para descarga...", "info");
+                const canvas = await html2canvas(tempDiv.querySelector('#landscape-preview-content'), {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: '#f8fafc'
+                });
+                const link = document.createElement('a');
+                link.download = `Programa_${window._globalPrograma.id}.png`;
+                link.href = canvas.toDataURL('image/png'); link.click();
+                showNotification("Imagen descargada en alta resolución", "success");
+            } catch (e) {
+                console.error(e); showNotification("Error al generar imagen", "error");
+            } finally { document.body.removeChild(tempDiv); }
+        };
+
+        // Initial Load
+        loadWeekData();
     }
 };
 
@@ -1311,6 +1467,101 @@ window.updateWeekData = async (dayIndex, turnoId, field, value) => {
         console.error("Update error:", e);
         showNotification("Error al guardar revisión", "error");
     }
+};
+
+const formatGroups = (val) => {
+    if (!val) return '—';
+    return String(val).toUpperCase().split(/[,/]/).map(s => s.trim().split(' ')[0]).join(' / ');
+};
+
+const generateLandscapePreviewHTML = (programa) => {
+    if (!programa) return '';
+    const turnosArr = [
+        { id: 'manana', icon: 'fa-sun', label: 'MAÑANA', color: '#b45309', bg: '#fffbeb' },
+        { id: 'tarde', icon: 'fa-cloud-sun', label: 'TARDE', color: '#c2410c', bg: '#fff7ed' },
+        { id: 'noche', icon: 'fa-moon', label: 'NOCHE', color: '#3730a3', bg: '#f5f3ff' },
+        { id: 'zoom', icon: 'fa-video', label: 'ZOOM', color: '#065f46', bg: '#f0fdf4' }
+    ];
+
+    const hasBusyDay = (programa.dias || []).some(dia => {
+        const active = turnosArr.filter(t => {
+            const data = dia[t.id];
+            return data && (data.conductor || data.lugar);
+        });
+        return active.length > 2;
+    });
+
+    let html = `
+        <div id="landscape-preview-content" class="bg-slate-50 text-slate-900 font-['Outfit'] relative overflow-hidden flex flex-col p-6 pt-0" style="width: 1920px; height: 1080px; box-sizing: border-box;">
+            <header class="relative z-10 flex flex-col items-center mb-3 px-10 pt-4 w-full">
+                <h1 class="text-[54px] font-black uppercase tracking-[0.1em] leading-none mb-1 text-slate-900">Programa de Predicación</h1>
+                <p class="text-lg font-black uppercase tracking-[0.15em] text-slate-600 mb-3">Cronograma Semanal de Salidas</p>
+                <div class="w-full h-1.5 bg-slate-900 rounded-full"></div>
+            </header>
+
+            <div class="relative z-10 grid grid-cols-7 gap-3 flex-1 overflow-hidden px-4 pb-7">
+                ${(programa.dias || []).map((dia, idx) => {
+        const activeTurns = turnosArr.filter(t => {
+            const data = dia[t.id];
+            return data && (data.conductor || data.lugar);
+        });
+
+        return `
+                        <div class="bg-white rounded-[2rem] flex flex-col shadow-xl shadow-slate-200/40 border border-slate-100/50 overflow-hidden relative h-full">
+                            <div class="${hasBusyDay ? 'px-4 py-3 min-h-[100px]' : 'px-5 py-6 min-h-[140px]'} border-b border-slate-50 bg-slate-50/20 shrink-0 flex flex-col justify-center">
+                                <h2 class="${hasBusyDay ? 'text-2xl' : 'text-3xl'} font-black uppercase tracking-tighter text-slate-900 leading-none mb-1">${dia.nombre}</h2>
+                                <span class="text-[10px] font-bold uppercase tracking-widest text-slate-300 opacity-80">${dia.fecha ? dia.fecha.split('-').reverse().join('/') : ''}</span>
+                            </div>
+                            
+                            <div class="${hasBusyDay ? 'p-2.5 space-y-5' : 'p-4 space-y-10'} flex-1 overflow-visible">
+                                ${activeTurns.map(t => {
+            const data = dia[t.id];
+            const isSunday = dia.nombre.toLowerCase() === 'domingo';
+            const hourInt = data.hora ? parseInt(data.hora) : (t.id === 'manana' ? 9 : t.id === 'tarde' ? 15 : 19);
+
+            let labelText = t.label; let displayIcon = t.icon; let displayColor = t.color;
+
+            if (isSunday && data.hora) {
+                if (hourInt < 11) { labelText = 'MAÑANA'; displayIcon = 'fa-sun'; displayColor = '#b45309'; }
+                else if (hourInt < 16) { labelText = 'MEDIODÍA'; displayIcon = 'fa-cloud-sun'; displayColor = '#c2410c'; }
+                else if (hourInt < 19) { labelText = 'TARDE'; displayIcon = 'fa-sun-haze'; displayColor = '#c2410c'; }
+                else { labelText = 'NOCHE'; displayIcon = 'fa-moon'; displayColor = '#3730a3'; }
+            }
+
+            return `
+                                        <div class="${hasBusyDay ? 'space-y-1.5' : 'space-y-4'}">
+                                            <div class="flex items-center gap-2">
+                                                <i class="fas ${displayIcon} text-[18px]" style="color: ${displayColor}"></i>
+                                                <span class="text-[18px] font-black uppercase tracking-[0.35em]" style="color: ${displayColor}">${labelText}</span>
+                                            </div>
+                                            
+                                            <div class="${hasBusyDay ? 'space-y-1' : 'space-y-3'}">
+                                                ${['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', 'Grupos'].map(field => {
+                if (t.id === 'zoom' && field === 'Auxiliar') return '';
+                let val = data[field.toLowerCase()];
+                if (!val || val === '—' || val === '') return '';
+                if (field === 'Grupos') { val = formatGroups(val); }
+                const isKeyField = field === 'Lugar' || field === 'Hora';
+                const fontSize = isKeyField ? (hasBusyDay ? '17px' : '22px') : (hasBusyDay ? '13px' : '15px');
+                return `
+                                                        <div class="flex flex-col leading-tight">
+                                                             <span class="text-[6px] font-black uppercase tracking-widest text-slate-300 mb-0.5">${field}</span>
+                                                             <span class="text-[${fontSize}] font-black uppercase tracking-tight text-slate-900">${val}</span>
+                                                        </div>
+                                                    `;
+            }).join('')}
+                                            </div>
+                                        </div>
+                                    `;
+        }).join('')}
+                            </div>
+                        </div>
+                    `;
+    }).join('')}
+            </div>
+        </div>
+    `;
+    return html;
 };
 
 /* --- DISPONIBILIDAD --- */
@@ -1420,7 +1671,7 @@ async function renderAvailabilitySection(container, name) {
     }
 }
 
-const renderFullProgramaCards = (programa, container, territoryMap = {}, currentConductorName) => {
+const renderFullProgramaCards = (programa, container, territoryMap = {}, currentConductorName, activeDayIndex = -1, activeTurns = new Set(['manana', 'tarde', 'noche', 'zoom'])) => {
     const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
     const shifts = ['manana', 'tarde', 'noche', 'zoom'];
     const shiftLabels = { 'manana': 'Mañana', 'tarde': 'Tarde', 'noche': 'Noche', 'zoom': 'Zoom' };
@@ -1442,15 +1693,36 @@ const renderFullProgramaCards = (programa, container, territoryMap = {}, current
     }
 
     let html = `
-    <div class="col-span-full">
+    <div class="col-span-full animate-fade-in">
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                ${days.map((dayName, dayIndex) => {
+                ${days.map((dayName, dayIdx) => {
+        // Filter by activeDayIndex
+        if (activeDayIndex !== -1 && activeDayIndex !== dayIdx) return '';
+
         const d = (programa.dias || []).find(x => x.nombre === dayName);
-        const hasData = shifts.some(s => d && d[s] && (d[s].conductor || d[s].lugar));
-        if (!hasData) return '';
+        if (!d) return '';
+
+        // Check if day has any visible shift
+        const hasVisibleData = shifts.some(s => {
+            if (!activeTurns.has(s)) return false;
+            if (s === 'zoom' && dayName !== 'Martes') return false;
+            const sData = d[s];
+            return sData && (sData.conductor || sData.lugar);
+        });
+
+        if (!hasVisibleData) {
+            if (activeDayIndex !== -1) {
+                return `
+                    <div class="col-span-full py-20 flex flex-col items-center justify-center text-center opacity-30">
+                        <i class="fas fa-calendar-day text-4xl mb-4"></i>
+                        <p class="text-[10px] font-black uppercase tracking-widest italic">No hay salidas programadas para este día</p>
+                    </div>`;
+            }
+            return '';
+        }
 
         return `
-                    <div class="modern-card !p-6 border-slate-100 dark:border-white/10 shadow-xl bg-white dark:bg-slate-900/40 space-y-6">
+                    <div class="modern-card !p-6 border-slate-100 dark:border-white/10 shadow-xl bg-white dark:bg-slate-900/40 space-y-6 hover:shadow-2xl transition-all duration-500">
                         <div class="flex justify-between items-center border-b border-slate-100 dark:border-white/5 pb-4">
                             <div>
                                 <h3 class="font-black text-xl text-slate-800 dark:text-white tracking-tighter uppercase leading-none mb-1">${dayName}</h3>
@@ -1463,6 +1735,7 @@ const renderFullProgramaCards = (programa, container, territoryMap = {}, current
 
                         <div class="space-y-4">
                             ${shifts.map(shift => {
+            if (!activeTurns.has(shift)) return '';
             if (shift === 'zoom' && dayName !== 'Martes') return '';
 
             const sData = d ? d[shift] : null;
@@ -1499,20 +1772,11 @@ const renderFullProgramaCards = (programa, container, territoryMap = {}, current
                                         </div>
 
                                         <div class="mt-2 pt-2 border-t border-black/5 dark:border-white/5">
-                                            ${isConductor ? `
-                                                <button onclick="window.openTerritorySelector(${dayIndex}, '${shift}', this)" 
-                                                        data-current="${(sData.territorio || '').replace(/"/g, '&quot;')}"
-                                                        class="w-full text-left bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 p-2.5 rounded-xl hover:border-primary transition-all flex items-center justify-between group/btn">
-                                                    <span class="text-[9px] font-black truncate ${sData.territorio ? 'text-primary' : 'text-slate-400 italic'}">${sData.territorio || 'Asignar'}</span>
-                                                    <i class="fas fa-plus-circle text-[8px] text-slate-300"></i>
-                                                </button>
-                                            ` : `
-                                                <div class="flex flex-wrap gap-1">
-                                                    ${sData.territorio ? sData.territorio.split(',').map(num => `
-                                                        <span class="px-2 py-1 bg-slate-100 dark:bg-white/10 text-slate-500 dark:text-slate-400 rounded-lg text-[8px] font-black border border-slate-200 dark:border-white/10 uppercase">${num.trim()}</span>
-                                                    `).join('') : '<span class="text-[8px] font-bold text-slate-300 italic uppercase">Libre</span>'}
-                                                </div>
-                                            `}
+                                            <div class="flex flex-wrap gap-1">
+                                                ${sData.territorio ? sData.territorio.split(',').map(num => `
+                                                    <span class="px-2 py-1 bg-slate-100 dark:bg-white/10 text-slate-500 dark:text-slate-400 rounded-lg text-[8px] font-black border border-slate-200 dark:border-white/10 uppercase">${num.trim()}</span>
+                                                `).join('') : '<span class="text-[8px] font-bold text-slate-300 italic uppercase">Libre</span>'}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>`;

@@ -11,18 +11,18 @@ import {
     getCampanas, saveCampana, deleteCampana,
     getGroupsConfig, saveGroupsConfig,
     getDiffusionMessage, saveDiffusionMessage
-} from '../data/firestore-services.js?v=2.2.0';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS, formatManzanas } from './utils/helpers.js?v=2.2.0';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=2.2.0';
+} from '../data/firestore-services.js?v=2.2.1';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS, formatManzanas } from './utils/helpers.js?v=2.2.1';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=2.2.1';
 
-import { renderAnalyticsView } from './analytics-view.js?v=2.2.0';
-import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=2.2.0';
-import { auth } from '../firebase-config.js?v=2.2.0';
-import { animateEntry } from './utils/animations.js?v=2.2.0';
-import { UIHelpers, showModal, showCustomConfirm, showCustomPrompt, showTerritorySelectionModal } from './services/ui-helpers.js?v=2.2.0';
-import { GlassCard, GlassButton, GlassInput } from './services/ui-components.js?v=2.2.0';
-import { renderCasaEnCasaTab } from './admin/territories-view.js?v=2.2.0';
-import { renderAdvancedHistoryView, renderHistoryTab } from './report-s13.js?v=2.2.0';
+import { renderAnalyticsView } from './analytics-view.js?v=2.2.1';
+import { getGlobalSettings, saveGlobalSettings } from '../data/firestore-services.js?v=2.2.1';
+import { auth } from '../firebase-config.js?v=2.2.1';
+import { animateEntry } from './utils/animations.js?v=2.2.1';
+import { UIHelpers, showModal, showCustomConfirm, showCustomPrompt, showTerritorySelectionModal } from './services/ui-helpers.js?v=2.2.1';
+import { GlassCard, GlassButton, GlassInput } from './services/ui-components.js?v=2.2.1';
+import { renderCasaEnCasaTab } from './admin/territories-view.js?v=2.2.1';
+import { renderAdvancedHistoryView, renderHistoryTab } from './report-s13.js?v=2.2.1';
 import * as XLSX from 'xlsx';
 import html2canvas from 'html2canvas';
 
