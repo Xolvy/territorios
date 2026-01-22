@@ -1216,31 +1216,32 @@ export const syncSlotWithTerritories = async (weekId, dayIdx, turno, tData, date
                     const tDoc = candidates.docs[0];
                     const tDataDB = tDoc.data();
 
+                    const normalizedConductor = conductor.trim();
                     const currentDetails = {
-                        asignado_a: tDataDB.asignado_a,
-                        fecha_asignacion: tDataDB.fecha_asignacion,
+                        asignado_a: String(tDataDB.asignado_a || '').trim(),
+                        fecha_asignacion: String(tDataDB.fecha_asignacion || '').split('T')[0],
                         turno: tDataDB.turno,
-                        auxiliar: tDataDB.auxiliar || '',
-                        lugar: tDataDB.lugar || '',
-                        hora: tDataDB.hora || '',
-                        faceta: tDataDB.faceta || '',
-                        grupos: tDataDB.grupos || '',
+                        auxiliar: String(tDataDB.auxiliar || '').trim(),
+                        lugar: String(tDataDB.lugar || '').trim(),
+                        hora: String(tDataDB.hora || '').trim(),
+                        faceta: String(tDataDB.faceta || '').trim(),
+                        grupos: String(tDataDB.grupos || '').trim(),
                         campana: tDataDB.campana || ''
                     };
 
                     const newDetails = {
-                        asignado_a: conductor,
-                        fecha_asignacion: dateISO,
+                        asignado_a: normalizedConductor,
+                        fecha_asignacion: dateISO.split('T')[0],
                         turno: turno,
-                        auxiliar: tData.auxiliar || '',
-                        lugar: tData.lugar || '',
-                        hora: tData.hora || '',
-                        faceta: tData.faceta || '',
-                        grupos: tData.grupos || '',
+                        auxiliar: String(tData.auxiliar || '').trim(),
+                        lugar: String(tData.lugar || '').trim(),
+                        hora: String(tData.hora || '').trim(),
+                        faceta: String(tData.faceta || '').trim(),
+                        grupos: String(tData.grupos || '').trim(),
                         campana: tData.campana || ''
                     };
 
-                    const hasChanges = Object.keys(newDetails).some(key => newDetails[key] !== currentDetails[key]);
+                    const hasChanges = Object.keys(newDetails).some(key => newDetails[key].toString().toLowerCase() !== currentDetails[key].toString().toLowerCase());
 
                     if (hasChanges) {
                         if (currentDetails.asignado_a === newDetails.asignado_a &&

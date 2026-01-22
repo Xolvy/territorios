@@ -4,7 +4,7 @@ import {
     getTerritorios, getConductores, getPublicadores, getTelefonos, updateTelefono,
     getRecursos, getConfiguracion,
     getPredicacionPublica, savePredicacionPublica,
-    getProgramaSemanal, getTerritoryHistory,
+    getProgramaSemanal, saveProgramaSemanal, syncSlotWithTerritories, getTerritoryHistory,
     addPublicador, updatePublicador, deletePublicador,
     releaseUnusedTelefonos, solicitarNumeros, updateTelefonoStatus, logSessionSummary,
     logReturn, returnTerritorio, returnTerritorioParcial, transferTerritory
@@ -277,7 +277,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                             </summary>
 
                             <div class="p-8 pt-0 animate-fade-in">
-                                <div id="weekly-program-cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                                <div id="weekly-program-cards" class="w-full">
                                     <div class="col-span-full py-20 flex flex-col items-center justify-center text-center space-y-4 opacity-40">
                                         <div class="w-20 h-20 bg-slate-100 dark:bg-white/5 rounded-3xl flex items-center justify-center text-4xl animate-pulse">
                                             <i class="fas fa-clock"></i>
@@ -1255,8 +1255,61 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
     if (userMods.programa !== false) {
         const programCardsContainer = document.getElementById('weekly-program-cards');
         if (programCardsContainer) {
-            renderFullProgramaCards(programa, programCardsContainer, territoryMap);
+            // Store globals for selector
+            window._globalPrograma = programa;
+            window._globalTerritorios = allTerritorios;
+            renderFullProgramaCards(programa, programCardsContainer, territoryMap, name);
         }
+    }
+};
+
+window.openTerritorySelector = (dayIndex, turnId, btnElement) => {
+    if (!btnElement || !window._globalPrograma) return;
+    const currentVal = btnElement.dataset.current;
+    window.showTerritorySelectionModal(currentVal, window._globalTerritorios, (newValue) => {
+        if (!window._globalPrograma.dias[dayIndex][turnId]) window._globalPrograma.dias[dayIndex][turnId] = {};
+        window._globalPrograma.dias[dayIndex][turnId].territorio = newValue;
+        btnElement.dataset.current = newValue;
+
+        // Update display inside the button
+        const span = btnElement.querySelector('span.truncate');
+        if (span) {
+            span.textContent = newValue || '—';
+            span.className = `text-[10px] font-black truncate ${newValue ? 'text-primary' : 'text-slate-400 opacity-40'}`;
+        }
+
+        // Trigger save and sync
+        window.updateWeekData(dayIndex, turnId, 'territorio', newValue);
+    });
+};
+
+window.updateWeekData = async (dayIndex, turnoId, field, value) => {
+    if (!window._globalPrograma) return;
+    if (!window._globalPrograma.dias[dayIndex][turnoId]) window._globalPrograma.dias[dayIndex][turnoId] = {};
+    window._globalPrograma.dias[dayIndex][turnoId][field] = value;
+
+    try {
+        const weekId = window._globalPrograma.id;
+        await saveProgramaSemanal(weekId, window._globalPrograma);
+        const tData = window._globalPrograma.dias[dayIndex][turnoId];
+        const diaObj = window._globalPrograma.dias[dayIndex];
+        const dateISO = new Date(diaObj.fecha + 'T12:00:00Z').toISOString();
+        await syncSlotWithTerritories(weekId, dayIndex, turnoId, tData, dateISO);
+
+        // Refresh local territory memory to ensure labels update correctly
+        const freshTerritories = await getTerritorios();
+        window._globalTerritorios = freshTerritories;
+
+        // Re-render the program table to show synced states immediately
+        const programCardsContainer = document.getElementById('weekly-program-cards');
+        if (programCardsContainer) {
+            renderFullProgramaCards(window._globalPrograma, programCardsContainer, {}, ""); // Map not needed for name comparison
+        }
+
+        showNotification("Asignación sincronizada exitosamente", "success");
+    } catch (e) {
+        console.error("Update error:", e);
+        showNotification("Error al guardar revisión", "error");
     }
 };
 
@@ -1368,95 +1421,14 @@ async function renderAvailabilitySection(container, name) {
     }
 }
 
-const renderFullProgramaCards = (programa, container, territoryMap = {}) => {
+const renderFullProgramaCards = (programa, container, territoryMap = {}, currentConductorName) => {
     const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
     const shifts = ['manana', 'tarde', 'noche', 'zoom'];
     const shiftLabels = { 'manana': 'Mañana', 'tarde': 'Tarde', 'noche': 'Noche', 'zoom': 'Zoom' };
     const shiftIcons = { 'manana': 'fa-sun', 'tarde': 'fa-cloud-sun', 'noche': 'fa-moon', 'zoom': 'fa-video' };
     const shiftColors = { 'manana': 'text-amber-500', 'tarde': 'text-orange-500', 'noche': 'text-indigo-400', 'zoom': 'text-emerald-500' };
 
-    container.innerHTML = days.map(dayName => {
-        const d = (programa?.dias || []).find(x => x.nombre === dayName);
-        if (!d) return '';
-
-        const activeShifts = shifts.filter(s => {
-            if (s === 'zoom' && dayName !== 'Martes') return false;
-            return d[s] && (d[s].conductor || d[s].lugar);
-        });
-        if (activeShifts.length === 0) return '';
-
-        return `
-            <div class="group relative overflow-hidden modern-card p-6 border-slate-100 dark:border-white/5 transition-all duration-500 hover:scale-[1.01] flex flex-col gap-6 shadow-xl hover:shadow-indigo-500/10 bg-white dark:bg-[#0d121b]">
-                <div class="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-3xl rounded-full -mr-10 -mt-10"></div>
-                <div class="flex justify-between items-center relative z-10">
-                    <div>
-                        <h3 class="font-black text-2xl text-slate-800 dark:text-white uppercase tracking-tighter tabular-nums leading-none">${dayName}</h3>
-                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1.5 opacity-60">${d.fecha ? d.fecha.split('-').reverse().join('/') : 'Programación de Salidas'}</p>
-                    </div>
-                    <div class="w-8 h-8 rounded-lg bg-slate-50 dark:bg-white/5 flex items-center justify-center text-slate-400 group-hover:bg-indigo-500/10 group-hover:text-indigo-600 transition-all shadow-inner">
-                        <i class="fas fa-calendar-check text-xs"></i>
-                    </div>
-                </div>
-
-                <div class="space-y-4">
-                    ${activeShifts.map(s => {
-            const sData = d[s];
-            const tNums = sData.territorio ? sData.territorio.split(/[,/]+/).map(n => n.trim()).filter(Boolean) : [];
-
-            return `
-                        <div class="shift-row space-y-3 relative">
-                            <div class="flex items-center gap-2">
-                                <i class="fas ${shiftIcons[s]} ${shiftColors[s]} text-[10px]"></i>
-                                <span class="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] group-hover:text-indigo-600 transition-colors">${shiftLabels[s]}</span>
-                            </div>
-                            
-                            <div class="p-4 rounded-[1.5rem] bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 space-y-2.5 hover:bg-white dark:hover:bg-white/[0.04] transition-all">
-                                <p class="text-[10px] font-black text-slate-800 dark:text-white flex items-center gap-2 bg-white dark:bg-black/20 p-2.5 rounded-xl shadow-sm border border-slate-100 dark:border-white/5">
-                                    <i class="fas fa-map-marker-alt text-indigo-500/60 text-xs"></i>
-                                    <span class="truncate uppercase tracking-tight">${sData.lugar || 'Por definir'}</span>
-                                </p>
-                                <div class="grid grid-cols-2 gap-2">
-                                    <div class="space-y-0.5">
-                                        <p class="text-[8px] uppercase font-black text-slate-400 tracking-widest leading-none">Conductor</p>
-                                        <p class="text-[9px] font-black text-slate-700 dark:text-slate-300 truncate uppercase animate-fade-in">${sData.conductor || '---'}</p>
-                                    </div>
-                                    <div class="space-y-0.5">
-                                        <p class="text-[8px] uppercase font-black text-slate-400 tracking-widest leading-none">Auxiliar</p>
-                                        <p class="text-[9px] font-black text-slate-700 dark:text-slate-300 truncate uppercase animate-fade-in">${sData.auxiliar || '---'}</p>
-                                    </div>
-                                </div>
-                                ${tNums.length > 0 ? `
-                                <div class="pt-2 border-t border-slate-100 dark:border-white/10 flex flex-wrap gap-2">
-                                     ${tNums.map(num => {
-                const t = territoryMap[num];
-                const isDone = t && (t.estado === 'Predicado' || t.estado === 'Terminado');
-                return `
-                                         <div class="flex items-center gap-1 p-1 bg-slate-100/50 dark:bg-white/5 rounded-2xl border border-slate-200/50 dark:border-white/5 shadow-sm transition-all hover:border-indigo-500/20">
-                                             <button onclick="window.viewMapFromReport('${t?.id}')" 
-                                                 class="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all hover:bg-indigo-50 dark:hover:bg-indigo-500/10 active:scale-95 flex items-center gap-2 ${isDone ? 'text-slate-300 line-through opacity-50 cursor-not-allowed' : 'bg-white dark:bg-slate-800 text-indigo-600 shadow-sm border border-indigo-500/10'}">
-                                                 <span class="w-1.5 h-1.5 rounded-full ${isDone ? 'bg-slate-200' : 'bg-indigo-500 animate-pulse'}"></span>
-                                                 T-${num}
-                                             </button>
-                                             <button onclick="window.showUnifiedTerritoryHistory('${t?.id}', '${num}')" 
-                                                 class="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-amber-500 hover:bg-white dark:hover:bg-slate-800 transition-all active:scale-90"
-                                                 title="Ver Historial">
-                                                 <i class="fas fa-history text-xs"></i>
-                                             </button>
-                                         </div>
-                                         `;
-            }).join('')}
-                                 </div>
-                                ` : ''}
-                            </div>
-                        </div>
-                        `;
-        }).join('<div class="h-px bg-black/5 dark:bg-white/5"></div>')}
-                </div>
-            </div>
-    `;
-    }).join('');
-
-    if (container.innerHTML === '' || !programa) {
+    if (!programa || !programa.dias || programa.dias.length === 0) {
         container.innerHTML = `
             <div class="col-span-full py-20 flex flex-col items-center justify-center text-center space-y-5 animate-fade-in opacity-30 group">
                 <div class="w-24 h-24 bg-slate-100 dark:bg-white/5 rounded-[3rem] flex items-center justify-center text-4xl mb-2 transition-transform group-hover:scale-110 duration-700">
@@ -1467,7 +1439,84 @@ const renderFullProgramaCards = (programa, container, territoryMap = {}) => {
                     <p class="text-[10px] text-slate-400 italic font-bold uppercase tracking-widest">Consulta con el responsable del grupo</p>
                 </div>
             </div>`;
+        return;
     }
+
+    let html = `
+    <div class="col-span-full overflow-x-auto pb-6 custom-scrollbar">
+        <div class="min-w-[1000px] modern-card !p-0 shadow-2xl border-slate-100 dark:border-white/5 overflow-hidden bg-white dark:bg-[#0d121b]">
+            <div class="grid grid-cols-[140px_1fr_1fr_1fr_1fr] bg-slate-50 dark:bg-white/[0.02] border-b border-slate-100 dark:border-white/5">
+                <div class="p-6 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 flex items-center justify-center border-r border-slate-100 dark:border-white/5">Día / Fecha</div>
+                ${shifts.map(s => `
+                    <div class="p-6 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 text-center flex items-center justify-center gap-3">
+                        <i class="fas ${shiftIcons[s]} ${shiftColors[s]} text-sm"></i> ${shiftLabels[s]}
+                    </div>
+                `).join('')}
+            </div>
+            <div class="divide-y divide-black/5 dark:divide-white/5">
+                ${days.map((dayName, dayIndex) => {
+        const d = (programa.dias || []).find(x => x.nombre === dayName);
+        return `
+                    <div class="grid grid-cols-[140px_1fr_1fr_1fr_1fr] hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors group">
+                        <div class="p-6 flex flex-col items-center justify-center border-r border-black/5 dark:border-white/5 bg-slate-50/30 dark:bg-white/[0.02]">
+                            <span class="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tighter">${dayName}</span>
+                            <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">${d?.fecha ? d.fecha.split('-').reverse().join('/') : '-'}</span>
+                        </div>
+                        ${shifts.map(shift => {
+            if (shift === 'zoom' && dayName !== 'Martes') return `<div class="p-4 border-r border-black/5 dark:border-white/5 last:border-0 opacity-20"></div>`;
+
+            const sData = d ? d[shift] : null;
+            if (!sData || (!sData.conductor && !sData.lugar)) return `<div class="p-4 border-r border-black/5 dark:border-white/5 last:border-0"></div>`;
+
+            const isConductor = sData.conductor === currentConductorName;
+            const isAuxiliar = sData.auxiliar === currentConductorName;
+            const isImpacted = isConductor || isAuxiliar;
+
+            return `
+                            <div class="p-5 border-r border-slate-100 dark:border-white/5 last:border-0 relative group/cell hover:bg-white dark:hover:bg-white/[0.01] transition-colors ${isImpacted ? 'bg-primary/5 dark:bg-primary/5' : ''}">
+                                ${sData.lugar ? `
+                                <div class="text-[9px] font-black text-slate-400 mb-2.5 truncate uppercase tracking-tight flex items-center gap-2">
+                                    <i class="fas fa-map-marker-alt text-slate-300"></i> ${sData.lugar}
+                                </div>` : ''}
+                                
+                                <div class="space-y-1.5">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-1 h-4 ${isConductor ? 'bg-primary' : 'bg-slate-200 dark:bg-white/10'} rounded-full"></div>
+                                        <div class="text-[10px] font-black ${isConductor ? 'text-primary' : 'text-slate-700 dark:text-slate-200'} leading-none uppercase truncate">${sData.conductor || '—'}</div>
+                                    </div>
+                                    ${sData.auxiliar ? `
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-1 h-3 ${isAuxiliar ? 'bg-indigo-500' : 'bg-slate-200 dark:bg-white/5'} rounded-full"></div>
+                                        <div class="text-[8px] font-bold ${isAuxiliar ? 'text-indigo-500' : 'text-slate-400'} leading-none uppercase truncate">${sData.auxiliar}</div>
+                                    </div>` : ''}
+                                </div>
+
+                                <div class="mt-4 pt-3 border-t border-black/5 dark:border-white/5">
+                                    <p class="text-[7px] font-black text-slate-300 dark:text-slate-500 uppercase tracking-[0.2em] mb-2 leading-none">Territorio</p>
+                                    ${isConductor ? `
+                                        <button onclick="window.openTerritorySelector(${dayIndex}, '${shift}', this)" 
+                                                data-current="${(sData.territorio || '').replace(/"/g, '&quot;')}"
+                                                class="w-full text-left bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-2.5 rounded-xl hover:border-primary transition-all flex items-center justify-between group/btn shadow-sm">
+                                            <span class="text-[10px] font-black truncate ${sData.territorio ? 'text-primary' : 'text-slate-400 opacity-40'}">${sData.territorio || '—'}</span>
+                                            <i class="fas fa-chevron-down text-[8px] opacity-20 group-hover/btn:opacity-60 transition-opacity"></i>
+                                        </button>
+                                    ` : `
+                                        <div class="flex flex-wrap gap-1.5">
+                                            ${sData.territorio ? sData.territorio.split(',').map(num => `
+                                                <span class="px-2.5 py-1.5 bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 rounded-lg text-[10px] font-black border border-slate-200 dark:border-white/10 uppercase tracking-widest">${num.trim()}</span>
+                                            `).join('') : '<span class="text-[10px] font-black text-slate-300 dark:text-slate-600 italic">No definido</span>'}
+                                        </div>
+                                    `}
+                                </div>
+                            </div>`;
+        }).join('')}
+                    </div>`;
+    }).join('')}
+            </div>
+        </div>
+    </div>`;
+
+    container.innerHTML = html;
 };
 
 const initSwipeActions = () => {

@@ -1393,10 +1393,14 @@ const renderProgramaTab = async (container) => {
                     <div class="flex-1 min-w-[300px] max-w-[400px] modern-card !p-8 border-slate-100 dark:border-white/5 shadow-xl hover:shadow-2xl transition-all group/turn relative">
                         ${(() => {
                         if (!data.territorio || !data.conductor) return '';
-                        const tNum = data.territorio.split(/[,/]/)[0].trim();
-                        const terr = (_globalTerritorios || []).find(x => x.numero == tNum);
-                        if (!terr) return '';
-                        const isSynced = terr.asignado_a === data.conductor;
+                        const tNums = String(data.territorio).split(/[,/]/).map(s => s.trim()).filter(Boolean);
+                        const terrs = tNums.map(n => (_globalTerritorios || []).find(x => String(x.numero) == n)).filter(Boolean);
+
+                        if (terrs.length === 0) return '';
+
+                        const slotConductor = String(data.conductor || '').trim().toLowerCase();
+                        const isSynced = terrs.every(t => String(t.asignado_a || '').trim().toLowerCase() === slotConductor);
+
                         return `
                                 <div class="absolute top-6 right-6 w-8 h-8 rounded-xl flex items-center justify-center shadow-lg border-2 border-white dark:border-slate-800 ${isSynced ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'} animate-bounce-subtle" title="${isSynced ? 'Sincronizado' : 'Desajuste de Asignación'}">
                                     <i class="fas ${isSynced ? 'fa-check' : 'fa-exclamation-triangle'} text-[10px]"></i>
@@ -1855,6 +1859,11 @@ const renderProgramaTab = async (container) => {
                     const diaObj = _globalPrograma.dias[dayIndex];
                     const dateISO = new Date(diaObj.fecha + 'T12:00:00Z').toISOString();
                     await syncSlotWithTerritories(weekId, dayIndex, turnoId, tData, dateISO);
+
+                    // Update local territories memory to reflect changes immediately in the UI
+                    const updatedTerritorios = await getTerritorios();
+                    _globalTerritorios = updatedTerritorios;
+                    renderTable(); // Re-render to update the checkmark/triangle
                 }
                 if (statusIndicator) {
                     statusIndicator.innerHTML = '✅ Guardado';
