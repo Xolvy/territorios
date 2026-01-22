@@ -1,6 +1,6 @@
-import { auth } from '../firebase-config.js?v=2.2.1';
+import { auth } from '../firebase-config.js?v=2.2.2';
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { getPublicadores, getConfiguracion } from '../data/firestore-services.js?v=2.2.1';
+import { getPublicadores, getConfiguracion } from '../data/firestore-services.js?v=2.2.2';
 
 export const renderLogin = (container, appVersion) => {
     container.innerHTML = `

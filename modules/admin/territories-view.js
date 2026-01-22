@@ -8,7 +8,7 @@ import {
     updateRecurso, getCampanas, saveCampana, getGroupsConfig, returnTerritorioParcial,
     rebuildHistoryFromSchedule, runSystemDiagnosticsAndRepair, masterResetAssignments,
     syncAllProgramsToTerritories
-} from '../../data/firestore-services.js?v=2.2.1';
+} from '../../data/firestore-services.js?v=2.2.2';
 
 const formatGroups = (val) => {
     if (!val) return '—';

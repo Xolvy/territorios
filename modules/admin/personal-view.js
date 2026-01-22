@@ -1,9 +1,9 @@
 import {
     getPublicadores, addPublicador, updatePublicador, deletePublicador,
     getGroupsConfig
-} from '../../data/firestore-services.js?v=2.2.1';
-import { showNotification, ensureOnline } from '../utils/helpers.js?v=2.2.1';
-import { showModal, showCustomConfirm } from '../services/ui-helpers.js?v=2.2.1';
+} from '../../data/firestore-services.js?v=2.2.2';
+import { showNotification, ensureOnline } from '../utils/helpers.js?v=2.2.2';
+import { showModal, showCustomConfirm } from '../services/ui-helpers.js?v=2.2.2';
 
 export const renderPersonalTab = async (container) => {
     const publicadores = await getPublicadores();

@@ -1,4 +1,4 @@
-import { auth } from '../firebase-config.js?v=2.2.1';
+import { auth } from '../firebase-config.js?v=2.2.2';
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import {
     getTerritorios, getConductores, getPublicadores, getTelefonos, updateTelefono,
@@ -8,10 +8,10 @@ import {
     addPublicador, updatePublicador, deletePublicador,
     releaseUnusedTelefonos, solicitarNumeros, updateTelefonoStatus, logSessionSummary,
     logReturn, returnTerritorio, returnTerritorioParcial, transferTerritory
-} from '../data/firestore-services.js?v=2.2.1';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, formatManzanas } from './utils/helpers.js?v=2.2.1';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=2.2.1';
-import { MapViewer } from './map-viewer.js?v=2.2.1';
+} from '../data/firestore-services.js?v=2.2.2';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, formatManzanas } from './utils/helpers.js?v=2.2.2';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=2.2.2';
+import { MapViewer } from './map-viewer.js?v=2.2.2';
 
 
 
@@ -307,12 +307,16 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                 </div>
 
                                 <div id="weekly-program-cards" class="w-full relative min-h-[300px]">
-                                    <div class="col-span-full py-20 flex flex-col items-center justify-center text-center space-y-4 opacity-40">
-                                        <div class="w-20 h-20 bg-slate-100 dark:bg-white/5 rounded-3xl flex items-center justify-center text-4xl animate-pulse">
-                                            <i class="fas fa-clock"></i>
+                                    <div class="col-span-full py-24 flex flex-col items-center justify-center text-center space-y-6">
+                                        <div class="relative">
+                                            <div class="w-16 h-16 border-4 border-slate-200 border-t-indigo-500 rounded-full animate-spin"></div>
+                                            <div class="absolute inset-0 flex items-center justify-center text-indigo-500/20">
+                                                <i class="fas fa-calendar-alt text-lg"></i>
+                                            </div>
                                         </div>
-                                        <div class="space-y-1">
-                                            <p class="text-xs font-black text-slate-400 uppercase tracking-[0.4em]">Sincronizando la semana</p>
+                                        <div class="space-y-2">
+                                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] animate-pulse">Cargando Programación</p>
+                                            <p class="text-[9px] text-slate-300 dark:text-slate-500 font-bold uppercase tracking-widest">Sincronizando datos...</p>
                                         </div>
                                     </div>
                                 </div>
@@ -3240,7 +3244,7 @@ function renderRescueSection(container, currentConductorName, allTerritorios, co
         return;
     }
 
-    const existingDetails = container.querySelector('details.group/rescue');
+    const existingDetails = container.querySelector('details.group\\/rescue');
     const wasOpen = existingDetails ? existingDetails.open : (rescueCandidates.length > 0);
 
     container.innerHTML = `
