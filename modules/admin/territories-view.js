@@ -28,7 +28,7 @@ import {
     formatPhoneNumber, getStatusColor, showNotification, formatMapUrl,
     ensureOnline, generatePlainXLS
 } from '../utils/helpers.js?v=2.2.0';
-import { UIHelpers, showModal, showCustomConfirm, showCustomPrompt } from '../services/ui-helpers.js?v=2.2.0';
+import { UIHelpers, showModal, showCustomConfirm, showCustomPrompt, showTerritorySelectionModal } from '../services/ui-helpers.js?v=2.2.0';
 import { GlassCard, GlassButton, GlassInput } from '../services/ui-components.js?v=2.2.0';
 import * as XLSX from 'xlsx';
 import html2canvas from 'html2canvas';
@@ -49,92 +49,6 @@ let _globalConfig = {};
 let _globalPrograma = null;
 let _selectedIds = new Set();
 let _currentView = 'activas';
-
-// --- SHARED MODAL HELPERS ---
-
-export const showTerritorySelectionModal = (current, territorios, onSelect, containerId = 'modal-container') => {
-    let selectedNums = new Set();
-    if (current) {
-        current.split(',').forEach(p => {
-            const num = p.trim().split(' ')[0];
-            if (num) {
-                const cleaned = num.replace(/[()]/g, '').trim();
-                if (cleaned) selectedNums.add(cleaned);
-            }
-        });
-    }
-
-    const modalHtml = `
-        <div class="flex flex-col h-[85vh] sm:h-[600px] bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden">
-            <header class="shrink-0 bg-slate-900 p-6 text-white flex justify-between items-center">
-                <div class="flex items-center gap-4">
-                    <div class="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-xl"><i class="fas fa-map-marked-alt"></i></div>
-                    <h3 class="text-lg font-black uppercase tracking-tight">Seleccionar Territorios</h3>
-                </div>
-                <button id="close-terr-selection" class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-white/10 transition-colors">✕</button>
-            </header>
-            
-            <div class="p-6 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-black/20">
-                <input type="text" id="search-terr-selection" placeholder="Filtrar por número..." class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-2xl text-sm font-bold outline-none focus:border-primary transition-all shadow-inner">
-            </div>
-
-            <div id="terr-selection-grid" class="flex-1 overflow-y-auto p-6 grid grid-cols-4 sm:grid-cols-6 gap-3 custom-scrollbar">
-                ${territorios.map(t => {
-        const isSel = selectedNums.has(t.numero);
-        return `
-                        <button class="terr-sel-btn aspect-square rounded-2xl border-2 flex flex-col items-center justify-center transition-all ${isSel ? 'bg-primary/10 border-primary text-primary shadow-lg shadow-primary/10' : 'bg-white dark:bg-white/5 border-slate-100 dark:border-white/10 text-slate-400 opacity-60 hover:opacity-100 hover:border-primary/30'}" data-num="${t.numero}">
-                            <span class="text-lg font-black">${t.numero}</span>
-                            <span class="text-[8px] font-black uppercase opacity-60">Terr-H</span>
-                        </button>
-                    `;
-    }).join('')}
-            </div>
-
-            <footer class="shrink-0 p-6 bg-slate-50 dark:bg-black/40 border-t border-slate-100 dark:border-white/5 flex gap-4">
-                <button id="confirm-terr-selection" class="flex-1 bg-primary hover:bg-primary-light py-4 rounded-xl text-white font-black uppercase tracking-widest text-xs shadow-xl shadow-primary/20 active:scale-95 transition-all">Confirmar Selección (${selectedNums.size})</button>
-            </footer>
-        </div>
-    `;
-
-    showModal(modalHtml, (modal) => {
-        const grid = modal.querySelector('#terr-selection-grid');
-        const confirmBtn = modal.querySelector('#confirm-terr-selection');
-        const searchInput = modal.querySelector('#search-terr-selection');
-
-        const updateBtn = () => {
-            confirmBtn.innerText = `Confirmar Selección (${selectedNums.size})`;
-        };
-
-        grid.querySelectorAll('.terr-sel-btn').forEach(btn => {
-            btn.onclick = () => {
-                const num = btn.dataset.num;
-                if (selectedNums.has(num)) {
-                    selectedNums.delete(num);
-                } else {
-                    selectedNums.add(num);
-                }
-                const isNowSel = selectedNums.has(num);
-                btn.className = isNowSel ? "terr-sel-btn aspect-square rounded-2xl border-2 flex flex-col items-center justify-center transition-all bg-primary/10 border-primary text-primary shadow-lg shadow-primary/10" : "terr-sel-btn aspect-square rounded-2xl border-2 flex flex-col items-center justify-center transition-all bg-white dark:bg-white/5 border-slate-100 dark:border-white/10 text-slate-400 opacity-60 hover:opacity-100 hover:border-primary/30";
-                updateBtn();
-            };
-        });
-
-        searchInput.oninput = (e) => {
-            const val = e.target.value.toLowerCase();
-            grid.querySelectorAll('.terr-sel-btn').forEach(btn => {
-                const match = btn.dataset.num.includes(val);
-                btn.classList.toggle('hidden', !match);
-            });
-        };
-
-        modal.querySelector('#close-terr-selection').onclick = () => modal.remove();
-        confirmBtn.onclick = () => {
-            const result = Array.from(selectedNums).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).join(', ');
-            onSelect(result);
-            modal.remove();
-        };
-    }, 'max-w-2xl', containerId);
-};
 
 // --- CORE RENDERER ---
 
