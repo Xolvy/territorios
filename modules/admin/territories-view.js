@@ -2268,7 +2268,12 @@ window.exportS12Form = async (territorios, layout = 1) => {
     showNotification("Generando PDF...", "info");
     const config = await getConfiguracion();
     const sorted = [...territorios].sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true, sensitivity: 'base' }));
+
     const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+        return showNotification("El navegador bloqueó la ventana emergente. Por favor, permite ventanas emergentes para generar el PDF.", "error");
+    }
+
     const styles = `
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&family=Inter:wght@400;700&display=swap');
@@ -2348,7 +2353,7 @@ window.exportS12Form = async (territorios, layout = 1) => {
         <div class="footer-note">Sírvase mantener esta tarjeta en el sobre. No la manche, marque ni doble. Infórmese al superintendente si se ha extraviado o deteriorado.</div>
         <div class="footer-id">
             <span>S-12-S &nbsp;&nbsp; 1/21</span>
-            <span>App Territorios v${appVersion}</span>
+            <span>App Territorios</span>
         </div>
     </div>`;
 
@@ -2374,3 +2379,4 @@ window.exportS12Form = async (territorios, layout = 1) => {
     printWindow.document.write(html);
     printWindow.document.close();
 };
+

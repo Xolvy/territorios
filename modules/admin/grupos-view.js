@@ -1,7 +1,7 @@
 import {
     getGroupsConfig, getPublicadores, saveGroupsConfig
-} from '../../data/firestore-services.js?v=2.1.8';
-import { showNotification } from '../utils/helpers.js?v=2.1.8';
+} from '../../data/firestore-services.js?v=2.2.0';
+import { showNotification } from '../utils/helpers.js?v=2.2.0';
 
 export const renderGruposTab = async (container) => {
     const groups = await getGroupsConfig();

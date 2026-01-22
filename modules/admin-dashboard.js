@@ -11,7 +11,7 @@ import {
     getCampanas, saveCampana, deleteCampana,
     getGroupsConfig, saveGroupsConfig,
     getDiffusionMessage, saveDiffusionMessage
-} from '../data/firestore-services.js?v=2.1.8';
+} from '../data/firestore-services.js?v=2.2.0';
 import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, ensureOnline, generatePlainXLS, formatManzanas } from './utils/helpers.js?v=2.2.0';
 import { TerritoryIntelligence } from './utils/intelligence.js?v=2.2.0';
 
