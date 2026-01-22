@@ -274,6 +274,184 @@ const formatDisplayDateRange = UIHelpers.formatDisplayDateRange;
 
 // Ensure functions exist immediately upon module load
 
+// --- HISTORY MANAGEMENT MODALS (Extracted for global availability) ---
+const showEditHistoryModal = async (recordId, sourceData = null) => {
+    const historyList = sourceData || await getHistorialReport();
+    const rec = historyList.find(r => r.id === recordId);
+    if (!rec) {
+        showNotification("Cargando datos del registro...", "info");
+        const fullHist = await getHistorialReport();
+        const freshRec = fullHist.find(r => r.id === recordId);
+        if (!freshRec) return showNotification("No se encontró el registro", "error");
+        return showEditHistoryModal(recordId, fullHist);
+    }
+
+    showModal(`
+        <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden">
+            <header class="shrink-0 bg-primary p-8 text-white relative overflow-hidden">
+                <div class="absolute inset-0 bg-white/10 backdrop-blur-3xl"></div>
+                <div class="relative z-10 flex items-center gap-6">
+                    <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center text-3xl shadow-2xl border border-white/30">
+                        <i class="fas fa-history"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-black uppercase tracking-tight leading-none mb-1">Editar Registro</h3>
+                        <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Identificador: ${rec.numero || 'T-ERR'}</p>
+                    </div>
+                </div>
+            </header>
+
+            <div class="flex-1 p-8 space-y-8 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-black/20">
+                <div class="space-y-6">
+                    <div class="space-y-3">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Conductor</label>
+                         <input type="text" id="edit-h-cond" value="${rec.conductor}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all uppercase shadow-inner">
+                    </div>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Fecha Original</label>
+                            <input type="date" id="edit-h-date" value="${rec.fecha_asignacion ? rec.fecha_asignacion.split("T")[0] : ""}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[11px] font-black text-primary outline-none focus:border-primary transition-all shadow-inner uppercase">
+                        </div>
+
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Estado del Registro</label>
+                            <select id="edit-h-status" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[11px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all uppercase shadow-inner cursor-pointer appearance-none">
+                                <option value="Asignado" ${rec.estado === "Asignado" ? "selected" : ""}>Asignado (Activo)</option>
+                                <option value="Completado" ${rec.estado === "Completado" ? "selected" : ""}>Completado</option>
+                                <option value="Devuelto" ${rec.estado === "Devuelto" ? "selected" : ""}>Devuelto</option>
+                                <option value="Predicado" ${rec.estado === "Predicado" ? "selected" : ""}>Predicado</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3 ${rec.estado === 'Asignado' ? 'hidden' : ''}" id="edit-h-delivery-container">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Fecha de Entrega (S-13)</label>
+                        <input type="date" id="edit-h-delivery-date" value="${rec.fecha_entrega ? rec.fecha_entrega.split("T")[0] : ""}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[11px] font-black text-emerald-600 outline-none focus:border-emerald-500 transition-all shadow-inner uppercase">
+                    </div>
+
+                    <div class="p-6 bg-primary/5 rounded-[2rem] border border-primary/10 space-y-4">
+                        <label class="flex items-start gap-4 cursor-pointer group">
+                            <div class="relative mt-1">
+                                <input type="checkbox" id="edit-h-sync" checked class="peer sr-only">
+                                <div class="w-6 h-6 rounded-lg border-2 border-slate-200 dark:border-white/10 peer-checked:bg-primary peer-checked:border-primary transition-all flex items-center justify-center text-white text-[10px]">
+                                    <i class="fas fa-check"></i>
+                                </div>
+                            </div>
+                            <div class="flex-1">
+                                <span class="block text-[10px] font-black text-primary uppercase tracking-widest mb-1">Sincronizar Maestro actual</span>
+                                <p class="text-[8px] font-black text-slate-400 uppercase tracking-wide leading-relaxed opacity-60">Si se activa, el estado actual del territorio "${rec.numero}" se actualizará para coincidir con este cambio histórico.</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <footer class="shrink-0 p-8 bg-white dark:bg-black/40 border-t border-slate-100 dark:border-white/5 flex gap-4">
+                <button id="btn-cancel-hist" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] border border-slate-200 dark:border-white/10 transition-all active:scale-95">
+                    Cancelar
+                </button>
+                <button id="btn-save-hist" class="flex-[1.5] py-5 bg-primary hover:bg-primary-light text-white font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-primary/20 transition-all active:scale-95 flex items-center justify-center gap-2">
+                    <i class="fas fa-save"></i> Guardar Cambios
+                </button>
+            </footer>
+        </div>
+    `, (modal) => {
+        modal.querySelector("#btn-cancel-hist").onclick = () => modal.classList.add("hidden");
+        modal.querySelector("#edit-h-status").onchange = (e) => {
+            const container = modal.querySelector("#edit-h-delivery-container");
+            if (e.target.value === 'Asignado') container.classList.add('hidden');
+            else container.classList.remove('hidden');
+        };
+
+        modal.querySelector("#btn-save-hist").onclick = async (e) => {
+            const btn = e.currentTarget;
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Guardando...'; btn.disabled = true;
+            try {
+                const newDate = modal.querySelector("#edit-h-date").value;
+                const newC = modal.querySelector("#edit-h-cond").value;
+                const newS = modal.querySelector("#edit-h-status").value;
+                const newDdate = modal.querySelector("#edit-h-delivery-date").value;
+                const sync = modal.querySelector("#edit-h-sync").checked;
+                const payload = { conductor: newC, estado: newS };
+                if (newDate) payload.fecha_asignacion = new Date(newDate + 'T12:00:00Z').toISOString();
+                if (newDdate && newS !== 'Asignado') payload.fecha_entrega = new Date(newDdate + 'T12:00:00Z').toISOString();
+                else if (newS === 'Asignado') payload.fecha_entrega = null;
+                await updateHistoryRecord(recordId, payload);
+                if (sync && rec.territorio_id) {
+                    const tUpdate = { asignado_a: newC, estado: newS };
+                    if (newS !== 'Asignado') {
+                        tUpdate.asignado_a = null;
+                        tUpdate.fecha_asignacion = null;
+                        tUpdate.estado = (newS === 'Completado' || newS === 'Predicado') ? 'Predicado' : newS;
+                    }
+                    await updateTerritorio(rec.territorio_id, tUpdate);
+                }
+                showNotification("Registro actualizado");
+                modal.classList.add("hidden");
+
+                // Refresh logic
+                if (window.reloadData) await window.reloadData();
+                if (window.dispatchModuleSync) window.dispatchModuleSync();
+            } catch (e) { showNotification(e.message, "error"); btn.innerText = "Error"; btn.disabled = false; }
+        };
+    });
+};
+window.showEditHistoryModal = showEditHistoryModal;
+
+const showDeleteHistoryModal = async (recordId, cond, num, sourceData = null) => {
+    showCustomConfirm(`
+         <div class="text-left space-y-4">
+            <div class="flex items-center gap-4 text-red-600">
+                 <div class="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center text-xl shadow-inner"><i class="fas fa-trash-alt"></i></div>
+                 <h4 class="font-black uppercase tracking-tight text-xl">¿Eliminar registro?</h4>
+            </div>
+            
+            <p class="text-[11px] font-bold text-slate-600 dark:text-slate-400 leading-relaxed uppercase tracking-wide">
+                Estás a punto de borrar permanentemente el historial de <b>${cond}</b> para el territorio <b>${num}</b>.
+            </p>
+
+            <div class="p-4 bg-red-50 dark:bg-red-500/10 rounded-2xl border border-red-100 dark:border-red-500/20">
+                 <p class="text-[9px] text-red-600 dark:text-red-400 font-black uppercase tracking-widest italic text-center leading-normal">
+                    <i class="fas fa-exclamation-triangle mr-1"></i> Esta acción no se puede deshacer y afectará las estadísticas.
+                 </p>
+            </div>
+
+            <div class="p-5 bg-slate-50 dark:bg-black/20 rounded-[2rem] border border-slate-100 dark:border-white/5">
+                <label class="flex items-start gap-4 cursor-pointer group">
+                    <div class="relative mt-1">
+                        <input type="checkbox" id="del-h-reset-global" class="peer sr-only">
+                        <div class="w-6 h-6 rounded-lg border-2 border-slate-200 dark:border-white/10 peer-checked:bg-red-500 peer-checked:border-red-500 transition-all flex items-center justify-center text-white text-[10px]">
+                            <i class="fas fa-check"></i>
+                        </div>
+                    </div>
+                    <div class="flex-1">
+                        <span class="block text-[10px] font-black text-slate-700 dark:text-white uppercase tracking-widest mb-1">Liberar Territorio</span>
+                        <p class="text-[8px] font-black text-slate-400 uppercase tracking-wide opacity-60">Si se activa, el territorio volverá a estar "Disponible" inmediatamente.</p>
+                    </div>
+                </label>
+            </div>
+        </div>
+    `, async () => {
+        const resetTerr = document.getElementById("del-h-reset-global")?.checked;
+        try {
+            const historyList = sourceData || await getHistorialReport();
+            const rec = historyList.find(r => r.id === recordId);
+            await deleteHistoryRecord(recordId);
+            if (resetTerr && rec && rec.territorio_id) {
+                await updateTerritorio(rec.territorio_id, { estado: "Disponible", asignado_a: null, fecha_asignacion: null, fecha_salida: null });
+            }
+            showNotification("Registro eliminado correctamente", "success");
+
+            // Refresh logic
+            if (window.reloadData) await window.reloadData();
+            if (window.dispatchModuleSync) window.dispatchModuleSync();
+        } catch (e) { showNotification(e.message, "error"); }
+    });
+};
+window.showDeleteHistoryModal = showDeleteHistoryModal;
+
+
 // --- SELECTION MODALS (Fixes non-functional buttons) ---
 // --- SELECTION MODALS (Enhanced for Multiple Selection and Manzanas) ---
 const showTerritorySelectionModal = (current, territorios, onSelect, containerId = 'modal-container') => {
@@ -2027,176 +2205,8 @@ const renderAsignacionesView = async (container) => {
         }, 0);
     };
 
-    const showEditHistoryModal = async (recordId, sourceData = null) => {
-        const historyList = sourceData || allHistory;
-        const rec = historyList.find(r => r.id === recordId);
-        if (!rec) {
-            showNotification("Cargando datos del registro...", "info");
-            const fullHist = await getHistorialReport();
-            const freshRec = fullHist.find(r => r.id === recordId);
-            if (!freshRec) return showNotification("No se encontró el registro", "error");
-            return showEditHistoryModal(recordId, fullHist);
-        }
-
-        showModal(`
-            <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden">
-                <header class="shrink-0 bg-primary p-8 text-white relative overflow-hidden">
-                    <div class="absolute inset-0 bg-white/10 backdrop-blur-3xl"></div>
-                    <div class="relative z-10 flex items-center gap-6">
-                        <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center text-3xl shadow-2xl border border-white/30">
-                            <i class="fas fa-history"></i>
-                        </div>
-                        <div>
-                            <h3 class="text-2xl font-black uppercase tracking-tight leading-none mb-1">Editar Registro</h3>
-                            <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Identificador: ${rec.numero || 'T-ERR'}</p>
-                        </div>
-                    </div>
-                </header>
-
-                <div class="flex-1 p-8 space-y-8 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-black/20">
-                    <div class="space-y-6">
-                        <div class="space-y-3">
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Conductor</label>
-                             <input type="text" id="edit-h-cond" value="${rec.conductor}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all uppercase shadow-inner">
-                        </div>
-                        
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                            <div class="space-y-3">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Fecha Original</label>
-                                <input type="date" id="edit-h-date" value="${rec.fecha_asignacion ? rec.fecha_asignacion.split("T")[0] : ""}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[11px] font-black text-primary outline-none focus:border-primary transition-all shadow-inner uppercase">
-                            </div>
-
-                            <div class="space-y-3">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Estado del Registro</label>
-                                <select id="edit-h-status" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[11px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all uppercase shadow-inner cursor-pointer appearance-none">
-                                    <option value="Asignado" ${rec.estado === "Asignado" ? "selected" : ""}>Asignado (Activo)</option>
-                                    <option value="Completado" ${rec.estado === "Completado" ? "selected" : ""}>Completado</option>
-                                    <option value="Devuelto" ${rec.estado === "Devuelto" ? "selected" : ""}>Devuelto</option>
-                                    <option value="Predicado" ${rec.estado === "Predicado" ? "selected" : ""}>Predicado</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="space-y-3 ${rec.estado === 'Asignado' ? 'hidden' : ''}" id="edit-h-delivery-container">
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Fecha de Entrega (S-13)</label>
-                            <input type="date" id="edit-h-delivery-date" value="${rec.fecha_entrega ? rec.fecha_entrega.split("T")[0] : ""}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[11px] font-black text-emerald-600 outline-none focus:border-emerald-500 transition-all shadow-inner uppercase">
-                        </div>
-
-                        <div class="p-6 bg-primary/5 rounded-[2rem] border border-primary/10 space-y-4">
-                            <label class="flex items-start gap-4 cursor-pointer group">
-                                <div class="relative mt-1">
-                                    <input type="checkbox" id="edit-h-sync" checked class="peer sr-only">
-                                    <div class="w-6 h-6 rounded-lg border-2 border-slate-200 dark:border-white/10 peer-checked:bg-primary peer-checked:border-primary transition-all flex items-center justify-center text-white text-[10px]">
-                                        <i class="fas fa-check"></i>
-                                    </div>
-                                </div>
-                                <div class="flex-1">
-                                    <span class="block text-[10px] font-black text-primary uppercase tracking-widest mb-1">Sincronizar Maestro actual</span>
-                                    <p class="text-[8px] font-black text-slate-400 uppercase tracking-wide leading-relaxed opacity-60">Si se activa, el estado actual del territorio "${rec.numero}" se actualizará para coincidir con este cambio histórico.</p>
-                                </div>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-                <footer class="shrink-0 p-8 bg-white dark:bg-black/40 border-t border-slate-100 dark:border-white/5 flex gap-4">
-                    <button id="btn-cancel-hist" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] border border-slate-200 dark:border-white/10 transition-all active:scale-95">
-                        Cancelar
-                    </button>
-                    <button id="btn-save-hist" class="flex-[1.5] py-5 bg-primary hover:bg-primary-light text-white font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-primary/20 transition-all active:scale-95 flex items-center justify-center gap-2">
-                        <i class="fas fa-save"></i> Guardar Cambios
-                    </button>
-                </footer>
-            </div>
-        `, (modal) => {
-            modal.querySelector("#btn-cancel-hist").onclick = () => modal.classList.add("hidden");
-            modal.querySelector("#edit-h-status").onchange = (e) => {
-                const container = modal.querySelector("#edit-h-delivery-container");
-                if (e.target.value === 'Asignado') container.classList.add('hidden');
-                else container.classList.remove('hidden');
-            };
-
-            modal.querySelector("#btn-save-hist").onclick = async (e) => {
-                const btn = e.currentTarget;
-                btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Guardando...'; btn.disabled = true;
-                try {
-                    const newDate = modal.querySelector("#edit-h-date").value;
-                    const newC = modal.querySelector("#edit-h-cond").value;
-                    const newS = modal.querySelector("#edit-h-status").value;
-                    const newDdate = modal.querySelector("#edit-h-delivery-date").value;
-                    const sync = modal.querySelector("#edit-h-sync").checked;
-                    const payload = { conductor: newC, estado: newS };
-                    if (newDate) payload.fecha_asignacion = new Date(newDate + 'T12:00:00Z').toISOString();
-                    if (newDdate && newS !== 'Asignado') payload.fecha_entrega = new Date(newDdate + 'T12:00:00Z').toISOString();
-                    else if (newS === 'Asignado') payload.fecha_entrega = null;
-                    await updateHistoryRecord(recordId, payload);
-                    if (sync && rec.territorio_id) {
-                        const tUpdate = { asignado_a: newC, estado: newS };
-                        if (newS !== 'Asignado') {
-                            tUpdate.asignado_a = null;
-                            tUpdate.fecha_asignacion = null;
-                            tUpdate.estado = (newS === 'Completado' || newS === 'Predicado') ? 'Predicado' : newS;
-                        }
-                        await updateTerritorio(rec.territorio_id, tUpdate);
-                    }
-                    showNotification("Registro actualizado");
-                    modal.classList.add("hidden");
-                    await reloadData();
-                    if (window.dispatchModuleSync) window.dispatchModuleSync();
-                } catch (e) { showNotification(e.message, "error"); btn.innerText = "Error"; btn.disabled = false; }
-            };
-        });
-    };
     window.showEditHistoryModal = showEditHistoryModal;
 
-    const showDeleteHistoryModal = (recordId, cond, num, sourceData = null) => {
-
-        showCustomConfirm(`
-             <div class="text-left space-y-4">
-                <div class="flex items-center gap-4 text-red-600">
-                     <div class="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center text-xl shadow-inner"><i class="fas fa-trash-alt"></i></div>
-                     <h4 class="font-black uppercase tracking-tight text-xl">¿Eliminar registro?</h4>
-                </div>
-                
-                <p class="text-[11px] font-bold text-slate-600 dark:text-slate-400 leading-relaxed uppercase tracking-wide">
-                    Estás a punto de borrar permanentemente el historial de <b>${cond}</b> para el territorio <b>${num}</b>.
-                </p>
-
-                <div class="p-4 bg-red-50 dark:bg-red-500/10 rounded-2xl border border-red-100 dark:border-red-500/20">
-                     <p class="text-[9px] text-red-600 dark:text-red-400 font-black uppercase tracking-widest italic text-center leading-normal">
-                        <i class="fas fa-exclamation-triangle mr-1"></i> Esta acción no se puede deshacer y afectará las estadísticas.
-                     </p>
-                </div>
-
-                <div class="p-5 bg-slate-50 dark:bg-black/20 rounded-[2rem] border border-slate-100 dark:border-white/5">
-                    <label class="flex items-start gap-4 cursor-pointer group">
-                        <div class="relative mt-1">
-                            <input type="checkbox" id="del-h-reset-global" class="peer sr-only">
-                            <div class="w-6 h-6 rounded-lg border-2 border-slate-200 dark:border-white/10 peer-checked:bg-red-500 peer-checked:border-red-500 transition-all flex items-center justify-center text-white text-[10px]">
-                                <i class="fas fa-check"></i>
-                            </div>
-                        </div>
-                        <div class="flex-1">
-                            <span class="block text-[10px] font-black text-slate-700 dark:text-white uppercase tracking-widest mb-1">Liberar Territorio</span>
-                            <p class="text-[8px] font-black text-slate-400 uppercase tracking-wide opacity-60">Si se activa, el territorio volverá a estar "Disponible" inmediatamente.</p>
-                        </div>
-                    </label>
-                </div>
-            </div>
-        `, async () => {
-            const resetTerr = document.getElementById("del-h-reset-global")?.checked;
-            try {
-                const historyList = sourceData || allHistory;
-                const rec = historyList.find(r => r.id === recordId);
-                await deleteHistoryRecord(recordId);
-                if (resetTerr && rec && rec.territorio_id) {
-                    await updateTerritorio(rec.territorio_id, { estado: "Disponible", asignado_a: null, fecha_asignacion: null, fecha_salida: null });
-                }
-                showNotification("Registro eliminado correctamente", "success");
-                reloadData();
-            } catch (e) { showNotification(e.message, "error"); }
-        });
-    };
     window.showDeleteHistoryModal = showDeleteHistoryModal;
 
     const handleTransfer = async (id, num, currentConductor) => {
