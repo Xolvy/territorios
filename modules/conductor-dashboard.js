@@ -575,42 +575,42 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
             {
                 title: 'Agenda Inteligente',
                 icon: 'fas fa-bolt-lightning',
-                msg: 'Analiza tu carga semanal y te sugiere por cuál territorio empezar hoy según la urgencia y tus asignaciones.'
+                msg: 'Radar proactivo que analiza tus territorios y te sugiere por dónde empezar hoy según la urgencia y tus asignaciones.'
             },
             {
-                title: 'Cronograma Grupal',
+                title: 'Cronograma de Salidas',
                 icon: 'fas fa-calendar-check',
-                msg: 'Consulta quién conduce cada salida y los puntos de reunión oficiales de toda la congregación.'
+                msg: 'Consulta horarios, conductores y puntos de reunión oficiales de toda la semana para coordinar las salidas del grupo.'
             },
             {
                 title: 'Misiones de Rescate',
                 icon: 'fas fa-life-ring',
-                msg: 'Identifica y atiende territorios que llevan mucho tiempo sin trabajarse o que requieren atención inmediata.'
+                msg: 'Identifica territorios con más de 48 horas de retraso. Usa el botón "Misiones" para asumir ayuda y apoyar al grupo.'
             },
             {
                 title: 'Mi Disponibilidad',
                 icon: 'fas fa-user-clock',
-                msg: 'Indica los días y turnos en los que puedes conducir el grupo para facilitar la organización de la salida.'
+                msg: 'Indica los días y turnos en los que puedes conducir para facilitar la organización de la salida al responsable.'
             },
             {
                 title: 'Predicación Telefónica',
                 icon: 'fas fa-phone-alt',
-                msg: 'Sistema unificado para gestionar llamadas: solicita números, asigna compañeros y registra resultados al instante.'
+                msg: 'Centro de llamadas avanzado: solicita números, gestiona compañeros y registra resultados al instante en el reporte.'
             },
             {
-                title: 'Explorador de Mapas',
+                title: 'Mapas Interactivos',
                 icon: 'fas fa-map-marked-alt',
-                msg: 'Cartografía digital interactiva. Visualiza manzanas, calles y límites de tus territorios asignados con precisión.'
+                msg: 'Cartografía digital premium. Visualiza manzanas, calles y límites de tus territorios asignados con precisión total.'
             },
             {
-                title: 'Ayudas para el Ministerio',
+                title: 'Recursos del Ministerio',
                 icon: 'fas fa-book-open',
-                msg: 'Repositorio de recursos, videos instructivos y metodologías para potenciar tu predicación y enseñanza.'
+                msg: 'Biblioteca digital con videos, guías y metodologías para potenciar tu ministerio y enseñanza en el territorio.'
             },
             {
-                title: 'Asistente de Inteligencia Artificial',
+                title: 'Asistente IA (Gemini)',
                 icon: 'fas fa-brain',
-                msg: 'Cerebro Territorial: tu guía 24/7. Pregúntale sobre la App, gestión de territorios o sugerencias para tu grupo.'
+                msg: 'Cerebro Territorial: tu guía 24/7. Pregúntale sobre la App, gestión de territorios o pide sugerencias para tu grupo.'
             }
         ];
 
@@ -1734,7 +1734,7 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
                 if (!activeTurns.has(s)) return false;
                 if (s === 'zoom' && dayName !== 'Martes') return false;
                 const sData = d[s];
-                return sData && (sData.conductor || sData.lugar);
+                return sData && (sData.conductor || sData.lugar || sData.hora);
             });
 
             if (!hasVisibleData) {
@@ -1774,9 +1774,16 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
 
                 return `
                                 <div class="p-4 rounded-2xl border border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02] ${isImpacted ? 'ring-2 ring-primary/20 bg-primary/5' : ''}">
-                                    <div class="flex items-center gap-2 mb-3">
-                                        <i class="fas ${shiftIcons[shift]} ${shiftColors[shift]} text-[10px]"></i>
-                                        <span class="text-[9px] font-black uppercase tracking-widest text-slate-400">${shiftLabels[shift]}</span>
+                                    <div class="flex items-center justify-between gap-2 mb-3">
+                                        <div class="flex items-center gap-2">
+                                            <i class="fas ${shiftIcons[shift]} ${shiftColors[shift]} text-[10px]"></i>
+                                            <span class="text-[9px] font-black uppercase tracking-widest text-slate-400">${shiftLabels[shift]}</span>
+                                        </div>
+                                        ${sData.hora ? `
+                                        <div class="flex items-center gap-1.5 px-2 py-0.5 bg-slate-100 dark:bg-white/5 rounded-full border border-slate-200/50 dark:border-white/5">
+                                            <i class="far fa-clock text-[8px] text-slate-400"></i>
+                                            <span class="text-[9px] font-black text-slate-600 dark:text-slate-400 tabular-nums">${sData.hora}</span>
+                                        </div>` : ''}
                                     </div>
                                     
                                     <div class="space-y-3">
@@ -3257,7 +3264,7 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
                         <i class="fas fa-book-open opacity-30"></i>
                     </div>
                     <div>
-                        <h3 class="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Ayudas para el Ministerio</h3>
+                        <h3 class="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Recursos del Ministerio</h3>
                         <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-2">Próximamente Recursos Digitales</p>
                     </div>
                 </div>
@@ -3275,7 +3282,7 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
                                 <i class="fas fa-book-open"></i>
                             </div>
                             <div>
-                                <h3 class="text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Ayudas para el Ministerio</h3>
+                                <h3 class="text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Recursos del Ministerio</h3>
                                 <div class="flex items-center gap-3 mt-1.5 font-bold uppercase tracking-[0.3em] text-[10px] text-teal-600 dark:text-teal-400">
                                     <span class="w-2 h-2 rounded-full bg-teal-500 animate-pulse"></span>
                                     Recursos y Metodologías
