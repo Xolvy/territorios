@@ -8,7 +8,7 @@ import {
     updateRecurso, getCampanas, saveCampana, getGroupsConfig, returnTerritorioParcial,
     rebuildHistoryFromSchedule, runSystemDiagnosticsAndRepair, masterResetAssignments,
     syncAllProgramsToTerritories
-} from '../../data/firestore-services.js?v=2.2.2';
+} from '../../data/firestore-services.js?v=2.2.3';
 
 const formatGroups = (val) => {
     if (!val) return '—';
@@ -424,7 +424,7 @@ const renderAsignacionesView = async (container) => {
         container.innerHTML = `
             <div class="space-y-6 md:space-y-8 animate-fade-in px-1">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                    <button id="hub-btn-assign" class="group relative bg-white dark:bg-[#121212]/40 backdrop-blur-3xl overflow-hidden p-4 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] border border-slate-200 dark:border-white/10 shadow-2xl transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_60px_-10px_rgba(59,130,246,0.3)]">
+                    <button id="hub-btn-assign" class="group relative bg-white dark:bg-[#12.2.3]/40 backdrop-blur-3xl overflow-hidden p-4 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] border border-slate-200 dark:border-white/10 shadow-2xl transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_60px_-10px_rgba(59,130,246,0.3)]">
                         <div class="absolute -right-10 -bottom-10 w-24 h-24 md:w-40 md:h-40 bg-primary/10 blur-[40px] md:blur-[60px] rounded-full group-hover:bg-primary/30 transition-all duration-700"></div>
                         <div class="flex items-center gap-4 md:gap-6">
                             <div class="w-10 h-10 md:w-16 md:h-16 rounded-[1rem] md:rounded-[1.5rem] bg-primary flex items-center justify-center text-xl md:text-3xl text-white group-hover:scale-110 group-hover:rotate-6 transition-all shadow-lg shadow-primary/30"><i class="fas fa-plus"></i></div>
@@ -434,14 +434,14 @@ const renderAsignacionesView = async (container) => {
                             </div>
                         </div>
                     </button>
-                    <button id="hub-btn-return" class="group relative bg-white dark:bg-[#121212]/40 backdrop-blur-3xl overflow-hidden p-4 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] border border-slate-200 dark:border-white/10 shadow-2xl transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_60px_-10px_rgba(244,63,94,0.3)]">
+                    <button id="hub-btn-return" class="group relative bg-white dark:bg-[#12.2.3]/40 backdrop-blur-3xl overflow-hidden p-4 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] border border-slate-200 dark:border-white/10 shadow-2xl transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_60px_-10px_rgba(244,63,94,0.3)]">
                         <div class="absolute -right-10 -bottom-10 w-24 h-24 md:w-40 md:h-40 bg-rose-600/10 blur-[40px] md:blur-[60px] rounded-full group-hover:bg-rose-600/30 transition-all duration-700"></div>
                         <div class="flex items-center gap-4 md:gap-6">
                             <div class="w-10 h-10 md:w-16 md:h-16 rounded-[1rem] md:rounded-[1.5rem] bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center text-xl md:text-3xl text-white group-hover:scale-110 group-hover:-rotate-6 transition-all shadow-lg shadow-rose-500/30"><i class="fas fa-file-import"></i></div>
                             <div class="text-left relative">
                                 <p class="text-[8px] md:text-[10px] font-black text-rose-500 uppercase tracking-[0.3em] mb-0.5 md:mb-1">Recepción</p>
                                 <p class="text-base md:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Devolver Territorios</p>
-                                ${_selectedIds.size > 0 ? `<div class="absolute -top-2 -right-6 md:-top-4 md:-right-12 bg-rose-600 text-white w-5 h-5 md:w-8 md:h-8 rounded-full text-[9px] md:text-xs font-black flex items-center justify-center animate-bounce shadow-lg ring-2 md:ring-4 ring-white dark:ring-[#121212]">${_selectedIds.size}</div>` : ''}
+                                ${_selectedIds.size > 0 ? `<div class="absolute -top-2 -right-6 md:-top-4 md:-right-12 bg-rose-600 text-white w-5 h-5 md:w-8 md:h-8 rounded-full text-[9px] md:text-xs font-black flex items-center justify-center animate-bounce shadow-lg ring-2 md:ring-4 ring-white dark:ring-[#12.2.3]">${_selectedIds.size}</div>` : ''}
                             </div>
                         </div>
                     </button>
@@ -1215,9 +1215,12 @@ const renderProgramaTab = async (container) => {
                 </div>
 
                 <div class="flex flex-col sm:flex-row justify-between items-center px-8 mt-6 gap-4">
-                    <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-2">
-                        <i class="fas fa-cloud-upload-alt text-emerald-500"></i> Autoguardado inteligente activado
-                    </p>
+                    <div class="flex items-center gap-6">
+                        <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-2">
+                            <i class="fas fa-cloud-upload-alt text-emerald-500"></i> Autoguardado inteligente activado
+                        </p>
+                        <div id="save-status" class="text-[9px] font-black uppercase text-primary tracking-[0.2em] transition-opacity duration-300 opacity-0 flex items-center gap-2"></div>
+                    </div>
                     <div id="turn-filters" class="flex items-center gap-2">
                         <!-- Turn filters will be injected here -->
                     </div>
@@ -1303,7 +1306,7 @@ const renderProgramaTab = async (container) => {
         `;
     };
 
-    const tableContainer = document.getElementById('admin-prog-table');
+    const tableContainer = container.querySelector('#admin-prog-table');
 
     const loadWeekData = async () => {
         const overlay = container.querySelector('#prog-loading-overlay');
@@ -1844,7 +1847,7 @@ const renderProgramaTab = async (container) => {
         if (!_globalPrograma) return;
         if (!_globalPrograma.dias[dayIndex][turnoId]) _globalPrograma.dias[dayIndex][turnoId] = {};
         _globalPrograma.dias[dayIndex][turnoId][field] = value;
-        const statusIndicator = document.getElementById('save-status');
+        const statusIndicator = container.querySelector('#save-status');
         if (statusIndicator) {
             statusIndicator.style.opacity = '1';
             statusIndicator.innerHTML = '<span class="animate-pulse">●</span> Guardando...';

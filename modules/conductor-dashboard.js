@@ -1,4 +1,4 @@
-import { auth } from '../firebase-config.js?v=2.2.2';
+import { auth } from '../firebase-config.js?v=2.2.3';
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import {
     getTerritorios, getConductores, getPublicadores, getTelefonos, updateTelefono,
@@ -8,10 +8,10 @@ import {
     addPublicador, updatePublicador, deletePublicador,
     releaseUnusedTelefonos, solicitarNumeros, updateTelefonoStatus, logSessionSummary,
     logReturn, returnTerritorio, returnTerritorioParcial, transferTerritory
-} from '../data/firestore-services.js?v=2.2.2';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, formatManzanas } from './utils/helpers.js?v=2.2.2';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=2.2.2';
-import { MapViewer } from './map-viewer.js?v=2.2.2';
+} from '../data/firestore-services.js?v=2.2.3';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, formatManzanas } from './utils/helpers.js?v=2.2.3';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=2.2.3';
+import { MapViewer } from './map-viewer.js?v=2.2.3';
 
 
 
@@ -326,7 +326,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 </div>
 
                 <!-- Module: Misiones de Rescate (Reordered to be above availability) -->
-                <div class="lg:col-span-2 ${mods.rescue ? '' : 'hidden'}" id="ayudas-container"></div>
+                <div class="lg:col-span-2 hidden" id="ayudas-container"></div>
                 
                 <div class="lg:col-span-2 ${mods.disponibilidad !== false ? '' : 'hidden'}" id="availability-container">
                 </div>
@@ -514,12 +514,10 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
         // window.location.reload(); // Not strictly necessary if auth state change handles it, but good for clean slate
     });
 
-    const btnAdmin = document.getElementById('btn-goto-admin');
+    const btnAdmin = container.querySelector('#btn-goto-admin');
     if (btnAdmin) {
         btnAdmin.onclick = () => {
             window.history.pushState({}, '', '/administrador/dashboard');
-            // Trigger app.js routing logic by reloading or dispatching a popstate if app.js listens for it.
-            // Since app.js uses onAuthStateChanged which runs on load, reload is safest.
             window.location.reload();
         };
     }
@@ -550,10 +548,10 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 rescue: false
             };
 
-            await loadUnifiedDashboard(displayName, document.getElementById('calendar-container'), document.getElementById('territorios-container'), userMods, config, conductorData, userRole);
+            await loadUnifiedDashboard(container, displayName, container.querySelector('#calendar-container'), container.querySelector('#territorios-container'), userMods, config, conductorData, userRole);
             const myPhones = await refreshPhones();
             const publicadores = await getPublicadores();
-            initializePhoneModule(myPhones, publicadores, displayName, document.getElementById('phone-tbody'), refreshPhones);
+            initializePhoneModule(myPhones, publicadores, displayName, container.querySelector('#phone-tbody'), refreshPhones);
         } catch (e) { console.error("Refresh error", e); }
     };
 
@@ -566,7 +564,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
     }
 };
 
-const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer, userMods, config, conductorData, userRole) => {
+const loadUnifiedDashboard = async (container, name, agendaContainer, territoriosContainer, userMods, config, conductorData, userRole) => {
     // We no longer hide the territories container as requested ("fusionar") 
     // to allow seeing all assigned territories independently of the weekly program.
 
@@ -810,16 +808,48 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
             colorClass = "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20";
         }
 
-        // Feature 8: Integration of Rescue Missions into Smart Agenda (Refined as requested)
-        const rescueCount = allTerritorios.filter(t => {
-            if (t.estado !== 'Asignado' && t.estado !== 'Pendiente') return false;
-            // Overdue check: 120 days
-            const days = t.fecha_asignacion ? Math.floor((new Date() - new Date(t.fecha_asignacion)) / (1000 * 60 * 60 * 24)) : 0;
-            return days > 120;
-        }).length;
+        // --- FUSION POWER UP: RESCUE MISSIONS LOGIC (48h Atraso) ---
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
 
+        const plannedDates = {};
+        if (programa && programa.dias && programa.id) {
+            const monday = new Date(programa.id + "T00:00:00");
+            const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+            const shifts = ['manana', 'tarde', 'noche'];
+            programa.dias.forEach(d => {
+                const dayIdx = dayNames.indexOf(d.nombre);
+                if (dayIdx === -1) return;
+                const plD = new Date(monday);
+                plD.setDate(monday.getDate() + dayIdx);
+                plD.setHours(0, 0, 0, 0);
+                shifts.forEach(s => {
+                    if (d[s] && d[s].territorio) {
+                        const nums = d[s].territorio.split(/[,/]+/).map(n => n.trim()).filter(Boolean);
+                        nums.forEach(num => {
+                            if (!plannedDates[num]) plannedDates[num] = new Set();
+                            plannedDates[num].add(plD.getTime());
+                        });
+                    }
+                });
+            });
+        }
+
+        const rescueCandidates = allTerritorios.filter(t => {
+            if (t.estado !== 'Asignado' && t.estado !== 'Pendiente') return false;
+            // Exclusion: Don't show missions already assigned to the current user
+            if (t.asignado_a === name) return false;
+            const timestamps = plannedDates[t.numero];
+            if (!timestamps) return false;
+            return Array.from(timestamps).some(ts => {
+                const diff = Math.floor((now - new Date(ts)) / (1000 * 60 * 60 * 24));
+                return diff >= 2;
+            });
+        });
+
+        const rescueCount = rescueCandidates.length;
         const rescueBtnClass = rescueCount > 0
-            ? "bg-rose-600 text-white border-rose-500/20"
+            ? "bg-rose-600 text-white border-rose-500/20 shadow-xl shadow-rose-600/20"
             : "bg-white dark:bg-white/5 text-rose-500 border-rose-500/30";
 
         intelligenceBadge.innerHTML = `
@@ -829,88 +859,101 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
                     <i class="fas fa-calendar-alt animate-pulse"></i> Programa de predicación
                 </button>
                 <button id="btn-smart-rescue-trigger" onclick="window.showRescueMissionsModal()" 
-                        class="flex items-center gap-3 ${rescueBtnClass} py-3.5 px-6 rounded-2xl border-2 text-[10px] font-black uppercase tracking-[0.15em] shadow-sm backdrop-blur-md hover:scale-105 active:scale-95 transition-all">
-                    <i class="fas fa-ambulance ${rescueCount > 0 ? 'animate-bounce' : ''}"></i> Misiones ${rescueCount > 0 ? `<span class="bg-white text-rose-600 px-2 py-0.5 rounded-lg ml-1 font-black">${rescueCount}</span>` : ''}
+                        class="flex items-center gap-3 ${rescueBtnClass} py-3.5 px-6 rounded-2xl border-2 text-[10px] font-black uppercase tracking-[0.15em] shadow-sm backdrop-blur-md hover:scale-105 active:scale-95 transition-all ${rescueCount > 0 ? 'animate-bounce-subtle' : ''}">
+                    <i class="fas fa-ambulance ${rescueCount > 0 ? 'animate-pulse' : ''}"></i> Misiones ${rescueCount > 0 ? `<span class="bg-white text-rose-600 px-2 py-0.5 rounded-lg ml-1 font-black">${rescueCount}</span>` : ''}
                 </button>
             </div>
         `;
-    }
 
-    window.showRescueMissionsModal = async () => {
-        const allT = await getTerritorios();
-        const rescueCandidates = allT.filter(t => {
-            if (t.estado !== 'Asignado' && t.estado !== 'Pendiente') return false;
-            const days = t.fecha_asignacion ? Math.floor((new Date() - new Date(t.fecha_asignacion)) / (1000 * 60 * 60 * 24)) : 0;
-            return days > 120;
-        });
-
-        showModal(`
-        <div class="p-8">
-            <header class="flex items-center gap-4 mb-10">
-                <div class="w-14 h-14 bg-rose-500/10 rounded-2xl flex items-center justify-center text-3xl text-rose-600 shadow-inner">
-                    <i class="fas fa-ambulance animate-pulse"></i>
-                </div>
-                <div>
-                    <h3 class="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Misiones de Rescate</h3>
-                    <p class="text-[9px] text-rose-500 font-bold uppercase tracking-widest mt-1">Territorios atrasados que necesitan ayuda</p>
-                </div>
-            </header>
-
-            <div class="space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
-                ${rescueCandidates.length === 0 ? `
-                    <div class="py-10 text-center text-slate-400">
-                        <i class="fas fa-check-circle text-4xl mb-4 opacity-20"></i>
-                        <p class="text-[10px] font-black uppercase tracking-widest leading-relaxed">¡Todo al día! No hay misiones pendientes.</p>
-                    </div>
-                ` : rescueCandidates.map(t => `
-                    <div class="modern-card !p-6 border-rose-500/10 hover:border-rose-500 transition-all group flex items-center justify-between gap-4">
-                        <div>
-                            <div class="flex items-baseline gap-1">
-                                <span class="text-rose-600 font-black text-xs">T-</span>
-                                <span class="text-2xl font-black text-slate-900 dark:text-white">${t.numero}</span>
+        window.showRescueMissionsModal = () => {
+            showModal(`
+                <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[3rem] overflow-hidden">
+                    <header class="shrink-0 bg-rose-600 p-8 text-white relative overflow-hidden">
+                        <div class="absolute inset-0 bg-gradient-to-br from-black/20 to-transparent"></div>
+                        <div class="relative z-10 flex items-center justify-between">
+                            <div class="flex items-center gap-6">
+                                <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center text-3xl shadow-2xl border border-white/30">
+                                    <i class="fas fa-ambulance"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-2xl font-black uppercase tracking-tight leading-none mb-1">Misiones de Rescate</h3>
+                                    <p class="text-[10px] opacity-70 uppercase tracking-[0.4em] font-black">Refuerzo Territorial Inmediato</p>
+                                </div>
                             </div>
-                            <p class="text-[9px] text-slate-400 font-bold uppercase mt-1">A cargo de: ${t.asignado_a}</p>
+                            <div class="bg-white/20 px-5 py-2 rounded-2xl backdrop-blur-md border border-white/20">
+                                <span class="text-xs font-black uppercase tracking-widest">${rescueCount} Pendientes</span>
+                            </div>
                         </div>
-                        <button onclick="window.handleRescueTerritory('${t.id}', '${t.numero}', '${currentConductorName}', '${t.manzanas || ''}')" 
-                                class="bg-rose-600 text-white px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg shadow-rose-600/20">
-                            Coger
-                        </button>
+                    </header>
+    
+                    <div class="flex-1 overflow-y-auto custom-scrollbar p-10 space-y-8 bg-slate-50 dark:bg-black/20">
+                        ${rescueCount === 0 ? `
+                            <div class="py-20 text-center flex flex-col items-center gap-6 opacity-30">
+                                <div class="w-24 h-24 rounded-full border-4 border-slate-200 flex items-center justify-center text-4xl">
+                                    <i class="fas fa-check-double"></i>
+                                </div>
+                                <p class="text-[11px] font-black uppercase tracking-[0.4em]">Sin misiones críticas hoy</p>
+                            </div>
+                        ` : `
+                            <div class="grid grid-cols-1 gap-6">
+                                ${rescueCandidates.map(t => `
+                                    <div class="bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-6 rounded-[2rem] shadow-sm hover:shadow-xl hover:border-rose-500/30 transition-all group/card">
+                                        <div class="flex justify-between items-start mb-6">
+                                            <div class="flex items-baseline gap-1">
+                                                <span class="text-rose-600 font-black text-sm italic">T-</span>
+                                                <h4 class="text-4xl font-black text-slate-800 dark:text-white tracking-tighter">${t.numero}</h4>
+                                            </div>
+                                            <div class="text-right">
+                                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Responsable</p>
+                                                <p class="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase">${t.asignado_a}</p>
+                                            </div>
+                                        </div>
+                                        <div class="bg-rose-500/5 dark:bg-rose-500/10 p-4 rounded-xl border border-rose-500/10 mb-6 group-hover/card:bg-rose-500/10 transition-colors">
+                                            <p class="text-[12px] text-slate-600 dark:text-slate-300 font-bold leading-relaxed uppercase tracking-tight">
+                                                ${t.manzanas || 'Territorio requiere atención inmediata.'}
+                                            </p>
+                                        </div>
+                                        <button onclick="window.handleRescueTerritory('${t.id}', '${t.numero}', '${name}', '${t.manzanas || ''}')"
+                                                class="w-full py-4 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] shadow-lg shadow-rose-600/20 transition-all active:scale-95 flex items-center justify-center gap-3">
+                                            <i class="fas fa-hand-holding-heart"></i> Asumir Ayuda
+                                        </button>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `}
                     </div>
-                `).join('')}
-            </div>
+                </div>
+            `, null, 'max-w-xl');
+        };
 
-            <button onclick="this.closest('#modal-container').classList.add('hidden')" class="w-full mt-10 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-slate-600 transition-colors">Cerrar</button>
-        </div>
-    `);
-    };
 
-    // --- RENDER MAPS GRID ---
-    const mapsGrid = document.getElementById('conductor-maps-grid');
-    const mapsSearch = document.getElementById('search-explorer-maps');
+        // --- RENDER MAPS GRID ---
+        const mapsGrid = document.getElementById('conductor-maps-grid');
+        const mapsSearch = document.getElementById('search-explorer-maps');
 
-    const renderMapsExplorer = (filter = '') => {
-        if (!mapsGrid) return;
+        const renderMapsExplorer = (filter = '') => {
+            if (!mapsGrid) return;
 
-        let territoriesToShow = allTerritorios || [];
+            let territoriesToShow = allTerritorios || [];
 
-        // Filter by search
-        if (filter) {
-            const f = filter.toLowerCase();
-            territoriesToShow = territoriesToShow.filter(t =>
-                t.numero?.toString().includes(f) ||
-                t.manzanas?.toLowerCase().includes(f)
-            );
-        }
+            // Filter by search
+            if (filter) {
+                const f = filter.toLowerCase();
+                territoriesToShow = territoriesToShow.filter(t =>
+                    t.numero?.toString().includes(f) ||
+                    t.manzanas?.toLowerCase().includes(f)
+                );
+            }
 
-        // Sort by number
-        territoriesToShow.sort((a, b) => {
-            const numA = parseInt(a.numero) || 0;
-            const numB = parseInt(b.numero) || 0;
-            return numA - numB;
-        });
+            // Sort by number
+            territoriesToShow.sort((a, b) => {
+                const numA = parseInt(a.numero) || 0;
+                const numB = parseInt(b.numero) || 0;
+                return numA - numB;
+            });
 
-        if (territoriesToShow.length === 0) {
-            mapsGrid.innerHTML = `
+            if (territoriesToShow.length === 0) {
+                mapsGrid.innerHTML = `
                 <div class="col-span-full py-20 text-center space-y-4 opacity-30 group">
                     <div class="w-20 h-20 bg-slate-100 dark:bg-white/5 rounded-3xl flex items-center justify-center text-3xl mx-auto group-hover:scale-110 transition-transform">
                         <i class="fas fa-search-location"></i>
@@ -918,8 +961,8 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
                     <p class="font-black text-[10px] uppercase tracking-[0.4em]">Sin resultados</p>
                 </div>
             `;
-        } else {
-            mapsGrid.innerHTML = territoriesToShow.map(t => `
+            } else {
+                mapsGrid.innerHTML = territoriesToShow.map(t => `
                 <div class="modern-card !p-5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:border-primary/40 hover:shadow-xl transition-all group/card cursor-pointer shadow-sm relative overflow-hidden" onclick="window.openInteractiveMapFromDashboard('${t.id}')">
                     <div class="absolute inset-0 bg-primary/5 opacity-0 group-hover/card:opacity-100 transition-opacity pointer-events-none"></div>
                     <div class="flex justify-between items-start mb-4 relative z-10">
@@ -933,26 +976,26 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
                     <h5 class="text-[11px] font-bold text-slate-800 dark:text-gray-200 uppercase tracking-tight leading-relaxed line-clamp-2 relative z-10">${formatManzanas(t.manzanas) || 'Sin sector definido'}</h5>
                 </div>
             `).join('');
+            }
+        };
+
+        if (mapsSearch) {
+            mapsSearch.oninput = (e) => renderMapsExplorer(e.target.value);
         }
-    };
+        renderMapsExplorer();
 
-    if (mapsSearch) {
-        mapsSearch.oninput = (e) => renderMapsExplorer(e.target.value);
-    }
-    renderMapsExplorer();
+        window.openInteractiveMapFromDashboard = (tid) => {
+            const t = allTerritorios.find(x => x.id === tid);
+            if (t && window.openInteractiveMap) window.openInteractiveMap(t, { readOnly: true });
+        };
 
-    window.openInteractiveMapFromDashboard = (tid) => {
-        const t = allTerritorios.find(x => x.id === tid);
-        if (t && window.openInteractiveMap) window.openInteractiveMap(t, { readOnly: true });
-    };
+        window.openGlobalMap = (type) => {
+            const modal = document.getElementById('modal-container');
+            if (!modal) return;
+            modal.classList.remove('hidden');
 
-    window.openGlobalMap = (type) => {
-        const modal = document.getElementById('modal-container');
-        if (!modal) return;
-        modal.classList.remove('hidden');
-
-        if (type === 'png') {
-            modal.innerHTML = `
+            if (type === 'png') {
+                modal.innerHTML = `
                 <div class="w-full h-full max-w-5xl mx-auto flex flex-col p-4 animate-fade-in">
                     <div class="flex justify-between items-center mb-4 bg-white/80 dark:bg-[#0f1420]/90 backdrop-blur-2xl p-6 rounded-[2rem] border border-slate-200 dark:border-white/10 shadow-2xl">
                         <div class="flex items-center gap-5">
@@ -986,11 +1029,11 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
                     </div>
                 </div>
             `;
-            // Initialize Pan and Zoom logic
-            setTimeout(() => window.initPanZoom('global-png-map', 'png-zoom-container'), 100);
-        } else if (type === 'satellite') {
-            const mid = "13IX1r6TfV5T8ZPwU3jzGr0YeHE-AdEg";
-            modal.innerHTML = `
+                // Initialize Pan and Zoom logic
+                setTimeout(() => window.initPanZoom('global-png-map', 'png-zoom-container'), 100);
+            } else if (type === 'satellite') {
+                const mid = "13IX1r6TfV5T8ZPwU3jzGr0YeHE-AdEg";
+                modal.innerHTML = `
                 <div class="w-full h-full max-w-6xl mx-auto flex flex-col p-4 animate-fade-in">
                     <div class="flex justify-between items-center mb-4 bg-white/80 dark:bg-[#0f1420]/90 backdrop-blur-2xl p-6 rounded-[2rem] border border-slate-200 dark:border-white/10 shadow-2xl">
                         <div class="flex items-center gap-5">
@@ -1020,109 +1063,109 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
                     </div>
                 </div>
             `;
-        }
-    };
+            }
+        };
 
-    // --- GLOBAL MAP UTILS ---
-    let zoomState = { scale: 1, x: 0, y: 0 };
-    window.adjustGlobalZoom = (delta) => {
-        const img = document.getElementById('global-png-map');
-        if (!img) return;
-        zoomState.scale = Math.max(0.5, Math.min(5, zoomState.scale + delta));
-        img.style.transform = `scale(${zoomState.scale}) translate(${zoomState.x}px, ${zoomState.y}px)`;
-    };
-
-    window.resetGlobalZoom = () => {
-        const img = document.getElementById('global-png-map');
-        if (!img) return;
-        zoomState = { scale: 1, x: 0, y: 0 };
-        img.style.transform = `scale(1) translate(0px, 0px)`;
-    };
-
-    window.initPanZoom = (imgId, containerId) => {
-        const img = document.getElementById(imgId);
-        const container = document.getElementById(containerId);
-        if (!img || !container) return;
-
-        let isDragging = false;
-        let startX, startY;
-        let lastX = 0, lastY = 0;
-
-        const updateTransform = () => {
+        // --- GLOBAL MAP UTILS ---
+        let zoomState = { scale: 1, x: 0, y: 0 };
+        window.adjustGlobalZoom = (delta) => {
+            const img = document.getElementById('global-png-map');
+            if (!img) return;
+            zoomState.scale = Math.max(0.5, Math.min(5, zoomState.scale + delta));
             img.style.transform = `scale(${zoomState.scale}) translate(${zoomState.x}px, ${zoomState.y}px)`;
         };
 
-        container.onmousedown = (e) => {
-            if (zoomState.scale <= 1) return;
-            isDragging = true;
-            startX = e.clientX - lastX;
-            startY = e.clientY - lastY;
-            container.style.cursor = 'grabbing';
+        window.resetGlobalZoom = () => {
+            const img = document.getElementById('global-png-map');
+            if (!img) return;
+            zoomState = { scale: 1, x: 0, y: 0 };
+            img.style.transform = `scale(1) translate(0px, 0px)`;
         };
 
-        window.onmousemove = (e) => {
-            if (!isDragging) return;
-            lastX = e.clientX - startX;
-            lastY = e.clientY - startY;
-            zoomState.x = lastX / zoomState.scale;
-            zoomState.y = lastY / zoomState.scale;
-            updateTransform();
-        };
+        window.initPanZoom = (imgId, containerId) => {
+            const img = document.getElementById(imgId);
+            const container = document.getElementById(containerId);
+            if (!img || !container) return;
 
-        window.onmouseup = () => {
-            isDragging = false;
-            container.style.cursor = 'default';
-        };
+            let isDragging = false;
+            let startX, startY;
+            let lastX = 0, lastY = 0;
 
-        // Touch Support
-        let lastTouchDist = 0;
-        container.ontouchstart = (e) => {
-            if (e.touches.length === 1) {
+            const updateTransform = () => {
+                img.style.transform = `scale(${zoomState.scale}) translate(${zoomState.x}px, ${zoomState.y}px)`;
+            };
+
+            container.onmousedown = (e) => {
+                if (zoomState.scale <= 1) return;
                 isDragging = true;
-                startX = e.touches[0].clientX - lastX;
-                startY = e.touches[0].clientY - lastY;
-            } else if (e.touches.length === 2) {
-                lastTouchDist = Math.hypot(
-                    e.touches[0].clientX - e.touches[1].clientX,
-                    e.touches[0].clientY - e.touches[1].clientY
-                );
-            }
-        };
+                startX = e.clientX - lastX;
+                startY = e.clientY - lastY;
+                container.style.cursor = 'grabbing';
+            };
 
-        container.ontouchmove = (e) => {
-            if (e.touches.length === 1 && isDragging) {
-                lastX = e.touches[0].clientX - startX;
-                lastY = e.touches[0].clientY - startY;
+            window.onmousemove = (e) => {
+                if (!isDragging) return;
+                lastX = e.clientX - startX;
+                lastY = e.clientY - startY;
                 zoomState.x = lastX / zoomState.scale;
                 zoomState.y = lastY / zoomState.scale;
                 updateTransform();
-            } else if (e.touches.length === 2) {
-                const dist = Math.hypot(
-                    e.touches[0].clientX - e.touches[1].clientX,
-                    e.touches[0].clientY - e.touches[1].clientY
-                );
-                const delta = (dist - lastTouchDist) / 100;
+            };
+
+            window.onmouseup = () => {
+                isDragging = false;
+                container.style.cursor = 'default';
+            };
+
+            // Touch Support
+            let lastTouchDist = 0;
+            container.ontouchstart = (e) => {
+                if (e.touches.length === 1) {
+                    isDragging = true;
+                    startX = e.touches[0].clientX - lastX;
+                    startY = e.touches[0].clientY - lastY;
+                } else if (e.touches.length === 2) {
+                    lastTouchDist = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                }
+            };
+
+            container.ontouchmove = (e) => {
+                if (e.touches.length === 1 && isDragging) {
+                    lastX = e.touches[0].clientX - startX;
+                    lastY = e.touches[0].clientY - startY;
+                    zoomState.x = lastX / zoomState.scale;
+                    zoomState.y = lastY / zoomState.scale;
+                    updateTransform();
+                } else if (e.touches.length === 2) {
+                    const dist = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                    const delta = (dist - lastTouchDist) / 100;
+                    zoomState.scale = Math.max(0.5, Math.min(5, zoomState.scale + delta));
+                    lastTouchDist = dist;
+                    updateTransform();
+                }
+            };
+
+            container.ontouchend = () => {
+                isDragging = false;
+            };
+
+            // Mouse Wheel Zoom
+            container.onwheel = (e) => {
+                e.preventDefault();
+                const delta = e.deltaY > 0 ? -0.1 : 0.1;
                 zoomState.scale = Math.max(0.5, Math.min(5, zoomState.scale + delta));
-                lastTouchDist = dist;
                 updateTransform();
-            }
+            };
         };
 
-        container.ontouchend = () => {
-            isDragging = false;
-        };
-
-        // Mouse Wheel Zoom
-        container.onwheel = (e) => {
-            e.preventDefault();
-            const delta = e.deltaY > 0 ? -0.1 : 0.1;
-            zoomState.scale = Math.max(0.5, Math.min(5, zoomState.scale + delta));
-            updateTransform();
-        };
-    };
-
-    if (!hasShifts) {
-        agendaContainer.innerHTML = `
+        if (!hasShifts) {
+            agendaContainer.innerHTML = `
             <div class="col-span-full py-24 px-8 modern-card text-center animate-fade-in shadow-2xl bg-white dark:bg-white/[0.02] border-slate-200 dark:border-white/5 opacity-60">
                 <div class="flex flex-col items-center gap-6">
                     <div class="w-24 h-24 bg-primary/10 rounded-[2.5rem] flex items-center justify-center text-5xl text-primary shadow-inner">
@@ -1137,8 +1180,8 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
                 </div>
             </div>
         `;
-    } else if (allCompleted) {
-        agendaContainer.innerHTML = `
+        } else if (allCompleted) {
+            agendaContainer.innerHTML = `
             <div class="col-span-full py-28 px-8 modern-card bg-emerald-500/5 !rounded-[4rem] border-2 border-emerald-500/20 text-center animate-bounce-in shadow-2xl shadow-emerald-500/10">
                 <div class="text-8xl mb-8 flex justify-center text-emerald-500">
                     <i class="fas fa-trophy animate-float"></i>
@@ -1152,8 +1195,8 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
                 </div>
             </div>
         `;
-    } else {
-        agendaContainer.innerHTML = dayCards.map(dayData => `
+        } else {
+            agendaContainer.innerHTML = dayCards.map(dayData => `
             <div class="group relative modern-card !p-6 transition-all duration-500 hover:shadow-2xl flex flex-col gap-6 shadow-sm border-slate-100 dark:border-white/5 bg-white dark:bg-slate-900/40">
                 <!-- Header Minimalista -->
                 <div class="flex justify-between items-center border-b border-slate-100 dark:border-white/5 pb-4">
@@ -1230,114 +1273,93 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
                 </div>
             </div>
     `).join('');
-    }
+        }
 
 
-    // Final UI Setup
-    setTimeout(() => {
-        const btnsReport = agendaContainer.querySelectorAll('.territory-report-btn');
-        btnsReport.forEach(btn => {
-            btn.onclick = () => {
-                const ids = btn.dataset.ids.split(',');
-                window.openProgressModal(ids[0], ids);
-            };
-        });
+        // Final UI Setup
+        setTimeout(() => {
+            const btnsReport = agendaContainer.querySelectorAll('.territory-report-btn');
+            btnsReport.forEach(btn => {
+                btn.onclick = () => {
+                    const ids = btn.dataset.ids.split(',');
+                    window.openProgressModal(ids[0], ids);
+                };
+            });
 
-        const btnsHistory = agendaContainer.querySelectorAll('.territory-history-btn');
-        btnsHistory.forEach(btn => {
-            btn.onclick = () => {
-                const tid = btn.dataset.tid;
-                const tnum = btn.dataset.tnum;
-                window.showUnifiedTerritoryHistory(tid, tnum);
-            };
-        });
-    }, 0);
+            const btnsHistory = agendaContainer.querySelectorAll('.territory-history-btn');
+            btnsHistory.forEach(btn => {
+                btn.onclick = () => {
+                    const tid = btn.dataset.tid;
+                    const tnum = btn.dataset.tnum;
+                    window.showUnifiedTerritoryHistory(tid, tnum);
+                };
+            });
+        }, 0);
 
-    if (userMods.disponibilidad !== false) {
-        renderAvailabilitySection(document.getElementById('availability-container'), name);
-    }
-    if (userRole !== 'Administrador' && userRole !== 'SuperAdmin' && userMods.agenda !== false) {
-        renderAISection(name);
-    }
-    if (userMods.ayudas !== false) {
-        renderRecursosSection(document.getElementById('recursos-container'));
-    }
+        if (userMods.disponibilidad !== false) {
+            renderAvailabilitySection(document.getElementById('availability-container'), name);
+        }
+        if (userRole !== 'Administrador' && userRole !== 'SuperAdmin' && userMods.agenda !== false) {
+            renderAISection(name);
+        }
+        if (userMods.ayudas !== false) {
+            renderRecursosSection(document.getElementById('recursos-container'));
+        }
 
-    // Link Rescue Module to Smart Agenda
-    const showRescue = userMods?.agenda === true || (userMods?.rescue === true) || (userMods?.rescue !== false && config?.rescue_mode);
-    if (showRescue) {
-        renderRescueSection(document.getElementById('ayudas-container'), name, allTerritorios, config, programa, conductorData);
-    } else {
-        const ayudas = document.getElementById('ayudas-container');
-        if (ayudas) ayudas.classList.add('hidden');
-    }
+        // Fusion logic completed. Rescue missions moved to top badge.
 
-    // Update Rescue Button in Smart Agenda if any
-    const rescueList = (allTerritorios || []).filter(t => {
-        if (t.estado !== 'Asignado' && t.estado !== 'Pendiente') return false;
-        if (t.asignado_a === name) return false;
-        // Logic should match renderRescueSection
-        return false; // placeholder for sync
-    });
-    const smartRescueBtn = document.getElementById('btn-smart-rescue');
-    if (smartRescueBtn && rescueList.length > 0) {
-        smartRescueBtn.classList.remove('hidden');
-        smartRescueBtn.classList.add('flex');
-        document.getElementById('smart-rescue-count').innerText = rescueList.length;
-        // If critical (e.g. any mission overdue > 4 days)
-        smartRescueBtn.className = "flex items-center gap-3 bg-rose-600 text-white py-3 px-5 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-rose-600/30 hover:scale-105 transition-all animate-bounce-subtle";
-    }
+        // Module: Programa Semanal (Global)
+        if (userMods.programa !== false) {
+            const programCardsContainer = container.querySelector('#weekly-program-cards');
+            const weekRangeLabel = container.querySelector('#prog-week-range');
+            const daySelector = container.querySelector('#prog-day-selector');
+            const turnFilters = container.querySelector('#prog-turn-filters');
 
-    // Module: Programa Semanal (Global)
-    if (userMods.programa !== false) {
-        const programCardsContainer = document.getElementById('weekly-program-cards');
-        const weekRangeLabel = document.getElementById('prog-week-range');
-        const daySelector = document.getElementById('prog-day-selector');
-        const turnFilters = document.getElementById('prog-turn-filters');
+            const loadWeekData = async () => {
+                const weekId = getSafeDateId(currentWeekStart);
+                const monday = new Date(currentWeekStart);
+                const sunday = new Date(monday);
+                sunday.setDate(sunday.getDate() + 6);
 
-        const loadWeekData = async () => {
-            const weekId = getSafeDateId(currentWeekStart);
-            const monday = new Date(currentWeekStart);
-            const sunday = new Date(monday);
-            sunday.setDate(sunday.getDate() + 6);
+                if (weekRangeLabel) {
+                    const fmt = (d) => d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }).toUpperCase();
+                    weekRangeLabel.innerText = `${fmt(monday)} - ${fmt(sunday)}`;
+                }
 
-            if (weekRangeLabel) {
-                const fmt = (d) => d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }).toUpperCase();
-                weekRangeLabel.innerText = `${fmt(monday)} - ${fmt(sunday)}`;
-            }
-
-            // Show loading
-            programCardsContainer.innerHTML = `
+                // Show loading
+                programCardsContainer.innerHTML = `
                 <div class="col-span-full py-20 flex flex-col items-center justify-center text-center space-y-4 opacity-30">
                     <div class="w-16 h-16 border-4 border-slate-200 border-t-indigo-500 rounded-full animate-spin"></div>
                     <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Cargando programación...</p>
                 </div>`;
 
-            try {
-                const prog = await getProgramaSemanal(weekId);
-                window._globalPrograma = prog;
-                window._globalTerritorios = allTerritorios;
-                renderFilters();
-                renderDaySelector();
-                renderFullProgramaCards(prog, programCardsContainer, territoryMap, name, activeDayIndex, activeTurns);
-            } catch (err) {
-                console.error("Error loading week:", err);
-                programCardsContainer.innerHTML = '<p class="text-center text-rose-500 font-bold p-10">Error al cargar la programación</p>';
-            }
-        };
+                try {
+                    const prog = await getProgramaSemanal(weekId);
+                    window._globalPrograma = prog;
+                    window._globalTerritorios = allTerritorios;
+                    renderFilters();
+                    renderDaySelector();
+                    renderFullProgramaCards(prog, programCardsContainer, territoryMap, name, activeDayIndex, activeTurns);
+                } catch (err) {
+                    console.error("Error loading week:", err);
+                    if (programCardsContainer) {
+                        programCardsContainer.innerHTML = '<p class="text-center text-rose-500 font-bold p-10">Error al cargar la programación</p>';
+                    }
+                }
+            };
 
-        const renderFilters = () => {
-            if (!turnFilters) return;
-            const turnosArr = [
-                { id: 'manana', icon: 'fa-sun', label: 'M', color: 'text-amber-500', bg: 'bg-amber-500/10', full: 'Mañana' },
-                { id: 'tarde', icon: 'fa-cloud-sun', label: 'T', color: 'text-orange-500', bg: 'bg-orange-500/10', full: 'Tarde' },
-                { id: 'noche', icon: 'fa-moon', label: 'N', color: 'text-indigo-400', bg: 'bg-indigo-400/10', full: 'Noche' },
-                { id: 'zoom', icon: 'fa-video', label: 'Z', color: 'text-emerald-500', bg: 'bg-emerald-500/10', full: 'Zoom' }
-            ];
+            const renderFilters = () => {
+                if (!turnFilters) return;
+                const turnosArr = [
+                    { id: 'manana', icon: 'fa-sun', label: 'M', color: 'text-amber-500', bg: 'bg-amber-500/10', full: 'Mañana' },
+                    { id: 'tarde', icon: 'fa-cloud-sun', label: 'T', color: 'text-orange-500', bg: 'bg-orange-500/10', full: 'Tarde' },
+                    { id: 'noche', icon: 'fa-moon', label: 'N', color: 'text-indigo-400', bg: 'bg-indigo-400/10', full: 'Noche' },
+                    { id: 'zoom', icon: 'fa-video', label: 'Z', color: 'text-emerald-500', bg: 'bg-emerald-500/10', full: 'Zoom' }
+                ];
 
-            turnFilters.innerHTML = turnosArr.map(t => {
-                const isActive = activeTurns.has(t.id);
-                return `
+                turnFilters.innerHTML = turnosArr.map(t => {
+                    const isActive = activeTurns.has(t.id);
+                    return `
                     <button onclick="window.toggleProgTurn('${t.id}')" 
                             class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all text-[9px] font-black uppercase tracking-wider ${isActive ? t.bg + ' ' + t.color : 'text-slate-400 opacity-40 hover:opacity-100'}">
                         <i class="fas ${t.icon}"></i>
@@ -1345,157 +1367,158 @@ const loadUnifiedDashboard = async (name, agendaContainer, territoriosContainer,
                         <span class="inline sm:hidden">${t.label}</span>
                     </button>
                 `;
-            }).join('');
-        };
+                }).join('');
+            };
 
-        const renderDaySelector = () => {
-            if (!daySelector) return;
-            const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-            daySelector.innerHTML = `
+            const renderDaySelector = () => {
+                if (!daySelector) return;
+                const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+                daySelector.innerHTML = `
                 ${dayNames.map((n, i) => {
-                const isActive = activeDayIndex === i;
-                const isToday = new Date().getDay() === (i === 6 ? 0 : i + 1);
-                return `
+                    const isActive = activeDayIndex === i;
+                    const isToday = new Date().getDay() === (i === 6 ? 0 : i + 1);
+                    return `
                     <button onclick="window.setProgActiveDay(${i})" 
                             class="relative px-4 sm:px-5 py-2 rounded-[1.25rem] text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${isActive ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20 scale-105' : 'text-slate-500 hover:text-indigo-500 hover:bg-white dark:hover:bg-white/10'}">
                         ${n.substring(0, 3)}
                         ${isToday ? '<span class="absolute top-1 right-1 w-1.5 h-1.5 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-800"></span>' : ''}
                     </button>
                 `;
-            }).join('')}
+                }).join('')}
                 <div class="w-px h-5 bg-slate-200 dark:bg-white/10 mx-1"></div>
                 <button onclick="window.setProgActiveDay(-1)" 
                         class="px-4 py-2 rounded-[1.25rem] text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${activeDayIndex === -1 ? 'bg-slate-800 dark:bg-slate-700 text-white shadow-xl' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'}">
                     Toda
                 </button>
             `;
-        };
+            };
 
-        window.toggleProgTurn = (id) => {
-            if (activeTurns.has(id)) {
-                if (activeTurns.size > 1) activeTurns.delete(id);
-            } else {
-                activeTurns.add(id);
+            window.toggleProgTurn = (id) => {
+                if (activeTurns.has(id)) {
+                    if (activeTurns.size > 1) activeTurns.delete(id);
+                } else {
+                    activeTurns.add(id);
+                }
+                renderFilters();
+                renderFullProgramaCards(window._globalPrograma, programCardsContainer, territoryMap, name, activeDayIndex, activeTurns);
+            };
+
+            window.setProgActiveDay = (idx) => {
+                activeDayIndex = idx;
+                renderDaySelector();
+                renderFullProgramaCards(window._globalPrograma, programCardsContainer, territoryMap, name, activeDayIndex, activeTurns);
+            };
+
+            // Navigation Events
+            const btnPrev = container.querySelector('#prog-prev-week');
+            const btnNext = container.querySelector('#prog-next-week');
+            const btnToday = container.querySelector('#prog-btn-today');
+
+            if (btnPrev) btnPrev.onclick = () => { currentWeekStart.setDate(currentWeekStart.getDate() - 7); loadWeekData(); };
+            if (btnNext) btnNext.onclick = () => { currentWeekStart.setDate(currentWeekStart.getDate() + 7); loadWeekData(); };
+            if (btnToday) btnToday.onclick = () => { currentWeekStart = getMonday(new Date()); activeDayIndex = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1; loadWeekData(); };
+
+            const btnExport = container.querySelector('#prog-export-png');
+            if (btnExport) btnExport.onclick = async () => {
+                const previewHTML = generateLandscapePreviewHTML(window._globalPrograma);
+                const tempDiv = document.createElement('div');
+                tempDiv.style.position = 'absolute'; tempDiv.style.left = '-9999px'; tempDiv.style.width = '1920px'; tempDiv.style.height = '1080px';
+                tempDiv.innerHTML = previewHTML;
+                document.body.appendChild(tempDiv);
+                try {
+                    showNotification("Generando programa para descarga...", "info");
+                    const canvas = await html2canvas(tempDiv.querySelector('#landscape-preview-content'), {
+                        scale: 2,
+                        useCORS: true,
+                        backgroundColor: '#f8fafc'
+                    });
+                    const link = document.createElement('a');
+                    link.download = `Programa_${window._globalPrograma.id}.png`;
+                    link.href = canvas.toDataURL('image/png'); link.click();
+                    showNotification("Imagen descargada en alta resolución", "success");
+                } catch (e) {
+                    console.error(e); showNotification("Error al generar imagen", "error");
+                } finally { document.body.removeChild(tempDiv); }
+            };
+
+            // Initial Load
+            loadWeekData();
+        }
+    };
+
+    window.openTerritorySelector = (dayIndex, turnId, btnElement) => {
+        if (!btnElement || !window._globalPrograma) return;
+        const currentVal = btnElement.dataset.current;
+        window.showTerritorySelectionModal(currentVal, window._globalTerritorios, (newValue) => {
+            if (!window._globalPrograma.dias[dayIndex][turnId]) window._globalPrograma.dias[dayIndex][turnId] = {};
+            window._globalPrograma.dias[dayIndex][turnId].territorio = newValue;
+            btnElement.dataset.current = newValue;
+
+            // Update display inside the button
+            const span = btnElement.querySelector('span.truncate');
+            if (span) {
+                span.textContent = newValue || '—';
+                span.className = `text-[10px] font-black truncate ${newValue ? 'text-primary' : 'text-slate-400 opacity-40'}`;
             }
-            renderFilters();
-            renderFullProgramaCards(window._globalPrograma, programCardsContainer, territoryMap, name, activeDayIndex, activeTurns);
-        };
 
-        window.setProgActiveDay = (idx) => {
-            activeDayIndex = idx;
-            renderDaySelector();
-            renderFullProgramaCards(window._globalPrograma, programCardsContainer, territoryMap, name, activeDayIndex, activeTurns);
-        };
-
-        // Navigation Events
-        const btnPrev = document.getElementById('prog-prev-week');
-        const btnNext = document.getElementById('prog-next-week');
-        const btnToday = document.getElementById('prog-btn-today');
-
-        if (btnPrev) btnPrev.onclick = () => { currentWeekStart.setDate(currentWeekStart.getDate() - 7); loadWeekData(); };
-        if (btnNext) btnNext.onclick = () => { currentWeekStart.setDate(currentWeekStart.getDate() + 7); loadWeekData(); };
-        if (btnToday) btnToday.onclick = () => { currentWeekStart = getMonday(new Date()); activeDayIndex = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1; loadWeekData(); };
-
-        document.getElementById('prog-export-png').onclick = async () => {
-            const previewHTML = generateLandscapePreviewHTML(window._globalPrograma);
-            const tempDiv = document.createElement('div');
-            tempDiv.style.position = 'absolute'; tempDiv.style.left = '-9999px'; tempDiv.style.width = '1920px'; tempDiv.style.height = '1080px';
-            tempDiv.innerHTML = previewHTML;
-            document.body.appendChild(tempDiv);
-            try {
-                showNotification("Generando programa para descarga...", "info");
-                const canvas = await html2canvas(tempDiv.querySelector('#landscape-preview-content'), {
-                    scale: 2,
-                    useCORS: true,
-                    backgroundColor: '#f8fafc'
-                });
-                const link = document.createElement('a');
-                link.download = `Programa_${window._globalPrograma.id}.png`;
-                link.href = canvas.toDataURL('image/png'); link.click();
-                showNotification("Imagen descargada en alta resolución", "success");
-            } catch (e) {
-                console.error(e); showNotification("Error al generar imagen", "error");
-            } finally { document.body.removeChild(tempDiv); }
-        };
-
-        // Initial Load
-        loadWeekData();
-    }
-};
-
-window.openTerritorySelector = (dayIndex, turnId, btnElement) => {
-    if (!btnElement || !window._globalPrograma) return;
-    const currentVal = btnElement.dataset.current;
-    window.showTerritorySelectionModal(currentVal, window._globalTerritorios, (newValue) => {
-        if (!window._globalPrograma.dias[dayIndex][turnId]) window._globalPrograma.dias[dayIndex][turnId] = {};
-        window._globalPrograma.dias[dayIndex][turnId].territorio = newValue;
-        btnElement.dataset.current = newValue;
-
-        // Update display inside the button
-        const span = btnElement.querySelector('span.truncate');
-        if (span) {
-            span.textContent = newValue || '—';
-            span.className = `text-[10px] font-black truncate ${newValue ? 'text-primary' : 'text-slate-400 opacity-40'}`;
-        }
-
-        // Trigger save and sync
-        window.updateWeekData(dayIndex, turnId, 'territorio', newValue);
-    });
-};
-
-window.updateWeekData = async (dayIndex, turnoId, field, value) => {
-    if (!window._globalPrograma) return;
-    if (!window._globalPrograma.dias[dayIndex][turnoId]) window._globalPrograma.dias[dayIndex][turnoId] = {};
-    window._globalPrograma.dias[dayIndex][turnoId][field] = value;
-
-    try {
-        const weekId = window._globalPrograma.id;
-        await saveProgramaSemanal(weekId, window._globalPrograma);
-        const tData = window._globalPrograma.dias[dayIndex][turnoId];
-        const diaObj = window._globalPrograma.dias[dayIndex];
-        const dateISO = new Date(diaObj.fecha + 'T12:00:00Z').toISOString();
-        await syncSlotWithTerritories(weekId, dayIndex, turnoId, tData, dateISO);
-
-        // Refresh local territory memory to ensure labels update correctly
-        const freshTerritories = await getTerritorios();
-        window._globalTerritorios = freshTerritories;
-
-        // Re-render the program table to show synced states immediately
-        const programCardsContainer = document.getElementById('weekly-program-cards');
-        if (programCardsContainer) {
-            renderFullProgramaCards(window._globalPrograma, programCardsContainer, {}, ""); // Map not needed for name comparison
-        }
-
-        showNotification("Asignación sincronizada exitosamente", "success");
-    } catch (e) {
-        console.error("Update error:", e);
-        showNotification("Error al guardar revisión", "error");
-    }
-};
-
-const formatGroups = (val) => {
-    if (!val) return '—';
-    return String(val).toUpperCase().split(/[,/]/).map(s => s.trim().split(' ')[0]).join(' / ');
-};
-
-const generateLandscapePreviewHTML = (programa) => {
-    if (!programa) return '';
-    const turnosArr = [
-        { id: 'manana', icon: 'fa-sun', label: 'MAÑANA', color: '#b45309', bg: '#fffbeb' },
-        { id: 'tarde', icon: 'fa-cloud-sun', label: 'TARDE', color: '#c2410c', bg: '#fff7ed' },
-        { id: 'noche', icon: 'fa-moon', label: 'NOCHE', color: '#3730a3', bg: '#f5f3ff' },
-        { id: 'zoom', icon: 'fa-video', label: 'ZOOM', color: '#065f46', bg: '#f0fdf4' }
-    ];
-
-    const hasBusyDay = (programa.dias || []).some(dia => {
-        const active = turnosArr.filter(t => {
-            const data = dia[t.id];
-            return data && (data.conductor || data.lugar);
+            // Trigger save and sync
+            window.updateWeekData(dayIndex, turnId, 'territorio', newValue);
         });
-        return active.length > 2;
-    });
+    };
 
-    let html = `
+    window.updateWeekData = async (dayIndex, turnoId, field, value) => {
+        if (!window._globalPrograma) return;
+        if (!window._globalPrograma.dias[dayIndex][turnoId]) window._globalPrograma.dias[dayIndex][turnoId] = {};
+        window._globalPrograma.dias[dayIndex][turnoId][field] = value;
+
+        try {
+            const weekId = window._globalPrograma.id;
+            await saveProgramaSemanal(weekId, window._globalPrograma);
+            const tData = window._globalPrograma.dias[dayIndex][turnoId];
+            const diaObj = window._globalPrograma.dias[dayIndex];
+            const dateISO = new Date(diaObj.fecha + 'T12:00:00Z').toISOString();
+            await syncSlotWithTerritories(weekId, dayIndex, turnoId, tData, dateISO);
+
+            // Refresh local territory memory to ensure labels update correctly
+            const freshTerritories = await getTerritorios();
+            window._globalTerritorios = freshTerritories;
+
+            // Re-render the program table to show synced states immediately
+            const programCardsContainer = container.querySelector('#weekly-program-cards');
+            if (programCardsContainer) {
+                renderFullProgramaCards(window._globalPrograma, programCardsContainer, territoryMap, name, activeDayIndex, activeTurns);
+            }
+
+            showNotification("Asignación sincronizada exitosamente", "success");
+        } catch (e) {
+            console.error("Update error:", e);
+            showNotification("Error al guardar revisión", "error");
+        }
+    };
+
+    const formatGroups = (val) => {
+        if (!val) return '—';
+        return String(val).toUpperCase().split(/[,/]/).map(s => s.trim().split(' ')[0]).join(' / ');
+    };
+
+    const generateLandscapePreviewHTML = (programa) => {
+        if (!programa) return '';
+        const turnosArr = [
+            { id: 'manana', icon: 'fa-sun', label: 'MAÑANA', color: '#b45309', bg: '#fffbeb' },
+            { id: 'tarde', icon: 'fa-cloud-sun', label: 'TARDE', color: '#c2410c', bg: '#fff7ed' },
+            { id: 'noche', icon: 'fa-moon', label: 'NOCHE', color: '#3730a3', bg: '#f5f3ff' },
+            { id: 'zoom', icon: 'fa-video', label: 'ZOOM', color: '#065f46', bg: '#f0fdf4' }
+        ];
+
+        const hasBusyDay = (programa.dias || []).some(dia => {
+            const active = turnosArr.filter(t => {
+                const data = dia[t.id];
+                return data && (data.conductor || data.lugar);
+            });
+            return active.length > 2;
+        });
+
+        let html = `
         <div id="landscape-preview-content" class="bg-slate-50 text-slate-900 font-['Outfit'] relative overflow-hidden flex flex-col p-6 pt-0" style="width: 1920px; height: 1080px; box-sizing: border-box;">
             <header class="relative z-10 flex flex-col items-center mb-3 px-10 pt-4 w-full">
                 <h1 class="text-[54px] font-black uppercase tracking-[0.1em] leading-none mb-1 text-slate-900">Programa de Predicación</h1>
@@ -1505,12 +1528,12 @@ const generateLandscapePreviewHTML = (programa) => {
 
             <div class="relative z-10 grid grid-cols-7 gap-3 flex-1 overflow-hidden px-4 pb-7">
                 ${(programa.dias || []).map((dia, idx) => {
-        const activeTurns = turnosArr.filter(t => {
-            const data = dia[t.id];
-            return data && (data.conductor || data.lugar);
-        });
+            const activeTurns = turnosArr.filter(t => {
+                const data = dia[t.id];
+                return data && (data.conductor || data.lugar);
+            });
 
-        return `
+            return `
                         <div class="bg-white rounded-[2rem] flex flex-col shadow-xl shadow-slate-200/40 border border-slate-100/50 overflow-hidden relative h-full">
                             <div class="${hasBusyDay ? 'px-4 py-3 min-h-[100px]' : 'px-5 py-6 min-h-[140px]'} border-b border-slate-50 bg-slate-50/20 shrink-0 flex flex-col justify-center">
                                 <h2 class="${hasBusyDay ? 'text-2xl' : 'text-3xl'} font-black uppercase tracking-tighter text-slate-900 leading-none mb-1">${dia.nombre}</h2>
@@ -1519,20 +1542,20 @@ const generateLandscapePreviewHTML = (programa) => {
                             
                             <div class="${hasBusyDay ? 'p-2.5 space-y-5' : 'p-4 space-y-10'} flex-1 overflow-visible">
                                 ${activeTurns.map(t => {
-            const data = dia[t.id];
-            const isSunday = dia.nombre.toLowerCase() === 'domingo';
-            const hourInt = data.hora ? parseInt(data.hora) : (t.id === 'manana' ? 9 : t.id === 'tarde' ? 15 : 19);
+                const data = dia[t.id];
+                const isSunday = dia.nombre.toLowerCase() === 'domingo';
+                const hourInt = data.hora ? parseInt(data.hora) : (t.id === 'manana' ? 9 : t.id === 'tarde' ? 15 : 19);
 
-            let labelText = t.label; let displayIcon = t.icon; let displayColor = t.color;
+                let labelText = t.label; let displayIcon = t.icon; let displayColor = t.color;
 
-            if (isSunday && data.hora) {
-                if (hourInt < 11) { labelText = 'MAÑANA'; displayIcon = 'fa-sun'; displayColor = '#b45309'; }
-                else if (hourInt < 16) { labelText = 'MEDIODÍA'; displayIcon = 'fa-cloud-sun'; displayColor = '#c2410c'; }
-                else if (hourInt < 19) { labelText = 'TARDE'; displayIcon = 'fa-sun-haze'; displayColor = '#c2410c'; }
-                else { labelText = 'NOCHE'; displayIcon = 'fa-moon'; displayColor = '#3730a3'; }
-            }
+                if (isSunday && data.hora) {
+                    if (hourInt < 11) { labelText = 'MAÑANA'; displayIcon = 'fa-sun'; displayColor = '#b45309'; }
+                    else if (hourInt < 16) { labelText = 'MEDIODÍA'; displayIcon = 'fa-cloud-sun'; displayColor = '#c2410c'; }
+                    else if (hourInt < 19) { labelText = 'TARDE'; displayIcon = 'fa-sun-haze'; displayColor = '#c2410c'; }
+                    else { labelText = 'NOCHE'; displayIcon = 'fa-moon'; displayColor = '#3730a3'; }
+                }
 
-            return `
+                return `
                                         <div class="${hasBusyDay ? 'space-y-1.5' : 'space-y-4'}">
                                             <div class="flex items-center gap-2">
                                                 <i class="fas ${displayIcon} text-[18px]" style="color: ${displayColor}"></i>
@@ -1541,56 +1564,56 @@ const generateLandscapePreviewHTML = (programa) => {
                                             
                                             <div class="${hasBusyDay ? 'space-y-1' : 'space-y-3'}">
                                                 ${['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', 'Grupos'].map(field => {
-                if (t.id === 'zoom' && field === 'Auxiliar') return '';
-                let val = data[field.toLowerCase()];
-                if (!val || val === '—' || val === '') return '';
-                if (field === 'Grupos') { val = formatGroups(val); }
-                const isKeyField = field === 'Lugar' || field === 'Hora';
-                const fontSize = isKeyField ? (hasBusyDay ? '17px' : '22px') : (hasBusyDay ? '13px' : '15px');
-                return `
+                    if (t.id === 'zoom' && field === 'Auxiliar') return '';
+                    let val = data[field.toLowerCase()];
+                    if (!val || val === '—' || val === '') return '';
+                    if (field === 'Grupos') { val = formatGroups(val); }
+                    const isKeyField = field === 'Lugar' || field === 'Hora';
+                    const fontSize = isKeyField ? (hasBusyDay ? '17px' : '22px') : (hasBusyDay ? '13px' : '15px');
+                    return `
                                                         <div class="flex flex-col leading-tight">
                                                              <span class="text-[6px] font-black uppercase tracking-widest text-slate-300 mb-0.5">${field}</span>
                                                              <span class="text-[${fontSize}] font-black uppercase tracking-tight text-slate-900">${val}</span>
                                                         </div>
                                                     `;
-            }).join('')}
+                }).join('')}
                                             </div>
                                         </div>
                                     `;
-        }).join('')}
+            }).join('')}
                             </div>
                         </div>
                     `;
-    }).join('')}
+        }).join('')}
             </div>
         </div>
     `;
-    return html;
-};
+        return html;
+    };
 
-/* --- DISPONIBILIDAD --- */
-async function renderAvailabilitySection(container, name) {
-    if (!container) return;
+    /* --- DISPONIBILIDAD --- */
+    async function renderAvailabilitySection(container, name) {
+        if (!container) return;
 
-    // 1. Fetch publicador data to get current availability
-    const allP = await getPublicadores();
-    const p = allP.find(x => x.nombre === name);
-    if (!p) {
-        container.innerHTML = '';
-        return;
-    }
+        // 1. Fetch publicador data to get current availability
+        const allP = await getPublicadores();
+        const p = allP.find(x => x.nombre === name);
+        if (!p) {
+            container.innerHTML = '';
+            return;
+        }
 
-    const currentAvail = p.disponibilidad || [];
-    const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-    const shifts = [
-        { id: 'manana', label: 'Mañana', icon: 'fas fa-sun', color: 'text-amber-500' },
-        { id: 'tarde', label: 'Tarde', icon: 'fas fa-cloud-sun', color: 'text-orange-500' },
-        { id: 'noche', label: 'Noche', icon: 'fas fa-moon', color: 'text-indigo-400' }
-    ];
+        const currentAvail = p.disponibilidad || [];
+        const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+        const shifts = [
+            { id: 'manana', label: 'Mañana', icon: 'fas fa-sun', color: 'text-amber-500' },
+            { id: 'tarde', label: 'Tarde', icon: 'fas fa-cloud-sun', color: 'text-orange-500' },
+            { id: 'noche', label: 'Noche', icon: 'fas fa-moon', color: 'text-indigo-400' }
+        ];
 
-    const wasAvailOpen = container.querySelector('.group-avail')?.open;
+        const wasAvailOpen = container.querySelector('.group-avail')?.open;
 
-    container.innerHTML = `
+        container.innerHTML = `
     <div class="modern-card !p-0 mt-8 animate-fade-in shadow-2xl transition-all overflow-hidden border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900/40">
         <details class="group-avail" ${wasAvailOpen ? 'open' : ''}>
             <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-8 cursor-pointer list-none select-none hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
@@ -1626,9 +1649,9 @@ async function renderAvailabilitySection(container, name) {
                             </div>
                             <div class="grid grid-cols-1 gap-2">
                                 ${shifts.map(sh => {
-        const val = `${day}_${sh.id}`;
-        const isChecked = currentAvail.includes(val);
-        return `
+            const val = `${day}_${sh.id}`;
+            const isChecked = currentAvail.includes(val);
+            return `
                                     <label class="flex items-center justify-between p-4 rounded-xl border border-black/5 dark:border-white/5 bg-white/50 dark:bg-black/20 cursor-pointer active:scale-95 transition-all group/opt">
                                         <div class="flex items-center gap-3">
                                             <div class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/5 flex items-center justify-center text-sm ${sh.color}">
@@ -1641,7 +1664,7 @@ async function renderAvailabilitySection(container, name) {
                                         </div>
                                     </label>
                                 `;
-    }).join('')}
+        }).join('')}
                             </div>
                         </div>
                     `).join('')}
@@ -1651,39 +1674,39 @@ async function renderAvailabilitySection(container, name) {
         </div>
     `;
 
-    const btnSave = document.getElementById('btn-save-availability');
-    if (btnSave) {
-        btnSave.onclick = async () => {
-            const originalText = btnSave.innerText;
-            btnSave.innerText = 'GUARDANDO...';
-            btnSave.disabled = true;
+        const btnSave = document.getElementById('btn-save-availability');
+        if (btnSave) {
+            btnSave.onclick = async () => {
+                const originalText = btnSave.innerText;
+                btnSave.innerText = 'GUARDANDO...';
+                btnSave.disabled = true;
 
-            const checks = container.querySelectorAll('.avail-check:checked');
-            const newAvail = Array.from(checks).map(c => c.value);
+                const checks = container.querySelectorAll('.avail-check:checked');
+                const newAvail = Array.from(checks).map(c => c.value);
 
-            try {
-                await updatePublicador(p.id, { disponibilidad: newAvail });
-                showNotification("¡Disponibilidad actualizada!", "success");
-            } catch (e) {
-                console.error(e);
-                showNotification("Error al guardar cambios", "error");
-            } finally {
-                btnSave.innerText = originalText;
-                btnSave.disabled = false;
-            }
-        };
+                try {
+                    await updatePublicador(p.id, { disponibilidad: newAvail });
+                    showNotification("¡Disponibilidad actualizada!", "success");
+                } catch (e) {
+                    console.error(e);
+                    showNotification("Error al guardar cambios", "error");
+                } finally {
+                    btnSave.innerText = originalText;
+                    btnSave.disabled = false;
+                }
+            };
+        }
     }
-}
 
-const renderFullProgramaCards = (programa, container, territoryMap = {}, currentConductorName, activeDayIndex = -1, activeTurns = new Set(['manana', 'tarde', 'noche', 'zoom'])) => {
-    const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-    const shifts = ['manana', 'tarde', 'noche', 'zoom'];
-    const shiftLabels = { 'manana': 'Mañana', 'tarde': 'Tarde', 'noche': 'Noche', 'zoom': 'Zoom' };
-    const shiftIcons = { 'manana': 'fa-sun', 'tarde': 'fa-cloud-sun', 'noche': 'fa-moon', 'zoom': 'fa-video' };
-    const shiftColors = { 'manana': 'text-amber-500', 'tarde': 'text-orange-500', 'noche': 'text-indigo-400', 'zoom': 'text-emerald-500' };
+    const renderFullProgramaCards = (programa, container, territoryMap = {}, currentConductorName, activeDayIndex = -1, activeTurns = new Set(['manana', 'tarde', 'noche', 'zoom'])) => {
+        const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+        const shifts = ['manana', 'tarde', 'noche', 'zoom'];
+        const shiftLabels = { 'manana': 'Mañana', 'tarde': 'Tarde', 'noche': 'Noche', 'zoom': 'Zoom' };
+        const shiftIcons = { 'manana': 'fa-sun', 'tarde': 'fa-cloud-sun', 'noche': 'fa-moon', 'zoom': 'fa-video' };
+        const shiftColors = { 'manana': 'text-amber-500', 'tarde': 'text-orange-500', 'noche': 'text-indigo-400', 'zoom': 'text-emerald-500' };
 
-    if (!programa || !programa.dias || programa.dias.length === 0) {
-        container.innerHTML = `
+        if (!programa || !programa.dias || programa.dias.length === 0) {
+            container.innerHTML = `
             <div class="col-span-full py-20 flex flex-col items-center justify-center text-center space-y-5 animate-fade-in opacity-30 group">
                 <div class="w-24 h-24 bg-slate-100 dark:bg-white/5 rounded-[3rem] flex items-center justify-center text-4xl mb-2 transition-transform group-hover:scale-110 duration-700">
                     <i class="fas fa-calendar-day"></i>
@@ -1693,39 +1716,39 @@ const renderFullProgramaCards = (programa, container, territoryMap = {}, current
                     <p class="text-[10px] text-slate-400 italic font-bold uppercase tracking-widest">Consulta con el responsable del grupo</p>
                 </div>
             </div>`;
-        return;
-    }
+            return;
+        }
 
-    let html = `
+        let html = `
     <div class="col-span-full animate-fade-in">
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
                 ${days.map((dayName, dayIdx) => {
-        // Filter by activeDayIndex
-        if (activeDayIndex !== -1 && activeDayIndex !== dayIdx) return '';
+            // Filter by activeDayIndex
+            if (activeDayIndex !== -1 && activeDayIndex !== dayIdx) return '';
 
-        const d = (programa.dias || []).find(x => x.nombre === dayName);
-        if (!d) return '';
+            const d = (programa.dias || []).find(x => x.nombre === dayName);
+            if (!d) return '';
 
-        // Check if day has any visible shift
-        const hasVisibleData = shifts.some(s => {
-            if (!activeTurns.has(s)) return false;
-            if (s === 'zoom' && dayName !== 'Martes') return false;
-            const sData = d[s];
-            return sData && (sData.conductor || sData.lugar);
-        });
+            // Check if day has any visible shift
+            const hasVisibleData = shifts.some(s => {
+                if (!activeTurns.has(s)) return false;
+                if (s === 'zoom' && dayName !== 'Martes') return false;
+                const sData = d[s];
+                return sData && (sData.conductor || sData.lugar);
+            });
 
-        if (!hasVisibleData) {
-            if (activeDayIndex !== -1) {
-                return `
+            if (!hasVisibleData) {
+                if (activeDayIndex !== -1) {
+                    return `
                     <div class="col-span-full py-20 flex flex-col items-center justify-center text-center opacity-30">
                         <i class="fas fa-calendar-day text-4xl mb-4"></i>
                         <p class="text-[10px] font-black uppercase tracking-widest italic">No hay salidas programadas para este día</p>
                     </div>`;
+                }
+                return '';
             }
-            return '';
-        }
 
-        return `
+            return `
                     <div class="modern-card !p-6 border-slate-100 dark:border-white/10 shadow-xl bg-white dark:bg-slate-900/40 space-y-6 hover:shadow-2xl transition-all duration-500">
                         <div class="flex justify-between items-center border-b border-slate-100 dark:border-white/5 pb-4">
                             <div>
@@ -1739,17 +1762,17 @@ const renderFullProgramaCards = (programa, container, territoryMap = {}, current
 
                         <div class="space-y-4">
                             ${shifts.map(shift => {
-            if (!activeTurns.has(shift)) return '';
-            if (shift === 'zoom' && dayName !== 'Martes') return '';
+                if (!activeTurns.has(shift)) return '';
+                if (shift === 'zoom' && dayName !== 'Martes') return '';
 
-            const sData = d ? d[shift] : null;
-            if (!sData || (!sData.conductor && !sData.lugar)) return '';
+                const sData = d ? d[shift] : null;
+                if (!sData || (!sData.conductor && !sData.lugar)) return '';
 
-            const isConductor = sData.conductor === currentConductorName;
-            const isAuxiliar = sData.auxiliar === currentConductorName;
-            const isImpacted = isConductor || isAuxiliar;
+                const isConductor = sData.conductor === currentConductorName;
+                const isAuxiliar = sData.auxiliar === currentConductorName;
+                const isImpacted = isConductor || isAuxiliar;
 
-            return `
+                return `
                                 <div class="p-4 rounded-2xl border border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02] ${isImpacted ? 'ring-2 ring-primary/20 bg-primary/5' : ''}">
                                     <div class="flex items-center gap-2 mb-3">
                                         <i class="fas ${shiftIcons[shift]} ${shiftColors[shift]} text-[10px]"></i>
@@ -1784,95 +1807,95 @@ const renderFullProgramaCards = (programa, container, territoryMap = {}, current
                                         </div>
                                     </div>
                                 </div>`;
-        }).join('')}
+            }).join('')}
                         </div>
                     </div>`;
-    }).join('')}
+        }).join('')}
         </div>
     </div>
 `;
 
-    container.innerHTML = html;
-};
+        container.innerHTML = html;
+    };
 
-const initSwipeActions = () => {
-    const cards = document.querySelectorAll('.territory-card-swipe');
-    cards.forEach(card => {
-        const content = card.querySelector('.swipe-content');
-        const leftAction = card.querySelector('.swipe-action-left');
-        const rightAction = card.querySelector('.swipe-action-right');
-
-        let startX = 0;
-        let currentX = 0;
-        let isMoving = false;
-
-        card.addEventListener('touchstart', (e) => {
-            startX = e.touches[0].clientX;
-            isMoving = true;
-            content.style.transition = 'none';
-        });
-
-        card.addEventListener('touchmove', (e) => {
-            if (!isMoving) return;
-            currentX = e.touches[0].clientX - startX;
-
-            // Limit swipe
-            if (Math.abs(currentX) > 100) return;
-
-            content.style.transform = `translateX(${currentX}px)`;
-
-            if (currentX > 30) {
-                leftAction.style.opacity = Math.min(1, (currentX - 30) / 40);
-                card.style.backgroundColor = 'rgba(37, 99, 235, 0.8)'; // Blue for map
-            } else if (currentX < -30) {
-                rightAction.style.opacity = Math.min(1, (Math.abs(currentX) - 30) / 40);
-                card.style.backgroundColor = 'rgba(13, 148, 136, 0.8)'; // Teal for report
-            } else {
-                leftAction.style.opacity = 0;
-                rightAction.style.opacity = 0;
-                card.style.backgroundColor = 'transparent';
-            }
-        });
-
-        card.addEventListener('touchend', () => {
-            isMoving = false;
-            content.style.transition = 'transform 0.3s ease';
-
-            if (Math.abs(currentX) > 70) {
-                if (currentX > 0) {
-                    // Right -> Map
-                    const t = {
-                        id: card.dataset.id,
-                        numero: card.dataset.num,
-                        manzanas: card.dataset.manzanas,
-                        coordenadas: card.dataset.coords ? JSON.parse(card.dataset.coords) : null
-                    };
-                    window.openInteractiveMap(t);
-                } else {
-                    // Left -> Report
-                    window.openProgressModal(card.dataset.id, card.dataset.num, card.dataset.manzanas);
-                }
-            }
-
-            // Reset
-            content.style.transform = 'translateX(0px)';
+    const initSwipeActions = () => {
+        const cards = document.querySelectorAll('.territory-card-swipe');
+        cards.forEach(card => {
+            const content = card.querySelector('.swipe-content');
             const leftAction = card.querySelector('.swipe-action-left');
             const rightAction = card.querySelector('.swipe-action-right');
-            if (leftAction) leftAction.style.opacity = 0;
-            if (rightAction) rightAction.style.opacity = 0;
-            setTimeout(() => card.style.backgroundColor = 'transparent', 300);
-            currentX = 0;
+
+            let startX = 0;
+            let currentX = 0;
+            let isMoving = false;
+
+            card.addEventListener('touchstart', (e) => {
+                startX = e.touches[0].clientX;
+                isMoving = true;
+                content.style.transition = 'none';
+            });
+
+            card.addEventListener('touchmove', (e) => {
+                if (!isMoving) return;
+                currentX = e.touches[0].clientX - startX;
+
+                // Limit swipe
+                if (Math.abs(currentX) > 100) return;
+
+                content.style.transform = `translateX(${currentX}px)`;
+
+                if (currentX > 30) {
+                    leftAction.style.opacity = Math.min(1, (currentX - 30) / 40);
+                    card.style.backgroundColor = 'rgba(37, 99, 235, 0.8)'; // Blue for map
+                } else if (currentX < -30) {
+                    rightAction.style.opacity = Math.min(1, (Math.abs(currentX) - 30) / 40);
+                    card.style.backgroundColor = 'rgba(13, 148, 136, 0.8)'; // Teal for report
+                } else {
+                    leftAction.style.opacity = 0;
+                    rightAction.style.opacity = 0;
+                    card.style.backgroundColor = 'transparent';
+                }
+            });
+
+            card.addEventListener('touchend', () => {
+                isMoving = false;
+                content.style.transition = 'transform 0.3s ease';
+
+                if (Math.abs(currentX) > 70) {
+                    if (currentX > 0) {
+                        // Right -> Map
+                        const t = {
+                            id: card.dataset.id,
+                            numero: card.dataset.num,
+                            manzanas: card.dataset.manzanas,
+                            coordenadas: card.dataset.coords ? JSON.parse(card.dataset.coords) : null
+                        };
+                        window.openInteractiveMap(t);
+                    } else {
+                        // Left -> Report
+                        window.openProgressModal(card.dataset.id, card.dataset.num, card.dataset.manzanas);
+                    }
+                }
+
+                // Reset
+                content.style.transform = 'translateX(0px)';
+                const leftAction = card.querySelector('.swipe-action-left');
+                const rightAction = card.querySelector('.swipe-action-right');
+                if (leftAction) leftAction.style.opacity = 0;
+                if (rightAction) rightAction.style.opacity = 0;
+                setTimeout(() => card.style.backgroundColor = 'transparent', 300);
+                currentX = 0;
+            });
         });
-    });
-};
+    };
 
-// Helper: Render Weekly Program Table (ReadOnly)
-const renderProgramaTableHelpers = (programa) => {
-    const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-    const shiftIcons = { 'manana': 'fa-sun', 'tarde': 'fa-cloud-sun', 'noche': 'fa-moon' };
-    const shiftColors = { 'manana': 'text-amber-500', 'tarde': 'text-orange-500', 'noche': 'text-indigo-400' };
+    // Helper: Render Weekly Program Table (ReadOnly)
+    const renderProgramaTableHelpers = (programa) => {
+        const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+        const shiftIcons = { 'manana': 'fa-sun', 'tarde': 'fa-cloud-sun', 'noche': 'fa-moon' };
+        const shiftColors = { 'manana': 'text-amber-500', 'tarde': 'text-orange-500', 'noche': 'text-indigo-400' };
 
-    let html = `
+        let html = `
     <div class="mt-12 mb-6 animate-fade-in px-4">
         <h3 class="text-xs font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-8">
             <span class="w-8 h-[1px] bg-slate-300 dark:bg-white/10"></span>
@@ -1888,16 +1911,16 @@ const renderProgramaTableHelpers = (programa) => {
                 </div>
                 <div class="divide-y divide-black/5 dark:divide-white/5">
                     ${days.map(dayName => {
-        const dayData = (programa?.dias || []).find(d => d.nombre === dayName) || {};
-        return `
+            const dayData = (programa?.dias || []).find(d => d.nombre === dayName) || {};
+            return `
                         <div class="grid grid-cols-[100px_1fr_1fr_1fr] hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors group">
                             <div class="p-4 flex items-center justify-center border-r border-black/5 dark:border-white/5 bg-slate-50/30 dark:bg-white/[0.02]">
                                 <span class="text-xs font-black text-slate-700 dark:text-slate-300 uppercase -rotate-90 md:rotate-0">${dayName.substring(0, 3)}</span>
                             </div>
                             ${shifts.map(shift => {
-            const sData = dayData[shift] || {};
-            if (!sData.conductor && !sData.lugar) return `<div class="p-2"></div>`;
-            return `
+                const sData = dayData[shift] || {};
+                if (!sData.conductor && !sData.lugar) return `<div class="p-2"></div>`;
+                return `
                                 <div class="p-5 border-r border-slate-100 dark:border-white/5 last:border-0 relative group/cell hover:bg-white dark:hover:bg-white/[0.01] transition-colors">
                                     ${sData.lugar ? `<div class="text-[10px] font-black text-primary/80 mb-3 truncate uppercase tracking-tight flex items-center gap-2">
                                         <i class="fas fa-map-marker-alt text-[10px]"></i> ${sData.lugar}
@@ -1913,51 +1936,51 @@ const renderProgramaTableHelpers = (programa) => {
                                     ` : ''}
                                 </div>
                                 `;
-        }).join('')}
+            }).join('')}
                         </div>
                         `;
-    }).join('')}
+        }).join('')}
                 </div>
             </div>
         </div>
     </div>>
     `;
-    return html;
-};
+        return html;
+    };
 
 
-// Progress / Return Modal
-// Progress / Return Modal
-// Progress / Return Modal - REFACTORED for Multi-Territory Logic
-window.openProgressModal = async (initialId, filterIds = null) => {
-    // 1. Fetch assigned territories for context
-    let myTerritories = [];
-    try {
-        const allT = await getTerritorios();
-        if (filterIds) {
-            myTerritories = allT.filter(t => filterIds.includes(t.id));
-        } else {
-            const initialT = allT.find(t => t.id === initialId);
-            if (initialT && initialT.asignado_a) {
-                myTerritories = allT.filter(t => t.asignado_a === initialT.asignado_a || t.auxiliar === initialT.asignado_a);
+    // Progress / Return Modal
+    // Progress / Return Modal
+    // Progress / Return Modal - REFACTORED for Multi-Territory Logic
+    window.openProgressModal = async (initialId, filterIds = null) => {
+        // 1. Fetch assigned territories for context
+        let myTerritories = [];
+        try {
+            const allT = await getTerritorios();
+            if (filterIds) {
+                myTerritories = allT.filter(t => filterIds.includes(t.id));
             } else {
-                myTerritories = initialT ? [initialT] : [];
+                const initialT = allT.find(t => t.id === initialId);
+                if (initialT && initialT.asignado_a) {
+                    myTerritories = allT.filter(t => t.asignado_a === initialT.asignado_a || t.auxiliar === initialT.asignado_a);
+                } else {
+                    myTerritories = initialT ? [initialT] : [];
+                }
             }
+        } catch (e) {
+            console.error(e);
+            myTerritories = [{ id: initialId, numero: '?', isFallback: true }];
         }
-    } catch (e) {
-        console.error(e);
-        myTerritories = [{ id: initialId, numero: '?', isFallback: true }];
-    }
 
-    // Sort: Initial one first
-    myTerritories.sort((a, b) => a.id === initialId ? -1 : 1);
+        // Sort: Initial one first
+        myTerritories.sort((a, b) => a.id === initialId ? -1 : 1);
 
-    const localDate = new Date();
-    const offset = localDate.getTimezoneOffset();
-    const todayStr = new Date(localDate.getTime() - (offset * 60 * 1000)).toISOString().split('T')[0];
+        const localDate = new Date();
+        const offset = localDate.getTimezoneOffset();
+        const todayStr = new Date(localDate.getTime() - (offset * 60 * 1000)).toISOString().split('T')[0];
 
-    // Build Modal with Admin-style UI (Image 3)
-    showModal(`
+        // Build Modal with Admin-style UI (Image 3)
+        showModal(`
     <div class="flex flex-col h-full bg-slate-50 dark:bg-[#0b0e14]">
             <header class="shrink-0 bg-slate-900 dark:bg-gradient-to-br dark:from-primary dark:to-primary-dark p-6 text-white relative overflow-hidden shadow-2xl">
                 <div class="absolute -right-10 -top-10 w-40 h-40 bg-white/5 rounded-full blur-3xl"></div>
@@ -1986,8 +2009,8 @@ window.openProgressModal = async (initialId, filterIds = null) => {
                 <!-- Main Territory List -->
                 <div id="modal-territories-list" class="space-y-6">
                     ${myTerritories.map(t => {
-        const rawManzanas = t.manzanas ? t.manzanas.split(',').map(s => s.trim()).filter(s => s) : [];
-        return `
+            const rawManzanas = t.manzanas ? t.manzanas.split(',').map(s => s.trim()).filter(s => s) : [];
+            return `
                         <div class="return-item-container modern-card !p-0 overflow-hidden transition-all duration-300 shadow-sm border-slate-200 relative">
                             <input type="checkbox" value="${t.id}" class="return-check absolute opacity-0 pointer-events-none">
                             <div class="modal-item-trigger p-6 flex items-center gap-5 group cursor-pointer hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
@@ -2073,7 +2096,7 @@ window.openProgressModal = async (initialId, filterIds = null) => {
                             </div>
                         </div>
                         `;
-    }).join('')}
+        }).join('')}
                 </div>
 
                 <div class="pt-6 border-t border-black/5 dark:border-white/10 space-y-4">
@@ -2097,294 +2120,294 @@ window.openProgressModal = async (initialId, filterIds = null) => {
             </div>
         </div>>
     `, (modal) => {
-        const checks = modal.querySelectorAll('.return-check');
-        const markAll = modal.querySelector('#mark-all-modal');
+            const checks = modal.querySelectorAll('.return-check');
+            const markAll = modal.querySelector('#mark-all-modal');
 
-        const updateVisibility = (cb) => {
-            const container = cb.closest('.return-item-container');
-            const details = container.querySelector('.return-details');
-            const trigger = container.querySelector('.modal-item-trigger');
-            if (cb.checked) {
-                details.classList.remove('hidden');
-                container.classList.add('ring-4', 'ring-teal-500/10', 'border-teal-500/40');
-                trigger.classList.add('selected');
-            } else {
-                details.classList.add('hidden');
-                container.classList.remove('ring-4', 'ring-teal-500/10', 'border-teal-500/40');
-                trigger.classList.remove('selected');
-            }
-        };
-
-        checks.forEach(cb => {
-            // cb.onchange = () => updateVisibility(cb); // Trigger handles it
-            const trigger = cb.closest('.return-item-container').querySelector('.modal-item-trigger');
-            trigger.onclick = () => {
-                cb.checked = !cb.checked;
-                updateVisibility(cb);
-            };
-        });
-
-        markAll.onclick = () => {
-            const someUnchecked = Array.from(checks).some(c => !c.checked);
-            checks.forEach(c => {
-                c.checked = someUnchecked;
-                updateVisibility(c);
-            });
-            markAll.innerText = someUnchecked ? 'Desmarcar Todos' : 'Marcar Todos';
-        };
-
-        // Complete/Partial Toggles
-        modal.querySelectorAll('.completion-toggle').forEach(btn => {
-            btn.onclick = () => {
-                const tid = btn.dataset.tid;
-                const val = btn.dataset.val;
-                const siblings = modal.querySelectorAll(`.completion-toggle[data-tid="${tid}"]`);
-                siblings.forEach(s => {
-                    s.classList.add('opacity-40', 'grayscale');
-                    s.classList.remove('active', 'border-teal-500', 'bg-teal-500/5', 'border-amber-500', 'bg-amber-500/5');
-                });
-                btn.classList.remove('opacity-40', 'grayscale');
-                btn.classList.add('active');
-                if (val === 'full') btn.classList.add('border-teal-500', 'bg-teal-500/5');
-                else btn.classList.add('border-amber-500', 'bg-amber-500/5');
-
-                const selector = modal.querySelector(`.partial-selector[data-tid="${tid}"]`);
-                if (val === 'parcial') selector.classList.remove('hidden');
-                else selector.classList.add('hidden');
-            };
-        });
-
-        // Select All Apples for one territory
-        modal.querySelectorAll('.btn-sel-all-mz').forEach(btn => {
-            btn.onclick = () => {
-                const tid = btn.dataset.tid;
-                const mzs = modal.querySelectorAll(`.mz-done-check[data-tid="${tid}"]`);
-                const someUnchecked = Array.from(mzs).some(m => !m.checked);
-                mzs.forEach(m => m.checked = someUnchecked);
-                btn.innerText = someUnchecked ? 'Desmarcar todas' : 'Marcar todas las manzanas';
-
-                // Ensure the territory is selected if user marks apples
-                const check = modal.querySelector(`.return-check[value="${tid}"]`);
-                if (someUnchecked && !check.checked) {
-                    check.checked = true;
-                    updateVisibility(check);
+            const updateVisibility = (cb) => {
+                const container = cb.closest('.return-item-container');
+                const details = container.querySelector('.return-details');
+                const trigger = container.querySelector('.modal-item-trigger');
+                if (cb.checked) {
+                    details.classList.remove('hidden');
+                    container.classList.add('ring-4', 'ring-teal-500/10', 'border-teal-500/40');
+                    trigger.classList.add('selected');
+                } else {
+                    details.classList.add('hidden');
+                    container.classList.remove('ring-4', 'ring-teal-500/10', 'border-teal-500/40');
+                    trigger.classList.remove('selected');
                 }
             };
-        });
 
-        // Photo Upload Logic
-        modal.querySelectorAll('.photo-input').forEach(input => {
-            input.onchange = (e) => {
-                const tid = input.dataset.tid;
-                const grid = modal.querySelector(`.photos-grid[data-tid="${tid}"]`);
-                Array.from(e.target.files).forEach(file => {
-                    if (file.size > 800 * 1024) return showNotification("Foto muy grande (max 800KB)", "warning");
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                        const container = document.createElement('div');
-                        container.className = 'relative w-16 h-16 rounded-2xl overflow-hidden border border-black/10 group animate-scale-in shadow-sm';
-                        container.innerHTML = `
+            checks.forEach(cb => {
+                // cb.onchange = () => updateVisibility(cb); // Trigger handles it
+                const trigger = cb.closest('.return-item-container').querySelector('.modal-item-trigger');
+                trigger.onclick = () => {
+                    cb.checked = !cb.checked;
+                    updateVisibility(cb);
+                };
+            });
+
+            markAll.onclick = () => {
+                const someUnchecked = Array.from(checks).some(c => !c.checked);
+                checks.forEach(c => {
+                    c.checked = someUnchecked;
+                    updateVisibility(c);
+                });
+                markAll.innerText = someUnchecked ? 'Desmarcar Todos' : 'Marcar Todos';
+            };
+
+            // Complete/Partial Toggles
+            modal.querySelectorAll('.completion-toggle').forEach(btn => {
+                btn.onclick = () => {
+                    const tid = btn.dataset.tid;
+                    const val = btn.dataset.val;
+                    const siblings = modal.querySelectorAll(`.completion-toggle[data-tid="${tid}"]`);
+                    siblings.forEach(s => {
+                        s.classList.add('opacity-40', 'grayscale');
+                        s.classList.remove('active', 'border-teal-500', 'bg-teal-500/5', 'border-amber-500', 'bg-amber-500/5');
+                    });
+                    btn.classList.remove('opacity-40', 'grayscale');
+                    btn.classList.add('active');
+                    if (val === 'full') btn.classList.add('border-teal-500', 'bg-teal-500/5');
+                    else btn.classList.add('border-amber-500', 'bg-amber-500/5');
+
+                    const selector = modal.querySelector(`.partial-selector[data-tid="${tid}"]`);
+                    if (val === 'parcial') selector.classList.remove('hidden');
+                    else selector.classList.add('hidden');
+                };
+            });
+
+            // Select All Apples for one territory
+            modal.querySelectorAll('.btn-sel-all-mz').forEach(btn => {
+                btn.onclick = () => {
+                    const tid = btn.dataset.tid;
+                    const mzs = modal.querySelectorAll(`.mz-done-check[data-tid="${tid}"]`);
+                    const someUnchecked = Array.from(mzs).some(m => !m.checked);
+                    mzs.forEach(m => m.checked = someUnchecked);
+                    btn.innerText = someUnchecked ? 'Desmarcar todas' : 'Marcar todas las manzanas';
+
+                    // Ensure the territory is selected if user marks apples
+                    const check = modal.querySelector(`.return-check[value="${tid}"]`);
+                    if (someUnchecked && !check.checked) {
+                        check.checked = true;
+                        updateVisibility(check);
+                    }
+                };
+            });
+
+            // Photo Upload Logic
+            modal.querySelectorAll('.photo-input').forEach(input => {
+                input.onchange = (e) => {
+                    const tid = input.dataset.tid;
+                    const grid = modal.querySelector(`.photos-grid[data-tid="${tid}"]`);
+                    Array.from(e.target.files).forEach(file => {
+                        if (file.size > 800 * 1024) return showNotification("Foto muy grande (max 800KB)", "warning");
+                        const reader = new FileReader();
+                        reader.onload = (ev) => {
+                            const container = document.createElement('div');
+                            container.className = 'relative w-16 h-16 rounded-2xl overflow-hidden border border-black/10 group animate-scale-in shadow-sm';
+                            container.innerHTML = `
                             <img src="${ev.target.result}" class="w-full h-full object-cover">
                             <button onclick="this.parentElement.remove()" class="absolute inset-0 bg-rose-500/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                 <i class="fas fa-trash-alt text-xs"></i>
                             </button>
                         `;
-                        grid.insertBefore(container, grid.lastElementChild);
-                    };
-                    reader.readAsDataURL(file);
+                            grid.insertBefore(container, grid.lastElementChild);
+                        };
+                        reader.readAsDataURL(file);
+                    });
+                };
+            });
+
+            // "No se pudo predicar" - Fast fail
+            modal.querySelector('#btn-none-today').onclick = async (e) => {
+                const targetIds = Array.from(checks).filter(c => c.checked).map(c => c.value);
+                if (targetIds.length === 0) return showNotification("Selecciona al menos un territorio", "warning");
+
+                showCustomConfirm("¿Confirmar que no se pudo predicar hoy en los territorios seleccionados? Pasarán a estar disponibles nuevamente.", async () => {
+                    const notes = modal.querySelector('#bulk-notes').value || 'Intento fallido (No se pudo predicar)';
+                    e.target.disabled = true;
+                    e.target.innerText = 'PROCESANDO...';
+
+                    try {
+                        for (const id of targetIds) {
+                            // Using 'Disponible' status to set back to 'Sin asignar'
+                            await returnTerritorio(id, notes, null, 'Disponible');
+                        }
+                        showNotification("Reporte registrado. Territorios liberados.");
+                        const mc = document.getElementById('modal-container');
+                        if (mc) {
+                            mc.classList.add('hidden');
+                            mc.innerHTML = '';
+                        }
+                        if (window.refreshConductorView) await window.refreshConductorView();
+                    } catch (err) {
+                        console.error(err);
+                        showNotification("Error al liberar territorios", "error");
+                        e.target.disabled = false;
+                        e.target.innerText = 'No se pudo predicar nada hoy';
+                    }
                 });
             };
-        });
 
-        // "No se pudo predicar" - Fast fail
-        modal.querySelector('#btn-none-today').onclick = async (e) => {
-            const targetIds = Array.from(checks).filter(c => c.checked).map(c => c.value);
-            if (targetIds.length === 0) return showNotification("Selecciona al menos un territorio", "warning");
+            // FINAL SUBMIT (Bulk)
+            modal.querySelector('#confirm-all-reports').onclick = async (e) => {
+                const targetIds = Array.from(checks).filter(c => c.checked).map(c => c.value);
+                if (targetIds.length === 0) return showNotification("Selecciona al menos un territorio para informar", "warning");
 
-            showCustomConfirm("¿Confirmar que no se pudo predicar hoy en los territorios seleccionados? Pasarán a estar disponibles nuevamente.", async () => {
-                const notes = modal.querySelector('#bulk-notes').value || 'Intento fallido (No se pudo predicar)';
+                const date = modal.querySelector('#bulk-return-date').value;
+                const keep = true; // Default to keep in conductor mode
+
                 e.target.disabled = true;
-                e.target.innerText = 'PROCESANDO...';
+                e.target.innerHTML = "PROCESANDO INFORMES...";
 
                 try {
-                    for (const id of targetIds) {
-                        // Using 'Disponible' status to set back to 'Sin asignar'
-                        await returnTerritorio(id, notes, null, 'Disponible');
+                    for (const tid of targetIds) {
+                        const toggle = modal.querySelector(`.completion-toggle[data-tid="${tid}"].active`);
+                        const isPartial = toggle && toggle.dataset.val === 'parcial';
+                        const t = myTerritories.find(x => x.id === tid);
+
+                        // Collect Per-Territory Observations & Photos
+                        const tNotes = modal.querySelector(`.territory-notes[data-tid="${tid}"]`)?.value || '';
+                        const pGrid = modal.querySelector(`.photos-grid[data-tid="${tid}"]`);
+                        const tPhotos = pGrid ? Array.from(pGrid.querySelectorAll('img')).map(img => img.src) : null;
+
+                        // Unified notes (territory specific)
+                        const finalNotes = tNotes;
+
+                        const original = t.manzanas ? t.manzanas.split(',').map(m => m.trim()).filter(Boolean) : [];
+
+                        if (isPartial) {
+                            const checksMz = Array.from(modal.querySelectorAll(`.mz-done-check[data-tid="${tid}"]:checked`)).map(c => c.value);
+                            const manual = modal.querySelector(`.manual-input-modal[data-tid="${tid}"]`);
+                            const manualVal = manual ? manual.value.split(',').map(s => s.trim()).filter(Boolean) : [];
+                            const completed = checksMz.concat(manualVal);
+                            const remaining = original.filter(x => !completed.includes(x));
+
+                            if (completed.length === 0) {
+                                showNotification(`No seleccionaste manzanas para T-${t.numero}`, "warning");
+                                e.target.disabled = false;
+                                e.target.innerHTML = "Confirmar Informe";
+                                return;
+                            }
+
+                            await returnTerritorioParcial(tid, completed, remaining, !keep, finalNotes || 'Avance Parcial', date, tPhotos);
+                        } else {
+                            // Full
+                            await returnTerritorio(tid, finalNotes || "Terminado", date, "Completado", tPhotos);
+                            if (finalNotes) {
+                                // Already logged in returnTerritorio, but let's be double sure if history needs specific log
+                                // await logReturn(tid, date, 'Completado', finalNotes, tPhotos);
+                            }
+                        }
                     }
-                    showNotification("Reporte registrado. Territorios liberados.");
+
+                    showNotification("¡Excelente! Informes registrados con éxito.");
                     const mc = document.getElementById('modal-container');
                     if (mc) {
                         mc.classList.add('hidden');
                         mc.innerHTML = '';
                     }
                     if (window.refreshConductorView) await window.refreshConductorView();
+
                 } catch (err) {
                     console.error(err);
-                    showNotification("Error al liberar territorios", "error");
+                    showCustomAlert("Error al procesar: " + err.message);
                     e.target.disabled = false;
-                    e.target.innerText = 'No se pudo predicar nada hoy';
+                    e.target.innerHTML = "Confirmar Informe de Actividad";
                 }
-            });
+            };
+        });
+    };
+
+    const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refreshCallback) => {
+        let telefonos = initialPhones; // Mutable state for AJAX updates
+        publicadores.sort((a, b) => a.nombre.localeCompare(b.nombre));
+        const estados = ['Sin asignar', 'Contestaron', 'No contestan', 'Colgaron', 'Revisita', 'Predicado', 'No llamar', 'Suspendido', 'Testigo'];
+
+        // UI Elements
+        const compactView = document.getElementById('phone-compact-view');
+        const expandedView = document.getElementById('phone-expanded-view');
+
+        // State Tracking
+        let activeRequests = telefonos.filter(t => t.solicitado_por === userId);
+        let isExpanded = activeRequests.length > 0;
+
+        const setPhoneOpen = (open) => {
+            isExpanded = open;
+            if (open) {
+                compactView?.classList.add('hidden');
+                expandedView?.classList.remove('hidden');
+            } else {
+                compactView?.classList.remove('hidden');
+                expandedView?.classList.add('hidden');
+            }
         };
+        setPhoneOpen(isExpanded);
 
-        // FINAL SUBMIT (Bulk)
-        modal.querySelector('#confirm-all-reports').onclick = async (e) => {
-            const targetIds = Array.from(checks).filter(c => c.checked).map(c => c.value);
-            if (targetIds.length === 0) return showNotification("Selecciona al menos un territorio para informar", "warning");
+        window.updatePhoneAssignment = async (id, newPubName) => {
+            const pub = publicadores.find(p => p.nombre === newPubName);
+            const resolvedId = pub ? pub.id : newPubName;
+            const resolvedName = pub ? pub.nombre : newPubName;
 
-            const date = modal.querySelector('#bulk-return-date').value;
-            const keep = true; // Default to keep in conductor mode
-
-            e.target.disabled = true;
-            e.target.innerHTML = "PROCESANDO INFORMES...";
+            const telIndex = telefonos.findIndex(t => t.id === id);
+            if (telIndex !== -1) {
+                telefonos[telIndex].publicador_asignado = resolvedId;
+                telefonos[telIndex].asignado_a = resolvedName;
+            }
 
             try {
-                for (const tid of targetIds) {
-                    const toggle = modal.querySelector(`.completion-toggle[data-tid="${tid}"].active`);
-                    const isPartial = toggle && toggle.dataset.val === 'parcial';
-                    const t = myTerritories.find(x => x.id === tid);
-
-                    // Collect Per-Territory Observations & Photos
-                    const tNotes = modal.querySelector(`.territory-notes[data-tid="${tid}"]`)?.value || '';
-                    const pGrid = modal.querySelector(`.photos-grid[data-tid="${tid}"]`);
-                    const tPhotos = pGrid ? Array.from(pGrid.querySelectorAll('img')).map(img => img.src) : null;
-
-                    // Unified notes (territory specific)
-                    const finalNotes = tNotes;
-
-                    const original = t.manzanas ? t.manzanas.split(',').map(m => m.trim()).filter(Boolean) : [];
-
-                    if (isPartial) {
-                        const checksMz = Array.from(modal.querySelectorAll(`.mz-done-check[data-tid="${tid}"]:checked`)).map(c => c.value);
-                        const manual = modal.querySelector(`.manual-input-modal[data-tid="${tid}"]`);
-                        const manualVal = manual ? manual.value.split(',').map(s => s.trim()).filter(Boolean) : [];
-                        const completed = checksMz.concat(manualVal);
-                        const remaining = original.filter(x => !completed.includes(x));
-
-                        if (completed.length === 0) {
-                            showNotification(`No seleccionaste manzanas para T-${t.numero}`, "warning");
-                            e.target.disabled = false;
-                            e.target.innerHTML = "Confirmar Informe";
-                            return;
-                        }
-
-                        await returnTerritorioParcial(tid, completed, remaining, !keep, finalNotes || 'Avance Parcial', date, tPhotos);
-                    } else {
-                        // Full
-                        await returnTerritorio(tid, finalNotes || "Terminado", date, "Completado", tPhotos);
-                        if (finalNotes) {
-                            // Already logged in returnTerritorio, but let's be double sure if history needs specific log
-                            // await logReturn(tid, date, 'Completado', finalNotes, tPhotos);
-                        }
-                    }
-                }
-
-                showNotification("¡Excelente! Informes registrados con éxito.");
-                const mc = document.getElementById('modal-container');
-                if (mc) {
-                    mc.classList.add('hidden');
-                    mc.innerHTML = '';
-                }
-                if (window.refreshConductorView) await window.refreshConductorView();
-
-            } catch (err) {
-                console.error(err);
-                showCustomAlert("Error al procesar: " + err.message);
-                e.target.disabled = false;
-                e.target.innerHTML = "Confirmar Informe de Actividad";
+                await updateTelefono(id, {
+                    publicador_asignado: resolvedId,
+                    asignado_a: resolvedName,
+                    fecha_asignacion: new Date().toISOString()
+                });
+            } catch (e) {
+                console.error(e);
+                showNotification("Error al guardar asignación", "error");
             }
         };
-    });
-};
 
-const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refreshCallback) => {
-    let telefonos = initialPhones; // Mutable state for AJAX updates
-    publicadores.sort((a, b) => a.nombre.localeCompare(b.nombre));
-    const estados = ['Sin asignar', 'Contestaron', 'No contestan', 'Colgaron', 'Revisita', 'Predicado', 'No llamar', 'Suspendido', 'Testigo'];
-
-    // UI Elements
-    const compactView = document.getElementById('phone-compact-view');
-    const expandedView = document.getElementById('phone-expanded-view');
-
-    // State Tracking
-    let activeRequests = telefonos.filter(t => t.solicitado_por === userId);
-    let isExpanded = activeRequests.length > 0;
-
-    const setPhoneOpen = (open) => {
-        isExpanded = open;
-        if (open) {
-            compactView?.classList.add('hidden');
-            expandedView?.classList.remove('hidden');
-        } else {
-            compactView?.classList.remove('hidden');
-            expandedView?.classList.add('hidden');
-        }
-    };
-    setPhoneOpen(isExpanded);
-
-    window.updatePhoneAssignment = async (id, newPubName) => {
-        const pub = publicadores.find(p => p.nombre === newPubName);
-        const resolvedId = pub ? pub.id : newPubName;
-        const resolvedName = pub ? pub.nombre : newPubName;
-
-        const telIndex = telefonos.findIndex(t => t.id === id);
-        if (telIndex !== -1) {
-            telefonos[telIndex].publicador_asignado = resolvedId;
-            telefonos[telIndex].asignado_a = resolvedName;
-        }
-
-        try {
-            await updateTelefono(id, {
-                publicador_asignado: resolvedId,
-                asignado_a: resolvedName,
-                fecha_asignacion: new Date().toISOString()
-            });
-        } catch (e) {
-            console.error(e);
-            showNotification("Error al guardar asignación", "error");
-        }
-    };
-
-    window.updatePhoneStatus = async (id, status) => {
-        const telIndex = telefonos.findIndex(t => t.id === id);
-        if (telIndex !== -1) {
-            telefonos[telIndex].estado = status;
-            if (status === 'Sin asignar') {
-                telefonos[telIndex].publicador_asignado = null;
-                telefonos[telIndex].asignado_a = null;
-                telefonos[telIndex].fecha_asignacion = null;
-                telefonos[telIndex].solicitado_por = null;
+        window.updatePhoneStatus = async (id, status) => {
+            const telIndex = telefonos.findIndex(t => t.id === id);
+            if (telIndex !== -1) {
+                telefonos[telIndex].estado = status;
+                if (status === 'Sin asignar') {
+                    telefonos[telIndex].publicador_asignado = null;
+                    telefonos[telIndex].asignado_a = null;
+                    telefonos[telIndex].fecha_asignacion = null;
+                    telefonos[telIndex].solicitado_por = null;
+                }
+                render();
             }
-            render();
-        }
-        await updateTelefonoStatus(id, status, (telIndex !== -1 ? telefonos[telIndex].asignado_a : null));
-    };
+            await updateTelefonoStatus(id, status, (telIndex !== -1 ? telefonos[telIndex].asignado_a : null));
+        };
 
-    window.updatePhoneComment = async (id, comment, inputElement, publicadorName) => {
-        const telIndex = telefonos.findIndex(t => t.id === id);
-        if (telIndex !== -1) {
-            telefonos[telIndex].comentario = comment;
-        }
+        window.updatePhoneComment = async (id, comment, inputElement, publicadorName) => {
+            const telIndex = telefonos.findIndex(t => t.id === id);
+            if (telIndex !== -1) {
+                telefonos[telIndex].comentario = comment;
+            }
 
-        inputElement.classList.add('border-teal-500', 'bg-teal-900/20');
+            inputElement.classList.add('border-teal-500', 'bg-teal-900/20');
 
-        try {
-            // Use updateTelefonoStatus so it logs to history
-            await updateTelefonoStatus(id, (telIndex !== -1 ? telefonos[telIndex].estado : 'Contestaron'), publicadorName, comment);
+            try {
+                // Use updateTelefonoStatus so it logs to history
+                await updateTelefonoStatus(id, (telIndex !== -1 ? telefonos[telIndex].estado : 'Contestaron'), publicadorName, comment);
 
-            setTimeout(() => {
-                inputElement.classList.remove('bg-teal-900/20', 'border-teal-500');
-            }, 1000);
-        } catch (e) {
-            console.error("Error saving comment:", e);
-            inputElement.classList.add('border-red-500');
-            showNotification("Error al guardar comentario", "error");
-        }
-    };
+                setTimeout(() => {
+                    inputElement.classList.remove('bg-teal-900/20', 'border-teal-500');
+                }, 1000);
+            } catch (e) {
+                console.error("Error saving comment:", e);
+                inputElement.classList.add('border-red-500');
+                showNotification("Error al guardar comentario", "error");
+            }
+        };
 
-    window.showPhoneHistory = (historial, numero) => {
-        const modal = document.getElementById('modal-container');
-        modal.innerHTML = `
+        window.showPhoneHistory = (historial, numero) => {
+            const modal = document.getElementById('modal-container');
+            modal.innerHTML = `
     <div class="flex flex-col h-full bg-slate-50 dark:bg-[#0b0e14]">
                 <header class="shrink-0 flex justify-between items-center bg-gradient-to-r from-amber-500 to-amber-600 p-8 text-white shadow-2xl relative overflow-hidden">
                     <div class="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
@@ -2421,54 +2444,54 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
                 </div>
             </div>
     `;
-        modal.classList.remove('hidden');
-    };
+            modal.classList.remove('hidden');
+        };
 
-    window.copyToClipboard = (text) => {
-        navigator.clipboard.writeText(text).then(() => {
-            showNotification("Número copiado al portapapeles", "success", 1500);
-        });
-    };
+        window.copyToClipboard = (text) => {
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification("Número copiado al portapapeles", "success", 1500);
+            });
+        };
 
-    const render = () => {
-        const searchInput = document.getElementById('search-phone');
-        const statusFilter = document.getElementById('filter-phone-status');
-        const searchVal = searchInput ? searchInput.value.toLowerCase() : '';
-        const statusVal = statusFilter ? statusFilter.value : '';
+        const render = () => {
+            const searchInput = document.getElementById('search-phone');
+            const statusFilter = document.getElementById('filter-phone-status');
+            const searchVal = searchInput ? searchInput.value.toLowerCase() : '';
+            const statusVal = statusFilter ? statusFilter.value : '';
 
-        // Filter and Sort
-        let filtered = activeRequests.filter(t => {
-            const matchSearch = !searchVal || t.numero.includes(searchVal) || (t.propietario && t.propietario.toLowerCase().includes(searchVal));
-            const matchStatus = !statusVal || t.estado === statusVal;
-            return matchSearch && matchStatus;
-        });
+            // Filter and Sort
+            let filtered = activeRequests.filter(t => {
+                const matchSearch = !searchVal || t.numero.includes(searchVal) || (t.propietario && t.propietario.toLowerCase().includes(searchVal));
+                const matchStatus = !statusVal || t.estado === statusVal;
+                return matchSearch && matchStatus;
+            });
 
-        filtered.sort((a, b) => {
-            const dateA = a.fecha_asignacion ? new Date(a.fecha_asignacion) : new Date(0);
-            const dateB = b.fecha_asignacion ? new Date(b.fecha_asignacion) : new Date(0);
-            return dateB - dateA;
-        });
+            filtered.sort((a, b) => {
+                const dateA = a.fecha_asignacion ? new Date(a.fecha_asignacion) : new Date(0);
+                const dateB = b.fecha_asignacion ? new Date(b.fecha_asignacion) : new Date(0);
+                return dateB - dateA;
+            });
 
-        if (activeRequests.length === 0) {
-            tbody.innerHTML = `<tr> <td colspan="6" class="p-20 text-center text-gray-400 dark:text-gray-500 italic font-bold">No tienes números solicitados. Usa el botón "Solicitar" en la vista compacta o arriba.</td></tr> `;
-            return;
-        }
-
-        if (filtered.length === 0) {
-            tbody.innerHTML = `<tr> <td colspan="6" class="p-8 text-center text-gray-500 italic">No se encontraron números que coincidan con la búsqueda.</td></tr> `;
-            return;
-        }
-
-        tbody.innerHTML = filtered.map(t => {
-            const rawAssigned = t.asignado_a || t.publicador_asignado;
-            let currentPubDisplay = rawAssigned || '';
-            if (rawAssigned) {
-                const p = publicadores.find(pub => pub.id === rawAssigned || pub.email === rawAssigned || pub.nombre === rawAssigned);
-                if (p) currentPubDisplay = p.nombre;
+            if (activeRequests.length === 0) {
+                tbody.innerHTML = `<tr> <td colspan="6" class="p-20 text-center text-gray-400 dark:text-gray-500 italic font-bold">No tienes números solicitados. Usa el botón "Solicitar" en la vista compacta o arriba.</td></tr> `;
+                return;
             }
 
-            const currentStatus = t.estado || 'Sin asignar';
-            return `
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr> <td colspan="6" class="p-8 text-center text-gray-500 italic">No se encontraron números que coincidan con la búsqueda.</td></tr> `;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(t => {
+                const rawAssigned = t.asignado_a || t.publicador_asignado;
+                let currentPubDisplay = rawAssigned || '';
+                if (rawAssigned) {
+                    const p = publicadores.find(pub => pub.id === rawAssigned || pub.email === rawAssigned || pub.nombre === rawAssigned);
+                    if (p) currentPubDisplay = p.nombre;
+                }
+
+                const currentStatus = t.estado || 'Sin asignar';
+                return `
     <tr class="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors border-b border-slate-100 dark:border-white/5 group">
                     <td class="p-4 md:p-6">
                         <div class="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 font-mono text-primary font-black text-sm tracking-widest">
@@ -2512,24 +2535,24 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
                     </td>
                 </tr>
     `;
-        }).join('');
+            }).join('');
 
-        // Fix and move datalist
-        const dlContainer = document.getElementById('phone-module-card');
-        let dl = document.getElementById('phone-pubs-list');
-        if (!dl) {
-            dl = document.createElement('datalist');
-            dl.id = 'phone-pubs-list';
-            dlContainer.appendChild(dl);
-        }
-        dl.innerHTML = publicadores.map(p => `<option value="${p.nombre}">${p.nombre}</option>`).join('');
+            // Fix and move datalist
+            const dlContainer = document.getElementById('phone-module-card');
+            let dl = document.getElementById('phone-pubs-list');
+            if (!dl) {
+                dl = document.createElement('datalist');
+                dl.id = 'phone-pubs-list';
+                dlContainer.appendChild(dl);
+            }
+            dl.innerHTML = publicadores.map(p => `<option value="${p.nombre}">${p.nombre}</option>`).join('');
 
-        // Progress Stats
-        const totalProcessed = telefonos.filter(t => t.estado && t.estado !== 'Sin asignar').length;
-        const total = telefonos.length;
-        const progressContainer = document.getElementById('phone-progress-info');
-        if (progressContainer) {
-            progressContainer.innerHTML = `
+            // Progress Stats
+            const totalProcessed = telefonos.filter(t => t.estado && t.estado !== 'Sin asignar').length;
+            const total = telefonos.length;
+            const progressContainer = document.getElementById('phone-progress-info');
+            if (progressContainer) {
+                progressContainer.innerHTML = `
     <div class="flex items-center gap-4 text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest">
                     <span>Progreso: <b class="text-teal-600 dark:text-teal-400">${totalProcessed}</b> / <b>${total}</b></span>
                     <div class="w-32 h-1.5 bg-gray-200 dark:bg-white/5 rounded-full overflow-hidden shadow-inner">
@@ -2537,66 +2560,66 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
                     </div>
                 </div>>
     `;
-        }
+            }
 
-        // Finalizar Session Button visibility
-        const btnFinalizar = document.getElementById('btn-finalizar-sesion');
-        const btnSolicitarMore = document.getElementById('btn-solicitar-more');
-        if (btnFinalizar) {
-            const hasActive = activeRequests.length > 0;
-            btnFinalizar.classList.toggle('hidden', !hasActive);
-            if (btnSolicitarMore) btnSolicitarMore.classList.toggle('hidden', !hasActive);
-        }
-    };
-    render();
-
-    // Setup All Solicitar Buttons
-    const solicitarBtnIds = ['btn-solicitar', 'btn-solicitar-more', 'btn-solicitar-more-top'];
-    solicitarBtnIds.forEach(id => {
-        const btn = document.getElementById(id);
-        if (!btn) return;
-
-        const newBtn = btn.cloneNode(true);
-        btn.parentNode.replaceChild(newBtn, btn);
-
-        newBtn.onclick = async () => {
-            const originalText = newBtn.innerHTML;
-            newBtn.disabled = true;
-            newBtn.innerHTML = '<span class="animate-pulse">PROCESANDO...</span>';
-            try {
-                // Ensure fresh start: release previous unassigned/unused ones first
-                await releaseUnusedTelefonos(userId);
-                const count = await solicitarNumeros(30, userId);
-                if (count > 0) {
-                    showNotification(`¡Se te han asignado ${count} números nuevos!`, "success");
-                    if (refreshCallback) {
-                        telefonos = await refreshCallback();
-                        setPhoneOpen(true); // Automatic expand on success
-                        render();
-                    } else {
-                        window.location.reload();
-                    }
-                } else {
-                    showNotification("No hay números disponibles por ahora.", "warning");
-                }
-            } catch (err) {
-                console.error(err);
-                showNotification('Error: ' + err.message, "error");
-            } finally {
-                newBtn.disabled = false;
-                newBtn.innerHTML = originalText;
+            // Finalizar Session Button visibility
+            const btnFinalizar = document.getElementById('btn-finalizar-sesion');
+            const btnSolicitarMore = document.getElementById('btn-solicitar-more');
+            if (btnFinalizar) {
+                const hasActive = activeRequests.length > 0;
+                btnFinalizar.classList.toggle('hidden', !hasActive);
+                if (btnSolicitarMore) btnSolicitarMore.classList.toggle('hidden', !hasActive);
             }
         };
-    });
+        render();
 
-    /* --- REVISITAS LOGIC --- */
-    const btnRevisitas = document.getElementById('btn-revisitas');
-    if (btnRevisitas) {
-        const newBtn = btnRevisitas.cloneNode(true);
-        btnRevisitas.parentNode.replaceChild(newBtn, btnRevisitas);
-        newBtn.addEventListener('click', async () => {
-            const modal = document.getElementById('modal-container');
-            modal.innerHTML = `
+        // Setup All Solicitar Buttons
+        const solicitarBtnIds = ['btn-solicitar', 'btn-solicitar-more', 'btn-solicitar-more-top'];
+        solicitarBtnIds.forEach(id => {
+            const btn = document.getElementById(id);
+            if (!btn) return;
+
+            const newBtn = btn.cloneNode(true);
+            btn.parentNode.replaceChild(newBtn, btn);
+
+            newBtn.onclick = async () => {
+                const originalText = newBtn.innerHTML;
+                newBtn.disabled = true;
+                newBtn.innerHTML = '<span class="animate-pulse">PROCESANDO...</span>';
+                try {
+                    // Ensure fresh start: release previous unassigned/unused ones first
+                    await releaseUnusedTelefonos(userId);
+                    const count = await solicitarNumeros(30, userId);
+                    if (count > 0) {
+                        showNotification(`¡Se te han asignado ${count} números nuevos!`, "success");
+                        if (refreshCallback) {
+                            telefonos = await refreshCallback();
+                            setPhoneOpen(true); // Automatic expand on success
+                            render();
+                        } else {
+                            window.location.reload();
+                        }
+                    } else {
+                        showNotification("No hay números disponibles por ahora.", "warning");
+                    }
+                } catch (err) {
+                    console.error(err);
+                    showNotification('Error: ' + err.message, "error");
+                } finally {
+                    newBtn.disabled = false;
+                    newBtn.innerHTML = originalText;
+                }
+            };
+        });
+
+        /* --- REVISITAS LOGIC --- */
+        const btnRevisitas = document.getElementById('btn-revisitas');
+        if (btnRevisitas) {
+            const newBtn = btnRevisitas.cloneNode(true);
+            btnRevisitas.parentNode.replaceChild(newBtn, btnRevisitas);
+            newBtn.addEventListener('click', async () => {
+                const modal = document.getElementById('modal-container');
+                modal.innerHTML = `
     <div class="flex flex-col h-full bg-slate-50 dark:bg-[#0b0e14]">
                     <header class="shrink-0 flex justify-between items-center bg-gradient-to-r from-amber-500 to-orange-600 p-8 text-white shadow-2xl relative overflow-hidden">
                         <div class="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
@@ -2646,21 +2669,21 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
                     </div>
                 </div>
     `;
-            modal.classList.remove('hidden');
+                modal.classList.remove('hidden');
 
-            try {
-                const allPhones = await getTelefonos();
-                const revisitas = allPhones.filter(t => t.estado === 'Revisita');
-                const tbody = document.getElementById('revisitas-tbody');
-                const loader = document.getElementById('revisitas-loader');
-                const noMsg = document.getElementById('no-revisitas-msg');
+                try {
+                    const allPhones = await getTelefonos();
+                    const revisitas = allPhones.filter(t => t.estado === 'Revisita');
+                    const tbody = document.getElementById('revisitas-tbody');
+                    const loader = document.getElementById('revisitas-loader');
+                    const noMsg = document.getElementById('no-revisitas-msg');
 
-                loader.classList.add('hidden');
+                    loader.classList.add('hidden');
 
-                if (revisitas.length === 0) {
-                    noMsg.classList.remove('hidden');
-                } else {
-                    tbody.innerHTML = revisitas.map(r => `
+                    if (revisitas.length === 0) {
+                        noMsg.classList.remove('hidden');
+                    } else {
+                        tbody.innerHTML = revisitas.map(r => `
     <tr id = "rev-row-${r.id}" class="hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-colors">
                             <td class="p-3 font-mono text-teal-600 dark:text-teal-400">${formatPhoneNumber(r.numero)}</td>
                             <td class="p-3 font-bold text-gray-800 dark:text-gray-200">${r.propietario || '-'}</td>
@@ -2676,123 +2699,123 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
                             </td>
                         </tr>
     `).join('');
+                    }
+
+                } catch (e) {
+                    console.error(e);
+                    showNotification("Error cargando revisitas", "error");
+                    document.getElementById('revisitas-loader').classList.add('hidden');
                 }
-
-            } catch (e) {
-                console.error(e);
-                showNotification("Error cargando revisitas", "error");
-                document.getElementById('revisitas-loader').classList.add('hidden');
-            }
-        });
-    }
-
-    window.startVoiceDictation = (targetId, iconId = 'mic-icon') => {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-            return showNotification("Tu navegador no soporta transcripción por voz.", "warning");
-        }
-
-        const recognition = new SpeechRecognition();
-        recognition.lang = 'es-ES';
-        recognition.interimResults = false;
-        recognition.maxAlternatives = 1;
-
-        const micIcon = document.getElementById(iconId);
-        const originalClass = micIcon ? micIcon.className : '';
-
-        if (micIcon) {
-            micIcon.className = 'fas fa-circle text-rose-500 animate-pulse';
-        }
-
-        recognition.start();
-
-        recognition.onresult = (event) => {
-            const transcript = event.results[0][0].transcript;
-            const target = document.getElementById(targetId);
-            if (target) {
-                target.value = target.value ? target.value + ' ' + transcript : transcript;
-                target.focus();
-            }
-        };
-
-        recognition.onerror = () => {
-            showNotification("Error en el dictado.", "error");
-            if (micIcon) micIcon.className = originalClass;
-        };
-
-        recognition.onend = () => {
-            if (micIcon) micIcon.className = originalClass;
-        };
-    };
-
-    window.returnRevisita = async (id) => {
-        const row = document.getElementById(`rev-row-${id}`);
-        // Demand comment for return
-        const reason = await showCustomPrompt("MOTIVO DE DEVOLUCIÓN", "¿Por qué devuelves este número? (Quedará disponible para otros)", "Ej: Me mudé, Propietario ocupado...");
-        if (!reason) return;
-
-        try {
-            await updateTelefono(id, {
-                estado: 'Sin asignar',
-                publicador_asignado: null,
-                asignado_a: null,
-                fecha_asignacion: null,
-                solicitado_por: null,
-                comentario_devolucion: reason,
-                fecha_devolucion: new Date().toISOString()
             });
-
-            showNotification("Número devuelto exitosamente.", "success");
-            if (row) row.remove();
-
-            const tbodyRev = document.getElementById('revisitas-tbody');
-            if (tbodyRev && tbodyRev.children.length === 0) {
-                document.getElementById('no-revisitas-msg').classList.remove('hidden');
-            }
-
-            if (refreshCallback) {
-                telefonos = await refreshCallback();
-                render();
-            }
-        } catch (e) {
-            console.error(e);
-            showNotification("Error al devolver número", "error");
         }
-    };
 
-    // End Session Logic
-    const bindFinalizar = (id) => {
-        const btn = document.getElementById(id);
-        if (!btn) return;
-        btn.onclick = async () => {
-            const activeRequests = telefonos.filter(t => t.solicitado_por === userId);
-            if (activeRequests.length === 0) return;
+        window.startVoiceDictation = (targetId, iconId = 'mic-icon') => {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                return showNotification("Tu navegador no soporta transcripción por voz.", "warning");
+            }
 
-            const summary = {
-                total: activeRequests.length,
-                stats: {
-                    'Contestaron': 0,
-                    'No contestan': 0,
-                    'Colgaron': 0,
-                    'Revisita': 0,
-                    'No llamar': 0,
-                    'Sin asignar': 0
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'es-ES';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            const micIcon = document.getElementById(iconId);
+            const originalClass = micIcon ? micIcon.className : '';
+
+            if (micIcon) {
+                micIcon.className = 'fas fa-circle text-rose-500 animate-pulse';
+            }
+
+            recognition.start();
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                const target = document.getElementById(targetId);
+                if (target) {
+                    target.value = target.value ? target.value + ' ' + transcript : transcript;
+                    target.focus();
                 }
             };
 
-            activeRequests.forEach(t => {
-                const st = t.estado || 'Sin asignar';
-                if (summary.stats.hasOwnProperty(st)) summary.stats[st]++;
-                else summary.stats['Sin asignar']++;
-            });
+            recognition.onerror = () => {
+                showNotification("Error en el dictado.", "error");
+                if (micIcon) micIcon.className = originalClass;
+            };
 
-            const statsText = Object.entries(summary.stats)
-                .filter(([_, count]) => count > 0)
-                .map(([name, count]) => `• ${name}: ${count} `)
-                .join('\n');
+            recognition.onend = () => {
+                if (micIcon) micIcon.className = originalClass;
+            };
+        };
 
-            const modal = document.getElementById('modal-container');
-            showModal(`
+        window.returnRevisita = async (id) => {
+            const row = document.getElementById(`rev-row-${id}`);
+            // Demand comment for return
+            const reason = await showCustomPrompt("MOTIVO DE DEVOLUCIÓN", "¿Por qué devuelves este número? (Quedará disponible para otros)", "Ej: Me mudé, Propietario ocupado...");
+            if (!reason) return;
+
+            try {
+                await updateTelefono(id, {
+                    estado: 'Sin asignar',
+                    publicador_asignado: null,
+                    asignado_a: null,
+                    fecha_asignacion: null,
+                    solicitado_por: null,
+                    comentario_devolucion: reason,
+                    fecha_devolucion: new Date().toISOString()
+                });
+
+                showNotification("Número devuelto exitosamente.", "success");
+                if (row) row.remove();
+
+                const tbodyRev = document.getElementById('revisitas-tbody');
+                if (tbodyRev && tbodyRev.children.length === 0) {
+                    document.getElementById('no-revisitas-msg').classList.remove('hidden');
+                }
+
+                if (refreshCallback) {
+                    telefonos = await refreshCallback();
+                    render();
+                }
+            } catch (e) {
+                console.error(e);
+                showNotification("Error al devolver número", "error");
+            }
+        };
+
+        // End Session Logic
+        const bindFinalizar = (id) => {
+            const btn = document.getElementById(id);
+            if (!btn) return;
+            btn.onclick = async () => {
+                const activeRequests = telefonos.filter(t => t.solicitado_por === userId);
+                if (activeRequests.length === 0) return;
+
+                const summary = {
+                    total: activeRequests.length,
+                    stats: {
+                        'Contestaron': 0,
+                        'No contestan': 0,
+                        'Colgaron': 0,
+                        'Revisita': 0,
+                        'No llamar': 0,
+                        'Sin asignar': 0
+                    }
+                };
+
+                activeRequests.forEach(t => {
+                    const st = t.estado || 'Sin asignar';
+                    if (summary.stats.hasOwnProperty(st)) summary.stats[st]++;
+                    else summary.stats['Sin asignar']++;
+                });
+
+                const statsText = Object.entries(summary.stats)
+                    .filter(([_, count]) => count > 0)
+                    .map(([name, count]) => `• ${name}: ${count} `)
+                    .join('\n');
+
+                const modal = document.getElementById('modal-container');
+                showModal(`
                 <div class="p-12 text-center space-y-12 animate-fade-in bg-slate-50 dark:bg-[#0b0e14]">
                     <div class="relative inline-block">
                         <div class="w-32 h-32 bg-primary/10 dark:bg-primary/20 rounded-[3rem] flex items-center justify-center text-6xl text-primary shadow-inner border border-primary/20 animate-float">
@@ -2815,8 +2838,8 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
                         </div>
                         <div class="space-y-5 text-left">
                              ${Object.entries(summary.stats)
-                    .filter(([_, count]) => count > 0)
-                    .map(([name, count]) => `
+                        .filter(([_, count]) => count > 0)
+                        .map(([name, count]) => `
                                      <div class="flex justify-between items-center px-6 py-4 hover:bg-slate-50 dark:hover:bg-white/[0.05] rounded-2xl transition-all group/stat">
                                          <span class="text-[13px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest group-hover/stat:text-primary transition-colors">${name}</span>
                                          <span class="text-base font-black text-slate-800 dark:text-white tabular-nums">${count}</span>
@@ -2831,70 +2854,70 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
                     <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-primary transition-colors">Volver</button>
                 </div>
             `, (modal) => {
-                // Modal callback
-            });
-
-            // Log summary and release numbers immediately on click "Finalizar"
-            try {
-                await logSessionSummary({
-                    conductor_id: userId,
-                    stats: summary.stats,
-                    total: summary.total
+                    // Modal callback
                 });
-                await releaseUnusedTelefonos(userId);
-            } catch (e) {
-                console.error("Error finalizing session:", e);
-            }
 
-            // Automatic collapse after finishing
-            setPhoneOpen(false);
+                // Log summary and release numbers immediately on click "Finalizar"
+                try {
+                    await logSessionSummary({
+                        conductor_id: userId,
+                        stats: summary.stats,
+                        total: summary.total
+                    });
+                    await releaseUnusedTelefonos(userId);
+                } catch (e) {
+                    console.error("Error finalizing session:", e);
+                }
 
-            const shareBtn = document.getElementById('btn-share-results');
-            if (shareBtn) {
-                shareBtn.onclick = async () => {
-                    const message = `📋 *Resumen de Predicación Telefónica*\n` +
-                        `👤 *Conductor:* ${userId} \n` +
-                        `📊 *Total procesado:* ${summary.total} \n\n` +
-                        `${statsText} \n\n` +
-                        `_Enviado desde App Territorios_`;
+                // Automatic collapse after finishing
+                setPhoneOpen(false);
 
-                    if (navigator.share) {
-                        try {
-                            await navigator.share({
-                                title: 'Resumen de Predicación',
-                                text: message
-                            });
-                        } catch (err) {
-                            console.log("Share failed or cancelled", err);
+                const shareBtn = document.getElementById('btn-share-results');
+                if (shareBtn) {
+                    shareBtn.onclick = async () => {
+                        const message = `📋 *Resumen de Predicación Telefónica*\n` +
+                            `👤 *Conductor:* ${userId} \n` +
+                            `📊 *Total procesado:* ${summary.total} \n\n` +
+                            `${statsText} \n\n` +
+                            `_Enviado desde App Territorios_`;
+
+                        if (navigator.share) {
+                            try {
+                                await navigator.share({
+                                    title: 'Resumen de Predicación',
+                                    text: message
+                                });
+                            } catch (err) {
+                                console.log("Share failed or cancelled", err);
+                            }
+                        } else {
+                            window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
                         }
-                    } else {
-                        window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
-                    }
-                    // Close modal after sharing
-                    document.getElementById('modal-container').classList.add('hidden');
-                };
-            }
+                        // Close modal after sharing
+                        document.getElementById('modal-container').classList.add('hidden');
+                    };
+                }
+            };
         };
-    };
 
-    bindFinalizar('btn-finalizar-sesion');
-    bindFinalizar('btn-finalizar');
+        bindFinalizar('btn-finalizar-sesion');
+        bindFinalizar('btn-finalizar');
 
-    // Search and Filter Listeners
-    const searchPhone = document.getElementById('search-phone');
-    const filterStatus = document.getElementById('filter-phone-status');
-    if (searchPhone) searchPhone.addEventListener('input', render);
-    if (filterStatus) filterStatus.addEventListener('change', render);
-
+        // Search and Filter Listeners
+        const searchPhone = document.getElementById('search-phone');
+        const filterStatus = document.getElementById('filter-phone-status');
+        if (searchPhone) searchPhone.addEventListener('input', render);
+        if (filterStatus) filterStatus.addEventListener('change', render);
 
 
-    const btnAddPub = document.getElementById('btn-add-publicador');
-    if (btnAddPub) {
-        const newBtn = btnAddPub.cloneNode(true);
-        btnAddPub.parentNode.replaceChild(newBtn, btnAddPub);
-        newBtn.addEventListener('click', async () => {
-            const modal = document.getElementById('modal-container');
-            modal.innerHTML = `
+
+        const btnAddPub = document.getElementById('btn-add-publicador');
+        if (btnAddPub) {
+            const newBtn = btnAddPub.cloneNode(true);
+            btnAddPub.parentNode.replaceChild(newBtn, btnAddPub);
+            newBtn.addEventListener('click', async () => {
+                const modal = document.getElementById('modal-container');
+                modal.innerHTML = `
                 <div class="modern-card p-10 max-w-sm w-full shadow-2xl relative animate-bounce-in border-primary/20 bg-white dark:bg-[#0b0e14]">
                     <div class="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-2xl text-primary mx-auto mb-6 shadow-inner border border-primary/10">
                         <i class="fas fa-user-plus"></i>
@@ -2915,57 +2938,57 @@ const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refre
                     </div>
                 </div>
 `;
-            modal.classList.remove('hidden');
+                modal.classList.remove('hidden');
 
-            const inputName = document.getElementById('new-pub-name-input');
-            inputName.focus();
+                const inputName = document.getElementById('new-pub-name-input');
+                inputName.focus();
 
-            const submit = async () => {
-                const name = inputName.value.trim();
-                if (name.length > 0) {
-                    try {
-                        modal.classList.add('hidden');
-                        await addPublicador({ nombre: name });
-                        showNotification("Publicador agregado correctamente.", "success");
-                        // Update local state and re-render dropdowns
-                        publicadores.push({ nombre: name });
-                        publicadores.sort((a, b) => a.nombre.localeCompare(b.nombre));
-                        render();
-                    } catch (e) {
-                        console.error(e);
-                        showNotification("Error al agregar publicador: " + e.message, "error");
+                const submit = async () => {
+                    const name = inputName.value.trim();
+                    if (name.length > 0) {
+                        try {
+                            modal.classList.add('hidden');
+                            await addPublicador({ nombre: name });
+                            showNotification("Publicador agregado correctamente.", "success");
+                            // Update local state and re-render dropdowns
+                            publicadores.push({ nombre: name });
+                            publicadores.sort((a, b) => a.nombre.localeCompare(b.nombre));
+                            render();
+                        } catch (e) {
+                            console.error(e);
+                            showNotification("Error al agregar publicador: " + e.message, "error");
+                        }
                     }
-                }
-            };
+                };
 
-            document.getElementById('confirm-add-pub').addEventListener('click', submit);
-            inputName.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') submit();
+                document.getElementById('confirm-add-pub').addEventListener('click', submit);
+                inputName.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') submit();
+                });
             });
-        });
-    }
+        }
 
 
 
-};
+    };
 
-/* --- AI / INTELLIGENCE --- */
-/* --- AI / INTELLIGENCE --- */
-async function renderAISection(name) {
-    const config = await getConfiguracion();
-    if (!config.gemini_key) return;
+    /* --- AI / INTELLIGENCE --- */
+    /* --- AI / INTELLIGENCE --- */
+    async function renderAISection(name) {
+        const config = await getConfiguracion();
+        if (!config.gemini_key) return;
 
-    const [telefonos, publicadores, territorios, programa] = await Promise.all([
-        getTelefonos(), getPublicadores(), getTerritorios(), getProgramaSemanal()
-    ]);
+        const [telefonos, publicadores, territorios, programa] = await Promise.all([
+            getTelefonos(), getPublicadores(), getTerritorios(), getProgramaSemanal()
+        ]);
 
-    const brain = new TerritoryIntelligence(telefonos, publicadores, territorios, programa);
+        const brain = new TerritoryIntelligence(telefonos, publicadores, territorios, programa);
 
-    // Inject Dynamic styles
-    if (!document.getElementById('ai-pulse-styles')) {
-        const style = document.createElement('style');
-        style.id = 'ai-pulse-styles';
-        style.innerHTML = `
+        // Inject Dynamic styles
+        if (!document.getElementById('ai-pulse-styles')) {
+            const style = document.createElement('style');
+            style.id = 'ai-pulse-styles';
+            style.innerHTML = `
             @keyframes ai-pulse {
                 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.7); }
                 70% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(139, 92, 246, 0); }
@@ -2978,12 +3001,12 @@ async function renderAISection(name) {
             .ai-thinking { animation: ai-pulse 2s infinite !important; background: linear-gradient(135deg, #8b5cf6, #3b82f6) !important; }
             .ai-badge { position: absolute; top: -5px; right: -5px; width: 18px; height: 18px; background: #ef4444; border-radius: 50%; border: 2px solid white; font-size: 10px; font-weight: 900; color: white; display: flex; align-items: center; justify-content: center; animation: bounce 1s infinite; }
         `;
-        document.head.appendChild(style);
-    }
+            document.head.appendChild(style);
+        }
 
-    const aiUI = document.createElement('div');
-    aiUI.id = 'ai-assistant-overlay';
-    aiUI.innerHTML = `
+        const aiUI = document.createElement('div');
+        aiUI.id = 'ai-assistant-overlay';
+        aiUI.innerHTML = `
         <!-- Proactive Speech Bubble -->
         <div id="ai-speech-bubble" class="fixed bottom-28 right-6 z-40 max-w-[220px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl text-slate-800 dark:text-white p-5 rounded-[2rem] rounded-br-none shadow-2xl border border-primary/20 opacity-0 pointer-events-none translate-y-4 transition-all duration-500">
             <p class="text-[10px] font-black uppercase tracking-widest leading-none mb-1 opacity-50">Sugerencia IA</p>
@@ -3038,28 +3061,28 @@ async function renderAISection(name) {
         </div>
     `;
 
-    const existing = document.getElementById('ai-assistant-overlay');
-    if (existing) existing.remove();
-    document.body.appendChild(aiUI);
+        const existing = document.getElementById('ai-assistant-overlay');
+        if (existing) existing.remove();
+        document.body.appendChild(aiUI);
 
-    const fab = document.getElementById('ai-fab');
-    const panel = document.getElementById('ai-panel');
-    const closeBtn = document.getElementById('ai-close');
-    const input = document.getElementById('conductor-chat-input');
-    const sendBtn = document.getElementById('conductor-chat-send');
-    const log = document.getElementById('conductor-chat-log');
-    const badge = document.getElementById('ai-suggestion-badge');
+        const fab = document.getElementById('ai-fab');
+        const panel = document.getElementById('ai-panel');
+        const closeBtn = document.getElementById('ai-close');
+        const input = document.getElementById('conductor-chat-input');
+        const sendBtn = document.getElementById('conductor-chat-send');
+        const log = document.getElementById('conductor-chat-log');
+        const badge = document.getElementById('ai-suggestion-badge');
 
-    // PROACTIVE ANALYSIS
-    const checkInsights = async () => {
-        const insight = await brain.getProactiveInsight(name, config.gemini_key);
-        if (insight) {
-            badge.classList.remove('hidden');
-            fab.classList.add('ai-thinking');
+        // PROACTIVE ANALYSIS
+        const checkInsights = async () => {
+            const insight = await brain.getProactiveInsight(name, config.gemini_key);
+            if (insight) {
+                badge.classList.remove('hidden');
+                fab.classList.add('ai-thinking');
 
-            const proactiveDiv = document.getElementById('ai-proactive-card');
-            proactiveDiv.classList.remove('hidden');
-            proactiveDiv.innerHTML = `
+                const proactiveDiv = document.getElementById('ai-proactive-card');
+                proactiveDiv.classList.remove('hidden');
+                proactiveDiv.innerHTML = `
                 <div class="bg-gradient-to-br from-purple-600/30 to-blue-600/30 p-5 rounded-3xl border border-white/20 shadow-xl animate-fade-in">
                     <h4 class="font-black text-purple-300 uppercase tracking-widest text-[10px] mb-2">${insight.title}</h4>
                     <p class="text-white text-xs leading-relaxed mb-4">${insight.message}</p>
@@ -3068,76 +3091,76 @@ async function renderAISection(name) {
                     </button>
                 </div>
             `;
-        }
-    };
+            }
+        };
 
-    // Exposed for the proactive button
-    window.askForTerritoryIA = (tid, label) => {
-        input.value = label;
-        handleSend();
-    };
+        // Exposed for the proactive button
+        window.askForTerritoryIA = (tid, label) => {
+            input.value = label;
+            handleSend();
+        };
 
-    // Proactive Speech Bubble Cycle
-    const bubble = document.getElementById('ai-speech-bubble');
-    const bubbleText = document.getElementById('ai-bubble-text');
-    const messages = [
-        "¡Hey! Yo puedo ayudarte 🧠",
-        "¿Tienes dudas sobre cómo usar la App?",
-        "¿Te digo por dónde empezar? ✨",
-        "Puedo sugerirte un territorio estratégico",
-        "Haz clic aquí si necesitas asistencia"
-    ];
+        // Proactive Speech Bubble Cycle
+        const bubble = document.getElementById('ai-speech-bubble');
+        const bubbleText = document.getElementById('ai-bubble-text');
+        const messages = [
+            "¡Hey! Yo puedo ayudarte 🧠",
+            "¿Tienes dudas sobre cómo usar la App?",
+            "¿Te digo por dónde empezar? ✨",
+            "Puedo sugerirte un territorio estratégico",
+            "Haz clic aquí si necesitas asistencia"
+        ];
 
-    let msgIndex = 0;
-    const rotateBubble = () => {
-        if (isOpen) return;
-        bubble.classList.add('opacity-0', 'translate-y-4');
+        let msgIndex = 0;
+        const rotateBubble = () => {
+            if (isOpen) return;
+            bubble.classList.add('opacity-0', 'translate-y-4');
+            setTimeout(() => {
+                bubbleText.innerText = messages[msgIndex];
+                msgIndex = (msgIndex + 1) % messages.length;
+                bubble.classList.remove('opacity-0', 'translate-y-4');
+            }, 1000);
+        };
+
         setTimeout(() => {
-            bubbleText.innerText = messages[msgIndex];
-            msgIndex = (msgIndex + 1) % messages.length;
             bubble.classList.remove('opacity-0', 'translate-y-4');
-        }, 1000);
-    };
+            setInterval(rotateBubble, 8000);
+        }, 5000);
 
-    setTimeout(() => {
-        bubble.classList.remove('opacity-0', 'translate-y-4');
-        setInterval(rotateBubble, 8000);
-    }, 5000);
+        bubble.onclick = () => togglePanel();
 
-    bubble.onclick = () => togglePanel();
+        setTimeout(checkInsights, 2000);
 
-    setTimeout(checkInsights, 2000);
+        let isOpen = false;
+        const togglePanel = () => {
+            isOpen = !isOpen;
+            if (isOpen) {
+                panel.classList.remove('translate-y-10', 'opacity-0', 'pointer-events-none');
+                badge.classList.add('hidden');
+                input.focus();
+            } else {
+                panel.classList.add('translate-y-10', 'opacity-0', 'pointer-events-none');
+            }
+        };
 
-    let isOpen = false;
-    const togglePanel = () => {
-        isOpen = !isOpen;
-        if (isOpen) {
-            panel.classList.remove('translate-y-10', 'opacity-0', 'pointer-events-none');
-            badge.classList.add('hidden');
-            input.focus();
-        } else {
-            panel.classList.add('translate-y-10', 'opacity-0', 'pointer-events-none');
-        }
-    };
+        fab.addEventListener('click', togglePanel);
+        closeBtn.addEventListener('click', togglePanel);
 
-    fab.addEventListener('click', togglePanel);
-    closeBtn.addEventListener('click', togglePanel);
+        const handleSend = async () => {
+            const prompt = input.value.trim();
+            if (!prompt) return;
 
-    const handleSend = async () => {
-        const prompt = input.value.trim();
-        if (!prompt) return;
-
-        log.innerHTML += `<div class="flex justify-end"><div class="bg-purple-600 text-white px-4 py-3 rounded-3xl rounded-tr-none text-xs max-w-[85%] font-medium shadow-lg">${prompt}</div></div>`;
-        log.scrollTop = log.scrollHeight;
-        input.value = '';
-        input.disabled = true;
-
-        try {
-            const loadingId = 'loading-' + Date.now();
-            log.innerHTML += `<div id="${loadingId}" class="flex items-center gap-2 text-purple-400 text-[10px] font-black uppercase tracking-widest"><span class="animate-ping">🧠</span> Procesando...</div>`;
+            log.innerHTML += `<div class="flex justify-end"><div class="bg-purple-600 text-white px-4 py-3 rounded-3xl rounded-tr-none text-xs max-w-[85%] font-medium shadow-lg">${prompt}</div></div>`;
             log.scrollTop = log.scrollHeight;
+            input.value = '';
+            input.disabled = true;
 
-            const appInstructions = `
+            try {
+                const loadingId = 'loading-' + Date.now();
+                log.innerHTML += `<div id="${loadingId}" class="flex items-center gap-2 text-purple-400 text-[10px] font-black uppercase tracking-widest"><span class="animate-ping">🧠</span> Procesando...</div>`;
+                log.scrollTop = log.scrollHeight;
+
+                const appInstructions = `
             Instrucciones de la App para el Conductor:
             1. Agenda Semanal: Muestra tus turnos y territorios asignados. Haz clic en las tarjetas para ver más.
             2. Predicación Telefónica: Debes 'Solicitar Números' para empezar. Luego asigna un 'Publicador' de la lista a cada número y marca el 'Estado' de la llamada (Contestaron, No contestan, etc.).
@@ -3146,181 +3169,41 @@ async function renderAISection(name) {
             5. Finalizar: Al terminar la sesión teletónica, usa 'Finalizar Sesión' para liberar números no usados.
             `;
 
-            const response = await brain.askGemini(config.gemini_key, `Soy el conductor ${name}. ${appInstructions} Consulta: ${prompt}`);
-            const safeResponse = response.replace(/\|\|.*?\|\|/g, '');
-            const htmlResponse = safeResponse.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+                const response = await brain.askGemini(config.gemini_key, `Soy el conductor ${name}. ${appInstructions} Consulta: ${prompt}`);
+                const safeResponse = response.replace(/\|\|.*?\|\|/g, '');
+                const htmlResponse = safeResponse.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
 
-            document.getElementById(loadingId)?.remove();
+                document.getElementById(loadingId)?.remove();
 
-            log.innerHTML += `<div class="flex justify-start"><div class="bg-white dark:bg-slate-800 text-slate-700 dark:text-gray-200 px-5 py-4 rounded-3xl rounded-tl-none text-[13px] border border-slate-100 dark:border-white/10 max-w-[90%] leading-relaxed shadow-md font-medium">
+                log.innerHTML += `<div class="flex justify-start"><div class="bg-white dark:bg-slate-800 text-slate-700 dark:text-gray-200 px-5 py-4 rounded-3xl rounded-tl-none text-[13px] border border-slate-100 dark:border-white/10 max-w-[90%] leading-relaxed shadow-md font-medium">
                 ${htmlResponse}
              </div></div>`;
 
-        } catch (err) {
-            console.error(err);
-            log.innerHTML += `<div class="bg-red-500/10 text-red-400 text-[10px] p-4 rounded-2xl border border-red-500/20">Error: ${err.message}</div>`;
-        } finally {
-            input.disabled = false;
-            input.focus();
-            log.scrollTop = log.scrollHeight;
-        }
-    };
-
-    sendBtn.addEventListener('click', handleSend);
-    input.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSend(); });
-}
-
-
-/** --- RESCUE MODE (Ayudas) --- **/
-
-function renderRescueSection(container, currentConductorName, allTerritorios, config, programa, conductorData) {
-    if (!container) return;
-    container.classList.remove('hidden');
-
-    const now = new Date();
-    now.setHours(0, 0, 0, 0); // Normalize today
-
-    // 1. Map planned dates from program
-    const plannedDates = {}; // territoryNum -> Set of Dates
-    if (programa && programa.dias && programa.id) {
-        const monday = new Date(programa.id + "T00:00:00");
-        const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-        const shifts = ['manana', 'tarde', 'noche'];
-
-        programa.dias.forEach(d => {
-            const dayIdx = dayNames.indexOf(d.nombre);
-            if (dayIdx === -1) return;
-
-            const plannedDate = new Date(monday);
-            plannedDate.setDate(monday.getDate() + dayIdx);
-            plannedDate.setHours(0, 0, 0, 0);
-
-            shifts.forEach(s => {
-                if (d[s] && d[s].territorio) {
-                    const nums = d[s].territorio.split(/[,/]+/).map(n => n.trim()).filter(Boolean);
-                    nums.forEach(num => {
-                        if (!plannedDates[num]) plannedDates[num] = new Set();
-                        plannedDates[num].add(plannedDate.getTime());
-                    });
-                }
-            });
-        });
-    }
-
-    const rescueCandidates = allTerritorios.filter(t => {
-        if (t.estado !== 'Asignado' && t.estado !== 'Pendiente') return false;
-        if (t.asignado_a === currentConductorName) return false;
-
-        const timestamps = plannedDates[t.numero];
-        if (!timestamps) return false;
-
-        let isRescueNeeded = false;
-        for (const ts of timestamps) {
-            const planned = new Date(ts);
-            const diffDays = Math.floor((now - planned) / (1000 * 60 * 60 * 24));
-            if (diffDays >= 2) {
-                isRescueNeeded = true;
-                break;
+            } catch (err) {
+                console.error(err);
+                log.innerHTML += `<div class="bg-red-500/10 text-red-400 text-[10px] p-4 rounded-2xl border border-red-500/20">Error: ${err.message}</div>`;
+            } finally {
+                input.disabled = false;
+                input.focus();
+                log.scrollTop = log.scrollHeight;
             }
-        }
+        };
 
-        return isRescueNeeded;
-    });
-
-    if (rescueCandidates.length === 0) {
-        container.innerHTML = `
-            <div class="col-span-full py-24 modern-card text-center border-dashed border-slate-200 dark:border-white/10 opacity-60 bg-slate-50/50 dark:bg-white/5 mt-12">
-                <div class="flex flex-col items-center gap-6">
-                    <div class="w-16 h-16 bg-white dark:bg-slate-800 rounded-[2rem] flex items-center justify-center text-3xl text-emerald-500 shadow-sm border border-slate-100 dark:border-white/5">
-                        <i class="fas fa-check-double"></i>
-                    </div>
-                    <div class="space-y-2">
-                        <p class="text-[11px] font-black uppercase tracking-[0.5em] text-slate-500 dark:text-slate-400">Territorios al día</p>
-                        <p class="text-[10px] text-slate-400 italic font-bold">Sin misiones de rescate para esta semana</p>
-                    </div>
-                </div>
-            </div>
-        `;
-        return;
+        sendBtn.addEventListener('click', handleSend);
+        input.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSend(); });
     }
 
-    const existingDetails = container.querySelector('details.group\\/rescue');
-    const wasOpen = existingDetails ? existingDetails.open : (rescueCandidates.length > 0);
 
-    container.innerHTML = `
-        <div class="modern-card !p-0 mt-24 animate-fade-in shadow-2xl transition-all overflow-hidden border-slate-200 dark:border-white/10 bg-white dark:bg-[#0f1115]">
-            <details class="group/rescue" ${wasOpen ? 'open' : ''}>
-                <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-12 cursor-pointer list-none select-none hover:bg-rose-500/5 transition-colors border-b border-rose-500/10 outline-none">
-                    <div class="flex items-start gap-10">
-                        <div class="w-16 h-16 rounded-[1.75rem] bg-rose-600 flex items-center justify-center text-3xl text-white shadow-2xl shadow-rose-600/40 border-2 border-white/20 group-open/rescue:rotate-6 transition-transform">
-                            <i class="fas fa-ambulance"></i>
-                        </div>
-                        <div class="space-y-2">
-                            <div class="flex items-center gap-4">
-                                <h3 class="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Misiones de Rescate</h3>
-                                <div class="px-4 py-1.5 bg-rose-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-rose-600/20">
-                                    ${rescueCandidates.length} Pendiente${rescueCandidates.length > 1 ? 's' : ''}
-                                </div>
-                            </div>
-                            <p class="text-[11px] text-rose-600 dark:text-rose-400 font-black uppercase tracking-[0.25em] opacity-90 flex items-center gap-2">
-                                <span class="w-2 h-2 rounded-full bg-rose-600 animate-pulse"></span>
-                                Atraso Crítico: Más de 48 horas sin reporte de actividad
-                            </p>
-                        </div>
-                    </div>
-                    <div class="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-white/5 flex items-center justify-center group-open/rescue:rotate-180 transition-transform text-rose-500 mt-6 md:mt-0">
-                        <i class="fas fa-chevron-down text-lg"></i>
-                    </div>
-                </summary>
+    /** --- RESCUE MODE (Ayudas) --- **/
 
-                <div class="p-12 animate-fade-in">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
-                        ${rescueCandidates.map(t => `
-                            <div class="bg-white dark:bg-white/5 border-2 border-slate-100 dark:border-white/10 rounded-[3rem] p-10 flex flex-col gap-10 group/item hover:border-rose-500/40 transition-all shadow-xl hover:shadow-rose-500/15 relative overflow-hidden">
-                                <div class="absolute top-0 right-0 w-48 h-48 bg-rose-500/5 blur-3xl -mr-20 -mt-20 group-hover:bg-rose-500/20 transition-colors"></div>
-                                
-                                <div class="flex justify-between items-start relative z-10">
-                                    <div class="space-y-2">
-                                        <div class="flex items-baseline gap-1">
-                                            <span class="text-rose-600 font-black text-xl italic leading-none">T-</span>
-                                            <h4 class="font-black text-5xl text-slate-900 dark:text-white leading-none uppercase tracking-tighter tabular-nums">${t.numero}</h4>
-                                        </div>
-                                        <div class="flex items-center gap-3 mt-1">
-                                            <div class="w-2 h-2 rounded-full bg-rose-500"></div>
-                                            <p class="text-[12px] text-slate-600 dark:text-slate-300 font-black uppercase tracking-[0.1em]">${t.asignado_a}</p>
-                                        </div>
-                                    </div>
-                                    <div class="flex flex-col items-end gap-2">
-                                         <span class="bg-rose-600/10 text-rose-600 px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-rose-500/20">RESCATE</span>
-                                         <p class="text-[9px] font-black text-rose-500/60 uppercase tracking-widest">Atrasado</p>
-                                    </div>
-                                </div>
 
-                                <div class="p-8 rounded-[2rem] bg-rose-50/30 dark:bg-black/40 border border-rose-100/50 dark:border-white/5 min-h-[7rem] flex items-center relative z-10 shadow-inner group-hover:bg-rose-50/50 dark:group-hover:bg-black/60 transition-colors">
-                                    <p class="text-[14px] text-slate-800 dark:text-slate-200 leading-relaxed font-black uppercase tracking-tight line-clamp-3 italic">
-                                        "${t.manzanas || 'Territorio necesita atención inmediata para completar la predicación.'}"
-                                    </p>
-                                </div>
+    // Fusion logic completed. Rescue missions moved to top badge.
 
-                                 ${conductorData?.privilegios?.includes('Superintendente de Circuito') ? '' : `
-                                <button onclick="window.handleRescueTerritory('${t.id}', '${t.numero}', '${currentConductorName}', '${t.manzanas || ''}')" 
-                                        class="relative z-10 w-full bg-rose-600 hover:bg-rose-700 text-white text-[13px] font-black py-6 rounded-2xl shadow-2xl shadow-rose-600/40 transition-all uppercase tracking-[0.35em] active:scale-95 flex items-center justify-center gap-4 border border-white/10 group-hover:scale-[1.03]">
-                                    <i class="fas fa-hand-holding-heart text-xl"></i> Asumir Ayuda
-                                </button>
-                                `}
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            </details>
-        </div>
-    `;
-}
 
-window.handleRescueTerritory = async (id, num, newConductor, manzanas) => {
-    const ok = await new Promise(resolve => {
-        const modal = document.getElementById('modal-container');
-        modal.innerHTML = `
+    window.handleRescueTerritory = async (id, num, newConductor, manzanas) => {
+        const ok = await new Promise(resolve => {
+            const modal = document.getElementById('modal-container');
+            modal.innerHTML = `
             <div class="modern-card p-10 max-w-sm w-full text-center animate-bounce-in border-rose-500/20 shadow-2xl">
                 <div class="w-20 h-20 bg-rose-500/10 rounded-[2.5rem] flex items-center justify-center text-4xl text-rose-600 mx-auto mb-6 shadow-inner border border-rose-500/10 animate-float">
                     <i class="fas fa-ambulance"></i>
@@ -3335,40 +3218,40 @@ window.handleRescueTerritory = async (id, num, newConductor, manzanas) => {
                 </div>
             </div>
         `;
-        modal.classList.remove('hidden');
-        document.getElementById('rescue-cancel').onclick = () => { modal.classList.add('hidden'); resolve(false); };
-        document.getElementById('rescue-confirm').onclick = () => { modal.classList.add('hidden'); resolve(true); };
-    });
+            modal.classList.remove('hidden');
+            document.getElementById('rescue-cancel').onclick = () => { modal.classList.add('hidden'); resolve(false); };
+            document.getElementById('rescue-confirm').onclick = () => { modal.classList.add('hidden'); resolve(true); };
+        });
 
-    if (!ok) return;
+        if (!ok) return;
 
-    try {
-        showNotification("Procesando transferencia...", "info");
-        await transferTerritory(id, newConductor, manzanas);
-        showNotification(`¡Misión aceptada! El territorio #${num} ahora está en tu agenda.`, "success");
-        // Force reload using the exposed refresh function
-        if (window.refreshConductorView) {
-            await window.refreshConductorView();
-        } else {
-            window.location.reload();
+        try {
+            showNotification("Procesando transferencia...", "info");
+            await transferTerritory(id, newConductor, manzanas);
+            showNotification(`¡Misión aceptada! El territorio #${num} ahora está en tu agenda.`, "success");
+            // Force reload using the exposed refresh function
+            if (window.refreshConductorView) {
+                await window.refreshConductorView();
+            } else {
+                window.location.reload();
+            }
+        } catch (err) {
+            console.error(err);
+            showNotification("Error en el rescate: " + err.message, "error");
         }
-    } catch (err) {
-        console.error(err);
-        showNotification("Error en el rescate: " + err.message, "error");
-    }
-};
+    };
 
 
 
 
 
-function renderRecursosSection(container) {
-    if (!container) return;
+    function renderRecursosSection(container) {
+        if (!container) return;
 
-    getRecursos().then(recursos => {
-        container.classList.remove('hidden');
-        if (recursos.length === 0) {
-            container.innerHTML = `
+        getRecursos().then(recursos => {
+            container.classList.remove('hidden');
+            if (recursos.length === 0) {
+                container.innerHTML = `
                 <div class="modern-card p-12 text-center space-y-4 bg-white dark:bg-slate-900/40 border-slate-200 dark:border-white/10 shadow-2xl animate-fade-in group">
                     <div class="w-20 h-20 bg-slate-100 dark:bg-white/5 rounded-3xl flex items-center justify-center text-3xl text-slate-400 mx-auto shadow-inner border border-slate-100 dark:border-white/10 group-hover:rotate-6 transition-transform">
                         <i class="fas fa-book-open opacity-30"></i>
@@ -3379,13 +3262,13 @@ function renderRecursosSection(container) {
                     </div>
                 </div>
             `;
-            return;
-        }
+                return;
+            }
 
-        // const wasRecOpen = container.querySelector('.group-recursos')?.open;
+            // const wasRecOpen = container.querySelector('.group-recursos')?.open;
 
-        container.classList.remove('hidden');
-        container.innerHTML = `
+            container.classList.remove('hidden');
+            container.innerHTML = `
                     <div class="space-y-8 animate-fade-in group">
                         <header class="flex items-center gap-6 mb-12">
                             <div class="w-16 h-16 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-2xl flex items-center justify-center text-3xl text-white shadow-xl rotate-3 group-hover:rotate-0 transition-all duration-700">
@@ -3428,20 +3311,20 @@ function renderRecursosSection(container) {
                         </div>
                     </div>
                 `;
-    }).catch(err => {
-        console.error("Error fetching recursos:", err);
-        container.innerHTML = '';
-    });
-}
+        }).catch(err => {
+            console.error("Error fetching recursos:", err);
+            container.innerHTML = '';
+        });
+    }
 
-window.showUnifiedTerritoryHistory = async (territoryId, territoryNum) => {
-    try {
-        const history = await getTerritoryHistory(territoryId);
-        const config = await getConfiguracion();
-        const allT = await getTerritorios();
-        const t = allT.find(x => x.id === territoryId) || { numero: territoryNum };
+    window.showUnifiedTerritoryHistory = async (territoryId, territoryNum) => {
+        try {
+            const history = await getTerritoryHistory(territoryId);
+            const config = await getConfiguracion();
+            const allT = await getTerritorios();
+            const t = allT.find(x => x.id === territoryId) || { numero: territoryNum };
 
-        showModal(`
+            showModal(`
             <div class="flex flex-col h-full bg-slate-50 dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden shadow-2xl">
                  <header class="shrink-0 bg-gradient-to-br from-amber-500 to-orange-600 p-8 text-white relative overflow-hidden">
                      <div class="absolute -right-20 -top-20 w-64 h-64 bg-white/10 blur-[80px] rounded-full"></div>
@@ -3493,21 +3376,21 @@ window.showUnifiedTerritoryHistory = async (territoryId, territoryNum) => {
                      <!-- HISTORY LIST -->
                      <div class="space-y-6">
                          ${(() => {
-                const filteredHistory = history.filter(rec => (rec.notas && rec.notas.trim() !== '') || (rec.observaciones && rec.observaciones.trim() !== '') || (rec.fotos && rec.fotos.length > 0));
-                if (filteredHistory.length === 0) {
-                    return `
+                    const filteredHistory = history.filter(rec => (rec.notas && rec.notas.trim() !== '') || (rec.observaciones && rec.observaciones.trim() !== '') || (rec.fotos && rec.fotos.length > 0));
+                    if (filteredHistory.length === 0) {
+                        return `
                         <div class="flex flex-col items-center justify-center py-20 opacity-30 text-center">
                             <i class="fas fa-scroll text-5xl mb-6"></i>
                             <p class="text-[10px] font-black uppercase tracking-[0.3em]">Sin observaciones registradas todavía</p>
                         </div>
                     `;
-                }
-                return filteredHistory.map(rec => {
-                    const fmtDate = rec.fecha_entrega ? new Date(rec.fecha_entrega).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : (rec.fecha_asignacion ? new Date(rec.fecha_asignacion).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }) : '-');
-                    const obs = rec.notas || rec.observaciones || '';
-                    const isAdmin = window.isAdminMode === true;
+                    }
+                    return filteredHistory.map(rec => {
+                        const fmtDate = rec.fecha_entrega ? new Date(rec.fecha_entrega).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : (rec.fecha_asignacion ? new Date(rec.fecha_asignacion).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }) : '-');
+                        const obs = rec.notas || rec.observaciones || '';
+                        const isAdmin = window.isAdminMode === true;
 
-                    return `
+                        return `
                         <div class="modern-card p-6 border-slate-100 dark:border-white/5 hover:border-primary/20 transition-all group shadow-sm bg-white dark:bg-white/5 relative">
                             <div class="flex justify-between items-start mb-4">
                                 <div class="flex items-center gap-4">
@@ -3545,8 +3428,8 @@ window.showUnifiedTerritoryHistory = async (territoryId, territoryNum) => {
                             ` : ''}
                         </div>
                     `;
-                }).join('');
-            })()}
+                    }).join('');
+                })()}
                      </div>
                  </div>
 
@@ -3557,65 +3440,66 @@ window.showUnifiedTerritoryHistory = async (territoryId, territoryNum) => {
                  </footer>
             </div>
         `, (modal) => {
-            const brain = new TerritoryIntelligence(null, null, allT, null);
+                const brain = new TerritoryIntelligence(null, null, allT, null);
 
-            // Photo Preview Logic
-            const photoInput = modal.querySelector('#history-photo-input');
-            const photoPreview = modal.querySelector('#history-photos-preview');
+                // Photo Preview Logic
+                const photoInput = modal.querySelector('#history-photo-input');
+                const photoPreview = modal.querySelector('#history-photos-preview');
 
-            if (photoInput && photoPreview) {
-                photoInput.onchange = (e) => {
-                    Array.from(e.target.files).forEach(file => {
-                        if (file.size > 800 * 1024) return showNotification("Foto muy grande (max 800KB)", "warning");
-                        const reader = new FileReader();
-                        reader.onload = (ev) => {
-                            const container = document.createElement('div');
-                            container.className = 'relative w-16 h-16 rounded-xl overflow-hidden border border-black/10 group animate-scale-in';
-                            container.innerHTML = '<img src="' + ev.target.result + '" class="w-full h-full object-cover"><button onclick="this.parentElement.remove()" class="absolute inset-0 bg-rose-500/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><i class="fas fa-trash-alt text-xs"></i></button>';
-                            photoPreview.appendChild(container);
-                        };
-                        reader.readAsDataURL(file);
-                    });
-                };
-            }
-
-            const askInput = modal.querySelector('#ai-ask-input');
-            const askBtn = modal.querySelector('#ai-ask-btn');
-            const askResponse = modal.querySelector('#ai-ask-response');
-
-            askBtn.onclick = async () => {
-                const q = askInput.value.trim();
-                const photos = Array.from(photoPreview.querySelectorAll('img')).map(img => img.src);
-                if (!q && photos.length === 0) return;
-
-                askBtn.disabled = true;
-                askBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>';
-                askResponse.classList.remove('hidden');
-                askResponse.innerText = "Procesando...";
-
-                try {
-                    const historyCtx = history.slice(0, 30).map(h => {
-                        const d = h.fecha_entrega || h.fecha_asignacion || h.fecha || 'Sin fecha';
-                        const o = h.notas || h.observaciones || 'Sin notas';
-                        return '[' + d + '] ' + o;
-                    }).join('\n');
-
-                    const prompt = "Analiza el historial de T-" + (t.numero || territoryNum) + " y responde la consulta.\n\nHistorial:\n" + historyCtx + "\n\nConsulta: " + q;
-
-                    const response = await brain.askGemini(config.gemini_key, prompt);
-                    askResponse.innerText = response;
-                } catch (e) {
-                    askResponse.innerText = "Error: " + e.message;
-                } finally {
-                    askBtn.disabled = false;
-                    askBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+                if (photoInput && photoPreview) {
+                    photoInput.onchange = (e) => {
+                        Array.from(e.target.files).forEach(file => {
+                            if (file.size > 800 * 1024) return showNotification("Foto muy grande (max 800KB)", "warning");
+                            const reader = new FileReader();
+                            reader.onload = (ev) => {
+                                const container = document.createElement('div');
+                                container.className = 'relative w-16 h-16 rounded-xl overflow-hidden border border-black/10 group animate-scale-in';
+                                container.innerHTML = '<img src="' + ev.target.result + '" class="w-full h-full object-cover"><button onclick="this.parentElement.remove()" class="absolute inset-0 bg-rose-500/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><i class="fas fa-trash-alt text-xs"></i></button>';
+                                photoPreview.appendChild(container);
+                            };
+                            reader.readAsDataURL(file);
+                        });
+                    };
                 }
-            };
 
-            askInput.onkeypress = (e) => { if (e.key === 'Enter') askBtn.click(); };
-        }, 'max-w-2xl');
-    } catch (e) {
-        console.error(e);
-        showNotification("Error cargando historial: " + e.message, "error");
-    }
+                const askInput = modal.querySelector('#ai-ask-input');
+                const askBtn = modal.querySelector('#ai-ask-btn');
+                const askResponse = modal.querySelector('#ai-ask-response');
+
+                askBtn.onclick = async () => {
+                    const q = askInput.value.trim();
+                    const photos = Array.from(photoPreview.querySelectorAll('img')).map(img => img.src);
+                    if (!q && photos.length === 0) return;
+
+                    askBtn.disabled = true;
+                    askBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>';
+                    askResponse.classList.remove('hidden');
+                    askResponse.innerText = "Procesando...";
+
+                    try {
+                        const historyCtx = history.slice(0, 30).map(h => {
+                            const d = h.fecha_entrega || h.fecha_asignacion || h.fecha || 'Sin fecha';
+                            const o = h.notas || h.observaciones || 'Sin notas';
+                            return '[' + d + '] ' + o;
+                        }).join('\n');
+
+                        const prompt = "Analiza el historial de T-" + (t.numero || territoryNum) + " y responde la consulta.\n\nHistorial:\n" + historyCtx + "\n\nConsulta: " + q;
+
+                        const response = await brain.askGemini(config.gemini_key, prompt);
+                        askResponse.innerText = response;
+                    } catch (e) {
+                        askResponse.innerText = "Error: " + e.message;
+                    } finally {
+                        askBtn.disabled = false;
+                        askBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+                    }
+                };
+
+                askInput.onkeypress = (e) => { if (e.key === 'Enter') askBtn.click(); };
+            }, 'max-w-2xl');
+        } catch (e) {
+            console.error(e);
+            showNotification("Error cargando historial: " + e.message, "error");
+        }
+    };
 };

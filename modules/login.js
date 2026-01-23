@@ -1,6 +1,6 @@
-import { auth } from '../firebase-config.js?v=2.2.2';
+import { auth } from '../firebase-config.js?v=2.2.3';
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { getPublicadores, getConfiguracion } from '../data/firestore-services.js?v=2.2.2';
+import { getPublicadores, getConfiguracion } from '../data/firestore-services.js?v=2.2.3';
 
 export const renderLogin = (container, appVersion) => {
     container.innerHTML = `
@@ -16,7 +16,7 @@ export const renderLogin = (container, appVersion) => {
                 <div class="space-y-4 sm:space-y-6">
                     <div class="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-tr from-teal-600 to-teal-400 rounded-2xl sm:rounded-[1.75rem] mx-auto flex items-center justify-center shadow-xl shadow-teal-500/20 transform transition-all duration-700 hover:rotate-12">
                         <svg class="w-8 h-8 sm:w-10 sm:h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 20l-5.447-2.724A2 2 0 013 15.488V5.002a2 2 0 011.553-1.948l7-1.75a2 2 0 01.894 0l7 1.75A2 2 0 0121 5.002v10.486a2 2 0 01-1.118 1.789L14.447 20l-5.447-2.724zM9 20V10"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 20l-5.447-2.724A2 2 0 013 15.488V5.002.2.3 0 011.553-1.948l7-1.75a2 2 0 01.894 0l7 1.75A2 2 0 0121 5.002v10.486a2 2 0 01-1.118 1.789L14.447 20l-5.447-2.724zM9 20V10"></path>
                         </svg>
                     </div>
                     <div class="space-y-1 sm:space-y-2">
@@ -32,7 +32,7 @@ export const renderLogin = (container, appVersion) => {
                     <button id="btn-admin" class="group modern-card text-left flex items-center gap-4 sm:gap-5 !p-4 sm:!p-5 hover:border-teal-500/30">
                         <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-teal-500/10 flex items-center justify-center text-teal-600 group-hover:bg-teal-600 group-hover:text-white transition-all duration-300">
                             <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12.2.3 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                             </svg>
                         </div>
                         <div class="flex-1">
