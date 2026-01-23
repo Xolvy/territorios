@@ -2110,7 +2110,7 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
                 <div class="pt-6 border-t border-black/5 dark:border-white/10 space-y-4">
                     <div class="grid grid-cols-1 gap-4">
                         <div class="space-y-1">
-                             <label class="text-[9px] font-black text-teal-600 dark:text-teal-400 uppercase tracking-widest ml-1">Fecha de Entrega</label>
+                             <label class="text-[9px] font-black text-teal-600 dark:text-teal-400 uppercase tracking-widest ml-1">Fecha en que se completó</label>
                              <input type="date" id="bulk-return-date" value="${todayStr}" class="w-full bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-2xl p-4 text-xs font-black outline-none focus:ring-4 focus:ring-teal-500/10 transition-all text-slate-800 dark:text-white">
                         </div>
                     </div>
@@ -2122,7 +2122,7 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
 
             <div class="shrink-0 p-6 border-t border-black/5 dark:border-white/5 bg-white dark:bg-[#0b0e14] z-20">
                 <button id="confirm-all-reports" class="w-full group relative overflow-hidden bg-gradient-to-r from-teal-600 to-emerald-700 py-4 rounded-2xl text-white font-black shadow-xl shadow-teal-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all uppercase tracking-[0.2em] text-xs">
-                    <span class="relative z-10">Confirmar Informe</span>
+                    <span class="relative z-10">Confirmar como Completado</span>
                     <div class="absolute inset-0 bg-white/10 translate-x-full group-hover:translate-x-0 transition-transform duration-500"></div>
                 </button>
             </div>
@@ -2322,7 +2322,7 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
                     console.error(err);
                     showCustomAlert("Error al procesar: " + err.message);
                     e.target.disabled = false;
-                    e.target.innerHTML = "Confirmar Informe de Actividad";
+                    e.target.innerHTML = "Confirmar como Completado";
                 }
             };
         });

@@ -768,7 +768,7 @@ export const renderHistoryTab = (container, options = {}) => {
                     'Territorio': num,
                     'Conductor': item.conductor || '-',
                     'Fecha Asignación': formatDateShort(item.fecha_asignacion),
-                    'Fecha Devolución': formatDateShort(item.fecha_entrega),
+                    'Fecha en que se completó': formatDateShort(item.fecha_entrega),
                     'Estado': item.estado || '-',
                     'Observaciones': item.observaciones || '-'
                 });
@@ -839,7 +839,7 @@ const renderReport = (dataInRange, allHistory, allTerritorios, startDate, endDat
 
     // 2. Pagination State (Image shows 22 rows per page)
     let pageHtmls = [];
-    const TERR_PER_PAGE = 20;
+    const TERR_PER_PAGE = 25;
     const ASSIGNS_PER_PAGE = 4;
 
     for (let i = 0; i < sortedKeys.length; i += TERR_PER_PAGE) {
