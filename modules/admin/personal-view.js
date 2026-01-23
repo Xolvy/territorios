@@ -157,14 +157,271 @@ export const renderPersonalTab = async (container) => {
         </div>
     `;
 
-    // ... Implementation of openPersonModal (to be moved/shared)
-    // For now, I'll export a simple placeholder or copy the whole logic.
-    // Given the complexity, I'll export the rendering and rely on window for actions.
+    const openPersonModal = (person = null) => {
+        const isEdit = !!person;
+        const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+        const shifts = [{ id: 'manana', label: 'Mañ.', color: 'text-yellow-500' }, { id: 'tarde', label: 'Tar.', color: 'text-orange-500' }, { id: 'noche', label: 'Noc.', color: 'text-blue-500' }];
 
-    container.querySelector('#btn-add-person').onclick = () => window.openPersonModal();
-    window.editPerson = (id) => window.openPersonModal(publicadores.find(x => x.id === id));
+        showModal(`
+            <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden">
+                <header class="shrink-0 bg-primary p-8 text-white relative overflow-hidden">
+                    <div class="absolute inset-0 bg-white/10 backdrop-blur-3xl"></div>
+                    <div class="relative z-10 flex items-center gap-6">
+                        <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center text-3xl shadow-2xl border border-white/30">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-black uppercase tracking-tight leading-none mb-1">${isEdit ? 'Editar Registro' : 'Nuevo Registro'}</h3>
+                            <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Gestión de Personal</p>
+                        </div>
+                    </div>
+                </header>
+
+                <div class="flex-1 p-8 space-y-8 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-black/20">
+                    <div class="space-y-8">
+                        <!-- Datos Básicos -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nombre Completo</label>
+                                <input type="text" id="p-name" value="${person?.nombre || ''}" placeholder="Ej: Juan Pérez" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-sm font-bold focus:border-primary outline-none shadow-sm transition-all text-slate-700 dark:text-white">
+                            </div>
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">WhatsApp / Teléfono</label>
+                                <input type="text" id="p-phone" value="${person?.telefono || ''}" placeholder="+593..." class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-sm font-bold focus:border-primary outline-none shadow-sm transition-all text-slate-700 dark:text-white font-mono">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-6">
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Género</label>
+                                <select id="p-gender" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-sm font-bold focus:border-primary outline-none shadow-sm transition-all text-slate-700 dark:text-white appearance-none cursor-pointer">
+                                    <option value="Hombre" ${person?.genero === 'Hombre' ? 'selected' : ''}>Hombre</option>
+                                    <option value="Mujer" ${person?.genero === 'Mujer' ? 'selected' : ''}>Mujer</option>
+                                </select>
+                            </div>
+                            <div class="space-y-3">
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Grupo Asignado</label>
+                                <select id="p-group" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-sm font-bold focus:border-primary outline-none shadow-sm transition-all text-slate-700 dark:text-white appearance-none cursor-pointer">
+                                    <option value="0" ${!person?.grupo || person?.grupo === 0 ? 'selected' : ''}>Sin asignar</option>
+                                    ${(groups || []).map(g => `<option value="${g.id}" ${person?.grupo == g.id ? 'selected' : ''}>${g.nombre || `Grupo ${g.id}`}</option>`).join('')}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="p-email-container" class="${person?.privilegios?.includes('Administrador') ? '' : 'hidden'} animate-fade-in space-y-3">
+                            <label class="text-[10px] font-black text-primary uppercase tracking-widest ml-1">Acceso Google (Email)</label>
+                            <input type="email" id="p-email" value="${person?.email || ''}" placeholder="usuario@gmail.com" class="w-full bg-primary/5 border border-primary/20 rounded-2xl p-4 text-sm font-bold focus:border-primary outline-none shadow-inner transition-all text-primary">
+                            <p class="text-[9px] text-slate-400 ml-1 italic font-bold uppercase tracking-tighter">Requerido para administradores y accesos de nube.</p>
+                        </div>
+
+                        <div class="space-y-4">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Privilegios y Roles</label>
+                            <div id="privs-container" class="flex flex-wrap gap-3">
+                                <!-- Dynamic Privs List -->
+                            </div>
+                        </div>
+
+                        <!-- Disponibilidad (Conductor Only) -->
+                        <div class="bg-primary/5 rounded-[2rem] border border-primary/10 overflow-hidden">
+                            <div class="p-6 border-b border-primary/10 flex items-center justify-between cursor-pointer hover:bg-primary/10 transition-colors group/avail-header" id="header-toggle-avail">
+                                <div class="flex items-center gap-3">
+                                    <i class="fas fa-calendar-check text-primary group-hover/avail-header:rotate-12 transition-transform"></i>
+                                    <span class="text-[10px] font-black uppercase text-primary tracking-widest">Disponibilidad de Conductor</span>
+                                </div>
+                                <button type="button" id="btn-toggle-avail" class="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 transition-all">
+                                    <i class="fas fa-chevron-down transition-transform duration-300" id="avail-chevron"></i>
+                                </button>
+                            </div>
+                            <div id="p-avail-grid" class="p-6 hidden transition-all duration-500 bg-white/40 dark:bg-black/20">
+                                 <div class="grid grid-cols-4 gap-2 mb-4 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                     <div class="text-left pl-2">Día</div>
+                                     ${shifts.map(s => `<div>${s.label}</div>`).join('')}
+                                 </div>
+                                 <div class="space-y-2">
+                                     ${days.map(day => `
+                                         <div class="grid grid-cols-4 gap-2 items-center modern-card !p-3">
+                                             <div class="text-[10px] font-black text-slate-600 dark:text-slate-300 pl-2 uppercase">${day.slice(0, 3)}</div>
+                                             ${shifts.map(sh => `<div class="flex justify-center"><input type="checkbox" class="p-avail-check w-5 h-5 accent-primary cursor-pointer" value="${day}_${sh.id}" ${person?.disponibilidad?.includes(`${day}_${sh.id}`) ? 'checked' : ''}></div>`).join('')}
+                                         </div>
+                                     `).join('')}
+                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- Módulos Habilitados -->
+                        <div id="p-modules-section" class="bg-indigo-500/5 rounded-[2rem] border border-indigo-500/10 overflow-hidden transition-all duration-500">
+                            <div class="p-6 border-b border-indigo-500/10 flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <i class="fas fa-th-large text-indigo-600"></i>
+                                    <label class="text-[10px] font-black uppercase text-indigo-600 tracking-widest">Módulos Habilitados</label>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="p-mod-enabled" class="sr-only peer" ${person?.modulos?.habilitado !== false ? 'checked' : ''}>
+                                    <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </label>
+                            </div>
+                            <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-3 pb-8">
+                                ${[
+                { id: 'mod-agenda', label: 'Agenda Inteligente', checked: person?.modulos?.agenda !== false },
+                { id: 'mod-programa', label: 'Cronograma de Salidas', checked: person?.modulos?.programa !== false },
+                { id: 'mod-disponibilidad', label: 'Mi disponibilidad', checked: person?.modulos?.disponibilidad !== false },
+                { id: 'mod-telefonos', label: 'Predicación Telefónica', checked: person?.modulos?.telefonos !== false },
+                { id: 'mod-mapas', label: 'Explorador de Mapas', checked: person?.modulos?.mapas !== false },
+                { id: 'mod-ayudas', label: 'Recursos del Ministerio', checked: person?.modulos?.ayudas !== false }
+            ].map(mod => `
+                                    <label class="flex items-center justify-between p-4 modern-card hover:border-indigo-500/30 transition-all cursor-pointer group">
+                                        <span class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-tight group-hover:text-indigo-600">${mod.label}</span>
+                                        <input type="checkbox" id="${mod.id}" class="p-mod-check w-5 h-5 accent-indigo-600" ${mod.checked ? 'checked' : ''}>
+                                    </label>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="shrink-0 p-6 bg-white dark:bg-black/40 border-t border-slate-100 dark:border-white/5">
+                    <button id="save-person" class="w-full bg-primary py-5 rounded-2xl text-white text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 hover:shadow-primary/40 hover:scale-[1.01] active:scale-[0.99] transition-all">
+                        <i class="fas fa-save mr-2"></i> ${isEdit ? 'Guardar Cambios' : 'Crear Registro'}
+                    </button>
+                </div>
+            </div>
+        `, (modal) => {
+            const genderSelect = modal.querySelector('#p-gender');
+            const privsContainer = modal.querySelector('#privs-container');
+            const saveBtn = modal.querySelector('#save-person');
+
+            const syncConductorUI = () => {
+                const isConductor = Array.from(privsContainer.querySelectorAll('.p-priv-check:checked')).some(cb => cb.value === 'Conductor');
+                const availGrid = modal.querySelector('#p-avail-grid');
+                const modulesSection = modal.querySelector('#p-modules-section');
+                const modDisponibilidad = modal.querySelector('#mod-disponibilidad');
+                const isModulesMasterEnabled = modal.querySelector('#p-mod-enabled')?.checked;
+                const isModuleEnabled = modDisponibilidad?.checked;
+
+                const headerAvail = modal.querySelector('#header-toggle-avail');
+                const availContainer = headerAvail?.parentElement;
+
+                if (!isConductor) {
+                    if (availContainer) availContainer.classList.add('opacity-40', 'pointer-events-none', 'grayscale');
+                    if (availGrid) availGrid.classList.add('opacity-20', 'pointer-events-none', 'grayscale');
+                } else {
+                    if (availContainer) availContainer.classList.remove('opacity-40', 'pointer-events-none', 'grayscale');
+                    const shouldBeLocked = !isModuleEnabled;
+                    if (availGrid) {
+                        availGrid.classList.toggle('opacity-20', shouldBeLocked);
+                        availGrid.classList.toggle('pointer-events-none', shouldBeLocked);
+                        availGrid.classList.toggle('grayscale', shouldBeLocked);
+                    }
+                }
+
+                const modChecks = modulesSection ? modulesSection.querySelectorAll('.p-mod-check') : [];
+                if (!isModulesMasterEnabled) {
+                    if (modulesSection) modulesSection.classList.add('opacity-40');
+                    modChecks.forEach(m => {
+                        m.disabled = true;
+                        m.closest('label').classList.add('pointer-events-none', 'opacity-60');
+                    });
+                } else {
+                    if (modulesSection) modulesSection.classList.remove('opacity-40');
+                    modChecks.forEach(m => {
+                        m.disabled = false;
+                        m.closest('label').classList.remove('pointer-events-none', 'opacity-60');
+                    });
+                }
+            };
+
+            const headerToggleAvail = modal.querySelector('#header-toggle-avail');
+            if (headerToggleAvail) {
+                headerToggleAvail.onclick = () => {
+                    modal.querySelector('#p-avail-grid').classList.toggle('hidden');
+                    const chevron = modal.querySelector('#avail-chevron');
+                    if (chevron) chevron.classList.toggle('rotate-180');
+                };
+            }
+
+            const updatePrivsList = () => {
+                const gender = genderSelect.value;
+                const malePrivs = ['Superintendente de Circuito', 'Anciano', 'Siervo ministerial', 'Conductor', 'Administrador'];
+                const femalePrivs = ['Conductor', 'Administrador'];
+                const currentPrivs = person?.privilegios || [];
+                const list = gender === 'Hombre' ? malePrivs : femalePrivs;
+
+                privsContainer.innerHTML = list.map(pr => `
+                    <label class="flex items-center gap-3 bg-white dark:bg-white/5 px-4 py-3 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-primary/50 cursor-pointer transition-all group shadow-sm active:scale-[0.98] relative">
+                        <input type="checkbox" class="p-priv-check w-5 h-5 accent-primary cursor-pointer" value="${pr}" ${currentPrivs.includes(pr) ? 'checked' : ''}>
+                        <span class="text-[10px] font-black text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-200 uppercase tracking-widest">${pr}</span>
+                    </label>
+                `).join('');
+
+                privsContainer.querySelectorAll('.p-priv-check').forEach(cb => {
+                    cb.addEventListener('change', syncConductorUI);
+                    if (cb.value === 'Administrador') {
+                        cb.addEventListener('change', () => {
+                            modal.querySelector('#p-email-container').classList.toggle('hidden', !cb.checked);
+                        });
+                    }
+                });
+                syncConductorUI();
+            };
+
+            genderSelect.addEventListener('change', updatePrivsList);
+            updatePrivsList();
+
+            modal.querySelector('#mod-disponibilidad').addEventListener('change', syncConductorUI);
+            modal.querySelector('#p-mod-enabled').addEventListener('change', syncConductorUI);
+
+            saveBtn.onclick = async () => {
+                const original = saveBtn.innerHTML;
+                saveBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Guardando...';
+                saveBtn.disabled = true;
+
+                const data = {
+                    nombre: modal.querySelector('#p-name').value.trim(),
+                    telefono: modal.querySelector('#p-phone').value.trim(),
+                    genero: modal.querySelector('#p-gender').value,
+                    grupo: parseInt(modal.querySelector('#p-group').value),
+                    es_conductor: Array.from(modal.querySelectorAll('.p-priv-check:checked')).some(cb => cb.value === 'Conductor'),
+                    email: modal.querySelector('#p-email').value.trim().toLowerCase(),
+                    privilegios: Array.from(modal.querySelectorAll('.p-priv-check:checked')).map(cb => cb.value),
+                    disponibilidad: Array.from(modal.querySelectorAll('.p-priv-check:checked')).some(cb => cb.value === 'Conductor')
+                        ? Array.from(modal.querySelectorAll('.p-avail-check:checked')).map(cb => cb.value) : [],
+                    modulos: {
+                        habilitado: modal.querySelector('#p-mod-enabled').checked,
+                        agenda: modal.querySelector('#mod-agenda').checked,
+                        programa: modal.querySelector('#mod-programa').checked,
+                        disponibilidad: modal.querySelector('#mod-disponibilidad').checked,
+                        telefonos: modal.querySelector('#mod-telefonos').checked,
+                        mapas: modal.querySelector('#mod-mapas').checked,
+                        ayudas: modal.querySelector('#mod-ayudas').checked,
+                        rescue: modal.querySelector('#mod-agenda').checked
+                    }
+                };
+
+                if (!data.nombre) {
+                    showNotification("El nombre es obligatorio", "error");
+                    saveBtn.innerHTML = original; saveBtn.disabled = false;
+                    return;
+                }
+
+                try {
+                    if (isEdit) await updatePublicador(person.id, data);
+                    else await addPublicador(data);
+                    showNotification("Personal actualizado");
+                    modal.classList.add('hidden');
+                    renderPersonalTab(container);
+                } catch (e) {
+                    showNotification("Error: " + e.message, "error");
+                    saveBtn.innerHTML = original; saveBtn.disabled = false;
+                }
+            };
+        }, 'max-w-2xl');
+    };
+
+    container.querySelector('#btn-add-person').onclick = () => openPersonModal();
+    window.editPerson = (id) => openPersonModal(publicadores.find(x => x.id === id));
     window.deletePerson = (id) => showCustomConfirm("¿Eliminar este registro permanentemente?", async () => {
         await deletePublicador(id);
         renderPersonalTab(container);
     });
 };
+

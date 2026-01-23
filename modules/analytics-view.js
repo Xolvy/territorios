@@ -1,6 +1,7 @@
-import { getTerritorios, getConductores, getGlobalSettings, getHistorialReport } from '../data/firestore-services.js?v=2.2.3';
+import { getTerritorios, getConductores, getGlobalSettings, getHistorialReport } from '../data/firestore-services.js?v=2.2.5';
 
-export const renderAnalyticsView = async (container) => {
+export const renderAnalyticsView = async (container, appVersion) => {
+
     // 1. Fetch settings FIRST to use in the template
     let settings = {};
     try {
@@ -125,8 +126,8 @@ export const renderAnalyticsView = async (container) => {
                 </div>
             </div>
             
-            <div class="text-center text-xs text-gray-400 py-4">
-                App Territorios v2.1.6 Oficial • Powered by Antigravity
+            <div class="text-center text-xs text-gray-400 py-4 font-black uppercase tracking-widest opacity-30">
+                App Territorios v${appVersion || '2.2.5'} Oficial • Powered by XOLVY
             </div>
         </div>
     `;
@@ -234,6 +235,6 @@ export const renderAnalyticsView = async (container) => {
     loadData();
     const refreshBtn = document.getElementById('btn-refresh-analytics');
     if (refreshBtn) {
-        refreshBtn.addEventListener('click', () => renderAnalyticsView(container));
+        refreshBtn.addEventListener('click', () => renderAnalyticsView(container, appVersion));
     }
 };

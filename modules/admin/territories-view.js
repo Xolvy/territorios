@@ -98,8 +98,8 @@ export const renderCasaEnCasaTab = async (container) => {
                     </button>
                     <div class="w-px h-5 bg-slate-200 dark:bg-white/10 mx-0.5 shrink-0"></div>
                     <button class="sub-tab-casa group px-2 md:px-5 py-2 md:py-3 rounded-xl transition-all flex items-center gap-1.5 md:gap-3 whitespace-nowrap font-extrabold" data-sub="recursos">
-                        <i class="fas fa-briefcase text-[10px] md:text-sm"></i>
-                        <span class="text-[9px] md:text-[11px] font-extrabold uppercase tracking-wider">Ayudas</span>
+                        <i class="fas fa-book-open text-[10px] md:text-sm"></i>
+                        <span class="text-[9px] md:text-[11px] font-extrabold uppercase tracking-wider">Recursos</span>
                     </button>
                 </nav>
             </div>
@@ -198,8 +198,8 @@ export const renderRecursosTab = async (container) => {
     container.innerHTML = `
         <div class="flex flex-wrap justify-between items-center mb-10 gap-6">
             <div>
-                <h3 class="text-h3 text-slate-900 dark:text-white">Material de Apoyo</h3>
-                <p class="text-xs text-slate-500 mt-1">Recursos útiles para los publicadores</p>
+                <h3 class="text-h3 text-slate-900 dark:text-white uppercase tracking-tighter font-black">Recursos del Ministerio</h3>
+                <p class="text-[10px] text-slate-500 font-extrabold uppercase tracking-widest mt-1">Material de apoyo para los publicadores</p>
             </div>
             <button id="add-recurso-btn" class="bg-primary hover:bg-primary-light text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-primary/20 transition-all flex items-center gap-3 text-xs uppercase tracking-wider">
                 <i class="fas fa-plus"></i>

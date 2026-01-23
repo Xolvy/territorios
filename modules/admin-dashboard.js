@@ -808,7 +808,7 @@ const loadTab = async (tabName, appVersion) => {
     } else if (tabName === 'telefonos') {
         await renderTelefonosTab(contentDiv);
     } else if (tabName === 'dashboard') {
-        await renderAnalyticsView(contentDiv);
+        await renderAnalyticsView(contentDiv, appVersion);
     }
 };
 
