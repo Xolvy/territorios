@@ -689,7 +689,8 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
     const territoryMap = {};
     if (allTerritorios) allTerritorios.forEach(t => territoryMap[t.numero] = t);
 
-    const turnosArr = ['manana', 'tarde', 'noche'];
+    const normalizedName = name?.trim().toLowerCase();
+    const turnosArr = ['manana', 'tarde', 'noche', 'zoom'];
     const assignments = [];
 
     const shownTerritoryIds = new Set();
@@ -708,8 +709,8 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
             turnosArr.forEach(turno => {
                 const tData = d[turno];
                 if (tData && (tData.conductor || tData.auxiliar || tData.lugar)) {
-                    const isConductor = tData.conductor?.trim() === name?.trim();
-                    const isAuxiliar = tData.auxiliar?.trim() === name?.trim();
+                    const isConductor = tData.conductor?.trim().toLowerCase() === normalizedName;
+                    const isAuxiliar = tData.auxiliar?.trim().toLowerCase() === normalizedName;
 
                     // IMPORTANT: Filter Agenda Semanal to ONLY user's assignments
                     if (!isConductor && !isAuxiliar) return;
@@ -726,14 +727,14 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
                     }).filter(t => {
                         if (t.isMissingData) return false;
                         // Strict check: Territory must still be assigned to the user
-                        const matchesConductor = t.asignado_a?.trim() === name?.trim();
-                        const matchesAuxiliar = t.auxiliar?.trim() === name?.trim();
+                        const matchesConductor = t.asignado_a?.trim().toLowerCase() === normalizedName;
+                        const matchesAuxiliar = t.auxiliar?.trim().toLowerCase() === normalizedName;
                         return matchesConductor || matchesAuxiliar;
                     });
 
                     assignments.push({
                         dia: d.nombre,
-                        turno: turno === 'manana' ? '🌅 Mañana' : (turno === 'tarde' ? '☀️ Tarde' : '🌙 Noche'),
+                        turno: turno === 'manana' ? '🌅 Mañana' : (turno === 'tarde' ? '☀️ Tarde' : (turno === 'zoom' ? '📹 Zoom' : '🌙 Noche')),
                         role: isConductor ? 'Conductor' : (isAuxiliar ? 'Auxiliar' : 'Otro'),
                         isMember: true,
                         rawDate: d.fecha || 'Fecha no definida',
@@ -747,7 +748,7 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
 
     // Capture "Orphaned" territories (Rescued or directly assigned outside this week's program)
     const myExtraTerritories = allTerritorios.filter(t => {
-        const matchesUser = t.asignado_a?.trim() === name?.trim() || t.auxiliar?.trim() === name?.trim();
+        const matchesUser = t.asignado_a?.trim().toLowerCase() === normalizedName || t.auxiliar?.trim().toLowerCase() === normalizedName;
         const isOrphan = !shownTerritoryIds.has(t.id);
         const isActive = t.estado === 'Asignado' || t.estado === 'Pendiente';
         return matchesUser && isOrphan && isActive;
@@ -816,7 +817,7 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
         if (programa && programa.dias && programa.id) {
             const monday = new Date(programa.id + "T00:00:00");
             const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-            const shifts = ['manana', 'tarde', 'noche'];
+            const shifts = ['manana', 'tarde', 'noche', 'zoom'];
             programa.dias.forEach(d => {
                 const dayIdx = dayNames.indexOf(d.nombre);
                 if (dayIdx === -1) return;
@@ -838,7 +839,7 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
         const rescueCandidates = allTerritorios.filter(t => {
             if (t.estado !== 'Asignado' && t.estado !== 'Pendiente') return false;
             // Exclusion: Don't show missions already assigned to the current user
-            if (t.asignado_a === name) return false;
+            if (t.asignado_a?.trim().toLowerCase() === normalizedName) return false;
             const timestamps = plannedDates[t.numero];
             if (!timestamps) return false;
             return Array.from(timestamps).some(ts => {
@@ -1223,11 +1224,11 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
                                 <div class="grid grid-cols-2 gap-4 px-1">
                                     <div class="space-y-0.5 text-left border-l-2 border-slate-100 dark:border-white/5 pl-3">
                                         <p class="text-[7px] font-black text-slate-400 uppercase tracking-widest opacity-70">Conductor</p>
-                                        <p class="text-[10px] font-black ${a.conductor === name ? 'text-teal-600' : 'text-slate-700 dark:text-slate-200'} leading-none">${a.conductor || '---'}</p>
+                                        <p class="text-[10px] font-black ${a.conductor?.trim().toLowerCase() === normalizedName ? 'text-teal-600' : 'text-slate-700 dark:text-slate-200'} leading-none">${a.conductor || '---'}</p>
                                     </div>
                                     <div class="space-y-0.5 text-left border-l-2 border-slate-100 dark:border-white/5 pl-3">
                                         <p class="text-[7px] font-black text-slate-400 uppercase tracking-widest opacity-70">Auxiliar</p>
-                                        <p class="text-[10px] font-black ${a.auxiliar === name ? 'text-teal-600' : 'text-slate-700 dark:text-slate-200'} leading-none">${a.auxiliar || '---'}</p>
+                                        <p class="text-[10px] font-black ${a.auxiliar?.trim().toLowerCase() === normalizedName ? 'text-teal-600' : 'text-slate-700 dark:text-slate-200'} leading-none">${a.auxiliar || '---'}</p>
                                     </div>
                                 </div>
 
