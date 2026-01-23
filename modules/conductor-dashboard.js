@@ -75,7 +75,7 @@ const showModal = (content, onOpen, maxWidth = 'max-w-md') => {
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
                 </svg>
             </button>
-            <div class="flex-1 overflow-y-auto custom-scrollbar flex flex-col px-8 py-10">
+            <div class="flex-1 overflow-y-auto custom-scrollbar flex flex-col px-6 md:px-8 py-6 md:py-10">
                 ${content}
             </div>
         </div>
@@ -200,8 +200,8 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
     const wasProgOpen = container.querySelector('.group\\/prog-details')?.open;
 
     container.innerHTML = `
-        <div class="animate-fade-in pb-32 w-full max-w-7xl mx-auto p-4 md:p-8 space-y-12 md:space-y-20">
-            <header class="flex flex-col md:flex-row justify-between items-start md:items-center px-6 py-6 modern-card !rounded-[2.5rem] border-slate-200 dark:border-white/10 shadow-xl gap-6 relative overflow-hidden group">
+        <div class="animate-fade-in pb-32 w-full max-w-7xl mx-auto p-2 md:p-8 space-y-8 md:space-y-20">
+            <header class="flex flex-col md:flex-row justify-between items-start md:items-center px-4 md:px-6 py-6 modern-card !rounded-[2.5rem] border-slate-200 dark:border-white/10 shadow-xl gap-6 relative overflow-hidden group">
                 <div class="absolute inset-0 bg-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
                 <div class="flex items-center gap-5 relative z-10">
                     <div class="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center text-2xl text-white shadow-xl shadow-indigo-500/30 rotate-3 hover:rotate-0 transition-all duration-700 animate-float">
@@ -259,7 +259,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 <div id="programa-semanal-section" class="lg:col-span-2 ${mods.programa !== false ? '' : 'hidden'}">
                     <div class="modern-card !p-0 border-slate-200 dark:border-white/10 shadow-2xl transition-all overflow-hidden group/prog bg-white dark:bg-slate-900/40">
                         <details class="group/prog-details" ${wasProgOpen ? 'open' : ''}>
-                             <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-8 cursor-pointer list-none select-none hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors border-b border-transparent group-open/prog-details:border-slate-100 dark:group-open/prog-details:border-white/5">
+                             <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-6 md:p-8 cursor-pointer list-none select-none hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors border-b border-transparent group-open/prog-details:border-slate-100 dark:group-open/prog-details:border-white/5">
                                 <div class="flex items-start gap-6">
                                     <div class="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-2xl text-indigo-500 shadow-inner border border-indigo-500/10 group-open/prog-details:rotate-6 transition-transform">
                                         <i class="fas fa-calendar-alt"></i>
@@ -456,7 +456,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
                 <div class="lg:col-span-2 modern-card border-slate-200 dark:border-white/10 shadow-2xl transition-all overflow-hidden !p-0 ${mods.mapas !== false ? '' : 'hidden'} bg-white dark:bg-slate-900/40" id="interactive-maps-module">
                     <details class="group/maps" ${container.querySelector('.group\\/maps')?.open ? 'open' : ''}>
-                        <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-8 cursor-pointer list-none select-none hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
+                        <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-6 md:p-8 cursor-pointer list-none select-none hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
                             <div class="flex items-start gap-6">
                                 <div class="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-2xl text-indigo-600 shadow-inner border border-indigo-500/10 group-open/maps:rotate-6 transition-transform">
                                     <i class="fas fa-map-marked-alt"></i>

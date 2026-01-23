@@ -1,6 +1,7 @@
 
 export const UIHelpers = {
     fmtDate: (d) => d ? new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }) : '',
+    fmtDateAt: (d) => d ? new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }) : '',
 
     getMonday: (d) => {
         d = new Date(d);
@@ -38,7 +39,7 @@ export const showModal = (html, onRender, maxWidth = 'max-w-2xl', containerId = 
 
     modal.innerHTML = `
         <div class="modal-backdrop-area absolute inset-0 cursor-default"></div>
-        <div class="relative w-full ${maxWidth} bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border border-black/5 dark:border-white/10 animate-scale-in overflow-hidden z-10">
+        <div class="relative w-full ${maxWidth} max-h-[90vh] md:max-h-[85vh] flex flex-col bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border border-black/5 dark:border-white/10 animate-scale-in overflow-hidden z-10">
             ${html}
         </div>
     `;

@@ -48,8 +48,8 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
 
         // --- MAIN SHELL RENDER ---
         container.innerHTML = `
-            <div class="animate-fade-in pb-32 lg:pb-8 w-full max-w-[1600px] mx-auto p-4 md:p-8 overflow-x-hidden">
-                <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 lg:mb-10 p-5 md:p-8 glass-morphism rounded-2xl lg:rounded-[2rem] gap-6">
+            <div class="animate-fade-in pb-32 lg:pb-8 w-full max-w-[1600px] mx-auto p-2 md:p-8 overflow-x-hidden">
+                <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 lg:mb-10 p-4 md:p-8 glass-morphism rounded-2xl lg:rounded-[2rem] gap-6">
                     <div class="flex items-center gap-4 md:gap-5">
                         <div class="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-primary to-slate-900 rounded-2xl flex items-center justify-center text-2xl md:text-3xl shadow-xl shadow-primary/20 border border-primary/20 transition-transform hover:scale-105 duration-500">
                             <i class="fas fa-shield-halved text-white"></i>

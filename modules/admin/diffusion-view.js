@@ -4,16 +4,16 @@ import { showNotification } from '../services/ui-helpers.js?v=2.2.5';
 export const renderDiffusionTab = async (container, config, appVersion, reloadTabFn) => {
     const diffusion = await getDiffusionMessage();
     container.innerHTML = `
-        <div class="max-w-2xl mx-auto space-y-10 animate-fade-in p-10 bg-white dark:bg-[#0a0f18] rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-2xl mt-6 relative overflow-hidden">
+        <div class="max-w-2xl mx-auto space-y-8 md:space-y-10 animate-fade-in p-6 md:p-10 bg-white dark:bg-[#0a0f18] rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-2xl mt-4 md:mt-6 relative overflow-hidden">
             <div class="absolute -left-20 -bottom-20 w-64 h-64 bg-blue-500/5 blur-[100px] rounded-full pointer-events-none"></div>
 
-            <div class="flex items-center gap-6 mb-2 relative z-10">
-                <div class="w-20 h-20 bg-blue-500/10 rounded-3xl flex items-center justify-center text-3xl shadow-inner border border-blue-500/10 text-blue-500 transition-transform hover:rotate-12 duration-500">
+            <div class="flex items-center gap-4 md:gap-6 mb-2 relative z-10">
+                <div class="w-16 h-16 md:w-20 md:h-20 bg-blue-500/10 rounded-3xl flex items-center justify-center text-2xl md:text-3xl shadow-inner border border-blue-500/10 text-blue-500 transition-transform hover:rotate-12 duration-500">
                     <i class="fas fa-bullhorn"></i>
                 </div>
                 <div>
-                    <h3 class="text-3xl font-black tracking-tighter text-slate-800 dark:text-white uppercase leading-none mb-2">Sistema de Difusión</h3>
-                    <p class="text-[10px] text-slate-500 uppercase tracking-[0.4em] font-black">Comunicación Masiva Directa</p>
+                    <h3 class="text-xl md:text-3xl font-black tracking-tighter text-slate-800 dark:text-white uppercase leading-none mb-2">Sistema de Difusión</h3>
+                    <p class="text-[9px] md:text-[10px] text-slate-500 uppercase tracking-[0.4em] font-black">Comunicación Masiva Directa</p>
                 </div>
             </div>
 
@@ -25,14 +25,14 @@ export const renderDiffusionTab = async (container, config, appVersion, reloadTa
 
                 <div class="space-y-4">
                     <label class="block text-[10px] font-black uppercase text-slate-400 mb-2 ml-1 tracking-[0.2em]">Prioridad del Anuncio</label>
-                    <div class="grid grid-cols-2 gap-6">
-                        <button class="diff-type-btn p-6 rounded-2xl border-2 transition-all font-black uppercase tracking-widest flex flex-col items-center gap-3 ${diffusion?.type !== 'urgent' ? 'border-primary/50 bg-primary/10 text-primary shadow-lg shadow-primary/10' : 'border-slate-100 dark:border-white/5 opacity-40 hover:opacity-70'}" data-type="info">
-                            <i class="fas fa-info-circle text-2xl"></i>
-                            <span class="text-[10px]">Informativo</span>
+                    <div class="grid grid-cols-2 gap-4 md:gap-6">
+                        <button class="diff-type-btn p-4 md:p-6 rounded-2xl border-2 transition-all font-black uppercase tracking-widest flex flex-col items-center gap-3 ${diffusion?.type !== 'urgent' ? 'border-primary/50 bg-primary/10 text-primary shadow-lg shadow-primary/10' : 'border-slate-100 dark:border-white/5 opacity-40 hover:opacity-70'}" data-type="info">
+                            <i class="fas fa-info-circle text-xl md:text-2xl"></i>
+                            <span class="text-[9px] md:text-[10px]">Informativo</span>
                         </button>
-                        <button class="diff-type-btn p-6 rounded-2xl border-2 transition-all font-black uppercase tracking-widest flex flex-col items-center gap-3 ${diffusion?.type === 'urgent' ? 'border-rose-500/50 bg-rose-500/10 text-rose-500 shadow-lg shadow-rose-500/10' : 'border-slate-100 dark:border-white/5 opacity-40 hover:opacity-70'}" data-type="urgent">
-                            <i class="fas fa-exclamation-triangle text-2xl"></i>
-                            <span class="text-[10px]">Urgente</span>
+                        <button class="diff-type-btn p-4 md:p-6 rounded-2xl border-2 transition-all font-black uppercase tracking-widest flex flex-col items-center gap-3 ${diffusion?.type === 'urgent' ? 'border-rose-500/50 bg-rose-500/10 text-rose-500 shadow-lg shadow-rose-500/10' : 'border-slate-100 dark:border-white/5 opacity-40 hover:opacity-70'}" data-type="urgent">
+                            <i class="fas fa-exclamation-triangle text-xl md:text-2xl"></i>
+                            <span class="text-[9px] md:text-[10px]">Urgente</span>
                         </button>
                     </div>
                 </div>

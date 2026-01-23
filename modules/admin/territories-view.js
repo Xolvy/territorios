@@ -20,9 +20,8 @@ export const renderCasaEnCasaTab = async (container) => {
 
                 <nav class="flex flex-row overflow-x-auto scrollbar-hide items-center gap-1 bg-white/50 dark:bg-white/[0.03] p-1 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm w-full xl:w-auto backdrop-blur-xl">
                     ${renderSubTab('programa', 'fas fa-calendar-check', 'Programa')}
-                    ${renderSubTab('asignaciones', 'fas fa-exchange-alt', 'Asignar')}
-                    ${renderSubTab('historial', 'fas fa-history', 'Historial')}
-                    ${renderSubTab('s12', 'fas fa-shield-alt', 'S-12')}
+                    ${renderSubTab('historial', 'fas fa-chart-line', 'CONTROL')}
+                    ${renderSubTab('s12', 'fas fa-shield-alt', 'Base S-12')}
                     <div class="w-px h-5 bg-slate-200 dark:bg-white/10 mx-2 shrink-0"></div>
                     ${renderSubTab('recursos', 'fas fa-folder-open', 'RECURSOS')}
                     ${renderSubTab('personal', 'fas fa-users', 'PERSONAL')}
@@ -50,10 +49,6 @@ export const renderCasaEnCasaTab = async (container) => {
                 case 'programa':
                     const { renderProgramaTab } = await import('./program-view.js?v=2.2.5');
                     await renderProgramaTab(subContainer);
-                    break;
-                case 'asignaciones':
-                    const { renderAsignacionesView } = await import('./assignments-view.js?v=2.2.5');
-                    await renderAsignacionesView(subContainer);
                     break;
                 case 'historial':
                     const { renderHistorialView } = await import('./history-view.js?v=2.2.5');

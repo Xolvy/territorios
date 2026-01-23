@@ -57,7 +57,7 @@ export const renderProgramaTab = async (container) => {
     };
 
     container.innerHTML = `
-        <div class="max-w-[1700px] mx-auto space-y-8 animate-fade-in p-2 md:p-6">
+        <div class="max-w-[1700px] mx-auto space-y-6 md:space-y-8 animate-fade-in p-2 md:p-6">
             <header class="flex flex-col xl:flex-row items-center justify-between gap-6">
                 <div class="flex items-center gap-5">
                     <div class="w-14 h-14 bg-gradient-to-br from-primary to-indigo-600 rounded-2xl flex items-center justify-center text-2xl text-white shadow-xl shadow-primary/20">
@@ -216,7 +216,7 @@ export const renderProgramaTab = async (container) => {
             if (activeDayIndex !== -1 && activeDayIndex !== dayIndex) return;
 
             html += `
-                <div class="day-group animate-fade-in px-8 ${activeDayIndex === -1 && dayIndex > 0 ? 'mt-32' : 'mt-10'}">
+                <div class="day-group animate-fade-in px-4 md:px-8 ${activeDayIndex === -1 && dayIndex > 0 ? 'mt-20 md:mt-32' : 'mt-6 md:mt-10'}">
                     <div class="flex items-center gap-8 mb-12">
                         <div class="flex flex-col">
                             <h4 class="text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">${dia.nombre}</h4>
@@ -224,7 +224,7 @@ export const renderProgramaTab = async (container) => {
                         <div class="h-0.5 flex-1 bg-gradient-to-r from-primary/30 to-transparent rounded-full opacity-30"></div>
                     </div>
 
-                    <div class="flex flex-wrap gap-6 md:gap-8">
+                    <div class="flex flex-wrap gap-4 md:gap-8">
             `;
 
             turnos.forEach(t => {
@@ -235,7 +235,7 @@ export const renderProgramaTab = async (container) => {
                 const data = dia[turnoId] || {};
 
                 html += `
-                    <div class="flex-1 min-w-[300px] max-w-full lg:max-w-[400px] modern-card !p-8 border-slate-100 dark:border-white/5 shadow-xl hover:shadow-2xl transition-all group/turn relative">
+                    <div class="flex-1 min-w-[280px] max-w-full lg:max-w-[400px] modern-card !p-4 md:!p-8 border-slate-100 dark:border-white/5 shadow-xl hover:shadow-2xl transition-all group/turn relative">
                         <div class="flex items-center gap-4 mb-8">
                             <div class="w-12 h-12 ${t.bg} ${t.color} rounded-2xl flex items-center justify-center text-lg shadow-inner group-hover/turn:scale-110 transition-transform duration-500">
                                 <i class="fas ${t.icon}"></i>
@@ -243,7 +243,7 @@ export const renderProgramaTab = async (container) => {
                             <span class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 block mb-0.5">${t.label}</span>
                         </div>
 
-                        <div class="space-y-6">
+                        <div class="space-y-4 md:space-y-6">
                 `;
 
                 t.fields.forEach(field => {

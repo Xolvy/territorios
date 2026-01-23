@@ -164,7 +164,7 @@ export const renderPersonalTab = async (container) => {
 
         showModal(`
             <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden">
-                <header class="shrink-0 bg-primary p-8 text-white relative overflow-hidden">
+                <header class="shrink-0 bg-primary p-6 md:p-8 text-white relative overflow-hidden">
                     <div class="absolute inset-0 bg-white/10 backdrop-blur-3xl"></div>
                     <div class="relative z-10 flex items-center gap-6">
                         <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center text-3xl shadow-2xl border border-white/30">
@@ -177,10 +177,10 @@ export const renderPersonalTab = async (container) => {
                     </div>
                 </header>
 
-                <div class="flex-1 p-8 space-y-8 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-black/20">
-                    <div class="space-y-8">
+                <div class="flex-1 p-5 md:p-8 space-y-6 md:space-y-8 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-black/20">
+                    <div class="space-y-6 md:space-y-8">
                         <!-- Datos Básicos -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                             <div class="space-y-3">
                                 <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nombre Completo</label>
                                 <input type="text" id="p-name" value="${person?.nombre || ''}" placeholder="Ej: Juan Pérez" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-sm font-bold focus:border-primary outline-none shadow-sm transition-all text-slate-700 dark:text-white">
@@ -191,7 +191,7 @@ export const renderPersonalTab = async (container) => {
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-6">
+                        <div class="grid grid-cols-2 gap-4 md:gap-6">
                             <div class="space-y-3">
                                 <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Género</label>
                                 <select id="p-gender" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-sm font-bold focus:border-primary outline-none shadow-sm transition-all text-slate-700 dark:text-white appearance-none cursor-pointer">
@@ -260,7 +260,7 @@ export const renderPersonalTab = async (container) => {
                                     <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
                                 </label>
                             </div>
-                            <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-3 pb-8">
+                            <div class="p-4 md:p-6 grid grid-cols-1 sm:grid-cols-2 gap-3 pb-8">
                                 ${[
                 { id: 'mod-agenda', label: 'Agenda Inteligente', checked: person?.modulos?.agenda !== false },
                 { id: 'mod-programa', label: 'Cronograma de Salidas', checked: person?.modulos?.programa !== false },

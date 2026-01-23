@@ -39,10 +39,10 @@ export const renderTelefonosTab = async (container) => {
                     <table class="w-full text-left border-collapse">
                         <thead class="bg-slate-50 dark:bg-black/40 text-slate-400 text-[9px] font-black uppercase tracking-[0.2em] border-b border-slate-100 dark:border-white/5">
                             <tr>
-                                <th class="p-6">Información de Contacto</th>
-                                <th class="p-6 text-center">Estado</th>
-                                <th class="p-6">Asignación Actual</th>
-                                <th class="p-6 text-right">Acciones</th>
+                                <th class="p-4 md:p-6">Información de Contacto</th>
+                                <th class="p-4 md:p-6 text-center">Estado</th>
+                                <th class="p-4 md:p-6">Asignación Actual</th>
+                                <th class="p-4 md:p-6 text-right">Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="phone-table-body" class="divide-y divide-slate-100 dark:divide-white/5">
@@ -144,7 +144,7 @@ export const renderTelefonosTab = async (container) => {
         const isEdit = !!phone;
         showModal(`
             <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden">
-                <header class="shrink-0 bg-primary p-8 text-white relative overflow-hidden">
+                <header class="shrink-0 bg-primary p-6 md:p-8 text-white relative overflow-hidden">
                     <div class="absolute inset-0 bg-white/10 backdrop-blur-3xl"></div>
                     <div class="relative z-10 flex items-center gap-6">
                         <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center text-3xl shadow-2xl border border-white/30">
@@ -157,8 +157,8 @@ export const renderTelefonosTab = async (container) => {
                     </div>
                 </header>
 
-                <div class="flex-1 overflow-y-auto custom-scrollbar p-10 space-y-8 bg-slate-50 dark:bg-black/20">
-                    <div class="space-y-6">
+                <div class="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-10 space-y-6 md:space-y-8 bg-slate-50 dark:bg-black/20">
+                    <div class="space-y-4 md:space-y-6">
                         <div class="space-y-3">
                             <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Número Telefónico</label>
                             <input type="text" id="p-num" value="${phone?.numero || ''}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-base font-black text-primary outline-none focus:ring-4 focus:ring-primary/10 shadow-inner" placeholder="P. ej: 0991234567">
@@ -190,7 +190,7 @@ export const renderTelefonosTab = async (container) => {
                     </div>
                 </div>
 
-                <footer class="shrink-0 p-8 bg-white dark:bg-black/40 border-t border-slate-100 dark:border-white/5 flex gap-4">
+                <footer class="shrink-0 p-6 md:p-8 bg-white dark:bg-black/40 border-t border-slate-100 dark:border-white/5 flex gap-4">
                     <button id="btn-cancel-p" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] border border-slate-200 dark:border-white/10 transition-all active:scale-95">
                         Cancelar
                     </button>
