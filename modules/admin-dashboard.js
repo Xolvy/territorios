@@ -1,16 +1,16 @@
 import {
     getSystemVersion, setSystemVersion, getHistorialReport
-} from '../data/firestore-services.js?v=2.2.7';
-import { auth } from '../firebase-config.js?v=2.2.7';
-import { showNotification } from './utils/helpers.js?v=2.2.7';
-import { GlassButton } from './services/ui-components.js?v=2.2.7';
+} from '../data/firestore-services.js?v=2.3.0';
+import { auth } from '../firebase-config.js?v=2.3.0';
+import { showNotification } from './utils/helpers.js?v=2.3.0';
+import { GlassButton } from './services/ui-components.js?v=2.3.0';
 
 // Import Views
-import { renderAnalyticsView } from './analytics-view.js?v=2.2.7';
-import { renderCasaEnCasaTab } from './admin/territories-view.js?v=2.2.7';
-import { renderPredicacionTab } from './admin/public-view.js?v=2.2.7';
-import { renderTelefonosTab } from './admin/phones-view.js?v=2.2.7';
-import { renderConfigTab } from './admin/rules-view.js?v=2.2.7';
+import { renderAnalyticsView } from './analytics-view.js?v=2.3.0';
+import { renderCasaEnCasaTab } from './admin/territories-view.js?v=2.3.0';
+import { renderPredicacionTab } from './admin/public-view.js?v=2.3.0';
+import { renderTelefonosTab } from './admin/phones-view.js?v=2.3.0';
+import { renderConfigTab } from './admin/rules-view.js?v=2.3.0';
 
 /**
  * Main Entry Point for the Administration Control Panel
@@ -22,12 +22,12 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
 
         // --- GLOBAL ADMIN HELPERS ---
         window.editHistoryRecord = async (id) => {
-            const { editHistoryRecord } = await import('./admin/history-view.js?v=2.2.6');
+            const { editHistoryRecord } = await import('./admin/history-view.js?v=2.3.0');
             await editHistoryRecord(id);
         };
 
         window.deleteHistoryRecordUI = async (id, cond, num) => {
-            const { deleteHistoryRecordUI } = await import('./admin/history-view.js?v=2.2.6');
+            const { deleteHistoryRecordUI } = await import('./admin/history-view.js?v=2.3.0');
             await deleteHistoryRecordUI(id, cond, num);
         };
 
@@ -50,9 +50,9 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
         container.innerHTML = `
             <div class="animate-fade-in pb-32 lg:pb-8 w-full max-w-[1600px] mx-auto p-2 md:p-8 overflow-x-hidden">
                 <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 lg:mb-10 p-4 md:p-8 glass-morphism rounded-2xl lg:rounded-[2rem] gap-6">
-                    <div class="flex items-center gap-4 md:gap-5">
-                        <div class="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-primary to-slate-900 rounded-2xl flex items-center justify-center text-2xl md:text-3xl shadow-xl shadow-primary/20 border border-primary/20 transition-transform hover:scale-105 duration-500">
-                            <i class="fas fa-shield-halved text-white"></i>
+                    <div class="flex items-center gap-4 md:gap-6">
+                        <div class="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-primary to-slate-900 rounded-2xl flex items-center justify-center text-2xl md:text-3xl shadow-xl shadow-primary/20 border border-primary/20 transition-transform hover:scale-105 duration-500 shrink-0">
+                            <i class="fas fa-university text-white"></i>
                         </div>
                         <div>
                             <h1 class="text-xl md:text-3xl font-black text-slate-900 dark:text-white leading-tight uppercase tracking-tighter">Panel de Gestión</h1>
@@ -65,9 +65,18 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
                             </div>
                         </div>
                     </div>
-                    <div class="flex items-center gap-3 w-full md:w-auto">
-                        ${GlassButton('Modo Conductor', 'fas fa-id-badge', 'secondary', 'flex-1 md:flex-none uppercase tracking-widest text-[10px] py-4', 'btn-goto-conductores')}
-                        ${GlassButton('Cerrar Sesión', 'fas fa-power-off', 'danger', 'flex-1 md:flex-none uppercase tracking-widest text-[10px] py-4', 'logout-btn')}
+                    
+                    <div class="flex flex-wrap items-center gap-4 w-full md:w-auto">
+                        <!-- Version Badge (Requested in Image) -->
+                        <div class="hidden sm:flex flex-col items-center bg-slate-50 dark:bg-white/5 px-6 py-2.5 rounded-2xl border border-slate-100 dark:border-white/10 shadow-sm">
+                            <span class="text-[7px] font-black text-slate-400 uppercase tracking-[0.3em] mb-0.5">Versión del Sistema</span>
+                            <span class="text-[11px] font-black text-primary uppercase tracking-tighter">Build ${appVersion}</span>
+                        </div>
+
+                        <div class="flex items-center gap-3 flex-1 md:flex-none">
+                            ${GlassButton('Vista Conductor', 'fas fa-id-badge', 'secondary', 'flex-1 md:flex-none uppercase tracking-widest text-[10px] py-4', 'btn-goto-conductores')}
+                            ${GlassButton('Salir', 'fas fa-sign-out-alt', 'danger', 'flex-1 md:flex-none uppercase tracking-widest text-[10px] py-4', 'logout-btn')}
+                        </div>
                     </div>
                 </header>
 
