@@ -1,4 +1,4 @@
-import { auth } from '../firebase-config.js?v=2.2.3';
+import { auth } from '../firebase-config.js?v=2.2.7';
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import {
     getTerritorios, getConductores, getPublicadores, getTelefonos, updateTelefono,
@@ -8,10 +8,10 @@ import {
     addPublicador, updatePublicador, deletePublicador,
     releaseUnusedTelefonos, solicitarNumeros, updateTelefonoStatus, logSessionSummary,
     logReturn, returnTerritorio, returnTerritorioParcial, transferTerritory
-} from '../data/firestore-services.js?v=2.2.3';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, formatManzanas } from './utils/helpers.js?v=2.2.3';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=2.2.3';
-import { MapViewer } from './map-viewer.js?v=2.2.3';
+} from '../data/firestore-services.js?v=2.2.7';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, formatManzanas } from './utils/helpers.js?v=2.2.7';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=2.2.7';
+import { MapViewer } from './map-viewer.js?v=2.2.7';
 
 
 
@@ -220,7 +220,18 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                         </div>
                     </div>
                 </div>
-                <div class="flex items-center gap-2.5 w-full md:w-auto relative z-10">
+                <div class="flex flex-wrap items-center gap-2.5 w-full md:w-auto relative z-10">
+                    <!-- Connection Status Badge -->
+                    <div id="connection-hub" class="flex items-center gap-3 px-4 py-3 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm mr-2 transition-all">
+                        <div id="status-dot" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                        <span id="status-text" class="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">En Línea</span>
+                        <div class="w-px h-4 bg-slate-300 dark:bg-white/10 mx-1"></div>
+                        <button id="btn-sync-all" class="text-[9px] font-black text-indigo-500 uppercase tracking-widest hover:text-indigo-400 flex items-center gap-2 transition-colors group/syncall" title="Sincronizar todo para uso offline">
+                            <i class="fas fa-arrows-rotate group-hover/syncall:rotate-180 transition-transform duration-700"></i>
+                            <span class="hidden xs:inline">Sincronizar</span>
+                        </button>
+                    </div>
+
                     <div class="hidden sm:flex flex-col items-end mr-4 text-right">
                          <p class="text-[8px] font-black text-slate-400 uppercase tracking-[0.3em] mb-0.5">Versión</p>
                          <p class="text-[10px] font-black text-slate-800 dark:text-white tabular-nums">${appVersion || '3.6.0'}</p>
@@ -295,10 +306,20 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                              <!-- Turn buttons -->
                                          </div>
                                          <div class="w-px h-8 bg-slate-200 dark:bg-white/10 mx-1"></div>
-                                         <button id="prog-export-png" class="p-4 bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 hover:bg-indigo-500 hover:text-white rounded-xl transition-all shadow-lg shadow-indigo-500/5 group/dl" title="Descargar como Imagen">
-                                            <i class="fas fa-download group-hover/dl:scale-110 transition-transform"></i>
-                                            <span class="hidden sm:inline ml-2 text-[9px] font-black uppercase tracking-widest">Descargar</span>
-                                         </button>
+                                         <div class="flex items-center gap-2">
+                                             <button id="prog-btn-sync-offline" class="p-4 bg-teal-500/10 border border-teal-500/20 text-teal-600 hover:bg-teal-500 hover:text-white rounded-xl transition-all shadow-lg shadow-teal-500/5 group/sync" title="Pre-descargar territorios de la semana">
+                                                <i class="fas fa-cloud-download-alt group-hover/sync:scale-110 transition-transform"></i>
+                                                <span class="hidden sm:inline ml-2 text-[9px] font-black uppercase tracking-widest">Pre-Cargar</span>
+                                             </button>
+                                             <button id="prog-btn-share" class="p-4 bg-blue-500/10 border border-blue-500/20 text-blue-600 hover:bg-blue-500 hover:text-white rounded-xl transition-all shadow-lg shadow-blue-500/5 group/share" title="Compartir Programa">
+                                                <i class="fas fa-share-alt group-hover/share:scale-110 transition-transform"></i>
+                                                <span class="hidden sm:inline ml-2 text-[9px] font-black uppercase tracking-widest">Compartir</span>
+                                             </button>
+                                             <button id="prog-export-png" class="p-4 bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 hover:bg-indigo-500 hover:text-white rounded-xl transition-all shadow-lg shadow-indigo-500/5 group/dl" title="Descargar como Imagen">
+                                                <i class="fas fa-download group-hover/dl:scale-110 transition-transform"></i>
+                                                <span class="hidden sm:inline ml-2 text-[9px] font-black uppercase tracking-widest">Descargar</span>
+                                             </button>
+                                         </div>
                                      </div>
                                 </div>
 
@@ -555,6 +576,37 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
         } catch (e) { console.error("Refresh error", e); }
     };
 
+    // Connection Hub Logic
+    const statusDot = container.querySelector('#status-dot');
+    const statusText = container.querySelector('#status-text');
+    const btnSyncAll = container.querySelector('#btn-sync-all');
+
+    const updateConnectionStatus = () => {
+        if (navigator.onLine) {
+            statusDot?.classList.replace('bg-rose-500', 'bg-emerald-500');
+            statusText && (statusText.innerText = 'En Línea');
+        } else {
+            statusDot?.classList.replace('bg-emerald-500', 'bg-rose-500');
+            statusText && (statusText.innerText = 'Modo Offline');
+        }
+    };
+    window.addEventListener('online', updateConnectionStatus);
+    window.addEventListener('offline', updateConnectionStatus);
+    updateConnectionStatus();
+
+    if (btnSyncAll) {
+        btnSyncAll.onclick = async () => {
+            const allT = await getTerritorios();
+            showNotification(`Sincronizando ${allT.length} territorios...`, 'info');
+            btnSyncAll.querySelector('i').classList.add('animate-spin');
+            if (window.precacheTerritoryResources) {
+                await window.precacheTerritoryResources(allT);
+                showNotification("¡Todo el sistema está listo para uso offline!", "success");
+            }
+            btnSyncAll.querySelector('i').classList.remove('animate-spin');
+        };
+    }
+
     try {
         // Clean up unassigned/unused numbers from previous sessions for a fresh "Solicitar" experience
         await releaseUnusedTelefonos(displayName);
@@ -679,6 +731,11 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
             getProgramaSemanal(currentWeekId),
             getTerritorios()
         ]);
+
+        // Power Up: Pre-load resources for offline use
+        if (window.precacheTerritoryResources) {
+            window.precacheTerritoryResources(allTerritorios);
+        }
     } catch (err) {
         console.error("Critical error loading dashboard data:", err);
         agendaContainer.innerHTML = '<div class="col-span-full py-10 text-center"><p class="text-red-500 font-bold">Error de conexión al cargar datos.</p></div>';
@@ -1419,7 +1476,6 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
             if (btnNext) btnNext.onclick = () => { currentWeekStart.setDate(currentWeekStart.getDate() + 7); loadWeekData(); };
             if (btnToday) btnToday.onclick = () => { currentWeekStart = getMonday(new Date()); activeDayIndex = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1; loadWeekData(); };
 
-            const btnExport = container.querySelector('#prog-export-png');
             if (btnExport) btnExport.onclick = async () => {
                 const previewHTML = generateLandscapePreviewHTML(window._globalPrograma);
                 const tempDiv = document.createElement('div');
@@ -1440,6 +1496,75 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
                 } catch (e) {
                     console.error(e); showNotification("Error al generar imagen", "error");
                 } finally { document.body.removeChild(tempDiv); }
+            };
+
+            const btnShare = container.querySelector('#prog-btn-share');
+            if (btnShare) btnShare.onclick = async () => {
+                if (!window._globalPrograma) return;
+
+                try {
+                    const previewHTML = generateLandscapePreviewHTML(window._globalPrograma);
+                    const tempDiv = document.createElement('div');
+                    tempDiv.style.position = 'absolute'; tempDiv.style.left = '-9999px'; tempDiv.style.width = '1920px'; tempDiv.style.height = '1080px';
+                    tempDiv.innerHTML = previewHTML;
+                    document.body.appendChild(tempDiv);
+
+                    const canvas = await html2canvas(tempDiv.querySelector('#landscape-preview-content'), {
+                        scale: 1.5,
+                        useCORS: true
+                    });
+                    document.body.removeChild(tempDiv);
+
+                    canvas.toBlob(async (blob) => {
+                        const file = new File([blob], `Programa_${window._globalPrograma.id}.png`, { type: 'image/png' });
+
+                        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                            try {
+                                await navigator.share({
+                                    title: 'Programa Semanal de Predicación',
+                                    text: `Consulta el cronograma de la semana del ${window._globalPrograma.id}`,
+                                    files: [file]
+                                });
+                            } catch (err) {
+                                if (err.name !== 'AbortError') showNotification("Error al compartir", "error");
+                            }
+                        } else {
+                            // Fallback to clipboard or notification
+                            showNotification("Tu dispositivo no soporta compartir archivos directamente. Usa 'Descargar'.", "info");
+                        }
+                    }, 'image/png');
+                } catch (e) {
+                    console.error(e);
+                    showNotification("Error al procesar el programa", "error");
+                }
+            };
+
+            const btnSync = container.querySelector('#prog-btn-sync-offline');
+            if (btnSync) btnSync.onclick = async () => {
+                if (!window._globalPrograma || !allTerritorios) return;
+
+                showNotification("Sincronizando recursos para uso offline...", "info");
+                btnSync.disabled = true;
+                btnSync.querySelector('i').classList.add('animate-spin');
+
+                const weekTerritories = new Set();
+                window._globalPrograma.dias.forEach(d => {
+                    ['manana', 'tarde', 'noche', 'zoom'].forEach(s => {
+                        if (d[s] && d[s].territorio) {
+                            d[s].territorio.split(/[,/]+/).forEach(n => weekTerritories.add(n.trim()));
+                        }
+                    });
+                });
+
+                const territoriesToCache = allTerritorios.filter(t => weekTerritories.has(t.numero));
+
+                if (window.precacheTerritoryResources) {
+                    await window.precacheTerritoryResources(territoriesToCache);
+                    showNotification(`¡${territoriesToCache.length} territorios guardados para uso offline!`, "success");
+                }
+
+                btnSync.disabled = false;
+                btnSync.querySelector('i').classList.remove('animate-spin');
             };
 
             // Initial Load
@@ -3158,6 +3283,8 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
             const prompt = input.value.trim();
             if (!prompt) return;
 
+            const isOffline = !navigator.onLine;
+
             log.innerHTML += `<div class="flex justify-end"><div class="bg-purple-600 text-white px-4 py-3 rounded-3xl rounded-tr-none text-xs max-w-[85%] font-medium shadow-lg">${prompt}</div></div>`;
             log.scrollTop = log.scrollHeight;
             input.value = '';
@@ -3165,7 +3292,8 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
 
             try {
                 const loadingId = 'loading-' + Date.now();
-                log.innerHTML += `<div id="${loadingId}" class="flex items-center gap-2 text-purple-400 text-[10px] font-black uppercase tracking-widest"><span class="animate-ping">🧠</span> Procesando...</div>`;
+                const loadingMsg = isOffline ? '📴 Guardando en cola...' : '🧠 Procesando...';
+                log.innerHTML += `<div id="${loadingId}" class="flex items-center gap-2 text-purple-400 text-[10px] font-black uppercase tracking-widest"><span class="animate-ping">${isOffline ? '💾' : '🧠'}</span> ${loadingMsg}</div>`;
                 log.scrollTop = log.scrollHeight;
 
                 const appInstructions = `
@@ -3196,6 +3324,28 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
                 log.scrollTop = log.scrollHeight;
             }
         };
+
+        // --- POWER UP: AI SYNC ON ONLINE ---
+        window.addEventListener('online', async () => {
+            if (!config.gemini_key) return;
+            const count = brain.getOfflineQueueCount();
+            if (count > 0) {
+                showNotification(`🛰️ Sincronizando ${count} consultas con el Cerebro IA...`, "info");
+                await brain.processOfflineQueue(config.gemini_key, (q, r) => {
+                    const safeResponse = r.replace(/\|\|.*?\|\|/g, '');
+                    const htmlResponse = safeResponse.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+                    log.innerHTML += `
+                        <div class="flex justify-start opacity-70 border-l-2 border-primary pl-4">
+                            <div class="bg-primary/5 dark:bg-primary/10 text-slate-500 dark:text-gray-400 px-5 py-4 rounded-3xl text-[11px] max-w-[90%]">
+                                <p class="text-[8px] font-black uppercase mb-1">Respuesta Diferida a: "${q}"</p>
+                                ${htmlResponse}
+                            </div>
+                        </div>`;
+                    log.scrollTop = log.scrollHeight;
+                });
+                showNotification("🤖 Cerebro IA actualizado.", "success");
+            }
+        });
 
         sendBtn.addEventListener('click', handleSend);
         input.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSend(); });

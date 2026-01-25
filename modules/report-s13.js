@@ -713,42 +713,52 @@ export const renderHistoryTab = (container, options = {}) => {
         if (pages.length === 0) return;
 
         const btn = document.getElementById('btn-export-s13-pdf');
+        const isOffline = !navigator.onLine;
+
+        if (isOffline) {
+            showNotification("📡 Generando PDF en modo offline. Los estilos tipográficos podrían variar.", "warning");
+        }
+
         const oldText = btn.innerHTML;
         btn.innerHTML = '⏳ Generando PDF...';
         btn.disabled = true;
 
         try {
             const { jsPDF } = window.jspdf;
-            const doc = new jsPDF('p', 'mm', 'a4'); // A4 Portrait
+            // Use A4 Portrait - 300DPI equivalent scaling handled by html2canvas
+            const doc = new jsPDF('p', 'mm', 'a4');
 
-            // A4 Size: 210 x 297 mm
             const pdfWidth = 210;
             const pdfHeight = 297;
 
             for (let i = 0; i < pages.length; i++) {
                 if (i > 0) doc.addPage();
 
-                // Use html2canvas
+                // html2canvas works purely client-side with DOM. 
+                // Any missing external images/fonts might be skipped if not already in cache.
                 const canvas = await html2canvas(pages[i], {
-                    scale: 2, // High res
+                    scale: 2.5, // Better resolution for printing
                     backgroundColor: '#ffffff',
                     logging: false,
-                    useCORS: true
+                    useCORS: true,
+                    allowTaint: true
                 });
 
-                const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                const imgData = canvas.toDataURL('image/jpeg', 0.98);
                 const imgProps = doc.getImageProperties(imgData);
-
-                // Fit width
                 const printHeight = (imgProps.height * pdfWidth) / imgProps.width;
-                doc.addImage(imgData, 'JPEG', 0, 0, pdfWidth, printHeight);
+                doc.addImage(imgData, 'JPEG', 0, 0, pdfWidth, Math.min(printHeight, pdfHeight));
             }
 
-            doc.save(`S13_Historial_${document.getElementById('report-start').value}.pdf`);
+            const config = await getConfiguracion();
+            const congName = config?.congregacion?.nombre || 'Mi_Congregacion';
+            const fileName = `S13_Reporte_${congName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+            doc.save(fileName);
+            showNotification("✅ PDF generado correctamente en tu dispositivo.", "success");
 
         } catch (e) {
             console.error(e);
-            showNotification("Error exportando PDF", "error");
+            showNotification("Error exportando PDF: " + e.message, "error");
         } finally {
             btn.innerHTML = oldText;
             btn.disabled = false;

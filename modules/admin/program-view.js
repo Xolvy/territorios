@@ -1,9 +1,9 @@
 import {
     getTerritorios, getConfiguracion, getPublicadores, getConductores,
-    getProgramaSemanal, saveProgramaSemanal, getGroupsConfig
-} from '../../data/firestore-services.js?v=2.2.5';
-import { showNotification } from '../utils/helpers.js?v=2.2.5';
-import { UIHelpers, showModal, showTerritorySelectionModal } from '../services/ui-helpers.js?v=2.2.5';
+    getProgramaSemanal, saveProgramaSemanal, getGroupsConfig, returnTerritorioMultiple
+} from '../../data/firestore-services.js?v=2.3.0';
+import { showNotification } from '../utils/helpers.js?v=2.3.0';
+import { UIHelpers, showModal, showTerritorySelectionModal } from '../services/ui-helpers.js?v=2.3.0';
 
 const { getMonday, formatDateId } = UIHelpers;
 
@@ -83,7 +83,15 @@ export const renderProgramaTab = async (container) => {
                     </div>
 
                     <div class="flex gap-2">
+                        <button id="btn-sync-all-prog" class="hidden xl:flex items-center gap-2 px-6 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-emerald-500/20 active:scale-95 group">
+                            <i class="fas fa-project-diagram group-hover:rotate-12 transition-transform"></i>
+                            Formalizar Asignaciones
+                        </button>
                         <button id="btn-reset-today" class="bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 px-6 py-4 rounded-xl font-black hover:bg-slate-50 transition-all text-[10px] uppercase tracking-widest">Hoy</button>
+                        <button id="btn-reception-prog" class="flex items-center gap-2 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-rose-500 px-6 py-4 rounded-xl font-black hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all text-[10px] uppercase tracking-widest group" title="Recibir territorios finalizados">
+                            <i class="fas fa-file-import group-hover:-translate-x-1 transition-transform"></i>
+                            Recepción
+                        </button>
                          <button id="btn-resync-prog" class="p-4 bg-primary/10 border border-primary/20 text-primary hover:bg-primary hover:text-white rounded-xl transition-all shadow-lg shadow-primary/5" title="Sincronizar">
                             <i class="fas fa-sync-alt"></i>
                         </button>
@@ -201,7 +209,11 @@ export const renderProgramaTab = async (container) => {
         `;
     };
 
-    const renderTable = () => {
+    const renderTable = async () => {
+        // Refresh territories in memory to get up-to-date assignment status
+        const freshTerritorios = await getTerritorios();
+        const territoryMap = freshTerritorios.reduce((acc, t) => { acc[t.numero] = t; return acc; }, {});
+
         const tableContainer = container.querySelector('#admin-prog-table');
         const turnos = [
             { id: 'manana', icon: 'fa-sun', label: 'Mañana', color: 'text-amber-500', bg: 'bg-amber-500/10', fields: ['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', 'Grupos', 'Territorio'] },
@@ -220,6 +232,7 @@ export const renderProgramaTab = async (container) => {
                     <div class="flex items-center gap-8 mb-12">
                         <div class="flex flex-col">
                             <h4 class="text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">${dia.nombre}</h4>
+                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-2 ml-1 opacity-60">${dia.fecha}</p>
                         </div>
                         <div class="h-0.5 flex-1 bg-gradient-to-r from-primary/30 to-transparent rounded-full opacity-30"></div>
                     </div>
@@ -255,9 +268,19 @@ export const renderProgramaTab = async (container) => {
                     html += `<div class="space-y-1.5">`;
 
                     if (field === 'Territorio') {
+                        const tInfo = territoryMap[val];
+                        const isAssigned = tInfo && tInfo.estado === 'Asignado';
+                        const isSync = isAssigned && tInfo.asignado_a === dia[turnoId].conductor;
+                        const isConflict = isAssigned && tInfo.asignado_a !== dia[turnoId].conductor;
+
                         html += `
-                            <label class="text-[9px] font-black text-slate-400 tracking-[0.2em] uppercase ml-1 flex items-center gap-2">
-                                <i class="fas fa-map-marked-alt opacity-30"></i> ${field}
+                            <label class="text-[9px] font-black text-slate-400 tracking-[0.2em] uppercase ml-1 flex items-center justify-between">
+                                <span><i class="fas fa-map-marked-alt opacity-30"></i> ${field}</span>
+                                ${val ? (isSync ?
+                                '<span class="text-emerald-500 font-bold flex items-center gap-1"><i class="fas fa-check-circle"></i> LISTO</span>' :
+                                (isConflict ?
+                                    '<span class="text-rose-500 font-bold flex items-center gap-1" title="Ocupado por otro publicador"><i class="fas fa-exclamation-triangle"></i> OCUPADO</span>' :
+                                    `<span class="text-primary font-bold flex items-center gap-1 cursor-pointer hover:underline" onclick="window.syncAssignmentFromProg(${dayIndex}, '${turnoId}')"><i class="fas fa-link animate-pulse"></i> ASIGNAR</span>`)) : ''}
                             </label>
                             <button onclick="window.openTerritorySelector(${dayIndex}, '${turnoId}', this)" 
                                     class="w-full text-left bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-3.5 rounded-2xl hover:border-primary transition-all flex items-center justify-between shadow-sm">
@@ -321,8 +344,83 @@ export const renderProgramaTab = async (container) => {
         renderTable();
     };
 
+    window.syncAssignmentFromProg = (dayIdx, turnoId) => {
+        const dia = programa.dias[dayIdx];
+        const data = dia[turnoId];
+        const num = data.territorio;
+        const cond = data.conductor;
+
+        if (!num || !cond) return showNotification("Faltan datos en el programa para asignar", "warning");
+
+        const tInfo = territorios.find(t => t.numero === num);
+        if (!tInfo) return showNotification("Territorio no encontrado", "error");
+
+        showModal(`
+            <div class="p-8 space-y-10">
+                <header class="flex items-center gap-6">
+                    <div class="w-16 h-16 bg-primary/10 rounded-3xl flex items-center justify-center text-3xl text-primary shadow-inner">
+                        <i class="fas fa-link"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">Formalizar Asignación</h3>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em] mt-1">Sincronización Inteligente de S-13</p>
+                    </div>
+                </header>
+
+                <div class="bg-slate-50 dark:bg-white/5 p-6 rounded-[2rem] border border-slate-200 dark:border-white/10 space-y-4">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-slate-400 font-bold uppercase tracking-widest">Publicador</span>
+                        <span class="font-black text-slate-800 dark:text-white uppercase">${cond}</span>
+                    </div>
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-slate-400 font-bold uppercase tracking-widest">Territorio</span>
+                        <span class="font-black text-primary uppercase">#${num}</span>
+                    </div>
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-slate-400 font-bold uppercase tracking-widest">Salida Programada</span>
+                        <span class="font-black text-slate-600 dark:text-gray-300 uppercase">${dia.nombre} (${dia.fecha})</span>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">¿Cuándo se entregó la tarjeta física?</label>
+                    <input type="date" id="sync-asig-date" value="${new Date().toISOString().split('T')[0]}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[14px] font-black text-primary outline-none focus:border-primary transition-all uppercase shadow-inner">
+                </div>
+
+                <div class="flex gap-4 pt-6 border-t border-slate-50 dark:border-white/5">
+                    <button id="cancel-sync" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest">Cancelar</button>
+                    <button id="confirm-sync" class="flex-[2] py-5 bg-primary text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all">ASIGNAR FORMALMENTE</button>
+                </div>
+            </div>
+        `, (modal) => {
+            modal.querySelector('#cancel-sync').onclick = () => modal.classList.add('hidden');
+            modal.querySelector('#confirm-sync').onclick = async () => {
+                const date = modal.querySelector('#sync-asig-date').value;
+                if (!date) return;
+
+                const { assignTerritorio } = await import('../../data/firestore-services.js?v=2.2.7');
+                await assignTerritorio(tInfo.id, cond, {
+                    fecha_asignacion: new Date(date + 'T12:00:00Z').toISOString(),
+                    lugar: data.lugar || null,
+                    hora: data.hora || null,
+                    faceta: data.faceta || null,
+                    turno: turnoId
+                });
+
+                showNotification(`¡Territorio ${num} asignado a ${cond}!`);
+                modal.classList.add('hidden');
+
+                // Refresh local territories and table
+                const updatedT = await getTerritorios();
+                territorios.length = 0;
+                territorios.push(...updatedT);
+                renderTable();
+            };
+        });
+    };
+
     window.openTerritorySelector = (dayIdx, turnoId, btn) => {
-        const available = territorios.filter(t => t.estado === 'Disponible');
+        const available = territorios.filter(t => t.estado === 'Disponible' || t.estado === 'Sin asignar');
         showTerritorySelectionModal(btn.dataset.current || '', available, (res) => {
             window.updateWeekData(dayIdx, turnoId, 'territorio', res);
         }, 'modal-container-nested');
@@ -344,9 +442,159 @@ export const renderProgramaTab = async (container) => {
         loadWeekData();
     };
 
+    container.querySelector('#btn-resync-prog').onclick = loadWeekData;
+
     container.querySelector('#btn-reset-today').onclick = () => {
         currentWeekStart = getMonday(new Date());
         loadWeekData();
+    };
+
+    container.querySelector('#btn-reception-prog').onclick = async () => {
+        const assigned = territorios.filter(t => t.estado === 'Asignado');
+        if (assigned.length === 0) return showNotification("No hay territorios asignados actualmente", "info");
+
+        showModal(`
+            <div class="p-8 space-y-8 bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden">
+                <header class="flex items-center gap-6">
+                    <div class="w-16 h-16 bg-rose-500/10 rounded-3xl flex items-center justify-center text-3xl text-rose-500 shadow-inner">
+                        <i class="fas fa-file-import"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">Recepción Manual</h3>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em] mt-1">Devolver territorios al inventario</p>
+                    </div>
+                </header>
+
+                <div class="space-y-4 max-h-[400px] overflow-y-auto custom-scrollbar pr-2 pb-6">
+                    <div id="bulk-reception-list" class="space-y-3">
+                        ${assigned.map(t => `
+                            <label class="flex items-center gap-4 p-5 modern-card border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer transition-all group active:scale-[0.98]">
+                                <input type="checkbox" class="reception-check w-6 h-6 rounded-lg accent-rose-500" value="${t.id}">
+                                <div class="flex-1">
+                                    <div class="flex justify-between items-center">
+                                        <p class="text-sm font-black text-slate-700 dark:text-white uppercase tracking-tight">#${t.numero} • ${t.asignado_a}</p>
+                                        <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest">${UIHelpers.fmtDateAt(t.fecha_asignacion)}</span>
+                                    </div>
+                                </div>
+                            </label>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <div class="pt-6 border-t border-slate-50 dark:border-white/5 flex gap-4">
+                    <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest transition-all">Cancelar</button>
+                    <button id="confirm-bulk-reception" class="flex-[2] py-5 bg-rose-500 hover:bg-rose-400 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-rose-500/20 flex items-center justify-center gap-3 transition-transform active:scale-95">
+                        <i class="fas fa-check-circle"></i> Marcar como Devueltos
+                    </button>
+                </div>
+            </div>
+        `, (modal) => {
+            modal.querySelector('#confirm-bulk-reception').onclick = async (e) => {
+                const checked = Array.from(modal.querySelectorAll('.reception-check:checked')).map(cb => cb.value);
+                if (checked.length === 0) return;
+
+                const btn = e.currentTarget;
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> PROCESANDO...';
+
+                await returnTerritorioMultiple(checked, "Recepción desde Programa", new Date().toISOString(), "Completado");
+
+                showNotification(`Se recibieron ${checked.length} territorios`);
+                modal.classList.add('hidden');
+
+                // Actualizar datos locales
+                const updatedT = await getTerritorios();
+                territorios.length = 0;
+                territorios.push(...updatedT);
+                renderTable();
+            };
+        });
+    };
+
+    container.querySelector('#btn-sync-all-prog').onclick = async () => {
+        // Collect all planned assignments that are not sync
+        const freshTerritorios = await getTerritorios();
+        const territoryMap = freshTerritorios.reduce((acc, t) => { acc[t.numero] = t; return acc; }, {});
+
+        const toSync = [];
+        programa.dias.forEach((dia, dayIdx) => {
+            ['manana', 'tarde', 'noche', 'zoom'].forEach(turnoId => {
+                const data = dia[turnoId];
+                if (data && data.territorio && data.conductor) {
+                    const tInfo = territoryMap[data.territorio];
+                    // Skip if already assigned to the same person
+                    const isSync = tInfo && tInfo.estado === 'Asignado' && tInfo.asignado_a === data.conductor;
+                    if (tInfo && !isSync) {
+                        toSync.push({ dayIdx, turnoId, dia, data, tInfo });
+                    }
+                }
+            });
+        });
+
+        if (toSync.length === 0) return showNotification("No hay nuevas asignaciones para formalizar", "info");
+
+        showModal(`
+            <div class="p-8 space-y-8 max-w-xl">
+                <header class="flex items-center gap-6">
+                    <div class="w-16 h-16 bg-emerald-500/10 rounded-3xl flex items-center justify-center text-3xl text-emerald-500 shadow-inner">
+                        <i class="fas fa-project-diagram"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">Formalización Masiva</h3>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em] mt-1">Procesar semana actual</p>
+                    </div>
+                </header>
+
+                <div class="space-y-4 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+                    <p class="text-[11px] font-bold text-slate-500 uppercase px-1">Se procesarán las siguientes asignaciones:</p>
+                    ${toSync.map(item => `
+                        <div class="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 flex items-center justify-between">
+                            <div class="flex items-center gap-4">
+                                <span class="w-10 h-10 bg-primary text-white flex items-center justify-center rounded-xl font-black text-xs">${item.data.territorio}</span>
+                                <div class="flex flex-col">
+                                    <span class="text-xs font-black text-slate-800 dark:text-white uppercase">${item.data.conductor}</span>
+                                    <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">${item.dia.nombre}</span>
+                                </div>
+                            </div>
+                            <i class="fas fa-arrow-right text-slate-200"></i>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <div class="space-y-4">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Fecha Global de Asignación</label>
+                    <input type="date" id="sync-all-date" value="${new Date().toISOString().split('T')[0]}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[14px] font-black text-primary outline-none focus:border-primary transition-all uppercase shadow-inner">
+                </div>
+
+                 <div class="flex gap-4 pt-6 border-t border-slate-50 dark:border-white/5">
+                    <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest">Cerrar</button>
+                    <button id="confirm-sync-all" class="flex-[2] py-5 bg-emerald-500 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-emerald-500/20 hover:scale-[1.02] active:scale-95 transition-all">PROCESAR ${toSync.length} REGISTROS</button>
+                </div>
+            </div>
+        `, (modal) => {
+            modal.querySelector('#confirm-sync-all').onclick = async () => {
+                const date = modal.querySelector('#sync-all-date').value;
+                if (!date) return;
+
+                const { assignTerritorio } = await import('../../data/firestore-services.js?v=2.2.7');
+
+                showNotification(`Procesando ${toSync.length} asignaciones...`, 'info');
+
+                for (const item of toSync) {
+                    await assignTerritorio(item.tInfo.id, item.data.conductor, {
+                        fecha_asignacion: new Date(date + 'T12:00:00Z').toISOString(),
+                        lugar: item.data.lugar || null,
+                        hora: item.data.hora || null,
+                        faceta: item.data.faceta || null,
+                        turno: item.turnoId
+                    });
+                }
+
+                showNotification(`¡${toSync.length} asignaciones formalizadas con éxito!`, 'success');
+                modal.classList.add('hidden');
+                loadWeekData();
+            };
+        });
     };
 
     await loadWeekData();

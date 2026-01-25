@@ -1,22 +1,23 @@
-const CACHE_NAME = 'territorios-elite-v2.2.1';
+const CACHE_NAME = 'territorios-elite-v2.2.7';
 
 const ASSETS_CORE = [
     '/',
     '/index.html',
-    '/styles.css?v=2.2.3',
-    '/app.js?v=2.2.3',
+    '/styles.css?v=2.2.6',
+    '/app.js?v=2.2.6',
     '/manifest.json',
-    '/firebase-config.js?v=2.2.3',
-    '/data/firestore-services.js?v=2.2.3',
-    '/modules/login.js?v=2.2.3',
-    '/modules/admin-dashboard.js?v=2.2.3',
-    '/modules/conductor-dashboard.js?v=2.2.3',
-    '/modules/report-s13.js?v=2.2.3',
-    '/modules/analytics-view.js?v=2.2.3',
-    '/modules/utils/helpers.js?v=2.2.3',
-    '/modules/utils/intelligence.js?v=2.2.3',
-    '/modules/map-viewer.js?v=2.2.3',
-    '/modules/utils/theme-manager.js?v=2.2.3',
+    '/firebase-config.js?v=2.2.6',
+    '/data/firestore-services.js?v=2.2.6',
+    '/modules/login.js?v=2.2.6',
+    '/modules/admin-dashboard.js?v=2.2.6',
+    '/modules/conductor-dashboard.js?v=2.2.6',
+    '/modules/report-s13.js?v=2.2.6',
+    '/modules/analytics-view.js?v=2.2.6',
+    '/modules/utils/helpers.js?v=2.2.6',
+    '/modules/utils/intelligence.js?v=2.2.6',
+    '/modules/map-viewer.js?v=2.2.6',
+    '/modules/utils/theme-manager.js?v=2.2.6',
+    '/modules/utils/pwa-manager.js?v=2.2.6',
     '/favicon.svg',
     '/icon-192.svg',
     '/icon-512.svg'
@@ -29,7 +30,8 @@ const ASSETS_EXTERNAL = [
     'https://html2canvas.hertzen.com/dist/html2canvas.min.js',
     'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
     'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css'
+    'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css',
+    'https://cdn.jsdelivr.net/npm/leaflet-image@0.4.0/leaflet-image.min.js'
 ];
 
 self.addEventListener('install', (event) => {
@@ -81,6 +83,27 @@ self.addEventListener('fetch', (event) => {
 
     // Bypass for Firebase/Analytics
     if (url.hostname.includes('firebase') || url.hostname.includes('google-optimizer') || url.hostname.includes('analytics')) {
+        return;
+    }
+
+    // Strategy: Cache-First for Firebase Storage Images (Maps)
+    if (url.hostname.includes('firebasestorage.googleapis.com')) {
+        event.respondWith(
+            caches.open(CACHE_NAME).then(async (cache) => {
+                const cachedResponse = await cache.match(event.request);
+                if (cachedResponse) return cachedResponse;
+
+                try {
+                    const networkResponse = await fetch(event.request, { mode: 'cors' });
+                    if (networkResponse.ok) {
+                        cache.put(event.request, networkResponse.clone());
+                    }
+                    return networkResponse;
+                } catch (e) {
+                    return null;
+                }
+            })
+        );
         return;
     }
 

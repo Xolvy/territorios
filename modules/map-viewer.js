@@ -15,10 +15,11 @@ export const MapViewer = {
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
-                         <button id="btn-share-map" class="p-2.5 bg-slate-100 dark:bg-white/5 hover:bg-teal-500/10 hover:text-teal-600 rounded-xl transition-all border border-transparent hover:border-teal-500/20" title="Compartir/Descargar">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 100-2.684 3 3 0 000 2.684zm0 12.684a3 3 0 100-2.684 3 3 0 000 2.684z" />
-                            </svg>
+                         <button id="btn-export-interactive-map" class="p-2.5 bg-slate-100 dark:bg-white/5 hover:bg-teal-500/10 hover:text-teal-600 rounded-xl transition-all border border-transparent hover:border-teal-500/20" title="Guardar como Imagen">
+                            <i class="fas fa-camera text-sm"></i>
+                        </button>
+                         <button id="btn-share-map" class="p-2.5 bg-slate-100 dark:bg-white/5 hover:bg-teal-500/10 hover:text-teal-600 rounded-xl transition-all border border-transparent hover:border-teal-500/20" title="Compartir enlace/ubicación">
+                            <i class="fas fa-share-nodes text-sm"></i>
                         </button>
                         <button id="close-map" class="p-2.5 bg-slate-100 dark:bg-white/5 hover:bg-red-500/10 hover:text-red-500 rounded-xl transition-all border border-transparent hover:border-red-500/20">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -67,33 +68,60 @@ export const MapViewer = {
 
 
         // --- SHARE / DOWNLOAD ---
-        document.getElementById('btn-share-map').onclick = async () => {
-            if (imagen) {
-                try {
-                    const blob = await (await fetch(imagen)).blob();
-                    const file = new File([blob], `Territorio_${numero}.png`, { type: blob.type });
-                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                        await navigator.share({
-                            files: [file],
-                            title: `Mapa Territorio ${numero}`,
-                            text: `Mapa del territorio ${numero} - ${manzanas || ''}`
-                        });
-                    } else {
-                        const a = document.createElement('a');
-                        a.href = imagen;
-                        a.download = `Mapa_T${numero}.png`;
-                        a.click();
-                    }
-                } catch (e) {
+        const btnShare = document.getElementById('btn-share-map');
+        const btnExport = document.getElementById('btn-export-interactive-map');
+
+        if (btnExport) {
+            btnExport.onclick = async () => {
+                const mapEl = document.getElementById('leaflet-map');
+                const imgEl = document.getElementById('map-img-element');
+
+                if (imgEl && imagen) {
+                    // Simple download for static image
                     const a = document.createElement('a');
                     a.href = imagen;
                     a.download = `Mapa_T${numero}.png`;
                     a.click();
+                } else if (window.leafletImage && window._currentLeafletMap) {
+                    // Export interactive map to PNG
+                    if (window.showNotification) window.showNotification("Generando imagen del mapa...", "info");
+
+                    window.leafletImage(window._currentLeafletMap, (err, canvas) => {
+                        if (err) {
+                            console.error(err);
+                            if (window.showNotification) window.showNotification("Error al exportar mapa", "error");
+                            return;
+                        }
+                        const link = document.createElement('a');
+                        link.download = `Mapa_Interactivo_T${numero}.png`;
+                        link.href = canvas.toDataURL();
+                        link.click();
+                        if (window.showNotification) window.showNotification("¡Mapa guardado!", "success");
+                    });
                 }
-            } else {
-                window.showNotification ? window.showNotification("Solo se pueden compartir mapas con imagen.", "warning") : alert("No hay imagen para compartir.");
-            }
-        };
+            };
+        }
+
+        if (btnShare) {
+            btnShare.onclick = async () => {
+                const text = `Territorio ${numero}: ${manzanas || ''}`;
+                const url = window.location.href;
+
+                if (navigator.share) {
+                    try {
+                        await navigator.share({
+                            title: `Mapa T-${numero}`,
+                            text: text,
+                            url: url
+                        });
+                    } catch (e) { console.error("Share error", e); }
+                } else {
+                    // Fallback to copy link
+                    navigator.clipboard.writeText(`${text} \n ${url}`);
+                    if (window.showNotification) window.showNotification("Enlace copiado al portapapeles", "success");
+                }
+            };
+        }
 
         // --- MAP LOGIC (Only if no image or forced) ---
         let leafletInstance = null;
@@ -115,11 +143,27 @@ export const MapViewer = {
                 }
 
                 leafletInstance = L.map('leaflet-map').setView(center, zoom);
+                window._currentLeafletMap = leafletInstance;
 
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                const tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     attribution: '&copy; OpenStreetMap',
-                    maxZoom: 19
+                    maxZoom: 19,
+                    crossOrigin: true // Critical for leaflet-image
                 }).addTo(leafletInstance);
+
+                // Offline Tile Detection
+                tiles.on('tileerror', () => {
+                    if (!navigator.onLine) {
+                        const existing = document.getElementById('map-offline-alert');
+                        if (!existing) {
+                            const alert = document.createElement('div');
+                            alert.id = 'map-offline-alert';
+                            alert.className = 'absolute top-20 left-1/2 -translate-x-1/2 z-[2000] bg-rose-600 text-white px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-2xl animate-bounce';
+                            alert.innerText = '⚠️ Modo Offline: Algunos mapas pueden no cargar';
+                            mapElement.appendChild(alert);
+                        }
+                    }
+                });
 
                 if (coordenadas) {
                     L.marker(center).addTo(leafletInstance)

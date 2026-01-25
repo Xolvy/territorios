@@ -39,6 +39,12 @@ export class TerritoryIntelligence {
     }
 
     async askGemini(apiKey, prompt) {
+        if (!navigator.onLine) {
+            console.log("📡 [IA Offline] Guardando consulta en cola local...");
+            this.addToOfflineQueue(prompt);
+            return "📴 **Modo Desconectado:** He guardado tu consulta en la cola local. Te responderé automáticamente en cuanto recuperes la conexión a internet. 📡";
+        }
+
         const isFree = (t) => (!t.asignado_a || t.asignado_a === 'Sin asignar' || t.asignado_a === null) && t.estado !== 'Asignado' && t.estado !== 'Predicado';
         const context = {
             fecha_actual: new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
@@ -81,6 +87,30 @@ export class TerritoryIntelligence {
             console.error("Gemini Error:", err);
             return "Error: " + err.message;
         }
+    }
+
+    addToOfflineQueue(prompt) {
+        const queue = JSON.parse(localStorage.getItem('ai_offline_queue') || '[]');
+        queue.push({ prompt, timestamp: Date.now() });
+        localStorage.setItem('ai_offline_queue', JSON.stringify(queue));
+    }
+
+    getOfflineQueueCount() {
+        return JSON.parse(localStorage.getItem('ai_offline_queue') || '[]').length;
+    }
+
+    async processOfflineQueue(apiKey, onResponse) {
+        const queue = JSON.parse(localStorage.getItem('ai_offline_queue') || '[]');
+        if (queue.length === 0) return;
+
+        console.log(`📡 Sincronizando ${queue.length} consultas IA de la cola offline...`);
+
+        for (const item of queue) {
+            const response = await this.askGemini(apiKey, item.prompt);
+            onResponse(item.prompt, response);
+        }
+
+        localStorage.removeItem('ai_offline_queue');
     }
 
     /**

@@ -1,8 +1,10 @@
-import { auth } from '../firebase-config.js?v=2.2.3';
+import { auth } from '../firebase-config.js?v=2.2.7';
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { getPublicadores, getConfiguracion } from '../data/firestore-services.js?v=2.2.3';
+import { getPublicadores, getConfiguracion } from '../data/firestore-services.js?v=2.2.7';
 
 export const renderLogin = (container, appVersion) => {
+    const cachedName = localStorage.getItem('cached_congregation_name') || "Sincronizando Portal...";
+
     container.innerHTML = `
         <div class="min-h-[100dvh] flex flex-col items-center justify-center p-6 bg-slate-50 dark:bg-slate-950 transition-colors duration-500">
             <!-- Background Decorative Elements -->
@@ -14,16 +16,36 @@ export const renderLogin = (container, appVersion) => {
             <div id="login-card-container" class="w-full max-w-sm sm:max-w-md space-y-8 text-center relative z-10 animate-fade-in px-2">
                 <!-- Brand Header -->
                 <div class="space-y-4 sm:space-y-6">
-                    <div class="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-tr from-teal-600 to-teal-400 rounded-2xl sm:rounded-[1.75rem] mx-auto flex items-center justify-center shadow-xl shadow-teal-500/20 transform transition-all duration-700 hover:rotate-12">
-                        <svg class="w-8 h-8 sm:w-10 sm:h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 20l-5.447-2.724A2 2 0 013 15.488V5.002.2.3 0 011.553-1.948l7-1.75a2 2 0 01.894 0l7 1.75A2 2 0 0121 5.002v10.486a2 2 0 01-1.118 1.789L14.447 20l-5.447-2.724zM9 20V10"></path>
-                        </svg>
+                    <div class="relative w-24 h-24 sm:w-32 sm:h-32 mx-auto mb-8 group">
+                        <!-- Soft Ambient Glow -->
+                        <div class="absolute inset-0 bg-teal-500/20 dark:bg-teal-400/10 blur-[40px] rounded-full scale-125 group-hover:scale-150 transition-all duration-1000 opacity-70"></div>
+                        
+                        <!-- Main Logo Container (Glass) -->
+                        <div class="relative w-full h-full bg-white/40 dark:bg-white/[0.03] backdrop-blur-2xl rounded-[2.5rem] sm:rounded-[3rem] border border-white/40 dark:border-white/10 flex items-center justify-center shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] dark:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.4)] transform transition-all duration-700 group-hover:scale-105 group-hover:-rotate-3 overflow-hidden">
+                            <!-- Subtle Internal Gradient Overlay -->
+                            <div class="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent pointer-events-none"></div>
+                            
+                            <svg viewBox="0 0 512 512" class="w-14 h-14 sm:w-20 sm:h-20 drop-shadow-[0_12px_24px_rgba(13,148,136,0.25)]">
+                                <defs>
+                                    <linearGradient id="mapGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+                                        <stop offset="100%" style="stop-color:#f0fdfa;stop-opacity:1" />
+                                    </linearGradient>
+                                </defs>
+                                <path d="M48 96 L176 32 L304 96 L432 32 V384 L304 448 L176 384 L48 448 Z" 
+                                      fill="url(#mapGrad)" stroke="#0d9488" stroke-width="18" stroke-linejoin="round"/>
+                                <path d="M176 32 V384 M304 96 V448" stroke="#0d9488" stroke-width="18" stroke-linecap="round" opacity="0.3"/>
+                                <circle cx="240" cy="190" r="50" fill="#14b8a6" stroke="white" stroke-width="10"/>
+                                <circle cx="240" cy="190" r="18" fill="white"/>
+                                <path d="M240 240 L240 320" stroke="#14b8a6" stroke-width="20" stroke-linecap="round"/>
+                            </svg>
+                        </div>
                     </div>
                     <div class="space-y-1 sm:space-y-2">
                         <h1 class="text-h1 sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
                             Gestión de <span class="bg-clip-text text-transparent bg-gradient-to-r from-teal-600 to-teal-400">Territorios</span>
                         </h1>
-                        <p id="cong-label" class="text-xs sm:text-sm font-black text-slate-600 dark:text-slate-300 tracking-wide uppercase">Cargando congregación...</p>
+                        <p id="cong-label" class="text-[10px] sm:text-xs font-black text-slate-400 dark:text-slate-500 tracking-widest uppercase animate-pulse-slow">${cachedName}</p>
                     </div>
                 </div>
 
@@ -70,9 +92,13 @@ export const renderLogin = (container, appVersion) => {
     getConfiguracion().then(config => {
         const label = document.getElementById('cong-label');
         if (label) {
-            label.textContent = config.congregacion?.nombre
+            const name = config.congregacion?.nombre
                 ? `Congregación ${config.congregacion.nombre}`
                 : "Portal de Gestión Colectiva";
+            label.textContent = name;
+            label.classList.remove('animate-pulse-slow');
+            label.classList.replace('text-slate-400', 'text-slate-600');
+            localStorage.setItem('cached_congregation_name', name);
         }
     });
 

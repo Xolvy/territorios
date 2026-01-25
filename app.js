@@ -1,15 +1,15 @@
 import './modules/extensions.mjs';
-import { auth, db } from './firebase-config.js?v=2.2.5';
+import { auth, db } from './firebase-config.js?v=2.2.7';
 import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 // Main modules are now lazy-loaded
 // import { renderLogin } from './modules/login.js?v=2.0.1';
 // import { renderAdminDashboard } from './modules/admin-dashboard.js?v=2.0.1';
 // import { renderConductorDashboard } from './modules/conductor-dashboard.js?v=2.0.1';
-import { getPermisosUsuario, getSystemVersion, migrateConductoresToPublicadores } from './data/firestore-services.js?v=2.2.5';
-import { showNotification } from './modules/utils/helpers.js?v=2.2.5';
-import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js?v=2.2.5';
-import { initPWA } from './modules/utils/pwa-manager.js?v=2.2.5';
+import { getPermisosUsuario, getSystemVersion, migrateConductoresToPublicadores } from './data/firestore-services.js?v=2.3.0';
+import { showNotification } from './modules/utils/helpers.js?v=2.3.0';
+import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js?v=2.3.0';
+import { initPWA } from './modules/utils/pwa-manager.js?v=2.3.0';
 
 // Global Module Cache for performance
 const ModuleCache = {
@@ -19,17 +19,17 @@ const ModuleCache = {
 };
 
 async function loadLogin() {
-    if (!ModuleCache.login) ModuleCache.login = await import('./modules/login.js?v=2.2.5');
+    if (!ModuleCache.login) ModuleCache.login = await import('./modules/login.js?v=2.3.0');
     return ModuleCache.login.renderLogin;
 }
 
 async function loadAdmin() {
-    if (!ModuleCache.admin) ModuleCache.admin = await import('./modules/admin-dashboard.js?v=2.2.5');
+    if (!ModuleCache.admin) ModuleCache.admin = await import('./modules/admin-dashboard.js?v=2.3.0');
     return ModuleCache.admin.renderAdminDashboard;
 }
 
 async function loadConductor() {
-    if (!ModuleCache.conductor) ModuleCache.conductor = await import('./modules/conductor-dashboard.js?v=2.2.5');
+    if (!ModuleCache.conductor) ModuleCache.conductor = await import('./modules/conductor-dashboard.js?v=2.3.0');
     return ModuleCache.conductor.renderConductorDashboard;
 }
 
@@ -40,7 +40,7 @@ document.body.appendChild(createThemeToggle());
 // Init PWA & Notifications
 initPWA();
 
-const APP_VERSION = '2.2.6';
+const APP_VERSION = '2.3.0';
 
 // --- PWA INITIALIZATION ---
 
@@ -84,18 +84,39 @@ const initVersionCheck = (currentVersion) => {
                 overlay.className = 'version-modal-overlay';
                 overlay.innerHTML = `
                     <div class="version-modal-content animate-scale-in">
-                        <div class="mb-6 flex justify-center">
-                            <div class="w-16 h-16 bg-teal-100 dark:bg-teal-900/30 rounded-2xl flex items-center justify-center text-3xl animate-bounce">
-                                🚀
+                        <div class="relative">
+                            <!-- Background Glow -->
+                            <div class="absolute -top-20 -left-20 w-40 h-40 bg-teal-500/20 blur-3xl rounded-full animate-pulse"></div>
+                            <div class="absolute -bottom-20 -right-20 w-40 h-40 bg-indigo-500/20 blur-3xl rounded-full animate-pulse" style="animation-delay: 1s"></div>
+
+                            <div class="mb-8 flex justify-center relative">
+                                <div class="w-24 h-24 bg-gradient-to-tr from-teal-500 to-indigo-600 rounded-[2rem] flex items-center justify-center text-4xl shadow-2xl shadow-teal-500/20 animate-float">
+                                    <i class="fas fa-sparkles text-white"></i>
+                                </div>
+                                <div class="absolute -bottom-2 -right-2 w-10 h-10 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center shadow-lg border-4 border-slate-50 dark:border-slate-900">
+                                    <div class="w-3 h-3 bg-teal-500 rounded-full animate-ping"></div>
+                                </div>
                             </div>
-                        </div>
-                        <h2>Actualización Obligatoria</h2>
-                        <p>Estamos sincronizando la última versión de los archivos para asegurar la estabilidad del sistema.</p>
-                        <div class="version-modal-timer">
-                            Limpiando memoria y archivos temporales...
-                        </div>
-                        <div class="flex justify-center">
-                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
+                            
+                            <h2 class="text-3xl font-black text-slate-800 dark:text-white mb-4 tracking-tighter uppercase">Mejorando tu Experiencia</h2>
+                            <p class="text-slate-500 dark:text-slate-400 text-sm leading-relaxed mb-10 font-medium">
+                                Estamos sincronizando nuevas herramientas y mejoras de estabilidad. Esto tomará solo unos segundos.
+                            </p>
+
+                            <div class="space-y-6">
+                                <div class="w-full bg-slate-100 dark:bg-white/5 h-3 rounded-full overflow-hidden p-0.5 border border-slate-200/50 dark:border-white/10">
+                                    <div class="bg-gradient-to-r from-teal-500 via-indigo-500 to-teal-500 h-full rounded-full animate-shimmer-progress" style="width: 100%; background-size: 200% 100%"></div>
+                                </div>
+                                
+                                <div class="flex items-center justify-center gap-3 text-[10px] font-black uppercase tracking-[0.2em] text-teal-600 dark:text-teal-400 animate-pulse">
+                                    <i class="fas fa-microchip"></i>
+                                    <span>Optimizando archivos del sistema</span>
+                                </div>
+                            </div>
+
+                            <div class="mt-12 pt-8 border-t border-slate-100 dark:border-white/5">
+                                <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Versión de destino: v${serverVersion}</p>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -208,29 +229,76 @@ if (window.location.hostname !== 'localhost' && window.location.hostname !== '12
 const setupOfflineListener = () => {
     const banner = document.getElementById('offline-banner') || document.createElement('div');
     banner.id = 'offline-banner';
-    banner.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-600 to-orange-600 text-white px-6 py-3 rounded-2xl shadow-2xl z-[9999] transition-all duration-500 transform translate-y-32 flex items-center gap-3 font-bold text-sm border border-white/20 backdrop-blur-md';
-    banner.innerHTML = `
-        <div class="flex items-center justify-center w-8 h-8 bg-white/20 rounded-full animate-pulse">📴</div>
-        <div class="flex flex-col">
-            <span class="leading-none">Modo Offline</span>
-            <span class="text-[10px] font-normal opacity-80">Sin conexión a Internet</span>
-        </div>
-    `;
-    if (!document.getElementById('offline-banner')) document.body.appendChild(banner);
+    banner.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-6 py-4 rounded-[2rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] z-[9999] transition-all duration-700 transform translate-y-48 flex items-center gap-5 font-bold text-sm border border-slate-200 dark:border-white/10 backdrop-blur-xl';
 
-    const updateStatus = () => {
-        if (navigator.onLine) {
-            banner.classList.remove('active');
-            banner.classList.add('translate-y-32');
+    const updateBanner = (isOnline, isSyncing = false) => {
+        if (isOnline) {
+            if (isSyncing) {
+                banner.innerHTML = `
+                    <div class="flex items-center justify-center w-10 h-10 bg-teal-500 rounded-2xl text-white shadow-lg shadow-teal-500/20">
+                        <i class="fas fa-sync-alt animate-spin text-sm"></i>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="leading-none uppercase tracking-tighter font-black">Sincronizando</span>
+                        <span class="text-[9px] font-black opacity-50 uppercase tracking-[0.2em] mt-1">Subiendo cambios locales...</span>
+                    </div>
+                `;
+                banner.classList.remove('translate-y-48');
+            } else {
+                banner.classList.add('translate-y-48');
+            }
         } else {
-            banner.classList.add('active');
-            banner.classList.remove('translate-y-32');
+            banner.innerHTML = `
+                <div class="flex items-center justify-center w-10 h-10 bg-amber-500 rounded-2xl text-white shadow-lg shadow-amber-500/20 animate-float">
+                    <i class="fas fa-plane-slash text-sm"></i>
+                </div>
+                <div class="flex flex-col">
+                    <span class="leading-none uppercase tracking-tighter font-black">Modo Desconectado</span>
+                    <span class="text-[9px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-[0.2em] mt-1 animate-pulse">Trabajando con datos locales</span>
+                </div>
+            `;
+            banner.classList.remove('translate-y-48');
         }
     };
 
-    window.addEventListener('online', updateStatus);
+    window.addEventListener('online', () => {
+        updateBanner(true, true);
+        setTimeout(() => updateBanner(true, false), 3000);
+    });
+    window.addEventListener('offline', () => updateBanner(false));
+
+    // Initial check
+    if (!navigator.onLine) updateBanner(false);
+    if (!document.getElementById('offline-banner')) document.body.appendChild(banner);
 };
 setupOfflineListener();
+
+/**
+ * POWER UP: Resource Pre-caching for Territories
+ * Pre-downloads maps and keys resources to ensure 100% offline availability.
+ */
+window.precacheTerritoryResources = async (territories) => {
+    if (!navigator.onLine || !territories || territories.length === 0) return;
+
+    console.log(`🔌 [Power Up] Pre-cargando recursos para ${territories.length} territorios...`);
+    const cache = await caches.open('territorios-elite-v2.2.7');
+
+    let count = 0;
+    for (const t of territories) {
+        if (t.imagen) {
+            try {
+                const response = await fetch(t.imagen, { mode: 'cors' });
+                await cache.put(t.imagen, response);
+                count++;
+            } catch (e) {
+                console.warn(`Failed to precache map for T-${t.numero}`);
+            }
+        }
+    }
+    if (count > 0) {
+        console.log(`✅ [Power Up] ${count} mapas guardados en memoria local para uso offline.`);
+    }
+};
 
 // --- STYLES INJECTED VIA INPUT.CSS ---
 
@@ -378,7 +446,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                 navigateWithTransition(() => renderConductorDashboard(appContainer, user.email || 'Usuario', APP_VERSION, role));
             }
         } else {
-            // No user
+            // No user - OFFLINE EMERGENCY BYPASS
+            const storedRole = localStorage.getItem('demo_role');
+            const storedName = localStorage.getItem('selected_conductor_name');
+
+            if (!navigator.onLine && storedRole === 'Conductor' && storedName) {
+                console.log("📡 [OFFLINE] Recuperando sesión local...");
+                if (!window.location.pathname.startsWith('/conductores')) {
+                    window.history.replaceState({}, '', '/conductores');
+                }
+                const renderConductorDashboard = await loadConductor();
+                navigateWithTransition(() => renderConductorDashboard(appContainer, storedName, APP_VERSION, storedRole));
+                return;
+            }
+
             if (path !== '/login' && path !== '/' && path !== '/index.html') {
                 window.history.replaceState({}, '', '/login');
             }
@@ -411,6 +492,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (error.code === 'auth/admin-restricted-operation') {
                     showNotification("⚠️ Configuración requerida: Debes habilitar el proveedor 'Anónimo' en la consola de Firebase Authentication.", "error");
                 } else {
+                    // OFFLINE RESCUE for Conductors
+                    if (!navigator.onLine && role === 'Conductor') {
+                        showNotification("🛰️ Entrando en modo offline (Sin conexión de red)", "warning");
+                        if (!window.location.pathname.startsWith('/conductores')) {
+                            window.history.replaceState({}, '', '/conductores');
+                        }
+                        const renderConductorDashboard = await loadConductor();
+                        navigateWithTransition(() => renderConductorDashboard(appContainer, email, APP_VERSION, role));
+                        return;
+                    }
                     showNotification("Error de autenticación: " + error.message, "error");
                 }
             }
