@@ -1,23 +1,23 @@
-const CACHE_NAME = 'territorios-elite-v2.2.7';
+const CACHE_NAME = 'territorios-saas-v2.3.0';
 
 const ASSETS_CORE = [
     '/',
     '/index.html',
-    '/styles.css?v=2.2.6',
-    '/app.js?v=2.2.6',
+    '/styles.css?v=2.3.0',
+    '/app.js?v=2.3.0',
     '/manifest.json',
-    '/firebase-config.js?v=2.2.6',
-    '/data/firestore-services.js?v=2.2.6',
-    '/modules/login.js?v=2.2.6',
-    '/modules/admin-dashboard.js?v=2.2.6',
-    '/modules/conductor-dashboard.js?v=2.2.6',
-    '/modules/report-s13.js?v=2.2.6',
-    '/modules/analytics-view.js?v=2.2.6',
-    '/modules/utils/helpers.js?v=2.2.6',
-    '/modules/utils/intelligence.js?v=2.2.6',
-    '/modules/map-viewer.js?v=2.2.6',
-    '/modules/utils/theme-manager.js?v=2.2.6',
-    '/modules/utils/pwa-manager.js?v=2.2.6',
+    '/firebase-config.js?v=2.3.0',
+    '/data/firestore-services.js?v=2.3.0',
+    '/modules/login.js?v=2.3.0',
+    '/modules/admin-dashboard.js?v=2.3.0',
+    '/modules/conductor-dashboard.js?v=2.3.0',
+    '/modules/report-s13.js?v=2.3.0',
+    '/modules/analytics-view.js?v=2.3.0',
+    '/modules/utils/helpers.js?v=2.3.0',
+    '/modules/utils/intelligence.js?v=2.3.0',
+    '/modules/map-viewer.js?v=2.3.0',
+    '/modules/utils/theme-manager.js?v=2.3.0',
+    '/modules/utils/pwa-manager.js?v=2.3.0',
     '/favicon.svg',
     '/icon-192.svg',
     '/icon-512.svg'
@@ -37,7 +37,6 @@ const ASSETS_EXTERNAL = [
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then(async (cache) => {
-            // Attempt to cache each asset individually to prevent one failure from breaking everything
             const assets = [...ASSETS_CORE, ...ASSETS_EXTERNAL];
             for (const asset of assets) {
                 try {
@@ -52,7 +51,6 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-    // console.log('[SW] Activate');
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
@@ -66,42 +64,27 @@ self.addEventListener('activate', (event) => {
     );
 });
 
-// Message listener for skipWaiting
 self.addEventListener('message', (event) => {
     if (event.data && event.data.type === 'SKIP_WAITING') {
         self.skipWaiting();
     }
 });
 
-/**
- * STRATEGY: Stale-While-Revalidate for Assets, Cache-First for Fonts/Libs
- */
 self.addEventListener('fetch', (event) => {
     if (event.request.method !== 'GET') return;
-
     const url = new URL(event.request.url);
+    if (url.hostname.includes('firebase') || url.hostname.includes('google-optimizer') || url.hostname.includes('analytics')) return;
 
-    // Bypass for Firebase/Analytics
-    if (url.hostname.includes('firebase') || url.hostname.includes('google-optimizer') || url.hostname.includes('analytics')) {
-        return;
-    }
-
-    // Strategy: Cache-First for Firebase Storage Images (Maps)
     if (url.hostname.includes('firebasestorage.googleapis.com')) {
         event.respondWith(
             caches.open(CACHE_NAME).then(async (cache) => {
                 const cachedResponse = await cache.match(event.request);
                 if (cachedResponse) return cachedResponse;
-
                 try {
                     const networkResponse = await fetch(event.request, { mode: 'cors' });
-                    if (networkResponse.ok) {
-                        cache.put(event.request, networkResponse.clone());
-                    }
+                    if (networkResponse.ok) cache.put(event.request, networkResponse.clone());
                     return networkResponse;
-                } catch (e) {
-                    return null;
-                }
+                } catch (e) { return null; }
             })
         );
         return;
@@ -110,26 +93,16 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
         caches.open(CACHE_NAME).then(async (cache) => {
             const cachedResponse = await cache.match(event.request);
-
-            // Strategy: Cache-First for CDNs (External libs)
             if (ASSETS_EXTERNAL.some(lib => event.request.url.includes(lib)) || url.hostname.includes('fonts.gstatic.com')) {
                 if (cachedResponse) return cachedResponse;
             }
-
-            // Strategy: Stale-While-Revalidate for Internal core
             const fetchPromise = fetch(event.request).then((networkResponse) => {
-                if (networkResponse.ok) {
-                    cache.put(event.request, networkResponse.clone());
-                }
+                if (networkResponse.ok) cache.put(event.request, networkResponse.clone());
                 return networkResponse;
             }).catch(() => {
-                // Return cached or fallback to offline page
-                if (event.request.mode === 'navigate') {
-                    return cache.match('/index.html');
-                }
+                if (event.request.mode === 'navigate') return cache.match('/index.html');
                 return cachedResponse;
             });
-
             return cachedResponse || fetchPromise;
         })
     );

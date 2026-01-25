@@ -334,7 +334,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 1. Registrar Service Worker
     if ('serviceWorker' in navigator) {
         const registerSW = () => {
-            navigator.serviceWorker.register('/service-worker.js')
+            navigator.serviceWorker.register('/service-worker.js?v=2.3.0')
                 .then(reg => {
                     console.log('✅ SW registrado con éxito');
                     // Ensure SW is active to help with PWA installation
