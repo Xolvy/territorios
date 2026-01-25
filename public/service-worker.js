@@ -1,23 +1,23 @@
-const CACHE_NAME = 'territorios-saas-v2.3.0';
+const CACHE_NAME = 'territorios-hard-sync-v2.3.5';
 
 const ASSETS_CORE = [
     '/',
     '/index.html',
-    '/styles.css?v=2.3.0',
-    '/app.js?v=2.3.0',
+    '/styles.css?v=2.3.5',
+    '/app.js?v=2.3.5',
     '/manifest.json',
-    '/firebase-config.js?v=2.3.0',
-    '/data/firestore-services.js?v=2.3.0',
-    '/modules/login.js?v=2.3.0',
-    '/modules/admin-dashboard.js?v=2.3.0',
-    '/modules/conductor-dashboard.js?v=2.3.0',
-    '/modules/report-s13.js?v=2.3.0',
-    '/modules/analytics-view.js?v=2.3.0',
-    '/modules/utils/helpers.js?v=2.3.0',
-    '/modules/utils/intelligence.js?v=2.3.0',
-    '/modules/map-viewer.js?v=2.3.0',
-    '/modules/utils/theme-manager.js?v=2.3.0',
-    '/modules/utils/pwa-manager.js?v=2.3.0',
+    '/firebase-config.js?v=2.3.5',
+    '/data/firestore-services.js?v=2.3.5',
+    '/modules/login.js?v=2.3.5',
+    '/modules/admin-dashboard.js?v=2.3.5',
+    '/modules/conductor-dashboard.js?v=2.3.5',
+    '/modules/report-s13.js?v=2.3.5',
+    '/modules/analytics-view.js?v=2.3.5',
+    '/modules/utils/helpers.js?v=2.3.5',
+    '/modules/utils/intelligence.js?v=2.3.5',
+    '/modules/map-viewer.js?v=2.3.5',
+    '/modules/utils/theme-manager.js?v=2.3.5',
+    '/modules/utils/pwa-manager.js?v=2.3.5',
     '/favicon.svg',
     '/icon-192.svg',
     '/icon-512.svg'
@@ -41,9 +41,7 @@ self.addEventListener('install', (event) => {
             for (const asset of assets) {
                 try {
                     await cache.add(asset);
-                } catch (err) {
-                    console.warn(`[SW] Failed to cache: ${asset}`);
-                }
+                } catch (err) { }
             }
         })
     );
