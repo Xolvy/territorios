@@ -137,8 +137,40 @@ window.showCustomConfirm = showCustomConfirm;
 window.showCustomPrompt = showCustomPrompt;
 window.showCustomAlert = showCustomAlert;
 
-export const showTerritorySelectionModal = (current, territorios, onSelect, containerId = 'modal-container') => {
+export const showTerritorySelectionModal = (current, territorios, onSelect, containerId = 'modal-container', historial = []) => {
     let filtered = [...territorios].sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true }));
+
+    // --- Power Up: Process Stats ---
+    const stats = {};
+    if (historial && historial.length > 0) {
+        historial.forEach(h => {
+            const num = h.numero;
+            if (!num) return;
+            if (!stats[num]) stats[num] = { count: 0, lastAsig: null, lastEntrega: null };
+
+            // Increment count for each history record (Total times preached)
+            stats[num].count++;
+
+            if (h.fecha_asignacion) {
+                if (!stats[num].lastAsig || new Date(h.fecha_asignacion) > new Date(stats[num].lastAsig)) {
+                    stats[num].lastAsig = h.fecha_asignacion;
+                }
+            }
+            if (h.fecha_entrega) {
+                if (!stats[num].lastEntrega || new Date(h.fecha_entrega) > new Date(stats[num].lastEntrega)) {
+                    stats[num].lastEntrega = h.fecha_entrega;
+                }
+            }
+        });
+    }
+
+    const getFrequencyColor = (count) => {
+        if (count === 0) return 'bg-emerald-500'; // Fresco
+        if (count < 2) return 'bg-teal-500';
+        if (count < 4) return 'bg-amber-500';
+        if (count < 6) return 'bg-orange-500';
+        return 'bg-rose-500'; // Muy predicado
+    };
 
     // Parse current value: "1, 2(Mz 1, Mz 2), 3"
     const parseCurrent = (str) => {
@@ -160,29 +192,42 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
     let selections = parseCurrent(current);
 
     showModal(`
-        <div class="flex flex-col h-[80vh] sm:h-[700px] overflow-hidden">
+        <div class="flex flex-col h-[85vh] sm:h-[750px] overflow-hidden">
             <header class="shrink-0 bg-slate-900 p-8 text-white relative overflow-hidden">
-                <div class="absolute inset-0 bg-white/10 backdrop-blur-3xl"></div>
+                <div class="absolute inset-0 bg-gradient-to-br from-primary/20 to-indigo-900/40 backdrop-blur-3xl"></div>
                 <div class="relative z-10 flex justify-between items-center">
                     <div>
-                        <h3 class="text-2xl font-black uppercase tracking-tight leading-none mb-1">Seleccionar Territorios</h3>
-                        <p class="text-[10px] opacity-70 font-bold uppercase tracking-[0.2em]">Gestión Granular de Manzanas</p>
+                        <h3 class="text-2xl font-black uppercase tracking-tight leading-none mb-1">Selector Inteligente</h3>
+                        <p class="text-[10px] opacity-70 font-bold uppercase tracking-[0.2em] flex items-center gap-2">
+                           <i class="fas fa-microchip animate-pulse text-primary"></i> 
+                           Gestión avanzada de saturación
+                        </p>
                     </div>
-                    <div class="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-2xl shadow-2xl border border-white/30">
-                        <i class="fas fa-map-marked-alt"></i>
+                    <div class="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center text-2xl shadow-2xl border border-white/20">
+                        <i class="fas fa-map-marked-alt text-primary"></i>
                     </div>
                 </div>
             </header>
             
             <div class="flex-1 p-6 space-y-6 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-black/20">
-                <div class="relative group">
-                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 group-focus-within:text-primary transition-colors">
-                        <i class="fas fa-search"></i>
-                    </span>
-                    <input type="text" id="modal-terr-search" placeholder="Buscar por número o manzana..." class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 focus:border-primary rounded-2xl pl-12 pr-4 py-4 text-sm font-bold shadow-sm outline-none transition-all">
+                <div class="flex flex-col md:flex-row gap-4">
+                    <div class="relative group flex-1">
+                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 group-focus-within:text-primary transition-colors">
+                            <i class="fas fa-search"></i>
+                        </span>
+                        <input type="text" id="modal-terr-search" placeholder="Buscar por número o manzana..." class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 focus:border-primary rounded-2xl pl-12 pr-4 py-4 text-sm font-bold shadow-sm outline-none transition-all">
+                    </div>
+                    <div class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm">
+                        <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Saturación:</span>
+                        <div class="flex gap-1">
+                            <div class="w-2 h-2 rounded-full bg-emerald-500" title="Baja"></div>
+                            <div class="w-2 h-2 rounded-full bg-amber-500" title="Media"></div>
+                            <div class="w-2 h-2 rounded-full bg-rose-500" title="Alta"></div>
+                        </div>
+                    </div>
                 </div>
 
-                <div id="modal-terr-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div id="modal-terr-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <!-- Injected via render -->
                 </div>
             </div>
@@ -232,38 +277,57 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
 
             listContainer.innerHTML = items.map(t => {
                 const isSelected = t.numero in selections;
-                const selectedMzs = selections[t.numero] || [];
+                const tStats = stats[t.numero] || { count: 0, lastAsig: null, lastEntrega: null };
+                const freqColor = getFrequencyColor(tStats.count);
                 const allMzs = t.manzanas ? t.manzanas.split(',').map(m => m.trim()).filter(Boolean) : [];
 
+                const fmtShortDate = (d) => {
+                    if (!d) return '—';
+                    const dt = new Date(d);
+                    return dt.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit' });
+                };
+
                 return `
-                    <div class="modern-card !p-2 transition-all duration-300 group ${isSelected ? 'border-primary shadow-lg ring-1 ring-primary/20' : 'border-slate-100 dark:border-white/5 shadow-sm'}">
-                        <label class="flex items-center gap-3 p-2 cursor-pointer">
-                             <input type="checkbox" class="terr-check w-5 h-5 rounded border-2 border-slate-300 dark:border-white/10 text-primary focus:ring-primary transition-all cursor-pointer" 
-                                    data-num="${t.numero}" ${isSelected ? 'checked' : ''}>
-                             <div class="flex-1 min-w-0">
-                                 <div class="flex items-baseline justify-between gap-2">
-                                     <span class="text-[11px] font-black text-slate-800 dark:text-white uppercase truncate">#${t.numero}</span>
-                                     <span class="text-[8px] font-black text-slate-400 uppercase tracking-tighter shrink-0">${allMzs.length} MZ</span>
+                    <div class="modern-card !p-0 transition-all duration-300 group ${isSelected ? 'border-primary shadow-xl ring-2 ring-primary/20' : 'border-slate-100 dark:border-white/5 shadow-sm hover:border-primary/30'}">
+                        <label class="flex flex-col cursor-pointer p-4">
+                             <div class="flex items-center justify-between mb-4">
+                                 <div class="flex items-center gap-3">
+                                    <input type="checkbox" class="terr-check w-5 h-5 rounded-lg border-2 border-slate-300 dark:border-white/10 text-primary focus:ring-primary transition-all cursor-pointer" 
+                                            data-num="${t.numero}" ${isSelected ? 'checked' : ''}>
+                                    <span class="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tighter">#${t.numero}</span>
+                                 </div>
+                                 <div class="flex items-center gap-2">
+                                     <div class="w-1.5 h-1.5 rounded-full ${freqColor} shadow-lg shadow-${freqColor.split('-')[1]}-500/50"></div>
+                                     <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest">${tStats.count} veces</span>
+                                 </div>
+                             </div>
+
+                             <div class="grid grid-cols-2 gap-2 border-t border-slate-100 dark:border-white/5 pt-3">
+                                 <div class="flex flex-col">
+                                     <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest">Últ. Asignación</span>
+                                     <span class="text-[10px] font-bold text-slate-600 dark:text-slate-300">${fmtShortDate(tStats.lastAsig)}</span>
+                                 </div>
+                                 <div class="flex flex-col border-l border-slate-100 dark:border-white/5 pl-2">
+                                     <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest">Últ. Entrega</span>
+                                     <span class="text-[10px] font-bold text-emerald-500">${fmtShortDate(tStats.lastEntrega)}</span>
                                  </div>
                              </div>
                         </label>
                         
                         ${isSelected && allMzs.length > 0 ? `
-                            <div class="mt-2 p-4 bg-slate-50 dark:bg-black/40 rounded-2xl border border-slate-100 dark:border-white/5 space-y-4 animate-fade-in">
-                                <div class="flex items-center justify-between px-1">
-                                    <span class="text-[9px] font-black text-primary uppercase tracking-widest">Manzanas:</span>
-                                    <button class="select-all-mzs text-[8px] font-black text-primary hover:text-primary-light uppercase tracking-widest flex items-center gap-1" data-num="${t.numero}">
-                                        <i class="fas fa-check-square"></i> Todas
-                                    </button>
+                            <div class="p-4 pt-0 bg-slate-50/50 dark:bg-black/10 animate-fade-in text-center">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-[8px] font-black text-primary uppercase tracking-[0.2em]">Manzanas:</span>
+                                    <button class="select-all-mzs text-[8px] font-black text-primary hover:underline" data-num="${t.numero}">Todas</button>
                                 </div>
-                                <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                                <div class="flex flex-wrap gap-1 justify-center">
                                     ${allMzs.map(mz => {
                     const isMzSelected = !selections[t.numero] || selections[t.numero].includes(mz);
                     return `
-                                            <label class="flex items-center gap-2 p-2 bg-white dark:bg-white/5 rounded-xl cursor-pointer hover:bg-teal-500/5 transition-colors border border-black/[0.03] dark:border-white/[0.03]">
-                                                <input type="checkbox" class="mz-check w-4 h-4 rounded-lg border-gray-300 dark:border-white/10 text-teal-600" 
+                                            <label class="px-2 py-1 bg-white dark:bg-white/5 border ${isMzSelected ? 'border-primary bg-primary/5 text-primary' : 'border-slate-200 dark:border-white/5 text-slate-500'} rounded-lg cursor-pointer transition-all text-[9px] font-bold">
+                                                <input type="checkbox" class="mz-check hidden" 
                                                        data-num="${t.numero}" data-mz="${mz}" ${isMzSelected ? 'checked' : ''}>
-                                                <span class="text-[10px] font-bold text-gray-600 dark:text-gray-400 truncate">${mz}</span>
+                                                ${mz}
                                             </label>
                                         `;
                 }).join('')}
@@ -337,7 +401,7 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
 
         render();
         updatePreview();
-    }, 'max-w-2xl', containerId);
+    }, 'max-w-4xl', containerId);
 };
 
 window.showTerritorySelectionModal = showTerritorySelectionModal;

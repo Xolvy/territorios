@@ -442,14 +442,6 @@ export const transferTerritorio = async (id, newConductor, manzanasToTransfer, d
 export const returnTerritorio = async (id, notes, customDate, status = 'Completado', fotos = null) => {
     ServiceCache.clear('territorios');
     const dateToUse = customDate ? new Date(customDate).toISOString() : new Date().toISOString();
-    const snap = await getDoc(doc(db, "territorios", id));
-    if (snap.exists()) {
-        const t = snap.data();
-        // Bilateral Sync: Remove from Weekly Program
-        if (t.fecha_asignacion && t.turno) {
-            await removeAssignmentFromWeeklyProgram(t.numero, t.fecha_asignacion, t.turno);
-        }
-    }
 
     await updateDoc(doc(db, "territorios", id), {
         asignado_a: null,
@@ -481,12 +473,6 @@ export const returnTerritorioMultiple = async (ids, notes, customDate, status = 
             ultima_fecha: dateToUse,
             estado: status === 'Perdido' ? 'Extraviado' : 'Predicado'
         });
-        // Bilateral Sync: Remove from Weekly Program if assigned
-        const tSnap = await getDoc(doc(db, "territorios", id));
-        const t = tSnap.data();
-        if (t && t.fecha_asignacion && t.turno) {
-            await removeAssignmentFromWeeklyProgram(t.numero, t.fecha_asignacion, t.turno);
-        }
 
         await logReturn(id, dateToUse, status, notes);
     }
@@ -570,14 +556,6 @@ export const returnTerritorioParcial = async (originalId, completedManzanas, rem
 };
 
 export const cancelarAsignacion = async (id) => {
-    const snap = await getDoc(doc(db, "territorios", id));
-    if (snap.exists()) {
-        const t = snap.data();
-        if (t.fecha_asignacion && t.turno) {
-            await removeAssignmentFromWeeklyProgram(t.numero, t.fecha_asignacion, t.turno);
-        }
-    }
-
     // Reset permissions to available
     await updateDoc(doc(db, "territorios", id), {
         asignado_a: null,

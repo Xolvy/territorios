@@ -39,8 +39,8 @@ export const renderProgramaTab = async (container) => {
 
     const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
-    const [territorios, config, allPersonnel] = await Promise.all([
-        getTerritorios(), getConfiguracion(), getPublicadores()
+    const [territorios, config, allPersonnel, historial] = await Promise.all([
+        getTerritorios(), getConfiguracion(), getPublicadores(), getHistorialReport()
     ]);
 
     territorios.sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true, sensitivity: 'base' }));
@@ -423,7 +423,7 @@ export const renderProgramaTab = async (container) => {
         const available = territorios.filter(t => t.estado === 'Disponible' || t.estado === 'Sin asignar');
         showTerritorySelectionModal(btn.dataset.current || '', available, (res) => {
             window.updateWeekData(dayIdx, turnoId, 'territorio', res);
-        }, 'modal-container-nested');
+        }, 'modal-container-nested', historial);
     };
 
     window.openGroupSelector = async (dayIdx, turnoId, btn) => {
