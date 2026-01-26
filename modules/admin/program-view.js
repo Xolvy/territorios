@@ -1,9 +1,9 @@
 import {
     getTerritorios, getConfiguracion, getPublicadores, getConductores,
     getProgramaSemanal, saveProgramaSemanal, getGroupsConfig, returnTerritorioMultiple
-} from '../../data/firestore-services.js?v=2.3';
-import { showNotification } from '../utils/helpers.js?v=2.3';
-import { UIHelpers, showModal, showTerritorySelectionModal } from '../services/ui-helpers.js?v=2.3';
+} from '../../data/firestore-services.js?v=2.3.1';
+import { showNotification } from '../utils/helpers.js?v=2.3.1';
+import { UIHelpers, showModal, showTerritorySelectionModal } from '../services/ui-helpers.js?v=2.3.1';
 
 const { getMonday, formatDateId } = UIHelpers;
 
@@ -460,7 +460,7 @@ export const renderProgramaTab = async (container) => {
                 const date = modal.querySelector('#sync-asig-date').value;
                 if (!date) return;
 
-                const { assignTerritorio } = await import('../../data/firestore-services.js?v=2.3');
+                const { assignTerritorio } = await import('../../data/firestore-services.js?v=2.3.1');
                 await assignTerritorio(tInfo.id, cond, {
                     fecha_asignacion: new Date(date + 'T12:00:00Z').toISOString(),
                     lugar: data.lugar || null,
@@ -638,7 +638,7 @@ export const renderProgramaTab = async (container) => {
                 const date = modal.querySelector('#sync-all-date').value;
                 if (!date) return;
 
-                const { assignTerritorio } = await import('../../data/firestore-services.js?v=2.3');
+                const { assignTerritorio } = await import('../../data/firestore-services.js?v=2.3.1');
 
                 showNotification(`Procesando ${toSync.length} asignaciones...`, 'info');
 

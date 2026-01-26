@@ -1,16 +1,16 @@
 import {
     getSystemVersion, setSystemVersion, getHistorialReport
-} from '../data/firestore-services.js?v=2.3';
-import { auth } from '../firebase-config.js?v=2.3';
-import { showNotification } from './utils/helpers.js?v=2.3';
-import { GlassButton } from './services/ui-components.js?v=2.3';
+} from '../data/firestore-services.js?v=2.3.1';
+import { auth } from '../firebase-config.js?v=2.3.1';
+import { showNotification } from './utils/helpers.js?v=2.3.1';
+import { GlassButton } from './services/ui-components.js?v=2.3.1';
 
 // Import Views
-import { renderAnalyticsView } from './analytics-view.js?v=2.3';
-import { renderCasaEnCasaTab } from './admin/territories-view.js?v=2.3';
-import { renderPredicacionTab } from './admin/public-view.js?v=2.3';
-import { renderTelefonosTab } from './admin/phones-view.js?v=2.3';
-import { renderConfigTab } from './admin/rules-view.js?v=2.3';
+import { renderAnalyticsView } from './analytics-view.js?v=2.3.1';
+import { renderCasaEnCasaTab } from './admin/territories-view.js?v=2.3.1';
+import { renderPredicacionTab } from './admin/public-view.js?v=2.3.1';
+import { renderTelefonosTab } from './admin/phones-view.js?v=2.3.1';
+import { renderConfigTab } from './admin/rules-view.js?v=2.3.1';
 
 /**
  * Main Entry Point for the Administration Control Panel
@@ -22,12 +22,12 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
 
         // --- GLOBAL ADMIN HELPERS ---
         window.editHistoryRecord = async (id) => {
-            const { editHistoryRecord } = await import('./admin/history-view.js?v=2.3');
+            const { editHistoryRecord } = await import('./admin/history-view.js?v=2.3.1');
             await editHistoryRecord(id);
         };
 
         window.deleteHistoryRecordUI = async (id, cond, num) => {
-            const { deleteHistoryRecordUI } = await import('./admin/history-view.js?v=2.3');
+            const { deleteHistoryRecordUI } = await import('./admin/history-view.js?v=2.3.1');
             await deleteHistoryRecordUI(id, cond, num);
         };
 
