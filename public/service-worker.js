@@ -57,7 +57,13 @@ self.addEventListener('activate', (event) => {
                         return caches.delete(cacheName);
                     }
                 })
-            ).then(() => self.clients.claim());
+            ).then(async () => {
+                try {
+                    await self.clients.claim();
+                } catch (e) {
+                    console.warn("Clients claim failed:", e);
+                }
+            });
         })
     );
 });

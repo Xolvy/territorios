@@ -38,22 +38,54 @@ async function loadConductor() {
 
     if (!localStorage.getItem(syncKey) || (oldVersion && oldVersion !== SYNC_VERSION)) {
         console.warn(`🚀 Iniciando sincronización forzada a v${SYNC_VERSION}...`);
+
+        // Show Update UI
+        const overlay = document.createElement('div');
+        overlay.id = 'force-sync-overlay';
+        overlay.style = 'position: fixed; inset: 0; z-index: 99999; background: #f8fafc; display: flex; align-items: center; justify-content: center; font-family: "Outfit", sans-serif;';
+        overlay.innerHTML = `
+            <div style="background: white; padding: 3rem; border-radius: 2.5rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.1); text-align: center; max-width: 450px; width: 90%; border: 1px solid #e2e8f0;">
+                <div style="width: 80px; height: 80px; background: #ccfbf1; border-radius: 2rem; display: flex; align-items: center; justify-content: center; margin: 0 auto 2rem; color: #0d9488; font-size: 2.5rem;">
+                    <i class="fas fa-rocket"></i>
+                </div>
+                <h3 style="font-weight: 900; font-size: 1.5rem; margin-bottom: 1rem; color: #1e293b; text-transform: uppercase; letter-spacing: -0.02em;">Actualización Obligatoria</h3>
+                <p style="color: #64748b; font-size: 0.95rem; line-height: 1.6; margin-bottom: 2rem; font-weight: 500;">
+                    Estamos sincronizando la última versión de los archivos para asegurar la estabilidad del sistema.<br>
+                    <strong>Limpiando memoria y archivos temporales...</strong>
+                </p>
+                <div style="width: 40px; height: 40px; border: 4px solid #f1f5f9; border-top-color: #0d9488; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+                <style>
+                    @keyframes spin { to { transform: rotate(360deg); } }
+                </style>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
         try {
             if ('serviceWorker' in navigator) {
                 const regs = await navigator.serviceWorker.getRegistrations();
-                for (let r of regs) await r.unregister();
+                for (let r of regs) {
+                    await r.unregister();
+                }
             }
             if ('caches' in window) {
                 const keys = await caches.keys();
-                await Promise.all(keys.map(k => caches.delete(k)));
+                for (let k of keys) {
+                    await caches.delete(k);
+                }
             }
-            localStorage.removeItem('app_version');
-            localStorage.removeItem('pwa-installed');
+            localStorage.clear(); // Nuclear option for a hard sync
             localStorage.setItem(syncKey, 'true');
-            window.location.href = `${window.location.pathname}?updated=true&v=${Date.now()}`;
+            localStorage.setItem('app_version', SYNC_VERSION);
+
+            // Wait a moment for UX
+            setTimeout(() => {
+                window.location.href = `${window.location.pathname}?updated=true&v=${Date.now()}`;
+            }, 2000);
         } catch (e) {
             console.error("Sync error:", e);
             localStorage.setItem(syncKey, 'true');
+            window.location.reload();
         }
     }
 })();
