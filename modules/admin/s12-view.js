@@ -1,8 +1,8 @@
 import {
     getTerritorios, deleteTerritorio, updateTerritorio
-} from '../../data/firestore-services.js?v=2.2.5';
-import { showNotification } from '../utils/helpers.js?v=2.2.5';
-import { showModal, showCustomConfirm } from '../services/ui-helpers.js?v=2.2.5';
+} from '../../data/firestore-services.js?v=2.3.5';
+import { showNotification } from '../utils/helpers.js?v=2.3.5';
+import { showModal, showCustomConfirm } from '../services/ui-helpers.js?v=2.3.5';
 
 export const renderS12View = async (container, config, appVersion) => {
     let terrs = await getTerritorios();

@@ -1,8 +1,8 @@
-import { saveConfiguracion } from '../../data/firestore-services.js?v=2.2.5';
-import { showNotification, showCustomPrompt, showCustomConfirm } from '../services/ui-helpers.js?v=2.2.5';
-import { ensureOnline } from '../utils/helpers.js?v=2.2.5';
+import { saveConfiguracion } from '../../data/firestore-services.js?v=2.3.5';
+import { showCustomPrompt, showCustomConfirm } from '../services/ui-helpers.js?v=2.3.5';
+import { showNotification, ensureOnline } from '../utils/helpers.js?v=2.3.5';
 
-export const renderRulesTab = async (container, config, appVersion, reloadTabFn) => {
+export const renderConfigTab = async (container, config, appVersion, reloadTabFn) => {
     container.innerHTML = `
         <div class="max-w-4xl mx-auto space-y-8 animate-fade-in pb-12 w-full overflow-x-hidden px-4">
             <!-- Header Section -->
@@ -227,7 +227,7 @@ export const renderRulesTab = async (container, config, appVersion, reloadTabFn)
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sincronizando...';
             btn.disabled = true;
             try {
-                const { runSystemDiagnosticsAndRepair } = await import('../../data/firestore-services.js?v=2.2.5');
+                const { runSystemDiagnosticsAndRepair } = await import('../../data/firestore-services.js?v=2.3.5');
                 await runSystemDiagnosticsAndRepair((msg, pc) => {
                     console.log(`[SyncMaster] ${msg} (${pc}%)`);
                 });
