@@ -279,15 +279,17 @@ export const renderProgramaTab = async (container) => {
                         html += `
                             <label class="text-[9px] font-black text-slate-400 tracking-[0.2em] uppercase ml-1 flex items-center justify-between">
                                 <span><i class="fas fa-map-marked-alt opacity-30"></i> ${field}</span>
-                                ${val ? (isSync ?
+                                <div id="status-badge-${dayIndex}-${turnoId}">
+                                    ${val ? (isSync ?
                                 '<span class="text-emerald-500 font-bold flex items-center gap-1"><i class="fas fa-check-circle"></i> LISTO</span>' :
                                 (isConflict ?
                                     '<span class="text-rose-500 font-bold flex items-center gap-1" title="Ocupado por otro publicador"><i class="fas fa-exclamation-triangle"></i> OCUPADO</span>' :
                                     `<span class="text-primary font-bold flex items-center gap-1 cursor-pointer hover:underline" onclick="window.syncAssignmentFromProg(${dayIndex}, '${turnoId}')"><i class="fas fa-link animate-pulse"></i> ASIGNAR</span>`)) : ''}
+                                </div>
                             </label>
                             <button onclick="window.openTerritorySelector(${dayIndex}, '${turnoId}', this)" 
                                     class="w-full text-left bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-3.5 rounded-2xl hover:border-primary transition-all flex items-center justify-between shadow-sm">
-                                <span class="text-[11px] font-black truncate ${val ? 'text-primary' : 'text-slate-400 opacity-40'}">${val || '—'}</span>
+                                <span id="val-territorio-${dayIndex}-${turnoId}" class="text-[11px] font-black truncate ${val ? 'text-primary' : 'text-slate-400 opacity-40'}">${val || '—'}</span>
                             </button>`;
                     } else if (field === 'Grupos') {
                         html += `
@@ -296,7 +298,7 @@ export const renderProgramaTab = async (container) => {
                             </label>
                             <button onclick="window.openGroupSelector(${dayIndex}, '${turnoId}', this)" 
                                     class="w-full text-left bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-3.5 rounded-2xl hover:border-indigo-500 transition-all flex items-center justify-between shadow-sm">
-                                <span class="text-[11px] font-black truncate ${val ? 'text-indigo-500' : 'text-slate-400 opacity-40'}">
+                                <span id="val-grupos-${dayIndex}-${turnoId}" class="text-[11px] font-black truncate ${val ? 'text-indigo-500' : 'text-slate-400 opacity-40'}">
                                     ${formatGroups(val)}
                                 </span>
                             </button>`;
@@ -368,10 +370,40 @@ export const renderProgramaTab = async (container) => {
     };
 
     window.updateWeekData = async (dayIdx, turnoId, fieldId, val) => {
+        // Optimistic update
         programa.dias[dayIdx][turnoId][fieldId] = val;
-        await saveProgramaSemanal(programa.id, programa);
-        showNotification("Cambio guardado");
-        renderTable();
+
+        // Update visual value if it was a custom selector (territorio)
+        const valEl = container.querySelector(`#val-${fieldId}-${dayIdx}-${turnoId}`);
+        if (valEl) {
+            valEl.innerText = val || '—';
+            valEl.className = `text-[11px] font-black truncate ${val ? 'text-primary' : 'text-slate-400 opacity-40'}`;
+        }
+
+        // Silent background save
+        saveProgramaSemanal(programa.id, programa).catch(e => {
+            console.error("Error background saving:", e);
+            showNotification("Error al sincronizar cambio", "error");
+        });
+
+        // Update status badge if territory or conductor changed
+        if (fieldId === 'territorio' || fieldId === 'conductor') {
+            const badgeContainer = container.querySelector(`#status-badge-${dayIdx}-${turnoId}`);
+            if (badgeContainer) {
+                const freshT = await getTerritorios();
+                const tInfo = freshT.find(t => t.numero === programa.dias[dayIdx][turnoId].territorio);
+                const isAssigned = tInfo && tInfo.estado === 'Asignado';
+                const isSync = isAssigned && tInfo.asignado_a === programa.dias[dayIdx][turnoId].conductor;
+                const isConflict = isAssigned && tInfo.asignado_a !== programa.dias[dayIdx][turnoId].conductor;
+                const v = programa.dias[dayIdx][turnoId].territorio;
+
+                badgeContainer.innerHTML = v ? (isSync ?
+                    '<span class="text-emerald-500 font-bold flex items-center gap-1 animate-fade-in"><i class="fas fa-check-circle"></i> LISTO</span>' :
+                    (isConflict ?
+                        '<span class="text-rose-500 font-bold flex items-center gap-1 animate-fade-in" title="Ocupado por otro publicador"><i class="fas fa-exclamation-triangle"></i> OCUPADO</span>' :
+                        `<span class="text-primary font-bold flex items-center gap-1 cursor-pointer hover:underline animate-fade-in" onclick="window.syncAssignmentFromProg(${dayIdx}, '${turnoId}')"><i class="fas fa-link animate-pulse"></i> ASIGNAR</span>`)) : '';
+            }
+        }
     };
 
     window.syncAssignmentFromProg = (dayIdx, turnoId) => {
