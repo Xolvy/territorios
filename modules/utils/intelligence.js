@@ -1,4 +1,4 @@
-import { updateTelefono, updateTerritorio } from '../../data/firestore-services.js?v=1.9.9.0';
+import { updateTelefono, updateTerritorio } from '../../data/firestore-services.js?v=2.3.0';
 
 export class TerritoryIntelligence {
     constructor(telefonos, publicadores, territorios, programa, conductores) {

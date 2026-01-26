@@ -65,7 +65,7 @@ document.body.appendChild(createThemeToggle());
 // Init PWA & Notifications
 initPWA();
 
-const APP_VERSION = '2.3.6';
+const APP_VERSION = '2.3';
 
 // --- PWA INITIALIZATION ---
 

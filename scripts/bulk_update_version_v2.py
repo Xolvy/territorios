@@ -2,11 +2,15 @@ import os
 import re
 
 def update_version(directory):
+    # This will replace ANY version-like string in query params or fallbacks with 2.3
     patterns = [
-        (re.compile(r'v=2\.3\.[56]'), 'v=2.3'),
-        (re.compile(r'appVersion \|\| \'2\.3\.[56]\''), "appVersion || '2.3'"),
-        (re.compile(r'Plataforma v2\.3\.[56]'), 'Plataforma v2.3'),
-        (re.compile(r'App Territorios v2\.3\.[56]'), 'App Territorios v2.3'),
+        (re.compile(r'v=\d+\.\d+\.\d+'), 'v=2.3'),
+        (re.compile(r'v=\d+\.\d+'), 'v=2.3'),
+        (re.compile(r'appVersion \|\| \'\d+\.\d+\.\d+\''), "appVersion || '2.3'"),
+        (re.compile(r'Plataforma v\d+\.\d+\.\d+'), 'Plataforma v2.3'),
+        (re.compile(r'App Territorios v\d+\.\d+\.\d+'), 'App Territorios v2.3'),
+        (re.compile(r'Build \d+\.\d+\.\d+'), 'Build 2.3'),
+        (re.compile(r'const APP_VERSION = \'\d+\.\d+\.\d+\''), "const APP_VERSION = '2.3'"),
     ]
     
     for root, dirs, files in os.walk(directory):
@@ -14,6 +18,8 @@ def update_version(directory):
             dirs.remove('node_modules')
         if '.git' in dirs:
             dirs.remove('.git')
+        if 'dist' in dirs:
+            dirs.remove('dist') # Don't update dist, let the user rebuild if needed
             
         for file in files:
             if file.endswith(('.js', '.html', '.json')):
