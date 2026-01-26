@@ -1,9 +1,9 @@
 import {
     getTerritorios, getConductores, getHistorialReport, getConfiguracion,
     assignTerritorio, returnTerritorio, getCampanas
-} from '../../data/firestore-services.js?v=2.3.5';
-import { showNotification } from '../utils/helpers.js?v=2.3.5';
-import { UIHelpers, showModal, showCustomConfirm, showTerritorySelectionModal } from '../services/ui-helpers.js?v=2.3.5';
+} from '../../data/firestore-services.js?v=2.3';
+import { showNotification } from '../utils/helpers.js?v=2.3';
+import { UIHelpers, showModal, showCustomConfirm, showTerritorySelectionModal } from '../services/ui-helpers.js?v=2.3';
 
 const { fmtDate } = UIHelpers;
 

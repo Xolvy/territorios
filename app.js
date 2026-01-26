@@ -1,12 +1,12 @@
 import './modules/extensions.mjs';
-import { auth, db } from './firebase-config.js?v=2.3.5';
+import { auth, db } from './firebase-config.js?v=2.3';
 import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 // Main modules are now lazy-loaded
-import { getPermisosUsuario, getSystemVersion, migrateConductoresToPublicadores } from './data/firestore-services.js?v=2.3.5';
-import { showNotification } from './modules/utils/helpers.js?v=2.3.5';
-import { initPWA } from './modules/utils/pwa-manager.js?v=2.3.5';
-import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js?v=2.3.5';
+import { getPermisosUsuario, getSystemVersion, migrateConductoresToPublicadores } from './data/firestore-services.js?v=2.3';
+import { showNotification } from './modules/utils/helpers.js?v=2.3';
+import { initPWA } from './modules/utils/pwa-manager.js?v=2.3';
+import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js?v=2.3';
 
 // Lazy loaders for heavy modules
 const ModuleCache = {
@@ -16,25 +16,27 @@ const ModuleCache = {
 };
 
 async function loadLogin() {
-    if (!ModuleCache.login) ModuleCache.login = await import('./modules/login.js?v=2.3.5');
+    if (!ModuleCache.login) ModuleCache.login = await import('./modules/login.js?v=2.3');
     return ModuleCache.login.renderLogin;
 }
 
 async function loadAdmin() {
-    if (!ModuleCache.admin) ModuleCache.admin = await import('./modules/admin-dashboard.js?v=2.3.5');
+    if (!ModuleCache.admin) ModuleCache.admin = await import('./modules/admin-dashboard.js?v=2.3');
     return ModuleCache.admin.renderAdminDashboard;
 }
 
 async function loadConductor() {
-    if (!ModuleCache.conductor) ModuleCache.conductor = await import('./modules/conductor-dashboard.js?v=2.3.5');
+    if (!ModuleCache.conductor) ModuleCache.conductor = await import('./modules/conductor-dashboard.js?v=2.3');
     return ModuleCache.conductor.renderConductorDashboard;
 }
 
-// --- FORCED ONE-TIME SYNC TO v2.3.5 ---
+// --- FORCED ONE-TIME SYNC TO v2.3 ---
 (async () => {
-    const SYNC_VERSION = '2.3.5';
+    const SYNC_VERSION = '2.3';
     const syncKey = `app_sync_forced_v${SYNC_VERSION}`;
-    if (!localStorage.getItem(syncKey)) {
+    const oldVersion = localStorage.getItem('app_version');
+
+    if (!localStorage.getItem(syncKey) || (oldVersion && oldVersion !== SYNC_VERSION)) {
         console.warn(`🚀 Iniciando sincronización forzada a v${SYNC_VERSION}...`);
         try {
             if ('serviceWorker' in navigator) {
@@ -63,7 +65,7 @@ document.body.appendChild(createThemeToggle());
 // Init PWA & Notifications
 initPWA();
 
-const APP_VERSION = '2.3.5';
+const APP_VERSION = '2.3.6';
 
 // --- PWA INITIALIZATION ---
 
@@ -142,7 +144,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/service-worker.js?v=2.3.5');
+            navigator.serviceWorker.register('/service-worker.js?v=2.3');
         });
     }
 

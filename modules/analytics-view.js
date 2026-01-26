@@ -1,4 +1,4 @@
-import { getTerritorios, getConductores, getGlobalSettings, getHistorialReport } from '../data/firestore-services.js?v=2.3.5';
+import { getTerritorios, getConductores, getGlobalSettings, getHistorialReport } from '../data/firestore-services.js?v=2.3';
 
 export const renderAnalyticsView = async (container, appVersion) => {
 
@@ -127,7 +127,7 @@ export const renderAnalyticsView = async (container, appVersion) => {
             </div>
             
             <div class="text-center text-xs text-gray-400 py-4 font-black uppercase tracking-widest opacity-30">
-                App Territorios v${appVersion || '2.2.5'} Oficial • Powered by XOLVY
+                App Territorios v${appVersion || '2.3'} Oficial • Powered by XOLVY
             </div>
         </div>
     `;

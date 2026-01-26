@@ -1,6 +1,8 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, Timestamp } from "firebase/firestore";
 
+import { getAuth, signInAnonymously } from "firebase/auth";
+
 const firebaseConfig = {
     apiKey: "AIzaSyDrgpMp04uuFRz61vNIOzD9CCPl8p_wDL0",
     authDomain: "territorios-jw.firebaseapp.com",
@@ -12,10 +14,13 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
 
 async function run() {
-    const version = "2.3.5";
+    const version = "2.3";
     try {
+        console.log("🔐 Autenticando...");
+        await signInAnonymously(auth);
         console.log(`🚀 Publicando actualización forzada: v${version}`);
         await setDoc(doc(db, "configuracion", "version_control"), {
             latestVersion: version,
