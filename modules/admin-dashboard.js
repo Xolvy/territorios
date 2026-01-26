@@ -1,16 +1,16 @@
 import {
-    getSystemVersion, setSystemVersion, getHistorialReport
-} from '../data/firestore-services.js?v=2.3.1';
-import { auth } from '../firebase-config.js?v=2.3.1';
-import { showNotification } from './utils/helpers.js?v=2.3.1';
-import { GlassButton } from './services/ui-components.js?v=2.3.1';
+    getSystemVersion, setSystemVersion, getHistorialReport, getConfiguracion
+} from '../data/firestore-services.js?v=2.3.5';
+import { auth } from '../firebase-config.js?v=2.3.5';
+import { showNotification } from './utils/helpers.js?v=2.3.5';
+import { GlassButton } from './services/ui-components.js?v=2.3.5';
 
 // Import Views
-import { renderAnalyticsView } from './analytics-view.js?v=2.3.1';
-import { renderCasaEnCasaTab } from './admin/territories-view.js?v=2.3.1';
-import { renderPredicacionTab } from './admin/public-view.js?v=2.3.1';
-import { renderTelefonosTab } from './admin/phones-view.js?v=2.3.1';
-import { renderConfigTab } from './admin/rules-view.js?v=2.3.1';
+import { renderAnalyticsView } from './analytics-view.js?v=2.3.5';
+import { renderCasaEnCasaTab } from './admin/territories-view.js?v=2.3.5';
+import { renderPredicacionTab } from './admin/public-view.js?v=2.3.5';
+import { renderTelefonosTab } from './admin/phones-view.js?v=2.3.5';
+import { renderConfigTab } from './admin/rules-view.js?v=2.3.5';
 
 /**
  * Main Entry Point for the Administration Control Panel
@@ -22,12 +22,12 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
 
         // --- GLOBAL ADMIN HELPERS ---
         window.editHistoryRecord = async (id) => {
-            const { editHistoryRecord } = await import('./admin/history-view.js?v=2.3.1');
+            const { editHistoryRecord } = await import('./admin/history-view.js?v=2.3.5');
             await editHistoryRecord(id);
         };
 
         window.deleteHistoryRecordUI = async (id, cond, num) => {
-            const { deleteHistoryRecordUI } = await import('./admin/history-view.js?v=2.3.1');
+            const { deleteHistoryRecordUI } = await import('./admin/history-view.js?v=2.3.5');
             await deleteHistoryRecordUI(id, cond, num);
         };
 
@@ -80,21 +80,21 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
                     </div>
                 </header>
 
-                <div class="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8">
+                <div class="flex flex-col lg:flex-row gap-8 items-start">
                     <!-- Navigation -->
-                    <aside class="sticky top-8 h-fit z-40">
-                        <nav class="flex flex-row lg:flex-col gap-2 overflow-x-auto scrollbar-hide lg:overflow-visible p-1">
+                    <aside class="w-full lg:w-72 lg:sticky lg:top-8 z-40 shrink-0">
+                        <nav class="flex flex-row lg:flex-col gap-2 overflow-x-auto scrollbar-hide lg:overflow-visible p-1 glass-morphism rounded-3xl lg:bg-transparent lg:border-none lg:shadow-none lg:backdrop-blur-none transition-all">
                             ${renderNavItem('dashboard', 'fas fa-chart-line', 'Estadísticas', initialTab === 'dashboard')}
                             ${renderNavItem('casa-en-casa', 'fas fa-map-location-dot', 'Territorios', initialTab === 'casa-en-casa')}
                             ${renderNavItem('predicacion', 'fas fa-bullhorn', 'P. Pública', initialTab === 'predicacion')}
                             ${renderNavItem('telefonos', 'fas fa-phone-volume', 'Telefonía', initialTab === 'telefonos')}
-                            <div class="hidden lg:block h-px bg-slate-100 dark:bg-white/5 my-4 mx-4"></div>
+                            <div class="hidden lg:block h-px bg-slate-200 dark:bg-white/10 my-4 mx-4"></div>
                             ${renderNavItem('config', 'fas fa-sliders', 'Ajustes', initialTab === 'config')}
                         </nav>
                     </aside>
 
                     <!-- Main Content -->
-                    <main id="admin-content" class="min-h-[70vh] rounded-[2.5rem] bg-white/30 dark:bg-black/10 backdrop-blur-sm border border-slate-100 dark:border-white/5 shadow-inner">
+                    <main id="admin-content" class="flex-1 w-full min-h-[70vh] rounded-[2.5rem] bg-white/30 dark:bg-black/10 backdrop-blur-sm border border-slate-100 dark:border-white/5 shadow-inner overflow-hidden">
                         <!-- Dynamic views load here -->
                     </main>
                 </div>
@@ -114,9 +114,9 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
 };
 
 const renderNavItem = (id, icon, label, active) => `
-    <button class="nav-item ${active ? 'active' : ''} flex-1 lg:flex-none flex items-center gap-4 p-5 rounded-2xl transition-all group ${active ? 'bg-primary text-white shadow-xl shadow-primary/20' : 'hover:bg-primary/5 text-slate-500 dark:text-gray-400'}" data-tab="${id}">
-        <i class="${icon} text-lg transition-transform group-hover:scale-125"></i>
-        <span class="text-[11px] font-black uppercase tracking-widest hidden lg:block">${label}</span>
+    <button class="nav-item ${active ? 'active' : ''} flex-1 lg:flex-initial flex items-center justify-center lg:justify-start gap-4 p-5 rounded-2xl transition-all group ${active ? 'bg-primary text-white shadow-xl shadow-primary/20' : 'hover:bg-primary/5 text-slate-500 dark:text-gray-400'}" data-tab="${id}">
+        <i class="${icon} text-lg transition-transform group-hover:scale-125 shrink-0"></i>
+        <span class="text-[11px] font-black uppercase tracking-widest hidden lg:block whitespace-nowrap">${label}</span>
         ${active ? '<div class="hidden lg:block ml-auto w-1.5 h-1.5 rounded-full bg-white opacity-50"></div>' : ''}
     </button>
 `;
@@ -158,7 +158,8 @@ const loadTab = async (tabName, appVersion) => {
     try {
         switch (tabName) {
             case 'config':
-                await renderConfigTab(contentDiv, 'reglas', appVersion);
+                const config = await getConfiguracion();
+                await renderConfigTab(contentDiv, config, appVersion, (tabId) => loadTab(tabId, appVersion));
                 break;
             case 'casa-en-casa':
                 await renderCasaEnCasaTab(contentDiv);

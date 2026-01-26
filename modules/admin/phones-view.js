@@ -1,8 +1,8 @@
 import {
     getTelefonos, getPublicadores, updateTelefono, addTelefono, deleteTelefono, getConfiguracion
-} from '../../data/firestore-services.js?v=2.3.1';
-import { formatPhoneNumber, getStatusColor, showNotification } from '../utils/helpers.js?v=2.3.1';
-import { showModal, showCustomConfirm, UIHelpers } from '../services/ui-helpers.js?v=2.3.1';
+} from '../../data/firestore-services.js?v=2.3.5';
+import { formatPhoneNumber, getStatusColor, showNotification } from '../utils/helpers.js?v=2.3.5';
+import { showModal, showCustomConfirm, UIHelpers } from '../services/ui-helpers.js?v=2.3.5';
 
 export const renderTelefonosTab = async (container) => {
     const [telefonos, publicadores, config] = await Promise.all([
@@ -64,7 +64,12 @@ export const renderTelefonosTab = async (container) => {
     const searchInput = container.querySelector('#phone-search');
 
     const renderData = (query = '') => {
-        const filtered = query ? telefonos.filter(t => t.numero.includes(query) || (t.nombre && t.nombre.toLowerCase().includes(query.toLowerCase()))) : telefonos;
+        const lowerCaseQuery = query.toLowerCase();
+        const filtered = query ? telefonos.filter(t =>
+            t.numero.includes(query) ||
+            (t.nombre && t.nombre.toLowerCase().includes(lowerCaseQuery)) ||
+            (t.propietario && t.propietario.toLowerCase().includes(lowerCaseQuery))
+        ) : telefonos;
 
         const rows = filtered.map(t => `
             <tr class="group hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
@@ -74,13 +79,13 @@ export const renderTelefonosTab = async (container) => {
                             <i class="fas fa-address-book"></i>
                         </div>
                         <div>
-                            <p class="text-sm font-black text-slate-800 dark:text-gray-100 uppercase tracking-tight">${t.nombre || 'Desconocido'}</p>
+                            <p class="text-sm font-black text-slate-800 dark:text-gray-100 uppercase tracking-tight">${t.nombre || t.propietario || 'Desconocido'}</p>
                             <p class="text-xs font-mono text-slate-400 font-bold">${formatPhoneNumber(t.numero)}</p>
                         </div>
                     </div>
                 </td>
                 <td class="p-6 text-center">
-                    <span class="px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border ${t.estado === 'Asignado' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]' : 'bg-slate-100 dark:bg-white/5 text-slate-400 border-slate-200 dark:border-white/10'}">
+                    <span class="px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border ${t.solicitado_por ? 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20 shadow-[0_0_15px_rgba(79,70,229,0.1)]' : (t.estado && t.estado !== 'Sin asignar' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-slate-100 dark:bg-white/5 text-slate-400 border-slate-200 dark:border-white/10')}">
                         ${t.estado || 'Sin asignar'}
                     </span>
                 </td>
@@ -116,7 +121,7 @@ export const renderTelefonosTab = async (container) => {
                                 <p class="text-xs font-mono font-bold text-slate-400 mt-1">${formatPhoneNumber(t.numero)}</p>
                             </div>
                         </div>
-                        <span class="px-2.5 py-1.5 rounded-xl text-[8px] font-black uppercase border ${t.estado === 'Asignado' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-slate-50 dark:bg-white/5 text-slate-300 border-slate-100 dark:border-white/5'}">
+                        <span class="px-2.5 py-1.5 rounded-xl text-[8px] font-black uppercase border ${t.solicitado_por ? 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20' : (t.estado && t.estado !== 'Sin asignar' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-slate-50 dark:bg-white/5 text-slate-300 border-slate-100 dark:border-white/5')}">
                             ${t.estado || 'Libre'}
                         </span>
                     </div>
@@ -173,10 +178,14 @@ export const renderTelefonosTab = async (container) => {
                                 <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Estado</label>
                                 <select id="p-status" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[10px] font-black text-slate-600 dark:text-gray-300 outline-none focus:border-primary cursor-pointer appearance-none shadow-sm">
                                     <option value="Sin asignar" ${phone?.estado === 'Sin asignar' ? 'selected' : ''}>Disponible / Sin asignar</option>
-                                    <option value="Asignado" ${phone?.estado === 'Asignado' ? 'selected' : ''}>Asignado (En curso)</option>
-                                    <option value="Sin respuesta" ${phone?.estado === 'Sin respuesta' ? 'selected' : ''}>Sin respuesta / Volver a intentar</option>
-                                    <option value="No desea" ${phone?.estado === 'No desea' ? 'selected' : ''}>No desea recibir llamadas</option>
-                                    <option value="Número equivocado" ${phone?.estado === 'Número equivocado' ? 'selected' : ''}>Número equivocado / Fuera de servicio</option>
+                                    <option value="Contestaron" ${phone?.estado === 'Contestaron' ? 'selected' : ''}>Contestaron</option>
+                                    <option value="No contestan" ${phone?.estado === 'No contestan' ? 'selected' : ''}>No contestan</option>
+                                    <option value="Colgaron" ${phone?.estado === 'Colgaron' ? 'selected' : ''}>Colgaron</option>
+                                    <option value="Revisita" ${phone?.estado === 'Revisita' ? 'selected' : ''}>Revisita</option>
+                                    <option value="Predicado" ${phone?.estado === 'Predicado' ? 'selected' : ''}>Predicado</option>
+                                    <option value="No llamar" ${phone?.estado === 'No llamar' ? 'selected' : ''}>No llamar</option>
+                                    <option value="Suspendido" ${phone?.estado === 'Suspendido' ? 'selected' : ''}>Suspendido / Equivocado</option>
+                                    <option value="Testigo" ${phone?.estado === 'Testigo' ? 'selected' : ''}>Testigo</option>
                                 </select>
                             </div>
                             <div class="space-y-3">

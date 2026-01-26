@@ -1,15 +1,19 @@
 import {
     getTerritorios, deleteTerritorio, updateTerritorio
-} from '../../data/firestore-services.js?v=2.3.1';
-import { showNotification } from '../utils/helpers.js?v=2.3.1';
-import { showModal, showCustomConfirm } from '../services/ui-helpers.js?v=2.3.1';
+} from '../../data/firestore-services.js?v=2.3.5';
+import { showNotification } from '../utils/helpers.js?v=2.3.5';
+import { showModal, showCustomConfirm } from '../services/ui-helpers.js?v=2.3.5';
 
 export const renderS12View = async (container, config, appVersion) => {
     let terrs = await getTerritorios();
     terrs.sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true }));
 
     const renderGrid = (query = '') => {
-        const filtered = query ? terrs.filter(t => t.numero.toLowerCase().includes(query) || (t.nombre && t.nombre.toLowerCase().includes(query))) : terrs;
+        const filtered = query ? terrs.filter(t =>
+            t.numero.toLowerCase().includes(query) ||
+            (t.localidad && t.localidad.toLowerCase().includes(query)) ||
+            (t.nombre && t.nombre.toLowerCase().includes(query))
+        ) : terrs;
 
         const grid = container.querySelector('#s12-grid');
         if (!grid) return;
@@ -20,16 +24,22 @@ export const renderS12View = async (container, config, appVersion) => {
                     <div class="w-12 h-12 bg-slate-100 dark:bg-white/5 rounded-2xl flex items-center justify-center text-lg font-black text-primary shadow-inner">
                         ${t.numero}
                     </div>
-                    <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                         <button onclick="window.editTerritorioS12('${t.id}')" class="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 text-slate-500 hover:text-primary rounded-lg border border-slate-200 dark:border-white/10 shadow-sm transition-all"><i class="fas fa-edit text-[10px]"></i></button>
-                         <button onclick="window.deleteTerritorioS12('${t.id}')" class="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 text-slate-500 hover:text-rose-500 rounded-lg border border-slate-200 dark:border-white/10 shadow-sm transition-all"><i class="fas fa-trash-alt text-[10px]"></i></button>
+                    <div class="flex gap-2">
+                         <button onclick="window.viewMapFromBaseS12('${t.id}')" class="w-8 h-8 flex items-center justify-center bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500 rounded-lg border border-indigo-200 dark:border-indigo-500/20 shadow-sm transition-all hover:bg-indigo-500 hover:text-white" title="Ver Mapa"><i class="fas fa-map-marked-alt text-[10px]"></i></button>
+                         <button onclick="window.showHistoryFromBaseS12('${t.id}', '${t.numero}')" class="w-8 h-8 flex items-center justify-center bg-amber-50 dark:bg-amber-500/10 text-amber-500 rounded-lg border border-amber-200 dark:border-amber-500/20 shadow-sm transition-all hover:bg-amber-500 hover:text-white" title="Historial"><i class="fas fa-history text-[10px]"></i></button>
+                         <div class="w-px h-8 bg-slate-100 dark:bg-white/10 mx-1 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                         <button onclick="window.editTerritorioS12('${t.id}')" class="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 text-slate-500 hover:text-primary rounded-lg border border-slate-200 dark:border-white/10 shadow-sm transition-all opacity-0 group-hover:opacity-100"><i class="fas fa-edit text-[10px]"></i></button>
+                         <button onclick="window.deleteTerritorioS12('${t.id}')" class="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 text-slate-500 hover:text-rose-500 rounded-lg border border-slate-200 dark:border-white/10 shadow-sm transition-all opacity-0 group-hover:opacity-100"><i class="fas fa-trash-alt text-[10px]"></i></button>
                     </div>
                 </div>
-                <h4 class="text-sm font-bold text-slate-800 dark:text-white uppercase mb-1 truncate">${t.nombre || `Territorio ${t.numero}`}</h4>
-                <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">${t.tipo || 'Casa en Casa'}</p>
+                <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Territorio ${t.numero}</h4>
+                <p class="text-sm font-bold text-slate-800 dark:text-white uppercase truncate">${t.localidad || t.nombre || '—'}</p>
                 
                 <div class="mt-4 pt-4 border-t border-slate-50 dark:border-white/5 flex items-center justify-between">
-                    <span class="text-[8px] font-black px-2 py-1 rounded bg-slate-100 dark:bg-white/5 text-slate-500 uppercase">${t.estado || 'Disponible'}</span>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[8px] font-black px-2 py-1 rounded ${t.estado === 'Asignado' ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600'} uppercase">${t.estado || 'Disponible'}</span>
+                        ${t.asignado_a ? `<span class="text-[7px] font-black text-slate-400 uppercase truncate max-w-[60px]">${t.asignado_a}</span>` : ''}
+                    </div>
                     <span class="text-[8px] font-black text-slate-400 uppercase">${t.manzanas ? t.manzanas.split(',').length : 0} MZ</span>
                 </div>
             </div>
@@ -48,7 +58,10 @@ export const renderS12View = async (container, config, appVersion) => {
                     </h3>
                     <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] mt-2 ml-1">Catálogo maestro de territorios</p>
                 </div>
-                <div class="w-full sm:w-auto">
+                <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <button id="btn-export-s12" class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-500/20 active:scale-95 flex items-center gap-3">
+                        <i class="fas fa-print"></i> Imprimir Catálogo
+                    </button>
                     <input type="text" id="s12-search" placeholder="Filtrar por número..." class="w-full sm:w-64 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl px-5 py-4 text-sm font-bold shadow-sm outline-none focus:border-primary transition-all">
                 </div>
             </header>
@@ -64,6 +77,33 @@ export const renderS12View = async (container, config, appVersion) => {
         searchInput.oninput = (e) => renderGrid(e.target.value.trim().toLowerCase());
     }
 
+    const exportBtn = container.querySelector('#btn-export-s12');
+    if (exportBtn) {
+        exportBtn.onclick = () => {
+            const grid = container.querySelector('#s12-grid');
+            const { jsPDF } = window.jspdf;
+            showNotification("Generando catálogo S-12...", "info");
+
+            html2canvas(grid, {
+                scale: 2,
+                backgroundColor: (document.documentElement.classList.contains('dark') ? '#0d1117' : '#ffffff'),
+                logging: false,
+                useCORS: true
+            }).then(canvas => {
+                const doc = new jsPDF('p', 'mm', 'a4');
+                const imgData = canvas.toDataURL('image/png');
+                const pdfWidth = doc.internal.pageSize.getWidth();
+                const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+                // If larger than one page, we might need to split or just rescale
+                // For a directory, usually people prefer as list, but let's keep it as is for now
+                doc.addImage(imgData, 'PNG', 5, 5, pdfWidth - 10, Math.min(pdfHeight, 280));
+                doc.save(`S12_Catalogo_Territorios_${new Date().toISOString().split('T')[0]}.pdf`);
+                showNotification("Catálogo generado", "success");
+            });
+        };
+    }
+
     window.deleteTerritorioS12 = (id) => {
         showCustomConfirm("¿Eliminar este territorio del catálogo maestro?", async () => {
             await deleteTerritorio(id);
@@ -75,6 +115,8 @@ export const renderS12View = async (container, config, appVersion) => {
     window.editTerritorioS12 = async (id) => {
         const t = terrs.find(x => x.id === id);
         if (!t) return;
+
+        const tipos = config.tipos_territorio || ['Casa en Casa', 'Negocios', 'Pública'];
 
         showModal(`
             <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden">
@@ -94,8 +136,8 @@ export const renderS12View = async (container, config, appVersion) => {
                 <div class="flex-1 overflow-y-auto custom-scrollbar p-10 space-y-8 bg-slate-50 dark:bg-black/20">
                     <div class="grid grid-cols-1 gap-8">
                          <div class="space-y-3">
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Nombre / Descripción</label>
-                            <input type="text" id="edit-t-nombre" value="${t.nombre || ''}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all uppercase shadow-inner">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Localidad</label>
+                            <input type="text" id="edit-t-localidad" value="${t.localidad || t.nombre || ''}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all uppercase shadow-inner">
                         </div>
                         <div class="grid grid-cols-2 gap-6">
                             <div class="space-y-3">
@@ -105,9 +147,7 @@ export const renderS12View = async (container, config, appVersion) => {
                             <div class="space-y-3">
                                 <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Tipo</label>
                                 <select id="edit-t-tipo" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary cursor-pointer appearance-none shadow-inner">
-                                    <option value="Casa en Casa" ${t.tipo === 'Casa en Casa' ? 'selected' : ''}>Casa en Casa</option>
-                                    <option value="Negocios" ${t.tipo === 'Negocios' ? 'selected' : ''}>Negocios</option>
-                                    <option value="Pública" ${t.tipo === 'Pública' ? 'selected' : ''}>Pública</option>
+                                    ${tipos.map(ti => `<option value="${ti}" ${t.tipo === ti ? 'selected' : ''}>${ti}</option>`).join('')}
                                 </select>
                             </div>
                         </div>
@@ -136,7 +176,8 @@ export const renderS12View = async (container, config, appVersion) => {
 
                 try {
                     await updateTerritorio(id, {
-                        nombre: modal.querySelector('#edit-t-nombre').value.trim(),
+                        localidad: modal.querySelector('#edit-t-localidad').value.trim(),
+                        nombre: modal.querySelector('#edit-t-localidad').value.trim(), // Keep sync for backward compat
                         numero: modal.querySelector('#edit-t-numero').value.trim(),
                         tipo: modal.querySelector('#edit-t-tipo').value,
                         manzanas: modal.querySelector('#edit-t-mzs').value.trim()
@@ -151,6 +192,20 @@ export const renderS12View = async (container, config, appVersion) => {
                 }
             };
         });
+    };
+
+    // Button Logic Proxy
+    window.viewMapFromBaseS12 = async (id) => {
+        showNotification("Cargando mapa...", "info");
+        const { MapViewer } = await import('../map-viewer.js?v=' + appVersion);
+        const t = terrs.find(x => x.id === id);
+        if (t && window.openInteractiveMap) window.openInteractiveMap(t);
+        else if (t) MapViewer.openInteractiveMap(t);
+    };
+
+    window.showHistoryFromBaseS12 = async (id, num) => {
+        const { showUnifiedTerritoryHistory } = await import('../conductor-dashboard.js?v=' + appVersion);
+        if (window.showUnifiedTerritoryHistory) window.showUnifiedTerritoryHistory(id, num);
     };
 
     renderGrid();

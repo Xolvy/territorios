@@ -1,6 +1,6 @@
-import { saveConfiguracion } from '../../data/firestore-services.js?v=2.3.1';
-import { showCustomPrompt, showCustomConfirm } from '../services/ui-helpers.js?v=2.3.1';
-import { showNotification, ensureOnline } from '../utils/helpers.js?v=2.3.1';
+import { saveConfiguracion } from '../../data/firestore-services.js?v=2.3.5';
+import { showCustomPrompt, showCustomConfirm } from '../services/ui-helpers.js?v=2.3.5';
+import { showNotification, ensureOnline } from '../utils/helpers.js?v=2.3.5';
 
 export const renderConfigTab = async (container, config, appVersion, reloadTabFn) => {
     container.innerHTML = `
@@ -130,6 +130,22 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                     `).join('')}
                                 </div>
                             </div>
+
+                            <!-- Dynamic List for Territory Types -->
+                            <div class="relative group/input">
+                                <label class="label-premium flex items-center justify-between">
+                                    Tipos de Territorio
+                                    <button id="add-tipo-t" class="text-[9px] text-emerald-500 hover:underline">+ Añadir</button>
+                                </label>
+                                <div id="list-tipos-t" class="flex flex-wrap gap-2 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 min-h-[60px]">
+                                    ${(config.tipos_territorio || ['Casa en Casa', 'Negocios', 'Pública']).map((t, i) => `
+                                        <div class="bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-bold flex items-center gap-2 shadow-sm animate-scale-in">
+                                            ${t}
+                                            <button onclick="window.removeConfigItem('tipos_t', ${i})" class="text-slate-400 hover:text-red-500 transition-colors"><i class="fas fa-times"></i></button>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
                         </div>
                     </section>
                 </div>
@@ -158,12 +174,12 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
 
     // Helper functions for dynamic lists
     const addConfigItem = (type) => {
-        const labels = { horarios: 'Horario (ej. 09:00AM)', lugares: 'Lugar', facetas: 'Faceta' };
+        const labels = { horarios: 'Horario (ej. 09:00AM)', lugares: 'Lugar', facetas: 'Faceta', tipos_t: 'Tipo de Territorio' };
         showCustomPrompt(`Añadir ${labels[type]}:`, "", (val) => {
             if (!val) return;
             if (type === 'horarios') {
                 const newList = [...(config.horarios_programa || []), val];
-                // Smart Sort for AM/PM times
+                // ... (time sort logic)
                 const toMinutes = (s) => {
                     const match = s.match(/(\d+):(\d+)\s*(AM|PM)/i);
                     if (!match) return 0;
@@ -178,6 +194,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
             }
             if (type === 'lugares') config.lugares = [...(config.lugares || []), val];
             if (type === 'facetas') config.facetas = [...(config.facetas || []), val];
+            if (type === 'tipos_t') config.tipos_territorio = [...(config.tipos_territorio || ['Casa en Casa', 'Negocios', 'Pública']), val];
             reloadTabFn('reglas');
         });
     };
@@ -186,12 +203,17 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
         if (type === 'horarios') config.horarios_programa.splice(index, 1);
         if (type === 'lugares') config.lugares.splice(index, 1);
         if (type === 'facetas') config.facetas.splice(index, 1);
+        if (type === 'tipos_t') {
+            if (!config.tipos_territorio) config.tipos_territorio = ['Casa en Casa', 'Negocios', 'Pública'];
+            config.tipos_territorio.splice(index, 1);
+        }
         reloadTabFn('reglas');
     };
 
     container.querySelector('#add-horario').onclick = () => addConfigItem('horarios');
     container.querySelector('#add-lugar').onclick = () => addConfigItem('lugares');
     container.querySelector('#add-faceta').onclick = () => addConfigItem('facetas');
+    container.querySelector('#add-tipo-t').onclick = () => addConfigItem('tipos_t');
 
     container.querySelector('#save-reglas').onclick = async () => {
         const btn = container.querySelector('#save-reglas');
@@ -227,7 +249,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sincronizando...';
             btn.disabled = true;
             try {
-                const { runSystemDiagnosticsAndRepair } = await import('../../data/firestore-services.js?v=2.3.1');
+                const { runSystemDiagnosticsAndRepair } = await import('../../data/firestore-services.js?v=2.3.5');
                 await runSystemDiagnosticsAndRepair((msg, pc) => {
                     console.log(`[SyncMaster] ${msg} (${pc}%)`);
                 });

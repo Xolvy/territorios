@@ -1,4 +1,4 @@
-import { getTerritorios, getConductores, getGlobalSettings, getHistorialReport } from '../data/firestore-services.js?v=2.3.1';
+import { getTerritorios, getConductores, getGlobalSettings, getHistorialReport } from '../data/firestore-services.js?v=2.3.5';
 
 export const renderAnalyticsView = async (container, appVersion) => {
 
@@ -32,13 +32,14 @@ export const renderAnalyticsView = async (container, appVersion) => {
             </header>
 
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+                <!-- Operational Row -->
                 <div class="modern-card !p-4 md:!p-8 relative overflow-hidden group hover:border-primary/30 transition-all shadow-xl hover:shadow-primary/5 bg-white dark:bg-white/[0.02]">
                     <div class="absolute right-0 top-0 w-12 h-12 md:w-32 md:h-32 bg-primary/5 rounded-bl-full -mr-4 -mt-4 sm:-mr-8 sm:-mt-8 transition-transform group-hover:scale-110"></div>
                     <div class="relative z-10">
                         <p class="text-[8px] md:text-[10px] text-slate-600 dark:text-slate-400 font-extrabold uppercase tracking-[0.2em] mb-2 md:mb-4">Total Territorios</p>
                         <div class="text-2xl md:text-5xl font-black text-slate-800 dark:text-white tabular-nums tracking-tighter" id="stat-total-terr">-</div>
                         <div class="mt-4 md:mt-6 flex items-center gap-2 text-primary font-black text-[7px] md:text-[10px] uppercase tracking-widest">
-                            <i class="fas fa-globe-americas"></i> <span class="hidden xs:inline">Cobertura Global</span>
+                            <i class="fas fa-globe-americas"></i> <span class="hidden xs:inline">Catálogo Maestro</span>
                         </div>
                     </div>
                 </div>
@@ -72,6 +73,51 @@ export const renderAnalyticsView = async (container, appVersion) => {
                         <div class="text-2xl md:text-5xl font-black text-slate-800 dark:text-white tabular-nums tracking-tighter" id="stat-late">-</div>
                         <div class="mt-4 md:mt-6 flex items-center gap-2 text-rose-500 font-black text-[7px] md:text-[10px] uppercase tracking-widest">
                             <i class="fas fa-exclamation-triangle"></i> <span class="hidden xs:inline">Atrasados</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- S-13 History Row -->
+                <div class="modern-card !p-4 md:!p-8 relative overflow-hidden group hover:border-emerald-500/30 transition-all shadow-xl hover:shadow-emerald-500/5 bg-gradient-to-br from-emerald-600 to-teal-700 text-white">
+                    <div class="absolute right-0 top-0 w-12 h-12 md:w-32 md:h-32 bg-white/10 rounded-bl-full -mr-4 -mt-4 sm:-mr-8 sm:-mt-8 transition-transform group-hover:scale-150 duration-700"></div>
+                    <div class="relative z-10">
+                        <p class="text-[8px] md:text-[10px] text-white/70 font-extrabold uppercase tracking-[0.2em] mb-2 md:mb-4">Cobertura S-13</p>
+                        <div class="text-2xl md:text-5xl font-black tabular-nums tracking-tighter" id="stat-s13-coverage">-</div>
+                        <div class="mt-4 md:mt-6 flex items-center gap-2 text-white/60 font-black text-[7px] md:text-[10px] uppercase tracking-widest" id="stat-s13-coverage-info">
+                            <i class="fas fa-chart-pie"></i> <span class="hidden xs:inline">0 de 0 abarcados</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modern-card !p-4 md:!p-8 relative overflow-hidden group hover:border-orange-500/30 transition-all shadow-xl hover:shadow-orange-500/5 bg-white dark:bg-white/[0.02]">
+                    <div class="absolute right-0 top-0 w-12 h-12 md:w-32 md:h-32 bg-orange-500/5 rounded-bl-full -mr-4 -mt-4 sm:-mr-8 sm:-mt-8 transition-transform group-hover:scale-110"></div>
+                    <div class="relative z-10">
+                        <p class="text-[8px] md:text-[10px] text-slate-600 dark:text-slate-400 font-extrabold uppercase tracking-[0.2em] mb-2 md:mb-4">Faltantes</p>
+                        <div class="text-2xl md:text-5xl font-black text-slate-800 dark:text-white tabular-nums tracking-tighter" id="stat-s13-missing">-</div>
+                        <div class="mt-4 md:mt-6 flex items-center gap-2 text-orange-500 font-black text-[7px] md:text-[10px] uppercase tracking-widest">
+                            <i class="fas fa-map-marked"></i> <span class="hidden xs:inline">Por Trabajar</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modern-card !p-4 md:!p-8 relative overflow-hidden group hover:border-violet-500/30 transition-all shadow-xl hover:shadow-violet-500/5 bg-white dark:bg-white/[0.02]">
+                    <div class="absolute right-0 top-0 w-12 h-12 md:w-32 md:h-32 bg-violet-500/5 rounded-bl-full -mr-4 -mt-4 sm:-mr-8 sm:-mt-8 transition-transform group-hover:scale-110"></div>
+                    <div class="relative z-10">
+                        <p class="text-[8px] md:text-[10px] text-slate-600 dark:text-slate-400 font-extrabold uppercase tracking-[0.2em] mb-2 md:mb-4">Uso Frecuente</p>
+                        <div class="text-xl md:text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter truncate" id="stat-s13-frequent">-</div>
+                        <div class="mt-4 md:mt-6 flex items-center gap-2 text-violet-500 font-black text-[7px] md:text-[10px] uppercase tracking-widest" id="stat-s13-frequent-info">
+                            <i class="fas fa-redo-alt"></i> <span class="hidden xs:inline">0 veces</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modern-card !p-4 md:!p-8 relative overflow-hidden group hover:border-amber-500/30 transition-all shadow-xl hover:shadow-amber-500/5 bg-white dark:bg-white/[0.02]">
+                    <div class="absolute right-0 top-0 w-12 h-12 md:w-32 md:h-32 bg-amber-500/5 rounded-bl-full -mr-4 -mt-4 sm:-mr-8 sm:-mt-8 transition-transform group-hover:scale-110"></div>
+                    <div class="relative z-10">
+                        <p class="text-[8px] md:text-[10px] text-slate-600 dark:text-slate-400 font-extrabold uppercase tracking-[0.2em] mb-2 md:mb-4">Mayor Rezago</p>
+                        <div class="text-xl md:text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter truncate" id="stat-s13-oldest">-</div>
+                        <div class="mt-4 md:mt-6 flex items-center gap-2 text-amber-600 font-black text-[7px] md:text-[10px] uppercase tracking-widest" id="stat-s13-oldest-info">
+                            <i class="fas fa-history"></i> <span class="hidden xs:inline">Hace 0 días</span>
                         </div>
                     </div>
                 </div>
@@ -127,7 +173,7 @@ export const renderAnalyticsView = async (container, appVersion) => {
             </div>
             
             <div class="text-center text-xs text-gray-400 py-4 font-black uppercase tracking-widest opacity-30">
-                App Territorios v${appVersion || '2.3.1'} Oficial • Powered by XOLVY
+                App Territorios v${appVersion || '2.3.6'} Oficial • Powered by XOLVY
             </div>
         </div>
     `;
@@ -157,6 +203,40 @@ export const renderAnalyticsView = async (container, appVersion) => {
                 return diffDays > expDays;
             });
 
+            // --- S-13 (Historical) Calculations ---
+            const touchedNums = new Set(historial.map(h => String(h.numero)));
+            const s13CoveragePercent = total > 0 ? Math.round((touchedNums.size / total) * 100) : 0;
+            const s13MissingCount = territorios.filter(t => !touchedNums.has(String(t.numero))).length;
+
+            const territoryFreq = {};
+            historial.forEach(h => {
+                if (!h.numero) return;
+                const nums = h.numero.toString().split(/[,;]/).map(n => n.trim()).filter(n => n);
+                nums.forEach(num => {
+                    territoryFreq[num] = (territoryFreq[num] || 0) + 1;
+                });
+            });
+            const mostFreqSorted = Object.entries(territoryFreq).sort((a, b) => b[1] - a[1]);
+            const topTerritory = mostFreqSorted[0]?.[0] || '--';
+            const topCount = mostFreqSorted[0]?.[1] || 0;
+
+            const latestTouch = {};
+            historial.forEach(h => {
+                const d = h.fecha_entrega || h.fecha_asignacion;
+                if (!d) return;
+                const nums = h.numero.toString().split(/[,;]/).map(n => n.trim()).filter(n => n);
+                nums.forEach(num => {
+                    if (!latestTouch[num] || new Date(d) > new Date(latestTouch[num])) {
+                        latestTouch[num] = d;
+                    }
+                });
+            });
+
+            const rezagoSorted = territorios.filter(t => latestTouch[t.numero]).sort((a, b) => new Date(latestTouch[a.numero]) - new Date(latestTouch[b.numero]));
+            const oldestTerritory = rezagoSorted[0]?.numero || '--';
+            const daysRezago = rezagoSorted[0] ? Math.floor((new Date() - new Date(latestTouch[rezagoSorted[0].numero])) / (1000 * 60 * 60 * 24)) : 0;
+
+
             // Safety check: is the container still in the DOM and has our elements?
             if (!document.getElementById('stat-total-terr')) return;
 
@@ -166,6 +246,15 @@ export const renderAnalyticsView = async (container, appVersion) => {
             document.getElementById('stat-assigned-pct').innerText = `${assignedPct}% del total`;
             document.getElementById('stat-conductors').innerText = conductores.length;
             document.getElementById('stat-late').innerText = lateTerritories.length;
+
+            // Update S-13 Stats
+            document.getElementById('stat-s13-coverage').innerText = `${s13CoveragePercent}%`;
+            document.getElementById('stat-s13-coverage-info').innerText = `${touchedNums.size} de ${total} abarcados`;
+            document.getElementById('stat-s13-missing').innerText = s13MissingCount;
+            document.getElementById('stat-s13-frequent').innerText = topTerritory === '--' ? '--' : `Territorio ${topTerritory}`;
+            document.getElementById('stat-s13-frequent-info').innerText = `${topCount} ${topCount === 1 ? 'vez' : 'veces'}`;
+            document.getElementById('stat-s13-oldest').innerText = oldestTerritory === '--' ? '--' : `#${oldestTerritory}`;
+            document.getElementById('stat-s13-oldest-info').innerText = `Hace ${daysRezago} días`;
 
             // Render Chart 1
             const chartStatusEl = document.getElementById('chart-status');

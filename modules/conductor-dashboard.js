@@ -1,4 +1,4 @@
-import { auth } from '../firebase-config.js?v=2.3.1';
+import { auth } from '../firebase-config.js?v=2.3.5';
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import {
     getTerritorios, getConductores, getPublicadores, getTelefonos, updateTelefono,
@@ -8,10 +8,10 @@ import {
     addPublicador, updatePublicador, deletePublicador,
     releaseUnusedTelefonos, solicitarNumeros, updateTelefonoStatus, logSessionSummary,
     logReturn, returnTerritorio, returnTerritorioParcial, transferTerritory
-} from '../data/firestore-services.js?v=2.3.1';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, formatManzanas } from './utils/helpers.js?v=2.3.1';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=2.3.1';
-import { MapViewer } from './map-viewer.js?v=2.3.1';
+} from '../data/firestore-services.js?v=2.3.5';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, formatManzanas } from './utils/helpers.js?v=2.3.5';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=2.3.5';
+import { MapViewer } from './map-viewer.js?v=2.3.5';
 
 
 
@@ -234,7 +234,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
                     <div class="hidden sm:flex flex-col items-end mr-4 text-right">
                          <p class="text-[8px] font-black text-slate-400 uppercase tracking-[0.3em] mb-0.5">Versión</p>
-                         <p class="text-[10px] font-black text-slate-800 dark:text-white tabular-nums">${appVersion || '2.3.1'}</p>
+                         <p class="text-[10px] font-black text-slate-800 dark:text-white tabular-nums">${appVersion || '2.3.5'}</p>
                     </div>
                     ${(userRole === 'Administrador' || userRole === 'SuperAdmin' || conductorData?.privilegios?.includes('Administrador')) ? `
                     <button id="btn-goto-admin" class="flex-1 md:flex-none bg-amber-500/10 hover:bg-amber-500 text-amber-600 hover:text-white px-4 md:px-6 py-3.5 rounded-xl border border-amber-500/20 transition-all font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95 min-w-0">
@@ -307,7 +307,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                          </div>
                                          <div class="w-px h-8 bg-slate-200 dark:bg-white/10 mx-1"></div>
                                          <div class="flex items-center gap-2">
-                                             <button id="prog-btn-sync-offline" class="p-4 bg-teal-500/10 border border-teal-500/20 text-teal-600 hover:bg-teal-500 hover:text-white rounded-xl transition-all shadow-lg shadow-teal-500/5 group/sync" title="Pre-descargar territorios de la semana">
+                                             <button id="prog-btn-sync-offline" class="hidden p-4 bg-teal-500/10 border border-teal-500/20 text-teal-600 hover:bg-teal-500 hover:text-white rounded-xl transition-all shadow-lg shadow-teal-500/5 group/sync" title="Pre-descargar territorios de la semana">
                                                 <i class="fas fa-cloud-download-alt group-hover/sync:scale-110 transition-transform"></i>
                                                 <span class="hidden sm:inline ml-2 text-[9px] font-black uppercase tracking-widest">Pre-Cargar</span>
                                              </button>
@@ -1323,7 +1323,20 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
                                     </button>
                                 </div>
                                 `}
-                            </div>` : ''}
+                            </div>` : `
+                            <div class="px-5 py-6 bg-slate-50 dark:bg-white/[0.03] rounded-[2rem] border-2 border-dashed border-slate-200 dark:border-white/10 animate-fade-in group/empty-shift shadow-inner relative overflow-hidden text-center">
+                                <div class="absolute inset-0 bg-primary/5 opacity-0 group-hover/empty-shift:opacity-100 transition-opacity pointer-events-none"></div>
+                                <div class="flex flex-col items-center gap-3 relative z-10">
+                                    <div class="w-12 h-12 rounded-2xl bg-white dark:bg-slate-800 flex items-center justify-center text-primary text-lg shadow-sm group-hover/empty-shift:scale-110 transition-transform duration-500">
+                                        <i class="fas fa-bullhorn"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5 opacity-60">Actividad Planeada</p>
+                                        <p class="text-[14px] font-black text-primary uppercase tracking-tight">${a.faceta || 'Predicación General'}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            `}
                             
                             ${shiftIdx < dayData.shifts.length - 1 ? '<div class="h-px bg-slate-50 dark:bg-white/5 my-2"></div>' : ''}
                         </div>
@@ -1398,6 +1411,22 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
                     renderFilters();
                     renderDaySelector();
                     renderFullProgramaCards(prog, programCardsContainer, territoryMap, name, activeDayIndex, activeTurns);
+
+                    // Automatic Pre-load for Offline Use
+                    if (window.precacheTerritoryResources) {
+                        const weekTerritories = new Set();
+                        prog.dias.forEach(d => {
+                            ['manana', 'tarde', 'noche', 'zoom'].forEach(s => {
+                                if (d[s] && d[s].territorio) {
+                                    d[s].territorio.split(/[,/]+/).forEach(n => weekTerritories.add(n.trim()));
+                                }
+                            });
+                        });
+                        const territoriesToCache = allTerritorios.filter(t => weekTerritories.has(t.numero));
+                        if (territoriesToCache.length > 0) {
+                            window.precacheTerritoryResources(territoriesToCache);
+                        }
+                    }
                 } catch (err) {
                     console.error("Error loading week:", err);
                     if (programCardsContainer) {
@@ -1471,6 +1500,7 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
             const btnPrev = container.querySelector('#prog-prev-week');
             const btnNext = container.querySelector('#prog-next-week');
             const btnToday = container.querySelector('#prog-btn-today');
+            const btnExport = container.querySelector('#prog-export-png');
 
             if (btnPrev) btnPrev.onclick = () => { currentWeekStart.setDate(currentWeekStart.getDate() - 7); loadWeekData(); };
             if (btnNext) btnNext.onclick = () => { currentWeekStart.setDate(currentWeekStart.getDate() + 7); loadWeekData(); };
@@ -1931,12 +1961,18 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
                                             </div>` : ''}
                                         </div>
 
-                                        <div class="mt-2 pt-2 border-t border-black/5 dark:border-white/5">
+                                        <div class="mt-2 pt-2 border-t border-black/5 dark:border-white/5 space-y-2">
                                             <div class="flex flex-wrap gap-1">
                                                 ${sData.territorio ? sData.territorio.split(',').map(num => `
                                                     <span class="px-2 py-1 bg-slate-100 dark:bg-white/10 text-slate-500 dark:text-slate-400 rounded-lg text-[8px] font-black border border-slate-200 dark:border-white/10 uppercase">${num.trim()}</span>
-                                                `).join('') : '<span class="text-[8px] font-bold text-slate-300 italic uppercase">Libre</span>'}
+                                                `).join('') : '<span class="text-[8px] font-black text-slate-300 uppercase italic">Libre</span>'}
                                             </div>
+                                            ${sData.faceta ? `
+                                            <div class="flex items-center gap-1.5 opacity-60">
+                                                <i class="fas fa-bullhorn text-[8px] text-primary"></i>
+                                                <span class="text-[9px] font-black text-primary uppercase tracking-tight">${sData.faceta}</span>
+                                            </div>
+                                            ` : ''}
                                         </div>
                                     </div>
                                 </div>`;
@@ -2462,8 +2498,8 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
         const compactView = document.getElementById('phone-compact-view');
         const expandedView = document.getElementById('phone-expanded-view');
 
-        // State Tracking
-        let activeRequests = telefonos.filter(t => t.solicitado_por === userId);
+        // State Tracking - Use all provided telefonos (which are already filtered for this user in refreshPhones)
+        let activeRequests = telefonos;
         let isExpanded = activeRequests.length > 0;
 
         const setPhoneOpen = (open) => {
@@ -2594,7 +2630,7 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
 
             // Filter and Sort
             let filtered = activeRequests.filter(t => {
-                const matchSearch = !searchVal || t.numero.includes(searchVal) || (t.propietario && t.propietario.toLowerCase().includes(searchVal));
+                const matchSearch = !searchVal || t.numero.includes(searchVal) || (t.nombre && t.nombre.toLowerCase().includes(searchVal)) || (t.propietario && t.propietario.toLowerCase().includes(searchVal));
                 const matchStatus = !statusVal || t.estado === statusVal;
                 return matchSearch && matchStatus;
             });
@@ -2635,7 +2671,7 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
                         </div>
                     </td>
                     <td class="p-2 md:p-4 text-gray-700 dark:text-gray-300 text-[10px] md:text-xs font-bold truncate-text max-w-[80px] md:max-w-[150px] uppercase">
-                        ${t.propietario || '-'}
+                        ${t.nombre || t.propietario || '-'}
                     </td>
                     <td class="p-2 md:p-4 text-gray-400 dark:text-gray-500 text-[9px] md:text-[10px] uppercase tracking-wide truncate-text max-w-[120px] md:max-w-[200px] hidden sm:table-cell">
                         ${t.direccion || '-'}
@@ -2686,13 +2722,13 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
             const progressContainer = document.getElementById('phone-progress-info');
             if (progressContainer) {
                 progressContainer.innerHTML = `
-    <div class="flex items-center gap-4 text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest">
+                <div class="flex items-center gap-4 text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest">
                     <span>Progreso: <b class="text-teal-600 dark:text-teal-400">${totalProcessed}</b> / <b>${total}</b></span>
                     <div class="w-32 h-1.5 bg-gray-200 dark:bg-white/5 rounded-full overflow-hidden shadow-inner">
-                        <div class="h-full bg-gradient-to-r from-teal-500 to-emerald-500 transition-all duration-700 rounded-full" style="width: ${(totalProcessed / total) * 100}%"></div>
+                        <div class="h-full bg-gradient-to-r from-teal-500 to-emerald-500 transition-all duration-700 rounded-full" style="width: ${total === 0 ? 0 : (totalProcessed / total) * 100}%"></div>
                     </div>
-                </div>>
-    `;
+                </div>
+                `;
             }
 
             // Finalizar Session Button visibility
@@ -2720,8 +2756,8 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
                 newBtn.disabled = true;
                 newBtn.innerHTML = '<span class="animate-pulse">PROCESANDO...</span>';
                 try {
-                    // Ensure fresh start: release previous unassigned/unused ones first
-                    await releaseUnusedTelefonos(userId);
+                    // Ensure fresh start: release previous unassigned/unused ones first (plus global stale cleanup)
+                    await releaseUnusedTelefonos(userId, true);
                     const count = await solicitarNumeros(30, userId);
                     if (count > 0) {
                         showNotification(`¡Se te han asignado ${count} números nuevos!`, "success");

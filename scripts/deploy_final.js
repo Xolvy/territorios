@@ -1,6 +1,5 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, Timestamp } from "firebase/firestore";
-
 import { getAuth, signInAnonymously } from "firebase/auth";
 
 const firebaseConfig = {
@@ -17,7 +16,7 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 
 async function run() {
-    const version = "2.3";
+    const version = "2.3.5";
     try {
         console.log("🔐 Autenticando...");
         await signInAnonymously(auth);
@@ -28,7 +27,7 @@ async function run() {
             forceTimestamp: Date.now(),
             updatedAt: Timestamp.now()
         }, { merge: true });
-        console.log("✅ Versión remota actualizada. Todos los usuarios recibirán la señal de recarga.");
+        console.log("✅ Versión remota actualizada. v" + version);
         process.exit(0);
     } catch (e) {
         console.error("❌ Error al actualizar versión remota:", e);

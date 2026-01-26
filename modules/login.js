@@ -1,6 +1,6 @@
-import { auth } from '../firebase-config.js?v=2.3.1';
+import { auth } from '../firebase-config.js?v=2.3.5';
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { getPublicadores, getConfiguracion } from '../data/firestore-services.js?v=2.3.1';
+import { getPublicadores, getConfiguracion } from '../data/firestore-services.js?v=2.3.5';
 
 export const renderLogin = (container, appVersion) => {
     const cachedName = localStorage.getItem('cached_congregation_name') || "Sincronizando Portal...";
@@ -53,9 +53,7 @@ export const renderLogin = (container, appVersion) => {
                 <div class="grid grid-cols-1 gap-4 mt-6 sm:mt-8">
                     <button id="btn-admin" class="group modern-card text-left flex items-center gap-4 sm:gap-5 !p-4 sm:!p-5 hover:border-teal-500/30">
                         <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-teal-500/10 flex items-center justify-center text-teal-600 group-hover:bg-teal-600 group-hover:text-white transition-all duration-300">
-                            <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12.2.3 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                            </svg>
+                             <i class="fas fa-user-shield text-xl sm:text-2xl"></i>
                         </div>
                         <div class="flex-1">
                             <h3 class="text-sm sm:text-base font-bold text-slate-800 dark:text-white mb-0.5">Administrador</h3>
@@ -66,9 +64,7 @@ export const renderLogin = (container, appVersion) => {
 
                     <button id="btn-conductor" class="group modern-card text-left flex items-center gap-4 sm:gap-5 !p-4 sm:!p-5 hover:border-indigo-500/30">
                         <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300">
-                            <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                            </svg>
+                             <i class="fas fa-user-friends text-xl sm:text-2xl"></i>
                         </div>
                         <div class="flex-1">
                             <h3 class="text-sm sm:text-base font-bold text-slate-800 dark:text-white mb-0.5">Conductor</h3>
@@ -81,7 +77,7 @@ export const renderLogin = (container, appVersion) => {
                 <!-- Footer Info -->
                 <div class="pt-6 sm:pt-10 space-y-2 opacity-60">
                     <p id="app-version-label" class="text-[11px] text-slate-600 dark:text-slate-400 font-black tracking-tighter uppercase">
-                        Plataforma v${appVersion || '2.3.1'} · Modern 2026
+                        Plataforma v${appVersion || '2.3.5'} · Modern 2026
                     </p>
                     <p class="text-[10px] text-slate-500 dark:text-slate-400 font-bold tracking-tight">© Congregation Software Solutions · Ecuador</p>
                 </div>

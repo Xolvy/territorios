@@ -1,9 +1,10 @@
 import {
     getTerritorios, getConfiguracion, getPublicadores, getConductores,
-    getProgramaSemanal, saveProgramaSemanal, getGroupsConfig, returnTerritorioMultiple
-} from '../../data/firestore-services.js?v=2.3.1';
-import { showNotification } from '../utils/helpers.js?v=2.3.1';
-import { UIHelpers, showModal, showTerritorySelectionModal } from '../services/ui-helpers.js?v=2.3.1';
+    getProgramaSemanal, saveProgramaSemanal, getGroupsConfig, returnTerritorioMultiple,
+    getHistorialReport, returnTerritorioParcial
+} from '../../data/firestore-services.js?v=2.3.5';
+import { showNotification } from '../utils/helpers.js?v=2.3.5';
+import { UIHelpers, showModal, showTerritorySelectionModal } from '../services/ui-helpers.js?v=2.3.5';
 
 const { getMonday, formatDateId } = UIHelpers;
 
@@ -86,6 +87,14 @@ export const renderProgramaTab = async (container) => {
                         <button id="btn-sync-all-prog" class="hidden xl:flex items-center gap-2 px-6 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-emerald-500/20 active:scale-95 group">
                             <i class="fas fa-project-diagram group-hover:rotate-12 transition-transform"></i>
                             Formalizar Asignaciones
+                        </button>
+                        <button id="btn-s13-export" class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-4 rounded-xl font-black transition-all text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-500/20 active:scale-95 group" title="Exportar Registro de Asignaciones (S-13)">
+                            <i class="fas fa-file-pdf"></i>
+                            S-13
+                        </button>
+                        <button id="btn-s12-export-direct" class="flex items-center gap-2 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-slate-600 dark:text-slate-300 px-6 py-4 rounded-xl font-black transition-all text-[10px] uppercase tracking-widest shadow-sm active:scale-95 group" title="Exportar Registro de Territorios (S-12)">
+                            <i class="fas fa-shield-alt"></i>
+                            S-12
                         </button>
                         <button id="btn-reset-today" class="bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 px-6 py-4 rounded-xl font-black hover:bg-slate-50 transition-all text-[10px] uppercase tracking-widest">Hoy</button>
                         <button id="btn-reception-prog" class="flex items-center gap-2 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-rose-500 px-6 py-4 rounded-xl font-black hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all text-[10px] uppercase tracking-widest group" title="Recibir territorios finalizados">
@@ -182,6 +191,71 @@ export const renderProgramaTab = async (container) => {
                 </button>
             </div>
         `;
+    };
+
+    container.querySelector('#btn-s13-export').onclick = async () => {
+        const modal = document.getElementById('modal-container');
+        modal.classList.remove('hidden');
+        modal.innerHTML = `
+            <div class="w-full h-full flex items-center justify-center p-4">
+                <div class="bg-white dark:bg-slate-900 w-full max-w-6xl max-h-[90vh] rounded-[3rem] shadow-2xl flex flex-col overflow-hidden animate-scale-in">
+                    <header class="p-8 border-b border-slate-100 dark:border-white/5 flex justify-between items-center">
+                        <div class="flex items-center gap-4">
+                             <div class="w-12 h-12 bg-indigo-500/10 text-indigo-500 rounded-2xl flex items-center justify-center text-2xl">
+                                <i class="fas fa-file-invoice"></i>
+                             </div>
+                             <div>
+                                 <h3 class="text-xl font-black uppercase tracking-tight text-slate-800 dark:text-white">Centro de Exportación S-13</h3>
+                                 <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em]">Generación de Reportes Oficiales</p>
+                             </div>
+                        </div>
+                        <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="w-10 h-10 bg-slate-100 dark:bg-white/5 rounded-xl flex items-center justify-center hover:bg-rose-500/10 hover:text-rose-500 transition-all">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </header>
+                    <div id="s13-modal-content" class="flex-1 overflow-y-auto p-10 custom-scrollbar">
+                        <div class="flex items-center justify-center py-20 animate-pulse">
+                            <div class="w-10 h-10 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        const { renderS13CommandCenter } = await import('../report-s13.js?v=2.3.5');
+        await renderS13CommandCenter(document.getElementById('s13-modal-content'));
+    };
+
+    container.querySelector('#btn-s12-export-direct').onclick = async () => {
+        const modal = document.getElementById('modal-container');
+        modal.classList.remove('hidden');
+        modal.innerHTML = `
+            <div class="w-full h-full flex items-center justify-center p-4">
+                <div class="bg-white dark:bg-slate-900 w-full max-w-7xl max-h-[90vh] rounded-[3rem] shadow-2xl flex flex-col overflow-hidden animate-scale-in border border-slate-100 dark:border-white/5">
+                    <header class="p-8 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50/50 dark:bg-white/[0.02]">
+                        <div class="flex items-center gap-6">
+                             <div class="w-14 h-14 bg-amber-500/10 text-amber-500 rounded-3xl flex items-center justify-center text-3xl shadow-inner border border-amber-500/10">
+                                <i class="fas fa-database"></i>
+                             </div>
+                             <div>
+                                 <h3 class="text-2xl font-black uppercase tracking-tight text-slate-800 dark:text-white">Base de Datos (S-12)</h3>
+                                 <p class="text-[10px] text-slate-400 font-extrabold uppercase tracking-[0.4em] mt-1 opacity-70">Catálogo Maestro de Territorios</p>
+                             </div>
+                        </div>
+                        <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="w-12 h-12 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-sm">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </header>
+                    <div id="s12-modal-content" class="flex-1 overflow-y-auto p-4 md:p-10 custom-scrollbar bg-slate-50/30 dark:bg-transparent">
+                        <div class="flex flex-col items-center justify-center py-32 gap-6 opacity-30">
+                            <i class="fas fa-circle-notch fa-spin text-4xl text-amber-500"></i>
+                            <p class="text-xs font-black uppercase tracking-widest">Cargando Base S-12...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        const { renderS12View } = await import('./s12-view.js?v=2.3.5');
+        await renderS12View(document.getElementById('s12-modal-content'));
     };
 
     const renderFilters = () => {
@@ -460,7 +534,7 @@ export const renderProgramaTab = async (container) => {
                 const date = modal.querySelector('#sync-asig-date').value;
                 if (!date) return;
 
-                const { assignTerritorio } = await import('../../data/firestore-services.js?v=2.3.1');
+                const { assignTerritorio } = await import('../../data/firestore-services.js?v=2.3.5');
                 await assignTerritorio(tInfo.id, cond, {
                     fecha_asignacion: new Date(date + 'T12:00:00Z').toISOString(),
                     lugar: data.lugar || null,
@@ -522,23 +596,36 @@ export const renderProgramaTab = async (container) => {
                         <i class="fas fa-file-import"></i>
                     </div>
                     <div>
+                <div class="flex justify-between items-center mb-6">
+                    <div>
                         <h3 class="text-2xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">Recepción Manual</h3>
                         <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em] mt-1">Devolver territorios al inventario</p>
                     </div>
-                </header>
+                    <button id="reception-select-all" class="px-4 py-2 bg-slate-100 dark:bg-white/5 rounded-xl text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-all">Seleccionar Todos</button>
+                </div>
 
-                <div class="space-y-4 max-h-[400px] overflow-y-auto custom-scrollbar pr-2 pb-6">
+                <div class="space-y-4 max-h-[450px] overflow-y-auto custom-scrollbar pr-2 pb-6">
                     <div id="bulk-reception-list" class="space-y-3">
                         ${assigned.map(t => `
-                            <label class="flex items-center gap-4 p-5 modern-card border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer transition-all group active:scale-[0.98]">
-                                <input type="checkbox" class="reception-check w-6 h-6 rounded-lg accent-rose-500" value="${t.id}">
-                                <div class="flex-1">
-                                    <div class="flex justify-between items-center">
-                                        <p class="text-sm font-black text-slate-700 dark:text-white uppercase tracking-tight">#${t.numero} • ${t.asignado_a}</p>
-                                        <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest">${UIHelpers.fmtDateAt(t.fecha_asignacion)}</span>
+                            <div class="flex items-center gap-3 w-full group">
+                                <label class="flex-1 flex items-center gap-4 p-5 modern-card border-slate-100 dark:border-white/5 hover:bg-white dark:hover:bg-white/5 cursor-pointer transition-all active:scale-[0.98] relative overflow-hidden">
+                                     <div class="absolute inset-0 bg-rose-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+                                    <input type="checkbox" class="reception-check w-6 h-6 rounded-lg accent-rose-500 relative z-10" value="${t.id}">
+                                    <div class="flex-1 relative z-10">
+                                        <div class="flex justify-between items-center mb-1">
+                                            <p class="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">#${t.numero} • ${t.asignado_a}</p>
+                                            <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest">${UIHelpers.fmtDateAt(t.fecha_asignacion)}</span>
+                                        </div>
+                                        <div class="flex items-center gap-3">
+                                             ${t.faceta ? `<span class="text-[8px] font-black text-primary uppercase tracking-widest px-2 py-0.5 bg-primary/10 rounded-md"><i class="fas fa-bullhorn mr-1"></i>${t.faceta}</span>` : ''}
+                                             ${t.turno ? `<span class="text-[8px] font-black text-slate-400 uppercase tracking-widest px-2 py-0.5 bg-slate-100 dark:bg-white/5 rounded-md">${t.turno}</span>` : ''}
+                                        </div>
                                     </div>
-                                </div>
-                            </label>
+                                </label>
+                                <button onclick="window.openPartialReception('${t.id}')" class="p-5 modern-card border-amber-500/10 text-amber-500 hover:bg-amber-500 hover:text-white transition-all flex items-center justify-center shadow-sm" title="Devolución Parcial">
+                                    <i class="fas fa-scissors"></i>
+                                </button>
+                            </div>
                         `).join('')}
                     </div>
                 </div>
@@ -551,6 +638,13 @@ export const renderProgramaTab = async (container) => {
                 </div>
             </div>
         `, (modal) => {
+            let allSelected = false;
+            modal.querySelector('#reception-select-all').onclick = () => {
+                allSelected = !allSelected;
+                modal.querySelectorAll('.reception-check').forEach(cb => cb.checked = allSelected);
+                modal.querySelector('#reception-select-all').innerText = allSelected ? 'Deseleccionar' : 'Seleccionar Todos';
+            };
+
             modal.querySelector('#confirm-bulk-reception').onclick = async (e) => {
                 const checked = Array.from(modal.querySelectorAll('.reception-check:checked')).map(cb => cb.value);
                 if (checked.length === 0) return;
@@ -638,7 +732,7 @@ export const renderProgramaTab = async (container) => {
                 const date = modal.querySelector('#sync-all-date').value;
                 if (!date) return;
 
-                const { assignTerritorio } = await import('../../data/firestore-services.js?v=2.3.1');
+                const { assignTerritorio } = await import('../../data/firestore-services.js?v=2.3.5');
 
                 showNotification(`Procesando ${toSync.length} asignaciones...`, 'info');
 
@@ -657,6 +751,83 @@ export const renderProgramaTab = async (container) => {
                 loadWeekData();
             };
         });
+    };
+
+    window.openPartialReception = async (id) => {
+        const t = territorios.find(x => x.id === id);
+        if (!t) return;
+
+        const apples = t.manzanas ? t.manzanas.split(',').map(s => s.trim()).filter(Boolean) : [];
+        if (apples.length <= 1) {
+            return showNotification("El territorio no tiene múltiples manzanas para dividir. Use recepción total.", "warning");
+        }
+
+        showModal(`
+            <div class="p-8 space-y-8 bg-white dark:bg-[#0a0f18] rounded-[2.5rem] max-w-lg">
+                <header class="flex items-center gap-6">
+                    <div class="w-16 h-16 bg-amber-500/10 rounded-3xl flex items-center justify-center text-3xl text-amber-500 shadow-inner">
+                        <i class="fas fa-scissors"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">Devolución Parcial</h3>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em] mt-1">#${t.numero} • ${t.asignado_a}</p>
+                    </div>
+                </header>
+
+                <p class="text-[11px] font-bold text-slate-500 uppercase px-1">Seleccione las manzanas completadas:</p>
+                <div class="grid grid-cols-2 gap-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
+                    ${apples.map(a => `
+                        <label class="flex items-center gap-3 p-4 modern-card border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer transition-all">
+                            <input type="checkbox" class="apple-check w-5 h-5 rounded accent-amber-500" value="${a}">
+                            <span class="text-xs font-black text-slate-700 dark:text-white">${a}</span>
+                        </label>
+                    `).join('')}
+                </div>
+
+                <div class="space-y-4">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Acción con el resto</label>
+                    <select id="partial-unassign" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-xs font-bold uppercase tracking-widest text-slate-700 dark:text-white outline-none">
+                        <option value="true">Devolver resto al inventario</option>
+                        <option value="false">Mantener resto asignado a ${t.asignado_a}</option>
+                    </select>
+                </div>
+
+                <div class="pt-6 border-t border-slate-50 dark:border-white/5 flex gap-4">
+                    <button id="cancel-partial" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest transition-all">Cancelar</button>
+                    <button id="confirm-partial" class="flex-[2] py-5 bg-amber-500 hover:bg-amber-400 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-amber-500/20 active:scale-95 transition-all">PROCESAR DEVOLUCIÓN</button>
+                </div>
+            </div>
+        `, (modal) => {
+            modal.querySelector('#cancel-partial').onclick = () => modal.classList.add('hidden');
+            modal.querySelector('#confirm-partial').onclick = async (e) => {
+                const checked = Array.from(modal.querySelectorAll('.apple-check:checked')).map(cb => cb.value);
+                if (checked.length === 0) return showNotification("Seleccione al menos una manzana", "warning");
+
+                const unassign = modal.querySelector('#partial-unassign').value === 'true';
+                const remaining = apples.filter(a => !checked.includes(a));
+
+                if (remaining.length === 0 && !unassign) {
+                    return showNotification("Si devuelve todas las manzanas, no puede mantener el resto asignado.", "warning");
+                }
+
+                const btn = e.currentTarget;
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> PROCESANDO...';
+
+                try {
+                    await returnTerritorioParcial(t.id, checked, remaining, unassign, "Devolución parcial desde Programa", new Date().toISOString());
+                    showNotification(`Se devolvieron ${checked.length} manzanas.`);
+                    modal.classList.add('hidden');
+                    document.getElementById('modal-container').classList.add('hidden'); // Close reception modal too
+                    renderTable(); // Update program view
+                } catch (err) {
+                    console.error(err);
+                    showNotification("Error procesando devolución parcial", "error");
+                    btn.disabled = false;
+                    btn.innerHTML = 'PROCESAR DEVOLUCIÓN';
+                }
+            };
+        }, 'max-w-lg', 'modal-container-nested');
     };
 
     await loadWeekData();

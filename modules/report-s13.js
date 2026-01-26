@@ -1,6 +1,6 @@
-import { getHistorialReport, rebuildHistoryFromSchedule, getConfiguracion, getTerritorios, runSystemDiagnosticsAndRepair } from '../data/firestore-services.js?v=2.3.1';
-import { showNotification, generatePlainXLS } from './utils/helpers.js?v=2.3.1';
-import { S13Exporter } from './services/s13-exporter.js?v=2.3.1';
+import { getHistorialReport, rebuildHistoryFromSchedule, getConfiguracion, getTerritorios, runSystemDiagnosticsAndRepair } from '../data/firestore-services.js?v=2.3.5';
+import { showNotification, generatePlainXLS } from './utils/helpers.js?v=2.3.5';
+import { S13Exporter } from './services/s13-exporter.js?v=2.3.5';
 
 export const renderS13CommandCenter = async (container) => {
     const [history, config, territories] = await Promise.all([
@@ -9,81 +9,8 @@ export const renderS13CommandCenter = async (container) => {
         getTerritorios()
     ]);
 
-    let activeView = 'management';
-
-    // --- Metric Calculations ---
-    const touchedNums = new Set(history.map(h => String(h.numero)));
-    const totalT = territories.length;
-    const coveragePercent = totalT > 0 ? Math.round((touchedNums.size / totalT) * 100) : 0;
-    const missingCount = territories.filter(t => !touchedNums.has(String(t.numero))).length;
-
-    const territoryFreq = {};
-    history.forEach(h => {
-        if (!h.numero) return;
-        territoryFreq[h.numero] = (territoryFreq[h.numero] || 0) + 1;
-    });
-    const mostFreqSorted = Object.entries(territoryFreq).sort((a, b) => b[1] - a[1]);
-    const topTerritory = mostFreqSorted[0]?.[0] || '--';
-    const topCount = mostFreqSorted[0]?.[1] || 0;
-
-    const latestTouch = {};
-    history.forEach(h => {
-        const d = h.fecha_entrega || h.fecha_asignacion;
-        if (!d) return;
-        if (!latestTouch[h.numero] || new Date(d) > new Date(latestTouch[h.numero])) {
-            latestTouch[h.numero] = d;
-        }
-    });
-
-    const rezagoSorted = territories.filter(t => latestTouch[t.numero]).sort((a, b) => new Date(latestTouch[a.numero]) - new Date(latestTouch[b.numero]));
-    const oldestTerritory = rezagoSorted[0]?.numero || '--';
-    const daysRezago = rezagoSorted[0] ? Math.floor((new Date() - new Date(latestTouch[rezagoSorted[0].numero])) / (1000 * 60 * 60 * 24)) : 0;
-
     container.innerHTML = `
         <div class="space-y-8 animate-fade-in">
-            <!--Stats Dashboard-->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <!-- Cobertura -->
-                <div class="bg-gradient-to-br from-indigo-600 to-blue-700 p-8 rounded-[2rem] text-white shadow-xl shadow-indigo-500/20 group relative overflow-hidden transition-all hover:scale-[1.02]">
-                    <div class="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
-                    <p class="text-[10px] font-black uppercase tracking-[0.2em] opacity-70 mb-2">Cobertura Global</p>
-                    <p class="text-4xl font-black tabular-nums">${coveragePercent}%</p>
-                    <div class="flex items-center gap-2 mt-4 text-[9px] font-bold uppercase tracking-widest opacity-60">
-                         <i class="fas fa-chart-pie"></i> ${touchedNums.size} de ${totalT} abarcados
-                    </div>
-                </div>
-                
-                <!-- Faltantes -->
-                <div class="bg-white dark:bg-white/5 p-8 rounded-[2rem] border border-slate-100 dark:border-white/5 shadow-xl shadow-slate-200/50 dark:shadow-none transition-all hover:scale-[1.02]">
-                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Territorios Faltantes</p>
-                    <p class="text-4xl font-black text-red-500 tabular-nums">${missingCount}</p>
-                    <div class="flex items-center gap-3 mt-4">
-                        <div class="flex-1 h-1.5 bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden">
-                            <div class="h-full bg-red-500 rounded-full" style="width: ${100 - coveragePercent}%"></div>
-                        </div>
-                        <span class="text-[10px] font-black text-red-500 uppercase">Faltan</span>
-                    </div>
-                </div>
-
-                <!-- Uso Frecuente -->
-                <div class="bg-white dark:bg-white/5 p-8 rounded-[2rem] border border-slate-100 dark:border-white/5 shadow-xl shadow-slate-200/50 dark:shadow-none transition-all hover:scale-[1.02]">
-                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Uso Frecuente</p>
-                    <p class="text-2xl font-black text-slate-800 dark:text-white truncate">Territorio ${topTerritory}</p>
-                    <div class="flex items-center gap-2 mt-4 text-[9px] text-indigo-500 font-bold uppercase tracking-widest">
-                        <i class="fas fa-redo-alt"></i> Asignado ${topCount} ${topCount === 1 ? 'vez' : 'veces'}
-                    </div>
-                </div>
-
-                <!-- Rezago -->
-                <div class="bg-white dark:bg-white/5 p-8 rounded-[2rem] border border-slate-100 dark:border-white/5 shadow-xl shadow-slate-200/50 dark:shadow-none transition-all hover:scale-[1.02]">
-                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Mayor Rezago</p>
-                    <p class="text-2xl font-black text-orange-600 truncate">#${oldestTerritory}</p>
-                    <div class="flex items-center gap-2 mt-4 text-[9px] text-slate-400 font-bold uppercase tracking-widest">
-                        <i class="fas fa-history"></i> Hace ${daysRezago} días
-                    </div>
-                </div>
-            </div>
-
             <!--Unified Control Bar-->
             <div class="modern-card !p-6 flex flex-col lg:flex-row items-center gap-6 border-slate-200 dark:border-white/5 shadow-2xl">
                 <!-- Left: Date Filters -->
@@ -104,41 +31,26 @@ export const renderS13CommandCenter = async (container) => {
                     </div>
                 </div>
 
-                <!-- Center: Universal Search -->
+                <!-- Center: Universal Search (For Filtering S13) -->
                 <div class="relative flex-1 group min-w-[200px] w-full lg:w-auto">
                     <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary">
                         <i class="fas fa-search"></i>
                     </span>
-                    <input type="text" id="cc-universal-search" placeholder="Búsqueda global (Conductor, #, Estado)..." class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-2xl pl-14 pr-6 py-4 text-xs font-bold shadow-sm outline-none focus:border-primary transition-all text-slate-700 dark:text-white placeholder:text-slate-400">
+                    <input type="text" id="cc-universal-search" placeholder="Filtrar por responsable o #..." class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-2xl pl-14 pr-6 py-4 text-xs font-bold shadow-sm outline-none focus:border-primary transition-all text-slate-700 dark:text-white placeholder:text-slate-400">
                 </div>
 
                 <!-- Right: Actions -->
                 <div class="flex items-center gap-3">
                     <button id="cc-btn-generate" class="bg-primary hover:bg-primary-light text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 transition-all active:scale-95 flex items-center gap-3 whitespace-nowrap">
-                        <i class="fas fa-file-invoice"></i> Generar Reporte
-                    </button>
-                    <div class="h-10 w-px bg-slate-200 dark:bg-white/10 mx-2"></div>
-                    <button id="cc-btn-tools" class="w-12 h-12 flex items-center justify-center bg-slate-100 dark:bg-white/5 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-all border border-slate-200 dark:border-white/5" title="Herramientas Avanzadas">
-                        <i class="fas fa-tools"></i>
+                        <i class="fas fa-eye"></i> Mostrar Registros
                     </button>
                 </div>
             </div>
 
-            <!--View Toggle & Sub-Content-->
-                    <div class="space-y-6">
-                        <nav class="flex gap-2 p-1.5 bg-slate-100 dark:bg-white/5 w-fit rounded-2xl border border-slate-200 dark:border-white/5">
-                            <button class="cc-view-btn px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 whitespace-nowrap" data-view="management">
-                                <i class="fas fa-database"></i> Gestión de Historial
-                            </button>
-                            <button class="cc-view-btn px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 whitespace-nowrap" data-view="s13">
-                                <i class="fas fa-list-alt"></i> Reporte S-13
-                            </button>
-                        </nav>
-
-                        <div id="cc-main-container" class="min-h-[600px] modern-card !p-0 overflow-hidden border-slate-100 dark:border-white/5">
-                            <!-- Dynamic View Content -->
-                        </div>
-                    </div>
+            <!--Main Report Container-->
+            <div id="cc-main-container" class="min-h-[600px] modern-card !p-0 overflow-hidden border-slate-100 dark:border-white/5">
+                <!-- S13 Content -->
+            </div>
         </div>
     `;
 
@@ -168,367 +80,21 @@ export const renderS13CommandCenter = async (container) => {
     setDatesFromSY(serviceYear);
     if (yearSelect) yearSelect.onchange = (e) => setDatesFromSY(e.target.value);
 
-    // View Loading Logic
-    const loadView = async (view) => {
-        activeView = view;
-        const mainCont = container.querySelector('#cc-main-container');
-        if (!mainCont) return;
-
-        window.dispatchModuleSync = () => {
-            loadView(view);
-        };
-
-        mainCont.innerHTML = `
-            <div class="flex flex-col items-center justify-center p-40 gap-4 animate-pulse">
-                <div class="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
-                <p class="text-[10px] font-black uppercase text-primary tracking-[0.2em]">Preparando vista inteligente...</p>
-            </div>`;
-
-        // Update Buttons Styling
-        container.querySelectorAll('.cc-view-btn').forEach(btn => {
-            const isActive = btn.dataset.view === view;
-            btn.classList.toggle('active', isActive);
-
-            if (isActive) {
-                btn.className = "cc-view-btn active px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 bg-slate-900 dark:bg-white/10 text-white shadow-xl whitespace-nowrap";
-            } else {
-                btn.className = "cc-view-btn px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 text-slate-600 dark:text-slate-400 hover:text-primary whitespace-nowrap";
-            }
-        });
-
-        if (view === 's13') {
-            await renderHistoryTab(mainCont, {
-                showHeader: false,
-                startInput: startInput,
-                endInput: endInput
-            });
-            const genBtn = container.querySelector('#cc-btn-generate');
-            if (genBtn) {
-                genBtn.innerHTML = '<i class="fas fa-file-invoice"></i> Generar Reporte';
-                genBtn.onclick = () => document.getElementById('btn-generate-report')?.click();
-            }
-        } else {
-            await renderAdvancedHistoryView(mainCont, {
-                showHeader: false,
-                searchInputId: 'cc-universal-search'
-            });
-            const genBtn = container.querySelector('#cc-btn-generate');
-            if (genBtn) {
-                genBtn.innerHTML = '<i class="fas fa-bolt-lightning"></i> Power Sync Global';
-                genBtn.onclick = async () => {
-                    const innerCont = container.querySelector('#cc-main-container');
-                    innerCont.innerHTML = `
-                        <div class="flex flex-col items-center justify-center p-32 gap-10 animate-fade-in">
-                            <div class="relative w-32 h-32">
-                                <svg class="w-full h-full -rotate-90">
-                                    <circle cx="64" cy="64" r="58" stroke="currentColor" stroke-width="8" fill="transparent" class="text-slate-100 dark:text-white/5" />
-                                    <circle id="diag-progress-circle" cx="64" cy="64" r="58" stroke="currentColor" stroke-width="8" fill="transparent" stroke-dasharray="364.42" stroke-dashoffset="364.42" class="text-primary transition-all duration-500 stroke-round" />
-                                </svg>
-                                <div id="diag-pc" class="absolute inset-0 flex items-center justify-center text-xl font-black text-slate-800 dark:text-white">0%</div>
-                            </div>
-                            <div class="text-center space-y-4 max-w-sm">
-                                 <div class="bg-primary/10 text-primary text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-[0.2em] inline-block mb-2">Power Up: Sincronización</div>
-                                 <h4 class="text-lg font-black uppercase tracking-tight text-slate-800 dark:text-white">Optimizando Base de Datos</h4>
-                                 <p id="diag-msg" class="text-[11px] font-bold text-slate-400 leading-relaxed">Iniciando protocolo de diagnóstico profundo...</p>
-                            </div>
-                        </div>`;
-
-                    const circle = innerCont.querySelector('#diag-progress-circle');
-                    const pcText = innerCont.querySelector('#diag-pc');
-                    const msgText = innerCont.querySelector('#diag-msg');
-                    const circumference = 364.42;
-
-                    const report = await runSystemDiagnosticsAndRepair((msg, pc) => {
-                        if (pcText) pcText.textContent = `${pc}%`;
-                        if (msgText) msgText.textContent = msg;
-                        if (circle) {
-                            const offset = circumference - (pc / 100) * circumference;
-                            circle.style.strokeDashoffset = offset;
-                        }
-                    });
-
-                    // Results Modal
-                    showModal(`
-                        <div class="p-10 space-y-8 animate-fade-in">
-                            <header class="flex items-center gap-6 border-b border-slate-100 dark:border-white/5 pb-8">
-                                <div class="w-16 h-16 bg-emerald-500/10 text-emerald-500 rounded-3xl flex items-center justify-center text-2xl shadow-inner">
-                                    <i class="fas fa-check-double"></i>
-                                </div>
-                                <div>
-                                    <h3 class="text-2xl font-black uppercase tracking-tight leading-none mb-1">Optimización Exitosa</h3>
-                                    <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Resultados del Diagnóstico</p>
-                                </div>
-                            </header>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div class="bg-slate-50 dark:bg-white/5 p-6 rounded-2xl border border-slate-200 dark:border-white/5 text-center">
-                                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">S13</p>
-                                    <p class="text-2xl font-black text-slate-800 dark:text-white">${report.rebuiltHistory}</p>
-                                </div>
-                                <div class="bg-slate-50 dark:bg-white/5 p-6 rounded-2xl border border-slate-200 dark:border-white/5 text-center">
-                                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Ajustes</p>
-                                    <p class="text-2xl font-black text-slate-800 dark:text-white">${report.fixedTerritories}</p>
-                                </div>
-                            </div>
-                            <button onclick="closeModal(); renderS13CommandCenter(document.getElementById('cc-main-container').parentElement.parentElement)" class="w-full bg-primary text-white py-5 rounded-2xl text-[11px] font-black uppercase tracking-widest">Finalizar</button>
-                        </div>
-                    `);
-                    renderS13CommandCenter(container);
-                };
-            }
-        }
-    };
-
-    container.querySelectorAll('.cc-view-btn').forEach(btn => {
-        btn.onclick = () => loadView(btn.dataset.view);
+    // Default to S13 Report
+    const mainCont = container.querySelector('#cc-main-container');
+    await renderHistoryTab(mainCont, {
+        showHeader: false,
+        startInput: startInput,
+        endInput: endInput
     });
 
-    const toolBtn = container.querySelector('#cc-btn-tools');
-    if (toolBtn) {
-        toolBtn.onclick = () => {
-            showModal(`
-                <div class="p-8 space-y-6">
-                    <h3 class="text-xl font-black uppercase">Mantenimiento Global</h3>
-                    <button id="tool-rebuild" class="w-full text-left p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200">Reconstruir Historial</button>
-                </div>
-            `, (modal) => {
-                modal.querySelector('#tool-rebuild').onclick = () => {
-                    modal.classList.add('hidden');
-                    document.getElementById('btn-rebuild-history')?.click();
-                };
-            });
+    const genBtn = container.querySelector('#cc-btn-generate');
+    if (genBtn) {
+        genBtn.onclick = () => {
+            const internalBtn = mainCont.querySelector('#btn-generate-report-hidden');
+            if (internalBtn) internalBtn.click();
         };
     }
-
-    loadView('management');
-};
-
-
-export const renderAdvancedHistoryView = async (container, options = {}) => {
-    const history = await getHistorialReport();
-    const config = await getConfiguracion();
-    const territories = await getTerritorios();
-
-    // Set sync global for admin actions
-    window.dispatchModuleSync = () => {
-        renderAdvancedHistoryView(container, options);
-    };
-
-    // Flatten history: one row per territory number
-    const flatHistory = [];
-    history.forEach(item => {
-        if (!item.numero) return;
-        const nums = item.numero.toString().split(/[,;]/).map(n => n.trim()).filter(n => n);
-        nums.forEach(num => {
-            flatHistory.push({
-                ...item,
-                numero: num // Virtual override for display
-            });
-        });
-    });
-
-    let filteredHistory = [...flatHistory].sort((a, b) => new Date(b.fecha_asignacion || 0) - new Date(a.fecha_asignacion || 0));
-    let currentPage = 1;
-    const itemsPerPage = 20;
-
-    const render = () => {
-        // --- Metric Calculations (Sync with Dashboard Logic) ---
-        const touchedNums = new Set(history.map(h => String(h.numero)));
-        const totalT = territories.length;
-        const coveragePercent = totalT > 0 ? Math.round((touchedNums.size / totalT) * 100) : 0;
-        const missingCount = territories.filter(t => !touchedNums.has(String(t.numero))).length;
-
-        const territoryFreq = {};
-        history.forEach(h => {
-            if (!h.numero) return;
-            territoryFreq[h.numero] = (territoryFreq[h.numero] || 0) + 1;
-        });
-        const mostFreqSorted = Object.entries(territoryFreq).sort((a, b) => b[1] - a[1]);
-        const topTerritory = mostFreqSorted[0]?.[0] || '--';
-        const topCount = mostFreqSorted[0]?.[1] || 0;
-
-        const latestTouch = {};
-        history.forEach(h => {
-            const d = h.fecha_entrega || h.fecha_asignacion;
-            if (!d) return;
-            if (!latestTouch[h.numero] || new Date(d) > new Date(latestTouch[h.numero])) {
-                latestTouch[h.numero] = d;
-            }
-        });
-
-        const rezagoSorted = territories.filter(t => latestTouch[t.numero]).sort((a, b) => new Date(latestTouch[a.numero]) - new Date(latestTouch[b.numero]));
-        const oldestTerritory = rezagoSorted[0]?.numero || '--';
-        const daysRezago = rezagoSorted[0] ? Math.floor((new Date() - new Date(latestTouch[rezagoSorted[0].numero])) / (1000 * 60 * 60 * 24)) : 0;
-
-        const start = (currentPage - 1) * itemsPerPage;
-        const end = start + itemsPerPage;
-        const pageItems = filteredHistory.slice(start, end);
-        const totalPages = Math.ceil(filteredHistory.length / itemsPerPage);
-
-        container.innerHTML = `
-            <div class="space-y-8 animate-fade-in">
-                <!-- Metrics Header (Consolidated) -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div class="bg-gradient-to-br from-primary to-indigo-700 p-8 rounded-[2.5rem] text-white shadow-2xl shadow-primary/20 group relative overflow-hidden transition-all hover:scale-[1.02]">
-                        <div class="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
-                        <p class="text-[10px] font-black uppercase tracking-[0.3em] opacity-70 mb-2">Cobertura Global</p>
-                        <p class="text-4xl font-black tabular-nums">${coveragePercent}%</p>
-                        <div class="flex items-center gap-2 mt-4 text-[9px] font-bold uppercase tracking-widest opacity-60">
-                             <i class="fas fa-chart-pie"></i> ${touchedNums.size} de ${totalT} abarcados
-                        </div>
-                    </div>
-                    
-                    <div class="bg-white dark:bg-white/[0.03] p-8 rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-xl transition-all hover:scale-[1.02]">
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">Faltantes</p>
-                        <p class="text-4xl font-black text-rose-500 tabular-nums">${missingCount}</p>
-                        <div class="flex items-center gap-3 mt-4">
-                            <div class="flex-1 h-1.5 bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden">
-                                <div class="h-full bg-rose-500 rounded-full" style="width: ${100 - coveragePercent}%"></div>
-                            </div>
-                            <span class="text-[9px] font-black text-rose-500 uppercase tracking-widest">En espera</span>
-                        </div>
-                    </div>
-
-                    <div class="bg-white dark:bg-white/[0.03] p-8 rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-xl transition-all hover:scale-[1.02]">
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">Uso Frecuente</p>
-                        <p class="text-2xl font-black text-slate-800 dark:text-white truncate">Territorio ${topTerritory}</p>
-                        <div class="flex items-center gap-2 mt-4 text-[9px] text-primary font-bold uppercase tracking-widest">
-                            <i class="fas fa-redo-alt"></i> Asignado ${topCount} ${topCount === 1 ? 'vez' : 'veces'}
-                        </div>
-                    </div>
-
-                    <div class="bg-white dark:bg-white/[0.03] p-8 rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-xl transition-all hover:scale-[1.02]">
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">Mayor Rezago</p>
-                        <p class="text-2xl font-black text-orange-600 truncate">#${oldestTerritory}</p>
-                        <div class="flex items-center gap-2 mt-4 text-[9px] text-slate-400 font-bold uppercase tracking-widest">
-                            <i class="fas fa-history"></i> Hace ${daysRezago} días
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flex flex-col h-full bg-white dark:bg-black/20 rounded-[2.5rem] overflow-hidden border border-slate-100 dark:border-white/5 shadow-2xl">
-                <div class="overflow-x-auto custom-scrollbar-horizontal px-6 pt-6">
-                    <table class="w-full text-left border-separate border-spacing-y-4">
-                        <thead>
-                            <tr class="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">
-                                <th class="px-8 pb-4">Territorio</th>
-                                <th class="px-8 pb-4">Conductor / Asignado</th>
-                                <th class="px-8 pb-4">Periodo Activo</th>
-                                <th class="px-8 pb-4">Estado</th>
-                                <th class="px-8 pb-4 text-right">Trazabilidad</th>
-                            </tr>
-                        </thead>
-                        <tbody class="font-bold">
-                            ${pageItems.map(h => {
-            const getStatusStyles = (status) => {
-                switch (status) {
-                    case 'Completado': return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
-                    case 'Pendiente': return 'bg-amber-500/10 text-amber-600 border-amber-500/20';
-                    case 'Cancelado': return 'bg-rose-500/10 text-rose-500 border-rose-500/20';
-                    case 'Asignado': return 'bg-primary/10 text-primary border-primary/20';
-                    default: return 'bg-slate-50 text-slate-400 border-slate-200';
-                }
-            };
-            const terr = territories.find(t => String(t.numero) === String(h.numero));
-            return `
-                                    <tr class="group bg-white dark:bg-white/[0.03] hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-all duration-300 shadow-sm rounded-[2rem]">
-                                        <td class="px-8 py-5 first:rounded-l-[1.5rem] last:rounded-r-[1.5rem] border-y border-l border-slate-100 dark:border-white/5">
-                                            <div class="flex items-center gap-5">
-                                                <div class="w-12 h-12 rounded-2xl bg-slate-900 text-white dark:bg-white/10 flex items-center justify-center font-black text-lg shadow-lg group-hover:scale-110 transition-transform">
-                                                    ${h.numero}
-                                                </div>
-                                                <div class="flex flex-col">
-                                                    <span class="text-[9px] font-black uppercase tracking-widest text-slate-400 opacity-60">Ubicación</span>
-                                                    <span class="text-[11px] font-black uppercase tracking-tight text-slate-800 dark:text-white truncate max-w-[150px]">${terr?.localidad || 'N/A'}</span>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td class="px-8 py-5 border-y border-slate-100 dark:border-white/5">
-                                            <div class="flex flex-col">
-                                                <span class="text-[9px] font-black uppercase tracking-widest text-slate-400 opacity-60 mb-1">Responsable</span>
-                                                <span class="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight">${h.conductor}</span>
-                                            </div>
-                                        </td>
-                                        <td class="px-8 py-5 border-y border-slate-100 dark:border-white/5 whitespace-nowrap">
-                                            <div class="flex items-center gap-3">
-                                                <div class="px-3 py-2 bg-slate-100 dark:bg-white/5 rounded-xl text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">
-                                                    ${h.fecha_asignacion ? new Date(h.fecha_asignacion).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'}
-                                                </div>
-                                                <i class="fas fa-chevron-right text-[8px] text-slate-300"></i>
-                                                <div class="px-3 py-2 bg-slate-100 dark:bg-white/5 rounded-xl text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">
-                                                    ${h.fecha_entrega ? new Date(h.fecha_entrega).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : (h.estado === 'Pendiente' || h.estado === 'Asignado' ? '<span class="text-primary">—</span>' : '—')}
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td class="px-8 py-5 border-y border-slate-100 dark:border-white/5">
-                                            <span class="px-4 py-2 rounded-xl border-2 text-[8px] font-black uppercase tracking-[0.2em] shadow-sm ${getStatusStyles(h.estado)}">
-                                                ${h.estado}
-                                            </span>
-                                        </td>
-                                        <td class="px-8 py-5 border-y border-r border-slate-100 dark:border-white/5 text-right first:rounded-l-[1.5rem] last:rounded-r-[1.5rem]">
-                                            <div class="flex justify-end gap-3 translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all">
-                                                <button onclick="window.editHistoryRecord('${h.id}')" class="w-10 h-10 flex items-center justify-center bg-white dark:bg-white/10 text-slate-600 dark:text-white hover:bg-primary hover:text-white rounded-[1rem] border border-slate-200 dark:border-white/10 shadow-xl transition-all active:scale-90" title="Editar Registro">
-                                                    <i class="fas fa-edit text-xs"></i>
-                                                </button>
-                                                <button onclick="window.deleteHistoryRecordUI('${h.id}', '${h.conductor}', '${h.numero}')" class="w-10 h-10 flex items-center justify-center bg-white dark:bg-white/10 text-rose-500 hover:bg-rose-500 hover:text-white rounded-[1rem] border border-slate-200 dark:border-white/10 shadow-xl transition-all active:scale-90" title="Eliminar">
-                                                    <i class="fas fa-trash-alt text-xs"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                `;
-        }).join('')}
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Footer / Paging -->
-                <div class="p-8 bg-slate-50 dark:bg-white/5 border-t border-slate-100 dark:border-white/10 flex flex-col md:flex-row justify-between items-center gap-6">
-                    <div class="flex items-center gap-4">
-                        <div class="w-10 h-10 bg-white dark:bg-slate-900 rounded-xl flex items-center justify-center text-primary text-xs shadow-inner">
-                            <i class="fas fa-list-ul"></i>
-                        </div>
-                        <div>
-                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Mostrando registros</p>
-                            <p class="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tighter">${start + 1}-${Math.min(end, filteredHistory.length)} de ${filteredHistory.length} totales</p>
-                        </div>
-                    </div>
-                    
-                    <div class="flex items-center gap-4">
-                        <span class="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Pág. ${currentPage} / ${totalPages}</span>
-                        <div class="flex gap-2">
-                            <button id="prev-page" class="w-12 h-12 flex items-center justify-center rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-400 hover:text-primary disabled:opacity-30 transition-all shadow-xl hover:-translate-y-1" ${currentPage === 1 ? 'disabled' : ''}>
-                                <i class="fas fa-chevron-left text-xs"></i>
-                            </button>
-                            <button id="next-page" class="w-12 h-12 flex items-center justify-center rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-400 hover:text-primary disabled:opacity-30 transition-all shadow-xl hover:-translate-y-1" ${currentPage === totalPages ? 'disabled' : ''}>
-                                <i class="fas fa-chevron-right text-xs"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        if (options.searchInputId) {
-            const s = document.getElementById(options.searchInputId);
-            if (s) s.oninput = (e) => {
-                const q = e.target.value.toLowerCase();
-                filteredHistory = flatHistory.filter(h =>
-                    h.conductor.toLowerCase().includes(q) ||
-                    String(h.numero).includes(q) ||
-                    h.estado.toLowerCase().includes(q)
-                );
-                currentPage = 1;
-                render();
-            };
-        }
-
-        const prevBtn = container.querySelector('#prev-page');
-        if (prevBtn) prevBtn.onclick = () => { if (currentPage > 1) { currentPage--; render(); } };
-        const nextBtn = container.querySelector('#next-page');
-        if (nextBtn) nextBtn.onclick = () => { if (currentPage < totalPages) { currentPage++; render(); } };
-    };
-
-    render();
 };
 
 
@@ -591,6 +157,8 @@ export const renderHistoryTab = (container, options = {}) => {
                     <p class="text-xs font-black uppercase tracking-[0.4em] max-w-xs leading-relaxed">Selecciona un rango de fechas para generar el reporte oficial</p>
                  </div>
             </div>
+
+            <button id="btn-generate-report-hidden" class="hidden"></button>
             
              <!-- Loading Overlay -->
             <div id="report-loading" class="absolute inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center hidden rounded-xl">
@@ -608,37 +176,31 @@ export const renderHistoryTab = (container, options = {}) => {
     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
     // Initialize Service Year Selector and Dates
-    const yearSelect = showHeader ? document.getElementById('report-year-select') : null;
-    const startInput = showHeader ? document.getElementById('report-start') : (options.startInput || null);
-    const endInput = showHeader ? document.getElementById('report-end') : (options.endInput || null);
+    const yearSelect = showHeader ? container.querySelector('#report-year-select') : null;
+    const startInput = showHeader ? container.querySelector('#report-start') : (options.startInput || null);
+    const endInput = showHeader ? container.querySelector('#report-end') : (options.endInput || null);
 
     // Calculate current Service Year
-    // Service Year 2026 starts Sept 1, 2025.
-    // If Month is >= 8 (Sept, 0-indexed), Service Year is Next Year.
     const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth(); // 0-11. Sept is 8.
+    const currentMonth = now.getMonth();
     const serviceYear = currentMonth >= 8 ? currentYear + 1 : currentYear;
 
-    // Populate Selector (Range: Current - 5 to Current + 5)
     if (yearSelect) {
         for (let y = serviceYear - 5; y <= serviceYear + 5; y++) {
             const opt = document.createElement('option');
             opt.value = y;
             opt.textContent = y;
             if (y === serviceYear) opt.selected = true;
-            // Style for light mode
             opt.className = "bg-white text-gray-900 dark:bg-black dark:text-white";
             yearSelect.appendChild(opt);
         }
     }
 
-    // Function to set dates based on Service Year
     const setDatesFromServiceYear = (sy) => {
         if (!startInput || !endInput) return;
-        // SY 2025 = Sept 1, 2024 to Aug 31, 2025
         const y = parseInt(sy);
-        const start = new Date(y - 1, 8, 1); // Sept 1, Prev Year
-        const end = new Date(y, 7, 31); // Aug 31, Current SY Year
+        const start = new Date(y - 1, 8, 1);
+        const end = new Date(y, 7, 31);
 
         const fmt = (d) => {
             const yy = d.getFullYear();
@@ -650,27 +212,25 @@ export const renderHistoryTab = (container, options = {}) => {
         endInput.value = fmt(end);
     };
 
-    // Initial Set
     if (showHeader) setDatesFromServiceYear(serviceYear);
 
-    // Listener
     if (yearSelect) {
         yearSelect.addEventListener('change', (e) => {
             setDatesFromServiceYear(e.target.value);
         });
     }
 
-    document.getElementById('btn-generate-report').addEventListener('click', async () => {
-        const start = document.getElementById('report-start').value;
-        const end = document.getElementById('report-end').value;
+    const handleGenerate = async () => {
+        const start = startInput ? startInput.value : null;
+        const end = endInput ? endInput.value : null;
 
         if (!start || !end) {
             showNotification("Selecciona un rango de fechas válido.", "warning");
             return;
         }
 
-        const loader = document.getElementById('report-loading');
-        loader.classList.remove('hidden');
+        const loader = container.querySelector('#report-loading');
+        if (loader) loader.classList.remove('hidden');
 
         try {
             const [allHistory, allTerritorios] = await Promise.all([
@@ -678,7 +238,6 @@ export const renderHistoryTab = (container, options = {}) => {
                 getTerritorios()
             ]);
 
-            // Filter data for the preview range
             const startMs = new Date(start).getTime();
             const endObj = new Date(end);
             endObj.setHours(23, 59, 59, 999);
@@ -692,130 +251,136 @@ export const renderHistoryTab = (container, options = {}) => {
 
             const config = await getConfiguracion();
             const congregationName = config?.congregacion?.nombre || 'Mi Congregación';
-            const yearLabel = document.getElementById('report-year-select') ? document.getElementById('report-year-select').value : serviceYear;
+            const yearLabel = (yearSelect && yearSelect.value) || serviceYear;
 
-            renderReport(historyInRange, allHistory, allTerritorios, start, end, yearLabel, congregationName);
-            document.getElementById('btn-export-s13-pdf').classList.remove('hidden');
-            document.getElementById('btn-export-s13-excel').classList.remove('hidden');
+            renderReport(container, historyInRange, allHistory, allTerritorios, start, end, yearLabel, congregationName);
 
-            // Save current data for excel export
+            if (showHeader) {
+                container.querySelector('#btn-export-s13-pdf')?.classList.remove('hidden');
+                container.querySelector('#btn-export-s13-excel')?.classList.remove('hidden');
+            }
+
             window._currentS13Data = historyInRange;
         } catch (e) {
             console.error(e);
             showNotification("Error generando reporte: " + e.message, "error");
         } finally {
-            loader.classList.add('hidden');
+            if (loader) loader.classList.add('hidden');
         }
-    });
+    };
 
-    document.getElementById('btn-export-s13-pdf').addEventListener('click', async () => {
-        const pages = document.querySelectorAll('.s13-page');
-        if (pages.length === 0) return;
+    if (showHeader && container.querySelector('#btn-generate-report')) {
+        container.querySelector('#btn-generate-report').addEventListener('click', handleGenerate);
+    }
+    container.querySelector('#btn-generate-report-hidden')?.addEventListener('click', handleGenerate);
 
-        const btn = document.getElementById('btn-export-s13-pdf');
-        const isOffline = !navigator.onLine;
+    const pdfBtn = document.getElementById('btn-export-s13-pdf');
+    if (pdfBtn) {
+        pdfBtn.onclick = async () => {
+            const pages = document.querySelectorAll('.s13-page');
+            if (pages.length === 0) return;
 
-        if (isOffline) {
-            showNotification("📡 Generando PDF en modo offline. Los estilos tipográficos podrían variar.", "warning");
-        }
+            const btn = pdfBtn;
+            const isOffline = !navigator.onLine;
 
-        const oldText = btn.innerHTML;
-        btn.innerHTML = '⏳ Generando PDF...';
-        btn.disabled = true;
-
-        try {
-            const { jsPDF } = window.jspdf;
-            // Use A4 Portrait - 300DPI equivalent scaling handled by html2canvas
-            const doc = new jsPDF('p', 'mm', 'a4');
-
-            const pdfWidth = 210;
-            const pdfHeight = 297;
-
-            for (let i = 0; i < pages.length; i++) {
-                if (i > 0) doc.addPage();
-
-                // html2canvas works purely client-side with DOM. 
-                // Any missing external images/fonts might be skipped if not already in cache.
-                const canvas = await html2canvas(pages[i], {
-                    scale: 2.5, // Better resolution for printing
-                    backgroundColor: '#ffffff',
-                    logging: false,
-                    useCORS: true,
-                    allowTaint: true
-                });
-
-                const imgData = canvas.toDataURL('image/jpeg', 0.98);
-                const imgProps = doc.getImageProperties(imgData);
-                const printHeight = (imgProps.height * pdfWidth) / imgProps.width;
-                doc.addImage(imgData, 'JPEG', 0, 0, pdfWidth, Math.min(printHeight, pdfHeight));
+            if (isOffline) {
+                showNotification("📡 Generando PDF en modo offline. Los estilos tipográficos podrían variar.", "warning");
             }
 
-            const config = await getConfiguracion();
-            const congName = config?.congregacion?.nombre || 'Mi_Congregacion';
-            const fileName = `S13_Reporte_${congName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
-            doc.save(fileName);
-            showNotification("✅ PDF generado correctamente en tu dispositivo.", "success");
+            const oldText = btn.innerHTML;
+            btn.innerHTML = '⏳ Generando PDF...';
+            btn.disabled = true;
 
-        } catch (e) {
-            console.error(e);
-            showNotification("Error exportando PDF: " + e.message, "error");
-        } finally {
-            btn.innerHTML = oldText;
-            btn.disabled = false;
-        }
-    });
-
-    document.getElementById('btn-export-s13-excel').addEventListener('click', () => {
-        const data = window._currentS13Data;
-        if (!data || data.length === 0) return;
-
-        // Create a flat list: if multiple numbers were assigned together, split them
-        const flatList = [];
-        data.forEach(item => {
-            const nums = item.numero.toString().split(',').map(n => n.trim());
-            nums.forEach(num => {
-                flatList.push({
-                    'Territorio': num,
-                    'Conductor': item.conductor || '-',
-                    'Fecha Asignación': formatDateShort(item.fecha_asignacion),
-                    'Fecha en que se completó': formatDateShort(item.fecha_entrega),
-                    'Estado': item.estado || '-',
-                    'Observaciones': item.observaciones || '-'
-                });
-            });
-        });
-
-        // Numerical Sort by Territory
-        flatList.sort((a, b) => a.Territorio.localeCompare(b.Territorio, undefined, { numeric: true }));
-
-        generatePlainXLS(flatList, `Listado_Asignaciones_S13_${document.getElementById('report-start').value}`);
-        showNotification("Excel generado con éxito", "success");
-    });
-
-    // Rebuild Listener
-    document.getElementById('btn-rebuild-history').addEventListener('click', async () => {
-        const runRebuild = async () => {
-            const loader = document.getElementById('report-loading');
-            loader.classList.remove('hidden');
             try {
-                const count = await rebuildHistoryFromSchedule();
-                showNotification(`Historial reconstruido. Se recuperaron ${count} asignaciones.`, "success");
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('p', 'mm', 'a4');
+
+                const pdfWidth = 210;
+                const pdfHeight = 297;
+
+                for (let i = 0; i < pages.length; i++) {
+                    if (i > 0) doc.addPage();
+                    const canvas = await html2canvas(pages[i], {
+                        scale: 2.5,
+                        backgroundColor: '#ffffff',
+                        logging: false,
+                        useCORS: true,
+                        allowTaint: true
+                    });
+                    const imgData = canvas.toDataURL('image/jpeg', 0.98);
+                    const imgProps = doc.getImageProperties(imgData);
+                    const printHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                    doc.addImage(imgData, 'JPEG', 0, 0, pdfWidth, Math.min(printHeight, pdfHeight));
+                }
+
+                const config = await getConfiguracion();
+                const congName = config?.congregacion?.nombre || 'Mi_Congregacion';
+                const fileName = `S13_Reporte_${congName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+                doc.save(fileName);
+                showNotification("✅ PDF generado correctamente.", "success");
             } catch (e) {
                 console.error(e);
-                showNotification("Error en reconstrucción: " + e.message, "error");
+                showNotification("Error exportando PDF: " + e.message, "error");
             } finally {
-                loader.classList.add('hidden');
+                btn.innerHTML = oldText;
+                btn.disabled = false;
             }
         };
+    }
 
-        window.showCustomConfirm("¿Deseas analizar todos los Programas Semanales antiguos para reconstruir el historial de asignaciones?\n\nEsto es útil si no ves datos de semanas anteriores.", runRebuild);
-    });
+    const excelBtn = document.getElementById('btn-export-s13-excel');
+    if (excelBtn) {
+        excelBtn.onclick = () => {
+            const data = window._currentS13Data;
+            if (!data || data.length === 0) return;
+
+            const flatList = [];
+            data.forEach(item => {
+                const nums = item.numero.toString().split(',').map(n => n.trim());
+                nums.forEach(num => {
+                    flatList.push({
+                        'Territorio': num,
+                        'Conductor': item.conductor || '-',
+                        'Fecha Asignación': formatDateShort(item.fecha_asignacion),
+                        'Fecha en que se completó': formatDateShort(item.fecha_entrega),
+                        'Estado': item.estado || '-',
+                        'Observaciones': item.observaciones || '-'
+                    });
+                });
+            });
+
+            flatList.sort((a, b) => a.Territorio.localeCompare(b.Territorio, undefined, { numeric: true }));
+            generatePlainXLS(flatList, `Listado_Asignaciones_S13_${document.getElementById('report-start').value}`);
+            showNotification("Excel generado con éxito", "success");
+        };
+    }
+
+    // Rebuild Listener
+    const rebuildBtn = document.getElementById('btn-rebuild-history');
+    if (rebuildBtn) {
+        rebuildBtn.onclick = async () => {
+            const runRebuild = async () => {
+                const loader = document.getElementById('report-loading');
+                if (loader) loader.classList.remove('hidden');
+                try {
+                    const count = await rebuildHistoryFromSchedule();
+                    showNotification(`Historial reconstruido. Se recuperaron ${count} asignaciones.`, "success");
+                } catch (e) {
+                    console.error(e);
+                    showNotification("Error en reconstrucción: " + e.message, "error");
+                } finally {
+                    if (loader) loader.classList.add('hidden');
+                }
+            };
+            window.showCustomConfirm("¿Deseas analizar todos los Programas Semanales antiguos para reconstruir el historial de asignaciones?", runRebuild);
+        };
+    }
 };
 
 // --- LOGIC ENGINE ---
 
-const renderReport = (dataInRange, allHistory, allTerritorios, startDate, endDate, yearLabel, congregationName) => {
-    const container = document.getElementById('report-preview');
+const renderReport = (parent, dataInRange, allHistory, allTerritorios, startDate, endDate, yearLabel, congregationName) => {
+    const container = parent.querySelector('#report-preview');
     if (!container) return;
     container.innerHTML = '';
 

@@ -146,6 +146,10 @@ textarea:focus {
     box-shadow: 0 0 0 4px hsla(var(--primary) / 0.1) !important;
 }
 
+.modern-card {
+    @apply bg-white dark:bg-white/[0.03] backdrop-blur-xl border border-slate-200/60 dark:border-white/10 rounded-[2rem] p-6 md:p-8 shadow-xl shadow-slate-200/40 dark:shadow-none transition-all duration-300;
+}
+
 .input-premium {
     @apply w-full bg-gray-50 dark:bg-black/40 border-2 border-transparent focus:border-teal-500/30 rounded-3xl p-5 text-gray-900 dark:text-white outline-none shadow-inner font-bold transition-all;
 }

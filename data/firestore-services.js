@@ -1,4 +1,4 @@
-import { db, auth, storage } from '../firebase-config.js?v=2.3.1';
+import { db, auth, storage } from '../firebase-config.js?v=2.3.5';
 import {
     collection, getDocs, addDoc, deleteDoc, doc, updateDoc, query, where, getDoc, setDoc, orderBy, limit, Timestamp, writeBatch,
     enableIndexedDbPersistence, arrayUnion
@@ -793,7 +793,8 @@ export const solicitarNumeros = async (cantidad = 30, userId) => {
     const q = query(collection(db, "telefonos"),
         where("estado", "==", "Sin asignar"),
         where("publicador_asignado", "==", null),
-        limit(200)
+        where("solicitado_por", "==", null),
+        limit(500)
     );
     let snapshot = await getDocs(q);
 
@@ -815,24 +816,23 @@ export const solicitarNumeros = async (cantidad = 30, userId) => {
                 if (lastDate > sixMonthsAgo) continue;
             }
 
-            // Extra safety check for requested_by (solicitado_por)
-            if (!data.solicitado_por) {
-                batch.update(doc(db, "telefonos", d.id), {
-                    solicitado_por: userId,
-                    publicador_asignado: null,
-                    asignado_a: null,
-                    fecha_asignacion: new Date().toISOString()
-                });
-                count++;
-                selectedIds.push(d.id);
-            }
+            batch.update(doc(db, "telefonos", d.id), {
+                solicitado_por: userId,
+                publicador_asignado: null,
+                asignado_a: null,
+                fecha_asignacion: new Date().toISOString()
+            });
+            count++;
+            selectedIds.push(d.id);
         }
         return { count, batch, ids: selectedIds };
     };
 
     let result = getAvailableFromSnapshot(snapshot);
 
-    // 2. If no numbers found, the cycle might be exhausted. Trigger reset and try again.
+    // 2. If no numbers found OR we didn't reach 'cantidad', we might need a reset OR there are just few left.
+    // If result.count < cantidad, but still some found, we'll take what we got.
+    // Only if result.count === 0 we consider a cycle reset.
     if (result.count === 0) {
         console.log("No numbers available. Checking for cycle reset...");
         const resetDone = await checkAndResetTelephoneCycle(true);
@@ -867,12 +867,12 @@ export const checkAndResetTelephoneCycle = async (forceRequested = false) => {
         });
 
         // We reset ONLY if all numbers have been distributed/worked
-        if (processedRecords.length === total || forceRequested) {
+        if (processedRecords.length >= total || forceRequested) {
             // If it's a forced check from solicitarNumeros, we only proceed if there are zero available numbers
             if (forceRequested) {
                 const anyAvailable = snapshot.docs.some(d => {
                     const data = d.data();
-                    return data.estado === 'Sin asignar' && !data.solicitado_por;
+                    return data.estado === 'Sin asignar' && (data.solicitado_por === null || data.solicitado_por === undefined);
                 });
                 if (anyAvailable) return false; // Don't reset if there are still some virgin numbers
             }
@@ -945,26 +945,65 @@ export const getSessionSummaries = async () => {
     }
 };
 
-// Release numbers that were requested but never assigned or worked on
-export const releaseUnusedTelefonos = async (userId) => {
-    const q = query(collection(db, "telefonos"),
-        where("solicitado_por", "==", userId),
-        where("estado", "==", "Sin asignar"),
-        where("publicador_asignado", "==", null)
-    );
-    const snapshot = await getDocs(q);
-    const batchPromises = [];
+/**
+ * Utility to release phone numbers that were requested but never assigned/worked.
+ * @param {string} userId - Current user's ID
+ * @param {boolean} globalCleanup - If true, release ALL stale requests (older than 24h) from ANY user
+ */
+export const releaseUnusedTelefonos = async (userId, globalCleanup = false) => {
+    try {
+        const phoneCol = collection(db, "telefonos");
 
-    snapshot.docs.forEach(d => {
-        batchPromises.push(updateDoc(doc(db, "telefonos", d.id), {
-            solicitado_por: null,
-            asignado_a: null,
-            publicador_asignado: null,
-            fecha_asignacion: null
-        }));
-    });
+        if (globalCleanup) {
+            // Find ALL 'Sin asignar' phones that have been requested
+            const yesterday = new Date();
+            yesterday.setHours(yesterday.getHours() - 24);
 
-    await Promise.all(batchPromises);
+            const q = query(phoneCol,
+                where("estado", "==", "Sin asignar"),
+                where("publicador_asignado", "==", null)
+            );
+
+            const snap = await getDocs(q);
+            const batchPromises = [];
+            snap.docs.forEach(d => {
+                const data = d.data();
+                if (data.solicitado_por) {
+                    const reqDate = data.fecha_asignacion ? new Date(data.fecha_asignacion) : null;
+                    if (!reqDate || reqDate < yesterday) {
+                        batchPromises.push(updateDoc(d.ref, {
+                            solicitado_por: null,
+                            fecha_asignacion: null,
+                            asignado_a: null,
+                            publicador_asignado: null
+                        }));
+                    }
+                }
+            });
+            if (batchPromises.length > 0) await Promise.all(batchPromises);
+        }
+
+        if (userId) {
+            const userQ = query(phoneCol,
+                where("solicitado_por", "==", userId),
+                where("estado", "==", "Sin asignar"),
+                where("publicador_asignado", "==", null)
+            );
+            const userSnap = await getDocs(userQ);
+            const userBatchPromises = [];
+            userSnap.docs.forEach(d => {
+                userBatchPromises.push(updateDoc(d.ref, {
+                    solicitado_por: null,
+                    fecha_asignacion: null,
+                    asignado_a: null,
+                    publicador_asignado: null
+                }));
+            });
+            if (userBatchPromises.length > 0) await Promise.all(userBatchPromises);
+        }
+    } catch (e) {
+        console.error("Error releasing telefonos:", e);
+    }
 };
 
 export const updateTelefonoStatus = async (id, estado, publicadorName, comentario = null) => {
@@ -1727,6 +1766,7 @@ export const runSystemDiagnosticsAndRepair = async (onProgress) => {
                 updates.publicador_asignado = null;
                 updates.estado = 'Sin asignar';
                 updates.fecha_asignacion = null;
+                updates.solicitado_por = null;
                 dirty = true;
                 report.details.push(`Teléfono ${t.numero}: Desasignado (Referencia 'Usuario' inválida)`);
             }
@@ -1744,6 +1784,7 @@ export const runSystemDiagnosticsAndRepair = async (onProgress) => {
             updates.publicador_asignado = null;
             updates.estado = 'Sin asignar';
             updates.fecha_asignacion = null;
+            updates.solicitado_por = null;
             dirty = true;
             report.details.push(`Teléfono ${t.numero}: Reset por inconsistencia (estado '${rawStatus}' con asignación)`);
         }
@@ -1754,6 +1795,7 @@ export const runSystemDiagnosticsAndRepair = async (onProgress) => {
             updates.publicador_asignado = null;
             updates.estado = 'Sin asignar';
             updates.fecha_asignacion = null;
+            updates.solicitado_por = null;
             dirty = true;
             report.details.push(`Teléfono ${t.numero}: Reset (Estado '${rawStatus}' sin usuario)`);
         }
@@ -1763,6 +1805,7 @@ export const runSystemDiagnosticsAndRepair = async (onProgress) => {
             updates.publicador_asignado = null;
             updates.estado = 'Sin asignar';
             updates.fecha_asignacion = null;
+            updates.solicitado_por = null;
             dirty = true;
             report.details.push(`Teléfono ${t.numero}: Estado 'Asignado' inválido -> Sin asignar`);
         }
