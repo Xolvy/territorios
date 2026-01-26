@@ -1,16 +1,16 @@
 import {
     getSystemVersion, setSystemVersion, getHistorialReport
-} from '../data/firestore-services.js?v=2.3.0';
-import { auth } from '../firebase-config.js?v=2.3.0';
-import { showNotification } from './utils/helpers.js?v=2.3.0';
-import { GlassButton } from './services/ui-components.js?v=2.3.0';
+} from '../data/firestore-services.js?v=2.3.5';
+import { auth } from '../firebase-config.js?v=2.3.5';
+import { showNotification } from './utils/helpers.js?v=2.3.5';
+import { GlassButton } from './services/ui-components.js?v=2.3.5';
 
 // Import Views
-import { renderAnalyticsView } from './analytics-view.js?v=2.3.0';
-import { renderCasaEnCasaTab } from './admin/territories-view.js?v=2.3.0';
-import { renderPredicacionTab } from './admin/public-view.js?v=2.3.0';
-import { renderTelefonosTab } from './admin/phones-view.js?v=2.3.0';
-import { renderConfigTab } from './admin/rules-view.js?v=2.3.0';
+import { renderAnalyticsView } from './analytics-view.js?v=2.3.5';
+import { renderCasaEnCasaTab } from './admin/territories-view.js?v=2.3.5';
+import { renderPredicacionTab } from './admin/public-view.js?v=2.3.5';
+import { renderTelefonosTab } from './admin/phones-view.js?v=2.3.5';
+import { renderConfigTab } from './admin/rules-view.js?v=2.3.5';
 
 /**
  * Main Entry Point for the Administration Control Panel
@@ -22,12 +22,12 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
 
         // --- GLOBAL ADMIN HELPERS ---
         window.editHistoryRecord = async (id) => {
-            const { editHistoryRecord } = await import('./admin/history-view.js?v=2.3.0');
+            const { editHistoryRecord } = await import('./admin/history-view.js?v=2.3.5');
             await editHistoryRecord(id);
         };
 
         window.deleteHistoryRecordUI = async (id, cond, num) => {
-            const { deleteHistoryRecordUI } = await import('./admin/history-view.js?v=2.3.0');
+            const { deleteHistoryRecordUI } = await import('./admin/history-view.js?v=2.3.5');
             await deleteHistoryRecordUI(id, cond, num);
         };
 

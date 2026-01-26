@@ -1,6 +1,6 @@
 {
   "name": "app-territorios",
-  "version": "2.3.1",
+  "version": "2.3.5",
   "description": "[![Deploy to Firebase](https://github.com/Xolvy/conductores/actions/workflows/firebase-deploy.yml/badge.svg)](https://github.com/Xolvy/conductores/actions/workflows/firebase-deploy.yml)",
   "main": "app.js",
   "scripts": {
@@ -23,6 +23,7 @@
   },
   "homepage": "https://github.com/Xolvy/conductores#readme",
   "devDependencies": {
+    "@rollup/rollup-win32-x64-msvc": "^4.56.0",
     "autoprefixer": "^10.4.16",
     "postcss": "^8.4.31",
     "tailwindcss": "^3.4.17",

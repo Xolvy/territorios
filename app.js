@@ -30,6 +30,32 @@ async function loadConductor() {
     return ModuleCache.conductor.renderConductorDashboard;
 }
 
+// --- FORCED ONE-TIME SYNC TO v2.3.5 ---
+(async () => {
+    const SYNC_VERSION = '2.3.5';
+    const syncKey = `app_sync_forced_v${SYNC_VERSION}`;
+    if (!localStorage.getItem(syncKey)) {
+        console.warn(`🚀 Iniciando sincronización forzada a v${SYNC_VERSION}...`);
+        try {
+            if ('serviceWorker' in navigator) {
+                const regs = await navigator.serviceWorker.getRegistrations();
+                for (let r of regs) await r.unregister();
+            }
+            if ('caches' in window) {
+                const keys = await caches.keys();
+                await Promise.all(keys.map(k => caches.delete(k)));
+            }
+            localStorage.removeItem('app_version');
+            localStorage.removeItem('pwa-installed');
+            localStorage.setItem(syncKey, 'true');
+            window.location.href = `${window.location.pathname}?updated=true&v=${Date.now()}`;
+        } catch (e) {
+            console.error("Sync error:", e);
+            localStorage.setItem(syncKey, 'true');
+        }
+    }
+})();
+
 // Init Theme
 initTheme();
 document.body.appendChild(createThemeToggle());
