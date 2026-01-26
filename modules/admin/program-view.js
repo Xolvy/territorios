@@ -210,9 +210,12 @@ export const renderProgramaTab = async (container) => {
     };
 
     const renderTable = async () => {
-        // Refresh territories in memory to get up-to-date assignment status
-        const freshTerritorios = await getTerritorios();
+        // Refresh territories and personnel in memory to get up-to-date status and availability
+        const [freshTerritorios, freshPersonnel] = await Promise.all([
+            getTerritorios(), getPublicadores()
+        ]);
         const territoryMap = freshTerritorios.reduce((acc, t) => { acc[t.numero] = t; return acc; }, {});
+        const activeConductors = freshPersonnel.filter(p => p.es_conductor).sort((a, b) => a.nombre.localeCompare(b.nombre));
 
         const tableContainer = container.querySelector('#admin-prog-table');
         const turnos = [
@@ -298,18 +301,45 @@ export const renderProgramaTab = async (container) => {
                                 </span>
                             </button>`;
                     } else {
-                        html += `
-                            <label class="text-[9px] font-black text-slate-400 tracking-[0.2em] uppercase ml-1 flex items-center gap-2">
-                                <i class="fas ${icon} opacity-30"></i> ${field}
-                            </label>
-                            <div class="relative">
-                                <select onchange="window.updateWeekData(${dayIndex}, '${turnoId}', '${fieldId}', this.value)" 
-                                        class="w-full bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-3.5 rounded-2xl text-[11px] font-black text-slate-700 dark:text-white outline-none focus:border-primary appearance-none cursor-pointer shadow-sm transition-all focus:ring-1 focus:ring-primary/20">
-                                    <option value="">—</option>
-                                    ${opts.map(o => `<option value="${o}" ${val === o ? 'selected' : ''}>${o}</option>`).join('')}
-                                </select>
-                                <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-[9px] opacity-20 pointer-events-none"></i>
-                            </div>`;
+                        let finalOpts = opts;
+                        if (field === 'Conductor' || field === 'Auxiliar') {
+                            const availKey = `${dia.nombre}_${turnoId}`;
+                            const available = activeConductors.filter(c => c.disponibilidad && c.disponibilidad.includes(availKey));
+                            const nonAvailable = activeConductors.filter(c => !c.disponibilidad || !c.disponibilidad.includes(availKey));
+
+                            finalOpts = [
+                                ...available.map(c => ({ name: c.nombre, isAvail: true })),
+                                ...nonAvailable.map(c => ({ name: c.nombre, isAvail: false }))
+                            ];
+
+                            html += `
+                                <label class="text-[9px] font-black text-slate-400 tracking-[0.2em] uppercase ml-1 flex items-center gap-2">
+                                    <i class="fas ${icon} opacity-30"></i> ${field}
+                                </label>
+                                <div class="relative">
+                                    <select onchange="window.updateWeekData(${dayIndex}, '${turnoId}', '${fieldId}', this.value)" 
+                                            class="w-full bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-3.5 rounded-2xl text-[11px] font-black text-slate-700 dark:text-white outline-none focus:border-primary appearance-none cursor-pointer shadow-sm transition-all focus:ring-1 focus:ring-primary/20">
+                                        <option value="">—</option>
+                                        ${finalOpts.map(o => `<option value="${o.name}" ${val === o.name ? 'selected' : ''} class="${o.isAvail ? 'text-emerald-500 font-bold' : ''}">
+                                            ${o.isAvail ? '✅ ' : ''}${o.name}
+                                        </option>`).join('')}
+                                    </select>
+                                    <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-[9px] opacity-20 pointer-events-none"></i>
+                                </div>`;
+                        } else {
+                            html += `
+                                <label class="text-[9px] font-black text-slate-400 tracking-[0.2em] uppercase ml-1 flex items-center gap-2">
+                                    <i class="fas ${icon} opacity-30"></i> ${field}
+                                </label>
+                                <div class="relative">
+                                    <select onchange="window.updateWeekData(${dayIndex}, '${turnoId}', '${fieldId}', this.value)" 
+                                            class="w-full bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-3.5 rounded-2xl text-[11px] font-black text-slate-700 dark:text-white outline-none focus:border-primary appearance-none cursor-pointer shadow-sm transition-all focus:ring-1 focus:ring-primary/20">
+                                        <option value="">—</option>
+                                        ${opts.map(o => `<option value="${o}" ${val === o ? 'selected' : ''}>${o}</option>`).join('')}
+                                    </select>
+                                    <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-[9px] opacity-20 pointer-events-none"></i>
+                                </div>`;
+                        }
                     }
                     html += `</div>`;
                 });
