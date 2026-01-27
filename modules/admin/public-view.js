@@ -1,8 +1,8 @@
 import {
     getPredicacionPublica, getPublicadores, getConfiguracion, savePredicacionPublica
-} from '../../data/firestore-services.js?v=2.3.5';
-import { showNotification } from '../utils/helpers.js?v=2.3.5';
-import { showCustomConfirm, showModal } from '../services/ui-helpers.js?v=2.3.5';
+} from '../../data/firestore-services.js?v=2.3.8';
+import { showNotification } from '../utils/helpers.js?v=2.3.8';
+import { showCustomConfirm, showModal } from '../services/ui-helpers.js?v=2.3.8';
 import html2canvas from 'html2canvas';
 
 export const renderPredicacionTab = async (container) => {

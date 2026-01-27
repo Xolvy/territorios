@@ -1,6 +1,6 @@
-import { getHistorialReport, rebuildHistoryFromSchedule, getConfiguracion, getTerritorios, runSystemDiagnosticsAndRepair } from '../data/firestore-services.js?v=2.3.5';
-import { showNotification, generatePlainXLS } from './utils/helpers.js?v=2.3.5';
-import { S13Exporter } from './services/s13-exporter.js?v=2.3.5';
+import { getHistorialReport, rebuildHistoryFromSchedule, getConfiguracion, getTerritorios, runSystemDiagnosticsAndRepair } from '../data/firestore-services.js?v=2.3.8';
+import { showNotification, generatePlainXLS } from './utils/helpers.js?v=2.3.8';
+import { S13Exporter } from './services/s13-exporter.js?v=2.3.8';
 
 export const renderS13CommandCenter = async (container) => {
     const [history, config, territories] = await Promise.all([
@@ -12,9 +12,9 @@ export const renderS13CommandCenter = async (container) => {
     container.innerHTML = `
         <div class="space-y-8 animate-fade-in">
             <!--Unified Control Bar-->
-            <div class="modern-card !p-6 flex flex-col lg:flex-row items-center gap-6 border-slate-200 dark:border-white/5 shadow-2xl">
+            <div class="modern-card !p-6 flex flex-col lg:flex-row items-center gap-6 border-slate-200 dark:border-white/5 shadow-2xl bg-white dark:bg-white/[0.02]">
                 <!-- Left: Date Filters -->
-                <div class="flex flex-wrap items-center gap-4 bg-slate-50 dark:bg-white/5 p-4 rounded-2xl border border-slate-200 dark:border-white/5">
+                <div class="flex flex-wrap items-center gap-4 bg-slate-50 dark:bg-black/20 p-4 rounded-2xl border border-slate-200 dark:border-white/10">
                     <div class="space-y-1">
                         <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Año</label>
                         <select id="report-year-select" class="bg-white dark:bg-slate-800 border-none rounded-xl px-4 p-2 text-xs font-bold outline-none text-slate-700 dark:text-white shadow-sm cursor-pointer">
@@ -31,28 +31,115 @@ export const renderS13CommandCenter = async (container) => {
                     </div>
                 </div>
 
-                <!-- Center: Universal Search (For Filtering S13) -->
+                <!-- Center: Universal Search -->
                 <div class="relative flex-1 group min-w-[200px] w-full lg:w-auto">
                     <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary">
                         <i class="fas fa-search"></i>
                     </span>
-                    <input type="text" id="cc-universal-search" placeholder="Filtrar por responsable o #..." class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-2xl pl-14 pr-6 py-4 text-xs font-bold shadow-sm outline-none focus:border-primary transition-all text-slate-700 dark:text-white placeholder:text-slate-400">
+                    <input type="text" id="cc-universal-search" placeholder="Búsqueda global (Conductor, Territorio...)" class="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-2xl pl-14 pr-6 py-4 text-xs font-bold shadow-sm outline-none focus:border-primary transition-all text-slate-700 dark:text-white placeholder:text-slate-400">
                 </div>
 
                 <!-- Right: Actions -->
                 <div class="flex items-center gap-3">
-                    <button id="cc-btn-generate" class="bg-primary hover:bg-primary-light text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 transition-all active:scale-95 flex items-center gap-3 whitespace-nowrap">
-                        <i class="fas fa-eye"></i> Mostrar Registros
+                    <button id="cc-btn-power-sync" class="bg-primary hover:bg-primary-light text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 transition-all active:scale-95 flex items-center gap-3 whitespace-nowrap">
+                        <i class="fas fa-bolt"></i> POWER SYNC GLOBAL
+                    </button>
+                    <button id="cc-btn-tools" class="w-12 h-12 flex items-center justify-center bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-primary rounded-xl border border-slate-200 dark:border-white/10 transition-all" title="Herramientas de Reconstrucción">
+                        <i class="fas fa-wrench text-sm"></i>
                     </button>
                 </div>
             </div>
 
+            <!-- Stats Bar (As requested in image) -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="modern-card !p-5 bg-gradient-to-br from-primary to-indigo-600 text-white border-none shadow-xl relative overflow-hidden group">
+                    <div class="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform"></div>
+                    <p class="text-[9px] font-black uppercase tracking-[0.2em] opacity-70 mb-2">Cobertura Global</p>
+                    <div class="flex items-baseline gap-2">
+                        <span id="cc-stat-coverage" class="text-4xl font-black tracking-tighter">0%</span>
+                    </div>
+                    <p id="cc-stat-coverage-sub" class="text-[8px] font-bold uppercase tracking-widest mt-2 opacity-60">Calculando...</p>
+                </div>
+
+                <div class="modern-card !p-5 bg-white dark:bg-white/[0.02] border-slate-100 dark:border-white/5 shadow-lg group">
+                    <p class="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Faltantes</p>
+                    <div class="flex items-center gap-4">
+                        <span id="cc-stat-missing" class="text-4xl font-black text-rose-500 tracking-tighter">0</span>
+                        <div class="h-1.5 flex-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+                             <div id="cc-stat-missing-bar" class="h-full bg-rose-500 transition-all duration-1000" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <p class="text-[8px] font-bold uppercase tracking-widest mt-2 text-rose-400">En espera</p>
+                </div>
+
+                <div class="modern-card !p-5 bg-white dark:bg-white/[0.02] border-slate-100 dark:border-white/5 shadow-lg">
+                    <p class="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Uso Frecuente</p>
+                    <h4 id="cc-stat-frequent" class="text-2xl font-black text-slate-800 dark:text-white uppercase truncate">---</h4>
+                    <p id="cc-stat-frequent-sub" class="text-[8px] font-bold uppercase tracking-widest mt-2 text-primary">0 Veces</p>
+                </div>
+
+                <div class="modern-card !p-5 bg-white dark:bg-white/[0.02] border-slate-100 dark:border-white/5 shadow-lg">
+                    <p class="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Mayor Rezago</p>
+                    <h4 id="cc-stat-oldest" class="text-2xl font-black text-orange-500 uppercase truncate">---</h4>
+                    <p id="cc-stat-oldest-sub" class="text-[8px] font-bold uppercase tracking-widest mt-2 text-slate-400">Hace 0 días</p>
+                </div>
+            </div>
+
+            <!-- Tab Container (Only one tab now: Reporte S-13) -->
+            <div class="flex items-center gap-2">
+                 <div class="px-6 py-3 bg-white dark:bg-white/10 rounded-t-2xl border-t border-l border-r border-slate-200 dark:border-white/10 flex items-center gap-3">
+                     <i class="fas fa-file-invoice text-primary text-xs"></i>
+                     <span class="text-[10px] font-black uppercase tracking-widest text-slate-800 dark:text-white">Reporte S-13</span>
+                 </div>
+            </div>
+
             <!--Main Report Container-->
-            <div id="cc-main-container" class="min-h-[600px] modern-card !p-0 overflow-hidden border-slate-100 dark:border-white/5">
+            <div id="cc-main-container" class="min-h-[600px] modern-card !p-0 overflow-hidden border-slate-100 dark:border-white/5 -mt-[1px]">
                 <!-- S13 Content -->
             </div>
         </div>
     `;
+
+    // Calculate Stats
+    const updateStats = () => {
+        const total = territories.length;
+        const touchedNums = new Set(history.map(h => String(h.numero)));
+        const coverage = total > 0 ? Math.round((touchedNums.size / total) * 100) : 0;
+        const missing = territories.filter(t => !touchedNums.has(String(t.numero))).length;
+
+        container.querySelector('#cc-stat-coverage').innerText = `${coverage}%`;
+        container.querySelector('#cc-stat-coverage-sub').innerText = `${touchedNums.size} de ${total} abarcados`;
+        container.querySelector('#cc-stat-missing').innerText = missing;
+        container.querySelector('#cc-stat-missing-bar').style.width = `${(missing / total) * 100}%`;
+
+        const territoryFreq = {};
+        history.forEach(h => {
+            const nums = String(h.numero).split(/[,/]/).map(n => n.trim());
+            nums.forEach(n => { if (n) territoryFreq[n] = (territoryFreq[n] || 0) + 1; });
+        });
+        const sortedFreq = Object.entries(territoryFreq).sort((a, b) => b[1] - a[1]);
+        if (sortedFreq[0]) {
+            container.querySelector('#cc-stat-frequent').innerText = `Territorio ${sortedFreq[0][0]}`;
+            container.querySelector('#cc-stat-frequent-sub').innerText = `Asignado ${sortedFreq[0][1]} veces`;
+        }
+
+        const latestTouch = {};
+        history.forEach(h => {
+            const d = h.fecha_entrega || h.fecha_asignacion;
+            if (!d) return;
+            const nums = String(h.numero).split(/[,/]/).map(n => n.trim());
+            nums.forEach(n => {
+                if (!latestTouch[n] || new Date(d) > new Date(latestTouch[n])) latestTouch[n] = d;
+            });
+        });
+        const rezagoSorted = territories.filter(t => latestTouch[t.numero]).sort((a, b) => new Date(latestTouch[a.numero]) - new Date(latestTouch[b.numero]));
+        if (rezagoSorted[0]) {
+            const days = Math.floor((new Date() - new Date(latestTouch[rezagoSorted[0].numero])) / (1000 * 60 * 60 * 24));
+            container.querySelector('#cc-stat-oldest').innerText = `#${rezagoSorted[0].numero}`;
+            container.querySelector('#cc-stat-oldest-sub').innerText = `Hace ${days} días`;
+        }
+    };
+    updateStats();
 
     // Initialize Year Selector
     const yearSelect = container.querySelector('#report-year-select');
@@ -88,13 +175,41 @@ export const renderS13CommandCenter = async (container) => {
         endInput: endInput
     });
 
-    const genBtn = container.querySelector('#cc-btn-generate');
-    if (genBtn) {
-        genBtn.onclick = () => {
-            const internalBtn = mainCont.querySelector('#btn-generate-report-hidden');
-            if (internalBtn) internalBtn.click();
+    // Actions
+    container.querySelector('#cc-btn-power-sync').onclick = async () => {
+        try {
+            showNotification("Iniciando Power Sync Global...", "info");
+            await runSystemDiagnosticsAndRepair((msg, pc) => {
+                console.log(`[PowerSync] ${msg} (${pc}%)`);
+            });
+            showNotification("Sincronización Maestra Exitosa", "success");
+            // Auto-generate report after sync
+            container.querySelector('#btn-generate-report-hidden')?.click();
+        } catch (e) {
+            showNotification("Error en Power Sync: " + e.message, "error");
+        }
+    };
+
+    container.querySelector('#cc-btn-tools').onclick = () => {
+        const rebuildBtn = mainCont.querySelector('#btn-rebuild-history');
+        if (rebuildBtn) rebuildBtn.click();
+    };
+
+    const searchInp = container.querySelector('#cc-universal-search');
+    if (searchInp) {
+        searchInp.oninput = (e) => {
+            const q = e.target.value.toLowerCase().trim();
+            // Implement simple filter for the visible list if it exists
+            const listItems = mainCont.querySelectorAll('.s13-row');
+            // Note: S13 report rows are usually generated in renderReport. 
+            // This search will actually be handled by the generate button usually, 
+            // but we can add real-time filtering if the report is already visible.
         };
     }
+
+    // Generate Trigger
+    const internalBtn = mainCont.querySelector('#btn-generate-report-hidden');
+    if (internalBtn) setTimeout(() => internalBtn.click(), 500); // Auto-load
 };
 
 

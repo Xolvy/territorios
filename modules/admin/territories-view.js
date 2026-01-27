@@ -20,7 +20,7 @@ export const renderCasaEnCasaTab = async (container) => {
 
                 <nav class="flex flex-row overflow-x-auto scrollbar-hide items-center gap-1 bg-white/50 dark:bg-white/[0.03] p-1 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm w-full xl:w-auto backdrop-blur-xl">
                     ${renderSubTab('programa', 'fas fa-calendar-check', 'Programa')}
-                    ${renderSubTab('historial', 'fas fa-chart-line', 'CONTROL')}
+                    ${renderSubTab('historial', 'fas fa-chart-line', 'REPORTE S-13')}
                     ${renderSubTab('s12', 'fas fa-shield-alt', 'Base S-12')}
                     <div class="w-px h-5 bg-slate-200 dark:bg-white/10 mx-2 shrink-0"></div>
                     ${renderSubTab('recursos', 'fas fa-folder-open', 'RECURSOS')}
@@ -47,23 +47,23 @@ export const renderCasaEnCasaTab = async (container) => {
         try {
             switch (sub) {
                 case 'programa':
-                    const { renderProgramaTab } = await import('./program-view.js?v=2.3.5');
+                    const { renderProgramaTab } = await import('./program-view.js?v=2.3.8');
                     await renderProgramaTab(subContainer);
                     break;
                 case 'historial':
-                    const { renderHistorialView } = await import('./history-view.js?v=2.3.5');
+                    const { renderHistorialView } = await import('./history-view.js?v=2.3.8');
                     await renderHistorialView(subContainer);
                     break;
                 case 's12':
-                    const { renderS12View } = await import('./s12-view.js?v=2.3.5');
+                    const { renderS12View } = await import('./s12-view.js?v=2.3.8');
                     await renderS12View(subContainer);
                     break;
                 case 'recursos':
-                    const { renderRecursosTab } = await import('./resources-view.js?v=2.3.5');
+                    const { renderRecursosTab } = await import('./resources-view.js?v=2.3.8');
                     await renderRecursosTab(subContainer);
                     break;
                 case 'personal':
-                    const { renderPersonalTab } = await import('./personal-view.js?v=2.3.5');
+                    const { renderPersonalTab } = await import('./personal-view.js?v=2.3.8');
                     await renderPersonalTab(subContainer);
                     break;
             }

@@ -1,8 +1,8 @@
 import {
     getTerritorios, deleteTerritorio, updateTerritorio
-} from '../../data/firestore-services.js?v=2.3.5';
-import { showNotification } from '../utils/helpers.js?v=2.3.5';
-import { showModal, showCustomConfirm } from '../services/ui-helpers.js?v=2.3.5';
+} from '../../data/firestore-services.js?v=2.3.8';
+import { showNotification } from '../utils/helpers.js?v=2.3.8';
+import { showModal, showCustomConfirm } from '../services/ui-helpers.js?v=2.3.8';
 
 export const renderS12View = async (container, config, appVersion) => {
     let terrs = await getTerritorios();
@@ -20,27 +20,34 @@ export const renderS12View = async (container, config, appVersion) => {
 
         grid.innerHTML = filtered.map(t => `
             <div class="modern-card p-6 border-slate-100 dark:border-white/5 shadow-sm group hover:border-primary/50 transition-all">
-                <div class="flex justify-between items-start mb-4">
-                    <div class="w-12 h-12 bg-slate-100 dark:bg-white/5 rounded-2xl flex items-center justify-center text-lg font-black text-primary shadow-inner">
+                <div class="flex justify-between items-start mb-6">
+                    <div class="w-12 h-12 bg-slate-100 dark:bg-white/5 rounded-2xl flex items-center justify-center text-lg font-black text-primary shadow-inner shrink-0">
                         ${t.numero}
                     </div>
-                    <div class="flex gap-2">
-                         <button onclick="window.viewMapFromBaseS12('${t.id}')" class="w-8 h-8 flex items-center justify-center bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500 rounded-lg border border-indigo-200 dark:border-indigo-500/20 shadow-sm transition-all hover:bg-indigo-500 hover:text-white" title="Ver Mapa"><i class="fas fa-map-marked-alt text-[10px]"></i></button>
-                         <button onclick="window.showHistoryFromBaseS12('${t.id}', '${t.numero}')" class="w-8 h-8 flex items-center justify-center bg-amber-50 dark:bg-amber-500/10 text-amber-500 rounded-lg border border-amber-200 dark:border-amber-500/20 shadow-sm transition-all hover:bg-amber-500 hover:text-white" title="Historial"><i class="fas fa-history text-[10px]"></i></button>
+                    <div class="flex items-center gap-3">
+                         <div class="flex gap-2">
+                            <button onclick="window.viewMapFromBaseS12('${t.id}')" class="w-9 h-9 flex items-center justify-center bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500 rounded-xl border border-indigo-200 dark:border-indigo-500/20 shadow-sm transition-all hover:bg-indigo-500 hover:text-white" title="Ver Mapa"><i class="fas fa-map-marked-alt text-[11px]"></i></button>
+                            <button onclick="window.showHistoryFromBaseS12('${t.id}', '${t.numero}')" class="w-9 h-9 flex items-center justify-center bg-amber-50 dark:bg-amber-500/10 text-amber-500 rounded-xl border border-amber-200 dark:border-amber-500/20 shadow-sm transition-all hover:bg-amber-500 hover:text-white" title="Historial"><i class="fas fa-history text-[11px]"></i></button>
+                         </div>
                          <div class="w-px h-8 bg-slate-100 dark:bg-white/10 mx-1 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                         <button onclick="window.editTerritorioS12('${t.id}')" class="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 text-slate-500 hover:text-primary rounded-lg border border-slate-200 dark:border-white/10 shadow-sm transition-all opacity-0 group-hover:opacity-100"><i class="fas fa-edit text-[10px]"></i></button>
-                         <button onclick="window.deleteTerritorioS12('${t.id}')" class="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 text-slate-500 hover:text-rose-500 rounded-lg border border-slate-200 dark:border-white/10 shadow-sm transition-all opacity-0 group-hover:opacity-100"><i class="fas fa-trash-alt text-[10px]"></i></button>
+                         <div class="flex gap-2">
+                            <button onclick="window.editTerritorioS12('${t.id}')" class="w-9 h-9 flex items-center justify-center bg-white dark:bg-slate-800 text-slate-500 hover:text-primary rounded-xl border border-slate-200 dark:border-white/10 shadow-sm transition-all opacity-0 group-hover:opacity-100"><i class="fas fa-edit text-[11px]"></i></button>
+                            <button onclick="window.deleteTerritorioS12('${t.id}')" class="w-9 h-9 flex items-center justify-center bg-white dark:bg-slate-800 text-slate-500 hover:text-rose-500 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm transition-all opacity-0 group-hover:opacity-100"><i class="fas fa-trash-alt text-[11px]"></i></button>
+                         </div>
                     </div>
                 </div>
-                <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Territorio ${t.numero}</h4>
-                <p class="text-sm font-bold text-slate-800 dark:text-white uppercase truncate">${t.localidad || t.nombre || '—'}</p>
+                
+                <p class="text-sm font-black text-slate-800 dark:text-white uppercase truncate flex items-center gap-2">
+                    <i class="fas fa-location-dot text-[10px] text-slate-300"></i>
+                    ${t.localidad || t.nombre || '—'}
+                </p>
                 
                 <div class="mt-4 pt-4 border-t border-slate-50 dark:border-white/5 flex items-center justify-between">
                     <div class="flex items-center gap-2">
                         <span class="text-[8px] font-black px-2 py-1 rounded ${t.estado === 'Asignado' ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600'} uppercase">${t.estado || 'Disponible'}</span>
-                        ${t.asignado_a ? `<span class="text-[7px] font-black text-slate-400 uppercase truncate max-w-[60px]">${t.asignado_a}</span>` : ''}
+                        ${t.asignado_a ? `<span class="text-[7px] font-black text-slate-400 uppercase truncate max-w-[60px] ml-1">${t.asignado_a}</span>` : ''}
                     </div>
-                    <span class="text-[8px] font-black text-slate-400 uppercase">${t.manzanas ? t.manzanas.split(',').length : 0} MZ</span>
+                    <span class="text-[8px] font-black text-slate-400 uppercase bg-slate-50 dark:bg-white/5 px-2 py-1 rounded-md">${t.manzanas ? t.manzanas.split(',').length : 0} MZ</span>
                 </div>
             </div>
         `).join('');
@@ -59,10 +66,10 @@ export const renderS12View = async (container, config, appVersion) => {
                     <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] mt-2 ml-1">Catálogo maestro de territorios</p>
                 </div>
                 <div class="flex items-center gap-3 w-full sm:w-auto">
-                    <button id="btn-export-s12" class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-500/20 active:scale-95 flex items-center gap-3">
+                    <button id="btn-export-s12" class="bg-primary hover:bg-primary-light text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20 active:scale-95 flex items-center gap-3 transition-all">
                         <i class="fas fa-print"></i> Imprimir Catálogo
                     </button>
-                    <input type="text" id="s12-search" placeholder="Filtrar por número..." class="w-full sm:w-64 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl px-5 py-4 text-sm font-bold shadow-sm outline-none focus:border-primary transition-all">
+                    <input type="text" id="s12-search" placeholder="Buscar número o localidad..." class="w-full sm:w-64 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl px-5 py-4 text-sm font-bold shadow-sm outline-none focus:border-primary transition-all">
                 </div>
             </header>
 

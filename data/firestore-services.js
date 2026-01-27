@@ -1,4 +1,4 @@
-import { db, auth, storage } from '../firebase-config.js?v=2.3.5';
+import { db, auth, storage } from '../firebase-config.js?v=2.3.8';
 import {
     collection, getDocs, addDoc, deleteDoc, doc, updateDoc, query, where, getDoc, setDoc, orderBy, limit, Timestamp, writeBatch,
     enableIndexedDbPersistence, arrayUnion

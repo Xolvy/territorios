@@ -16,7 +16,7 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 
 async function run() {
-    const version = "2.3.5";
+    const version = "2.3.8";
     try {
         console.log("🔐 Autenticando...");
         await signInAnonymously(auth);
