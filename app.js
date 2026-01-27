@@ -30,9 +30,9 @@ async function loadConductor() {
     return ModuleCache.conductor.renderConductorDashboard;
 }
 
-// --- FORCED ONE-TIME SYNC TO v2.3.9.2 ---
+// --- FORCED ONE-TIME SYNC TO v2.3.9.3 ---
 (async () => {
-    const SYNC_VERSION = '2.3.9.2';
+    const SYNC_VERSION = '2.3.9.3';
     const syncKey = `app_sync_forced_v${SYNC_VERSION}`;
     const urlParams = new URLSearchParams(window.location.search);
     const isJustUpdated = urlParams.get('updated') === 'true';
@@ -120,7 +120,7 @@ document.body.appendChild(createThemeToggle());
 // Init PWA & Notifications
 initPWA();
 
-const APP_VERSION = '2.3.9.2';
+const APP_VERSION = '2.3.9.3';
 
 // --- SUCCESS CONFIRMATION AFTER UPDATE ---
 const checkUpdateSuccess = () => {
@@ -215,7 +215,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/service-worker.js?v=2.3.9.2');
+            navigator.serviceWorker.register('/service-worker.js?v=2.3.9.3');
         });
     }
 
