@@ -1,10 +1,10 @@
 import {
     getTerritorios, getConductores, getTelefonos, getPublicadores, getProgramaSemanal, getConfiguracion, getHistorialReport,
     rebuildHistoryFromSchedule, restoreSystemBackup, setSystemVersion, masterResetAssignments, updateTerritorio
-} from '../../data/firestore-services.js?v=2.3.8';
-import { ensureOnline, formatDateId } from '../utils/helpers.js?v=2.3.8';
-import { showNotification, showCustomConfirm, showCustomPrompt } from '../services/ui-helpers.js?v=2.3.8';
-import { TerritoryIntelligence } from '../utils/intelligence.js?v=2.3.8';
+} from '../../data/firestore-services.js?v=2.3.9';
+import { ensureOnline, formatDateId } from '../utils/helpers.js?v=2.3.9';
+import { showNotification, showCustomConfirm, showCustomPrompt } from '../services/ui-helpers.js?v=2.3.9';
+import { TerritoryIntelligence } from '../utils/intelligence.js?v=2.3.9';
 
 export const renderMaintenanceTab = async (container, config, appVersion) => {
     const [terrs, conds, phones] = await Promise.all([
@@ -390,7 +390,7 @@ export const renderMaintenanceTab = async (container, config, appVersion) => {
             // Actually, the original code called runSystemDiagnosticsAndRepair which I need to make sure is available.
             // If it's not exported, I might need to move it here or export it.
             // For now, I'll assume it's a global or exported from firestore-services.
-            const { runSystemDiagnosticsAndRepair } = await import('../../data/firestore-services.js?v=2.3.8');
+            const { runSystemDiagnosticsAndRepair } = await import('../../data/firestore-services.js?v=2.3.9');
 
             const report = await runSystemDiagnosticsAndRepair((msg, pc) => {
                 logToConsole(msg);

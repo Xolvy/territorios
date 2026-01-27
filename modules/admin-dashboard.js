@@ -1,16 +1,16 @@
 import {
     getSystemVersion, setSystemVersion, getHistorialReport, getConfiguracion
-} from '../data/firestore-services.js?v=2.3.8';
-import { auth } from '../firebase-config.js?v=2.3.8';
-import { showNotification } from './utils/helpers.js?v=2.3.8';
-import { GlassButton } from './services/ui-components.js?v=2.3.8';
+} from '../data/firestore-services.js?v=2.3.9';
+import { auth } from '../firebase-config.js?v=2.3.9';
+import { showNotification } from './utils/helpers.js?v=2.3.9';
+import { GlassButton } from './services/ui-components.js?v=2.3.9';
 
 // Import Views
-import { renderAnalyticsView } from './analytics-view.js?v=2.3.8';
-import { renderCasaEnCasaTab } from './admin/territories-view.js?v=2.3.8';
-import { renderPredicacionTab } from './admin/public-view.js?v=2.3.8';
-import { renderTelefonosTab } from './admin/phones-view.js?v=2.3.8';
-import { renderConfigTab } from './admin/rules-view.js?v=2.3.8';
+import { renderAnalyticsView } from './analytics-view.js?v=2.3.9';
+import { renderCasaEnCasaTab } from './admin/territories-view.js?v=2.3.9';
+import { renderPredicacionTab } from './admin/public-view.js?v=2.3.9';
+import { renderTelefonosTab } from './admin/phones-view.js?v=2.3.9';
+import { renderConfigTab } from './admin/rules-view.js?v=2.3.9';
 
 /**
  * Main Entry Point for the Administration Control Panel
@@ -22,12 +22,12 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
 
         // --- GLOBAL ADMIN HELPERS ---
         window.editHistoryRecord = async (id) => {
-            const { editHistoryRecord } = await import('./admin/history-view.js?v=2.3.8');
+            const { editHistoryRecord } = await import('./admin/history-view.js?v=2.3.9');
             await editHistoryRecord(id);
         };
 
         window.deleteHistoryRecordUI = async (id, cond, num) => {
-            const { deleteHistoryRecordUI } = await import('./admin/history-view.js?v=2.3.8');
+            const { deleteHistoryRecordUI } = await import('./admin/history-view.js?v=2.3.9');
             await deleteHistoryRecordUI(id, cond, num);
         };
 
@@ -162,7 +162,8 @@ const loadTab = async (tabName, appVersion) => {
                 await renderConfigTab(contentDiv, config, appVersion, (tabId) => loadTab(tabId, appVersion));
                 break;
             case 'casa-en-casa':
-                await renderCasaEnCasaTab(contentDiv);
+                const cfg = await getConfiguracion();
+                await renderCasaEnCasaTab(contentDiv, cfg, appVersion);
                 break;
             case 'predicacion':
                 await renderPredicacionTab(contentDiv);

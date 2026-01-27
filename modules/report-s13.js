@@ -1,6 +1,6 @@
-import { getHistorialReport, rebuildHistoryFromSchedule, getConfiguracion, getTerritorios, runSystemDiagnosticsAndRepair } from '../data/firestore-services.js?v=2.3.8';
-import { showNotification, generatePlainXLS } from './utils/helpers.js?v=2.3.8';
-import { S13Exporter } from './services/s13-exporter.js?v=2.3.8';
+import { getHistorialReport, rebuildHistoryFromSchedule, getConfiguracion, getTerritorios, runSystemDiagnosticsAndRepair } from '../data/firestore-services.js?v=2.3.9';
+import { showNotification, generatePlainXLS } from './utils/helpers.js?v=2.3.9';
+import { S13Exporter } from './services/s13-exporter.js?v=2.3.9';
 
 export const renderS13CommandCenter = async (container) => {
     const [history, config, territories] = await Promise.all([

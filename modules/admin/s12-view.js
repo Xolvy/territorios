@@ -1,8 +1,8 @@
 import {
     getTerritorios, deleteTerritorio, updateTerritorio
-} from '../../data/firestore-services.js?v=2.3.8';
-import { showNotification } from '../utils/helpers.js?v=2.3.8';
-import { showModal, showCustomConfirm } from '../services/ui-helpers.js?v=2.3.8';
+} from '../../data/firestore-services.js?v=2.3.9';
+import { showNotification } from '../utils/helpers.js?v=2.3.9';
+import { showModal, showCustomConfirm } from '../services/ui-helpers.js?v=2.3.9';
 
 export const renderS12View = async (container, config, appVersion) => {
     let terrs = await getTerritorios();
@@ -204,10 +204,30 @@ export const renderS12View = async (container, config, appVersion) => {
     // Button Logic Proxy
     window.viewMapFromBaseS12 = async (id) => {
         showNotification("Cargando mapa...", "info");
-        const { MapViewer } = await import('../map-viewer.js?v=' + appVersion);
-        const t = terrs.find(x => x.id === id);
-        if (t && window.openInteractiveMap) window.openInteractiveMap(t);
-        else if (t) MapViewer.openInteractiveMap(t);
+        try {
+            const { MapViewer } = await import('../map-viewer.js?v=' + (appVersion || 'latest'));
+            const t = terrs.find(x => x.id === id);
+
+            if (!t) {
+                showNotification("Error: Territorio no encontrado en memoria. Intente recargar.", "error");
+                return;
+            }
+
+            console.log("🗺️ Opening map for T-" + t.numero, { hasImage: !!t.imagen, coords: t.coordenadas });
+
+            // Force modal container cleanup if needed
+            const modal = document.getElementById('modal-container');
+            if (modal) {
+                // Ensure it has the right classes for visibility if MapViewer blindly toggles hidden
+                if (!modal.classList.contains('flex')) modal.classList.add('flex', 'items-center', 'justify-center');
+            }
+
+            if (window.openInteractiveMap) window.openInteractiveMap(t);
+            else MapViewer.openInteractiveMap(t);
+        } catch (e) {
+            console.error("Map Load Error:", e);
+            showNotification("Error al cargar el visor de mapas", "error");
+        }
     };
 
     window.showHistoryFromBaseS12 = async (id, num) => {

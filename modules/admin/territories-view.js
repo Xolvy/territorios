@@ -2,7 +2,7 @@
 // This is a router module for Casa en Casa administration.
 // Refactored in 2026 for modularity.
 
-export const renderCasaEnCasaTab = async (container) => {
+export const renderCasaEnCasaTab = async (container, config, appVersion) => {
     let _activeSub = 'programa';
 
     container.innerHTML = `
@@ -47,24 +47,24 @@ export const renderCasaEnCasaTab = async (container) => {
         try {
             switch (sub) {
                 case 'programa':
-                    const { renderProgramaTab } = await import('./program-view.js?v=2.3.8');
-                    await renderProgramaTab(subContainer);
+                    const { renderProgramaTab } = await import('./program-view.js?v=' + appVersion);
+                    await renderProgramaTab(subContainer, config, appVersion);
                     break;
                 case 'historial':
-                    const { renderHistorialView } = await import('./history-view.js?v=2.3.8');
-                    await renderHistorialView(subContainer);
+                    const { renderHistorialView } = await import('./history-view.js?v=' + appVersion);
+                    await renderHistorialView(subContainer, config, appVersion);
                     break;
                 case 's12':
-                    const { renderS12View } = await import('./s12-view.js?v=2.3.8');
-                    await renderS12View(subContainer);
+                    const { renderS12View } = await import('./s12-view.js?v=' + appVersion);
+                    await renderS12View(subContainer, config, appVersion);
                     break;
                 case 'recursos':
-                    const { renderRecursosTab } = await import('./resources-view.js?v=2.3.8');
-                    await renderRecursosTab(subContainer);
+                    const { renderRecursosTab } = await import('./resources-view.js?v=' + appVersion);
+                    await renderRecursosTab(subContainer, config, appVersion);
                     break;
                 case 'personal':
-                    const { renderPersonalTab } = await import('./personal-view.js?v=2.3.8');
-                    await renderPersonalTab(subContainer);
+                    const { renderPersonalTab } = await import('./personal-view.js?v=' + appVersion);
+                    await renderPersonalTab(subContainer, config, appVersion);
                     break;
             }
         } catch (e) {
