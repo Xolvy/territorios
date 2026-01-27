@@ -33,7 +33,7 @@
     "animejs": "^4.2.2",
     "chart.js": "^4.5.1",
     "date-fns": "^4.1.0",
-    "firebase": "^12.7.0",
+    "firebase": "^11.2.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.0.0",
     "leaflet": "^1.9.4",
