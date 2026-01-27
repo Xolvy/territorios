@@ -1,8 +1,8 @@
 import {
     getTelefonos, getPublicadores, updateTelefono, addTelefono, deleteTelefono, getConfiguracion
-} from '../../data/firestore-services.js?v=2.3.9.1';
-import { formatPhoneNumber, getStatusColor, showNotification } from '../utils/helpers.js?v=2.3.9.1';
-import { showModal, showCustomConfirm, UIHelpers } from '../services/ui-helpers.js?v=2.3.9.1';
+} from '../../data/firestore-services.js?v=2.3.9.2';
+import { formatPhoneNumber, getStatusColor, showNotification } from '../utils/helpers.js?v=2.3.9.2';
+import { showModal, showCustomConfirm, UIHelpers } from '../services/ui-helpers.js?v=2.3.9.2';
 
 export const renderTelefonosTab = async (container) => {
     const [telefonos, publicadores, config] = await Promise.all([
@@ -169,10 +169,15 @@ export const renderTelefonosTab = async (container) => {
                             <input type="text" id="p-num" value="${phone?.numero || ''}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-base font-black text-primary outline-none focus:ring-4 focus:ring-primary/10 shadow-inner" placeholder="P. ej: 0991234567">
                         </div>
                         <div class="space-y-3">
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Nombre del Dueño</label>
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Nombre del Dueño (Propietario)</label>
                             <input type="text" id="p-name" value="${phone?.nombre || ''}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary uppercase shadow-inner" placeholder="Escriba el nombre si se conoce...">
                         </div>
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Dirección</label>
+                            <input type="text" id="p-address" value="${phone?.direccion || ''}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary uppercase shadow-inner" placeholder="Escriba la dirección...">
+                        </div>
                         
+                        ${isEdit ? `
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4">
                             <div class="space-y-3">
                                 <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Estado</label>
@@ -195,7 +200,7 @@ export const renderTelefonosTab = async (container) => {
                                     ${publicadores.map(p => `<option value="${p.nombre}" ${phone?.solicitado_por === p.nombre ? 'selected' : ''}>${p.nombre}</option>`).join('')}
                                 </select>
                             </div>
-                        </div>
+                        </div>` : ''}
                     </div>
                 </div>
 
@@ -214,8 +219,9 @@ export const renderTelefonosTab = async (container) => {
                 const btn = modal.querySelector('#btn-save-p');
                 const num = modal.querySelector('#p-num').value.trim();
                 const name = modal.querySelector('#p-name').value.trim();
-                const status = modal.querySelector('#p-status').value;
-                const applicant = modal.querySelector('#p-solicitado').value;
+                const address = modal.querySelector('#p-address').value.trim();
+                const status = isEdit ? modal.querySelector('#p-status').value : 'Sin asignar';
+                const applicant = isEdit ? modal.querySelector('#p-solicitado').value : '';
 
                 if (!num) return showNotification("El número es obligatorio", "warning");
 
@@ -225,6 +231,7 @@ export const renderTelefonosTab = async (container) => {
                 const data = {
                     numero: num,
                     nombre: name,
+                    direccion: address,
                     estado: status,
                     solicitado_por: applicant || null,
                     fecha_asignacion: applicant ? (phone?.fecha_asignacion || new Date().toISOString()) : null

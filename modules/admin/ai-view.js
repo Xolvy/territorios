@@ -1,6 +1,6 @@
-import { TerritoryIntelligence } from '../utils/intelligence.js?v=2.3.9.1';
-import { getTelefonos, getTerritorios, getProgramaSemanal, getConductores } from '../../data/firestore-services.js?v=2.3.9.1';
-import { formatDateId } from '../utils/helpers.js?v=2.3.9.1';
+import { TerritoryIntelligence } from '../utils/intelligence.js?v=2.3.9.2';
+import { getTelefonos, getTerritorios, getProgramaSemanal, getConductores } from '../../data/firestore-services.js?v=2.3.9.2';
+import { formatDateId } from '../utils/helpers.js?v=2.3.9.2';
 
 export const renderAdminAI = async (container, appVersion) => {
     container.innerHTML = `
@@ -85,7 +85,7 @@ export const renderAdminAI = async (container, appVersion) => {
     };
 
     const runAction = async (action) => {
-        const { getConfiguracion } = await import('../../data/firestore-services.js?v=2.3.9.1');
+        const { getConfiguracion } = await import('../../data/firestore-services.js?v=2.3.9.2');
         const config = await getConfiguracion();
         if (!config.gemini_key) {
             logAI("ERROR: API Key de Gemini no configurada. Ve a Ajustes > Reglas.", 'error');

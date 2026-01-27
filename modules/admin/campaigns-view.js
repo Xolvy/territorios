@@ -1,5 +1,5 @@
-import { getCampanas, saveCampana, deleteCampana } from '../../data/firestore-services.js?v=2.3.9.1';
-import { showCustomConfirm, showCustomPrompt } from '../services/ui-helpers.js?v=2.3.9.1';
+import { getCampanas, saveCampana, deleteCampana } from '../../data/firestore-services.js?v=2.3.9.2';
+import { showCustomConfirm, showCustomPrompt } from '../services/ui-helpers.js?v=2.3.9.2';
 
 export const renderCampaignsTab = async (container, config, appVersion, reloadTabFn) => {
     const list = await getCampanas();

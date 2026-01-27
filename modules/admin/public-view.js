@@ -1,8 +1,8 @@
 import {
     getPredicacionPublica, getPublicadores, getConfiguracion, savePredicacionPublica
-} from '../../data/firestore-services.js?v=2.3.9.1';
-import { showNotification } from '../utils/helpers.js?v=2.3.9.1';
-import { showCustomConfirm, showModal } from '../services/ui-helpers.js?v=2.3.9.1';
+} from '../../data/firestore-services.js?v=2.3.9.2';
+import { showNotification } from '../utils/helpers.js?v=2.3.9.2';
+import { showCustomConfirm, showModal } from '../services/ui-helpers.js?v=2.3.9.2';
 import html2canvas from 'html2canvas';
 
 export const renderPredicacionTab = async (container) => {
@@ -178,17 +178,16 @@ export const renderPredicacionTab = async (container) => {
         const filtered = filterData();
 
         viewCont.innerHTML = `
-            <div class="table-container custom-scrollbar overflow-x-auto">
-                <table class="w-full text-left border-collapse min-w-[1200px]">
+            <div class="table-container custom-scrollbar overflow-x-auto lg:overflow-x-visible">
+                <table class="w-full text-left border-collapse table-auto md:table-fixed">
                     <thead class="bg-slate-50/50 dark:bg-white/[0.02] text-slate-400 text-[9px] font-black uppercase tracking-[0.3em] border-b border-slate-100 dark:border-white/5">
                         <tr>
-                            <th class="px-8 py-6 w-32">Día</th>
-                            <th class="px-8 py-6 text-center min-w-[280px]">Horario Estipulado</th>
-                            <th class="px-8 py-6 min-w-[200px]">Punto de Predicación</th>
-                            <th class="px-8 py-6 min-w-[180px]">Faceta / Actividad</th>
-                            <th class="px-8 py-6 min-w-[220px]">Publicador Principal</th>
-                            <th class="px-8 py-6 min-w-[220px]">Acompañante</th>
-                            <th class="px-8 py-6 text-right no-print">Opciones</th>
+                            <th class="px-4 py-6">Día</th>
+                            <th class="px-4 py-6 text-center">Horario Estipulado</th>
+                            <th class="px-4 py-6">Punto de Predicación</th>
+                            <th class="px-4 py-6 text-center">Publicador Principal</th>
+                            <th class="px-4 py-6 text-center">Acompañante</th>
+                            <th class="px-4 py-6 text-right no-print">Opciones</th>
                         </tr>
                     </thead>
                     <tbody id="public-table-body" class="divide-y divide-slate-100 dark:divide-white/5">
@@ -196,38 +195,38 @@ export const renderPredicacionTab = async (container) => {
             const originalIndex = data.asignaciones.indexOf(row);
             return `
                             <tr class="hover:bg-slate-50/50 dark:hover:bg-white/[0.01] transition-all group">
-                                <td class="px-8 py-5">
-                                    <div class="relative">
-                                        <select class="w-full bg-slate-100/50 dark:bg-white/5 border border-transparent rounded-2xl px-4 py-3.5 text-xs font-black text-slate-700 dark:text-slate-200 outline-none focus:border-primary transition-all cursor-pointer shadow-sm uppercase tracking-tight appearance-none"
+                                <td class="px-4 py-5">
+                                    <div class="relative min-w-[100px]">
+                                        <select class="w-full bg-slate-100/50 dark:bg-white/5 border border-transparent rounded-2xl px-3 py-3.5 text-[11px] font-black text-slate-700 dark:text-slate-200 outline-none focus:border-primary transition-all cursor-pointer shadow-sm uppercase tracking-tight appearance-none"
                                             onchange="window.updatePublicRow(${originalIndex}, 'dia', this.value)">
                                             <option value="" disabled ${!row.dia ? 'selected' : ''}>— Día —</option>
                                             ${['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(d =>
                 `<option value="${d}" ${row.dia === d ? 'selected' : ''}>${d}</option>`
             ).join('')}
                                         </select>
-                                        <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-[9px] opacity-20 pointer-events-none"></i>
+                                        <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-[9px] opacity-20 pointer-events-none"></i>
                                     </div>
                                 </td>
-                                <td class="px-8 py-5">
-                                    <div class="flex items-center gap-2 justify-center bg-slate-50 dark:bg-white/5 p-2 rounded-2xl border border-slate-200/50 dark:border-white/10 shadow-inner">
+                                <td class="px-4 py-5">
+                                    <div class="flex items-center gap-1 justify-center bg-slate-50 dark:bg-white/5 p-2 rounded-2xl border border-slate-200/50 dark:border-white/10 shadow-inner min-w-[250px]">
                                         <div class="relative group/time">
                                             <i class="far fa-clock absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 opacity-50"></i>
-                                            <input type="time" class="w-28 bg-transparent border-none pl-8 pr-2 py-2 text-xs font-black text-primary outline-none text-center"
+                                            <input type="time" class="w-24 bg-transparent border-none pl-8 pr-2 py-2 text-[11px] font-black text-primary outline-none text-center"
                                                 value="${formatTimeDisplay(row.hora)}"
                                                 onchange="window.updatePublicRow(${originalIndex}, 'hora', this.value)">
                                         </div>
                                         <span class="text-slate-300 dark:text-white/10 font-bold">—</span>
                                         <div class="relative group/time">
                                             <i class="far fa-clock absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 opacity-50"></i>
-                                            <input type="time" class="w-28 bg-transparent border-none pl-8 pr-2 py-2 text-xs font-black text-primary outline-none text-center"
+                                            <input type="time" class="w-24 bg-transparent border-none pl-8 pr-2 py-2 text-[11px] font-black text-primary outline-none text-center"
                                                 value="${formatTimeDisplay(row.hora_fin)}"
                                                 onchange="window.updatePublicRow(${originalIndex}, 'hora_fin', this.value)">
                                         </div>
                                     </div>
                                 </td>
-                                <td class="px-8 py-5">
-                                    <div class="relative">
-                                        <select class="w-full bg-slate-100/50 dark:bg-white/5 border border-transparent rounded-2xl px-4 py-3.5 text-xs font-black text-slate-700 dark:text-slate-200 outline-none focus:border-primary transition-all cursor-pointer shadow-sm appearance-none uppercase"
+                                <td class="px-4 py-5">
+                                    <div class="relative min-w-[180px]">
+                                        <select class="w-full bg-slate-100/50 dark:bg-white/5 border border-transparent rounded-2xl px-4 py-3.5 text-[11px] font-black text-slate-700 dark:text-slate-200 outline-none focus:border-primary transition-all cursor-pointer shadow-sm appearance-none uppercase"
                                             onchange="window.updatePublicRow(${originalIndex}, 'lugar', this.value)">
                                             <option value="" disabled ${!row.lugar ? 'selected' : ''}>— Seleccionar Punto —</option>
                                             ${(config.lugares || []).map(lugar =>
@@ -237,33 +236,21 @@ export const renderPredicacionTab = async (container) => {
                                         <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-[9px] opacity-20 pointer-events-none"></i>
                                     </div>
                                 </td>
-                                <td class="px-8 py-5">
-                                    <div class="relative">
-                                        <select class="w-full bg-slate-100/50 dark:bg-white/5 border border-transparent rounded-2xl px-4 py-3.5 text-xs font-black text-slate-700 dark:text-slate-200 outline-none focus:border-primary transition-all cursor-pointer shadow-sm appearance-none uppercase"
-                                            onchange="window.updatePublicRow(${originalIndex}, 'faceta', this.value)">
-                                            <option value="" disabled ${!row.faceta ? 'selected' : ''}>— Faceta —</option>
-                                            ${(config.facetas || []).map(faceta =>
-                `<option value="${faceta}" ${row.faceta === faceta ? 'selected' : ''}>${faceta}</option>`
-            ).join('')}
-                                        </select>
-                                        <i class="fas fa-bullhorn absolute right-4 top-1/2 -translate-y-1/2 text-[9px] opacity-20 pointer-events-none"></i>
-                                    </div>
-                                </td>
-                                <td class="px-8 py-5">
+                                <td class="px-4 py-5">
                                     <input list="list-publicadores" type="text"
-                                        class="w-full bg-slate-100/50 dark:bg-white/5 border border-transparent rounded-2xl px-4 py-3.5 text-xs font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all placeholder:text-slate-400 dark:placeholder:text-white/10 shadow-sm uppercase tabular-nums"
+                                        class="w-full bg-slate-100/50 dark:bg-white/5 border border-transparent rounded-2xl px-4 py-3.5 text-[11px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all placeholder:text-slate-400 dark:placeholder:text-white/10 shadow-sm uppercase min-w-[200px]"
                                         value="${row.publicador || ''}"
                                         placeholder="Publicador..."
                                         onchange="window.updatePublicRow(${originalIndex}, 'publicador', this.value)">
                                 </td>
-                                <td class="px-8 py-5">
+                                <td class="px-4 py-5">
                                     <input list="list-publicadores" type="text"
-                                        class="w-full bg-slate-100/50 dark:bg-white/5 border border-transparent rounded-2xl px-4 py-3.5 text-xs font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all placeholder:text-slate-400 dark:placeholder:text-white/10 shadow-sm uppercase tabular-nums"
+                                        class="w-full bg-slate-100/50 dark:bg-white/5 border border-transparent rounded-2xl px-4 py-3.5 text-[11px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all placeholder:text-slate-400 dark:placeholder:text-white/10 shadow-sm uppercase min-w-[200px]"
                                         value="${row.companero || ''}"
-                                        placeholder="Socio..."
+                                        placeholder="Acompañante..."
                                         onchange="window.updatePublicRow(${originalIndex}, 'companero', this.value)">
                                 </td>
-                                <td class="px-8 py-5 text-right no-print opacity-20 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                                <td class="px-4 py-5 text-right no-print opacity-20 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                                     <button class="w-10 h-10 inline-flex items-center justify-center text-primary-light hover:bg-primary/10 rounded-xl transition-all mr-1"
                                         onclick="window.editPublicRowModal(${originalIndex})" title="Editar Detalle">
                                         <i class="fas fa-edit text-xs"></i>
@@ -385,17 +372,18 @@ export const renderPredicacionTab = async (container) => {
                         <input type="text" id="edit-p-pub" value="${row.publicador || ''}" list="list-publicadores" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-xs font-bold uppercase text-slate-700 dark:text-white outline-none">
                     </div>
                     <div class="space-y-2">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Socio / Acompañante</label>
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Acompañante</label>
                         <input type="text" id="edit-p-soc" value="${row.companero || ''}" list="list-publicadores" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-xs font-bold uppercase text-slate-700 dark:text-white outline-none">
                     </div>
                 </div>
 
                 <div class="pt-6 border-t border-slate-50 dark:border-white/5 flex gap-4">
-                    <button onclick="closeModal()" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest transition-all">Cancelar</button>
+                    <button id="btn-cancel-edit-p" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest transition-all">Cancelar</button>
                     <button id="save-edit-public" class="flex-[2] py-5 bg-primary hover:bg-primary-light text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20 active:scale-95 transition-all">GUARDAR CAMBIOS</button>
                 </div>
             </div>
         `, (modal) => {
+            modal.querySelector('#btn-cancel-edit-p').onclick = () => modal.classList.add('hidden');
             modal.querySelector('#save-edit-public').onclick = async () => {
                 const updated = {
                     dia: modal.querySelector('#edit-p-dia').value,

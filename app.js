@@ -1,12 +1,12 @@
 import './modules/extensions.mjs';
-import { auth, db } from './firebase-config.js?v=2.3.9.1';
+import { auth, db } from './firebase-config.js?v=2.3.9.2';
 import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 // Main modules are now lazy-loaded
-import { getPermisosUsuario, getSystemVersion, migrateConductoresToPublicadores } from './data/firestore-services.js?v=2.3.9.1';
-import { showNotification } from './modules/utils/helpers.js?v=2.3.9.1';
-import { initPWA } from './modules/utils/pwa-manager.js?v=2.3.9.1';
-import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js?v=2.3.9.1';
+import { getPermisosUsuario, getSystemVersion, migrateConductoresToPublicadores } from './data/firestore-services.js?v=2.3.9.2';
+import { showNotification } from './modules/utils/helpers.js?v=2.3.9.2';
+import { initPWA } from './modules/utils/pwa-manager.js?v=2.3.9.2';
+import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js?v=2.3.9.2';
 
 // Lazy loaders for heavy modules
 const ModuleCache = {
@@ -16,23 +16,23 @@ const ModuleCache = {
 };
 
 async function loadLogin() {
-    if (!ModuleCache.login) ModuleCache.login = await import('./modules/login.js?v=2.3.9.1');
+    if (!ModuleCache.login) ModuleCache.login = await import('./modules/login.js?v=2.3.9.2');
     return ModuleCache.login.renderLogin;
 }
 
 async function loadAdmin() {
-    if (!ModuleCache.admin) ModuleCache.admin = await import('./modules/admin-dashboard.js?v=2.3.9.1');
+    if (!ModuleCache.admin) ModuleCache.admin = await import('./modules/admin-dashboard.js?v=2.3.9.2');
     return ModuleCache.admin.renderAdminDashboard;
 }
 
 async function loadConductor() {
-    if (!ModuleCache.conductor) ModuleCache.conductor = await import('./modules/conductor-dashboard.js?v=2.3.9.1');
+    if (!ModuleCache.conductor) ModuleCache.conductor = await import('./modules/conductor-dashboard.js?v=2.3.9.2');
     return ModuleCache.conductor.renderConductorDashboard;
 }
 
 // --- FORCED ONE-TIME SYNC TO v2.3 ---
 (async () => {
-    const SYNC_VERSION = '2.3.9.1';
+    const SYNC_VERSION = '2.3.9.2';
     const syncKey = `app_sync_forced_v${SYNC_VERSION}`;
     const oldVersion = localStorage.getItem('app_version');
 
@@ -97,7 +97,7 @@ document.body.appendChild(createThemeToggle());
 // Init PWA & Notifications
 initPWA();
 
-const APP_VERSION = '2.3.9.1';
+const APP_VERSION = '2.3.9.2';
 
 // --- PWA INITIALIZATION ---
 
@@ -176,7 +176,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/service-worker.js?v=2.3.9.1');
+            navigator.serviceWorker.register('/service-worker.js?v=2.3.9.2');
         });
     }
 
