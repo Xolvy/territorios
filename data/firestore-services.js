@@ -1,4 +1,4 @@
-import { db, auth, storage } from '../firebase-config.js?v=2.3.9.2';
+import { db, auth, storage } from '../firebase-config.js?v=2.3.9.3';
 import {
     collection, getDocs, addDoc, deleteDoc, doc, updateDoc, query, where, getDoc, setDoc, orderBy, limit, Timestamp, writeBatch,
     enableIndexedDbPersistence, arrayUnion
@@ -743,12 +743,17 @@ export const migrateConductoresToPublicadores = async () => {
         }
         localStorage.setItem('last_migration_v2', Date.now().toString());
     } catch (e) {
-        console.error("Migration error:", e);
+        if (e.code === 'permission-denied') {
+            console.warn("Migration skipped: Missing permissions (normal for non-admins)");
+            localStorage.setItem('last_migration_v2', 'skipped'); // Don't try again this session
+        } else {
+            console.error("Migration error:", e);
+        }
     }
 };
 
-// AUTO-RUN MIGRATION ON START
-migrateConductoresToPublicadores();
+// REMOVED AUTO-RUN from top level to prevent permission errors on load
+// migrateConductoresToPublicadores();
 
 // --- GROUPS CONFIGURATION ---
 
@@ -789,11 +794,11 @@ export const addTelefono = async (telefono) => {
 };
 
 export const solicitarNumeros = async (cantidad = 30, userId) => {
-    // 1. Try to find unassigned and unrequested numbers
+    // 1. Try to find unassigned numbers
+    // Note: We remove specific null checks for 'solicitado_por' in the query to avoid missing fields issues in Firestore.
+    // Instead, we fetch a larger batch of 'Sin asignar' and filter in memory.
     const q = query(collection(db, "telefonos"),
         where("estado", "==", "Sin asignar"),
-        where("publicador_asignado", "==", null),
-        where("solicitado_por", "==", null),
         limit(500)
     );
     let snapshot = await getDocs(q);
@@ -809,6 +814,9 @@ export const solicitarNumeros = async (cantidad = 30, userId) => {
         for (const d of snap.docs) {
             if (count >= cantidad) break;
             const data = d.data();
+
+            // Manual check for current assignment state (handles missing fields)
+            if (data.solicitado_por || data.publicador_asignado || data.asignado_a) continue;
 
             // Check 'No llamar' timer
             if (data.ultimo_estado === 'No llamar') {
@@ -830,11 +838,9 @@ export const solicitarNumeros = async (cantidad = 30, userId) => {
 
     let result = getAvailableFromSnapshot(snapshot);
 
-    // 2. If no numbers found OR we didn't reach 'cantidad', we might need a reset OR there are just few left.
-    // If result.count < cantidad, but still some found, we'll take what we got.
-    // Only if result.count === 0 we consider a cycle reset.
+    // 2. If no numbers found we consider a cycle reset (only if absolutely none are left)
     if (result.count === 0) {
-        console.log("No numbers available. Checking for cycle reset...");
+        console.log("No numbers available in fetched batch. Checking for total availability...");
         const resetDone = await checkAndResetTelephoneCycle(true);
         if (resetDone) {
             // Re-fetch after reset

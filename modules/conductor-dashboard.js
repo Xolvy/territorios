@@ -1,4 +1,4 @@
-import { auth } from '../firebase-config.js?v=2.3.9.2';
+import { auth } from '../firebase-config.js?v=2.3.9.3';
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import {
     getTerritorios, getConductores, getPublicadores, getTelefonos, updateTelefono,
@@ -8,10 +8,51 @@ import {
     addPublicador, updatePublicador, deletePublicador,
     releaseUnusedTelefonos, solicitarNumeros, updateTelefonoStatus, logSessionSummary,
     logReturn, returnTerritorio, returnTerritorioParcial, transferTerritory
-} from '../data/firestore-services.js?v=2.3.9.2';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, formatManzanas } from './utils/helpers.js?v=2.3.9.2';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=2.3.9.2';
-import { MapViewer } from './map-viewer.js?v=2.3.9.2';
+} from '../data/firestore-services.js?v=2.3.9.3';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, formatManzanas } from './utils/helpers.js?v=2.3.9.3';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=2.3.9.3';
+import { MapViewer } from './map-viewer.js?v=2.3.9.3';
+import { AppConfig } from './utils/config.js';
+
+// --- VOICE DICTATION HELPER ---
+window.startVoiceDictation = (targetId, iconId = 'mic-icon') => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        return showNotification("Tu navegador no soporta transcripción por voz.", "warning");
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'es-ES';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    const micIcon = document.getElementById(iconId);
+    const originalClass = micIcon ? micIcon.className : '';
+
+    if (micIcon) {
+        micIcon.className = 'fas fa-circle text-rose-500 animate-pulse';
+    }
+
+    recognition.start();
+
+    recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        const target = document.getElementById(targetId);
+        if (target) {
+            target.value = target.value ? target.value + ' ' + transcript : transcript;
+            target.focus();
+        }
+    };
+
+    recognition.onerror = () => {
+        showNotification("Error en el dictado.", "error");
+        if (micIcon) micIcon.className = originalClass;
+    };
+
+    recognition.onend = () => {
+        if (micIcon) micIcon.className = originalClass;
+    };
+};
 
 
 
@@ -234,7 +275,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
                     <div class="hidden sm:flex flex-col items-end mr-4 text-right">
                          <p class="text-[8px] font-black text-slate-400 uppercase tracking-[0.3em] mb-0.5">Versión</p>
-                         <p class="text-[10px] font-black text-slate-800 dark:text-white tabular-nums">${appVersion || '2.3.9.2'}</p>
+                         <p class="text-[10px] font-black text-slate-800 dark:text-white tabular-nums">${appVersion || '2.3.9.3'}</p>
                     </div>
                     ${(userRole === 'Administrador' || userRole === 'SuperAdmin' || conductorData?.privilegios?.includes('Administrador')) ? `
                     <button id="btn-goto-admin" class="flex-1 md:flex-none bg-amber-500/10 hover:bg-amber-500 text-amber-600 hover:text-white px-4 md:px-6 py-3.5 rounded-xl border border-amber-500/20 transition-all font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95 min-w-0">
@@ -382,7 +423,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                <button id="btn-solicitar" class="bg-indigo-600 hover:bg-indigo-700 text-white px-10 py-5 rounded-[2rem] font-black shadow-2xl shadow-indigo-500/30 transition-all hover:scale-105 active:scale-95 flex items-center gap-4 uppercase tracking-[0.3em] text-xs">
                                    <i class="fas fa-rocket text-lg"></i> Solicitar Números
                                 </button>
-                               <button id="btn-zoom-compact" onclick="window.open('https://us02web.zoom.us/j/88366543094?pwd=Z2x4Qjdnck4rSjh2Q2llbXZFaTNiUT09', '_blank')" class="bg-blue-600 hover:bg-blue-500 text-white px-10 py-5 rounded-[2rem] font-black shadow-2xl shadow-blue-500/30 transition-all hover:scale-105 active:scale-95 flex items-center gap-4 uppercase tracking-[0.3em] text-xs">
+                               <button id="btn-zoom-compact" onclick="window.open(AppConfig.zoom_url, '_blank')" class="bg-blue-600 hover:bg-blue-500 text-white px-10 py-5 rounded-[2rem] font-black shadow-2xl shadow-blue-500/30 transition-all hover:scale-105 active:scale-95 flex items-center gap-4 uppercase tracking-[0.3em] text-xs">
                                    <i class="fas fa-video text-lg"></i> Conectar Zoom
                                </button>
                            </div>
@@ -407,7 +448,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                             <div id="phone-progress-info" class="order-first md:order-none"></div>
 
                             <div class="flex gap-3">
-                                <button id="btn-zoom" onclick="window.open('https://us02web.zoom.us/j/88366543094?pwd=Z2x4Qjdnck4rSjh2Q2llbXZFaTNiUT09', '_blank')" class="flex-1 md:flex-none btn-pro bg-blue-600 text-white border border-blue-400/20 px-6 py-4 rounded-2xl hover:bg-blue-500 transition-all flex items-center justify-center gap-3 font-black shadow-xl shadow-blue-500/20 uppercase tracking-[0.2em] text-[10px]">
+                                <button id="btn-zoom" onclick="window.open(AppConfig.zoom_url, '_blank')" class="flex-1 md:flex-none btn-pro bg-blue-600 text-white border border-blue-400/20 px-6 py-4 rounded-2xl hover:bg-blue-500 transition-all flex items-center justify-center gap-3 font-black shadow-xl shadow-blue-500/20 uppercase tracking-[0.2em] text-[10px]">
                                     <i class="fas fa-video"></i> Zoom
                                 </button>
                                 <button id="btn-finalizar" class="flex-1 md:flex-none btn-pro bg-rose-600 text-white border border-rose-400/20 px-8 py-4 rounded-2xl hover:bg-rose-500 transition-all flex items-center justify-center gap-3 font-black shadow-xl shadow-rose-500/20 uppercase tracking-[0.2em] text-[10px]">
@@ -1267,7 +1308,7 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
                     </div>
                 </div>
 
-                <div class="flex flex-col gap-6">
+                <div class="flex flex-col flex-1 gap-6">
                     ${dayData.shifts.map((a, shiftIdx) => `
                         <div class="shift-block space-y-4 animate-fade-in" style="animation-delay: ${shiftIdx * 100}ms">
                             <!-- Badge de Turno -->
@@ -1315,7 +1356,7 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
                                  </div>
                                 
                                  ${conductorData?.privilegios?.includes('Superintendente de Circuito') ? '' : `
-                                <div class="pt-2">
+                                <div class="mt-auto pt-4">
                                     <button class="territory-report-btn w-full bg-slate-900 dark:bg-teal-600/90 hover:bg-black dark:hover:bg-teal-500 py-4 rounded-2xl text-white font-black text-[9px] uppercase tracking-[0.3em] shadow-xl shadow-slate-900/10 active:scale-95 transition-all flex items-center justify-center gap-3"
                                         data-ids="${a.attachedTerritories.map(t => t.id).join(',')}" 
                                         data-nums="${a.attachedTerritories.map(t => t.numero).join(',')}">
@@ -2203,7 +2244,7 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
                                         <div class="w-6 h-6 rounded-lg bg-slate-100 dark:bg-white/10 flex items-center justify-center text-slate-400 group-[.active]:bg-emerald-500 group-[.active]:text-white transition-all shadow-inner group-[.active]:shadow-lg group-[.active]:shadow-emerald-500/30">
                                             <i class="fas fa-check-circle text-xs"></i>
                                         </div>
-                                        <span class="text-[8px] font-black uppercase tracking-widest text-slate-500 group-[.active]:text-emerald-600 dark:group-[.active]:text-emerald-400 group-[.active]:opacity-100 opacity-60">Lleno</span>
+                                        <span class="text-[8px] font-black uppercase tracking-widest text-slate-500 group-[.active]:text-emerald-600 dark:group-[.active]:text-emerald-400 group-[.active]:opacity-100 opacity-60">Completo</span>
                                     </button>
                                     <button class="completion-toggle flex items-center justify-center gap-2 p-2 rounded-xl border-2 border-slate-200 dark:border-white/5 grayscale opacity-40 transition-all group hover:bg-white dark:hover:bg-white/5" data-tid="${t.id}" data-val="parcial">
                                         <div class="w-6 h-6 rounded-lg bg-slate-100 dark:bg-white/10 flex items-center justify-center text-slate-400 group-[.active]:bg-amber-500 group-[.active]:text-white transition-all shadow-inner group-[.active]:shadow-lg group-[.active]:shadow-amber-500/30">
@@ -2878,44 +2919,7 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
             });
         }
 
-        window.startVoiceDictation = (targetId, iconId = 'mic-icon') => {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) {
-                return showNotification("Tu navegador no soporta transcripción por voz.", "warning");
-            }
-
-            const recognition = new SpeechRecognition();
-            recognition.lang = 'es-ES';
-            recognition.interimResults = false;
-            recognition.maxAlternatives = 1;
-
-            const micIcon = document.getElementById(iconId);
-            const originalClass = micIcon ? micIcon.className : '';
-
-            if (micIcon) {
-                micIcon.className = 'fas fa-circle text-rose-500 animate-pulse';
-            }
-
-            recognition.start();
-
-            recognition.onresult = (event) => {
-                const transcript = event.results[0][0].transcript;
-                const target = document.getElementById(targetId);
-                if (target) {
-                    target.value = target.value ? target.value + ' ' + transcript : transcript;
-                    target.focus();
-                }
-            };
-
-            recognition.onerror = () => {
-                showNotification("Error en el dictado.", "error");
-                if (micIcon) micIcon.className = originalClass;
-            };
-
-            recognition.onend = () => {
-                if (micIcon) micIcon.className = originalClass;
-            };
-        };
+        // Moved window.startVoiceDictation to top scope for accessibility from modals
 
         window.returnRevisita = async (id) => {
             const row = document.getElementById(`rev-row-${id}`);

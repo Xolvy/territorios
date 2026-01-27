@@ -1,6 +1,6 @@
-import { saveConfiguracion } from '../../data/firestore-services.js?v=2.3.9.2';
-import { showCustomPrompt, showCustomConfirm } from '../services/ui-helpers.js?v=2.3.9.2';
-import { showNotification, ensureOnline } from '../utils/helpers.js?v=2.3.9.2';
+import { saveConfiguracion } from '../../data/firestore-services.js?v=2.3.9.3';
+import { showCustomPrompt, showCustomConfirm } from '../services/ui-helpers.js?v=2.3.9.3';
+import { showNotification, ensureOnline } from '../utils/helpers.js?v=2.3.9.3';
 
 export const renderConfigTab = async (container, config, appVersion, reloadTabFn) => {
     container.innerHTML = `
@@ -249,7 +249,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sincronizando...';
             btn.disabled = true;
             try {
-                const { runSystemDiagnosticsAndRepair } = await import('../../data/firestore-services.js?v=2.3.9.2');
+                const { runSystemDiagnosticsAndRepair } = await import('../../data/firestore-services.js');
                 await runSystemDiagnosticsAndRepair((msg, pc) => {
                     console.log(`[SyncMaster] ${msg} (${pc}%)`);
                 });

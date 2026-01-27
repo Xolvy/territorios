@@ -47,23 +47,23 @@ export const renderCasaEnCasaTab = async (container, config, appVersion) => {
         try {
             switch (sub) {
                 case 'programa':
-                    const { renderProgramaTab } = await import('./program-view.js?v=' + appVersion);
+                    const { renderProgramaTab } = await import('./program-view.js');
                     await renderProgramaTab(subContainer, config, appVersion);
                     break;
                 case 'historial':
-                    const { renderHistorialView } = await import('./history-view.js?v=' + appVersion);
+                    const { renderHistorialView } = await import('./history-view.js');
                     await renderHistorialView(subContainer, config, appVersion);
                     break;
                 case 's12':
-                    const { renderS12View } = await import('./s12-view.js?v=' + appVersion);
+                    const { renderS12View } = await import('./s12-view.js');
                     await renderS12View(subContainer, config, appVersion);
                     break;
                 case 'recursos':
-                    const { renderRecursosTab } = await import('./resources-view.js?v=' + appVersion);
+                    const { renderRecursosTab } = await import('./resources-view.js');
                     await renderRecursosTab(subContainer, config, appVersion);
                     break;
                 case 'personal':
-                    const { renderPersonalTab } = await import('./personal-view.js?v=' + appVersion);
+                    const { renderPersonalTab } = await import('./personal-view.js');
                     await renderPersonalTab(subContainer, config, appVersion);
                     break;
             }

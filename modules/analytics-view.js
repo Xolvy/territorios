@@ -1,4 +1,4 @@
-import { getTerritorios, getConductores, getGlobalSettings, getHistorialReport } from '../data/firestore-services.js?v=2.3.9.2';
+import { getTerritorios, getConductores, getGlobalSettings, getHistorialReport } from '../data/firestore-services.js?v=2.3.9.3';
 
 export const renderAnalyticsView = async (container, appVersion) => {
 
@@ -11,8 +11,8 @@ export const renderAnalyticsView = async (container, appVersion) => {
     }
 
     container.innerHTML = `
-        <div class="h-full flex flex-col gap-4 md:gap-8 animate-fade-in custom-scrollbar pb-10">
-            <header class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-100 dark:border-white/5 pb-6 md:pb-8 gap-4 md:gap-6">
+        <div class="h-full flex flex-col gap-4 md:gap-8 animate-fade-in custom-scrollbar pb-10 px-1 md:px-4">
+            <header class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-100 dark:border-white/5 pb-6 md:pb-8 gap-4 md:gap-6 px-4 md:px-6">
                 <div class="flex items-center gap-4 md:gap-6">
                     <div class="w-12 h-12 md:w-16 md:h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-2xl md:text-3xl text-primary shadow-inner border border-primary/10 animate-float shrink-0">
                         <i class="fas fa-chart-pie"></i>

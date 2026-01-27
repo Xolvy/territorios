@@ -1,12 +1,12 @@
 import './modules/extensions.mjs';
-import { auth, db } from './firebase-config.js?v=2.3.9.2';
+import { auth, db } from './firebase-config.js?v=2.3.9.3';
 import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 // Main modules are now lazy-loaded
-import { getPermisosUsuario, getSystemVersion, migrateConductoresToPublicadores } from './data/firestore-services.js?v=2.3.9.2';
-import { showNotification } from './modules/utils/helpers.js?v=2.3.9.2';
-import { initPWA } from './modules/utils/pwa-manager.js?v=2.3.9.2';
-import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js?v=2.3.9.2';
+import { getPermisosUsuario, getSystemVersion, migrateConductoresToPublicadores } from './data/firestore-services.js?v=2.3.9.3';
+import { showNotification } from './modules/utils/helpers.js?v=2.3.9.3';
+import { initPWA } from './modules/utils/pwa-manager.js?v=2.3.9.3';
+import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js?v=2.3.9.3';
 
 // Lazy loaders for heavy modules
 const ModuleCache = {
@@ -16,24 +16,35 @@ const ModuleCache = {
 };
 
 async function loadLogin() {
-    if (!ModuleCache.login) ModuleCache.login = await import('./modules/login.js?v=2.3.9.2');
+    if (!ModuleCache.login) ModuleCache.login = await import('./modules/login.js');
     return ModuleCache.login.renderLogin;
 }
 
 async function loadAdmin() {
-    if (!ModuleCache.admin) ModuleCache.admin = await import('./modules/admin-dashboard.js?v=2.3.9.2');
+    if (!ModuleCache.admin) ModuleCache.admin = await import('./modules/admin-dashboard.js');
     return ModuleCache.admin.renderAdminDashboard;
 }
 
 async function loadConductor() {
-    if (!ModuleCache.conductor) ModuleCache.conductor = await import('./modules/conductor-dashboard.js?v=2.3.9.2');
+    if (!ModuleCache.conductor) ModuleCache.conductor = await import('./modules/conductor-dashboard.js');
     return ModuleCache.conductor.renderConductorDashboard;
 }
 
-// --- FORCED ONE-TIME SYNC TO v2.3 ---
+// --- FORCED ONE-TIME SYNC TO v2.3.9.2 ---
 (async () => {
     const SYNC_VERSION = '2.3.9.2';
     const syncKey = `app_sync_forced_v${SYNC_VERSION}`;
+    const urlParams = new URLSearchParams(window.location.search);
+    const isJustUpdated = urlParams.get('updated') === 'true';
+
+    // If we just updated, don't run the sync logic again to avoid loops
+    if (isJustUpdated) {
+        localStorage.setItem(syncKey, 'true');
+        localStorage.setItem('app_version', SYNC_VERSION);
+        localStorage.removeItem('block_version_check'); // Safe to check again
+        return;
+    }
+
     const oldVersion = localStorage.getItem('app_version');
 
     if (!localStorage.getItem(syncKey) || (oldVersion && oldVersion !== SYNC_VERSION)) {
@@ -74,7 +85,18 @@ async function loadConductor() {
                     await caches.delete(k);
                 }
             }
-            localStorage.clear(); // Nuclear option for a hard sync
+
+            // Be selective with clearing to avoid wiping out the flags we just set or about to set
+            const essentialKeys = ['theme', 'last_force_timestamp'];
+            const preservedValues = {};
+            essentialKeys.forEach(k => preservedValues[k] = localStorage.getItem(k));
+
+            localStorage.clear();
+
+            essentialKeys.forEach(k => {
+                if (preservedValues[k]) localStorage.setItem(k, preservedValues[k]);
+            });
+
             localStorage.setItem(syncKey, 'true');
             localStorage.setItem('app_version', SYNC_VERSION);
 
@@ -85,6 +107,7 @@ async function loadConductor() {
         } catch (e) {
             console.error("Sync error:", e);
             localStorage.setItem(syncKey, 'true');
+            localStorage.setItem('app_version', SYNC_VERSION);
             window.location.reload();
         }
     }
@@ -99,8 +122,6 @@ initPWA();
 
 const APP_VERSION = '2.3.9.2';
 
-// --- PWA INITIALIZATION ---
-
 // --- SUCCESS CONFIRMATION AFTER UPDATE ---
 const checkUpdateSuccess = () => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -114,6 +135,10 @@ const checkUpdateSuccess = () => {
 checkUpdateSuccess();
 
 const initVersionCheck = (currentVersion) => {
+    // Skip checking if we just updated via URL to avoid race conditions
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('updated') === 'true' || localStorage.getItem('block_version_check')) return;
+
     onSnapshot(doc(db, "configuracion", "version_control"), async (docSnap) => {
         if (docSnap.exists()) {
             const data = docSnap.data();
@@ -121,9 +146,23 @@ const initVersionCheck = (currentVersion) => {
             const serverForceTimestamp = data.forceTimestamp || 0;
             const localForceTimestamp = parseInt(localStorage.getItem('last_force_timestamp') || '0');
 
-            if (serverVersion !== currentVersion || (serverForceTimestamp && serverForceTimestamp !== localForceTimestamp)) {
+            // Prevent loop: If we are already on the server version (or newer), ignore version mismatches
+            // Unless there's an explicit forceTimestamp change.
+            const isVersionNewer = serverVersion !== currentVersion;
+            const isTimestampNewer = serverForceTimestamp && serverForceTimestamp > localForceTimestamp;
+
+            if (isVersionNewer || isTimestampNewer) {
                 if (data.forceUpdate) {
+                    // One last check: if we just reloaded for this version, don't do it again
+                    if (localStorage.getItem('app_version') === currentVersion && !isTimestampNewer) {
+                        return;
+                    }
+
                     console.warn("🚀 Update required. Purging cache...");
+
+                    // Mark as updating to prevent loops in this session
+                    localStorage.setItem('block_version_check', 'true');
+
                     if ('serviceWorker' in navigator) {
                         const regs = await navigator.serviceWorker.getRegistrations();
                         for (let r of regs) await r.unregister();
@@ -133,7 +172,7 @@ const initVersionCheck = (currentVersion) => {
                         await Promise.all(keys.map(k => caches.delete(k)));
                     }
                     localStorage.setItem('last_force_timestamp', serverForceTimestamp.toString());
-                    localStorage.removeItem('app_version');
+                    localStorage.setItem('app_version', currentVersion);
                     window.location.href = `${window.location.pathname}?updated=true&v=${Date.now()}`;
                 }
             }

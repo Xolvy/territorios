@@ -1,8 +1,8 @@
 import {
     getPredicacionPublica, getPublicadores, getConfiguracion, savePredicacionPublica
-} from '../../data/firestore-services.js?v=2.3.9.2';
-import { showNotification } from '../utils/helpers.js?v=2.3.9.2';
-import { showCustomConfirm, showModal } from '../services/ui-helpers.js?v=2.3.9.2';
+} from '../../data/firestore-services.js';
+import { showNotification } from '../utils/helpers.js';
+import { showCustomConfirm, showModal } from '../services/ui-helpers.js';
 import html2canvas from 'html2canvas';
 
 export const renderPredicacionTab = async (container) => {
@@ -182,12 +182,12 @@ export const renderPredicacionTab = async (container) => {
                 <table class="w-full text-left border-collapse table-auto md:table-fixed">
                     <thead class="bg-slate-50/50 dark:bg-white/[0.02] text-slate-400 text-[9px] font-black uppercase tracking-[0.3em] border-b border-slate-100 dark:border-white/5">
                         <tr>
-                            <th class="px-4 py-6">Día</th>
-                            <th class="px-4 py-6 text-center">Horario Estipulado</th>
-                            <th class="px-4 py-6">Punto de Predicación</th>
-                            <th class="px-4 py-6 text-center">Publicador Principal</th>
-                            <th class="px-4 py-6 text-center">Acompañante</th>
-                            <th class="px-4 py-6 text-right no-print">Opciones</th>
+                            <th class="px-4 py-6 w-[120px]">Día</th>
+                            <th class="px-4 py-6 text-center w-[250px]">Horario Estipulado</th>
+                            <th class="px-4 py-6 w-[180px]">Punto de Predicación</th>
+                            <th class="px-4 py-6 text-center w-[160px]">Publicador Principal</th>
+                            <th class="px-4 py-6 text-center w-[160px]">Acompañante</th>
+                            <th class="px-4 py-6 text-right no-print w-[120px]">Opciones</th>
                         </tr>
                     </thead>
                     <tbody id="public-table-body" class="divide-y divide-slate-100 dark:divide-white/5">
@@ -208,7 +208,7 @@ export const renderPredicacionTab = async (container) => {
                                     </div>
                                 </td>
                                 <td class="px-4 py-5">
-                                    <div class="flex items-center gap-1 justify-center bg-slate-50 dark:bg-white/5 p-2 rounded-2xl border border-slate-200/50 dark:border-white/10 shadow-inner min-w-[250px]">
+                                    <div class="flex items-center gap-1 justify-center bg-slate-50 dark:bg-white/5 p-1 md:p-2 rounded-2xl border border-slate-200/50 dark:border-white/10 shadow-inner min-w-[200px] md:min-w-[250px]">
                                         <div class="relative group/time">
                                             <i class="far fa-clock absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 opacity-50"></i>
                                             <input type="time" class="w-24 bg-transparent border-none pl-8 pr-2 py-2 text-[11px] font-black text-primary outline-none text-center"
@@ -225,7 +225,7 @@ export const renderPredicacionTab = async (container) => {
                                     </div>
                                 </td>
                                 <td class="px-4 py-5">
-                                    <div class="relative min-w-[180px]">
+                                    <div class="relative min-w-[150px] md:min-w-[180px]">
                                         <select class="w-full bg-slate-100/50 dark:bg-white/5 border border-transparent rounded-2xl px-4 py-3.5 text-[11px] font-black text-slate-700 dark:text-slate-200 outline-none focus:border-primary transition-all cursor-pointer shadow-sm appearance-none uppercase"
                                             onchange="window.updatePublicRow(${originalIndex}, 'lugar', this.value)">
                                             <option value="" disabled ${!row.lugar ? 'selected' : ''}>— Seleccionar Punto —</option>
@@ -238,14 +238,14 @@ export const renderPredicacionTab = async (container) => {
                                 </td>
                                 <td class="px-4 py-5">
                                     <input list="list-publicadores" type="text"
-                                        class="w-full bg-slate-100/50 dark:bg-white/5 border border-transparent rounded-2xl px-4 py-3.5 text-[11px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all placeholder:text-slate-400 dark:placeholder:text-white/10 shadow-sm uppercase min-w-[200px]"
+                                        class="w-full bg-slate-100/50 dark:bg-white/5 border border-transparent rounded-2xl px-4 py-3.5 text-[11px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all placeholder:text-slate-400 dark:placeholder:text-white/10 shadow-sm uppercase min-w-[120px] md:min-w-[160px]"
                                         value="${row.publicador || ''}"
                                         placeholder="Publicador..."
                                         onchange="window.updatePublicRow(${originalIndex}, 'publicador', this.value)">
                                 </td>
                                 <td class="px-4 py-5">
                                     <input list="list-publicadores" type="text"
-                                        class="w-full bg-slate-100/50 dark:bg-white/5 border border-transparent rounded-2xl px-4 py-3.5 text-[11px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all placeholder:text-slate-400 dark:placeholder:text-white/10 shadow-sm uppercase min-w-[200px]"
+                                        class="w-full bg-slate-100/50 dark:bg-white/5 border border-transparent rounded-2xl px-4 py-3.5 text-[11px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all placeholder:text-slate-400 dark:placeholder:text-white/10 shadow-sm uppercase min-w-[120px] md:min-w-[160px]"
                                         value="${row.companero || ''}"
                                         placeholder="Acompañante..."
                                         onchange="window.updatePublicRow(${originalIndex}, 'companero', this.value)">
@@ -432,4 +432,36 @@ export const renderPredicacionTab = async (container) => {
 
     renderMainLayout();
     renderCurrentView();
+
+    // S-13 Export Logic (Moved inside to have access to container)
+    const exportBtn = container.querySelector('#export-pdf');
+    if (exportBtn) {
+        exportBtn.onclick = async () => {
+            const { renderS13CommandCenter } = await import('../report-s13.js');
+            const modal = document.getElementById('modal-container');
+            modal.classList.remove('hidden');
+            modal.innerHTML = `
+                <div class="w-full h-full flex items-center justify-center p-4">
+                    <div class="bg-white dark:bg-slate-900 w-full max-w-6xl max-h-[90vh] rounded-[3rem] shadow-2xl flex flex-col overflow-hidden animate-scale-in">
+                        <header class="p-8 border-b border-slate-100 dark:border-white/5 flex justify-between items-center">
+                            <div class="flex items-center gap-4">
+                                 <div class="w-12 h-12 bg-indigo-500/10 text-indigo-500 rounded-2xl flex items-center justify-center text-2xl">
+                                    <i class="fas fa-file-invoice"></i>
+                                 </div>
+                                 <div>
+                                     <h3 class="text-xl font-black uppercase tracking-tight text-slate-800 dark:text-white">Centro de Exportación S-13</h3>
+                                     <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em]">Generación de Reportes Oficiales</p>
+                                 </div>
+                            </div>
+                            <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="w-10 h-10 bg-slate-100 dark:bg-white/5 rounded-xl flex items-center justify-center hover:bg-rose-500/10 hover:text-rose-500 transition-all">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </header>
+                        <div id="s13-modal-content" class="flex-1 overflow-y-auto p-10 custom-scrollbar"></div>
+                    </div>
+                </div>
+            `;
+            await renderS13CommandCenter(document.getElementById('s13-modal-content'));
+        };
+    }
 };

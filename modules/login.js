@@ -1,6 +1,6 @@
-import { auth } from '../firebase-config.js?v=2.3.9.2';
+import { auth } from '../firebase-config.js?v=2.3.9.3';
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { getPublicadores, getConfiguracion } from '../data/firestore-services.js?v=2.3.9.2';
+import { getPublicadores, getConfiguracion } from '../data/firestore-services.js?v=2.3.9.3';
 
 export const renderLogin = (container, appVersion) => {
     const cachedName = localStorage.getItem('cached_congregation_name') || "Sincronizando Portal...";
@@ -77,7 +77,7 @@ export const renderLogin = (container, appVersion) => {
                 <!-- Footer Info -->
                 <div class="pt-6 sm:pt-10 space-y-2 opacity-60">
                     <p id="app-version-label" class="text-[11px] text-slate-600 dark:text-slate-400 font-black tracking-tighter uppercase">
-                        Plataforma v${appVersion || '2.3.9.2'} · Modern 2026
+                        Plataforma v${appVersion || '2.3.9.3'} · Modern 2026
                     </p>
                     <p class="text-[10px] text-slate-500 dark:text-slate-400 font-bold tracking-tight">© Congregation Software Solutions · Ecuador</p>
                 </div>
