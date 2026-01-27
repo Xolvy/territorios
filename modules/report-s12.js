@@ -1,5 +1,5 @@
-import { getTerritorios, getHistorialReport } from '../data/firestore-services.js?v=2.3.9';
-import { showNotification } from './utils/helpers.js?v=2.3.9';
+import { getTerritorios, getHistorialReport } from '../data/firestore-services.js?v=2.3.9.1';
+import { showNotification } from './utils/helpers.js?v=2.3.9.1';
 
 export const renderS12CommandCenter = async (container) => {
     const territorios = await getTerritorios();

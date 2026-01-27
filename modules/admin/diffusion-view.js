@@ -1,5 +1,5 @@
-import { getDiffusionMessage, saveDiffusionMessage } from '../../data/firestore-services.js?v=2.3.9';
-import { showNotification } from '../utils/helpers.js?v=2.3.9';
+import { getDiffusionMessage, saveDiffusionMessage } from '../../data/firestore-services.js?v=2.3.9.1';
+import { showNotification } from '../utils/helpers.js?v=2.3.9.1';
 
 export const renderDiffusionTab = async (container, config, appVersion, reloadTabFn) => {
     const diffusion = await getDiffusionMessage();
