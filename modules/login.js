@@ -1,6 +1,6 @@
-import { auth } from '../firebase-config.js?v=2.4.0.4';
+import { auth } from '../firebase-config.js?v=2.4.0.5';
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { getPublicadores, getConfiguracion } from '../data/firestore-services.js?v=2.4.0.4';
+import { getPublicadores, getConfiguracion } from '../data/firestore-services.js?v=2.4.0.5';
 
 export const renderLogin = (container, appVersion) => {
     const cachedName = localStorage.getItem('cached_congregation_name') || "Sincronizando Portal...";
