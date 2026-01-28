@@ -1,42 +1,16 @@
-import { updateTelefono, updateTerritorio } from '../../data/firestore-services.js?v=2.3.9.4';
+import { updateTelefono, updateTerritorio } from '../../data/firestore-services.js?v=2.4.0.4';
 
 export class TerritoryIntelligence {
-    constructor(telefonos, publicadores, territorios, programa, conductores) {
+    constructor(telefonos, publicadores, territorios, programa, conductores, puntosInteres) {
         this.telefonos = telefonos;
         this.publicadores = publicadores;
         this.territorios = territorios || [];
         this.programa = programa || {};
         this.conductores = conductores || [];
+        this.puntosInteres = puntosInteres || [];
     }
 
-    // ... (keep runAutoMaintenence and generateInsights as is, I will only target range around askGemini)
-
-    /**
-     * Connects to Google Gemini API for advanced analysis
-     */
-    async detectBestModel(apiKey) {
-        if (this.cachedModel) return this.cachedModel;
-        const versions = ['v1beta', 'v1'];
-        const priorities = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro', 'gemini-1.0-pro'];
-
-        for (const version of versions) {
-            try {
-                const res = await fetch(`https://generativelanguage.googleapis.com/${version}/models?key=${apiKey}`);
-                if (!res.ok) continue;
-                const data = await res.json();
-                if (!data.models) continue;
-                for (const p of priorities) {
-                    const match = data.models.find(m => m.name.includes(p) && m.supportedGenerationMethods?.includes('generateContent'));
-                    if (match) {
-                        const cleanName = match.name.startsWith('models/') ? match.name.split('/')[1] : match.name;
-                        this.cachedModel = { name: cleanName, version: version };
-                        return this.cachedModel;
-                    }
-                }
-            } catch (e) { console.warn(e); }
-        }
-        throw new Error("No compatible AI models found.");
-    }
+    // ... (maintenance and generatesInsights unchanged)
 
     async askGemini(apiKey, prompt) {
         if (!navigator.onLine) {
@@ -50,7 +24,7 @@ export class TerritoryIntelligence {
             fecha_actual: new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
             dia_semana_indice: new Date().getDay(),
             resumen_telefonos: {
-                total: this.telefonos.length,
+                total: this.telefonos?.length || 0,
                 estados: (this.telefonos || []).reduce((acc, t) => { acc[t.estado || 'Sin asignar'] = (acc[t.estado || 'Sin asignar'] || 0) + 1; return acc; }, {})
             },
             publicadores_nombres: (this.publicadores || []).map(p => p.nombre),
@@ -59,6 +33,9 @@ export class TerritoryIntelligence {
                 .filter(t => isFree(t))
                 .slice(0, 30)
                 .map(t => ({ id: t.id, numero: t.numero, manzanas: t.manzanas || 'Todas', ultima_visita: t.ultima_fecha || 'Nunca' })),
+            puntos_interes_cercanos: (this.puntosInteres || []).map(p => ({
+                nombre: p.nombre, tipo: p.tipo, territorio_numero: p.territorio_numero, info: p.descripcion
+            })),
             programa_semanal: this.programa?.dias ? this.programa.dias : "No disponible"
         };
 
@@ -66,6 +43,7 @@ export class TerritoryIntelligence {
             Eres el Cerebro Territorial (IA). Actúa como un experto en logística y predicación.
             Contexto: ${JSON.stringify(context)}.
             
+            REGLA IMPORTANTE: Solo si el usuario explícitamente dice que necesita un nuevo territorio, que ya agotó el actual, o pregunta "¿dónde predicamos ahora?", sugiérele ir a uno de los 'Puntos de Interés' cercanos (paradas de taxi, bus, parques) registrados para su territorio actual o alrededores.
             Si piden asignar: ||ASSIGN_TERR:{id}:{conductor}||
             Si detectas que un conductor necesita territorio, sugierelo activamente.
             Usa un tono profesional, amable y motivador. Responde con Markdown.

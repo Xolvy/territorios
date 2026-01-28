@@ -1,65 +1,65 @@
 import {
     getRecursos, addRecurso, deleteRecurso, updateRecurso
-} from '../../data/firestore-services.js?v=2.3.9.4';
-import { showNotification } from '../utils/helpers.js?v=2.3.9.4';
-import { showModal, showCustomConfirm } from '../services/ui-helpers.js?v=2.3.9.4';
+} from '../../data/firestore-services.js?v=2.4.0.4';
+import { showNotification } from '../utils/helpers.js?v=2.4.0.4';
+import { showModal, showCustomConfirm } from '../services/ui-helpers.js?v=2.4.0.4';
 
 export const renderRecursosTab = async (container) => {
     const recursos = await getRecursos();
 
     container.innerHTML = `
-        <div class="animate-fade-in p-2 md:p-6 space-y-10 max-w-7xl mx-auto">
-            <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
-                <div>
-                    <h3 class="text-2xl md:text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter flex items-center gap-4">
-                        <div class="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary shadow-inner">
-                            <i class="fas fa-folder-open"></i>
-                        </div>
-                        Material de Apoyo
-                    </h3>
-                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em] mt-2 ml-1">Recursos digitales para el ministerio</p>
-                </div>
-                <button id="add-recurso-btn" class="w-full sm:w-auto bg-primary hover:bg-primary-light text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-3">
-                    <i class="fas fa-plus-circle"></i> Nuevo Recurso
-                </button>
-            </header>
+        <div class="animate-fade-in p-2 md:p-6 space-y-10 max-w-7xl mx-auto pb-20">
+            <!-- MATERIAL DE APOYO SECTION -->
+            <section class="space-y-10">
+                <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+                    <div>
+                        <h3 class="text-2xl md:text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter flex items-center gap-4">
+                            <div class="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary shadow-inner">
+                                <i class="fas fa-folder-open"></i>
+                            </div>
+                            Material de Apoyo
+                        </h3>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em] mt-2 ml-1">Recursos digitales para el ministerio</p>
+                    </div>
+                    <button id="add-recurso-btn" class="w-full sm:w-auto bg-primary hover:bg-primary-light text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-3">
+                        <i class="fas fa-plus-circle"></i> Nuevo Recurso
+                    </button>
+                </header>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                ${recursos.length === 0 ? `
-                    <div class="col-span-full py-32 text-center opacity-30">
-                        <div class="w-20 h-20 bg-slate-100 dark:bg-white/5 rounded-[2rem] flex items-center justify-center text-3xl mx-auto mb-6"><i class="fas fa-ghost"></i></div>
-                        <p class="font-black text-[10px] uppercase tracking-[0.4em]">No hay recursos registrados</p>
-                    </div>
-                ` : recursos.map(r => `
-                    <div class="modern-card group !p-0 overflow-hidden border-slate-100 dark:border-white/5 flex flex-col shadow-xl hover:shadow-2xl transition-all hover:border-primary/30">
-                        <div class="h-44 bg-slate-100 dark:bg-black/40 relative overflow-hidden">
-                            ${r.imagen ? `<img src="${r.imagen}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">` :
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                    ${recursos.length === 0 ? `
+                        <div class="col-span-full py-20 text-center opacity-30">
+                            <p class="font-black text-[10px] uppercase tracking-[0.4em]">No hay recursos registrados</p>
+                        </div>
+                    ` : recursos.map(r => `
+                        <div class="modern-card group !p-0 overflow-hidden border-slate-100 dark:border-white/5 flex flex-col shadow-xl hover:shadow-2xl transition-all hover:border-primary/30">
+                            <div class="h-44 bg-slate-100 dark:bg-black/40 relative overflow-hidden">
+                                ${r.imagen ? `<img src="${r.imagen}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">` :
             `<div class="w-full h-full flex items-center justify-center text-slate-300 dark:text-white/5 text-4xl">
-                                <i class="fas fa-image"></i>
-                            </div>`}
-                            <div class="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300">
-                                <button onclick="window.editRecurso('${r.id}')" class="w-9 h-9 bg-white/90 dark:bg-slate-900/90 text-slate-700 dark:text-white rounded-xl shadow-xl flex items-center justify-center hover:bg-primary hover:text-white transition-colors backdrop-blur-md">
-                                    <i class="fas fa-edit text-xs"></i>
-                                </button>
-                                <button onclick="window.deleteRecurso('${r.id}')" class="w-9 h-9 bg-white/90 dark:bg-slate-900/90 text-rose-500 rounded-xl shadow-xl flex items-center justify-center hover:bg-rose-500 hover:text-white transition-colors backdrop-blur-md">
-                                    <i class="fas fa-trash-alt text-xs"></i>
-                                </button>
+                                    <i class="fas fa-image"></i>
+                                </div>`}
+                                <div class="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+                                    <button onclick="window.editRecurso('${r.id}')" class="w-9 h-9 bg-white/90 dark:bg-slate-900/90 text-slate-700 dark:text-white rounded-xl shadow-xl flex items-center justify-center hover:bg-primary hover:text-white transition-colors backdrop-blur-md">
+                                        <i class="fas fa-edit text-xs"></i>
+                                    </button>
+                                    <button onclick="window.deleteRecurso('${r.id}')" class="w-9 h-9 bg-white/90 dark:bg-slate-900/90 text-rose-500 rounded-xl shadow-xl flex items-center justify-center hover:bg-rose-500 hover:text-white transition-colors backdrop-blur-md">
+                                        <i class="fas fa-trash-alt text-xs"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="p-6 flex-1 flex flex-col space-y-4">
+                                <h4 class="text-[13px] font-black text-slate-800 dark:text-white uppercase leading-tight line-clamp-2">${r.titulo}</h4>
+                                <div class="pt-4 mt-auto">
+                                    <a href="${r.url}" target="_blank" class="w-full bg-slate-50 dark:bg-white/5 hover:bg-primary group/btn text-slate-500 dark:text-gray-400 hover:text-white py-4 rounded-2xl border border-slate-100 dark:border-white/10 text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2">
+                                        Abrir
+                                        <i class="fas fa-external-link-alt text-[8px]"></i>
+                                    </a>
+                                </div>
                             </div>
                         </div>
-                        <div class="p-6 flex-1 flex flex-col space-y-4">
-                            <h4 class="text-[13px] font-black text-slate-800 dark:text-white uppercase leading-tight line-clamp-2">${r.titulo}</h4>
-                            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-tight leading-relaxed line-clamp-3">${r.descripcion || 'Sin descripción adicional.'}</p>
-                            
-                            <div class="pt-4 mt-auto">
-                                <a href="${r.url}" target="_blank" class="w-full bg-slate-50 dark:bg-white/5 hover:bg-primary group/btn text-slate-500 dark:text-gray-400 hover:text-white py-4 rounded-2xl border border-slate-100 dark:border-white/10 text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2">
-                                    Explorar Recurso
-                                    <i class="fas fa-external-link-alt text-[8px] group-hover/btn:translate-x-0.5 transition-transform"></i>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                `).join('')}
-            </div>
+                    `).join('')}
+                </div>
+            </section>
         </div>
     `;
 

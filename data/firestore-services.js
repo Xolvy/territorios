@@ -1,4 +1,4 @@
-import { db, auth, storage } from '../firebase-config.js?v=2.3.9.4';
+import { db, auth, storage } from '../firebase-config.js?v=2.4.0.4';
 import {
     collection, getDocs, addDoc, deleteDoc, doc, updateDoc, query, where, getDoc, setDoc, orderBy, limit, Timestamp, writeBatch,
     enableIndexedDbPersistence, arrayUnion
@@ -312,6 +312,29 @@ export const deleteTerritorio = async (id) => {
     await deleteDoc(doc(db, "territorios", id));
 };
 
+/* --- PUNTOS DE INTERÉS --- */
+export const getPuntosInteres = async () => {
+    return fetchCached('puntos_interes', async () => {
+        const querySnapshot = await getDocs(collection(db, "puntos_interes"));
+        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    });
+};
+
+export const addPuntoInteres = async (punto) => {
+    ServiceCache.clear('puntos_interes');
+    await addDoc(collection(db, "puntos_interes"), punto);
+};
+
+export const updatePuntoInteres = async (id, data) => {
+    ServiceCache.clear('puntos_interes');
+    await updateDoc(doc(db, "puntos_interes", id), data);
+};
+
+export const deletePuntoInteres = async (id) => {
+    ServiceCache.clear('puntos_interes');
+    await deleteDoc(doc(db, "puntos_interes", id));
+};
+
 export const assignTerritorio = async (id, conductorName, details = {}) => {
     ServiceCache.clear('territorios');
     const updateData = {
@@ -535,25 +558,78 @@ export const returnTerritorioParcial = async (originalId, completedManzanas, rem
     if (unassignRemaining) {
         updateData.asignado_a = null;
         updateData.fecha_asignacion = null;
-        updateData.estado = 'Pendiente'; // Changed from 'Disponible' to 'Pendiente'
+        updateData.estado = 'Libre'; // Standardize to 'Libre'
+    }
+
+    // Flag as incomplete to help Admin suggestions
+    if (remainingManzanas.length > 0) {
+        updateData.is_incomplete = true;
+    } else {
+        updateData.is_incomplete = false;
     }
 
     await updateDoc(territoryRef, updateData);
 
-    if (unassignRemaining) {
-        await logReturn(originalId, dateToUse, 'Devuelto (Incompleto)', notes, fotos);
-    } else {
-        // If partial completion but kept assigned (simple progress), we might want to log it?
-        // S-13 cares about when it is FULLY DONE.
-        // If we split, the "Completed" part is effectively "Done".
-        // Use logReturn on the ORIGINAL ID? That might confuse the history of the remaining part.
-        // This is complex S-13 logic. For this request, we satisfy the "Date passed to history".
-        if (completedManzanas && completedManzanas.length > 0) {
-            // Maybe log a "Parcial" entry?
-            // logReturn(originalId, dateToUse, 'Avance Parcial', notes);
-        }
-    }
+    // 4. Log the Return in History (Closing the cycle for the original assignment)
+    await logReturn(originalId, dateToUse, 'Predicado Parcial', notes, fotos);
 };
+
+/**
+ * Advanced Dynamic: Take part of a FREE territory from the "Bolsa de Trabajo"
+ */
+export const takeTerritoryPartial = async (originalId, userId, takenManzanas, remainingManzanas) => {
+    // 1. Get original doc
+    const territoryRef = doc(db, "territorios", originalId);
+    const territorySnap = await getDoc(territoryRef);
+    if (!territorySnap.exists()) throw new Error("Territorio no encontrado");
+    const tData = territorySnap.data();
+
+    // 2. Create NEW doc for the TAKEN part
+    const newDocParams = {
+        ...tData,
+        manzanas: takenManzanas.join(', '),
+        estado: 'Asignado',
+        asignado_a: userId,
+        fecha_asignacion: new Date().toISOString(),
+        origen_id: originalId
+    };
+    delete newDocParams.id; // Just in case
+    delete newDocParams.is_incomplete; // The taken part is "fresh" for the user
+
+    const newDocRef = await addDoc(collection(db, "territorios"), newDocParams);
+
+    // 3. Update ORIGINAL doc for the REMAINING part (stays Libre)
+    if (remainingManzanas.length > 0) {
+        await updateDoc(territoryRef, {
+            manzanas: remainingManzanas.join(', '),
+            estado: 'Libre',
+            is_incomplete: true // Flag as partial
+        });
+    } else {
+        // If they took everything, we just update the original doc
+        await updateDoc(territoryRef, {
+            estado: 'Asignado',
+            asignado_a: userId,
+            fecha_asignacion: new Date().toISOString(),
+            is_incomplete: false
+        });
+    }
+
+    // 4. Log the new assignment
+    await logAssignment({ id: newDocRef.id, ...newDocParams }, userId);
+};
+
+export const assignFreeTerritory = async (id, userId, num, manzanasStr) => {
+    await updateDoc(doc(db, "territorios", id), {
+        asignado_a: userId,
+        fecha_asignacion: new Date().toISOString(),
+        estado: 'Asignado',
+        is_incomplete: false
+    });
+    // Log assignment
+    await logAssignment({ id, numero: num, manzanas: manzanasStr }, userId);
+};
+
 
 export const cancelarAsignacion = async (id) => {
     // Reset permissions to available
@@ -887,7 +963,7 @@ export const solicitarNumeros = async (cantidad = 30, userId) => {
 
     if (totalCount > 0) {
         // Clear cache to reflect new assignments
-        ServiceCache.delete("telefonos");
+        ServiceCache.clear("telefonos");
         return totalCount;
     }
 

@@ -209,7 +209,64 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
                 </div>
             </header>
             
-            <div class="flex-1 p-6 space-y-6 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-black/20">
+            <div class="flex-1 p-6 space-y-8 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-black/20">
+                <!-- Power Up: Smart Suggestions Section -->
+                <div id="modal-suggestions" class="space-y-4">
+                     ${(() => {
+            const OUTDATED_THRESHOLD = 120; // 4 months
+            const now = new Date();
+
+            const incomplete = filtered.filter(t => t.is_incomplete === true);
+            const outdated = filtered.filter(t => {
+                if (t.is_incomplete) return false; // Already in incomplete
+                const s = stats[t.numero];
+                if (!s || !s.lastEntrega) return true; // Never preached
+                const diff = (now - new Date(s.lastEntrega)) / (1000 * 60 * 60 * 24);
+                return diff >= OUTDATED_THRESHOLD;
+            }).sort((a, b) => {
+                const sa = stats[a.numero]?.lastEntrega || 0;
+                const sb = stats[b.numero]?.lastEntrega || 0;
+                return new Date(sa) - new Date(sb);
+            }).slice(0, 10);
+
+            if (incomplete.length === 0 && outdated.length === 0) return '';
+
+            return `
+                             <div class="flex items-center gap-3 mb-2 px-2">
+                                 <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs shadow-inner">
+                                     <i class="fas fa-magic"></i>
+                                 </div>
+                                 <h4 class="text-[10px] font-black uppercase text-slate-500 tracking-[0.3em]">Prioridades de Asignación</h4>
+                             </div>
+                             <div class="flex gap-4 overflow-x-auto pb-4 px-2 snap-x">
+                                 ${incomplete.map(s => `
+                                     <button onclick="window.modalToggleTerr('${s.numero}')" 
+                                             class="snap-center shrink-0 flex flex-col items-start gap-2 p-5 bg-white dark:bg-white/5 border border-rose-500/30 rounded-3xl min-w-[210px] hover:border-rose-500 transition-all shadow-sm active:scale-95 text-left group">
+                                         <div class="flex items-center justify-between w-full">
+                                             <span class="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter italic">T-${s.numero}</span>
+                                             <div class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse"></div>
+                                         </div>
+                                         <p class="text-[9px] font-bold text-slate-500 dark:text-slate-400 overflow-hidden text-ellipsis line-clamp-1">${s.manzanas || 'Todo'}</p>
+                                         <span class="text-[8px] font-black uppercase tracking-widest text-rose-500 mt-1">Urgente: Incompleto</span>
+                                     </button>
+                                 `).join('')}
+                                 ${outdated.map(s => `
+                                     <button onclick="window.modalToggleTerr('${s.numero}')" 
+                                             class="snap-center shrink-0 flex flex-col items-start gap-2 p-5 bg-white dark:bg-white/5 border border-amber-500/30 rounded-3xl min-w-[210px] hover:border-amber-500 transition-all shadow-sm active:scale-95 text-left group">
+                                         <div class="flex items-center justify-between w-full">
+                                             <span class="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter italic">T-${s.numero}</span>
+                                             <div class="w-2.5 h-2.5 rounded-full bg-amber-500"></div>
+                                         </div>
+                                         <p class="text-[9px] font-bold text-slate-500 dark:text-slate-400 overflow-hidden text-ellipsis line-clamp-1">Última: ${stats[s.numero]?.lastEntrega ? UIHelpers.fmtDateAt(stats[s.numero].lastEntrega) : 'Nunca'}</p>
+                                         <span class="text-[8px] font-black uppercase tracking-widest text-amber-500 mt-1">Sugerido: Desfasado</span>
+                                     </button>
+                                 `).join('')}
+                             </div>
+                             <div class="h-px bg-slate-200 dark:bg-white/10 mx-2 !my-6"></div>
+                        `;
+        })()}
+                </div>
+
                 <div class="flex flex-col md:flex-row gap-4">
                     <div class="relative group flex-1">
                         <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 group-focus-within:text-primary transition-colors">
@@ -226,7 +283,7 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
                         </div>
                     </div>
                 </div>
-
+ 
                 <div id="modal-terr-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <!-- Injected via render -->
                 </div>
@@ -255,6 +312,13 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
         const searchInput = modal.querySelector('#modal-terr-search');
         const preview = modal.querySelector('#modal-selection-preview');
         const confirmBtn = modal.querySelector('#modal-terr-confirm');
+
+        window.modalToggleTerr = (num) => {
+            if (num in selections) delete selections[num];
+            else selections[num] = null;
+            render();
+            updatePreview();
+        };
 
         const updatePreview = () => {
             const keys = Object.keys(selections).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
@@ -294,9 +358,10 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
                                  <div class="flex items-center gap-3">
                                     <input type="checkbox" class="terr-check w-5 h-5 rounded-lg border-2 border-slate-300 dark:border-white/10 text-primary focus:ring-primary transition-all cursor-pointer" 
                                             data-num="${t.numero}" ${isSelected ? 'checked' : ''}>
-                                    <span class="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tighter">#${t.numero}</span>
-                                 </div>
-                                 <div class="flex items-center gap-2">
+                                     <span class="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tighter">#${t.numero}</span>
+                                     ${t.is_incomplete ? `<i class="fas fa-magic text-indigo-500 text-[10px] animate-pulse" title="Fragmento sugerido"></i>` : ''}
+                                  </div>
+                                  <div class="flex items-center gap-2">
                                      <div class="w-1.5 h-1.5 rounded-full ${freqColor} shadow-lg shadow-${freqColor.split('-')[1]}-500/50"></div>
                                      <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest">${tStats.count} veces</span>
                                  </div>

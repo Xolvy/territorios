@@ -20,8 +20,8 @@ export const renderCasaEnCasaTab = async (container, config, appVersion) => {
 
                 <nav class="flex flex-row overflow-x-auto scrollbar-hide items-center gap-1 bg-white/50 dark:bg-white/[0.03] p-1 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm w-full xl:w-auto backdrop-blur-xl">
                     ${renderSubTab('programa', 'fas fa-calendar-check', 'Programa')}
-                    ${renderSubTab('historial', 'fas fa-chart-line', 'REPORTE S-13')}
-                    ${renderSubTab('s12', 'fas fa-shield-alt', 'Base S-12')}
+                    ${renderSubTab('reportes', 'fas fa-chart-bar', 'REPORTES')}
+                    ${renderSubTab('puntos', 'fas fa-map-marker-alt', 'ZONAS ESPECIALES')}
                     <div class="w-px h-5 bg-slate-200 dark:bg-white/10 mx-2 shrink-0"></div>
                     ${renderSubTab('recursos', 'fas fa-folder-open', 'RECURSOS')}
                     ${renderSubTab('personal', 'fas fa-users', 'PERSONAL')}
@@ -50,13 +50,13 @@ export const renderCasaEnCasaTab = async (container, config, appVersion) => {
                     const { renderProgramaTab } = await import('./program-view.js');
                     await renderProgramaTab(subContainer, config, appVersion);
                     break;
-                case 'historial':
-                    const { renderHistorialView } = await import('./history-view.js');
-                    await renderHistorialView(subContainer, config, appVersion);
+                case 'reportes':
+                    const { renderReportsTab } = await import('./reports-view.js');
+                    await renderReportsTab(subContainer, config, appVersion);
                     break;
-                case 's12':
-                    const { renderS12View } = await import('./s12-view.js');
-                    await renderS12View(subContainer, config, appVersion);
+                case 'puntos':
+                    const { renderPuntosInteresTab } = await import('./puntos-view.js');
+                    await renderPuntosInteresTab(subContainer, config, appVersion);
                     break;
                 case 'recursos':
                     const { renderRecursosTab } = await import('./resources-view.js');

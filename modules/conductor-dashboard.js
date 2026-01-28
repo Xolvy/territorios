@@ -1,4 +1,4 @@
-import { auth } from '../firebase-config.js?v=2.3.9.4';
+import { auth } from '../firebase-config.js?v=2.4.0.4';
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import {
     getTerritorios, getConductores, getPublicadores, getTelefonos, updateTelefono,
@@ -7,11 +7,12 @@ import {
     getProgramaSemanal, saveProgramaSemanal, syncSlotWithTerritories, getTerritoryHistory,
     addPublicador, updatePublicador, deletePublicador,
     releaseUnusedTelefonos, solicitarNumeros, updateTelefonoStatus, logSessionSummary,
-    logReturn, returnTerritorio, returnTerritorioParcial, transferTerritory
-} from '../data/firestore-services.js?v=2.3.9.4';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, formatManzanas } from './utils/helpers.js?v=2.3.9.4';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=2.3.9.4';
-import { MapViewer } from './map-viewer.js?v=2.3.9.4';
+    logReturn, returnTerritorio, returnTerritorioParcial, transferTerritory, takeTerritoryPartial, assignFreeTerritory,
+    getPuntosInteres
+} from '../data/firestore-services.js?v=2.4.0.4';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, formatManzanas } from './utils/helpers.js?v=2.4.0.4';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=2.4.0.4';
+import { MapViewer } from './map-viewer.js?v=2.4.0.4';
 import { AppConfig } from './utils/config.js';
 
 // --- VOICE DICTATION HELPER ---
@@ -96,6 +97,7 @@ const showModal = (content, onOpen, maxWidth = 'max-w-md') => {
             window.removeEventListener('keydown', handleEsc);
         }, 300);
     };
+    window.closeModal = closeModal;
 
     modalContainer.innerHTML = `
         <div class="modal-body w-full ${maxWidth} relative transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] 
@@ -275,7 +277,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
                     <div class="hidden sm:flex flex-col items-end mr-4 text-right">
                          <p class="text-[8px] font-black text-slate-400 uppercase tracking-[0.3em] mb-0.5">Versión</p>
-                         <p class="text-[10px] font-black text-slate-800 dark:text-white tabular-nums">${appVersion || '2.3.9.4'}</p>
+                         <p class="text-[10px] font-black text-slate-800 dark:text-white tabular-nums">${appVersion || '2.4.0.2'}</p>
                     </div>
                     ${(userRole === 'Administrador' || userRole === 'SuperAdmin' || conductorData?.privilegios?.includes('Administrador')) ? `
                     <button id="btn-goto-admin" class="flex-1 md:flex-none bg-amber-500/10 hover:bg-amber-500 text-amber-600 hover:text-white px-4 md:px-6 py-3.5 rounded-xl border border-amber-500/20 transition-all font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95 min-w-0">
@@ -610,11 +612,17 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 rescue: false
             };
 
-            await loadUnifiedDashboard(container, displayName, container.querySelector('#calendar-container'), container.querySelector('#territorios-container'), userMods, config, conductorData, userRole);
+            await loadUnifiedDashboard(container, displayName, container.querySelector('#agenda-intelligence-badge'), container.querySelector('#calendar-container'), container.querySelector('#territorios-container'), userMods, config, conductorData, userRole);
             const myPhones = await refreshPhones();
             const publicadores = await getPublicadores();
-            initializePhoneModule(myPhones, publicadores, displayName, container.querySelector('#phone-tbody'), refreshPhones);
-        } catch (e) { console.error("Refresh error", e); }
+
+            if (window.initializePhoneModule) {
+                window.initializePhoneModule(myPhones, publicadores, displayName, container.querySelector('#phone-tbody'), refreshPhones);
+            }
+        } catch (e) {
+            console.error("Refresh error", e);
+            showNotification("Error al refrescar la vista", "error");
+        }
     };
 
     // Connection Hub Logic
@@ -651,13 +659,14 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
     try {
         // Clean up unassigned/unused numbers from previous sessions for a fresh "Solicitar" experience
         await releaseUnusedTelefonos(displayName);
+        // Initial render
         await window.refreshConductorView();
     } catch (e) {
-        console.error("Error loading phones:", e);
+        console.error("Error loading initial view:", e);
     }
 };
 
-const loadUnifiedDashboard = async (container, name, agendaContainer, territoriosContainer, userMods, config, conductorData, userRole) => {
+const loadUnifiedDashboard = async (container, name, intelligenceBadge, agendaContainer, territoriosContainer, userMods, config, conductorData, userRole) => {
     // We no longer hide the territories container as requested ("fusionar") 
     // to allow seeing all assigned territories independently of the weekly program.
 
@@ -844,27 +853,9 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
         });
     }
 
-    // Capture "Orphaned" territories (Rescued or directly assigned outside this week's program)
-    const myExtraTerritories = allTerritorios.filter(t => {
-        const matchesUser = t.asignado_a?.trim().toLowerCase() === normalizedName || t.auxiliar?.trim().toLowerCase() === normalizedName;
-        const isOrphan = !shownTerritoryIds.has(t.id);
-        const isActive = t.estado === 'Asignado' || t.estado === 'Pendiente';
-        return matchesUser && isOrphan && isActive;
-    });
+    // myExtraTerritories will be handled in the Rescue Missions modal as requested by the user
+    // to avoid the "EXTRAS" card in the main agenda.
 
-    if (myExtraTerritories.length > 0) {
-        assignments.push({
-            dia: 'Extras',
-            turno: '🚀 Misión de Rescate / Extra',
-            role: 'Responsable',
-            isMember: true,
-            rawDate: 'Asignación Directa',
-            attachedTerritories: myExtraTerritories,
-            lugar: 'Territorios bajo tu cuidado extra',
-            conductor: name,
-            auxiliar: '---'
-        });
-    }
 
     // Group by Day
     const groupedByDay = {};
@@ -889,7 +880,6 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
     const allCompleted = hasShifts && totalActiveTerritories === 0;
 
     // --- INTELLIGENCE LOGIC ---
-    const intelligenceBadge = document.getElementById('agenda-intelligence-badge');
     if (intelligenceBadge) {
         const pendingTotal = dayCards.reduce((acc, d) => acc + d.shifts.reduce((sAcc, s) => sAcc + s.attachedTerritories.length, 0), 0);
         const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
@@ -934,22 +924,37 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
             });
         }
 
+        const myExtraMissions = allTerritorios.filter(t => {
+            const matchesUser = t.asignado_a?.trim().toLowerCase() === normalizedName || t.auxiliar?.trim().toLowerCase() === normalizedName;
+            const isOrphan = !shownTerritoryIds.has(t.id);
+            const isActive = t.estado === 'Asignado' || t.estado === 'Pendiente';
+            return matchesUser && isOrphan && isActive;
+        });
+
         const rescueCandidates = allTerritorios.filter(t => {
-            if (t.estado !== 'Asignado' && t.estado !== 'Pendiente') return false;
-            // Exclusion: Don't show missions already assigned to the current user
-            if (t.asignado_a?.trim().toLowerCase() === normalizedName) return false;
+            // Priority 1: High delay (Original Rescue logic)
             const timestamps = plannedDates[t.numero];
-            if (!timestamps) return false;
-            return Array.from(timestamps).some(ts => {
+            const isDelayed = timestamps && Array.from(timestamps).some(ts => {
                 const diff = Math.floor((now - new Date(ts)) / (1000 * 60 * 60 * 24));
-                return diff >= 2;
+                return diff >= 1;
             });
+            const isAssignedToOther = (t.estado === 'Asignado' || t.estado === 'Pendiente') && t.asignado_a?.trim().toLowerCase() !== normalizedName;
+
+            // Priority 2: Free territories (Bolsa de Trabajo)
+            const isFree = t.estado === 'Libre' || t.estado === 'Disponible';
+
+            // Priority 3: Incomplete markers
+            const isIncomplete = t.is_incomplete === true;
+
+            return (isDelayed && isAssignedToOther) || isFree || isIncomplete;
         });
 
         const rescueCount = rescueCandidates.length;
-        const rescueBtnClass = rescueCount > 0
+        const totalMissionCount = rescueCount + myExtraMissions.length;
+        const rescueBtnClass = totalMissionCount > 0
             ? "bg-rose-600 text-white border-rose-500/20 shadow-xl shadow-rose-600/20"
             : "bg-white dark:bg-white/5 text-rose-500 border-rose-500/30";
+
 
         intelligenceBadge.innerHTML = `
             <div class="flex flex-wrap items-center gap-3">
@@ -958,8 +963,8 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
                     <i class="fas fa-calendar-alt animate-pulse"></i> Programa de predicación
                 </button>
                 <button id="btn-smart-rescue-trigger" onclick="window.showRescueMissionsModal()" 
-                        class="flex items-center gap-3 ${rescueBtnClass} py-3.5 px-6 rounded-2xl border-2 text-[10px] font-black uppercase tracking-[0.15em] shadow-sm backdrop-blur-md hover:scale-105 active:scale-95 transition-all ${rescueCount > 0 ? 'animate-bounce-subtle' : ''}">
-                    <i class="fas fa-ambulance ${rescueCount > 0 ? 'animate-pulse' : ''}"></i> Misiones ${rescueCount > 0 ? `<span class="bg-white text-rose-600 px-2 py-0.5 rounded-lg ml-1 font-black">${rescueCount}</span>` : ''}
+                        class="flex items-center gap-3 ${rescueBtnClass} py-3.5 px-6 rounded-2xl border-2 text-[10px] font-black uppercase tracking-[0.15em] shadow-sm backdrop-blur-md hover:scale-105 active:scale-95 transition-all ${totalMissionCount > 0 ? 'animate-bounce-subtle' : ''}">
+                    <i class="fas fa-ambulance ${totalMissionCount > 0 ? 'animate-pulse' : ''}"></i> Misiones ${totalMissionCount > 0 ? `<span class="bg-white text-rose-600 px-2 py-0.5 rounded-lg ml-1 font-black">${totalMissionCount}</span>` : ''}
                 </button>
             </div>
         `;
@@ -980,13 +985,39 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
                                 </div>
                             </div>
                             <div class="bg-white/20 px-5 py-2 rounded-2xl backdrop-blur-md border border-white/20">
-                                <span class="text-xs font-black uppercase tracking-widest">${rescueCount} Pendientes</span>
+                                <span class="text-xs font-black uppercase tracking-widest">${totalMissionCount} Totales</span>
                             </div>
                         </div>
                     </header>
     
-                    <div class="flex-1 overflow-y-auto custom-scrollbar p-10 space-y-8 bg-slate-50 dark:bg-black/20">
-                        ${rescueCount === 0 ? `
+                    <div class="flex-1 overflow-y-auto custom-scrollbar p-10 space-y-10 bg-slate-50 dark:bg-black/20">
+                        <!-- Mis Misiones Actuales -->
+                        ${myExtraMissions.length > 0 ? `
+                            <section class="space-y-4">
+                                <h4 class="text-[10px] font-black uppercase text-rose-500 tracking-[0.4em] ml-2">Mis Misiones Activas</h4>
+                                <div class="grid grid-cols-1 gap-4">
+                                    ${myExtraMissions.map(m => `
+                                        <div class="bg-white dark:bg-white/5 border-l-4 border-l-rose-500 p-5 rounded-2xl shadow-sm flex justify-between items-center group">
+                                            <div class="flex items-center gap-4">
+                                                <span class="text-2xl font-black text-slate-800 dark:text-white tabular-nums">#${m.numero}</span>
+                                                <div class="h-4 w-[1px] bg-slate-200 dark:bg-white/10"></div>
+                                                <p class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tight">${m.manzanas || 'Sin sector'}</p>
+                                            </div>
+                                            <button onclick="window.closeModal(); window.openInteractiveMapFromDashboard('${m.id}')" 
+                                                    class="w-10 h-10 bg-slate-100 dark:bg-white/10 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-rose-500 group-hover:text-white transition-all shadow-inner">
+                                                <i class="fas fa-arrow-right text-xs"></i>
+                                            </button>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </section>
+                            <div class="h-[1px] bg-slate-200 dark:bg-white/10 w-full"></div>
+                        ` : ''}
+
+                        <!-- Misiones Disponibles para Rescate -->
+                        <section class="space-y-4">
+                            <h4 class="text-[10px] font-black uppercase text-slate-400 tracking-[0.4em] ml-2">Misiones Disponibles</h4>
+                            ${rescueCount === 0 ? `
                             <div class="py-20 text-center flex flex-col items-center gap-6 opacity-30">
                                 <div class="w-24 h-24 rounded-full border-4 border-slate-200 flex items-center justify-center text-4xl">
                                     <i class="fas fa-check-double"></i>
@@ -995,33 +1026,45 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
                             </div>
                         ` : `
                             <div class="grid grid-cols-1 gap-6">
-                                ${rescueCandidates.map(t => `
-                                    <div class="bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-6 rounded-[2rem] shadow-sm hover:shadow-xl hover:border-rose-500/30 transition-all group/card">
+                                ${rescueCandidates.map(t => {
+                const isFree = t.estado === 'Libre' || t.estado === 'Disponible';
+                const isIncomplete = t.is_incomplete === true;
+                const accentColor = isFree ? 'teal' : 'rose';
+                const icon = isFree ? 'fa-box-open' : 'fa-ambulance';
+
+                return `
+                                    <div class="bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-6 rounded-[2rem] shadow-sm hover:shadow-xl hover:border-${accentColor}-500/30 transition-all group/card">
                                         <div class="flex justify-between items-start mb-6">
                                             <div class="flex items-baseline gap-1">
-                                                <span class="text-rose-600 font-black text-sm italic">T-</span>
+                                                <span class="text-${accentColor}-600 font-black text-sm italic">T-</span>
                                                 <h4 class="text-4xl font-black text-slate-800 dark:text-white tracking-tighter">${t.numero}</h4>
+                                                ${isIncomplete ? `<span class="ml-2 bg-amber-500/10 text-amber-500 text-[8px] font-black px-2 py-1 rounded-lg uppercase tracking-widest border border-amber-500/20">Incompleto</span>` : ''}
                                             </div>
                                             <div class="text-right">
-                                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Responsable</p>
-                                                <p class="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase">${t.asignado_a}</p>
+                                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">${isFree ? 'Estado' : 'Responsable'}</p>
+                                                <p class="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase">${isFree ? 'LIBRE' : (t.asignado_a || 'Sin asignar')}</p>
                                             </div>
                                         </div>
-                                        <div class="bg-rose-500/5 dark:bg-rose-500/10 p-4 rounded-xl border border-rose-500/10 mb-6 group-hover/card:bg-rose-500/10 transition-colors">
-                                            <p class="text-[12px] text-slate-600 dark:text-slate-300 font-bold leading-relaxed uppercase tracking-tight">
-                                                ${t.manzanas || 'Territorio requiere atención inmediata.'}
+                                        <div class="bg-${accentColor}-500/5 dark:bg-${accentColor}-500/10 p-5 rounded-2xl border border-${accentColor}-500/10 mb-6 group-hover/card:bg-${accentColor}-500/10 transition-colors">
+                                            <p class="text-[11px] text-slate-600 dark:text-slate-300 font-bold leading-relaxed uppercase tracking-tight">
+                                                <i class="fas fa-map-marker-alt mr-2 opacity-50"></i>
+                                                ${t.manzanas || 'Territorio disponible.'}
                                             </p>
                                         </div>
-                                        <button onclick="window.handleRescueTerritory('${t.id}', '${t.numero}', '${name}', '${t.manzanas || ''}')"
-                                                class="w-full py-4 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] shadow-lg shadow-rose-600/20 transition-all active:scale-95 flex items-center justify-center gap-3">
-                                            <i class="fas fa-hand-holding-heart"></i> Asumir Ayuda
+                                        <button onclick="window.handleRescueTerritory('${t.id}', '${t.numero}', '${name.replace(/'/g, "\\'")}', '${(t.manzanas || '').replace(/'/g, "\\'")}', ${isFree})"
+                                                class="w-full py-4 bg-${accentColor}-600 hover:bg-${accentColor}-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] shadow-lg shadow-${accentColor}-600/20 transition-all active:scale-95 flex items-center justify-center gap-3">
+                                            <i class="fas ${icon}"></i> 
+                                            ${isFree ? 'TOMAR PREDICACIÓN' : 'ASUMIR AYUDA'}
                                         </button>
                                     </div>
-                                `).join('')}
+                                `;
+            }).join('')}
                             </div>
                         `}
+                        </section>
                     </div>
                 </div>
+
             `, null, 'max-w-xl');
         };
 
@@ -2530,7 +2573,8 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
         });
     };
 
-    const initializePhoneModule = (initialPhones, publicadores, userId, tbody, refreshCallback) => {
+    window.initializePhoneModule = (initialPhones, publicadores, userId, tbody, refreshCallback) => {
+        if (!tbody) return;
         let telefonos = initialPhones; // Mutable state for AJAX updates
         publicadores.sort((a, b) => a.nombre.localeCompare(b.nombre));
         const estados = ['Sin asignar', 'Contestaron', 'No contestan', 'Colgaron', 'Revisita', 'Predicado', 'No llamar', 'Suspendido', 'Testigo'];
@@ -2591,6 +2635,7 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
                 render();
             }
             await updateTelefonoStatus(id, status, (telIndex !== -1 ? telefonos[telIndex].asignado_a : null));
+            if (refreshCallback) await refreshCallback(true); // Force refresh to catch cycle reset
         };
 
         window.updatePhoneComment = async (id, comment, inputElement, publicadorName) => {
@@ -2604,6 +2649,7 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
             try {
                 // Use updateTelefonoStatus so it logs to history
                 await updateTelefonoStatus(id, (telIndex !== -1 ? telefonos[telIndex].estado : 'Contestaron'), publicadorName, comment);
+                if (refreshCallback) await refreshCallback(true);
 
                 setTimeout(() => {
                     inputElement.classList.remove('bg-teal-900/20', 'border-teal-500');
@@ -2807,6 +2853,12 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
                             activeRequests = telefonos; // Update the inner state as well
                             setPhoneOpen(true);
                             render();
+
+                            // Scroll to top of phone registry module
+                            const expanded = document.getElementById('phone-expanded-view');
+                            if (expanded) {
+                                expanded.scrollIntoView({ behavior: 'smooth' });
+                            }
                         } else {
                             window.location.reload();
                         }
@@ -3022,8 +3074,13 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
                         </div>
                     </div>
 
+                    <div class="space-y-4">
+                        <textarea id="session-notes" placeholder="Notas adicionales sobre esta sesión (opcional)..." 
+                            class="w-full bg-white dark:bg-white/[0.05] border border-slate-200 dark:border-white/10 rounded-[2rem] p-6 text-sm font-bold outline-none focus:border-primary transition-all text-slate-700 dark:text-white placeholder:text-slate-400 min-h-[120px] resize-none"></textarea>
+                    </div>
+
                     <button id="btn-share-results" class="w-full bg-primary hover:bg-primary-dark py-6 rounded-3xl text-white font-black shadow-2xl shadow-primary/30 hover:shadow-primary/50 hover:scale-[1.02] active:scale-[0.98] transition-all uppercase tracking-[0.4em] text-xs flex items-center justify-center gap-5 group">
-                         <i class="fas fa-share-nodes text-xl group-hover:rotate-12 transition-transform"></i> Compartir Reporte
+                         <i class="fas fa-paper-plane text-xl group-hover:rotate-12 transition-transform"></i> Enviar reporte
                     </button>
                     <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-primary transition-colors">Volver</button>
                 </div>
@@ -3031,29 +3088,31 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
                     // Modal callback
                 });
 
-                // Log summary and release numbers immediately on click "Finalizar"
-                try {
-                    await logSessionSummary({
-                        conductor_id: userId,
-                        stats: summary.stats,
-                        total: summary.total
-                    });
-                    await releaseUnusedTelefonos(userId);
-                } catch (e) {
-                    console.error("Error finalizing session:", e);
-                }
-
-                // Automatic collapse after finishing
                 setPhoneOpen(false);
 
                 const shareBtn = document.getElementById('btn-share-results');
                 if (shareBtn) {
                     shareBtn.onclick = async () => {
+                        const notes = document.getElementById('session-notes')?.value || '';
+
                         const message = `📋 *Resumen de Predicación Telefónica*\n` +
                             `👤 *Conductor:* ${userId} \n` +
                             `📊 *Total procesado:* ${summary.total} \n\n` +
-                            `${statsText} \n\n` +
+                            `${statsText} \n` +
+                            (notes ? `📝 *Notas:* ${notes} \n\n` : `\n`) +
                             `_Enviado desde App Territorios_`;
+
+                        try {
+                            await logSessionSummary({
+                                conductor_id: userId,
+                                stats: summary.stats,
+                                total: summary.total,
+                                notas: notes
+                            });
+                            await releaseUnusedTelefonos(userId);
+                        } catch (e) {
+                            console.error("Error finalizing session:", e);
+                        }
 
                         if (navigator.share) {
                             try {
@@ -3152,11 +3211,11 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
         const config = await getConfiguracion();
         if (!config.gemini_key) return;
 
-        const [telefonos, publicadores, territorios, programa] = await Promise.all([
-            getTelefonos(), getPublicadores(), getTerritorios(), getProgramaSemanal()
+        const [telefonos, publicadores, territorios, programa, pois] = await Promise.all([
+            getTelefonos(), getPublicadores(), getTerritorios(), getProgramaSemanal(), getPuntosInteres()
         ]);
 
-        const brain = new TerritoryIntelligence(telefonos, publicadores, territorios, programa);
+        const brain = new TerritoryIntelligence(telefonos, publicadores, territorios, programa, null, pois);
 
         // Inject Dynamic styles
         if (!document.getElementById('ai-pulse-styles')) {
@@ -3399,36 +3458,102 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
     // Fusion logic completed. Rescue missions moved to top badge.
 
 
-    window.handleRescueTerritory = async (id, num, newConductor, manzanas) => {
-        const ok = await new Promise(resolve => {
-            const modal = document.getElementById('modal-container');
-            modal.innerHTML = `
-            <div class="modern-card p-10 max-w-sm w-full text-center animate-bounce-in border-rose-500/20 shadow-2xl">
-                <div class="w-20 h-20 bg-rose-500/10 rounded-[2.5rem] flex items-center justify-center text-4xl text-rose-600 mx-auto mb-6 shadow-inner border border-rose-500/10 animate-float">
-                    <i class="fas fa-ambulance"></i>
-                </div>
-                <h3 class="text-2xl font-black text-slate-800 dark:text-white mb-4 uppercase tracking-tighter">¿Iniciar Rescate?</h3>
-                <p class="text-[13px] text-slate-500 dark:text-slate-400 mb-10 leading-relaxed font-bold">
-                    Vas a tomar el territorio <b class="text-rose-600">T-${num}</b> para ayudar a completarlo. Se notificará formalmente al responsable.
-                </p>
-                <div class="flex gap-4">
-                    <button id="rescue-cancel" class="flex-1 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-100 dark:bg-white/5 rounded-2xl hover:bg-slate-200 transition-colors">Cancelar</button>
-                    <button id="rescue-confirm" class="flex-1 py-5 text-[10px] font-black uppercase tracking-widest text-white bg-rose-600 rounded-2xl shadow-xl shadow-rose-500/30 hover:bg-rose-500 transition-all hover:scale-105 active:scale-95">SÍ, AYUDAR</button>
-                </div>
-            </div>
-        `;
-            modal.classList.remove('hidden');
-            document.getElementById('rescue-cancel').onclick = () => { modal.classList.add('hidden'); resolve(false); };
-            document.getElementById('rescue-confirm').onclick = () => { modal.classList.add('hidden'); resolve(true); };
-        });
+    window.handleRescueTerritory = async (id, num, newConductor, manzanasStr, isFree = false) => {
+        const manzanas = manzanasStr ? manzanasStr.split(',').map(m => m.trim()).filter(Boolean) : [];
+        let selectedManzanas = [...manzanas];
 
-        if (!ok) return;
+        // --- PARTIAL SELECTION LOGIC ---
+        if (manzanas.length > 1) {
+            const result = await new Promise(resolve => {
+                const modal = document.getElementById('modal-container');
+                modal.innerHTML = `
+                <div class="modal-body max-w-md w-full animate-bounce-in fixed bottom-0 sm:bottom-auto sm:relative left-0 right-0 sm:left-auto sm:right-auto sm:m-4">
+                    <div class="glass-morphism bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl p-10 rounded-[3rem] border border-white/20 dark:border-white/5 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.5)]">
+                        <div class="w-20 h-20 bg-primary/10 rounded-[2rem] flex items-center justify-center text-4xl text-primary mx-auto mb-8 shadow-inner border border-primary/10">
+                            <i class="fas fa-map-marked-alt"></i>
+                        </div>
+                        <h3 class="text-2xl font-black text-slate-800 dark:text-white mb-2 uppercase tracking-tight text-center">Seleccionar Alcance</h3>
+                        <p class="text-[10px] text-slate-500 text-center mb-8 font-black uppercase tracking-widest italic">T-${num}: ${manzanas.length} Manzanas disponibles</p>
+                        
+                        <div class="space-y-3 mb-8 max-h-[250px] overflow-y-auto px-2 custom-scrollbar">
+                            ${manzanas.map(m => `
+                                <label class="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 cursor-pointer hover:border-primary/30 transition-all group">
+                                    <span class="text-sm font-bold text-slate-700 dark:text-slate-200">Manzana ${m}</span>
+                                    <input type="checkbox" checked value="${m}" class="rescue-mz-check w-5 h-5 rounded-lg border-2 border-slate-300 dark:border-white/10 text-primary focus:ring-primary transition-all cursor-pointer">
+                                </label>
+                            `).join('')}
+                        </div>
+
+                        <div class="flex flex-col gap-3">
+                            <button id="rescue-confirm-partial" class="w-full py-5 text-[10px] font-black uppercase tracking-[0.3em] text-white bg-primary rounded-[2rem] shadow-xl shadow-primary/30 hover:bg-primary-dark transition-all hover:scale-105 active:scale-95">Tomar Selección</button>
+                            <button id="rescue-confirm-all" class="w-full py-4 text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-primary transition-colors">Tomar Todo el Territorio</button>
+                            <button id="rescue-cancel-partial" class="w-full py-4 text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-red-500 transition-colors">Regresar</button>
+                        </div>
+                    </div>
+                </div>
+                `;
+                modal.classList.remove('hidden');
+                document.getElementById('rescue-cancel-partial').onclick = () => { modal.classList.add('hidden'); resolve(null); };
+                document.getElementById('rescue-confirm-all').onclick = () => { modal.classList.add('hidden'); resolve([...manzanas]); };
+                document.getElementById('rescue-confirm-partial').onclick = () => {
+                    const checks = modal.querySelectorAll('.rescue-mz-check:checked');
+                    const picked = Array.from(checks).map(c => c.value);
+                    modal.classList.add('hidden');
+                    resolve(picked.length > 0 ? picked : null);
+                };
+            });
+            if (!result) return;
+            selectedManzanas = result;
+        } else {
+            // Confirmation Modal for Single Apple or Full
+            const ok = await new Promise(resolve => {
+                const modal = document.getElementById('modal-container');
+                const verb = isFree ? 'TOMAR' : 'RESCATAR';
+                const actionText = isFree ? 'Iniciar Predicación' : 'Asumir Ayuda';
+                const color = isFree ? 'teal' : 'rose';
+                const icon = isFree ? 'fa-box-open' : 'fa-ambulance';
+
+                modal.innerHTML = `
+                <div class="modal-body max-w-sm w-full animate-bounce-in fixed bottom-0 sm:bottom-auto sm:relative left-0 right-0 sm:left-auto sm:right-auto sm:m-4">
+                    <div class="glass-morphism bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl p-10 rounded-[3rem] text-center border border-white/20 dark:border-white/5 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.5)]">
+                        <div class="w-24 h-24 bg-${color}-500/10 rounded-[2.5rem] flex items-center justify-center text-5xl text-${color}-600 mx-auto mb-8 shadow-inner border border-${color}-500/10 animate-float">
+                            <i class="fas ${icon}"></i>
+                        </div>
+                        <h3 class="text-3xl font-black text-slate-800 dark:text-white mb-4 uppercase tracking-tighter">¿${verb}?</h3>
+                        <p class="text-[13px] text-slate-500 dark:text-slate-400 mb-10 leading-relaxed font-bold">
+                            Vas a tomar el territorio <span class="bg-${color}-500/10 text-${color}-600 px-2 py-0.5 rounded-lg">T-${num}</span> (${manzanas.join(', ') || 'Todo'}).
+                        </p>
+                        <div class="flex flex-col gap-3">
+                            <button id="rescue-confirm" class="w-full py-5 text-[10px] font-black uppercase tracking-[0.3em] text-white bg-${color}-600 rounded-[2rem] shadow-xl shadow-${color}-500/30 hover:bg-${color}-500 transition-all hover:scale-105 active:scale-95">SÍ, ${actionText.toUpperCase()}</button>
+                            <button id="rescue-cancel" class="w-full py-5 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 hover:text-slate-600 transition-colors">Volver</button>
+                        </div>
+                    </div>
+                </div>
+                `;
+                modal.classList.remove('hidden');
+                document.getElementById('rescue-cancel').onclick = () => { modal.classList.add('hidden'); resolve(false); };
+                document.getElementById('rescue-confirm').onclick = () => { modal.classList.add('hidden'); resolve(true); };
+            });
+            if (!ok) return;
+        }
 
         try {
-            showNotification("Procesando transferencia...", "info");
-            await transferTerritory(id, newConductor, manzanas);
-            showNotification(`¡Misión aceptada! El territorio #${num} ahora está en tu agenda.`, "success");
-            // Force reload using the exposed refresh function
+            showNotification("Procesando...", "info");
+
+            if (selectedManzanas.length === manzanas.length) {
+                // Take FULL
+                if (isFree) {
+                    await assignFreeTerritory(id, newConductor, num, selectedManzanas.join(', '));
+                } else {
+                    await transferTerritory(id, newConductor, selectedManzanas.join(', '));
+                }
+            } else {
+                // Take PARTIAL
+                const remaining = manzanas.filter(m => !selectedManzanas.includes(m));
+                await takeTerritoryPartial(id, newConductor, selectedManzanas, remaining);
+            }
+
+            showNotification(`¡Éxito! El territorio #${num} ha sido actualizado en tu agenda.`, "success");
             if (window.refreshConductorView) {
                 await window.refreshConductorView();
             } else {
@@ -3436,7 +3561,7 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
             }
         } catch (err) {
             console.error(err);
-            showNotification("Error en el rescate: " + err.message, "error");
+            showNotification("Error: " + err.message, "error");
         }
     };
 
@@ -3638,8 +3763,9 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
                      </button>
                  </footer>
             </div>
-        `, (modal) => {
-                const brain = new TerritoryIntelligence(null, null, allT, null);
+        `, async (modal) => {
+                const pois = await getPuntosInteres();
+                const brain = new TerritoryIntelligence(null, null, allT, null, null, pois);
 
                 // Photo Preview Logic
                 const photoInput = modal.querySelector('#history-photo-input');
@@ -3700,5 +3826,5 @@ const loadUnifiedDashboard = async (container, name, agendaContainer, territorio
             console.error(e);
             showNotification("Error cargando historial: " + e.message, "error");
         }
-    };
+    }
 };

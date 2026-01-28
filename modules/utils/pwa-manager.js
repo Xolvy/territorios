@@ -1,4 +1,4 @@
-import { showNotification } from './helpers.js?v=2.3.9.4';
+import { showNotification } from './helpers.js?v=2.4.0.4';
 
 let deferredPrompt = window.deferredPWAPrompt || null;
 let newWorker = null;

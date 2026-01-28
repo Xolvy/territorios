@@ -1,10 +1,10 @@
 import {
     getTerritorios, getConductores, getTelefonos, getPublicadores, getProgramaSemanal, getConfiguracion, getHistorialReport,
     rebuildHistoryFromSchedule, restoreSystemBackup, setSystemVersion, masterResetAssignments, updateTerritorio
-} from '../../data/firestore-services.js?v=2.3.9.4';
-import { ensureOnline, formatDateId } from '../utils/helpers.js?v=2.3.9.4';
-import { showNotification, showCustomConfirm, showCustomPrompt } from '../services/ui-helpers.js?v=2.3.9.4';
-import { TerritoryIntelligence } from '../utils/intelligence.js?v=2.3.9.4';
+} from '../../data/firestore-services.js?v=2.4.0.4';
+import { ensureOnline, formatDateId } from '../utils/helpers.js?v=2.4.0.4';
+import { showNotification, showCustomConfirm, showCustomPrompt } from '../services/ui-helpers.js?v=2.4.0.4';
+import { TerritoryIntelligence } from '../utils/intelligence.js?v=2.4.0.4';
 
 export const renderMaintenanceTab = async (container, config, appVersion) => {
     const [terrs, conds, phones] = await Promise.all([

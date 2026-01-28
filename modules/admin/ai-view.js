@@ -1,6 +1,6 @@
-import { TerritoryIntelligence } from '../utils/intelligence.js?v=2.3.9.4';
-import { getTelefonos, getTerritorios, getProgramaSemanal, getConductores } from '../../data/firestore-services.js?v=2.3.9.4';
-import { formatDateId } from '../utils/helpers.js?v=2.3.9.4';
+import { TerritoryIntelligence } from '../utils/intelligence.js?v=2.4.0.4';
+import { getTelefonos, getTerritorios, getProgramaSemanal, getConductores, getPuntosInteres } from '../../data/firestore-services.js?v=2.4.0.4';
+import { formatDateId } from '../utils/helpers.js?v=2.4.0.4';
 
 export const renderAdminAI = async (container, appVersion) => {
     container.innerHTML = `
@@ -97,11 +97,11 @@ export const renderAdminAI = async (container, appVersion) => {
         logAI("Iniciando motor de inteligencia... Escaneando base de datos global.");
 
         try {
-            const [phones, terrs, conds] = await Promise.all([
-                getTelefonos(), getTerritorios(), getConductores()
+            const [phones, terrs, conds, pois] = await Promise.all([
+                getTelefonos(), getTerritorios(), getConductores(), getPuntosInteres()
             ]);
             const prog = await getProgramaSemanal(formatDateId(new Date()));
-            const intellect = new TerritoryIntelligence(phones, [], terrs, prog, conds);
+            const intellect = new TerritoryIntelligence(phones, [], terrs, prog, conds, pois);
 
             let result = '';
             if (action === 'audit') {
