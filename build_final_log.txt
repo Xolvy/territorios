@@ -1,2 +1,0 @@
-Need to install the following packages:
-cross-env@10.1.0

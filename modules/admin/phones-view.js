@@ -1,8 +1,8 @@
 import {
     getTelefonos, getPublicadores, updateTelefono, addTelefono, deleteTelefono, getConfiguracion
-} from '../../data/firestore-services.js?v=2.3.9.3';
-import { formatPhoneNumber, getStatusColor, showNotification } from '../utils/helpers.js?v=2.3.9.3';
-import { showModal, showCustomConfirm, UIHelpers } from '../services/ui-helpers.js?v=2.3.9.3';
+} from '../../data/firestore-services.js?v=2.3.9.4';
+import { formatPhoneNumber, getStatusColor, showNotification } from '../utils/helpers.js?v=2.3.9.4';
+import { showModal, showCustomConfirm, UIHelpers } from '../services/ui-helpers.js?v=2.3.9.4';
 
 export const renderTelefonosTab = async (container) => {
     const [telefonos, publicadores, config] = await Promise.all([

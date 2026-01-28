@@ -1,4 +1,4 @@
-import { db, auth, storage } from '../firebase-config.js?v=2.3.9.3';
+import { db, auth, storage } from '../firebase-config.js?v=2.3.9.4';
 import {
     collection, getDocs, addDoc, deleteDoc, doc, updateDoc, query, where, getDoc, setDoc, orderBy, limit, Timestamp, writeBatch,
     enableIndexedDbPersistence, arrayUnion
@@ -794,16 +794,10 @@ export const addTelefono = async (telefono) => {
 };
 
 export const solicitarNumeros = async (cantidad = 30, userId) => {
-    // 1. Try to find unassigned numbers
-    // Note: We remove specific null checks for 'solicitado_por' in the query to avoid missing fields issues in Firestore.
-    // Instead, we fetch a larger batch of 'Sin asignar' and filter in memory.
-    const q = query(collection(db, "telefonos"),
-        where("estado", "==", "Sin asignar"),
-        limit(500)
-    );
-    let snapshot = await getDocs(q);
+    console.log(`[Solicitar] Iniciando solicitud de ${cantidad} números para ${userId}`);
 
-    const getAvailableFromSnapshot = (snap) => {
+    // Helper to process a snapshot and return available numbers
+    const processSnapshot = (snap, requestedAmount, currentFoundCount) => {
         let count = 0;
         const batch = writeBatch(db);
         const now = new Date();
@@ -812,13 +806,14 @@ export const solicitarNumeros = async (cantidad = 30, userId) => {
         const selectedIds = [];
 
         for (const d of snap.docs) {
-            if (count >= cantidad) break;
+            if (currentFoundCount + count >= requestedAmount) break;
             const data = d.data();
 
-            // Manual check for current assignment state (handles missing fields)
+            // Availability check: must not be requested by anyone, nor assigned
+            // We check for truthy values to handle both null and missing fields
             if (data.solicitado_por || data.publicador_asignado || data.asignado_a) continue;
 
-            // Check 'No llamar' timer
+            // Check 'No llamar' timer (6 months)
             if (data.ultimo_estado === 'No llamar') {
                 const lastDate = data.fecha_ultimo_estado ? new Date(data.fecha_ultimo_estado) : new Date(0);
                 if (lastDate > sixMonthsAgo) continue;
@@ -836,23 +831,67 @@ export const solicitarNumeros = async (cantidad = 30, userId) => {
         return { count, batch, ids: selectedIds };
     };
 
-    let result = getAvailableFromSnapshot(snapshot);
+    let totalSelectedIds = [];
+    let totalCount = 0;
+    let lastDoc = null;
+    let exhausted = false;
 
-    // 2. If no numbers found we consider a cycle reset (only if absolutely none are left)
-    if (result.count === 0) {
-        console.log("No numbers available in fetched batch. Checking for total availability...");
-        const resetDone = await checkAndResetTelephoneCycle(true);
-        if (resetDone) {
-            // Re-fetch after reset
-            snapshot = await getDocs(q);
-            result = getAvailableFromSnapshot(snapshot);
+    // We iterate in smaller batches to find TRULY available numbers (not just 'Sin asignar')
+    // This solves the issue when the first 500 'Sin asignar' are already 'solicitado_por' others
+    while (totalCount < cantidad && !exhausted) {
+        let q = query(collection(db, "telefonos"),
+            where("estado", "==", "Sin asignar"),
+            limit(150) // Smaller batches for better iteration
+        );
+
+        if (lastDoc) {
+            q = query(collection(db, "telefonos"),
+                where("estado", "==", "Sin asignar"),
+                startAfter(lastDoc),
+                limit(150)
+            );
+        }
+
+        const snapshot = await getDocs(q);
+        if (snapshot.empty) {
+            exhausted = true;
+            break;
+        }
+
+        lastDoc = snapshot.docs[snapshot.docs.length - 1];
+        const result = processSnapshot(snapshot, cantidad, totalCount);
+
+        if (result.count > 0) {
+            await result.batch.commit();
+            totalCount += result.count;
+            totalSelectedIds = totalSelectedIds.concat(result.ids);
         }
     }
 
-    if (result.count > 0) {
-        await result.batch.commit();
+    // If still no numbers found, we check if a total reset is needed
+    if (totalCount === 0) {
+        console.log("No numbers available even after iteration. Checking for cycle reset...");
+        const resetDone = await checkAndResetTelephoneCycle(true);
+        if (resetDone) {
+            // Retry once more after reset
+            console.log("Cycle reset done. Retrying fetch...");
+            const retryQ = query(collection(db, "telefonos"), where("estado", "==", "Sin asignar"), limit(100));
+            const retrySnap = await getDocs(retryQ);
+            const retryRes = processSnapshot(retrySnap, cantidad, 0);
+            if (retryRes.count > 0) {
+                await retryRes.batch.commit();
+                totalCount = retryRes.count;
+            }
+        }
     }
-    return result.count;
+
+    if (totalCount > 0) {
+        // Clear cache to reflect new assignments
+        ServiceCache.delete("telefonos");
+        return totalCount;
+    }
+
+    return 0;
 };
 
 // Check if all records are processed (have status OR are requested) and reset cycle
@@ -961,20 +1000,18 @@ export const releaseUnusedTelefonos = async (userId, globalCleanup = false) => {
         const phoneCol = collection(db, "telefonos");
 
         if (globalCleanup) {
-            // Find ALL 'Sin asignar' phones that have been requested
+            // Find 'Sin asignar' phones
             const yesterday = new Date();
             yesterday.setHours(yesterday.getHours() - 24);
 
-            const q = query(phoneCol,
-                where("estado", "==", "Sin asignar"),
-                where("publicador_asignado", "==", null)
-            );
-
+            const q = query(phoneCol, where("estado", "==", "Sin asignar"));
             const snap = await getDocs(q);
             const batchPromises = [];
+
             snap.docs.forEach(d => {
                 const data = d.data();
-                if (data.solicitado_por) {
+                // Release if it has a request holder but NO publisher assigned, and it's older than 24h
+                if (data.solicitado_por && !data.publicador_asignado && !data.asignado_a) {
                     const reqDate = data.fecha_asignacion ? new Date(data.fecha_asignacion) : null;
                     if (!reqDate || reqDate < yesterday) {
                         batchPromises.push(updateDoc(d.ref, {
@@ -992,18 +1029,21 @@ export const releaseUnusedTelefonos = async (userId, globalCleanup = false) => {
         if (userId) {
             const userQ = query(phoneCol,
                 where("solicitado_por", "==", userId),
-                where("estado", "==", "Sin asignar"),
-                where("publicador_asignado", "==", null)
+                where("estado", "==", "Sin asignar")
             );
             const userSnap = await getDocs(userQ);
             const userBatchPromises = [];
             userSnap.docs.forEach(d => {
-                userBatchPromises.push(updateDoc(d.ref, {
-                    solicitado_por: null,
-                    fecha_asignacion: null,
-                    asignado_a: null,
-                    publicador_asignado: null
-                }));
+                const data = d.data();
+                // Only release if it hasn't been specifically assigned to a publisher in the UI
+                if (!data.publicador_asignado && !data.asignado_a) {
+                    userBatchPromises.push(updateDoc(d.ref, {
+                        solicitado_por: null,
+                        fecha_asignacion: null,
+                        asignado_a: null,
+                        publicador_asignado: null
+                    }));
+                }
             });
             if (userBatchPromises.length > 0) await Promise.all(userBatchPromises);
         }

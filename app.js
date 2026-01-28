@@ -1,12 +1,12 @@
 import './modules/extensions.mjs';
-import { auth, db } from './firebase-config.js?v=2.3.9.3';
+import { auth, db } from './firebase-config.js?v=2.3.9.4';
 import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 // Main modules are now lazy-loaded
-import { getPermisosUsuario, getSystemVersion, migrateConductoresToPublicadores } from './data/firestore-services.js?v=2.3.9.3';
-import { showNotification } from './modules/utils/helpers.js?v=2.3.9.3';
-import { initPWA } from './modules/utils/pwa-manager.js?v=2.3.9.3';
-import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js?v=2.3.9.3';
+import { getPermisosUsuario, getSystemVersion, migrateConductoresToPublicadores } from './data/firestore-services.js?v=2.3.9.4';
+import { showNotification } from './modules/utils/helpers.js?v=2.3.9.4';
+import { initPWA } from './modules/utils/pwa-manager.js?v=2.3.9.4';
+import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js?v=2.3.9.4';
 
 // Lazy loaders for heavy modules
 const ModuleCache = {
@@ -30,9 +30,9 @@ async function loadConductor() {
     return ModuleCache.conductor.renderConductorDashboard;
 }
 
-// --- FORCED ONE-TIME SYNC TO v2.3.9.3 ---
+// --- FORCED ONE-TIME SYNC TO v2.3.9.4 ---
 (async () => {
-    const SYNC_VERSION = '2.3.9.3';
+    const SYNC_VERSION = '2.3.9.4';
     const syncKey = `app_sync_forced_v${SYNC_VERSION}`;
     const urlParams = new URLSearchParams(window.location.search);
     const isJustUpdated = urlParams.get('updated') === 'true';
@@ -120,7 +120,7 @@ document.body.appendChild(createThemeToggle());
 // Init PWA & Notifications
 initPWA();
 
-const APP_VERSION = '2.3.9.3';
+const APP_VERSION = '2.3.9.4';
 
 // --- SUCCESS CONFIRMATION AFTER UPDATE ---
 const checkUpdateSuccess = () => {
@@ -215,7 +215,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/service-worker.js?v=2.3.9.3');
+            navigator.serviceWorker.register('/service-worker.js?v=2.3.9.4');
         });
     }
 

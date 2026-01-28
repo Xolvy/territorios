@@ -1,8 +1,8 @@
 import {
     getRecursos, addRecurso, deleteRecurso, updateRecurso
-} from '../../data/firestore-services.js?v=2.3.9.3';
-import { showNotification } from '../utils/helpers.js?v=2.3.9.3';
-import { showModal, showCustomConfirm } from '../services/ui-helpers.js?v=2.3.9.3';
+} from '../../data/firestore-services.js?v=2.3.9.4';
+import { showNotification } from '../utils/helpers.js?v=2.3.9.4';
+import { showModal, showCustomConfirm } from '../services/ui-helpers.js?v=2.3.9.4';
 
 export const renderRecursosTab = async (container) => {
     const recursos = await getRecursos();

@@ -1,4 +1,4 @@
-import { showNotification } from './helpers.js?v=2.3.9.3';
+import { showNotification } from './helpers.js?v=2.3.9.4';
 
 let deferredPrompt = window.deferredPWAPrompt || null;
 let newWorker = null;
@@ -87,7 +87,7 @@ const triggerUI = () => {
 const showUpdateBanner = () => {
     const toast = document.createElement('div');
     toast.id = 'pwa-update-toast';
-    toast.className = 'fixed top-24 left-0 right-0 mx-auto w-max z-[10001] animate-bounce-in';
+    toast.className = 'fixed top-32 left-0 right-0 mx-auto w-max z-[10001] animate-bounce-in';
     toast.innerHTML = `
         <div class="glass-morphism bg-teal-600/90 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 border border-white/20 backdrop-blur-xl">
             <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-xl">🚀</div>
@@ -218,7 +218,7 @@ const showNotificationRationale = () => {
 
     rationale = document.createElement('div');
     rationale.id = 'notification-rationale';
-    rationale.className = 'fixed top-28 left-4 right-4 md:left-auto md:right-8 md:w-96 glass-morphism p-6 rounded-[2.5rem] z-[110] border border-blue-500/30 animate-bounce-in shadow-2xl';
+    rationale.className = 'fixed top-40 left-4 right-4 md:left-auto md:right-8 md:w-96 glass-morphism p-6 rounded-[2.5rem] z-[110] border border-blue-500/30 animate-bounce-in shadow-2xl';
 
     rationale.innerHTML = `
         <div class="flex flex-col gap-4">
