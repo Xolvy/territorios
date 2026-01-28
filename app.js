@@ -30,7 +30,7 @@ async function loadConductor() {
     return ModuleCache.conductor.renderConductorDashboard;
 }
 
-// --- FORCED ONE-TIME SYNC TO v2.4.0.2 ---
+// --- FORCED ONE-TIME SYNC TO v2.4.0.5 ---
 (async () => {
     const SYNC_VERSION = '2.4.0.5';
     const syncKey = `app_sync_forced_v${SYNC_VERSION}`;

@@ -77,7 +77,7 @@ export const renderLogin = (container, appVersion) => {
                 <!-- Footer Info -->
                 <div class="pt-6 sm:pt-10 space-y-2 opacity-60">
                     <p id="app-version-label" class="text-[11px] text-slate-600 dark:text-slate-400 font-black tracking-tighter uppercase">
-                        Plataforma v${appVersion || '2.4.0.2'} · Modern 2026
+                        Plataforma v${appVersion || '2.4.0.5'} · Modern 2026
                     </p>
                     <p class="text-[10px] text-slate-500 dark:text-slate-400 font-bold tracking-tight">© Congregation Software Solutions · Ecuador</p>
                 </div>
