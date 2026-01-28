@@ -22,12 +22,12 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
 
         // --- GLOBAL ADMIN HELPERS ---
         window.editHistoryRecord = async (id) => {
-            const { editHistoryRecord } = await import('./admin/history-view.js');
+            const { editHistoryRecord } = await import('./admin/history-view.js?v=2.4.0.4');
             await editHistoryRecord(id);
         };
 
         window.deleteHistoryRecordUI = async (id, cond, num) => {
-            const { deleteHistoryRecordUI } = await import('./admin/history-view.js');
+            const { deleteHistoryRecordUI } = await import('./admin/history-view.js?v=2.4.0.4');
             await deleteHistoryRecordUI(id, cond, num);
         };
 

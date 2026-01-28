@@ -47,23 +47,23 @@ export const renderCasaEnCasaTab = async (container, config, appVersion) => {
         try {
             switch (sub) {
                 case 'programa':
-                    const { renderProgramaTab } = await import('./program-view.js');
+                    const { renderProgramaTab } = await import('./program-view.js?v=' + appVersion);
                     await renderProgramaTab(subContainer, config, appVersion);
                     break;
                 case 'reportes':
-                    const { renderReportsTab } = await import('./reports-view.js');
+                    const { renderReportsTab } = await import('./reports-view.js?v=' + appVersion);
                     await renderReportsTab(subContainer, config, appVersion);
                     break;
                 case 'puntos':
-                    const { renderPuntosInteresTab } = await import('./puntos-view.js');
+                    const { renderPuntosInteresTab } = await import('./puntos-view.js?v=' + appVersion);
                     await renderPuntosInteresTab(subContainer, config, appVersion);
                     break;
                 case 'recursos':
-                    const { renderRecursosTab } = await import('./resources-view.js');
+                    const { renderRecursosTab } = await import('./resources-view.js?v=' + appVersion);
                     await renderRecursosTab(subContainer, config, appVersion);
                     break;
                 case 'personal':
-                    const { renderPersonalTab } = await import('./personal-view.js');
+                    const { renderPersonalTab } = await import('./personal-view.js?v=' + appVersion);
                     await renderPersonalTab(subContainer, config, appVersion);
                     break;
             }
