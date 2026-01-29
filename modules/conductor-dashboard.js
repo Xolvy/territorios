@@ -1,4 +1,4 @@
-import { auth } from '../firebase-config.js?v=2.4.0.6';
+import { auth } from '../firebase-config.js?v=2.4.0.7';
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import {
     getTerritorios, getConductores, getPublicadores, getTelefonos, updateTelefono,
@@ -9,10 +9,10 @@ import {
     releaseUnusedTelefonos, solicitarNumeros, updateTelefonoStatus, logSessionSummary,
     logReturn, returnTerritorio, returnTerritorioParcial, transferTerritory, takeTerritoryPartial, assignFreeTerritory,
     getPuntosInteres
-} from '../data/firestore-services.js?v=2.4.0.6';
-import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, formatManzanas } from './utils/helpers.js?v=2.4.0.6';
-import { TerritoryIntelligence } from './utils/intelligence.js?v=2.4.0.6';
-import { MapViewer } from './map-viewer.js?v=2.4.0.6';
+} from '../data/firestore-services.js?v=2.4.0.7';
+import { formatPhoneNumber, getStatusColor, showNotification, formatMapUrl, formatManzanas } from './utils/helpers.js?v=2.4.0.7';
+import { TerritoryIntelligence } from './utils/intelligence.js?v=2.4.0.7';
+import { MapViewer } from './map-viewer.js?v=2.4.0.7';
 import { AppConfig } from './utils/config.js';
 
 // --- VOICE DICTATION HELPER ---
@@ -277,7 +277,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
                     <div class="hidden sm:flex flex-col items-end mr-4 text-right">
                          <p class="text-[8px] font-black text-slate-400 uppercase tracking-[0.3em] mb-0.5">Versión</p>
-                         <p class="text-[10px] font-black text-slate-800 dark:text-white tabular-nums">${appVersion || '2.4.0.6'}</p>
+                         <p class="text-[10px] font-black text-slate-800 dark:text-white tabular-nums">${appVersion || '2.4.0.7'}</p>
                     </div>
                     ${(userRole === 'Administrador' || userRole === 'SuperAdmin' || conductorData?.privilegios?.includes('Administrador')) ? `
                     <button id="btn-goto-admin" class="flex-1 md:flex-none bg-amber-500/10 hover:bg-amber-500 text-amber-600 hover:text-white px-4 md:px-6 py-3.5 rounded-xl border border-amber-500/20 transition-all font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95 min-w-0">

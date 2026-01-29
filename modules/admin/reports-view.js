@@ -1,5 +1,5 @@
-import { renderHistorialView } from './history-view.js?v=2.4.0.6';
-import { renderS12View } from './s12-view.js?v=2.4.0.6';
+import { renderHistorialView } from './history-view.js?v=2.4.0.7';
+import { renderS12View } from './s12-view.js?v=2.4.0.7';
 
 export const renderReportsTab = async (container, config, appVersion) => {
     let _activeReport = 's13'; // Default to S-13

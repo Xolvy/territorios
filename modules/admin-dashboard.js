@@ -1,16 +1,16 @@
 import {
     getSystemVersion, setSystemVersion, getHistorialReport, getConfiguracion
-} from '../data/firestore-services.js?v=2.4.0.6';
-import { auth } from '../firebase-config.js?v=2.4.0.6';
-import { showNotification } from './utils/helpers.js?v=2.4.0.6';
-import { GlassButton } from './services/ui-components.js?v=2.4.0.6';
+} from '../data/firestore-services.js?v=2.4.0.7';
+import { auth } from '../firebase-config.js?v=2.4.0.7';
+import { showNotification } from './utils/helpers.js?v=2.4.0.7';
+import { GlassButton } from './services/ui-components.js?v=2.4.0.7';
 
 // Import Views
-import { renderAnalyticsView } from './analytics-view.js?v=2.4.0.6';
-import { renderCasaEnCasaTab } from './admin/territories-view.js?v=2.4.0.6';
-import { renderPredicacionTab } from './admin/public-view.js?v=2.4.0.6';
-import { renderTelefonosTab } from './admin/phones-view.js?v=2.4.0.6';
-import { renderConfigTab } from './admin/rules-view.js?v=2.4.0.6';
+import { renderAnalyticsView } from './analytics-view.js?v=2.4.0.7';
+import { renderCasaEnCasaTab } from './admin/territories-view.js?v=2.4.0.7';
+import { renderPredicacionTab } from './admin/public-view.js?v=2.4.0.7';
+import { renderTelefonosTab } from './admin/phones-view.js?v=2.4.0.7';
+import { renderConfigTab } from './admin/rules-view.js?v=2.4.0.7';
 
 /**
  * Main Entry Point for the Administration Control Panel
@@ -22,12 +22,12 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
 
         // --- GLOBAL ADMIN HELPERS ---
         window.editHistoryRecord = async (id) => {
-            const { editHistoryRecord } = await import('./admin/history-view.js?v=2.4.0.6');
+            const { editHistoryRecord } = await import('./admin/history-view.js');
             await editHistoryRecord(id);
         };
 
         window.deleteHistoryRecordUI = async (id, cond, num) => {
-            const { deleteHistoryRecordUI } = await import('./admin/history-view.js?v=2.4.0.6');
+            const { deleteHistoryRecordUI } = await import('./admin/history-view.js');
             await deleteHistoryRecordUI(id, cond, num);
         };
 

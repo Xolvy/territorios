@@ -1,9 +1,9 @@
 import {
     getHistorialReport, getConductores, getTerritorios, getPublicadores, getConfiguracion,
     assignTerritorio, returnTerritorio, transferTerritory, addHistoryRecord, updateHistoryRecord, deleteHistoryRecord, updateTerritorio
-} from '../../data/firestore-services.js?v=2.4.0.6';
-import { UIHelpers, showModal, showCustomConfirm, showCustomPrompt, showTerritorySelectionModal } from '../services/ui-helpers.js?v=2.4.0.6';
-import { formatDisplayDateRange, formatPhoneNumber, getStatusColor, showNotification } from '../utils/helpers.js?v=2.4.0.6';
+} from '../../data/firestore-services.js?v=2.4.0.7';
+import { UIHelpers, showModal, showCustomConfirm, showCustomPrompt, showTerritorySelectionModal } from '../services/ui-helpers.js?v=2.4.0.7';
+import { formatDisplayDateRange, formatPhoneNumber, getStatusColor, showNotification } from '../utils/helpers.js?v=2.4.0.7';
 
 export const renderHistorialView = async (container) => {
     const [history, allTerritorios, allPublicadores] = await Promise.all([
