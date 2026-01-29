@@ -1,6 +1,6 @@
-import { TerritoryIntelligence } from '../utils/intelligence.js?v=2.4.0.5';
-import { getTelefonos, getTerritorios, getProgramaSemanal, getConductores, getPuntosInteres } from '../../data/firestore-services.js?v=2.4.0.5';
-import { formatDateId } from '../utils/helpers.js?v=2.4.0.5';
+import { TerritoryIntelligence } from '../utils/intelligence.js?v=2.4.0.6';
+import { getTelefonos, getTerritorios, getProgramaSemanal, getConductores, getPuntosInteres } from '../../data/firestore-services.js?v=2.4.0.6';
+import { formatDateId } from '../utils/helpers.js?v=2.4.0.6';
 
 export const renderAdminAI = async (container, appVersion) => {
     container.innerHTML = `
