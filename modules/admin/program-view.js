@@ -2,9 +2,9 @@ import {
     getTerritorios, getConfiguracion, getPublicadores, getConductores,
     getProgramaSemanal, saveProgramaSemanal, getGroupsConfig, returnTerritorioMultiple,
     getHistorialReport, returnTerritorioParcial
-} from '../../data/firestore-services.js?v=2.4.0.7';
-import { showNotification } from '../utils/helpers.js?v=2.4.0.7';
-import { UIHelpers, showModal, showTerritorySelectionModal } from '../services/ui-helpers.js?v=2.4.0.7';
+} from '../../data/firestore-services.js';
+import { showNotification } from '../utils/helpers.js';
+import { UIHelpers, showModal, showTerritorySelectionModal } from '../services/ui-helpers.js';
 
 const { getMonday, formatDateId } = UIHelpers;
 
@@ -88,14 +88,7 @@ export const renderProgramaTab = async (container) => {
                             <i class="fas fa-project-diagram group-hover:rotate-12 transition-transform"></i>
                             Formalizar Asignaciones
                         </button>
-                        <button id="btn-s13-export" class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-4 rounded-xl font-black transition-all text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-500/20 active:scale-95 group" title="Exportar Registro de Asignaciones (S-13)">
-                            <i class="fas fa-file-pdf"></i>
-                            S-13
-                        </button>
-                        <button id="btn-s12-export-direct" class="flex items-center gap-2 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-slate-600 dark:text-slate-300 px-6 py-4 rounded-xl font-black transition-all text-[10px] uppercase tracking-widest shadow-sm active:scale-95 group" title="Exportar Registro de Territorios (S-12)">
-                            <i class="fas fa-shield-alt"></i>
-                            S-12
-                        </button>
+
                         <button id="btn-reset-today" class="bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 px-6 py-4 rounded-xl font-black hover:bg-slate-50 transition-all text-[10px] uppercase tracking-widest">Hoy</button>
                         <button id="btn-reception-prog" class="flex items-center gap-2 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-rose-500 px-6 py-4 rounded-xl font-black hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all text-[10px] uppercase tracking-widest group" title="Recibir territorios finalizados">
                             <i class="fas fa-file-import group-hover:-translate-x-1 transition-transform"></i>
@@ -142,6 +135,12 @@ export const renderProgramaTab = async (container) => {
 
             if (data && data.dias && data.dias.length > 0) {
                 programa = data;
+                // Sincronizar fechas por si acaso el documento tiene fechas desactualizadas
+                programa.dias.forEach((dia, idx) => {
+                    const expectedDate = new Date(currentWeekStart);
+                    expectedDate.setDate(expectedDate.getDate() + idx);
+                    dia.fecha = formatDateId(expectedDate);
+                });
             } else {
                 programa = {
                     id: weekId,
@@ -193,70 +192,7 @@ export const renderProgramaTab = async (container) => {
         `;
     };
 
-    container.querySelector('#btn-s13-export').onclick = async () => {
-        const modal = document.getElementById('modal-container');
-        modal.classList.remove('hidden');
-        modal.innerHTML = `
-            <div class="w-full h-full flex items-center justify-center p-4">
-                <div class="bg-white dark:bg-slate-900 w-full max-w-6xl max-h-[90vh] rounded-[3rem] shadow-2xl flex flex-col overflow-hidden animate-scale-in">
-                    <header class="p-8 border-b border-slate-100 dark:border-white/5 flex justify-between items-center">
-                        <div class="flex items-center gap-4">
-                             <div class="w-12 h-12 bg-indigo-500/10 text-indigo-500 rounded-2xl flex items-center justify-center text-2xl">
-                                <i class="fas fa-file-invoice"></i>
-                             </div>
-                             <div>
-                                 <h3 class="text-xl font-black uppercase tracking-tight text-slate-800 dark:text-white">Centro de Exportación S-13</h3>
-                                 <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em]">Generación de Reportes Oficiales</p>
-                             </div>
-                        </div>
-                        <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="w-10 h-10 bg-slate-100 dark:bg-white/5 rounded-xl flex items-center justify-center hover:bg-rose-500/10 hover:text-rose-500 transition-all">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </header>
-                    <div id="s13-modal-content" class="flex-1 overflow-y-auto p-10 custom-scrollbar">
-                        <div class="flex items-center justify-center py-20 animate-pulse">
-                            <div class="w-10 h-10 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        const { renderS13CommandCenter } = await import('../report-s13.js');
-        await renderS13CommandCenter(document.getElementById('s13-modal-content'));
-    };
 
-    container.querySelector('#btn-s12-export-direct').onclick = async () => {
-        const modal = document.getElementById('modal-container');
-        modal.classList.remove('hidden');
-        modal.innerHTML = `
-            <div class="w-full h-full flex items-center justify-center p-4">
-                <div class="bg-white dark:bg-slate-900 w-full max-w-7xl max-h-[90vh] rounded-[3rem] shadow-2xl flex flex-col overflow-hidden animate-scale-in border border-slate-100 dark:border-white/5">
-                    <header class="p-8 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50/50 dark:bg-white/[0.02]">
-                        <div class="flex items-center gap-6">
-                             <div class="w-14 h-14 bg-amber-500/10 text-amber-500 rounded-3xl flex items-center justify-center text-3xl shadow-inner border border-amber-500/10">
-                                <i class="fas fa-database"></i>
-                             </div>
-                             <div>
-                                 <h3 class="text-2xl font-black uppercase tracking-tight text-slate-800 dark:text-white">Base de Datos (S-12)</h3>
-                                 <p class="text-[10px] text-slate-400 font-extrabold uppercase tracking-[0.4em] mt-1 opacity-70">Catálogo Maestro de Territorios</p>
-                             </div>
-                        </div>
-                        <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="w-12 h-12 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-sm">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </header>
-                    <div id="s12-modal-content" class="flex-1 overflow-y-auto p-4 md:p-10 custom-scrollbar bg-slate-50/30 dark:bg-transparent">
-                        <div class="flex flex-col items-center justify-center py-32 gap-6 opacity-30">
-                            <i class="fas fa-circle-notch fa-spin text-4xl text-amber-500"></i>
-                            <p class="text-xs font-black uppercase tracking-widest">Cargando Base S-12...</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        const { renderS12View } = await import('./s12-view.js');
-        await renderS12View(document.getElementById('s12-modal-content'));
-    };
 
     const renderFilters = () => {
         const turnFilters = container.querySelector('#turn-filters');
@@ -534,7 +470,7 @@ export const renderProgramaTab = async (container) => {
                 const date = modal.querySelector('#sync-asig-date').value;
                 if (!date) return;
 
-                const { assignTerritorio } = await import('../../data/firestore-services.js?v=2.4.0.7');
+                const { assignTerritorio } = await import('../../data/firestore-services.js');
                 await assignTerritorio(tInfo.id, cond, {
                     fecha_asignacion: new Date(date + 'T12:00:00Z').toISOString(),
                     lugar: data.lugar || null,
@@ -556,13 +492,9 @@ export const renderProgramaTab = async (container) => {
     };
 
     window.openTerritorySelector = (dayIdx, turnoId, btn) => {
-        const available = territorios.filter(t =>
-            t.estado === 'Disponible' ||
-            t.estado === 'Sin asignar' ||
-            t.estado === 'Libre' ||
-            t.is_incomplete === true
-        );
-        showTerritorySelectionModal(btn.dataset.current || '', available, (res) => {
+        // Mostramos todos los territorios en el selector para evitar que aparezca vacío
+        // El modal ya indica visualmente cuáles están disponibles o saturados
+        showTerritorySelectionModal(btn.dataset.current || '', territorios, (res) => {
             window.updateWeekData(dayIdx, turnoId, 'territorio', res);
         }, 'modal-container-nested', historial);
     };
@@ -737,7 +669,7 @@ export const renderProgramaTab = async (container) => {
                 const date = modal.querySelector('#sync-all-date').value;
                 if (!date) return;
 
-                const { assignTerritorio } = await import('../../data/firestore-services.js?v=2.4.0.7');
+                const { assignTerritorio } = await import('../../data/firestore-services.js');
 
                 showNotification(`Procesando ${toSync.length} asignaciones...`, 'info');
 

@@ -1,6 +1,13 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, Timestamp } from "firebase/firestore";
 import { getAuth, signInAnonymously } from "firebase/auth";
+import fs from 'fs';
+import path from 'path';
+
+// Read version from package.json
+const pkgPath = path.resolve(process.cwd(), 'package.json');
+const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+const version = pkg.version;
 
 const firebaseConfig = {
     apiKey: "AIzaSyDrgpMp04uuFRz61vNIOzD9CCPl8p_wDL0",
@@ -16,18 +23,19 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 
 async function run() {
-    const version = "2.4.0.7";
     try {
         console.log("🔐 Autenticando...");
         await signInAnonymously(auth);
-        console.log(`🚀 Publicando actualización forzada: v${version}`);
+        console.log(`🚀 Publicando actualización remota: v${version}`);
+
         await setDoc(doc(db, "configuracion", "version_control"), {
             latestVersion: version,
             forceUpdate: true,
             forceTimestamp: Date.now(),
             updatedAt: Timestamp.now()
         }, { merge: true });
-        console.log("✅ Versión remota actualizada. v" + version);
+
+        console.log("✅ Versión remota actualizada exitosamente a v" + version);
         process.exit(0);
     } catch (e) {
         console.error("❌ Error al actualizar versión remota:", e);

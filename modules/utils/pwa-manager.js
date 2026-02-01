@@ -1,4 +1,4 @@
-import { showNotification } from './helpers.js?v=2.4.0.7';
+import { showNotification } from './helpers.js';
 
 let deferredPrompt = window.deferredPWAPrompt || null;
 let newWorker = null;
@@ -44,7 +44,7 @@ export const initPWA = () => {
         let refreshing = false;
         navigator.serviceWorker.addEventListener('controllerchange', () => {
             if (!refreshing) {
-                window.location.reload();
+                Location.reload();
                 refreshing = true;
             }
         });
@@ -246,3 +246,4 @@ const showNotificationRationale = () => {
 
     document.getElementById('btn-notif-ignore').onclick = () => rationale.remove();
 };
+

@@ -1,14 +1,14 @@
 {
   "name": "app-territorios",
-  "version": "2.4.0.7",
+  "version": "2.4.0.8",
   "description": "[![Deploy to Firebase](https://github.com/Xolvy/conductores/actions/workflows/firebase-deploy.yml/badge.svg)](https://github.com/Xolvy/conductores/actions/workflows/firebase-deploy.yml)",
   "main": "app.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build:css": "tailwindcss -i ./src/input.css -o ./styles.css --minify"
+    "test": "vitest",
+    "test:ui": "vitest --ui"
   },
   "repository": {
     "type": "git",
@@ -24,12 +24,20 @@
   "homepage": "https://github.com/Xolvy/conductores#readme",
   "devDependencies": {
     "@rollup/rollup-win32-x64-msvc": "^4.56.0",
+    "@vitest/ui": "^4.0.18",
     "autoprefixer": "^10.4.16",
     "postcss": "^8.4.31",
+    "sharp": "^0.34.5",
+    "svgo": "^4.0.0",
     "tailwindcss": "^3.4.17",
-    "vite": "^7.3.0"
+    "vite": "^7.3.0",
+    "vite-plugin-compression": "^0.5.1",
+    "vite-plugin-image-optimizer": "^2.0.3",
+    "vite-plugin-pwa": "^1.2.0",
+    "vitest": "^4.0.18"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-free": "^7.1.0",
     "animejs": "^4.2.2",
     "chart.js": "^4.5.1",
     "date-fns": "^4.1.0",
@@ -37,7 +45,10 @@
     "html2canvas": "^1.4.1",
     "jspdf": "^4.0.0",
     "leaflet": "^1.9.4",
+    "leaflet-image": "^0.4.0",
+    "lucide": "^0.563.0",
     "sweetalert2": "^11.26.17",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "zod": "^4.3.6"
   }
 }

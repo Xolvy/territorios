@@ -1,9 +1,9 @@
 import {
     getPuntosInteres, addPuntoInteres, deletePuntoInteres, updatePuntoInteres,
     getTerritorios
-} from '../../data/firestore-services.js?v=2.4.0.7';
-import { showNotification } from '../utils/helpers.js?v=2.4.0.7';
-import { showModal, showCustomConfirm } from '../services/ui-helpers.js?v=2.4.0.7';
+} from '../../data/firestore-services.js';
+import { showNotification } from '../utils/helpers.js';
+import { showModal, showCustomConfirm } from '../services/ui-helpers.js';
 
 export const renderPuntosInteresTab = async (container) => {
     const [puntosInteres, territorios] = await Promise.all([

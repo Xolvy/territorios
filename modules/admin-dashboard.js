@@ -1,16 +1,17 @@
+import Chart from 'chart.js/auto';
 import {
     getSystemVersion, setSystemVersion, getHistorialReport, getConfiguracion
-} from '../data/firestore-services.js?v=2.4.0.7';
-import { auth } from '../firebase-config.js?v=2.4.0.7';
-import { showNotification } from './utils/helpers.js?v=2.4.0.7';
-import { GlassButton } from './services/ui-components.js?v=2.4.0.7';
+} from '../data/firestore-services.js';
+import { auth } from '../firebase-config.js';
+import { showNotification } from './utils/helpers.js';
+import { GlassButton } from './services/ui-components.js';
 
 // Import Views
-import { renderAnalyticsView } from './analytics-view.js?v=2.4.0.7';
-import { renderCasaEnCasaTab } from './admin/territories-view.js?v=2.4.0.7';
-import { renderPredicacionTab } from './admin/public-view.js?v=2.4.0.7';
-import { renderTelefonosTab } from './admin/phones-view.js?v=2.4.0.7';
-import { renderConfigTab } from './admin/rules-view.js?v=2.4.0.7';
+import { renderAnalyticsView } from './analytics-view.js';
+import { renderCasaEnCasaTab } from './admin/territories-view.js';
+import { renderPredicacionTab } from './admin/public-view.js';
+import { renderTelefonosTab } from './admin/phones-view.js';
+import { renderConfigTab } from './admin/rules-view.js';
 
 /**
  * Main Entry Point for the Administration Control Panel
@@ -126,11 +127,11 @@ const setupNavigation = (appVersion) => {
     document.getElementById('logout-btn').onclick = async () => {
         localStorage.removeItem('demo_role');
         await auth.signOut();
-        window.location.href = '/login';
+        Location.href = '/login';
     };
 
     // View Switching
-    document.getElementById('btn-goto-conductores').onclick = () => window.location.href = '/conductores';
+    document.getElementById('btn-goto-conductores').onclick = () => Location.href = '/conductores';
 
     const tabs = document.querySelectorAll('.nav-item');
     tabs.forEach(btn => {
@@ -204,3 +205,4 @@ const renderSkeleton = (container) => {
         </div>
     `;
 };
+

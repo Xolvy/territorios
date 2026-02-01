@@ -1,6 +1,8 @@
-import { getHistorialReport, rebuildHistoryFromSchedule, getConfiguracion, getTerritorios, runSystemDiagnosticsAndRepair } from '../data/firestore-services.js?v=2.4.0.7';
-import { showNotification, generatePlainXLS } from './utils/helpers.js?v=2.4.0.7';
-import { S13Exporter } from './services/s13-exporter.js?v=2.4.0.7';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
+import { getHistorialReport, rebuildHistoryFromSchedule, getConfiguracion, getTerritorios, runSystemDiagnosticsAndRepair } from '../data/firestore-services.js';
+import { showNotification, generatePlainXLS } from './utils/helpers.js';
+import { S13Exporter } from './services/s13-exporter.js';
 
 export const renderS13CommandCenter = async (container) => {
     const [history, config, territories] = await Promise.all([
@@ -407,7 +409,7 @@ export const renderHistoryTab = (container, options = {}) => {
             btn.disabled = true;
 
             try {
-                const { jsPDF } = window.jspdf;
+                
                 const doc = new jsPDF('p', 'mm', 'a4');
 
                 const pdfWidth = 210;

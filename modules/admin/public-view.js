@@ -1,9 +1,12 @@
+import L_lib from 'leaflet';
+const L = L_lib;
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 import {
     getPredicacionPublica, getPublicadores, getConfiguracion, savePredicacionPublica
 } from '../../data/firestore-services.js';
 import { showNotification } from '../utils/helpers.js';
 import { showCustomConfirm, showModal } from '../services/ui-helpers.js';
-import html2canvas from 'html2canvas';
 
 export const renderPredicacionTab = async (container) => {
     let data = await getPredicacionPublica();
@@ -110,7 +113,7 @@ export const renderPredicacionTab = async (container) => {
 
         // Bind PDF
         container.querySelector('#export-pdf').onclick = () => {
-            const { jsPDF } = window.jspdf;
+            
             const target = container.querySelector('#pdf-content');
             showNotification("Generando reporte ejecutivo...", "info");
 
@@ -150,7 +153,7 @@ export const renderPredicacionTab = async (container) => {
         if (exportBtn) {
             exportBtn.onclick = () => {
                 const element = container.querySelector('#pdf-content');
-                const { jsPDF } = window.jspdf;
+                
                 showNotification("Generando PDF S-13...", "info");
 
                 html2canvas(element, {
@@ -465,3 +468,4 @@ export const renderPredicacionTab = async (container) => {
         };
     }
 };
+

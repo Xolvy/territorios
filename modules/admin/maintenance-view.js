@@ -1,10 +1,10 @@
 import {
     getTerritorios, getConductores, getTelefonos, getPublicadores, getProgramaSemanal, getConfiguracion, getHistorialReport,
     rebuildHistoryFromSchedule, restoreSystemBackup, setSystemVersion, masterResetAssignments, updateTerritorio
-} from '../../data/firestore-services.js?v=2.4.0.7';
-import { ensureOnline, formatDateId } from '../utils/helpers.js?v=2.4.0.7';
-import { showNotification, showCustomConfirm, showCustomPrompt } from '../services/ui-helpers.js?v=2.4.0.7';
-import { TerritoryIntelligence } from '../utils/intelligence.js?v=2.4.0.7';
+} from '../../data/firestore-services.js';
+import { ensureOnline, formatDateId } from '../utils/helpers.js';
+import { showNotification, showCustomConfirm, showCustomPrompt } from '../services/ui-helpers.js';
+import { TerritoryIntelligence } from '../utils/intelligence.js';
 
 export const renderMaintenanceTab = async (container, config, appVersion) => {
     const [terrs, conds, phones] = await Promise.all([
@@ -327,7 +327,7 @@ export const renderMaintenanceTab = async (container, config, appVersion) => {
                     });
                     logToConsole("✅ SISTEMA RESTAURADO COMPLETAMENTE", "success");
                     updateProgress(100, "Finalizado");
-                    setTimeout(() => window.location.reload(), 1500);
+                    setTimeout(() => Location.reload(), 1500);
                 } catch (err) {
                     logToConsole(`❌ ERROR: ${err.message}`, "error");
                     updateProgress(0, "Fallo en restauración");
@@ -346,7 +346,7 @@ export const renderMaintenanceTab = async (container, config, appVersion) => {
                 await Promise.all(keys.map(k => caches.delete(k)));
                 logToConsole("✅ Caché eliminada.", "success");
             }
-            setTimeout(() => window.location.reload(true), 800);
+            setTimeout(() => Location.reload(true), 800);
         });
     });
 
@@ -366,7 +366,7 @@ export const renderMaintenanceTab = async (container, config, appVersion) => {
             updateProgress(100, "Purge complete");
             logToConsole("⚡ Purga completada. Reiniciando versión local...", "warning");
             localStorage.removeItem('app_version');
-            setTimeout(() => window.location.reload(true), 1000);
+            setTimeout(() => Location.reload(true), 1000);
         });
     });
 
@@ -528,3 +528,4 @@ export const renderMaintenanceTab = async (container, config, appVersion) => {
         });
     });
 };
+

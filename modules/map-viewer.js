@@ -1,3 +1,5 @@
+import L from 'leaflet';
+import leafletImage from 'leaflet-image';
 
 export const MapViewer = {
     render: (container, territory, options = {}) => {
@@ -82,11 +84,11 @@ export const MapViewer = {
                     a.href = imagen;
                     a.download = `Mapa_T${numero}.png`;
                     a.click();
-                } else if (window.leafletImage && window._currentLeafletMap) {
+                } else if (leafletImage && window._currentLeafletMap) {
                     // Export interactive map to PNG
                     if (window.showNotification) window.showNotification("Generando imagen del mapa...", "info");
 
-                    window.leafletImage(window._currentLeafletMap, (err, canvas) => {
+                    leafletImage(window._currentLeafletMap, (err, canvas) => {
                         if (err) {
                             console.error(err);
                             if (window.showNotification) window.showNotification("Error al exportar mapa", "error");
@@ -105,7 +107,7 @@ export const MapViewer = {
         if (btnShare) {
             btnShare.onclick = async () => {
                 const text = `Territorio ${numero}: ${manzanas || ''}`;
-                const url = window.location.href;
+                const url = Location.href;
 
                 if (navigator.share) {
                     try {
@@ -200,3 +202,4 @@ window.toggleImageZoom = (img) => {
         img.classList.remove('cursor-zoom-out', 'w-[200%]', 'max-w-none');
     }
 };
+

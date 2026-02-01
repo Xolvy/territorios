@@ -1,12 +1,13 @@
 import './modules/extensions.mjs';
-import { auth, db } from './firebase-config.js?v=2.4.0.7';
+import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
-// Main modules are now lazy-loaded
-import { getPermisosUsuario, getSystemVersion, migrateConductoresToPublicadores } from './data/firestore-services.js?v=2.4.0.7';
-import { showNotification } from './modules/utils/helpers.js?v=2.4.0.7';
-import { initPWA } from './modules/utils/pwa-manager.js?v=2.4.0.7';
-import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js?v=2.4.0.7';
+import { getPermisosUsuario, migrateConductoresToPublicadores } from './data/firestore-services.js';
+import { showNotification } from './modules/utils/helpers.js';
+import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js';
+
+// The version is injected by Vite at build time
+const APP_VERSION = __APP_VERSION__;
 
 // Lazy loaders for heavy modules
 const ModuleCache = {
@@ -30,99 +31,7 @@ async function loadConductor() {
     return ModuleCache.conductor.renderConductorDashboard;
 }
 
-// --- FORCED ONE-TIME SYNC TO v2.4.0.7 ---
-(async () => {
-    const SYNC_VERSION = '2.4.0.7';
-    const syncKey = `app_sync_forced_v${SYNC_VERSION}`;
-    const urlParams = new URLSearchParams(window.location.search);
-    const isJustUpdated = urlParams.get('updated') === 'true';
-
-    // If we just updated, don't run the sync logic again to avoid loops
-    if (isJustUpdated) {
-        localStorage.setItem(syncKey, 'true');
-        localStorage.setItem('app_version', SYNC_VERSION);
-        localStorage.removeItem('block_version_check'); // Safe to check again
-        return;
-    }
-
-    const oldVersion = localStorage.getItem('app_version');
-
-    if (!localStorage.getItem(syncKey) || (oldVersion && oldVersion !== SYNC_VERSION)) {
-        console.warn(`🚀 Iniciando sincronización forzada a v${SYNC_VERSION}...`);
-
-        // Show Update UI
-        const overlay = document.createElement('div');
-        overlay.id = 'force-sync-overlay';
-        overlay.style = 'position: fixed; inset: 0; z-index: 99999; background: #f8fafc; display: flex; align-items: center; justify-content: center; font-family: "Outfit", sans-serif;';
-        overlay.innerHTML = `
-            <div style="background: white; padding: 3rem; border-radius: 2.5rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.1); text-align: center; max-width: 450px; width: 90%; border: 1px solid #e2e8f0;">
-                <div style="width: 80px; height: 80px; background: #ccfbf1; border-radius: 2rem; display: flex; align-items: center; justify-content: center; margin: 0 auto 2rem; color: #0d9488; font-size: 2.5rem;">
-                    <i class="fas fa-rocket"></i>
-                </div>
-                <h3 style="font-weight: 900; font-size: 1.5rem; margin-bottom: 1rem; color: #1e293b; text-transform: uppercase; letter-spacing: -0.02em;">Actualización Obligatoria</h3>
-                <p style="color: #64748b; font-size: 0.95rem; line-height: 1.6; margin-bottom: 2rem; font-weight: 500;">
-                    Estamos sincronizando la última versión de los archivos para asegurar la estabilidad del sistema.<br>
-                    <strong>Limpiando memoria y archivos temporales...</strong>
-                </p>
-                <div style="width: 40px; height: 40px; border: 4px solid #f1f5f9; border-top-color: #0d9488; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div>
-                <style>
-                    @keyframes spin { to { transform: rotate(360deg); } }
-                </style>
-            </div>
-        `;
-        document.body.appendChild(overlay);
-
-        try {
-            if ('serviceWorker' in navigator) {
-                const regs = await navigator.serviceWorker.getRegistrations();
-                for (let r of regs) {
-                    await r.unregister();
-                }
-            }
-            if ('caches' in window) {
-                const keys = await caches.keys();
-                for (let k of keys) {
-                    await caches.delete(k);
-                }
-            }
-
-            // Be selective with clearing to avoid wiping out the flags we just set or about to set
-            const essentialKeys = ['theme', 'last_force_timestamp'];
-            const preservedValues = {};
-            essentialKeys.forEach(k => preservedValues[k] = localStorage.getItem(k));
-
-            localStorage.clear();
-
-            essentialKeys.forEach(k => {
-                if (preservedValues[k]) localStorage.setItem(k, preservedValues[k]);
-            });
-
-            localStorage.setItem(syncKey, 'true');
-            localStorage.setItem('app_version', SYNC_VERSION);
-
-            // Wait a moment for UX
-            setTimeout(() => {
-                window.location.href = `${window.location.pathname}?updated=true&v=${Date.now()}`;
-            }, 2000);
-        } catch (e) {
-            console.error("Sync error:", e);
-            localStorage.setItem(syncKey, 'true');
-            localStorage.setItem('app_version', SYNC_VERSION);
-            window.location.reload();
-        }
-    }
-})();
-
-// Init Theme
-initTheme();
-document.body.appendChild(createThemeToggle());
-
-// Init PWA & Notifications
-initPWA();
-
-const APP_VERSION = '2.4.0.7';
-
-// --- SUCCESS CONFIRMATION AFTER UPDATE ---
+// --- VERSION & PWA SUCCESS FLOW ---
 const checkUpdateSuccess = () => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('updated') === 'true') {
@@ -132,10 +41,8 @@ const checkUpdateSuccess = () => {
         }, 1500);
     }
 };
-checkUpdateSuccess();
 
 const initVersionCheck = (currentVersion) => {
-    // Skip checking if we just updated via URL to avoid race conditions
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('updated') === 'true' || localStorage.getItem('block_version_check')) return;
 
@@ -146,21 +53,9 @@ const initVersionCheck = (currentVersion) => {
             const serverForceTimestamp = data.forceTimestamp || 0;
             const localForceTimestamp = parseInt(localStorage.getItem('last_force_timestamp') || '0');
 
-            // Prevent loop: If we are already on the server version (or newer), ignore version mismatches
-            // Unless there's an explicit forceTimestamp change.
-            const isVersionNewer = serverVersion !== currentVersion;
-            const isTimestampNewer = serverForceTimestamp && serverForceTimestamp > localForceTimestamp;
-
-            if (isVersionNewer || isTimestampNewer) {
+            if (serverVersion !== currentVersion || (serverForceTimestamp > localForceTimestamp)) {
                 if (data.forceUpdate) {
-                    // One last check: if we just reloaded for this version, don't do it again
-                    if (localStorage.getItem('app_version') === currentVersion && !isTimestampNewer) {
-                        return;
-                    }
-
                     console.warn("🚀 Update required. Purging cache...");
-
-                    // Mark as updating to prevent loops in this session
                     localStorage.setItem('block_version_check', 'true');
 
                     if ('serviceWorker' in navigator) {
@@ -171,6 +66,7 @@ const initVersionCheck = (currentVersion) => {
                         const keys = await caches.keys();
                         await Promise.all(keys.map(k => caches.delete(k)));
                     }
+
                     localStorage.setItem('last_force_timestamp', serverForceTimestamp.toString());
                     localStorage.setItem('app_version', currentVersion);
                     window.location.href = `${window.location.pathname}?updated=true&v=${Date.now()}`;
@@ -179,8 +75,6 @@ const initVersionCheck = (currentVersion) => {
         }
     });
 };
-
-initVersionCheck(APP_VERSION);
 
 // --- DIFFUSION LISTENER ---
 const initDiffusionListener = () => {
@@ -201,26 +95,20 @@ const initDiffusionListener = () => {
         }
     });
 };
-initDiffusionListener();
 
-// --- ROUTING ---
-const navigateWithTransition = (renderFn) => {
-    if (document.startViewTransition) document.startViewTransition(renderFn);
-    else renderFn();
-};
-
+// Initialization
 document.addEventListener('DOMContentLoaded', async () => {
     const appContainer = document.getElementById('app-container');
+
+    initTheme();
+    document.body.appendChild(createThemeToggle());
+    checkUpdateSuccess();
+    initVersionCheck(APP_VERSION);
+    initDiffusionListener();
     migrateConductoresToPublicadores();
 
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/service-worker.js?v=2.4.0.7');
-        });
-    }
-
     onAuthStateChanged(auth, async (user) => {
-        appContainer.innerHTML = '';
+        appContainer.innerHTML = '<div class="flex items-center justify-center min-h-screen"><div class="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div></div>';
         const path = window.location.pathname;
 
         if (user) {

@@ -1,3 +1,4 @@
+import * as dateFns from 'date-fns';
 
 export const UIHelpers = {
     fmtDate: (d) => d ? new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }) : '',
@@ -24,8 +25,8 @@ export const UIHelpers = {
             if (isNaN(start.getTime())) return '';
             const end = new Date(date);
             end.setDate(start.getDate() + 6);
-            if (window.dateFns) {
-                return `${window.dateFns.format(start, 'd MMM')} - ${window.dateFns.format(end, 'd MMM yyyy')}`;
+            if (dateFns) {
+                return `${dateFns.format(start, 'd MMM')} - ${dateFns.format(end, 'd MMM yyyy')}`;
             }
             const f = (d) => `${d.getDate()}/${d.getMonth() + 1}`;
             return `${f(start)} - ${f(end)}, ${start.getFullYear()}`;
@@ -470,3 +471,4 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
 };
 
 window.showTerritorySelectionModal = showTerritorySelectionModal;
+

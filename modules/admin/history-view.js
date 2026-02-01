@@ -1,9 +1,12 @@
+import Chart from 'chart.js/auto';
 import {
     getHistorialReport, getConductores, getTerritorios, getPublicadores, getConfiguracion,
     assignTerritorio, returnTerritorio, transferTerritory, addHistoryRecord, updateHistoryRecord, deleteHistoryRecord, updateTerritorio
-} from '../../data/firestore-services.js?v=2.4.0.7';
-import { UIHelpers, showModal, showCustomConfirm, showCustomPrompt, showTerritorySelectionModal } from '../services/ui-helpers.js?v=2.4.0.7';
-import { formatDisplayDateRange, formatPhoneNumber, getStatusColor, showNotification } from '../utils/helpers.js?v=2.4.0.7';
+} from '../../data/firestore-services.js';
+import { UIHelpers, showModal, showCustomConfirm, showCustomPrompt, showTerritorySelectionModal } from '../services/ui-helpers.js';
+import { formatPhoneNumber, getStatusColor, showNotification } from '../utils/helpers.js';
+
+const { formatDisplayDateRange } = UIHelpers;
 
 export const renderHistorialView = async (container) => {
     const [history, allTerritorios, allPublicadores] = await Promise.all([
@@ -146,28 +149,19 @@ export const renderHistorialView = async (container) => {
                             ${t.numero}
                         </div>
                         
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 flex-1 w-full lg:w-auto">
-                            <div class="flex flex-col">
-                                <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 opacity-60">Asignación Actual</span>
-                                <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] shrink-0">
-                                        <i class="fas fa-user-tie"></i>
-                                    </div>
-                                    <span class="text-[14px] font-black text-slate-800 dark:text-white uppercase truncate">${t.asignado_a || 'DISPONIBLE'}</span>
-                                </div>
-                            </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 flex-1 w-full lg:w-auto">
                             <div class="flex flex-col">
                                 <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 opacity-60">Localidad</span>
-                                <div class="flex items-center gap-2 text-slate-500 dark:text-slate-400">
-                                    <i class="fas fa-location-dot text-[10px]"></i>
-                                    <span class="text-[11px] font-bold truncate">${t.localidad || 'Mi Ciudad'}</span>
+                                <div class="flex items-center gap-2 text-slate-800 dark:text-white">
+                                    <i class="fas fa-location-dot text-[10px] text-primary"></i>
+                                    <span class="text-[14px] font-black uppercase truncate">${t.localidad || 'Mi Ciudad'}</span>
                                 </div>
                             </div>
                             <div class="flex flex-col">
-                                <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 opacity-60">Vigencia</span>
-                                <div class="flex items-center gap-2">
-                                    <span class="text-[11px] font-bold text-slate-600 dark:text-gray-300 font-mono">${t.fecha_asignacion ? UIHelpers.fmtDateAt(t.fecha_asignacion) : '—'}</span>
-                                    ${(t.estado === 'Asignado') ? `<span class="bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 text-[9px] px-2 py-0.5 rounded-lg font-black uppercase">${diffDays}D</span>` : ''}
+                                <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 opacity-60">Manzanas</span>
+                                <div class="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+                                    <i class="fas fa-th-large text-[10px]"></i>
+                                    <span class="text-[11px] font-bold truncate">${t.manzanas || 'Sin manzanas'}</span>
                                 </div>
                             </div>
                             <div class="flex flex-col lg:items-end justify-center">
@@ -318,3 +312,4 @@ export const renderHistorialView = async (container) => {
     statusFilter.onchange = renderGrid;
     renderGrid();
 };
+

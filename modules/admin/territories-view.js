@@ -1,3 +1,4 @@
+import Chart from 'chart.js/auto';
 // --- TERRITORIOS VIEW SHELL ---
 // This is a router module for Casa en Casa administration.
 // Refactored in 2026 for modularity.
@@ -86,3 +87,4 @@ const renderSubTab = (id, icon, label) => `
         <span class="text-[11px] font-extrabold uppercase tracking-wider">${label}</span>
     </button>
 `;
+

@@ -1,5 +1,7 @@
-import { getTerritorios, getHistorialReport } from '../data/firestore-services.js?v=2.4.0.7';
-import { showNotification } from './utils/helpers.js?v=2.4.0.7';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
+import { getTerritorios, getHistorialReport } from '../data/firestore-services.js';
+import { showNotification } from './utils/helpers.js';
 
 export const renderS12CommandCenter = async (container) => {
     const territorios = await getTerritorios();
@@ -71,7 +73,7 @@ export const renderS12CommandCenter = async (container) => {
 
     container.querySelector('#btn-generate-s12-pdf').onclick = () => {
         const element = document.getElementById('s12-pdf-body');
-        const { jsPDF } = window.jspdf;
+        
         showNotification("Generando PDF S-12...", "info");
 
         html2canvas(element, {

@@ -1,6 +1,6 @@
-import { saveConfiguracion } from '../../data/firestore-services.js?v=2.4.0.7';
-import { showCustomPrompt, showCustomConfirm } from '../services/ui-helpers.js?v=2.4.0.7';
-import { showNotification, ensureOnline } from '../utils/helpers.js?v=2.4.0.7';
+import { saveConfiguracion } from '../../data/firestore-services.js';
+import { showCustomPrompt, showCustomConfirm } from '../services/ui-helpers.js';
+import { showNotification, ensureOnline } from '../utils/helpers.js';
 
 export const renderConfigTab = async (container, config, appVersion, reloadTabFn) => {
     container.innerHTML = `

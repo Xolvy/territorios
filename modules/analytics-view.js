@@ -1,4 +1,5 @@
-import { getTerritorios, getConductores, getGlobalSettings, getHistorialReport } from '../data/firestore-services.js?v=2.4.0.7';
+import Chart from 'chart.js/auto';
+import { getTerritorios, getConductores, getGlobalSettings, getHistorialReport } from '../data/firestore-services.js';
 
 export const renderAnalyticsView = async (container, appVersion) => {
 
