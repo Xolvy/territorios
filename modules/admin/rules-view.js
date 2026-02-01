@@ -1,6 +1,7 @@
 import { saveConfiguracion } from '../../data/firestore-services.js';
 import { showCustomPrompt, showCustomConfirm } from '../services/ui-helpers.js';
 import { showNotification, ensureOnline } from '../utils/helpers.js';
+import { broadcastCurrentVersion } from '../utils/update-manager.js';
 
 export const renderConfigTab = async (container, config, appVersion, reloadTabFn) => {
     container.innerHTML = `
@@ -148,6 +149,29 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                             </div>
                         </div>
                     </section>
+
+                    <!-- Mantenimiento & Versión (Super Power Up) -->
+                    <section class="modern-card group border-rose-500/20 dark:border-rose-500/10 shadow-xl relative overflow-hidden bg-rose-500/[0.02]">
+                        <header class="flex items-center gap-3 mb-6">
+                            <i class="fas fa-tools text-rose-500 text-sm"></i>
+                            <h4 class="text-[11px] font-black uppercase tracking-widest text-slate-400">Mantenimiento de Red</h4>
+                        </header>
+
+                        <div class="space-y-4">
+                            <p class="text-[10px] text-slate-500 dark:text-gray-400 font-bold leading-relaxed uppercase tracking-tight">
+                                ¿Los usuarios no ven la última versión? Fuerza una sincronización global para que todos los dispositivos limpien su caché y carguen el build <span class="text-rose-500 font-black">${appVersion}</span>.
+                            </p>
+                            
+                            <button id="btn-broadcast-version" class="w-full bg-rose-500 hover:bg-rose-600 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-rose-500/20 transition-all active:scale-95 flex items-center justify-center gap-3">
+                                <i class="fas fa-broadcast-tower animate-pulse"></i> Difundir v${appVersion} Globalmente
+                            </button>
+                            
+                            <div class="flex items-center gap-2 p-3 bg-white dark:bg-black/20 rounded-xl border border-rose-500/10">
+                                <i class="fas fa-info-circle text-rose-500 text-[10px]"></i>
+                                <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">Esto cerrará las sesiones activas momentáneamente para reconstruir el sistema.</span>
+                            </div>
+                        </div>
+                    </section>
                 </div>
             </div>
 
@@ -261,6 +285,29 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
             } finally {
                 btn.innerHTML = originalHTML;
                 btn.disabled = false;
+            }
+        };
+    }
+
+    const broadcastBtn = container.querySelector('#btn-broadcast-version');
+    if (broadcastBtn) {
+        broadcastBtn.onclick = async () => {
+            const confirmed = await showCustomConfirm(
+                "¿Confirmar Difusión Global?",
+                `Esto forzará a TODOS los usuarios a actualizar a la v${appVersion}. ¿Estás seguro?`,
+                "fas fa-broadcast-tower",
+                "Sí, actualizar todos"
+            );
+
+            if (confirmed) {
+                broadcastBtn.disabled = true;
+                const originalHTML = broadcastBtn.innerHTML;
+                broadcastBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Difundiendo...';
+
+                await broadcastCurrentVersion();
+
+                broadcastBtn.innerHTML = originalHTML;
+                broadcastBtn.disabled = false;
             }
         };
     }

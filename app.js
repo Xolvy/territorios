@@ -3,8 +3,8 @@ import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 import { getPermisosUsuario, migrateConductoresToPublicadores } from './data/firestore-services.js';
-import { showNotification } from './modules/utils/helpers.js';
 import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js';
+import { initUpdateManager } from './modules/utils/update-manager.js';
 
 // The version is injected by Vite at build time
 const APP_VERSION = __APP_VERSION__;
@@ -31,50 +31,6 @@ async function loadConductor() {
     return ModuleCache.conductor.renderConductorDashboard;
 }
 
-// --- VERSION & PWA SUCCESS FLOW ---
-const checkUpdateSuccess = () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('updated') === 'true') {
-        setTimeout(() => {
-            showNotification(`✅ ¡Fuerza Sync Exitosa! v${APP_VERSION} Activa`, "success");
-            window.history.replaceState({}, document.title, window.location.pathname);
-        }, 1500);
-    }
-};
-
-const initVersionCheck = (currentVersion) => {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('updated') === 'true' || localStorage.getItem('block_version_check')) return;
-
-    onSnapshot(doc(db, "configuracion", "version_control"), async (docSnap) => {
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            const serverVersion = data.latestVersion;
-            const serverForceTimestamp = data.forceTimestamp || 0;
-            const localForceTimestamp = parseInt(localStorage.getItem('last_force_timestamp') || '0');
-
-            if (serverVersion !== currentVersion || (serverForceTimestamp > localForceTimestamp)) {
-                if (data.forceUpdate) {
-                    console.warn("🚀 Update required. Purging cache...");
-                    localStorage.setItem('block_version_check', 'true');
-
-                    if ('serviceWorker' in navigator) {
-                        const regs = await navigator.serviceWorker.getRegistrations();
-                        for (let r of regs) await r.unregister();
-                    }
-                    if ('caches' in window) {
-                        const keys = await caches.keys();
-                        await Promise.all(keys.map(k => caches.delete(k)));
-                    }
-
-                    localStorage.setItem('last_force_timestamp', serverForceTimestamp.toString());
-                    localStorage.setItem('app_version', currentVersion);
-                    window.location.href = `${window.location.pathname}?updated=true&v=${Date.now()}`;
-                }
-            }
-        }
-    });
-};
 
 // --- DIFFUSION LISTENER ---
 const initDiffusionListener = () => {
@@ -102,8 +58,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     initTheme();
     document.body.appendChild(createThemeToggle());
-    checkUpdateSuccess();
-    initVersionCheck(APP_VERSION);
+    initUpdateManager();
     initDiffusionListener();
     migrateConductoresToPublicadores();
 
