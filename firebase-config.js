@@ -26,16 +26,37 @@ export const auth = getAuth(app);
 
 // Inicializar Firestore con persistencia configurada (Singleton Pattern)
 let firestoreDb;
+const initFirestore = (withPersistence = true) => {
+  try {
+    if (withPersistence) {
+      return initializeFirestore(app, {
+        localCache: persistentLocalCache({
+          tabManager: persistentMultipleTabManager()
+        })
+      });
+    }
+  } catch (e) {
+    console.warn("📍 Firestore: Persistence init failed, falling back to basic.", e);
+  }
+  return getFirestore(app);
+};
+
+// Emergency check for IndexedDB corruption (Power Up)
 try {
-  // Intentar inicializar con configuración de persistencia
-  firestoreDb = initializeFirestore(app, {
-    localCache: persistentLocalCache({
-      tabManager: persistentMultipleTabManager()
-    })
-  });
+  firestoreDb = initFirestore(true);
 } catch (e) {
-  // Silent fallback: use existing instance if already initialized
-  firestoreDb = getFirestore(app);
+  console.error("🚨 Firestore: Critical Initialization Error (IndexedDB likely corrupted)", e);
+  // If it fails with the specific corruption error, we force a non-persistent instance
+  // and attempt to clear the corrupted db for the next reload
+  if (e.message.includes('IndexedDB') || e.code === 'failed-precondition') {
+    firestoreDb = initFirestore(false);
+    // Attempt to delete corrupted databases from the browser
+    try {
+      window.indexedDB.deleteDatabase("firestore/[DEFAULT]/territorios-jw/main");
+    } catch (err) { /* ignore */ }
+  } else {
+    firestoreDb = getFirestore(app);
+  }
 }
 
 export const db = firestoreDb;
