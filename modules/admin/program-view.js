@@ -737,7 +737,8 @@ export const renderProgramaTab = async (container) => {
     container.querySelector('#btn-sync-all-prog').onclick = async () => {
         // Collect all planned assignments that are not sync
         const freshTerritorios = await getTerritorios();
-        const territoryMap = freshTerritorios.reduce((acc, t) => { acc[t.numero] = t; return acc; }, {});
+        const normalize = (val) => String(val || '').trim();
+        const territoryMap = freshTerritorios.reduce((acc, t) => { acc[normalize(t.numero)] = t; return acc; }, {});
 
         const toSync = [];
         programa.dias.forEach((dia, dayIdx) => {
@@ -748,7 +749,7 @@ export const renderProgramaTab = async (container) => {
                     const tNums = String(data.territorio).split(/[,;]/).map(n => n.trim()).filter(n => n);
 
                     tNums.forEach(tNum => {
-                        const tInfo = territoryMap[tNum] || null;
+                        const tInfo = territoryMap[normalize(tNum)] || null;
                         toSync.push({ dayIdx, turnoId, dia, data, tInfo, specificT: tNum });
                     });
                 }
