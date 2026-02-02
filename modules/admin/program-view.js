@@ -591,7 +591,7 @@ export const renderProgramaTab = async (container) => {
                         <h3 class="text-2xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">Recepción Manual</h3>
                         <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em] mt-1">Devolver territorios al inventario</p>
                     </div>
-                    <button id="reception-select-all" class="px-4 py-2 bg-slate-100 dark:bg-white/5 rounded-xl text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-all">Seleccionar Todos</button>
+                    <button id="reception-select-all" class="px-6 py-3 bg-slate-100 dark:bg-white/5 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 hover:text-primary transition-all border border-slate-200/50">Seleccionar Todos</button>
                 </div>
 
                 <div class="space-y-4 max-h-[450px] overflow-y-auto custom-scrollbar pr-2 pb-6">
@@ -600,7 +600,7 @@ export const renderProgramaTab = async (container) => {
                             <div class="flex items-center gap-3 w-full group">
                                 <label class="flex-1 flex items-center gap-4 p-5 modern-card border-slate-100 dark:border-white/5 hover:bg-white dark:hover:bg-white/5 cursor-pointer transition-all active:scale-[0.98] relative overflow-hidden">
                                      <div class="absolute inset-0 bg-rose-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
-                                    <input type="checkbox" class="reception-check w-6 h-6 rounded-lg accent-rose-500 relative z-10" value="${t.id}">
+                                    <input type="checkbox" class="reception-check w-6 h-6 rounded-lg accent-rose-500 relative z-10" value="${t.id}" checked>
                                     <div class="flex-1 relative z-10">
                                         <div class="flex justify-between items-center mb-1">
                                             <p class="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">#${t.numero} • ${t.asignado_a}</p>
@@ -620,10 +620,15 @@ export const renderProgramaTab = async (container) => {
                     </div>
                 </div>
 
+                <div class="space-y-4">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Fecha de Entrega/Devolución</label>
+                    <input type="date" id="reception-global-date" value="${new Date().toISOString().split('T')[0]}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[14px] font-black text-rose-500 outline-none focus:border-rose-500 transition-all uppercase shadow-inner">
+                </div>
+
                 <div class="pt-6 border-t border-slate-50 dark:border-white/5 flex gap-4">
                     <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest transition-all">Cancelar</button>
                     <button id="confirm-bulk-reception" class="flex-[2] py-5 bg-rose-500 hover:bg-rose-400 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-rose-500/20 flex items-center justify-center gap-3 transition-transform active:scale-95">
-                        <i class="fas fa-check-circle"></i> Marcar como Devueltos
+                        <i class="fas fa-check-circle"></i> Confirmar Devolución
                     </button>
                 </div>
             </div>
@@ -637,13 +642,17 @@ export const renderProgramaTab = async (container) => {
 
             modal.querySelector('#confirm-bulk-reception').onclick = async (e) => {
                 const checked = Array.from(modal.querySelectorAll('.reception-check:checked')).map(cb => cb.value);
-                if (checked.length === 0) return;
+                if (checked.length === 0) return showNotification("Seleccione al menos un territorio", "warning");
+
+                const dateInput = modal.querySelector('#reception-global-date');
+                const date = dateInput.value;
+                if (!date) return;
 
                 const btn = e.currentTarget;
                 btn.disabled = true;
                 btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> PROCESANDO...';
 
-                await returnTerritorioMultiple(checked, "Recepción desde Programa", new Date().toISOString(), "Completado");
+                await returnTerritorioMultiple(checked, "Recepción desde Programa", new Date(date + 'T12:00:00Z').toISOString(), "Completado");
 
                 showNotification(`Se recibieron ${checked.length} territorios`);
                 modal.classList.add('hidden');
@@ -668,16 +677,14 @@ export const renderProgramaTab = async (container) => {
                 const data = dia[turnoId];
                 if (data && data.territorio && data.conductor) {
                     const tInfo = territoryMap[data.territorio];
-                    // Skip if already assigned to the same person
-                    const isSync = tInfo && tInfo.estado === 'Asignado' && tInfo.asignado_a === data.conductor;
-                    if (tInfo && !isSync) {
+                    if (tInfo) {
                         toSync.push({ dayIdx, turnoId, dia, data, tInfo });
                     }
                 }
             });
         });
 
-        if (toSync.length === 0) return showNotification("No hay nuevas asignaciones para formalizar", "info");
+        if (toSync.length === 0) return showNotification("No hay asignaciones programadas para formalizar", "info");
 
         showModal(`
             <div class="p-8 space-y-8 max-w-xl">
@@ -691,20 +698,26 @@ export const renderProgramaTab = async (container) => {
                     </div>
                 </header>
 
-                <div class="space-y-4 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
-                    <p class="text-[11px] font-bold text-slate-500 uppercase px-1">Se procesarán las siguientes asignaciones:</p>
-                    ${toSync.map(item => `
-                        <div class="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 flex items-center justify-between">
+                <div class="flex justify-between items-center mt-4">
+                    <p class="text-[11px] font-bold text-slate-500 uppercase px-1">Seleccione las asignaciones:</p>
+                    <button id="sync-select-all" class="px-6 py-3 bg-slate-100 dark:bg-white/5 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 hover:text-primary transition-all border border-slate-200/50">Deseleccionar</button>
+                </div>
+                <div class="space-y-3 max-h-[350px] overflow-y-auto custom-scrollbar pr-2">
+                    ${toSync.map((item, idx) => {
+            const isSync = item.tInfo && item.tInfo.estado === 'Asignado' && item.tInfo.asignado_a === item.data.conductor;
+            return `
+                        <label class="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border ${isSync ? 'border-emerald-500/10 opacity-70' : 'border-slate-100 dark:border-white/5'} flex items-center justify-between group cursor-pointer hover:bg-white dark:hover:bg-white/5 transition-all">
                             <div class="flex items-center gap-4">
-                                <span class="w-10 h-10 bg-primary text-white flex items-center justify-center rounded-xl font-black text-xs">${item.data.territorio}</span>
+                                <input type="checkbox" class="sync-check w-5 h-5 rounded accent-emerald-500" value="${idx}" ${!isSync ? 'checked' : ''}>
+                                <div class="w-10 h-10 bg-primary/10 text-primary flex items-center justify-center rounded-xl font-black text-xs">${item.data.territorio}</div>
                                 <div class="flex flex-col">
                                     <span class="text-xs font-black text-slate-800 dark:text-white uppercase">${item.data.conductor}</span>
-                                    <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">${item.dia.nombre}</span>
+                                    <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">${item.dia.nombre} ${isSync ? '• (Ya asignado)' : ''}</span>
                                 </div>
                             </div>
-                            <i class="fas fa-arrow-right text-slate-200"></i>
-                        </div>
-                    `).join('')}
+                            ${isSync ? '<i class="fas fa-check-circle text-emerald-500 opacity-40"></i>' : '<i class="fas fa-arrow-right text-slate-200"></i>'}
+                        </label>
+                    `}).join('')}
                 </div>
 
                 <div class="space-y-4">
@@ -728,15 +741,29 @@ export const renderProgramaTab = async (container) => {
                 </div>
             </div>
         `, (modal) => {
-            modal.querySelector('#confirm-sync-all').onclick = async () => {
+            let syncSelected = true;
+            modal.querySelector('#sync-select-all').onclick = () => {
+                syncSelected = !syncSelected;
+                modal.querySelectorAll('.sync-check').forEach(cb => cb.checked = syncSelected);
+                modal.querySelector('#sync-select-all').innerText = syncSelected ? 'Deseleccionar' : 'Seleccionar Todo';
+            };
+
+            modal.querySelector('#confirm-sync-all').onclick = async (e) => {
+                const checkedIdxs = Array.from(modal.querySelectorAll('.sync-check:checked')).map(cb => parseInt(cb.value));
+                if (checkedIdxs.length === 0) return showNotification("Seleccione al menos una asignación", "warning");
+
                 const date = modal.querySelector('#sync-all-date').value;
                 if (!date) return;
 
+                const btn = e.currentTarget;
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> PROCESANDO...';
+
                 const { assignTerritorio } = await import('../../data/firestore-services.js');
+                showNotification(`Formalizando ${checkedIdxs.length} asignaciones...`, 'info');
 
-                showNotification(`Procesando ${toSync.length} asignaciones...`, 'info');
-
-                for (const item of toSync) {
+                for (const idx of checkedIdxs) {
+                    const item = toSync[idx];
                     await assignTerritorio(item.tInfo.id, item.data.conductor, {
                         fecha_asignacion: new Date(date + 'T12:00:00Z').toISOString(),
                         lugar: item.data.lugar || null,
@@ -746,7 +773,7 @@ export const renderProgramaTab = async (container) => {
                     });
                 }
 
-                showNotification(`¡${toSync.length} asignaciones formalizadas con éxito!`, 'success');
+                showNotification(`¡${checkedIdxs.length} asignaciones formalizadas con éxito!`, 'success');
                 modal.classList.add('hidden');
                 loadWeekData();
             };
