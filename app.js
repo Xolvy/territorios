@@ -60,6 +60,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.body.appendChild(createThemeToggle());
     initUpdateManager();
     initDiffusionListener();
+
+    // Xolvy Data Shield: Cache Burster on version change
+    const lastVer = localStorage.getItem('last_app_version');
+    if (lastVer !== APP_VERSION) {
+        console.log(`✨ Version Upgrade: ${lastVer} -> ${APP_VERSION}. Purging caches.`);
+        const { clearServiceCache } = await import('./data/firestore-services.js');
+        clearServiceCache();
+        localStorage.setItem('last_app_version', APP_VERSION);
+    }
+
     migrateConductoresToPublicadores();
 
     onAuthStateChanged(auth, async (user) => {

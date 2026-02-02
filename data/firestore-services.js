@@ -28,8 +28,13 @@ const ServiceCache = {
     clear(key = null) {
         if (key) this.data.delete(key);
         else this.data.clear();
+    },
+
+    clearAll() {
+        this.data.clear();
     }
 };
+export const clearServiceCache = () => ServiceCache.clearAll();
 
 // Internal wrapper for auto-cached calls
 const fetchCached = async (key, fetchFn) => {
@@ -185,10 +190,20 @@ export const logReturn = async (territorioId, fechaEntrega, status = 'Completado
 };
 
 export const getHistorialReport = async () => {
-    // Fetch all history to allow calculating "Last Completion Date" even before report range
-    const q = query(collection(db, "historial_territorios"), orderBy("timestamp", "desc"));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    return fetchCached('historial', async () => {
+        // Fetch all history to allow calculating "Last Completion Date" even before report range
+        const q = query(collection(db, "historial_territorios"), orderBy("timestamp", "desc"));
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(d => {
+            const data = d.data();
+            return {
+                ...data,
+                id: d.id,
+                // Xolvy Data Shield: Robust normalization for territory numbers in history
+                numero: String(data.numero || '').trim()
+            };
+        });
+    });
 };
 
 
@@ -289,12 +304,35 @@ export const saveConfiguracion = async (config) => {
     }
 };
 
-// --- TERRITORIOS ---
+// --- TERRITORIOS (Xolvy Data Shield) ---
+const normalizeTerritorioData = (id, data) => {
+    // Robust normalization of territory numbers (string or number support)
+    const numeroStr = String(data.numero || '').trim();
+
+    // Auto-fix terminology (Imagen 5)
+    let manzanas = data.manzanas || '';
+    if (typeof manzanas === 'string') {
+        manzanas = manzanas.replace(/Salmo/gi, 'Mz.');
+    }
+
+    return {
+        ...data,
+        id,
+        numero: numeroStr,
+        manzanas: manzanas,
+        estado: data.estado || 'Disponible'
+    };
+};
 
 export const getTerritorios = async () => {
     return fetchCached('territorios', async () => {
-        const querySnapshot = await getDocs(collection(db, "territorios"));
-        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        try {
+            const querySnapshot = await getDocs(collection(db, "territorios"));
+            return querySnapshot.docs.map(doc => normalizeTerritorioData(doc.id, doc.data()));
+        } catch (e) {
+            console.error("Critical error fetching territories:", e);
+            return [];
+        }
     });
 };
 
@@ -1515,7 +1553,18 @@ export const getProgramaSemanal = async (weekId) => {
         const docRef = doc(db, "programa_semanal", weekId);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-            return { id: docSnap.id, ...docSnap.data() };
+            const data = docSnap.data();
+            // Xolvy Data Shield: Robust normalization of territory numbers inside program turns
+            if (data.dias && Array.isArray(data.dias)) {
+                data.dias.forEach(dia => {
+                    ['manana', 'tarde', 'noche', 'zoom'].forEach(turno => {
+                        if (dia[turno] && dia[turno].territorio !== undefined) {
+                            dia[turno].territorio = String(dia[turno].territorio || '').trim();
+                        }
+                    });
+                });
+            }
+            return { id: docSnap.id, ...data };
         }
         return null; // Not found
     }

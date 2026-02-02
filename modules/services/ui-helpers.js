@@ -139,8 +139,7 @@ window.showCustomPrompt = showCustomPrompt;
 window.showCustomAlert = showCustomAlert;
 
 export const showTerritorySelectionModal = (current, territorios, onSelect, containerId = 'modal-container', historial = []) => {
-    const normalize = (val) => String(val || '').trim();
-    let filtered = [...territorios].sort((a, b) => normalize(a.numero).localeCompare(normalize(b.numero), undefined, { numeric: true }));
+    let filtered = [...territorios].sort((a, b) => (a.numero || '').localeCompare(b.numero || '', undefined, { numeric: true }));
 
     // --- Power Up: Process Stats ---
     const stats = {};
@@ -357,12 +356,12 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
 
         const render = () => {
             const query = searchInput.value.trim().toLowerCase();
-            const rawItems = query ? filtered.filter(t => normalize(t.numero).toLowerCase().includes(query) || (t.manzanas && t.manzanas.toLowerCase().includes(query))) : filtered;
+            const rawItems = query ? filtered.filter(t => (t.numero || '').toLowerCase().includes(query) || (t.manzanas && t.manzanas.toLowerCase().includes(query))) : filtered;
 
             // Group items by number for deduplication in UI list
             const grouped = {};
             rawItems.forEach(t => {
-                const num = normalize(t.numero);
+                const num = String(t.numero || '');
                 if (!grouped[num]) {
                     grouped[num] = { ...t, numero: num };
                 } else {
@@ -373,7 +372,7 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
                     if (t.is_incomplete) grouped[num].is_incomplete = true;
                 }
             });
-            const items = Object.values(grouped).sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true }));
+            const items = Object.values(grouped).sort((a, b) => (a.numero || '').localeCompare(b.numero || '', undefined, { numeric: true }));
 
             listContainer.innerHTML = items.map(t => {
                 const isSelected = t.numero in selections;
@@ -454,7 +453,7 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
                 cb.onchange = (e) => {
                     const num = cb.dataset.num;
                     const mz = cb.dataset.mz;
-                    const terr = territorios.find(x => normalize(x.numero) === String(num));
+                    const terr = territorios.find(x => String(x.numero || '') === String(num));
                     if (!terr) return;
                     const allMzs = (terr.manzanas || '').split(',').map(m => m.trim()).filter(Boolean);
                     let current = selections[num] || [...allMzs];

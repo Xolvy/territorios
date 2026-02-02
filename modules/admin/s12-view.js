@@ -7,13 +7,17 @@ import { showNotification } from '../utils/helpers.js';
 import { showModal, showCustomConfirm } from '../services/ui-helpers.js';
 
 export const renderS12View = async (container, config, appVersion) => {
-    let terrs = await getTerritorios();
-    const normalize = (val) => String(val || '').trim();
-    terrs.sort((a, b) => normalize(a.numero).localeCompare(normalize(b.numero), undefined, { numeric: true }));
+    let terrs = [];
+    try {
+        terrs = await getTerritorios();
+        terrs.sort((a, b) => (a.numero || '').localeCompare(b.numero || '', undefined, { numeric: true }));
+    } catch (e) {
+        console.error("Error sorting S12:", e);
+    }
 
     const renderGrid = (query = '') => {
         const filtered = query ? terrs.filter(t =>
-            normalize(t.numero).toLowerCase().includes(query) ||
+            (t.numero || '').toLowerCase().includes(query) ||
             (t.localidad && t.localidad.toLowerCase().includes(query)) ||
             (t.nombre && t.nombre.toLowerCase().includes(query))
         ) : terrs;
@@ -21,9 +25,14 @@ export const renderS12View = async (container, config, appVersion) => {
         const grid = container.querySelector('#s12-grid');
         if (!grid) return;
 
+        if (filtered.length === 0) {
+            grid.innerHTML = `<div class="col-span-full py-20 text-center opacity-30 text-[10px] font-black uppercase tracking-widest">Sin territorios encontrados</div>`;
+            return;
+        }
+
         grid.innerHTML = filtered.map(t => {
             const isAssigned = t.estado === 'Asignado' || t.estado === 'Pendiente';
-            const allMzs = t.manzanas ? t.manzanas.split(',').length : 0;
+            const allMzs = t.manzanas ? String(t.manzanas).split(',').filter(Boolean).length : 0;
 
             return `
             <div class="modern-card p-6 border-slate-100 dark:border-white/5 shadow-sm group hover:border-primary/50 transition-all bg-white dark:bg-slate-900/40">
