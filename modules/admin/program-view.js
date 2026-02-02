@@ -501,7 +501,8 @@ export const renderProgramaTab = async (container) => {
                         lugar: data.lugar || null,
                         hora: data.hora || null,
                         faceta: data.faceta || null,
-                        turnoId
+                        turnoId,
+                        prog_sync: true
                     });
                 }
 
@@ -596,6 +597,8 @@ export const renderProgramaTab = async (container) => {
 
         const assigned = territorios.filter(t => {
             if (t.estado !== 'Asignado' || !t.fecha_asignacion) return false;
+            if (!t.prog_sync) return false; // ONLY show program-synced territories
+
             const d = new Date(t.fecha_asignacion);
             // Include everything from the Sunday before the week starts up to the end of the week
             return d >= sundayPrior && d < nextSunday;
@@ -816,7 +819,12 @@ export const renderProgramaTab = async (container) => {
                         lugar: item.data.lugar || null,
                         hora: item.data.hora || null,
                         faceta: item.data.faceta || null,
-                        turno: item.turnoId
+                        turno: item.turnoId,
+                        dia: item.dia.nombre,
+                        conductor: item.data.conductor,
+                        territorio: item.specificT,
+                        notes: item.data.notas || null,
+                        prog_sync: true
                     });
                 }
 

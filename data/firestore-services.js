@@ -131,7 +131,8 @@ const logAssignment = async (territorioData, conductorName, details = {}) => {
             fecha_entrega: null,
             estado: 'Asignado',
             timestamp: Timestamp.now(),
-            observaciones: details.observaciones || null
+            observaciones: details.observaciones || null,
+            prog_sync: details.prog_sync || details.sync || false
         });
     } catch (e) {
         console.error("Error logging assignment history:", e);
@@ -348,7 +349,8 @@ export const assignTerritorio = async (id, conductorName, details = {}) => {
         faceta: details.faceta || null,
         turno: details.turno || null,
         campana: details.campana || null,
-        manzanas_asignadas: details.manzanas || null
+        manzanas_asignadas: details.manzanas || null,
+        prog_sync: details.prog_sync || details.sync || false
     };
 
     await updateDoc(doc(db, "territorios", id), updateData);
@@ -475,7 +477,8 @@ export const returnTerritorio = async (id, notes, customDate, status = 'Completa
         faceta: null,
         turno: null,
         ultima_fecha: dateToUse,
-        estado: status === 'Perdido' ? 'Extraviado' : (status === 'Disponible' ? 'Sin asignar' : 'Predicado')
+        estado: status === 'Perdido' ? 'Extraviado' : (status === 'Disponible' ? 'Sin asignar' : 'Predicado'),
+        prog_sync: null
     });
     await logReturn(id, dateToUse, status, notes, fotos);
 };
@@ -494,7 +497,8 @@ export const returnTerritorioMultiple = async (ids, notes, customDate, status = 
             faceta: null,
             turno: null,
             ultima_fecha: dateToUse,
-            estado: status === 'Perdido' ? 'Extraviado' : 'Predicado'
+            estado: status === 'Perdido' ? 'Extraviado' : 'Predicado',
+            prog_sync: null
         });
 
         await logReturn(id, dateToUse, status, notes);
