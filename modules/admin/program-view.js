@@ -281,20 +281,27 @@ export const renderProgramaTab = async (container) => {
                     html += `<div class="space-y-1.5">`;
 
                     if (field === 'Territorio') {
-                        const tInfo = territoryMap[val];
-                        const isAssigned = tInfo && tInfo.estado === 'Asignado';
-                        const isSync = isAssigned && tInfo.asignado_a === dia[turnoId].conductor;
-                        const isConflict = isAssigned && tInfo.asignado_a !== dia[turnoId].conductor;
+                        const tNums = String(val).split(/[,;]/).map(n => n.trim()).filter(n => n);
+                        const statuses = tNums.map(num => {
+                            const tInfo = territoryMap[num];
+                            const isAssigned = tInfo && tInfo.estado === 'Asignado';
+                            const isSync = isAssigned && tInfo.asignado_a === dia[turnoId].conductor;
+                            const isConflict = isAssigned && tInfo.asignado_a !== dia[turnoId].conductor;
+                            return { isSync, isConflict };
+                        });
+
+                        const allSync = statuses.length > 0 && statuses.every(s => s.isSync);
+                        const anyConflict = statuses.some(s => s.isConflict);
 
                         html += `
                             <label class="text-[9px] font-black text-slate-400 tracking-[0.2em] uppercase ml-1 flex items-center justify-between">
                                 <span><i class="fas fa-map-marked-alt opacity-30"></i> ${field}</span>
                                 <div id="status-badge-${dayIndex}-${turnoId}">
-                                    ${val ? (isSync ?
-                                '<span class="text-emerald-500 font-bold flex items-center gap-1"><i class="fas fa-check-circle"></i> LISTO</span>' :
-                                (isConflict ?
-                                    '<span class="text-rose-500 font-bold flex items-center gap-1" title="Ocupado por otro publicador"><i class="fas fa-exclamation-triangle"></i> OCUPADO</span>' :
-                                    `<span class="text-primary font-bold flex items-center gap-1 cursor-pointer hover:underline" onclick="window.syncAssignmentFromProg(${dayIndex}, '${turnoId}')"><i class="fas fa-link animate-pulse"></i> ASIGNAR</span>`)) : ''}
+                                    ${val ? (allSync ?
+                                '<span class="text-emerald-500 font-bold flex items-center gap-1 animate-fade-in"><i class="fas fa-check-circle"></i> LISTO</span>' :
+                                (anyConflict ?
+                                    '<span class="text-rose-500 font-bold flex items-center gap-1 animate-fade-in" title="Ocupado por otro publicador"><i class="fas fa-exclamation-triangle"></i> OCUPADO</span>' :
+                                    `<span class="text-primary font-bold flex items-center gap-1 cursor-pointer hover:underline animate-fade-in" onclick="window.syncAssignmentFromProg(${dayIndex}, '${turnoId}')"><i class="fas fa-link animate-pulse"></i> ASIGNAR</span>`)) : ''}
                                 </div>
                             </label>
                             <button onclick="window.openTerritorySelector(${dayIndex}, '${turnoId}', this)" 
@@ -403,16 +410,15 @@ export const renderProgramaTab = async (container) => {
                 const tNums = String(programa.dias[dayIdx][turnoId].territorio).split(/[,;]/).map(n => n.trim()).filter(n => n);
 
                 const statuses = tNums.map(num => {
-                    const tInfo = freshT.find(t => t.numero === num);
+                    const tInfo = territorios.find(t => t.numero === num);
                     const isAssigned = tInfo && tInfo.estado === 'Asignado';
                     const isSync = isAssigned && tInfo.asignado_a === programa.dias[dayIdx][turnoId].conductor;
                     const isConflict = isAssigned && tInfo.asignado_a !== programa.dias[dayIdx][turnoId].conductor;
-                    return { isSync, isConflict, isAssigned };
+                    return { isSync, isConflict };
                 });
 
                 const allSync = statuses.length > 0 && statuses.every(s => s.isSync);
                 const anyConflict = statuses.some(s => s.isConflict);
-                const allAssigned = statuses.length > 0 && statuses.every(s => s.isAssigned);
                 const v = programa.dias[dayIdx][turnoId].territorio;
 
                 badgeContainer.innerHTML = v ? (allSync ?
@@ -659,12 +665,25 @@ export const renderProgramaTab = async (container) => {
                 </div>
             </div>
         `, (modal) => {
-            let allSelected = false;
+            const updateCounter = () => {
+                const checked = modal.querySelectorAll('.reception-check:checked').length;
+                const btn = modal.querySelector('#confirm-bulk-reception');
+                if (btn) btn.innerHTML = `<i class="fas fa-check-circle"></i> Confirmar Devolución (${checked})`;
+            };
+
+            let allSelected = true;
+            updateCounter();
+
             modal.querySelector('#reception-select-all').onclick = () => {
                 allSelected = !allSelected;
                 modal.querySelectorAll('.reception-check').forEach(cb => cb.checked = allSelected);
                 modal.querySelector('#reception-select-all').innerText = allSelected ? 'Deseleccionar' : 'Seleccionar Todos';
+                updateCounter();
             };
+
+            modal.querySelectorAll('.reception-check').forEach(cb => {
+                cb.onchange = updateCounter;
+            });
 
             modal.querySelector('#confirm-bulk-reception').onclick = async (e) => {
                 const checked = Array.from(modal.querySelectorAll('.reception-check:checked')).map(cb => cb.value);
@@ -787,12 +806,25 @@ export const renderProgramaTab = async (container) => {
                 </div>
             </div>
         `, (modal) => {
+            const updateCounter = () => {
+                const checked = modal.querySelectorAll('.sync-check:checked').length;
+                const btn = modal.querySelector('#confirm-sync-all');
+                if (btn) btn.innerText = `Formalizar Selección (${checked})`;
+            };
+
             let syncSelected = true;
+            updateCounter();
+
             modal.querySelector('#sync-select-all').onclick = () => {
                 syncSelected = !syncSelected;
                 modal.querySelectorAll('.sync-check').forEach(cb => cb.checked = syncSelected);
                 modal.querySelector('#sync-select-all').innerText = syncSelected ? 'Deseleccionar Todo' : 'Seleccionar Todo';
+                updateCounter();
             };
+
+            modal.querySelectorAll('.sync-check').forEach(cb => {
+                cb.onchange = updateCounter;
+            });
 
             modal.querySelector('#confirm-sync-all').onclick = async (e) => {
                 const checkedIdxs = Array.from(modal.querySelectorAll('.sync-check:checked')).map(cb => parseInt(cb.value));
