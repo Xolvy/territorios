@@ -544,43 +544,73 @@ export const renderProgramaTab = async (container) => {
 
     window.openGroupSelector = async (dayIdx, turnoId, btn) => {
         const groups = await getGroupsConfig();
-        const current = btn.querySelector('span').innerText.trim() || '—';
+        const currentVal = programa.dias[dayIdx][turnoId].grupos || '';
+        const selected = new Set(currentVal.split(',').map(s => s.trim()).filter(Boolean));
 
         showModal(`
-            <div class="p-8 space-y-8">
+            <div class="p-8 space-y-8 bg-white dark:bg-[#0a0f18] rounded-[2.5rem]">
                 <header class="flex items-center gap-6">
                     <div class="w-16 h-16 bg-indigo-500/10 rounded-3xl flex items-center justify-center text-3xl text-indigo-500 shadow-inner">
                         <i class="fas fa-users"></i>
                     </div>
                     <div>
                         <h3 class="text-2xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">Asignar Grupos</h3>
-                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em] mt-1">Configuración del Salida</p>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em] mt-1">Selección Múltiple • Configuración del Salida</p>
                     </div>
                 </header>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
-                    <button onclick="window.setProgramGroup(${dayIdx}, '${turnoId}', 'Todos')" class="p-5 modern-card border-slate-100 dark:border-white/5 hover:border-indigo-500 transition-all text-left group">
-                        <p class="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">Todos los Grupos</p>
-                        <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">Salida General</p>
-                    </button>
-                    ${groups.map(g => `
-                        <button onclick="window.setProgramGroup(${dayIdx}, '${turnoId}', '${g.nombre}')" class="p-5 modern-card border-slate-100 dark:border-white/5 hover:border-indigo-500 transition-all text-left group">
-                            <p class="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">${g.nombre}</p>
-                            <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">${g.casa_salida || 'Sin lugar fojo'}</p>
-                        </button>
-                    `).join('')}
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto custom-scrollbar pr-2" id="group-selection-grid">
+                    <label class="group-item p-5 modern-card border-slate-100 dark:border-white/5 hover:border-indigo-500 transition-all cursor-pointer flex items-center gap-4 ${selected.has('Todos') ? 'bg-indigo-500/5 border-indigo-500/50' : ''}">
+                        <input type="checkbox" class="group-checkbox w-5 h-5 rounded accent-indigo-500" value="Todos" ${selected.has('Todos') ? 'checked' : ''}>
+                        <div class="flex-1">
+                            <p class="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">Todos los Grupos</p>
+                            <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Salida General</p>
+                        </div>
+                    </label>
+                    ${groups.map(g => {
+            const isSel = selected.has(g.nombre);
+            return `
+                        <label class="group-item p-5 modern-card border-slate-100 dark:border-white/5 hover:border-indigo-500 transition-all cursor-pointer flex items-center gap-4 ${isSel ? 'bg-indigo-500/5 border-indigo-500/50' : ''}">
+                            <input type="checkbox" class="group-checkbox w-5 h-5 rounded accent-indigo-500" value="${g.nombre}" ${isSel ? 'checked' : ''}>
+                            <div class="flex-1">
+                                <p class="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">${g.nombre}</p>
+                                <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">${g.casa_salida || 'Sin lugar fijo'}</p>
+                            </div>
+                        </label>
+                    `;
+        }).join('')}
                 </div>
 
                 <div class="pt-6 border-t border-slate-50 dark:border-white/5 flex gap-4">
-                    <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest">Cerrar</button>
+                    <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest transition-all">Cancelar</button>
+                    <button id="confirm-groups" class="flex-[2] py-5 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-600/20 active:scale-95 transition-all">CONFIRMAR SELECCIÓN</button>
                 </div>
             </div>
-        `);
+        `, (modal) => {
+            // Visual feedback for grid items
+            modal.querySelectorAll('.group-checkbox').forEach(cb => {
+                cb.onchange = (e) => {
+                    const label = e.target.closest('.group-item');
+                    if (e.target.checked) {
+                        label.classList.add('bg-indigo-500/5', 'border-indigo-500/50');
+                    } else {
+                        label.classList.remove('bg-indigo-500/5', 'border-indigo-500/50');
+                    }
+                };
+            });
+
+            modal.querySelector('#confirm-groups').onclick = () => {
+                const checked = Array.from(modal.querySelectorAll('.group-checkbox:checked')).map(cb => cb.value);
+                // Si "Todos" está marcado, simplificamos la pantalla
+                const finalVal = checked.includes('Todos') ? 'Todos' : checked.join(', ');
+                window.setProgramGroup(dayIdx, turnoId, finalVal);
+                modal.classList.add('hidden');
+            };
+        });
     };
 
     window.setProgramGroup = (dayIdx, turnoId, val) => {
         window.updateWeekData(dayIdx, turnoId, 'grupos', val);
-        document.getElementById('modal-container').classList.add('hidden');
     };
 
     container.querySelector('#prev-week').onclick = () => {
