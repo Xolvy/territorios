@@ -9,15 +9,27 @@ import { showModal, showCustomConfirm } from '../services/ui-helpers.js';
 export const renderS12View = async (container, config, appVersion) => {
     let terrs = [];
     try {
+        console.log("🔍 S12 View: Requesting fresh territories...");
+        // Emergency: Clear memory cache for territories before loading this specific view
+        const { clearServiceCache } = await import('../../data/firestore-services.js');
+        // We only clear the specific key if possible, or just force fetch
         terrs = await getTerritorios();
-        terrs.sort((a, b) => (a.numero || '').localeCompare(b.numero || '', undefined, { numeric: true }));
+
+        console.log(`📊 S12 View: Received ${terrs.length} territories from Shield.`);
+
+        terrs.sort((a, b) => (tString(a.numero)).localeCompare(tString(b.numero), undefined, { numeric: true }));
     } catch (e) {
         console.error("Error sorting S12:", e);
     }
 
+    function tString(val) {
+        return String(val || '').trim();
+    }
+
     const renderGrid = (query = '') => {
+        console.log(`🎨 S12 Grid: Rendering with query='${query}', total available=${terrs.length}`);
         const filtered = query ? terrs.filter(t =>
-            (t.numero || '').toLowerCase().includes(query) ||
+            String(t.numero || '').toLowerCase().includes(query) ||
             (t.localidad && t.localidad.toLowerCase().includes(query)) ||
             (t.nombre && t.nombre.toLowerCase().includes(query))
         ) : terrs;
