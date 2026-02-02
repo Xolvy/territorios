@@ -257,27 +257,27 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
                                  </div>
                                  <h4 class="text-[10px] font-black uppercase text-slate-500 tracking-[0.3em]">Prioridades de Asignación</h4>
                              </div>
-                             <div class="flex gap-4 overflow-x-auto pb-4 px-2 snap-x">
+                             <div class="flex gap-2 overflow-x-auto pb-4 px-2 snap-x">
                                  ${incomplete.map(s => `
                                      <button onclick="window.modalToggleTerr('${s.numero}')" 
-                                             class="snap-center shrink-0 flex flex-col items-start gap-2 p-5 bg-white dark:bg-white/5 border border-rose-500/30 rounded-3xl min-w-[210px] hover:border-rose-500 transition-all shadow-sm active:scale-95 text-left group">
+                                             class="snap-center shrink-0 flex flex-col items-start gap-1 p-3 bg-white dark:bg-white/5 border border-rose-500/30 rounded-2xl min-w-[160px] hover:border-rose-500 transition-all shadow-sm active:scale-95 text-left group">
                                          <div class="flex items-center justify-between w-full">
-                                             <span class="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter italic">T-${s.numero}</span>
-                                             <div class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse"></div>
+                                             <span class="text-base font-black text-slate-800 dark:text-white uppercase tracking-tighter italic">T-${s.numero}</span>
+                                             <div class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></div>
                                          </div>
-                                         <p class="text-[9px] font-bold text-slate-500 dark:text-slate-400 overflow-hidden text-ellipsis line-clamp-1">${s.manzanas || 'Todo'}</p>
-                                         <span class="text-[8px] font-black uppercase tracking-widest text-rose-500 mt-1">Urgente: Incompleto</span>
+                                         <p class="text-[8px] font-bold text-slate-500 dark:text-slate-400 overflow-hidden text-ellipsis line-clamp-1">${s.manzanas || 'Todo'}</p>
+                                         <span class="text-[7px] font-black uppercase tracking-widest text-rose-500 mt-0.5">Incompleto</span>
                                      </button>
                                  `).join('')}
                                  ${outdated.map(s => `
                                      <button onclick="window.modalToggleTerr('${s.numero}')" 
-                                             class="snap-center shrink-0 flex flex-col items-start gap-2 p-5 bg-white dark:bg-white/5 border border-amber-500/30 rounded-3xl min-w-[210px] hover:border-amber-500 transition-all shadow-sm active:scale-95 text-left group">
+                                             class="snap-center shrink-0 flex flex-col items-start gap-1 p-3 bg-white dark:bg-white/5 border border-amber-500/30 rounded-2xl min-w-[160px] hover:border-amber-500 transition-all shadow-sm active:scale-95 text-left group">
                                          <div class="flex items-center justify-between w-full">
-                                             <span class="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter italic">T-${s.numero}</span>
-                                             <div class="w-2.5 h-2.5 rounded-full bg-amber-500"></div>
+                                             <span class="text-base font-black text-slate-800 dark:text-white uppercase tracking-tighter italic">T-${s.numero}</span>
+                                             <div class="w-2 h-2 rounded-full bg-amber-500"></div>
                                          </div>
-                                         <p class="text-[9px] font-bold text-slate-500 dark:text-slate-400 overflow-hidden text-ellipsis line-clamp-1">Última: ${stats[s.numero]?.lastEntrega ? UIHelpers.fmtDateAt(stats[s.numero].lastEntrega) : 'Nunca'}</p>
-                                         <span class="text-[8px] font-black uppercase tracking-widest text-amber-500 mt-1">Sugerido: Desfasado</span>
+                                         <p class="text-[8px] font-bold text-slate-500 dark:text-slate-400 overflow-hidden text-ellipsis line-clamp-1">Última: ${stats[s.numero]?.lastEntrega ? UIHelpers.fmtDateAt(stats[s.numero].lastEntrega) : 'Nunca'}</p>
+                                         <span class="text-[7px] font-black uppercase tracking-widest text-amber-500 mt-0.5">Sugerido</span>
                                      </button>
                                  `).join('')}
                              </div>
@@ -358,20 +358,21 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
             const query = searchInput.value.trim().toLowerCase();
             const rawItems = query ? filtered.filter(t => t.numero.toLowerCase().includes(query) || (t.manzanas && t.manzanas.toLowerCase().includes(query))) : filtered;
 
-            // Group by number to avoid duplicate cards for partial fragments
+            // Group items by number for deduplication in UI list
             const grouped = {};
             rawItems.forEach(t => {
-                if (!grouped[t.numero]) {
-                    grouped[t.numero] = { ...t };
+                const num = t.numero;
+                if (!grouped[num]) {
+                    grouped[num] = { ...t };
                 } else {
-                    const currentMzs = (grouped[t.numero].manzanas || '').split(',').map(m => m.trim()).filter(Boolean);
+                    const currentMzs = (grouped[num].manzanas || '').split(',').map(m => m.trim()).filter(Boolean);
                     const newMzs = (t.manzanas || '').split(',').map(m => m.trim()).filter(Boolean);
                     const merged = Array.from(new Set([...currentMzs, ...newMzs])).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-                    grouped[t.numero].manzanas = merged.join(', ');
-                    if (t.is_incomplete) grouped[t.numero].is_incomplete = true;
+                    grouped[num].manzanas = merged.join(', ');
+                    if (t.is_incomplete) grouped[num].is_incomplete = true;
                 }
             });
-            const items = Object.values(grouped);
+            const items = Object.values(grouped).sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true }));
 
             listContainer.innerHTML = items.map(t => {
                 const isSelected = t.numero in selections;

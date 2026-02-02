@@ -228,10 +228,11 @@ export const renderProgramaTab = async (container) => {
         const activeConductors = freshPersonnel.filter(p => p.es_conductor).sort((a, b) => a.nombre.localeCompare(b.nombre));
 
         const tableContainer = container.querySelector('#admin-prog-table');
+        const isWeekend = dia.nombre === 'Sábado' || dia.nombre === 'Domingo';
         const turnos = [
-            { id: 'manana', icon: 'fa-sun', label: 'Mañana', color: 'text-amber-500', bg: 'bg-amber-500/10', fields: ['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', 'Grupos', 'Territorio'] },
-            { id: 'tarde', icon: 'fa-cloud-sun', label: 'Tarde', color: 'text-orange-500', bg: 'bg-orange-500/10', fields: ['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', 'Grupos', 'Territorio'] },
-            { id: 'noche', icon: 'fa-moon', label: 'Noche', color: 'text-indigo-500', bg: 'bg-indigo-500/10', fields: ['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', 'Grupos', 'Territorio'] },
+            { id: 'manana', icon: 'fa-sun', label: 'Mañana', color: 'text-amber-500', bg: 'bg-amber-500/10', fields: ['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', ...(isWeekend ? ['Grupos'] : []), 'Territorio'] },
+            { id: 'tarde', icon: 'fa-cloud-sun', label: 'Tarde', color: 'text-orange-500', bg: 'bg-orange-500/10', fields: ['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', ...(isWeekend ? ['Grupos'] : []), 'Territorio'] },
+            { id: 'noche', icon: 'fa-moon', label: 'Noche', color: 'text-indigo-500', bg: 'bg-indigo-500/10', fields: ['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', ...(isWeekend ? ['Grupos'] : []), 'Territorio'] },
             { id: 'zoom', icon: 'fa-video', label: 'Zoom', color: 'text-emerald-500', bg: 'bg-emerald-500/10', fields: ['Lugar', 'Hora', 'Conductor', 'Faceta'] }
         ];
 
@@ -501,8 +502,43 @@ export const renderProgramaTab = async (container) => {
 
     window.openGroupSelector = async (dayIdx, turnoId, btn) => {
         const groups = await getGroupsConfig();
-        // ... (Similar modal to original) ...
-        showNotification("Módulo de grupos en desarrollo");
+        const current = btn.querySelector('span').innerText.trim() || '—';
+
+        showModal(`
+            <div class="p-8 space-y-8">
+                <header class="flex items-center gap-6">
+                    <div class="w-16 h-16 bg-indigo-500/10 rounded-3xl flex items-center justify-center text-3xl text-indigo-500 shadow-inner">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">Asignar Grupos</h3>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em] mt-1">Configuración del Salida</p>
+                    </div>
+                </header>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+                    <button onclick="window.setProgramGroup(${dayIdx}, '${turnoId}', 'Todos')" class="p-5 modern-card border-slate-100 dark:border-white/5 hover:border-indigo-500 transition-all text-left group">
+                        <p class="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">Todos los Grupos</p>
+                        <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">Salida General</p>
+                    </button>
+                    ${groups.map(g => `
+                        <button onclick="window.setProgramGroup(${dayIdx}, '${turnoId}', '${g.nombre}')" class="p-5 modern-card border-slate-100 dark:border-white/5 hover:border-indigo-500 transition-all text-left group">
+                            <p class="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">${g.nombre}</p>
+                            <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">${g.casa_salida || 'Sin lugar fojo'}</p>
+                        </button>
+                    `).join('')}
+                </div>
+
+                <div class="pt-6 border-t border-slate-50 dark:border-white/5 flex gap-4">
+                    <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest">Cerrar</button>
+                </div>
+            </div>
+        `);
+    };
+
+    window.setProgramGroup = (dayIdx, turnoId, val) => {
+        window.updateWeekData(dayIdx, turnoId, 'grupos', val);
+        document.getElementById('modal-container').classList.add('hidden');
     };
 
     container.querySelector('#prev-week').onclick = () => {

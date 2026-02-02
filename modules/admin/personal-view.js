@@ -64,9 +64,14 @@ export const renderPersonalTab = async (container) => {
                 <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] ml-1">Gestión centralizada de publicadores</p>
             </div>
             
-            <button id="btn-add-person" class="w-full sm:w-auto bg-primary hover:bg-primary-light text-white px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 transition-all active:scale-95 flex items-center justify-center gap-3">
-                <i class="fas fa-plus"></i> Nuevo Registro
-            </button>
+            <div class="flex gap-4 w-full sm:w-auto">
+                <button id="btn-manage-groups" class="flex-1 sm:flex-none bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 hover:bg-indigo-500 hover:text-white px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] transition-all active:scale-95 flex items-center justify-center gap-3">
+                    <i class="fas fa-users"></i> Grupos
+                </button>
+                <button id="btn-add-person" class="flex-[1.5] sm:flex-none bg-primary hover:bg-primary-light text-white px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 transition-all active:scale-95 flex items-center justify-center gap-3">
+                    <i class="fas fa-plus"></i> Nuevo Registro
+                </button>
+            </div>
         </div>
 
         <div class="hidden md:block modern-card !p-0 overflow-hidden border-slate-200 dark:border-white/5 shadow-2xl">
@@ -418,6 +423,113 @@ export const renderPersonalTab = async (container) => {
     };
 
     container.querySelector('#btn-add-person').onclick = () => openPersonModal();
+    container.querySelector('#btn-manage-groups').onclick = () => openGroupsConfigModal();
+
+    const openGroupsConfigModal = async () => {
+        const { saveGroupsConfig } = await import('../../data/firestore-services.js');
+        let groups = await getGroupsConfig();
+        const personnel = await getPublicadores();
+        personnel.sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+        const renderGroupsList = (modal) => {
+            const list = modal.querySelector('#groups-config-list');
+            list.innerHTML = groups.map((g, idx) => `
+                <div class="p-6 modern-card border-slate-100 dark:border-white/5 space-y-4 group/group-card relative">
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-lg bg-indigo-500 text-white flex items-center justify-center font-black text-xs">#${g.id}</span>
+                            <input type="text" value="${g.nombre}" onchange="window.updateGroupField(${idx}, 'nombre', this.value)" placeholder="Nombre del Grupo" class="bg-transparent border-b border-dashed border-slate-200 focus:border-indigo-500 outline-none font-black text-sm uppercase tracking-tight text-slate-800 dark:text-white">
+                        </div>
+                        <button onclick="window.removeGroup(${idx})" class="w-8 h-8 rounded-lg hover:bg-rose-500/10 text-slate-300 hover:text-rose-500 transition-all">
+                            <i class="fas fa-trash-alt text-xs"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="space-y-1.5">
+                            <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Lugar de Salida</label>
+                            <input type="text" value="${g.casa_salida || ''}" onchange="window.updateGroupField(${idx}, 'casa_salida', this.value)" placeholder="Ej: Familia Barrera" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-xl p-3 text-[11px] font-bold outline-none focus:border-indigo-500/50">
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Superintendente</label>
+                            <select onchange="window.updateGroupField(${idx}, 'lider', this.value)" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-xl p-3 text-[11px] font-bold outline-none focus:border-indigo-500/50 appearance-none">
+                                <option value="">— Sin asignar —</option>
+                                ${personnel.map(p => `<option value="${p.nombre}" ${g.lider === p.nombre ? 'selected' : ''}>${p.nombre}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Auxiliar</label>
+                            <select onchange="window.updateGroupField(${idx}, 'asistente', this.value)" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-xl p-3 text-[11px] font-bold outline-none focus:border-indigo-500/50 appearance-none">
+                                <option value="">— Sin asignar —</option>
+                                ${personnel.map(p => `<option value="${p.nombre}" ${g.asistente === p.nombre ? 'selected' : ''}>${p.nombre}</option>`).join('')}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        };
+
+        window.updateGroupField = (idx, field, val) => {
+            groups[idx][field] = val;
+        };
+
+        window.removeGroup = (idx) => {
+            groups.splice(idx, 1);
+            renderGroupsList(document.getElementById('modal-container'));
+        };
+
+        showModal(`
+            <div class="flex flex-col h-[85vh] bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden">
+                <header class="shrink-0 bg-indigo-600 p-8 text-white relative">
+                    <div class="absolute inset-0 bg-gradient-to-br from-indigo-500 to-primary/40 backdrop-blur-3xl"></div>
+                    <div class="relative z-10 flex justify-between items-center">
+                        <div>
+                            <h3 class="text-2xl font-black uppercase tracking-tight leading-none mb-1">Configuración de Grupos</h3>
+                            <p class="text-[10px] opacity-70 font-bold uppercase tracking-[0.2em]">Estructura de la Congregación</p>
+                        </div>
+                        <div class="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center text-2xl shadow-2xl border border-white/20">
+                            <i class="fas fa-users-cog"></i>
+                        </div>
+                    </div>
+                </header>
+
+                <div class="flex-1 p-6 space-y-6 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-black/20">
+                    <div id="groups-config-list" class="space-y-4"></div>
+                    
+                    <button id="add-new-group-btn" class="w-full py-4 border-2 border-dashed border-slate-200 dark:border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-500 hover:border-indigo-500/50 transition-all flex items-center justify-center gap-3">
+                        <i class="fas fa-plus-circle"></i> Añadir Nuevo Grupo
+                    </button>
+                </div>
+
+                <div class="shrink-0 p-6 bg-white dark:bg-black/40 border-t border-slate-100 dark:border-white/5 flex gap-4">
+                    <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest">Cancelar</button>
+                    <button id="save-groups-btn" class="flex-[2] bg-indigo-600 hover:bg-indigo-500 text-white py-5 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-indigo-600/20 transition-all active:scale-[0.99]">
+                        Guardar Configuración
+                    </button>
+                </div>
+            </div>
+        `, (modal) => {
+            renderGroupsList(modal);
+
+            modal.querySelector('#add-new-group-btn').onclick = () => {
+                const nextId = groups.length > 0 ? Math.max(...groups.map(g => g.id)) + 1 : 1;
+                groups.push({ id: nextId, nombre: `Grupo ${nextId}`, lider: "", asistente: "", casa_salida: "" });
+                renderGroupsList(modal);
+            };
+
+            modal.querySelector('#save-groups-btn').onclick = async () => {
+                const btn = modal.querySelector('#save-groups-btn');
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+
+                await saveGroupsConfig(groups);
+                showNotification("Configuración de grupos guardada");
+                modal.classList.add('hidden');
+                renderPersonalTab(container);
+            };
+        }, 'max-w-3xl');
+    };
+
     window.editPerson = (id) => openPersonModal(publicadores.find(x => x.id === id));
     window.deletePerson = (id) => showCustomConfirm("¿Eliminar este registro permanentemente?", async () => {
         await deletePublicador(id);
