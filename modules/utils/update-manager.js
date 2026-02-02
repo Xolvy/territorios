@@ -70,11 +70,6 @@ const showPremiumUpdateOverlay = (newVersion) => {
                     <div class="absolute inset-0 bg-gradient-to-tr from-indigo-500/10 to-transparent"></div>
                     <i class="fas fa-sync-alt text-indigo-400 rotate-animation relative z-10"></i>
                 </div>
-                
-                <!-- Version Badge -->
-                <div class="absolute -top-3 -right-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-[9px] font-black px-4 py-1.5 rounded-full shadow-2xl border-4 border-[#020617] transform rotate-12">
-                    V${newVersion}
-                </div>
             </div>
 
             <div class="space-y-6">
