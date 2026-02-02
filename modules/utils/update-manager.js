@@ -36,9 +36,9 @@ export const initUpdateManager = () => {
 
         if (versionMismatch || forceRequired) {
             if (data.forceUpdate) {
-                showPremiumUpdateOverlay(serverVersion);
+                showPremiumUpdateOverlay(serverVersion, serverForceTimestamp);
             } else {
-                showUpdateSuggestion(serverVersion);
+                showUpdateSuggestion(serverVersion, serverForceTimestamp);
             }
         }
     });
@@ -47,7 +47,7 @@ export const initUpdateManager = () => {
     // This is optional but helps keep the Firestore doc in sync
 };
 
-const showPremiumUpdateOverlay = (newVersion) => {
+const showPremiumUpdateOverlay = (newVersion, forceTimestamp = 0) => {
     if (document.getElementById('premium-update-overlay')) return;
 
     const overlay = document.createElement('div');
@@ -157,8 +157,11 @@ const showPremiumUpdateOverlay = (newVersion) => {
         }
 
         // 3. Mark timestamp to prevent loop
-        const serverForceTimestamp = (await (await fetch(window.location.href, { cache: 'no-store' })).headers.get('date')) || Date.now();
-        localStorage.setItem('last_force_timestamp', new Date(serverForceTimestamp).getTime().toString());
+        if (forceTimestamp) {
+            localStorage.setItem('last_force_timestamp', forceTimestamp.toString());
+        } else {
+            localStorage.setItem('last_force_timestamp', Date.now().toString());
+        }
 
         // 4. Reload
         setTimeout(() => {
@@ -167,7 +170,7 @@ const showPremiumUpdateOverlay = (newVersion) => {
     }, 500);
 };
 
-const showUpdateSuggestion = (newVersion) => {
+const showUpdateSuggestion = (newVersion, forceTimestamp = 0) => {
     if (document.getElementById('update-suggestion-toast')) return;
 
     const toast = document.createElement('div');
@@ -190,7 +193,7 @@ const showUpdateSuggestion = (newVersion) => {
     `;
 
     document.body.appendChild(toast);
-    document.getElementById('btn-update-soft').onclick = () => showPremiumUpdateOverlay(newVersion);
+    document.getElementById('btn-update-soft').onclick = () => showPremiumUpdateOverlay(newVersion, forceTimestamp);
 };
 
 /**
