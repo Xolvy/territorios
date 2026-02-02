@@ -584,16 +584,21 @@ export const renderProgramaTab = async (container) => {
     };
 
     container.querySelector('#btn-reception-prog').onclick = async () => {
-        // Filter by currently viewed week
+        // Filter by currently viewed week (including the Sunday prior)
         const monday = new Date(currentWeekStart);
         monday.setHours(0, 0, 0, 0);
-        const sunday = new Date(monday);
-        sunday.setDate(monday.getDate() + 7);
+
+        const sundayPrior = new Date(monday);
+        sundayPrior.setDate(monday.getDate() - 1);
+
+        const nextSunday = new Date(monday);
+        nextSunday.setDate(monday.getDate() + 7);
 
         const assigned = territorios.filter(t => {
             if (t.estado !== 'Asignado' || !t.fecha_asignacion) return false;
             const d = new Date(t.fecha_asignacion);
-            return d >= monday && d < sunday;
+            // Include everything from the Sunday before the week starts up to the end of the week
+            return d >= sundayPrior && d < nextSunday;
         });
 
         if (assigned.length === 0) return showNotification("No hay territorios asignados en la semana seleccionada", "info");
