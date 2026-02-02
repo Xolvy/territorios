@@ -400,32 +400,43 @@ export const renderProgramaTab = async (container) => {
         if (fieldId === 'territorio' || fieldId === 'conductor') {
             const badgeContainer = container.querySelector(`#status-badge-${dayIdx}-${turnoId}`);
             if (badgeContainer) {
-                const freshT = await getTerritorios();
-                const tInfo = freshT.find(t => t.numero === programa.dias[dayIdx][turnoId].territorio);
-                const isAssigned = tInfo && tInfo.estado === 'Asignado';
-                const isSync = isAssigned && tInfo.asignado_a === programa.dias[dayIdx][turnoId].conductor;
-                const isConflict = isAssigned && tInfo.asignado_a !== programa.dias[dayIdx][turnoId].conductor;
+                const tNums = String(programa.dias[dayIdx][turnoId].territorio).split(/[,;]/).map(n => n.trim()).filter(n => n);
+
+                const statuses = tNums.map(num => {
+                    const tInfo = freshT.find(t => t.numero === num);
+                    const isAssigned = tInfo && tInfo.estado === 'Asignado';
+                    const isSync = isAssigned && tInfo.asignado_a === programa.dias[dayIdx][turnoId].conductor;
+                    const isConflict = isAssigned && tInfo.asignado_a !== programa.dias[dayIdx][turnoId].conductor;
+                    return { isSync, isConflict, isAssigned };
+                });
+
+                const allSync = statuses.length > 0 && statuses.every(s => s.isSync);
+                const anyConflict = statuses.some(s => s.isConflict);
+                const allAssigned = statuses.length > 0 && statuses.every(s => s.isAssigned);
                 const v = programa.dias[dayIdx][turnoId].territorio;
 
-                badgeContainer.innerHTML = v ? (isSync ?
+                badgeContainer.innerHTML = v ? (allSync ?
                     '<span class="text-emerald-500 font-bold flex items-center gap-1 animate-fade-in"><i class="fas fa-check-circle"></i> LISTO</span>' :
-                    (isConflict ?
+                    (anyConflict ?
                         '<span class="text-rose-500 font-bold flex items-center gap-1 animate-fade-in" title="Ocupado por otro publicador"><i class="fas fa-exclamation-triangle"></i> OCUPADO</span>' :
                         `<span class="text-primary font-bold flex items-center gap-1 cursor-pointer hover:underline animate-fade-in" onclick="window.syncAssignmentFromProg(${dayIdx}, '${turnoId}')"><i class="fas fa-link animate-pulse"></i> ASIGNAR</span>`)) : '';
             }
         }
     };
 
-    window.syncAssignmentFromProg = (dayIdx, turnoId) => {
+    window.syncAssignmentFromProg = async (dayIdx, turnoId) => {
         const dia = programa.dias[dayIdx];
         const data = dia[turnoId];
-        const num = data.territorio;
+        const rawNum = data.territorio;
         const cond = data.conductor;
 
-        if (!num || !cond) return showNotification("Faltan datos en el programa para asignar", "warning");
+        if (!rawNum || !cond) return showNotification("Faltan datos en el programa para asignar", "warning");
 
-        const tInfo = territorios.find(t => t.numero === num);
-        if (!tInfo) return showNotification("Territorio no encontrado", "error");
+        const tNums = String(rawNum).split(/[,;]/).map(n => n.trim()).filter(n => n);
+        const freshT = await getTerritorios();
+        const foundTs = tNums.map(num => freshT.find(t => t.numero === num)).filter(Boolean);
+
+        if (foundTs.length === 0) return showNotification("Territorios no encontrados", "error");
 
         showModal(`
             <div class="p-8 space-y-10">
@@ -445,8 +456,10 @@ export const renderProgramaTab = async (container) => {
                         <span class="font-black text-slate-800 dark:text-white uppercase">${cond}</span>
                     </div>
                     <div class="flex justify-between items-center text-xs">
-                        <span class="text-slate-400 font-bold uppercase tracking-widest">Territorio</span>
-                        <span class="font-black text-primary uppercase">#${num}</span>
+                        <span class="text-slate-400 font-bold uppercase tracking-widest">Territorios</span>
+                        <div class="flex gap-2">
+                            ${foundTs.map(t => `<span class="px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-black rounded-lg">#${t.numero}</span>`).join('')}
+                        </div>
                     </div>
                     <div class="flex justify-between items-center text-xs">
                         <span class="text-slate-400 font-bold uppercase tracking-widest">Salida Programada</span>
@@ -467,29 +480,35 @@ export const renderProgramaTab = async (container) => {
                 </div>
 
                 <div class="flex gap-4 pt-6 border-t border-slate-50 dark:border-white/5">
-                    <button id="cancel-sync" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest">Cancelar</button>
-                    <button id="confirm-sync" class="flex-[2] py-5 bg-primary text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all">ASIGNAR FORMALMENTE</button>
+                    <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest">Cancelar</button>
+                    <button id="confirm-sync-asig" class="flex-[2] py-5 bg-primary text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all">ASIGNAR FORMALMENTE</button>
                 </div>
             </div>
         `, (modal) => {
-            modal.querySelector('#cancel-sync').onclick = () => modal.classList.add('hidden');
-            modal.querySelector('#confirm-sync').onclick = async () => {
+            modal.querySelector('#confirm-sync-asig').onclick = async (e) => {
                 const date = modal.querySelector('#sync-asig-date').value;
                 if (!date) return;
 
-                const { assignTerritorio } = await import('../../data/firestore-services.js');
-                await assignTerritorio(tInfo.id, cond, {
-                    fecha_asignacion: new Date(date + 'T12:00:00Z').toISOString(),
-                    lugar: data.lugar || null,
-                    hora: data.hora || null,
-                    faceta: data.faceta || null,
-                    turno: turnoId
-                });
+                const btn = e.currentTarget;
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> PROCESANDO...';
 
-                showNotification(`¡Territorio ${num} asignado a ${cond}!`);
+                const { assignTerritorio } = await import('../../data/firestore-services.js');
+
+                for (const t of foundTs) {
+                    await assignTerritorio(t.id, cond, {
+                        fecha_asignacion: new Date(date + 'T12:00:00Z').toISOString(),
+                        lugar: data.lugar || null,
+                        hora: data.hora || null,
+                        faceta: data.faceta || null,
+                        turnoId
+                    });
+                }
+
+                showNotification(`¡Asignación formalizada! (${foundTs.length} territorios)`, 'success');
                 modal.classList.add('hidden');
 
-                // Refresh local territories and table
+                // Refresh data and table
                 const updatedT = await getTerritorios();
                 territorios.length = 0;
                 territorios.push(...updatedT);
@@ -580,45 +599,44 @@ export const renderProgramaTab = async (container) => {
         if (assigned.length === 0) return showNotification("No hay territorios asignados en la semana seleccionada", "info");
 
         showModal(`
-            <div class="p-8 space-y-8 bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden">
-                <header class="flex items-center gap-6">
-                    <div class="w-16 h-16 bg-rose-500/10 rounded-3xl flex items-center justify-center text-3xl text-rose-500 shadow-inner">
-                        <i class="fas fa-file-import"></i>
+            <div class="flex flex-col h-full max-h-[85vh] w-full max-w-xl mx-auto">
+                <header class="p-6 pb-2 shrink-0 border-b border-slate-50 dark:border-white/5">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 bg-rose-500/10 rounded-2xl flex items-center justify-center text-2xl text-rose-500 shadow-inner">
+                            <i class="fas fa-file-import"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-black uppercase tracking-tight text-slate-800 dark:text-white leading-none">Recepción Manual</h3>
+                            <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">Devolver territorios</p>
+                        </div>
                     </div>
-                    <div>
-                <div class="flex justify-between items-center mb-6">
-                    <div>
-                        <h3 class="text-2xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">Recepción Manual</h3>
-                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em] mt-1">Devolver territorios al inventario</p>
-                    </div>
-                    <button id="reception-select-all" class="px-6 py-3 bg-slate-100 dark:bg-white/5 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 hover:text-primary transition-all border border-slate-200/50">Seleccionar Todos</button>
-                </div>
+                </header>
 
-                <div class="space-y-4 max-h-[450px] overflow-y-auto custom-scrollbar pr-2 pb-6">
-                    <div id="bulk-reception-list" class="space-y-3">
+                <div class="flex-1 overflow-y-auto px-6 space-y-4 custom-scrollbar py-4">
+                    <div class="flex justify-between items-center">
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Registros de esta semana:</p>
+                        <button id="reception-select-all" class="px-4 py-2 bg-slate-100 dark:bg-white/5 rounded-xl text-[8px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-all border border-slate-200/50">Seleccionar Todos</button>
+                    </div>
+
+                    <div id="bulk-reception-list" class="space-y-2">
                         ${assigned.map(t => `
-                            <div class="flex items-center gap-3 w-full group">
-                                <label class="flex-1 flex items-center gap-4 p-5 modern-card border-slate-100 dark:border-white/5 hover:bg-white dark:hover:bg-white/5 cursor-pointer transition-all active:scale-[0.98] relative overflow-hidden">
-                                     <div class="absolute inset-0 bg-rose-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
-                                    <input type="checkbox" class="reception-check w-6 h-6 rounded-lg accent-rose-500 relative z-10" value="${t.id}" checked>
-                                    <div class="flex-1 relative z-10">
-                                        <div class="flex justify-between items-center mb-1">
-                                            <p class="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">#${t.numero} • ${t.asignado_a}</p>
-                                            <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest">${UIHelpers.fmtDateAt(t.fecha_asignacion)}</span>
-                                        </div>
-                                        <div class="flex items-center gap-3">
-                                             ${t.faceta ? `<span class="text-[8px] font-black text-primary uppercase tracking-widest px-2 py-0.5 bg-primary/10 rounded-md"><i class="fas fa-bullhorn mr-1"></i>${t.faceta}</span>` : ''}
-                                             ${t.turno ? `<span class="text-[8px] font-black text-slate-400 uppercase tracking-widest px-2 py-0.5 bg-slate-100 dark:bg-white/5 rounded-md">${t.turno}</span>` : ''}
+                            <div class="flex items-center gap-2 group">
+                                <label class="flex-1 flex items-center gap-3 p-3.5 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5 hover:bg-white dark:hover:bg-white/5 cursor-pointer transition-all active:scale-[0.98]">
+                                    <input type="checkbox" class="reception-check w-5 h-5 rounded accent-rose-500 shrink-0" value="${t.id}" checked>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-[11px] font-black text-slate-800 dark:text-white uppercase truncate">#${t.numero} • ${t.asignado_a}</p>
+                                        <div class="flex items-center gap-2 mt-1">
+                                            <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest">${UIHelpers.fmtDateAt(t.fecha_asignacion)}</span>
+                                            ${t.faceta ? `<span class="text-[7px] font-black text-primary uppercase px-1.5 py-0.5 bg-primary/10 rounded">${t.faceta}</span>` : ''}
                                         </div>
                                     </div>
                                 </label>
-                                <button onclick="window.openPartialReception('${t.id}')" class="p-5 modern-card border-amber-500/10 text-amber-500 hover:bg-amber-500 hover:text-white transition-all flex items-center justify-center shadow-sm" title="Devolución Parcial">
-                                    <i class="fas fa-scissors"></i>
+                                <button onclick="window.openPartialReception('${t.id}')" class="w-12 h-12 flex items-center justify-center bg-amber-500/10 text-amber-500 rounded-xl hover:bg-amber-500 hover:text-white transition-all shadow-sm shrink-0" title="Devolución Parcial">
+                                    <i class="fas fa-scissors text-xs"></i>
                                 </button>
                             </div>
                         `).join('')}
                     </div>
-                </div>
 
                 <div class="space-y-4">
                     <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Fecha de Entrega/Devolución</label>
@@ -676,9 +694,13 @@ export const renderProgramaTab = async (container) => {
             ['manana', 'tarde', 'noche', 'zoom'].forEach(turnoId => {
                 const data = dia[turnoId];
                 if (data && data.territorio) {
-                    const tNum = String(data.territorio).trim();
-                    const tInfo = territoryMap[tNum] || null;
-                    toSync.push({ dayIdx, turnoId, dia, data, tInfo });
+                    // Split by comma or semicolon and normalize
+                    const tNums = String(data.territorio).split(/[,;]/).map(n => n.trim()).filter(n => n);
+
+                    tNums.forEach(tNum => {
+                        const tInfo = territoryMap[tNum] || null;
+                        toSync.push({ dayIdx, turnoId, dia, data, tInfo, specificT: tNum });
+                    });
                 }
             });
         });
@@ -712,7 +734,7 @@ export const renderProgramaTab = async (container) => {
                         <label class="p-3 bg-slate-50 dark:bg-white/5 rounded-xl border ${isSync ? 'border-emerald-500/10 opacity-70' : (canSync ? 'border-slate-100 dark:border-white/5' : 'border-amber-500/30')} flex items-center justify-between group cursor-pointer hover:bg-white dark:hover:bg-white/5 transition-all">
                             <div class="flex items-center gap-3">
                                 <input type="checkbox" class="sync-check w-4 h-4 rounded accent-emerald-500" value="${idx}" ${canSync && !isSync ? 'checked' : ''} ${!canSync ? 'disabled' : ''}>
-                                <div class="w-8 h-8 ${exists ? 'bg-primary/10 text-primary' : 'bg-amber-500/10 text-amber-500'} flex items-center justify-center rounded-lg font-black text-[10px] shrink-0">${item.data.territorio}</div>
+                                <div class="w-8 h-8 ${exists ? 'bg-primary/10 text-primary' : 'bg-amber-500/10 text-amber-500'} flex items-center justify-center rounded-lg font-black text-[10px] shrink-0">${item.specificT}</div>
                                 <div class="flex flex-col">
                                     <span class="text-[11px] font-black text-slate-800 dark:text-white uppercase leading-tight">${item.data.conductor || 'Sin Conductor'}</span>
                                     <div class="flex items-center gap-2">
