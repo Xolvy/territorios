@@ -45,7 +45,7 @@ export default defineConfig({
                 globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}'],
                 cleanupOutdatedCaches: true,
                 maximumFileSizeToCacheInBytes: 5000000,
-                cacheId: 'territorios-v2-4-1-5'
+                cacheId: 'territorios-v2-4-1-7'
             },
             manifest: {
                 name: 'Gestión de Territorios',
