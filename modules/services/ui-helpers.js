@@ -454,8 +454,9 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
                 cb.onchange = (e) => {
                     const num = cb.dataset.num;
                     const mz = cb.dataset.mz;
-                    const terr = territorios.find(x => x.numero == num);
-                    const allMzs = terr.manzanas.split(',').map(m => m.trim());
+                    const terr = territorios.find(x => normalize(x.numero) === String(num));
+                    if (!terr) return;
+                    const allMzs = (terr.manzanas || '').split(',').map(m => m.trim()).filter(Boolean);
                     let current = selections[num] || [...allMzs];
 
                     if (e.target.checked) {

@@ -17,7 +17,8 @@ export const renderAsignacionesView = async (container) => {
         const [t, c, h, conf] = await Promise.all([
             getTerritorios(), getConductores(), getHistorialReport(), getConfiguracion()
         ]);
-        _globalTerritorios = t.sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true }));
+        const normalizeT = (val) => String(val || '').trim();
+        _globalTerritorios = t.sort((a, b) => normalizeT(a.numero).localeCompare(normalizeT(b.numero), undefined, { numeric: true }));
         _globalConductores = c.filter(p => p.es_conductor).sort((a, b) => a.nombre.localeCompare(b.nombre));
         _globalConfig = conf;
         renderInternal();

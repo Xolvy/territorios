@@ -8,11 +8,12 @@ import { showModal, showCustomConfirm } from '../services/ui-helpers.js';
 
 export const renderS12View = async (container, config, appVersion) => {
     let terrs = await getTerritorios();
-    terrs.sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true }));
+    const normalize = (val) => String(val || '').trim();
+    terrs.sort((a, b) => normalize(a.numero).localeCompare(normalize(b.numero), undefined, { numeric: true }));
 
     const renderGrid = (query = '') => {
         const filtered = query ? terrs.filter(t =>
-            t.numero.toLowerCase().includes(query) ||
+            normalize(t.numero).toLowerCase().includes(query) ||
             (t.localidad && t.localidad.toLowerCase().includes(query)) ||
             (t.nombre && t.nombre.toLowerCase().includes(query))
         ) : terrs;

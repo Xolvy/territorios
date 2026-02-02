@@ -44,7 +44,8 @@ export const renderProgramaTab = async (container) => {
         getTerritorios(), getConfiguracion(), getPublicadores(), getHistorialReport()
     ]);
 
-    territorios.sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true, sensitivity: 'base' }));
+    const normalizeT = (val) => String(val || '').trim();
+    territorios.sort((a, b) => normalizeT(a.numero).localeCompare(normalizeT(b.numero), undefined, { numeric: true, sensitivity: 'base' }));
     const activeConductors = allPersonnel.filter(p => p.es_conductor).sort((a, b) => a.nombre.localeCompare(b.nombre));
 
     const options = {
@@ -232,11 +233,13 @@ export const renderProgramaTab = async (container) => {
         const activeConductors = freshPersonnel.filter(p => p.es_conductor).sort((a, b) => a.nombre.localeCompare(b.nombre));
 
         // Shared Robust Helpers
-        const normalize = (val) => String(val || '').trim().toLowerCase();
+        const normalizeT = (val) => String(val || '').trim();
+        const normalizeLower = (val) => normalizeT(val).toLowerCase();
+
         const getTStatus = (tNum, conductor) => {
-            const t = freshTerritorios.find(x => normalize(x.numero) === normalize(tNum));
+            const t = freshTerritorios.find(x => normalizeLower(x.numero) === normalizeLower(tNum));
             if (!t || t.estado !== 'Asignado') return { isSync: false, isConflict: false };
-            const isSync = normalize(t.asignado_a) === normalize(conductor);
+            const isSync = normalizeLower(t.asignado_a) === normalizeLower(conductor);
             const isConflict = !isSync;
             return { isSync, isConflict };
         };

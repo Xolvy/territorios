@@ -110,19 +110,22 @@ export const renderHistorialView = async (container) => {
     const searchInp = container.querySelector('#hist-search');
     const statusFilter = container.querySelector('#hist-filter-status');
 
+    const normalizeT = (val) => String(val || '').trim();
+    const normalizeLower = (val) => normalizeT(val).toLowerCase();
+
     const renderGrid = () => {
         const query = searchInp.value.toLowerCase().trim();
         const status = statusFilter.value;
 
         let displayList = allTerritorios
             .filter(t => {
-                const matchesQuery = t.numero.toLowerCase().includes(query) ||
-                    (t.asignado_a && t.asignado_a.toLowerCase().includes(query)) ||
-                    (t.localidad && t.localidad.toLowerCase().includes(query));
+                const matchesQuery = normalizeLower(t.numero).includes(query) ||
+                    (t.asignado_a && normalizeLower(t.asignado_a).includes(query)) ||
+                    (t.localidad && normalizeLower(t.localidad).includes(query));
                 const matchesStatus = !status || t.estado === status;
                 return matchesQuery && matchesStatus;
             })
-            .sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true }));
+            .sort((a, b) => normalizeT(a.numero).localeCompare(normalizeT(b.numero), undefined, { numeric: true }));
 
         if (displayList.length === 0) {
             grid.innerHTML = `<div class="py-20 text-center opacity-30 text-[10px] font-black uppercase tracking-widest">Sin registros encontrados</div>`;
