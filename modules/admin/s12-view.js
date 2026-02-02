@@ -43,43 +43,48 @@ export const renderS12View = async (container, config, appVersion) => {
         }
 
         grid.innerHTML = filtered.map(t => {
-            const isAssigned = t.estado === 'Asignado' || t.estado === 'Pendiente';
-            const allMzs = t.manzanas ? String(t.manzanas).split(',').filter(Boolean).length : 0;
+            try {
+                const isAssigned = t.estado === 'Asignado' || t.estado === 'Pendiente';
+                const allMzs = t.manzanas ? String(t.manzanas).split(',').filter(Boolean).length : 0;
 
-            return `
-            <div class="modern-card p-6 border-slate-100 dark:border-white/5 shadow-sm group hover:border-primary/50 transition-all bg-white dark:bg-slate-900/40">
-                <div class="flex justify-between items-start mb-6">
-                    <div class="flex items-center gap-3">
-                        <div class="w-12 h-12 bg-slate-50 dark:bg-white/5 rounded-2xl flex items-center justify-center text-lg font-black text-slate-800 dark:text-white shadow-inner shrink-0">
-                            ${t.numero}
+                return `
+                <div class="modern-card p-6 border-slate-100 dark:border-white/5 shadow-sm group hover:border-primary/50 transition-all bg-white dark:bg-slate-900/40">
+                    <div class="flex justify-between items-start mb-6">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 bg-slate-50 dark:bg-white/5 rounded-2xl flex items-center justify-center text-lg font-black text-slate-800 dark:text-white shadow-inner shrink-0">
+                                ${t.numero}
+                            </div>
+                            <div class="flex gap-1.5 p-1 bg-slate-50/50 dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5">
+                                <button onclick="window.viewMapFromBaseS12('${t.id}')" class="w-8 h-8 flex items-center justify-center bg-white dark:bg-white/5 text-indigo-500 rounded-lg shadow-sm border border-black/5 dark:border-white/10 hover:bg-indigo-500 hover:text-white transition-all" title="Ver Mapa"><i class="fas fa-map-marked-alt text-[10px]"></i></button>
+                                <button onclick="window.showHistoryFromBaseS12('${t.id}', '${t.numero}')" class="w-8 h-8 flex items-center justify-center bg-white dark:bg-white/5 text-amber-500 rounded-lg shadow-sm border border-black/5 dark:border-white/10 hover:bg-amber-500 hover:text-white transition-all" title="Historial"><i class="fas fa-history text-[10px]"></i></button>
+                            </div>
                         </div>
-                        <div class="flex gap-1.5 p-1 bg-slate-50/50 dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5">
-                            <button onclick="window.viewMapFromBaseS12('${t.id}')" class="w-8 h-8 flex items-center justify-center bg-white dark:bg-white/5 text-indigo-500 rounded-lg shadow-sm border border-black/5 dark:border-white/10 hover:bg-indigo-500 hover:text-white transition-all" title="Ver Mapa"><i class="fas fa-map-marked-alt text-[10px]"></i></button>
-                            <button onclick="window.showHistoryFromBaseS12('${t.id}', '${t.numero}')" class="w-8 h-8 flex items-center justify-center bg-white dark:bg-white/5 text-amber-500 rounded-lg shadow-sm border border-black/5 dark:border-white/10 hover:bg-amber-500 hover:text-white transition-all" title="Historial"><i class="fas fa-history text-[10px]"></i></button>
+                        
+                        <div class="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                            <button onclick="window.editTerritorioS12('${t.id}')" class="w-8 h-8 flex items-center justify-center bg-slate-50 dark:bg-white/5 text-slate-400 hover:text-primary rounded-lg border border-slate-200 dark:border-white/10 transition-all"><i class="fas fa-edit text-[10px]"></i></button>
+                            <button onclick="window.deleteTerritorioS12('${t.id}')" class="w-8 h-8 flex items-center justify-center bg-slate-50 dark:bg-white/5 text-slate-400 hover:text-rose-500 rounded-lg border border-slate-200 dark:border-white/10 transition-all"><i class="fas fa-trash-alt text-[10px]"></i></button>
                         </div>
                     </div>
                     
-                    <div class="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
-                        <button onclick="window.editTerritorioS12('${t.id}')" class="w-8 h-8 flex items-center justify-center bg-slate-50 dark:bg-white/5 text-slate-400 hover:text-primary rounded-lg border border-slate-200 dark:border-white/10 transition-all"><i class="fas fa-edit text-[10px]"></i></button>
-                        <button onclick="window.deleteTerritorioS12('${t.id}')" class="w-8 h-8 flex items-center justify-center bg-slate-50 dark:bg-white/5 text-slate-400 hover:text-rose-500 rounded-lg border border-slate-200 dark:border-white/10 transition-all"><i class="fas fa-trash-alt text-[10px]"></i></button>
-                    </div>
-                </div>
-                
-                <div class="space-y-4">
-                    <p class="text-sm font-black text-slate-800 dark:text-white uppercase truncate flex items-center gap-2">
-                        <i class="fas fa-location-dot text-[10px] text-primary/40"></i>
-                        ${t.localidad || t.nombre || '—'}
-                    </p>
-                    
-                    <div class="pt-4 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <span class="text-[8px] font-black px-2 py-1 rounded-md ${isAssigned ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-600' : 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600'} uppercase tracking-widest">${t.estado || 'Disponible'}</span>
-                            ${t.asignado_a ? `<span class="text-[7px] font-black text-slate-400 uppercase truncate max-w-[70px] ml-1">${t.asignado_a}</span>` : ''}
+                    <div class="space-y-4">
+                        <p class="text-sm font-black text-slate-800 dark:text-white uppercase truncate flex items-center gap-2">
+                            <i class="fas fa-location-dot text-[10px] text-primary/40"></i>
+                            ${t.localidad || t.nombre || '—'}
+                        </p>
+                        
+                        <div class="pt-4 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="text-[8px] font-black px-2 py-1 rounded-md ${isAssigned ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-600' : 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600'} uppercase tracking-widest">${t.estado || 'Disponible'}</span>
+                                ${t.asignado_a ? `<span class="text-[7px] font-black text-slate-400 uppercase truncate max-w-[70px] ml-1">${t.asignado_a}</span>` : ''}
+                            </div>
+                            <div class="text-[8px] font-black text-slate-400 uppercase bg-slate-50 dark:bg-white/5 px-2 py-1 rounded-md border border-slate-100 dark:border-white/5">${allMzs} MZ</div>
                         </div>
-                        <div class="text-[8px] font-black text-slate-400 uppercase bg-slate-50 dark:bg-white/5 px-2 py-1 rounded-md border border-slate-100 dark:border-white/5">${allMzs} MZ</div>
                     </div>
-                </div>
-            </div>`;
+                </div>`;
+            } catch (cardErr) {
+                console.error("Critical rendering error on territory card:", cardErr, t);
+                return `<div class="p-4 border border-rose-500/30 rounded-2xl text-[8px] font-black text-rose-500 uppercase">Error en registro ${t.numero || t.id}</div>`;
+            }
         }).join('');
     };
 
