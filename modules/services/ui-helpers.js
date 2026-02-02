@@ -139,7 +139,8 @@ window.showCustomPrompt = showCustomPrompt;
 window.showCustomAlert = showCustomAlert;
 
 export const showTerritorySelectionModal = (current, territorios, onSelect, containerId = 'modal-container', historial = []) => {
-    let filtered = [...territorios].sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true }));
+    const normalize = (val) => String(val || '').trim();
+    let filtered = [...territorios].sort((a, b) => normalize(a.numero).localeCompare(normalize(b.numero), undefined, { numeric: true }));
 
     // --- Power Up: Process Stats ---
     const stats = {};
@@ -356,14 +357,14 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
 
         const render = () => {
             const query = searchInput.value.trim().toLowerCase();
-            const rawItems = query ? filtered.filter(t => t.numero.toLowerCase().includes(query) || (t.manzanas && t.manzanas.toLowerCase().includes(query))) : filtered;
+            const rawItems = query ? filtered.filter(t => normalize(t.numero).toLowerCase().includes(query) || (t.manzanas && t.manzanas.toLowerCase().includes(query))) : filtered;
 
             // Group items by number for deduplication in UI list
             const grouped = {};
             rawItems.forEach(t => {
-                const num = t.numero;
+                const num = normalize(t.numero);
                 if (!grouped[num]) {
-                    grouped[num] = { ...t };
+                    grouped[num] = { ...t, numero: num };
                 } else {
                     const currentMzs = (grouped[num].manzanas || '').split(',').map(m => m.trim()).filter(Boolean);
                     const newMzs = (t.manzanas || '').split(',').map(m => m.trim()).filter(Boolean);
