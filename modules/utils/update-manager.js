@@ -52,30 +52,64 @@ const showPremiumUpdateOverlay = (newVersion) => {
 
     const overlay = document.createElement('div');
     overlay.id = 'premium-update-overlay';
-    overlay.className = 'fixed inset-0 bg-slate-900/98 backdrop-blur-2xl z-[99999] flex items-center justify-center p-6 text-white';
+    // Deep dark background with high blur
+    overlay.className = 'fixed inset-0 bg-[#020617] backdrop-blur-[100px] z-[99999] flex items-center justify-center p-6 text-white overflow-hidden';
+
+    // Add some animated background blobs for that mesh gradient look
     overlay.innerHTML = `
-        <div class="max-w-md w-full text-center space-y-10 animate-fade-in">
-            <div class="relative inline-block">
-                <div class="w-32 h-32 bg-indigo-500/20 rounded-[3rem] flex items-center justify-center text-5xl shadow-2xl animate-pulse">
-                    <i class="fas fa-sync-alt rotate-animation text-indigo-400"></i>
+        <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-600/10 rounded-full blur-[120px] animate-pulse"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-600/10 rounded-full blur-[120px] animate-pulse" style="animation-delay: 2s"></div>
+        
+        <div class="max-w-md w-full text-center space-y-12 animate-slide-up relative z-10">
+            <div class="relative inline-block group">
+                <!-- Outer Glow -->
+                <div class="absolute inset-0 bg-indigo-500/20 blur-3xl rounded-full scale-125 transition-transform duration-1000"></div>
+                
+                <!-- Main Icon Container -->
+                <div class="relative w-28 h-28 bg-white/[0.03] backdrop-blur-md rounded-[2.5rem] border border-white/10 flex items-center justify-center text-4xl shadow-2xl overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-tr from-indigo-500/10 to-transparent"></div>
+                    <i class="fas fa-sync-alt text-indigo-400 rotate-animation relative z-10"></i>
                 </div>
-                <div class="absolute -top-2 -right-2 bg-emerald-500 text-[10px] font-black px-3 py-1 rounded-full shadow-lg border-4 border-slate-900">
-                    NUEVA VERSIÓN
+                
+                <!-- Version Badge -->
+                <div class="absolute -top-3 -right-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-[9px] font-black px-4 py-1.5 rounded-full shadow-2xl border-4 border-[#020617] transform rotate-12">
+                    V${newVersion}
                 </div>
             </div>
 
-            <div class="space-y-4">
-                <h2 class="text-4xl font-black tracking-tighter uppercase tabular-nums">Optimizando Sistema</h2>
-                <p class="text-slate-400 font-bold text-sm uppercase tracking-widest leading-relaxed">
-                    Preparando la versión <span class="text-indigo-400 font-black">${newVersion}</span> para una mejor experiencia.
+            <div class="space-y-6">
+                <div class="space-y-1">
+                    <h2 class="text-4xl md:text-5xl font-black tracking-tighter uppercase italic leading-none text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40">
+                        Optimizando
+                    </h2>
+                    <h2 class="text-4xl md:text-5xl font-black tracking-tighter uppercase leading-none text-white">
+                        Sistema
+                    </h2>
+                </div>
+                
+                <p class="text-slate-400 font-bold text-[10px] uppercase tracking-[0.4em] leading-relaxed max-w-[300px] mx-auto opacity-80">
+                    Sincronizando últimas mejoras y reconstruyendo recursos...
                 </p>
             </div>
 
-            <div class="relative w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
-                <div id="update-progress-bar" class="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-500 w-0 transition-all duration-3000 ease-out"></div>
+            <div class="space-y-4 max-w-[320px] mx-auto">
+                <div class="relative w-full h-2 bg-white/5 rounded-full overflow-hidden border border-white/[0.03]">
+                    <div id="update-progress-bar" class="absolute inset-y-0 left-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-500 w-0 transition-all duration-[3000ms] ease-in-out">
+                         <div class="absolute right-0 top-0 bottom-0 w-8 bg-white blur-md opacity-40"></div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-between items-center px-1">
+                    <span id="update-status-text" class="text-[8px] font-black text-slate-500 uppercase tracking-widest">Iniciando...</span>
+                    <span id="update-percent" class="text-[8px] font-black text-indigo-400 uppercase tracking-widest">0%</span>
+                </div>
             </div>
 
-            <p class="text-[9px] font-black text-slate-500 uppercase tracking-[0.5em] animate-pulse">Limpiando caché & reconstruyendo recursos</p>
+            <div class="pt-10">
+                <p class="text-[8px] font-black text-slate-700 uppercase tracking-[0.8em] animate-pulse">
+                    XOLU ENGINE • 2026
+                </p>
+            </div>
         </div>
     `;
 
@@ -84,7 +118,36 @@ const showPremiumUpdateOverlay = (newVersion) => {
     // Start Update Flow
     setTimeout(async () => {
         const bar = document.getElementById('update-progress-bar');
+        const statusEl = document.getElementById('update-status-text');
+        const percentEl = document.getElementById('update-percent');
+
         if (bar) bar.style.width = '100%';
+
+        // Progress percentage simulation
+        let percent = 0;
+        const pInterval = setInterval(() => {
+            percent += 1;
+            if (percentEl) percentEl.innerText = `${percent}%`;
+            if (percent >= 100) clearInterval(pInterval);
+        }, 30);
+
+        // Status messages simulation
+        const messages = [
+            "Limpiando caché local...",
+            "Inyectando nuevos parches...",
+            "Reconstruyendo motor...",
+            "Validando integridad...",
+            "Optimizando datos...",
+            "Finalizando..."
+        ];
+        let msgIdx = 0;
+        const mInterval = setInterval(() => {
+            if (statusEl && msgIdx < messages.length) {
+                statusEl.innerText = messages[msgIdx++];
+            } else {
+                clearInterval(mInterval);
+            }
+        }, 500);
 
         // 1. Purge Service Workers
         if ('serviceWorker' in navigator) {
@@ -99,8 +162,8 @@ const showPremiumUpdateOverlay = (newVersion) => {
         }
 
         // 3. Mark timestamp to prevent loop
-        const serverForceTimestamp = (await (await fetch(window.location.href)).headers.get('date')) || Date.now();
-        localStorage.setItem('last_force_timestamp', serverForceTimestamp.toString());
+        const serverForceTimestamp = (await (await fetch(window.location.href, { cache: 'no-store' })).headers.get('date')) || Date.now();
+        localStorage.setItem('last_force_timestamp', new Date(serverForceTimestamp).getTime().toString());
 
         // 4. Reload
         setTimeout(() => {
@@ -114,18 +177,19 @@ const showUpdateSuggestion = (newVersion) => {
 
     const toast = document.createElement('div');
     toast.id = 'update-suggestion-toast';
-    toast.className = 'fixed bottom-8 left-1/2 -translate-x-1/2 z-[10000] w-[90%] max-w-sm animate-bounce-in';
+    toast.className = 'fixed bottom-8 left-1/2 -translate-x-1/2 z-[10000] w-[92%] max-w-sm animate-slide-up';
     toast.innerHTML = `
-        <div class="bg-slate-900/90 backdrop-blur-xl border border-white/10 p-5 rounded-[2rem] shadow-2xl flex items-center gap-5">
-            <div class="w-14 h-14 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-2xl text-indigo-400">
-                <i class="fas fa-sparkles animate-pulse"></i>
+        <div class="bg-slate-900/80 backdrop-blur-2xl border border-white/10 p-4 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-center gap-4">
+            <div class="w-12 h-12 bg-indigo-500/20 rounded-2xl flex items-center justify-center text-xl text-indigo-400 shadow-inner overflow-hidden relative group">
+                <div class="absolute inset-0 bg-indigo-500/10 blur-xl animate-pulse"></div>
+                <i class="fas fa-sparkles relative z-10 animate-bounce-subtle"></i>
             </div>
-            <div class="flex-1">
-                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Mejora Disponible</h4>
-                <p class="text-xs font-bold text-white uppercase tracking-tight">Versión ${newVersion} lista</p>
+            <div class="flex-1 min-w-0">
+                <h4 class="text-[9px] font-black text-indigo-400/80 uppercase tracking-[0.2em] mb-0.5">Mejora Disponible</h4>
+                <p class="text-[11px] font-bold text-white uppercase tracking-tight truncate">Versión ${newVersion} lista</p>
             </div>
-            <button id="btn-update-soft" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-indigo-600/20 active:scale-95 transition-all">
-                Actualizar
+            <button id="btn-update-soft" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-600/20 active:scale-95 transition-all outline-none">
+                Instalar
             </button>
         </div>
     `;
