@@ -325,25 +325,23 @@ const normalizeTerritorioData = (id, data) => {
 };
 
 export const getTerritorios = async () => {
-    return fetchCached('territorios', async () => {
-        try {
-            const querySnapshot = await getDocs(collection(db, "territorios"));
-            const results = querySnapshot.docs
-                .map(doc => normalizeTerritorioData(doc.id, doc.data()))
-                .filter(t => {
-                    // Xolvy Data Shield: Ghost Document Filter
-                    const hasNum = t.numero && t.numero.trim().length > 0;
-                    if (!hasNum) console.warn(`⚠️ Xolvy Data Shield: Filtering out ghost territory [ID: ${t.id}]`);
-                    return hasNum;
-                });
+    // Xolvy Data Shield: Bypass cache for v2.4.1.3 stabilizer 
+    try {
+        const querySnapshot = await getDocs(collection(db, "territorios"));
+        const results = querySnapshot.docs
+            .map(doc => normalizeTerritorioData(doc.id, doc.data()))
+            .filter(t => {
+                const hasNum = t.numero && t.numero.trim().length > 0;
+                if (!hasNum) console.warn(`⚠️ [v2.4.1.3] Shield filtered ghost: ${t.id}`);
+                return hasNum;
+            });
 
-            console.log(`🛡️ Xolvy Data Shield: Sync Complete. ${results.length} valid territories cleared for rendering.`);
-            return results;
-        } catch (e) {
-            console.error("Critical error fetching territories:", e);
-            return [];
-        }
-    });
+        console.log(`🛡️ [v2.4.1.3] Shield Sync: ${results.length} valid records ready.`);
+        return results;
+    } catch (e) {
+        console.error("Critical error fetching territories:", e);
+        return [];
+    }
 };
 
 export const addTerritorio = async (territorio) => {

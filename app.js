@@ -7,7 +7,7 @@ import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js';
 import { initUpdateManager } from './modules/utils/update-manager.js';
 
 // The version is injected by Vite at build time
-const APP_VERSION = '2.4.1.2';
+const APP_VERSION = '2.4.1.3';
 
 // Lazy loaders for heavy modules
 const ModuleCache = {
@@ -17,17 +17,17 @@ const ModuleCache = {
 };
 
 async function loadLogin() {
-    if (!ModuleCache.login) ModuleCache.login = await import('./modules/login.js?v=' + APP_VERSION);
+    if (!ModuleCache.login) ModuleCache.login = await import('./modules/login.js');
     return ModuleCache.login.renderLogin;
 }
 
 async function loadAdmin() {
-    if (!ModuleCache.admin) ModuleCache.admin = await import('./modules/admin-dashboard.js?v=' + APP_VERSION);
+    if (!ModuleCache.admin) ModuleCache.admin = await import('./modules/admin-dashboard.js');
     return ModuleCache.admin.renderAdminDashboard;
 }
 
 async function loadConductor() {
-    if (!ModuleCache.conductor) ModuleCache.conductor = await import('./modules/conductor-dashboard.js?v=' + APP_VERSION);
+    if (!ModuleCache.conductor) ModuleCache.conductor = await import('./modules/conductor-dashboard.js');
     return ModuleCache.conductor.renderConductorDashboard;
 }
 

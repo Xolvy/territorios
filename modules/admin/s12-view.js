@@ -9,14 +9,9 @@ import { showModal, showCustomConfirm } from '../services/ui-helpers.js';
 export const renderS12View = async (container, config, appVersion) => {
     let terrs = [];
     try {
-        console.log("🔍 S12 View: Requesting fresh territories...");
-        // Emergency: Clear memory cache for territories before loading this specific view
-        const { clearServiceCache } = await import('../../data/firestore-services.js');
-        // We only clear the specific key if possible, or just force fetch
+        console.log("🔍 [v2.4.1.3] S12 View: Requesting fresh data...");
         terrs = await getTerritorios();
-
-        console.log(`📊 S12 View: Received ${terrs.length} territories from Shield.`);
-
+        console.log(`📊 [v2.4.1.3] S12 View: Received ${terrs.length} records.`);
         terrs.sort((a, b) => (tString(a.numero)).localeCompare(tString(b.numero), undefined, { numeric: true }));
     } catch (e) {
         console.error("Error sorting S12:", e);

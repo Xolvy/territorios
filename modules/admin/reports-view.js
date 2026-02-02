@@ -37,10 +37,10 @@ export const renderReportsTab = async (container, config, appVersion) => {
         target.innerHTML = `<div class="p-20 text-center opacity-30"><i class="fas fa-circle-notch fa-spin text-3xl"></i></div>`;
 
         if (type === 's13') {
-            const { renderHistorialView } = await import('./history-view.js?v=' + appVersion);
+            const { renderHistorialView } = await import('./history-view.js');
             await renderHistorialView(target, config, appVersion);
         } else {
-            const { renderS12View } = await import('./s12-view.js?v=' + appVersion);
+            const { renderS12View } = await import('./s12-view.js');
             await renderS12View(target, config, appVersion);
         }
     };
