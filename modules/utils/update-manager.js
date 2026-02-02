@@ -107,7 +107,7 @@ const showPremiumUpdateOverlay = (newVersion) => {
 
             <div class="pt-10">
                 <p class="text-[8px] font-black text-slate-700 uppercase tracking-[0.8em] animate-pulse">
-                    XOLU ENGINE • 2026
+                    XOLVY ENGINE • 2026
                 </p>
             </div>
         </div>
