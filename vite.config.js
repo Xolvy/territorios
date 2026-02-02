@@ -44,7 +44,8 @@ export default defineConfig({
             workbox: {
                 globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}'],
                 cleanupOutdatedCaches: true,
-                maximumFileSizeToCacheInBytes: 4000000
+                maximumFileSizeToCacheInBytes: 5000000,
+                cacheId: 'territorios-v2-4-1-0'
             },
             manifest: {
                 name: 'Gestión de Territorios',
