@@ -224,8 +224,22 @@ export const renderProgramaTab = async (container) => {
         const [freshTerritorios, freshPersonnel] = await Promise.all([
             getTerritorios(), getPublicadores()
         ]);
-        const territoryMap = freshTerritorios.reduce((acc, t) => { acc[t.numero] = t; return acc; }, {});
+
+        // Update local territories cache
+        territorios.length = 0;
+        territorios.push(...freshTerritorios);
+
         const activeConductors = freshPersonnel.filter(p => p.es_conductor).sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+        // Shared Robust Helpers
+        const normalize = (val) => String(val || '').trim().toLowerCase();
+        const getTStatus = (tNum, conductor) => {
+            const t = freshTerritorios.find(x => normalize(x.numero) === normalize(tNum));
+            if (!t || t.estado !== 'Asignado') return { isSync: false, isConflict: false };
+            const isSync = normalize(t.asignado_a) === normalize(conductor);
+            const isConflict = !isSync;
+            return { isSync, isConflict };
+        };
 
         const tableContainer = container.querySelector('#admin-prog-table');
         let html = `<div class="space-y-12 pb-20">`;
@@ -282,16 +296,11 @@ export const renderProgramaTab = async (container) => {
 
                     if (field === 'Territorio') {
                         const tNums = String(val).split(/[,;]/).map(n => n.trim()).filter(n => n);
-                        const statuses = tNums.map(num => {
-                            const tInfo = territoryMap[num];
-                            const isAssigned = tInfo && tInfo.estado === 'Asignado';
-                            const isSync = isAssigned && tInfo.asignado_a === dia[turnoId].conductor;
-                            const isConflict = isAssigned && tInfo.asignado_a !== dia[turnoId].conductor;
-                            return { isSync, isConflict };
-                        });
+                        const conductor = dia[turnoId].conductor;
+                        const stats = tNums.map(n => getTStatus(n, conductor));
 
-                        const allSync = statuses.length > 0 && statuses.every(s => s.isSync);
-                        const anyConflict = statuses.some(s => s.isConflict);
+                        const allSync = stats.length > 0 && stats.every(s => s.isSync);
+                        const anyConflict = stats.some(s => s.isConflict);
 
                         html += `
                             <label class="text-[9px] font-black text-slate-400 tracking-[0.2em] uppercase ml-1 flex items-center justify-between">
@@ -408,17 +417,11 @@ export const renderProgramaTab = async (container) => {
             const badgeContainer = container.querySelector(`#status-badge-${dayIdx}-${turnoId}`);
             if (badgeContainer) {
                 const tNums = String(programa.dias[dayIdx][turnoId].territorio).split(/[,;]/).map(n => n.trim()).filter(n => n);
+                const conductor = programa.dias[dayIdx][turnoId].conductor;
+                const stats = tNums.map(n => getTStatus(n, conductor));
 
-                const statuses = tNums.map(num => {
-                    const tInfo = territorios.find(t => t.numero === num);
-                    const isAssigned = tInfo && tInfo.estado === 'Asignado';
-                    const isSync = isAssigned && tInfo.asignado_a === programa.dias[dayIdx][turnoId].conductor;
-                    const isConflict = isAssigned && tInfo.asignado_a !== programa.dias[dayIdx][turnoId].conductor;
-                    return { isSync, isConflict };
-                });
-
-                const allSync = statuses.length > 0 && statuses.every(s => s.isSync);
-                const anyConflict = statuses.some(s => s.isConflict);
+                const allSync = stats.length > 0 && stats.every(s => s.isSync);
+                const anyConflict = stats.some(s => s.isConflict);
                 const v = programa.dias[dayIdx][turnoId].territorio;
 
                 badgeContainer.innerHTML = v ? (allSync ?
