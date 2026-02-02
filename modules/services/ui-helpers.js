@@ -217,13 +217,31 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
             const OUTDATED_THRESHOLD = 120; // 4 months
             const now = new Date();
 
-            const incomplete = filtered.filter(t => t.is_incomplete === true);
+            const seenInc = new Set();
+            const incomplete = filtered.filter(t => {
+                if (t.is_incomplete === true && !seenInc.has(t.numero)) {
+                    seenInc.add(t.numero);
+                    return true;
+                }
+                return false;
+            });
+
+            const seenOut = new Set();
             const outdated = filtered.filter(t => {
-                if (t.is_incomplete) return false; // Already in incomplete
+                if (t.is_incomplete) return false;
+                if (seenOut.has(t.numero)) return false;
+
                 const s = stats[t.numero];
-                if (!s || !s.lastEntrega) return true; // Never preached
+                if (!s || !s.lastEntrega) {
+                    seenOut.add(t.numero);
+                    return true;
+                }
                 const diff = (now - new Date(s.lastEntrega)) / (1000 * 60 * 60 * 24);
-                return diff >= OUTDATED_THRESHOLD;
+                if (diff >= OUTDATED_THRESHOLD) {
+                    seenOut.add(t.numero);
+                    return true;
+                }
+                return false;
             }).sort((a, b) => {
                 const sa = stats[a.numero]?.lastEntrega || 0;
                 const sb = stats[b.numero]?.lastEntrega || 0;
@@ -338,7 +356,22 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
 
         const render = () => {
             const query = searchInput.value.trim().toLowerCase();
-            const items = query ? filtered.filter(t => t.numero.toLowerCase().includes(query) || (t.manzanas && t.manzanas.toLowerCase().includes(query))) : filtered;
+            const rawItems = query ? filtered.filter(t => t.numero.toLowerCase().includes(query) || (t.manzanas && t.manzanas.toLowerCase().includes(query))) : filtered;
+
+            // Group by number to avoid duplicate cards for partial fragments
+            const grouped = {};
+            rawItems.forEach(t => {
+                if (!grouped[t.numero]) {
+                    grouped[t.numero] = { ...t };
+                } else {
+                    const currentMzs = (grouped[t.numero].manzanas || '').split(',').map(m => m.trim()).filter(Boolean);
+                    const newMzs = (t.manzanas || '').split(',').map(m => m.trim()).filter(Boolean);
+                    const merged = Array.from(new Set([...currentMzs, ...newMzs])).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+                    grouped[t.numero].manzanas = merged.join(', ');
+                    if (t.is_incomplete) grouped[t.numero].is_incomplete = true;
+                }
+            });
+            const items = Object.values(grouped);
 
             listContainer.innerHTML = items.map(t => {
                 const isSelected = t.numero in selections;
