@@ -606,11 +606,31 @@ export const renderProgramaTab = async (container) => {
 
         const assigned = territorios.filter(t => {
             if (t.estado !== 'Asignado' || !t.fecha_asignacion) return false;
-            if (!t.prog_sync) return false; // ONLY show program-synced territories
 
             const d = new Date(t.fecha_asignacion);
-            // Include everything from the Sunday before the week starts up to the end of the week
-            return d >= sundayPrior && d < nextSunday;
+            const isWithinWeek = d >= sundayPrior && d < nextSunday;
+            if (!isWithinWeek) return false;
+
+            // If it has the flag, it's definitely from the program
+            if (t.prog_sync) return true;
+
+            // Fallback: Check if it's on Sunday Prior OR if it exists in the current program data
+            const isSundayPrior = d.toISOString().split('T')[0] === sundayPrior.toISOString().split('T')[0];
+            if (isSundayPrior) return true;
+
+            // Ultimate fallback: check if territory number is in any turn of the program
+            const tNum = String(t.numero);
+            for (const dia of programa.dias) {
+                for (const turno of ['manana', 'tarde', 'noche', 'zoom']) {
+                    const data = dia[turno];
+                    if (data && data.territorio) {
+                        const nums = String(data.territorio).split(/[,;]/).map(n => n.trim());
+                        if (nums.includes(tNum)) return true;
+                    }
+                }
+            }
+
+            return false;
         });
 
         if (assigned.length === 0) return showNotification("No hay territorios asignados en la semana seleccionada", "info");
