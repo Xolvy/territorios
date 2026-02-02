@@ -95,6 +95,10 @@ export const renderProgramaTab = async (container) => {
                             <i class="fas fa-file-import group-hover:-translate-x-1 transition-transform"></i>
                             Recepción
                         </button>
+                        <button id="btn-copy-prev-week" class="flex items-center gap-2 px-6 py-4 bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 hover:bg-indigo-500 hover:text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-indigo-500/5 group" title="Replicar estructura de la semana pasada">
+                            <i class="fas fa-copy group-hover:scale-110 transition-transform"></i>
+                            Replicar
+                        </button>
                          <button id="btn-resync-prog" class="p-4 bg-primary/10 border border-primary/20 text-primary hover:bg-primary hover:text-white rounded-xl transition-all shadow-lg shadow-primary/5" title="Sincronizar">
                             <i class="fas fa-sync-alt"></i>
                         </button>
@@ -590,6 +594,64 @@ export const renderProgramaTab = async (container) => {
     };
 
     container.querySelector('#btn-resync-prog').onclick = loadWeekData;
+
+    container.querySelector('#btn-copy-prev-week').onclick = async () => {
+        const { showCustomConfirm } = await import('../services/ui-helpers.js');
+
+        showCustomConfirm(
+            "¿Replicar Estructura?",
+            async () => {
+                const prevWeekStart = new Date(currentWeekStart);
+                prevWeekStart.setDate(prevWeekStart.getDate() - 7);
+                const prevWeekId = formatDateId(prevWeekStart);
+
+                const overlay = container.querySelector('#prog-loading-overlay');
+                overlay?.classList.remove('hidden');
+
+                try {
+                    const prevData = await getProgramaSemanal(prevWeekId);
+                    if (!prevData || !prevData.dias || prevData.dias.length === 0) {
+                        showNotification("No hay programa en la semana anterior para replicar", "warning");
+                        return;
+                    }
+
+                    // Replicar
+                    const newDias = prevData.dias.map((dia, idx) => {
+                        const newDayDate = new Date(currentWeekStart);
+                        newDayDate.setDate(newDayDate.getDate() + idx);
+
+                        const newDia = {
+                            nombre: dia.nombre,
+                            fecha: formatDateId(newDayDate)
+                        };
+
+                        ['manana', 'tarde', 'noche', 'zoom'].forEach(turno => {
+                            if (dia[turno]) {
+                                newDia[turno] = { ...dia[turno] };
+                                delete newDia[turno].territorio; // Remove territory
+                            }
+                        });
+
+                        return newDia;
+                    });
+
+                    programa = {
+                        id: formatDateId(currentWeekStart),
+                        dias: newDias
+                    };
+
+                    await saveProgramaSemanal(programa.id, programa);
+                    showNotification("Estructura replicada con éxito", "success");
+                    loadWeekData();
+                } catch (error) {
+                    console.error(error);
+                    showNotification("Error al replicar programa", "error");
+                } finally {
+                    overlay?.classList.add('hidden');
+                }
+            }
+        );
+    };
 
     container.querySelector('#btn-reset-today').onclick = () => {
         currentWeekStart = getMonday(new Date());
