@@ -565,8 +565,19 @@ export const renderProgramaTab = async (container) => {
     };
 
     container.querySelector('#btn-reception-prog').onclick = async () => {
-        const assigned = territorios.filter(t => t.estado === 'Asignado');
-        if (assigned.length === 0) return showNotification("No hay territorios asignados actualmente", "info");
+        // Filter by currently viewed week
+        const monday = new Date(currentWeekStart);
+        monday.setHours(0, 0, 0, 0);
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 7);
+
+        const assigned = territorios.filter(t => {
+            if (t.estado !== 'Asignado' || !t.fecha_asignacion) return false;
+            const d = new Date(t.fecha_asignacion);
+            return d >= monday && d < sunday;
+        });
+
+        if (assigned.length === 0) return showNotification("No hay territorios asignados en la semana seleccionada", "info");
 
         showModal(`
             <div class="p-8 space-y-8 bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden">
