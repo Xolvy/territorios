@@ -676,7 +676,9 @@ export const renderProgramaTab = async (container) => {
             ['manana', 'tarde', 'noche', 'zoom'].forEach(turnoId => {
                 const data = dia[turnoId];
                 if (data && data.territorio && data.conductor) {
-                    const tInfo = territoryMap[data.territorio];
+                    // Try to find the territory, trimming any spaces
+                    const tNum = String(data.territorio).trim();
+                    const tInfo = territoryMap[tNum];
                     if (tInfo) {
                         toSync.push({ dayIdx, turnoId, dia, data, tInfo });
                     }
@@ -700,22 +702,22 @@ export const renderProgramaTab = async (container) => {
 
                 <div class="flex justify-between items-center mt-4">
                     <p class="text-[11px] font-bold text-slate-500 uppercase px-1">Seleccione las asignaciones:</p>
-                    <button id="sync-select-all" class="px-6 py-3 bg-slate-100 dark:bg-white/5 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 hover:text-primary transition-all border border-slate-200/50">Deseleccionar</button>
+                    <button id="sync-select-all" class="px-6 py-3 bg-slate-100 dark:bg-white/5 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 hover:text-primary transition-all border border-slate-200/50">Deseleccionar Todo</button>
                 </div>
                 <div class="space-y-3 max-h-[350px] overflow-y-auto custom-scrollbar pr-2">
                     ${toSync.map((item, idx) => {
             const isSync = item.tInfo && item.tInfo.estado === 'Asignado' && item.tInfo.asignado_a === item.data.conductor;
             return `
-                        <label class="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border ${isSync ? 'border-emerald-500/10 opacity-70' : 'border-slate-100 dark:border-white/5'} flex items-center justify-between group cursor-pointer hover:bg-white dark:hover:bg-white/5 transition-all">
+                        <label class="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border ${isSync ? 'border-emerald-500/10' : 'border-slate-100 dark:border-white/5'} flex items-center justify-between group cursor-pointer hover:bg-white dark:hover:bg-white/5 transition-all">
                             <div class="flex items-center gap-4">
-                                <input type="checkbox" class="sync-check w-5 h-5 rounded accent-emerald-500" value="${idx}" ${!isSync ? 'checked' : ''}>
+                                <input type="checkbox" class="sync-check w-5 h-5 rounded accent-emerald-500" value="${idx}" checked>
                                 <div class="w-10 h-10 bg-primary/10 text-primary flex items-center justify-center rounded-xl font-black text-xs">${item.data.territorio}</div>
                                 <div class="flex flex-col">
                                     <span class="text-xs font-black text-slate-800 dark:text-white uppercase">${item.data.conductor}</span>
-                                    <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">${item.dia.nombre} ${isSync ? '• (Ya asignado)' : ''}</span>
+                                    <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">${item.dia.nombre} ${isSync ? '• (Ya registrado)' : ''}</span>
                                 </div>
                             </div>
-                            ${isSync ? '<i class="fas fa-check-circle text-emerald-500 opacity-40"></i>' : '<i class="fas fa-arrow-right text-slate-200"></i>'}
+                            <i class="fas ${isSync ? 'fa-check-circle text-emerald-500 opacity-40' : 'fa-arrow-right text-slate-200'}"></i>
                         </label>
                     `}).join('')}
                 </div>
@@ -728,16 +730,24 @@ export const renderProgramaTab = async (container) => {
                     <input type="date" id="sync-all-date" value="${(() => {
                 const d = new Date(currentWeekStart);
                 d.setDate(d.getDate() - 1);
-                return d.toISOString().split('T')[0];
+                // Local date string YYYY-MM-DD
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
             })()}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[14px] font-black text-primary outline-none focus:border-primary transition-all uppercase shadow-inner">
                     <p class="text-[9px] text-slate-400 font-bold uppercase tracking-tight ml-1 leading-relaxed">
-                        Esta fecha se usará para el registro histórico (S-13). Por defecto hemos seleccionado el Domingo anterior al inicio de esta semana (${new Date(new Date(currentWeekStart).setDate(new Date(currentWeekStart).getDate() - 1)).toLocaleDateString('es-ES', { day: '2-digit', month: 'long' })}).
+                        Esta fecha se usará para el registro histórico (S-13). Por defecto hemos seleccionado el Domingo anterior al inicio de esta semana (${(() => {
+                const d = new Date(currentWeekStart);
+                d.setDate(d.getDate() - 1);
+                return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'long' });
+            })()}).
                     </p>
                 </div>
 
                  <div class="flex gap-4 pt-6 border-t border-slate-50 dark:border-white/5">
                     <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest">Cerrar</button>
-                    <button id="confirm-sync-all" class="flex-[2] py-5 bg-emerald-500 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-emerald-500/20 hover:scale-[1.02] active:scale-95 transition-all">PROCESAR ${toSync.length} REGISTROS</button>
+                    <button id="confirm-sync-all" class="flex-[2] py-5 bg-emerald-500 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-emerald-500/20 hover:scale-[1.02] active:scale-95 transition-all">Formalizar Selección</button>
                 </div>
             </div>
         `, (modal) => {
@@ -745,7 +755,7 @@ export const renderProgramaTab = async (container) => {
             modal.querySelector('#sync-select-all').onclick = () => {
                 syncSelected = !syncSelected;
                 modal.querySelectorAll('.sync-check').forEach(cb => cb.checked = syncSelected);
-                modal.querySelector('#sync-select-all').innerText = syncSelected ? 'Deseleccionar' : 'Seleccionar Todo';
+                modal.querySelector('#sync-select-all').innerText = syncSelected ? 'Deseleccionar Todo' : 'Seleccionar Todo';
             };
 
             modal.querySelector('#confirm-sync-all').onclick = async (e) => {
