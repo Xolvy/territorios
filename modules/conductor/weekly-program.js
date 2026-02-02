@@ -1,6 +1,6 @@
 import { getSafeDateId, showNotification } from '../utils/helpers.js';
-import { getProgramaSemanal, saveProgramaSemanal, syncSlotWithTerritories, getTerritorios } from '../data/firestore-services.js';
-import { renderFullProgramaCards } from './conductor/program-views.js';
+import { getProgramaSemanal, saveProgramaSemanal, syncSlotWithTerritories, getTerritorios } from '../../data/firestore-services.js';
+import { renderFullProgramaCards } from './program-views.js';
 
 export const initializeWeeklyProgram = (container, userMods, allTerritorios, territoryMap, name, currentWeekStart, activeDayIndex, activeTurns) => {
     if (userMods.programa === false) return;

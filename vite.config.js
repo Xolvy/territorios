@@ -67,7 +67,7 @@ export default defineConfig({
             }
         }),
         ViteImageOptimizer({
-            exclude: ['public/assets/mapa-general.jpg', 'public/assets/mapa_territorio.png'],
+            exclude: ['/assets/mapa-general.jpg', '/assets/mapa_territorio.png'],
             svg: {
                 multipass: true,
                 plugins: [
@@ -76,7 +76,6 @@ export default defineConfig({
                         params: {
                             overrides: {
                                 cleanupNumericValues: false,
-                                removeViewBox: false,
                             },
                         },
                     },

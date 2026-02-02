@@ -1,5 +1,5 @@
 import { showNotification } from '../utils/helpers.js';
-import { getTelefonos, updateTelefonoStatus, releaseUnusedTelefonos, solicitarNumeros, logSessionSummary } from '../data/firestore-services.js';
+import { getTelefonos, updateTelefonoStatus, releaseUnusedTelefonos, solicitarNumeros, logSessionSummary } from '../../data/firestore-services.js';
 import { showModal, showCustomConfirm, showCustomPrompt } from '../services/ui-helpers.js';
 import { AppConfig } from '../utils/config.js';
 
