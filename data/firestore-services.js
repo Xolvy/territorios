@@ -328,7 +328,9 @@ export const getTerritorios = async () => {
     return fetchCached('territorios', async () => {
         try {
             const querySnapshot = await getDocs(collection(db, "territorios"));
-            return querySnapshot.docs.map(doc => normalizeTerritorioData(doc.id, doc.data()));
+            const results = querySnapshot.docs.map(doc => normalizeTerritorioData(doc.id, doc.data()));
+            console.log(`🛡️ Xolvy Data Shield: Loaded ${results.length} territories.`);
+            return results;
         } catch (e) {
             console.error("Critical error fetching territories:", e);
             return [];

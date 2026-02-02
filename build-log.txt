@@ -1,0 +1,90 @@
+
+> app-territorios@2.4.1.0 build
+> vite build
+
+[36mvite v7.3.1 [32mbuilding client environment for production...[36m[39m
+transforming...
+modules/services/ui-components.js (60:23): "default" is not exported by "node_modules/animejs/dist/modules/index.js", imported by "modules/services/ui-components.js".
+modules/services/ui-components.js (61:16): "default" is not exported by "node_modules/animejs/dist/modules/index.js", imported by "modules/services/ui-components.js".
+[32mÔ£ô[39m 1197 modules transformed.
+rendering chunks...
+computing gzip size...
+[2mdist/[22m[32mregisterSW.js                           [39m[1m[2m    0.13 kB[22m[1m[22m
+[2mdist/[22m[32mmanifest.webmanifest                    [39m[1m[2m    0.38 kB[22m[1m[22m
+[2mdist/[22m[32mindex.html                              [39m[1m[2m    5.94 kB[22m[1m[22m[2m Ôöé gzip:   2.25 kB[22m
+[2mdist/[22m[32massets/fa-regular-400-BVHPE7da.woff2    [39m[1m[2m   18.99 kB[22m[1m[22m
+[2mdist/[22m[32massets/fa-brands-400-BfBXV7Mm.woff2     [39m[1m[2m  101.22 kB[22m[1m[22m
+[2mdist/[22m[32massets/fa-solid-900-8GirhLYJ.woff2      [39m[1m[2m  113.15 kB[22m[1m[22m
+[2mdist/[22m[35massets/index-iTLWesR1.css               [39m[1m[2m  208.39 kB[22m[1m[22m[2m Ôöé gzip:  51.25 kB[22m
+[2mdist/[22m[36massets/resources-view-BnL94rOz.js       [39m[1m[2m   10.45 kB[22m[1m[22m[2m Ôöé gzip:   2.71 kB[22m
+[2mdist/[22m[36massets/puntos-view-D3FewcCW.js          [39m[1m[2m   11.28 kB[22m[1m[22m[2m Ôöé gzip:   2.97 kB[22m
+[2mdist/[22m[36massets/reports-view-C2FHT7gO.js         [39m[1m[2m   15.12 kB[22m[1m[22m[2m Ôöé gzip:   3.96 kB[22m
+[2mdist/[22m[36massets/login-aFA8tu2M.js                [39m[1m[2m   15.87 kB[22m[1m[22m[2m Ôöé gzip:   4.19 kB[22m
+[2mdist/[22m[36massets/history-view-3WOcaIVP.js         [39m[1m[2m   18.90 kB[22m[1m[22m[2m Ôöé gzip:   4.05 kB[22m
+[2mdist/[22m[36massets/ui-helpers-BDudNb_u.js           [39m[1m[2m   19.51 kB[22m[1m[22m[2m Ôöé gzip:   4.83 kB[22m
+[2mdist/[22m[36massets/purify.es-B1AVwBo1.js            [39m[1m[2m   22.86 kB[22m[1m[22m[2m Ôöé gzip:   8.67 kB[22m
+[2mdist/[22m[36massets/personal-view-DoLmCj0T.js        [39m[1m[2m   26.34 kB[22m[1m[22m[2m Ôöé gzip:   5.60 kB[22m
+[2mdist/[22m[36massets/report-s13-DQFX_UKt.js           [39m[1m[2m   27.35 kB[22m[1m[22m[2m Ôöé gzip:   7.01 kB[22m
+[2mdist/[22m[36massets/program-view-BnIMtgtO.js         [39m[1m[2m   37.70 kB[22m[1m[22m[2m Ôöé gzip:   8.13 kB[22m
+[2mdist/[22m[36massets/index-Bb84WLSC.js                [39m[1m[2m   45.68 kB[22m[1m[22m[2m Ôöé gzip:  14.60 kB[22m
+[2mdist/[22m[36massets/admin-dashboard-Cv3g-Fso.js      [39m[1m[2m   97.40 kB[22m[1m[22m[2m Ôöé gzip:  17.91 kB[22m
+[2mdist/[22m[36massets/leaflet-vendor-7YezI1xC.js       [39m[1m[2m  149.97 kB[22m[1m[22m[2m Ôöé gzip:  43.30 kB[22m
+[2mdist/[22m[36massets/index.es-IYZobWDY.js             [39m[1m[2m  158.69 kB[22m[1m[22m[2m Ôöé gzip:  52.51 kB[22m
+[2mdist/[22m[36massets/conductor-dashboard-DXBFkzLy.js  [39m[1m[2m  160.51 kB[22m[1m[22m[2m Ôöé gzip:  36.22 kB[22m
+[2mdist/[22m[36massets/ui-vendor-dUo1xeU2.js            [39m[1m[2m  312.86 kB[22m[1m[22m[2m Ôöé gzip:  99.78 kB[22m
+[2mdist/[22m[36massets/firebase-vendor-Dq2FxjjH.js      [39m[1m[33m  578.59 kB[39m[22m[2m Ôöé gzip: 135.53 kB[22m
+[2mdist/[22m[36massets/utils-vendor-CAlbbVO0.js         [39m[1m[33m1,077.94 kB[39m[22m[2m Ôöé gzip: 328.03 kB[22m
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+[32mÔ£ô built in 17.96s[39m
+
+Ô£¿ [vite-plugin-compression]:algorithm=gzip - compressed file successfully: 
+dist/D:/_CODE/app-territorios/assets/history-view-3WOcaIVP.js.gz          18.45kb / gzip: 3.91kb
+dist/D:/_CODE/app-territorios/assets/login-aFA8tu2M.js.gz                 15.49kb / gzip: 4.08kb
+dist/D:/_CODE/app-territorios/assets/index-Bb84WLSC.js.gz                 44.61kb / gzip: 14.25kb
+dist/D:/_CODE/app-territorios/assets/puntos-view-D3FewcCW.js.gz           11.01kb / gzip: 2.89kb
+dist/D:/_CODE/app-territorios/assets/personal-view-DoLmCj0T.js.gz         25.72kb / gzip: 5.42kb
+dist/D:/_CODE/app-territorios/assets/purify.es-B1AVwBo1.js.gz             22.32kb / gzip: 8.46kb
+dist/D:/_CODE/app-territorios/assets/program-view-BnIMtgtO.js.gz          36.82kb / gzip: 7.89kb
+dist/D:/_CODE/app-territorios/assets/resources-view-BnL94rOz.js.gz        10.20kb / gzip: 2.63kb
+dist/D:/_CODE/app-territorios/assets/report-s13-DQFX_UKt.js.gz            26.71kb / gzip: 6.81kb
+dist/D:/_CODE/app-territorios/assets/reports-view-C2FHT7gO.js.gz          14.77kb / gzip: 3.84kb
+dist/D:/_CODE/app-territorios/index.html.gz                               5.80kb / gzip: 2.19kb
+dist/D:/_CODE/app-territorios/assets/ui-helpers-BDudNb_u.js.gz            19.05kb / gzip: 4.67kb
+dist/D:/_CODE/app-territorios/assets/admin-dashboard-Cv3g-Fso.js.gz       95.11kb / gzip: 17.29kb
+dist/D:/_CODE/app-territorios/assets/conductor-dashboard-DXBFkzLy.js.gz   156.75kb / gzip: 35.09kb
+dist/D:/_CODE/app-territorios/assets/leaflet-vendor-7YezI1xC.js.gz        146.46kb / gzip: 42.06kb
+dist/D:/_CODE/app-territorios/assets/index.es-IYZobWDY.js.gz              154.97kb / gzip: 51.11kb
+dist/D:/_CODE/app-territorios/manifest.json.gz                            1.80kb / gzip: 0.61kb
+dist/D:/_CODE/app-territorios/assets/index-iTLWesR1.css.gz                203.50kb / gzip: 49.50kb
+dist/D:/_CODE/app-territorios/assets/ui-vendor-dUo1xeU2.js.gz             305.53kb / gzip: 97.22kb
+dist/D:/_CODE/app-territorios/service-worker.js.gz                        4.11kb / gzip: 1.23kb
+dist/D:/_CODE/app-territorios/assets/firebase-vendor-Dq2FxjjH.js.gz       565.03kb / gzip: 132.06kb
+dist/D:/_CODE/app-territorios/assets/utils-vendor-CAlbbVO0.js.gz          1052.67kb / gzip: 319.48kb
+
+
+
+PWA v1.2.0
+mode      generateSW
+precache  29 entries (3598.64 KiB)
+files generated
+  dist/sw.js
+  dist/workbox-aaf7b92d.js
+
+Ô£¿ [36m[vite-plugin-image-optimizer][39m - optimized images successfully: 
+[2mdist[22m/[94micon-192.svg[39m  [90m[32m-28%[39m[90m   [39m [2m1.24 kB Ô¡ó  0.90 kB[22m
+[2mdist[22m/[94micon-512.svg[39m  [90m[32m-28%[39m[90m   [39m [2m1.24 kB Ô¡ó  0.90 kB[22m
+[2mdist[22m/[94mfavicon.svg[39m   [90m[32m-28%[39m[90m   [39m [2m1.24 kB Ô¡ó  0.90 kB[22m
+
+­ƒÆ░ total savings = [32m1.03kB[39m/[32m3.72kB[39m Ôëê [32m28%[39m
+
+
+
+­ƒÜ¿ [31m[vite-plugin-image-optimizer][39m - errors during optimization: 
+dist/assets/mapa-general.jpg      Input buffer contains unsupported image format
+dist/assets/mapa_territorio.png   Input buffer contains unsupported image format
+
+

@@ -31,10 +31,13 @@ export const initUpdateManager = () => {
         const localForceTimestamp = parseInt(localStorage.getItem('last_force_timestamp') || '0');
 
         // Check if we need to force an update
-        const versionMismatch = serverVersion !== APP_VERSION;
+        const versionMismatch = String(serverVersion) !== String(APP_VERSION);
         const forceRequired = serverForceTimestamp > localForceTimestamp;
 
+        console.log(`📡 Update Check: Local=${APP_VERSION}, Server=${serverVersion} | Force=${forceRequired}`);
+
         if (versionMismatch || forceRequired) {
+            console.log("🚀 Update Required! Triggering overlay...");
             if (data.forceUpdate) {
                 showPremiumUpdateOverlay(serverVersion, serverForceTimestamp);
             } else {

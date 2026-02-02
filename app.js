@@ -7,7 +7,7 @@ import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js';
 import { initUpdateManager } from './modules/utils/update-manager.js';
 
 // The version is injected by Vite at build time
-const APP_VERSION = __APP_VERSION__;
+const APP_VERSION = '2.4.1.2';
 
 // Lazy loaders for heavy modules
 const ModuleCache = {
