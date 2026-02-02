@@ -84,7 +84,7 @@ export const renderProgramaTab = async (container) => {
                     </div>
 
                     <div class="flex gap-2">
-                        <button id="btn-sync-all-prog" class="hidden xl:flex items-center gap-2 px-6 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-emerald-500/20 active:scale-95 group">
+                        <button id="btn-sync-all-prog" class="flex items-center gap-2 px-6 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-emerald-500/20 active:scale-95 group">
                             <i class="fas fa-project-diagram group-hover:rotate-12 transition-transform"></i>
                             Formalizar Asignaciones
                         </button>
@@ -456,8 +456,15 @@ export const renderProgramaTab = async (container) => {
                 </div>
 
                 <div class="space-y-4">
-                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">¿Cuándo se entregó la tarjeta física?</label>
-                    <input type="date" id="sync-asig-date" value="${new Date().toISOString().split('T')[0]}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[14px] font-black text-primary outline-none focus:border-primary transition-all uppercase shadow-inner">
+                    <div class="flex items-center justify-between">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">¿Cuándo se asignó físicamente?</label>
+                        <span class="text-[9px] font-bold text-primary uppercase bg-primary/5 px-2 py-0.5 rounded">Sugerencia S-13: Domingo anterior</span>
+                    </div>
+                    <input type="date" id="sync-asig-date" value="${(() => {
+                const d = new Date(currentWeekStart);
+                d.setDate(d.getDate() - 1);
+                return d.toISOString().split('T')[0];
+            })()}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[14px] font-black text-primary outline-none focus:border-primary transition-all uppercase shadow-inner">
                 </div>
 
                 <div class="flex gap-4 pt-6 border-t border-slate-50 dark:border-white/5">
@@ -691,8 +698,18 @@ export const renderProgramaTab = async (container) => {
                 </div>
 
                 <div class="space-y-4">
-                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Fecha Global de Asignación</label>
-                    <input type="date" id="sync-all-date" value="${new Date().toISOString().split('T')[0]}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[14px] font-black text-primary outline-none focus:border-primary transition-all uppercase shadow-inner">
+                    <div class="flex items-center justify-between">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Fecha Global de Asignación</label>
+                        <span class="text-[9px] font-bold text-emerald-500 uppercase bg-emerald-500/5 px-2 py-0.5 rounded">Recomendado: Domingo anterior</span>
+                    </div>
+                    <input type="date" id="sync-all-date" value="${(() => {
+                const d = new Date(currentWeekStart);
+                d.setDate(d.getDate() - 1);
+                return d.toISOString().split('T')[0];
+            })()}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[14px] font-black text-primary outline-none focus:border-primary transition-all uppercase shadow-inner">
+                    <p class="text-[9px] text-slate-400 font-bold uppercase tracking-tight ml-1 leading-relaxed">
+                        Esta fecha se usará para el registro histórico (S-13). Por defecto hemos seleccionado el Domingo anterior al inicio de esta semana (${new Date(new Date(currentWeekStart).setDate(new Date(currentWeekStart).getDate() - 1)).toLocaleDateString('es-ES', { day: '2-digit', month: 'long' })}).
+                    </p>
                 </div>
 
                  <div class="flex gap-4 pt-6 border-t border-slate-50 dark:border-white/5">
