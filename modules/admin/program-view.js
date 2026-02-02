@@ -675,13 +675,10 @@ export const renderProgramaTab = async (container) => {
         programa.dias.forEach((dia, dayIdx) => {
             ['manana', 'tarde', 'noche', 'zoom'].forEach(turnoId => {
                 const data = dia[turnoId];
-                if (data && data.territorio && data.conductor) {
-                    // Try to find the territory, trimming any spaces
+                if (data && data.territorio) {
                     const tNum = String(data.territorio).trim();
-                    const tInfo = territoryMap[tNum];
-                    if (tInfo) {
-                        toSync.push({ dayIdx, turnoId, dia, data, tInfo });
-                    }
+                    const tInfo = territoryMap[tNum] || null;
+                    toSync.push({ dayIdx, turnoId, dia, data, tInfo });
                 }
             });
         });
@@ -689,7 +686,7 @@ export const renderProgramaTab = async (container) => {
         if (toSync.length === 0) return showNotification("No hay asignaciones programadas para formalizar", "info");
 
         showModal(`
-            <div class="p-8 space-y-8 max-w-xl">
+            <div class="flex flex-col max-h-[80vh] p-6 space-y-4">
                 <header class="flex items-center gap-6">
                     <div class="w-16 h-16 bg-emerald-500/10 rounded-3xl flex items-center justify-center text-3xl text-emerald-500 shadow-inner">
                         <i class="fas fa-project-diagram"></i>
@@ -704,20 +701,29 @@ export const renderProgramaTab = async (container) => {
                     <p class="text-[11px] font-bold text-slate-500 uppercase px-1">Seleccione las asignaciones:</p>
                     <button id="sync-select-all" class="px-6 py-3 bg-slate-100 dark:bg-white/5 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 hover:text-primary transition-all border border-slate-200/50">Deseleccionar Todo</button>
                 </div>
-                <div class="space-y-3 max-h-[350px] overflow-y-auto custom-scrollbar pr-2">
-                    ${toSync.map((item, idx) => {
+                <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
+                        ${toSync.map((item, idx) => {
             const isSync = item.tInfo && item.tInfo.estado === 'Asignado' && item.tInfo.asignado_a === item.data.conductor;
+            const exists = !!item.tInfo;
+            const hasConductor = !!item.data.conductor;
+            const canSync = exists && hasConductor;
+
             return `
-                        <label class="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border ${isSync ? 'border-emerald-500/10' : 'border-slate-100 dark:border-white/5'} flex items-center justify-between group cursor-pointer hover:bg-white dark:hover:bg-white/5 transition-all">
-                            <div class="flex items-center gap-4">
-                                <input type="checkbox" class="sync-check w-5 h-5 rounded accent-emerald-500" value="${idx}" checked>
-                                <div class="w-10 h-10 bg-primary/10 text-primary flex items-center justify-center rounded-xl font-black text-xs">${item.data.territorio}</div>
+                        <label class="p-3 bg-slate-50 dark:bg-white/5 rounded-xl border ${isSync ? 'border-emerald-500/10 opacity-70' : (canSync ? 'border-slate-100 dark:border-white/5' : 'border-amber-500/30')} flex items-center justify-between group cursor-pointer hover:bg-white dark:hover:bg-white/5 transition-all">
+                            <div class="flex items-center gap-3">
+                                <input type="checkbox" class="sync-check w-4 h-4 rounded accent-emerald-500" value="${idx}" ${canSync && !isSync ? 'checked' : ''} ${!canSync ? 'disabled' : ''}>
+                                <div class="w-8 h-8 ${exists ? 'bg-primary/10 text-primary' : 'bg-amber-500/10 text-amber-500'} flex items-center justify-center rounded-lg font-black text-[10px] shrink-0">${item.data.territorio}</div>
                                 <div class="flex flex-col">
-                                    <span class="text-xs font-black text-slate-800 dark:text-white uppercase">${item.data.conductor}</span>
-                                    <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">${item.dia.nombre} ${isSync ? '• (Ya registrado)' : ''}</span>
+                                    <span class="text-[11px] font-black text-slate-800 dark:text-white uppercase leading-tight">${item.data.conductor || 'Sin Conductor'}</span>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[7px] font-bold text-slate-400 uppercase tracking-widest">${item.dia.nombre}</span>
+                                        ${isSync ? '<span class="text-[7px] font-black text-emerald-500 uppercase bg-emerald-500/10 px-1 py-0.5 rounded">Listo</span>' : ''}
+                                        ${!exists ? '<span class="text-[7px] font-black text-amber-500 uppercase bg-amber-500/10 px-1 py-0.5 rounded">No en Inventario</span>' : ''}
+                                        ${exists && !hasConductor ? '<span class="text-[7px] font-black text-amber-500 uppercase bg-amber-500/10 px-1 py-0.5 rounded">Falta Conductor</span>' : ''}
+                                    </div>
                                 </div>
                             </div>
-                            <i class="fas ${isSync ? 'fa-check-circle text-emerald-500 opacity-40' : 'fa-arrow-right text-slate-200'}"></i>
+                            <i class="fas ${isSync ? 'fa-check-circle text-emerald-500/30' : (canSync ? 'fa-arrow-right text-slate-200' : 'fa-exclamation-triangle text-amber-500')} text-[10px]"></i>
                         </label>
                     `}).join('')}
                 </div>
@@ -745,9 +751,9 @@ export const renderProgramaTab = async (container) => {
                     </p>
                 </div>
 
-                 <div class="flex gap-4 pt-6 border-t border-slate-50 dark:border-white/5">
-                    <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest">Cerrar</button>
-                    <button id="confirm-sync-all" class="flex-[2] py-5 bg-emerald-500 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-emerald-500/20 hover:scale-[1.02] active:scale-95 transition-all">Formalizar Selección</button>
+                 <div class="flex gap-4 pt-4 border-t border-slate-50 dark:border-white/5 shrink-0">
+                    <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="flex-1 py-4 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-lg text-[10px] uppercase tracking-widest">Cerrar</button>
+                    <button id="confirm-sync-all" class="flex-[2] py-4 bg-emerald-500 text-white font-black rounded-lg text-[10px] uppercase tracking-widest shadow-xl shadow-emerald-500/20 hover:scale-[1.02] transition-all">Formalizar Selección</button>
                 </div>
             </div>
         `, (modal) => {
@@ -774,6 +780,10 @@ export const renderProgramaTab = async (container) => {
 
                 for (const idx of checkedIdxs) {
                     const item = toSync[idx];
+                    if (!item.tInfo || !item.data.conductor) {
+                        console.warn(`Skipping invalid item: ${item.data.territorio}`);
+                        continue;
+                    }
                     await assignTerritorio(item.tInfo.id, item.data.conductor, {
                         fecha_asignacion: new Date(date + 'T12:00:00Z').toISOString(),
                         lugar: item.data.lugar || null,
