@@ -228,18 +228,17 @@ export const renderProgramaTab = async (container) => {
         const activeConductors = freshPersonnel.filter(p => p.es_conductor).sort((a, b) => a.nombre.localeCompare(b.nombre));
 
         const tableContainer = container.querySelector('#admin-prog-table');
-        const isWeekend = dia.nombre === 'Sábado' || dia.nombre === 'Domingo';
-        const turnos = [
-            { id: 'manana', icon: 'fa-sun', label: 'Mañana', color: 'text-amber-500', bg: 'bg-amber-500/10', fields: ['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', ...(isWeekend ? ['Grupos'] : []), 'Territorio'] },
-            { id: 'tarde', icon: 'fa-cloud-sun', label: 'Tarde', color: 'text-orange-500', bg: 'bg-orange-500/10', fields: ['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', ...(isWeekend ? ['Grupos'] : []), 'Territorio'] },
-            { id: 'noche', icon: 'fa-moon', label: 'Noche', color: 'text-indigo-500', bg: 'bg-indigo-500/10', fields: ['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', ...(isWeekend ? ['Grupos'] : []), 'Territorio'] },
-            { id: 'zoom', icon: 'fa-video', label: 'Zoom', color: 'text-emerald-500', bg: 'bg-emerald-500/10', fields: ['Lugar', 'Hora', 'Conductor', 'Faceta'] }
-        ];
-
         let html = `<div class="space-y-12 pb-20">`;
-
         programa.dias.forEach((dia, dayIndex) => {
             if (activeDayIndex !== -1 && activeDayIndex !== dayIndex) return;
+
+            const isWeekend = dia.nombre === 'Sábado' || dia.nombre === 'Domingo';
+            const turnos = [
+                { id: 'manana', icon: 'fa-sun', label: 'Mañana', color: 'text-amber-500', bg: 'bg-amber-500/10', fields: ['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', ...(isWeekend ? ['Grupos'] : []), 'Territorio'] },
+                { id: 'tarde', icon: 'fa-cloud-sun', label: 'Tarde', color: 'text-orange-500', bg: 'bg-orange-500/10', fields: ['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', ...(isWeekend ? ['Grupos'] : []), 'Territorio'] },
+                { id: 'noche', icon: 'fa-moon', label: 'Noche', color: 'text-indigo-500', bg: 'bg-indigo-500/10', fields: ['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', ...(isWeekend ? ['Grupos'] : []), 'Territorio'] },
+                { id: 'zoom', icon: 'fa-video', label: 'Zoom', color: 'text-emerald-500', bg: 'bg-emerald-500/10', fields: ['Lugar', 'Hora', 'Conductor', 'Faceta'] }
+            ];
 
             html += `
                 <div class="day-group animate-fade-in px-4 md:px-8 ${activeDayIndex === -1 && dayIndex > 0 ? 'mt-20 md:mt-32' : 'mt-6 md:mt-10'}">
