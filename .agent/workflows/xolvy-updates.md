@@ -210,4 +210,28 @@ Corruption in Firestore data (e.g., territory numbers with leading/trailing spac
 | **MIME Error in Build** | Check `app.js` and `glob` usage; ensure Vite is bundling the dynamic targets correctly. |
 
 ---
-Protocol Update: v2.4.3.1
+
+## 9. CI/CD Automated Deployment & Version Sync
+
+To eliminate manual human error and ensure Firestore version metadata always matches the deployed code, the system utilizes a GitHub-integrated CI/CD pipeline.
+
+### 1. The Automation Script
+
+The file `scripts/sync-version-auto.js` uses the `firebase-admin` SDK to programmatically update the `version_control` collection. It automatically reads the current version from `package.json`.
+
+### 2. GitHub Actions Integration
+
+The `.github/workflows/firebase-deploy.yml` workflow includes an extra step: **"Auto-update Firestore Version"**. This step:
+
+- Executes immediately after a successful deployment to Firebase Hosting.
+- Receives a Service Account key via GitHub Secrets.
+- Forces the new `latestVersion` and `forceTimestamp` globally.
+
+### 3. Developer Requirements
+
+- **Version Bumping**: Developers must increment the `version` field in `package.json` for every deployment.
+- **HMS Bumping**: If only specific modules changed without a shell update, increment their version in `modules/utils/module-registry.js`.
+- **Secrets Management**: The `FIREBASE_SERVICE_ACCOUNT` secret must be valid in the GitHub repository settings.
+
+---
+Protocol Update: v2.4.3.3

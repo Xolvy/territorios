@@ -83,46 +83,68 @@ document.addEventListener('DOMContentLoaded', async () => {
     XolvyAdaptive.init();
 
     const handleAuthChange = async (user) => {
-        appContainer.innerHTML = '<div class="flex items-center justify-center min-h-screen"><div class="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div></div>';
-        const path = window.location.pathname;
+        try {
+            appContainer.innerHTML = '<div class="flex items-center justify-center min-h-screen"><div class="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div></div>';
+            const path = window.location.pathname;
 
-        if (user) {
-            if (user.isAnonymous) {
-                const storedRole = localStorage.getItem('demo_role');
-                const storedName = localStorage.getItem('selected_conductor_name');
-                if (storedRole === 'Conductor') {
-                    if (!path.startsWith('/conductores')) window.history.replaceState({}, '', '/conductores');
-                    const render = await loadConductor();
-                    render(appContainer, storedName || 'Conductor', APP_VERSION, storedRole);
+            if (user) {
+                if (user.isAnonymous) {
+                    const storedRole = localStorage.getItem('demo_role');
+                    const storedName = localStorage.getItem('selected_conductor_name');
+                    if (storedRole === 'Conductor') {
+                        if (!path.startsWith('/conductores')) window.history.replaceState({}, '', '/conductores');
+                        const render = await loadConductor();
+                        render(appContainer, storedName || 'Conductor', APP_VERSION, storedRole);
+                        return;
+                    }
+                }
+
+                const permisos = await getPermisosUsuario(user.email);
+                let role = permisos?.role || localStorage.getItem('demo_role');
+
+                if (!role) {
+                    await auth.signOut();
+                    const render = await loadLogin();
+                    render(appContainer, APP_VERSION);
                     return;
                 }
-            }
 
-            const permisos = await getPermisosUsuario(user.email);
-            let role = permisos?.role || localStorage.getItem('demo_role');
-
-            if (!role) {
-                await auth.signOut();
+                const isAdmin = (role === 'Administrador' || role === 'SuperAdmin');
+                if (isAdmin && !path.startsWith('/conductores')) {
+                    const subPath = path.split('/')[2] || 'dashboard';
+                    const urlToTab = { 'territorios': 'casa-en-casa', 'predicacion': 'predicacion', 'telefonos': 'telefonos', 'config': 'config' };
+                    const tabId = urlToTab[subPath] || 'dashboard';
+                    const render = await loadAdmin();
+                    render(appContainer, APP_VERSION, tabId);
+                } else {
+                    if (!path.startsWith('/conductores')) window.history.replaceState({}, '', '/conductores');
+                    const render = await loadConductor();
+                    render(appContainer, user.email || 'Usuario', APP_VERSION, role);
+                }
+            } else {
                 const render = await loadLogin();
                 render(appContainer, APP_VERSION);
-                return;
             }
-
-            const isAdmin = (role === 'Administrador' || role === 'SuperAdmin');
-            if (isAdmin && !path.startsWith('/conductores')) {
-                const subPath = path.split('/')[2] || 'dashboard';
-                const urlToTab = { 'territorios': 'casa-en-casa', 'predicacion': 'predicacion', 'telefonos': 'telefonos', 'config': 'config' };
-                const tabId = urlToTab[subPath] || 'dashboard';
-                const render = await loadAdmin();
-                render(appContainer, APP_VERSION, tabId);
-            } else {
-                if (!path.startsWith('/conductores')) window.history.replaceState({}, '', '/conductores');
-                const render = await loadConductor();
-                render(appContainer, user.email || 'Usuario', APP_VERSION, role);
-            }
-        } else {
-            const render = await loadLogin();
-            render(appContainer, APP_VERSION);
+        } catch (e) {
+            console.error("🚀 [Boot] Critical Auth/Render Error:", e);
+            appContainer.innerHTML = `
+                <div class="flex flex-col items-center justify-center min-h-screen p-10 text-center">
+                    <div class="w-20 h-20 bg-rose-500/10 text-rose-500 rounded-3xl flex items-center justify-center text-3xl mb-6 shadow-xl"><i class="fas fa-biohazard animate-pulse"></i></div>
+                    <h2 class="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Colapso del Núcleo</h2>
+                    <p class="text-slate-500 dark:text-slate-400 max-w-md mt-4 font-bold text-sm">Detectamos un error crítico que impide la conexión con la base de datos. Esto suele ocurrir por corrupción en el almacenamiento del navegador.</p>
+                    <div class="bg-slate-50 dark:bg-black/20 p-6 rounded-2xl w-full max-w-lg mt-8 border border-slate-100 dark:border-white/5 text-left overflow-auto max-h-40">
+                        <p class="text-[10px] font-mono text-rose-400 leading-relaxed">${e.message}</p>
+                    </div>
+                    <div class="flex flex-wrap justify-center gap-4 mt-10">
+                        <button onclick="location.reload()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-10 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl shadow-indigo-500/20 transition-all active:scale-95">
+                            <i class="fas fa-sync-alt mr-2"></i> Reintentar
+                        </button>
+                        <button onclick="window.repairSystem()" class="bg-slate-900 dark:bg-white/10 hover:bg-slate-800 text-white px-10 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl transition-all active:scale-95 border border-white/5">
+                            <i class="fas fa-tools mr-2"></i> Reparar Núcleo
+                        </button>
+                    </div>
+                </div>
+            `;
         }
     };
 

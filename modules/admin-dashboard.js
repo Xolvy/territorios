@@ -215,7 +215,14 @@ const loadTab = async (tabName, appVersion) => {
                 <div class="w-16 h-16 bg-rose-500/10 text-rose-500 rounded-2xl flex items-center justify-center text-2xl"><i class="fas fa-triangle-exclamation"></i></div>
                 <h4 class="text-sm font-black uppercase text-slate-800 dark:text-white">Error de Carga</h4>
                 <p class="text-xs text-slate-400 max-w-xs">${e.message}</p>
-                <button onclick="location.reload()" class="bg-primary px-6 py-2 rounded-xl text-[10px] font-black uppercase text-white tracking-widest mt-4">Reintentar</button>
+                <div class="flex flex-wrap justify-center gap-3 mt-4">
+                    <button onclick="location.reload()" class="bg-primary px-8 py-3 rounded-xl text-[10px] font-black uppercase text-white tracking-widest shadow-lg shadow-primary/20 transition-all active:scale-95">
+                        <i class="fas fa-sync-alt mr-2"></i> Reintentar
+                    </button>
+                    <button onclick="window.repairSystem()" class="bg-slate-800 dark:bg-slate-700 px-8 py-3 rounded-xl text-[10px] font-black uppercase text-white tracking-widest shadow-lg transition-all active:scale-95">
+                        <i class="fas fa-tools mr-2"></i> Reparar Sistema
+                    </button>
+                </div>
             </div>
         `;
     }

@@ -60,29 +60,40 @@ try {
   firestoreDb = getFirestore(app);
 }
 
-// Global Error Listener for Firebase Persistence Corruptions
+// Global Error Listener for Firebase Persistence Corruptions (Refined)
+const triggerEmergencyRecovery = () => {
+  console.error("🔥 Persistence Corruption Detected. Triggering emergency recovery...");
+
+  // Recovery: Disable persistence for the next boot and purge
+  localStorage.setItem('xolvy_purge_executed', Date.now().toString());
+  localStorage.setItem('xolvy_disable_persistence', 'true');
+
+  // Critical: Clean up what we can now
+  if ('caches' in window) {
+    caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+  }
+
+  if (window.indexedDB) {
+    window.indexedDB.deleteDatabase("firestore/[DEFAULT]/territorios-jw/main");
+  }
+
+  // Force reload with cache busting
+  setTimeout(() => {
+    window.location.href = `${window.location.pathname}?rescue=${Date.now()}`;
+  }, 1000);
+};
+
 window.addEventListener('unhandledrejection', event => {
   const msg = event.reason?.message || '';
-  if (msg.includes('IndexedDB database data') || msg.includes('refusing to open IndexedDB')) {
-    console.error("🔥 Persistence Corruption Detected. Triggering emergency recovery...");
+  if (msg.includes('IndexedDB') || msg.includes('refusing to open IndexedDB')) {
+    triggerEmergencyRecovery();
+  }
+});
 
-    // Recovery: Disable persistence for the next boot and purge
-    localStorage.setItem('xolvy_purge_executed', Date.now().toString());
-    localStorage.setItem('xolvy_disable_persistence', 'true');
-
-    // Critical: Clean up what we can now
-    if ('caches' in window) {
-      caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
-    }
-
-    if (window.indexedDB) {
-      window.indexedDB.deleteDatabase("firestore/[DEFAULT]/territorios-jw/main");
-    }
-
-    setTimeout(() => {
-      // Force reload with cache busting
-      window.location.href = `${window.location.pathname}?rescue=${Date.now()}`;
-    }, 1500);
+window.addEventListener('error', event => {
+  const msg = event.message || '';
+  if (msg.includes('IndexedDB') || msg.includes('refusing to open IndexedDB') || msg.includes('code=unavailable')) {
+    triggerEmergencyRecovery();
   }
 });
 

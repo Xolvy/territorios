@@ -148,7 +148,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
                     <div class="hidden sm:flex flex-col items-end mr-4 text-right">
                          <p class="text-[8px] font-black text-slate-400 uppercase tracking-[0.3em] mb-0.5">Versión</p>
-                     <p class="text-[10px] font-black text-slate-800 dark:text-white tabular-nums">${appVersion || '2.4.3.3'}</p>
+                     <p class="text-[10px] font-black text-slate-800 dark:text-white tabular-nums">${appVersion || '2.4.3.4'}</p>
                     </div>
                     ${(userRole === 'Administrador' || userRole === 'SuperAdmin' || conductorData?.privilegios?.includes('Administrador')) ? `
                     <button id="btn-goto-admin" class="flex-1 md:flex-none bg-amber-500/10 hover:bg-amber-500 text-amber-600 hover:text-white px-4 md:px-6 py-3.5 rounded-xl border border-amber-500/20 transition-all font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95 min-w-0">
@@ -566,7 +566,21 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
             }
         } catch (e) {
             console.error("Refresh error", e);
-            showNotification("Error al refrescar la vista", "error");
+            container.innerHTML = `
+                 <div class="flex flex-col items-center justify-center py-32 text-center space-y-4 px-6">
+                    <div class="w-16 h-16 bg-rose-500/10 text-rose-500 rounded-2xl flex items-center justify-center text-2xl"><i class="fas fa-triangle-exclamation"></i></div>
+                    <h4 class="text-sm font-black uppercase text-slate-800 dark:text-white">Error de Carga</h4>
+                    <p class="text-xs text-slate-400 max-w-xs">${e.message}</p>
+                    <div class="flex flex-wrap justify-center gap-3 mt-4">
+                        <button onclick="location.reload()" class="bg-indigo-600 px-8 py-3 rounded-xl text-[10px] font-black uppercase text-white tracking-widest shadow-lg shadow-indigo-500/20 transition-all active:scale-95">
+                            <i class="fas fa-sync-alt mr-2"></i> Reintentar
+                        </button>
+                        <button onclick="window.repairSystem()" class="bg-slate-800 dark:bg-slate-700 px-8 py-3 rounded-xl text-[10px] font-black uppercase text-white tracking-widest shadow-lg transition-all active:scale-95">
+                            <i class="fas fa-tools mr-2"></i> Reparar Sistema
+                        </button>
+                    </div>
+                </div>
+            `;
         }
     };
 

@@ -27,7 +27,7 @@
     <!-- Emergency Power-Up: Hard Sync if stuck -->
     <script>
         (function () {
-            const CURRENT_BUILD = "2.4.3.3";
+            const CURRENT_BUILD = "2.4.3.4";
             try {
                 const lastForce = localStorage.getItem('last_force_sync');
                 const now = Date.now();
@@ -42,6 +42,9 @@
             window.repairSystem = async function () {
                 console.warn("🚨 Emergency Repair Triggered");
                 try {
+                    localStorage.setItem('xolvy_purge_executed', Date.now().toString());
+                    localStorage.setItem('xolvy_disable_persistence', 'true');
+
                     if ('serviceWorker' in navigator) {
                         const regs = await navigator.serviceWorker.getRegistrations();
                         for (let r of regs) await r.unregister();
@@ -50,9 +53,15 @@
                         const keys = await caches.keys();
                         await Promise.all(keys.map(k => caches.delete(k)));
                     }
-                    localStorage.clear();
                     sessionStorage.clear();
-                    window.indexedDB.deleteDatabase("firestore/[DEFAULT]/territorios-jw/main");
+                    // Keep selective localStorage but clear potentially corrupt keys
+                    localStorage.removeItem('firestore_clients');
+
+                    if (window.indexedDB) {
+                        window.indexedDB.deleteDatabase("firestore/[DEFAULT]/territorios-jw/main");
+                        window.indexedDB.deleteDatabase("firebase-heartbeat-database");
+                        window.indexedDB.deleteDatabase("firebase-installations-database");
+                    }
                 } catch (e) { console.error("Repair failed", e); }
                 window.location.href = window.location.pathname + '?repair=done&v=' + Date.now();
             };
