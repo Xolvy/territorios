@@ -7,6 +7,7 @@ import { showNotification } from './utils/helpers.js';
 import { GlassButton } from './services/ui-components.js';
 
 import { moduleRegistry } from './utils/module-registry.js';
+import { XolvyAdaptive } from './utils/adaptive.js';
 
 // --- MICRO-MODULE LOADER ---
 const SubModuleCache = new Map();
@@ -143,6 +144,7 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
 
         setupNavigation(appVersion);
         loadTab(initialTab, appVersion);
+        XolvyAdaptive.refresh();
 
     } catch (e) {
         console.error("Admin Boot Error:", e);
@@ -183,6 +185,7 @@ const setupNavigation = (appVersion) => {
 
             window.history.pushState({}, '', `/administrador/${urlMap[tabId] || 'dashboard'}`);
             loadTab(tabId, appVersion);
+            XolvyAdaptive.refresh();
         };
     });
 };
@@ -217,6 +220,7 @@ const loadTab = async (tabName, appVersion) => {
                 await mAnalytics.renderAnalyticsView(contentDiv, appVersion);
                 break;
         }
+        XolvyAdaptive.refresh();
     } catch (e) {
         contentDiv.innerHTML = `
             <div class="flex flex-col items-center justify-center py-32 text-center space-y-4">

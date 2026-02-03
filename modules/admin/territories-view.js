@@ -8,18 +8,18 @@ export const renderCasaEnCasaTab = async (container, config, appVersion) => {
 
     container.innerHTML = `
         <div class="space-y-6 md:space-y-8 animate-fade-in px-1 md:px-6" data-adaptive-container="true">
-            <header class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6" data-mobile-order="1">
+            <header class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6" data-mobile-order="1" data-desktop-order="1">
                 <div class="flex items-center gap-4 md:gap-6">
                     <div class="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center text-white text-2xl shadow-xl shadow-primary/30 border border-primary/20 shrink-0">
                         <i class="fas fa-home"></i>
                     </div>
                     <div>
-                        <h2 class="text-xl md:text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Territorios</h2>
-                        <p class="text-[9px] md:text-[10px] text-slate-500 font-extrabold uppercase tracking-widest mt-1">Gestión Casa en Casa</p>
+                        <h2 class="text-xl md:text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight leading-none">Territorios</h2>
+                        <p class="text-[9px] md:text-[10px] text-slate-500 font-extrabold uppercase tracking-widest mt-1.5">Gestión Casa en Casa</p>
                     </div>
                 </div>
 
-                <nav data-adaptive-scroll="true" class="flex flex-row overflow-x-auto scrollbar-hide items-center gap-1 bg-white/50 dark:bg-white/[0.03] p-1.5 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm w-full lg:w-auto backdrop-blur-xl">
+                <nav data-adaptive-scroll="true" class="flex flex-row items-center gap-1.5 bg-white/50 dark:bg-white/[0.03] p-1.5 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm w-full lg:w-max max-w-full overflow-x-auto scrollbar-hide backdrop-blur-xl shrink-0">
                     ${renderSubTab('programa', 'fas fa-calendar-check', 'Programa')}
                     ${renderSubTab('reportes', 'fas fa-chart-bar', 'REPORTES')}
                     ${renderSubTab('puntos', 'fas fa-map-marker-alt', 'ZONAS ESPECIALES')}
@@ -29,7 +29,7 @@ export const renderCasaEnCasaTab = async (container, config, appVersion) => {
                 </nav>
             </header>
             
-            <div id="casa-content" class="relative min-h-[60vh]"></div>
+            <div id="casa-content" class="relative min-h-[60vh]" data-mobile-order="2" data-desktop-order="2"></div>
         </div>
     `;
 
@@ -40,7 +40,7 @@ export const renderCasaEnCasaTab = async (container, config, appVersion) => {
         container.querySelectorAll('.sub-tab-casa').forEach(btn => {
             const isActive = btn.dataset.sub === sub;
             btn.classList.toggle('active', isActive);
-            btn.className = `sub-tab-casa group px-5 py-3 rounded-xl transition-all flex items-center gap-3 whitespace-nowrap font-extrabold border shadow-sm ${isActive ? 'bg-slate-900 dark:bg-white/10 text-white border-slate-800' : 'text-slate-600 dark:text-slate-400 border-transparent hover:bg-white dark:hover:bg-white/5'}`;
+            btn.className = `sub-tab-casa group px-5 py-3 rounded-xl transition-all flex items-center gap-3 whitespace-nowrap font-extrabold border shadow-sm ${isActive ? 'bg-slate-900 dark:bg-white/10 text-white border-slate-800 shadow-lg' : 'text-slate-600 dark:text-slate-400 border-transparent hover:bg-white dark:hover:bg-white/5'}`;
         });
 
         subContainer.innerHTML = `<div class="p-20 text-center opacity-30"><i class="fas fa-circle-notch fa-spin text-3xl"></i></div>`;
@@ -68,6 +68,9 @@ export const renderCasaEnCasaTab = async (container, config, appVersion) => {
                     await renderPersonalTab(subContainer, config, appVersion);
                     break;
             }
+            // Trigger adaptive engine after sub-module load
+            if (window.XolvyAdaptive) window.XolvyAdaptive.refresh();
+
         } catch (e) {
             console.error(e);
             subContainer.innerHTML = `<div class="p-20 text-center text-rose-500 font-bold uppercase tracking-widest text-xs">Error: ${e.message}</div>`;
@@ -79,6 +82,9 @@ export const renderCasaEnCasaTab = async (container, config, appVersion) => {
     });
 
     loadCasaSub('programa');
+
+    // Initial adaptive refresh
+    if (window.XolvyAdaptive) window.XolvyAdaptive.refresh();
 };
 
 const renderSubTab = (id, icon, label) => `

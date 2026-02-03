@@ -109,18 +109,18 @@ export const renderProgramaTab = async (container) => {
                          </button>
                     </div>
 
-                    <nav data-adaptive-scroll="true" class="flex items-center gap-2 bg-slate-100/50 dark:bg-white/5 p-1 rounded-2xl border border-slate-200/50 dark:border-white/5 shadow-sm">
-                        <button id="btn-sync-all-prog" class="btn-pro flex items-center gap-2 px-6 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-emerald-500/20 active:scale-95 group">
+                    <nav data-adaptive-scroll="true" class="flex items-center gap-2 bg-slate-100/50 dark:bg-white/5 p-1 rounded-2xl border border-slate-200/50 dark:border-white/5 shadow-sm w-full lg:w-max max-w-full overflow-x-auto scrollbar-hide shrink-0">
+                        <button id="btn-sync-all-prog" class="btn-pro flex items-center gap-2 px-6 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-emerald-500/20 active:scale-95 group shrink-0">
                             <i class="fas fa-project-diagram group-hover:rotate-12 transition-transform"></i>
                             Formalizar Asignaciones
                         </button>
 
-                        <button id="btn-reset-today" class="btn-pro bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 px-6 py-4 rounded-xl font-black hover:bg-slate-50 transition-all text-[10px] uppercase tracking-widest">Hoy</button>
-                        <button id="btn-reception-prog" class="btn-pro flex items-center gap-2 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-rose-500 px-6 py-4 rounded-xl font-black hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all text-[10px] uppercase tracking-widest group" title="Recibir territorios finalizados">
+                        <button id="btn-reset-today" class="btn-pro bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 px-6 py-4 rounded-xl font-black hover:bg-slate-50 transition-all text-[10px] uppercase tracking-widest shrink-0">Hoy</button>
+                        <button id="btn-reception-prog" class="btn-pro flex items-center gap-2 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-rose-500 px-6 py-4 rounded-xl font-black hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all text-[10px] uppercase tracking-widest group shrink-0" title="Recibir territorios finalizados">
                             <i class="fas fa-file-import group-hover:-translate-x-1 transition-transform"></i>
                             Recepción
                         </button>
-                        <button id="btn-copy-prev-week" class="btn-pro flex items-center gap-2 px-6 py-4 bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 hover:bg-indigo-500 hover:text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-indigo-500/5 group" title="Replicar estructura de la semana pasada">
+                        <button id="btn-copy-prev-week" class="btn-pro flex items-center gap-2 px-6 py-4 bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 hover:bg-indigo-500 hover:text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-indigo-500/5 group shrink-0" title="Replicar estructura de la semana pasada">
                             <i class="fas fa-copy group-hover:scale-110 transition-transform"></i>
                             Replicar
                         </button>
