@@ -22,12 +22,12 @@ const forceUpdate = async () => {
         console.log("Signed in. Broadcasting emergency update...");
 
         await setDoc(doc(db, "configuracion", "version_control"), {
-            latestVersion: "2.4.1.0",
+            latestVersion: "2.4.2.0",
             forceUpdate: true,
             forceTimestamp: Date.now()
         });
 
-        console.log("✅ Firestore Version Updated to 2.4.1.0 - Emergency Broadcast Sent!");
+        console.log("✅ Firestore Version Updated to 2.4.2.0 - Emergency Broadcast Sent!");
         process.exit(0);
     } catch (e) {
         console.error("❌ Error updating version:", e);

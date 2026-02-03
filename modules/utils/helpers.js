@@ -1,3 +1,6 @@
+// Xolvy Data Shield: Centrally defined normalization rule
+export const normalize = (val) => String(val || '').trim();
+
 export const formatPhoneNumber = (numero) => {
     if (!numero) return '';
     const cleaned = numero.toString().replace(/\D/g, '');
@@ -160,6 +163,11 @@ export const formatManzanas = (text) => {
     if (!text) return text;
     // Replace Salmo with Mz. to correct terminology (Imagen 5)
     return text.toString().replace(/Salmo/gi, 'Mz.');
+};
+
+export const formatGroups = (val) => {
+    if (!val) return '—';
+    return String(val).toUpperCase().split(/[,/]/).map(s => s.trim().split(' ')[0]).join(' / ');
 };
 
 // Global click-outside to close modals

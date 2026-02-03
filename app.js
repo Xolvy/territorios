@@ -5,31 +5,42 @@ import { doc, onSnapshot } from "firebase/firestore";
 import { getPermisosUsuario, migrateConductoresToPublicadores } from './data/firestore-services.js';
 import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js';
 import { initUpdateManager } from './modules/utils/update-manager.js';
+import { moduleRegistry } from './modules/utils/module-registry.js';
 
-// The version is injected by Vite at build time
-const APP_VERSION = '2.4.1.7';
+// Initialize Module Registry
+moduleRegistry.init();
 
-// Lazy loaders for heavy modules
-const ModuleCache = {
-    login: null,
-    admin: null,
-    conductor: null
-};
+// The version is injected by Vite at build time (Core Shell Version)
+const APP_VERSION = '2.4.2.0';
 
-async function loadLogin() {
-    if (!ModuleCache.login) ModuleCache.login = await import('./modules/login.js');
-    return ModuleCache.login.renderLogin;
+// --- XOLVY MODULAR: MICRO-MODULE ENGINE ---
+// Xolvy Modular: Independent Updates & Hot Module Swapping (HMS) logic
+const ModuleCache = new Map();
+
+async function loadModule(moduleName, basePath) {
+    const path = moduleRegistry.getModulePath(moduleName, basePath);
+
+    // Xolvy Modular: Independent Update Logic
+    // If the path-version changed since last load, we force a fresh import
+    const cacheKey = moduleName;
+    const isNewVersion = ModuleCache.get(`${cacheKey}_path`) !== path;
+
+    if (!ModuleCache.has(cacheKey) || isNewVersion) {
+        console.log(`📦 [Xolvy Modular] Loading ${moduleName} (v${moduleRegistry.getModuleVersion(moduleName)})`);
+        // We add a cache-buster ONLY if we are forcing a swap in a running session
+        const finalPath = isNewVersion ? `${path}&ts=${Date.now()}` : path;
+        const mod = await import(finalPath);
+        ModuleCache.set(cacheKey, mod);
+        ModuleCache.set(`${cacheKey}_path`, path);
+    }
+
+    return ModuleCache.get(cacheKey);
 }
 
-async function loadAdmin() {
-    if (!ModuleCache.admin) ModuleCache.admin = await import('./modules/admin-dashboard.js');
-    return ModuleCache.admin.renderAdminDashboard;
-}
-
-async function loadConductor() {
-    if (!ModuleCache.conductor) ModuleCache.conductor = await import('./modules/conductor-dashboard.js');
-    return ModuleCache.conductor.renderConductorDashboard;
-}
+// Shell View Accessors
+const loadLogin = async () => (await loadModule('login', './modules/login.js')).renderLogin;
+const loadAdmin = async () => (await loadModule('admin', './modules/admin-dashboard.js')).renderAdminDashboard;
+const loadConductor = async () => (await loadModule('conductor', './modules/conductor-dashboard.js')).renderConductorDashboard;
 
 
 // --- DIFFUSION LISTENER ---
@@ -61,18 +72,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initUpdateManager();
     initDiffusionListener();
 
-    // Xolvy Data Shield: Cache Burster on version change
-    const lastVer = localStorage.getItem('last_app_version');
-    if (lastVer !== APP_VERSION) {
-        console.log(`✨ Version Upgrade: ${lastVer} -> ${APP_VERSION}. Purging caches.`);
-        const { clearServiceCache } = await import('./data/firestore-services.js');
-        clearServiceCache();
-        localStorage.setItem('last_app_version', APP_VERSION);
-    }
-
-    migrateConductoresToPublicadores();
-
-    onAuthStateChanged(auth, async (user) => {
+    const handleAuthChange = async (user) => {
         appContainer.innerHTML = '<div class="flex items-center justify-center min-h-screen"><div class="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div></div>';
         const path = window.location.pathname;
 
@@ -114,7 +114,81 @@ document.addEventListener('DOMContentLoaded', async () => {
             const render = await loadLogin();
             render(appContainer, APP_VERSION);
         }
+    };
+
+    // --- HMS RE-RENDER LOGIC ---
+    moduleRegistry.subscribe(async (moduleName, version) => {
+        const path = window.location.pathname;
+
+        // XOLVY UPDATES: Use the new discrete notification system
+        const { notifyModuleUpdate, completeXolvyUpdate } = await import('./modules/utils/update-manager.js');
+        notifyModuleUpdate(moduleName, version);
+
+        // Define which sub-modules belong to which main view
+        const conductorSubModules = ['availability', 'recursos', 'maps_explorer', 'rescue', 'phone_module', 'onboarding', 'weekly_program', 'program_views'];
+        const adminSubModules = ['territories_view', 'public_view', 'phones_view', 'rules_view', 'analytics_view'];
+
+        // Determine if we should re-render
+        const isConductorView = path.startsWith('/conductores');
+        const isAdminView = !isConductorView && (localStorage.getItem('demo_role') === 'Administrador' || localStorage.getItem('demo_role') === 'SuperAdmin');
+
+        const shouldRefreshConductor = isConductorView && (moduleName === 'conductor' || conductorSubModules.includes(moduleName));
+        const shouldRefreshAdmin = isAdminView && (moduleName === 'admin' || adminSubModules.includes(moduleName));
+
+        if (shouldRefreshConductor || shouldRefreshAdmin) {
+            const user = auth.currentUser;
+
+            // Xolvy Modular Rule 1.3: State Immortalization
+            // Save scroll position before the re-render
+            const uiState = {
+                scroll: window.scrollY,
+                module: moduleName,
+                timestamp: Date.now()
+            };
+            sessionStorage.setItem('xolvy_hms_state', JSON.stringify(uiState));
+
+            // Small delay to show the "Receiving" state in HUD
+            setTimeout(() => {
+                completeXolvyUpdate(moduleName);
+
+                // Targeted refresh or full re-auth
+                if (shouldRefreshConductor && window.refreshConductorView) {
+                    window.refreshConductorView().then(() => restoreState());
+                } else if (shouldRefreshAdmin && window.refreshAdminView) {
+                    window.refreshAdminView().then(() => restoreState());
+                } else {
+                    handleAuthChange(user).then(() => restoreState());
+                }
+            }, 2000);
+        } else {
+            // Not in the relevant view, just finish the HUD
+            setTimeout(() => {
+                completeXolvyUpdate(moduleName);
+            }, 2500);
+        }
     });
+
+    const restoreState = () => {
+        const saved = sessionStorage.getItem('xolvy_hms_state');
+        if (saved) {
+            const { scroll } = JSON.parse(saved);
+            window.scrollTo({ top: scroll, behavior: 'smooth' });
+            sessionStorage.removeItem('xolvy_hms_state');
+        }
+    };
+
+    // Xolvy Data Shield: Cache Burster on version change
+    const lastVer = localStorage.getItem('last_app_version');
+    if (lastVer !== APP_VERSION) {
+        console.log(`✨ Version Upgrade: ${lastVer} -> ${APP_VERSION}. Purging caches.`);
+        const { clearServiceCache } = await import('./data/firestore-services.js');
+        clearServiceCache();
+        localStorage.setItem('last_app_version', APP_VERSION);
+    }
+
+    migrateConductoresToPublicadores();
+
+    onAuthStateChanged(auth, handleAuthChange);
 
     document.addEventListener('demo-login', async (e) => {
         const { email, role } = e.detail;

@@ -306,13 +306,18 @@ export const saveConfiguracion = async (config) => {
 
 // --- TERRITORIOS (Xolvy Data Shield) ---
 const normalizeTerritorioData = (id, data) => {
-    // Robust normalization of territory numbers (string or number support)
+    // Xolvy Data Shield: Robust normalization of territory numbers (string or number support)
     const numeroStr = String(data.numero || '').trim();
 
-    // Auto-fix terminology (Imagen 5)
-    let manzanas = data.manzanas || '';
-    if (typeof manzanas === 'string') {
-        manzanas = manzanas.replace(/Salmo/gi, 'Mz.');
+    // Xolvy Data Shield: Terminology auto-fix (Salmo -> Mz. & Grupo stripping)
+    let manzanas = String(data.manzanas || '').trim();
+    if (manzanas) {
+        manzanas = manzanas.replace(/Salmo/gi, 'Mz.').trim();
+    }
+
+    let localidad = String(data.localidad || '').trim();
+    if (localidad) {
+        localidad = localidad.replace(/grupos?/gi, '').trim();
     }
 
     return {
@@ -320,23 +325,24 @@ const normalizeTerritorioData = (id, data) => {
         id,
         numero: numeroStr,
         manzanas: manzanas,
+        localidad: localidad,
         estado: data.estado || 'Disponible'
     };
 };
 
 export const getTerritorios = async () => {
-    // Xolvy Data Shield: Bypass cache for v2.4.1.3 stabilizer 
+    // Xolvy Data Shield: Bypass cache for v2.4.1.7 stabilizer 
     try {
         const querySnapshot = await getDocs(collection(db, "territorios"));
         const results = querySnapshot.docs
             .map(doc => normalizeTerritorioData(doc.id, doc.data()))
             .filter(t => {
                 const hasNum = t.numero && t.numero.trim().length > 0;
-                if (!hasNum) console.warn(`⚠️ [v2.4.1.3] Shield filtered ghost: ${t.id}`);
+                if (!hasNum) console.warn(`⚠️ [v2.4.1.7] Shield filtered ghost: ${t.id}`);
                 return hasNum;
             });
 
-        console.log(`🛡️ [v2.4.1.3] Shield Sync: ${results.length} valid records ready.`);
+        console.log(`🛡️ [v2.4.1.7] Shield Sync: ${results.length} valid records ready.`);
         return results;
     } catch (e) {
         console.error("Critical error fetching territories:", e);
@@ -1418,9 +1424,17 @@ export const syncSlotWithTerritories = async (weekId, dayIdx, turno, tData, date
                         campana: tDataDB.campana || ''
                     };
 
+                    const sundayDate = (() => {
+                        const d = new Date(dateISO.split('T')[0] + 'T12:00:00Z');
+                        const day = d.getUTCDay();
+                        const diff = d.getUTCDate() - (day === 0 ? 0 : day); // Sunday fallback
+                        d.setUTCDate(diff);
+                        return d.toISOString().split('T')[0];
+                    })();
+
                     const newDetails = {
                         asignado_a: normalizedConductor,
-                        fecha_asignacion: dateISO.split('T')[0],
+                        fecha_asignacion: sundayDate,
                         turno: turno,
                         auxiliar: String(tData.auxiliar || '').trim(),
                         lugar: String(tData.lugar || '').trim(),
@@ -1631,9 +1645,12 @@ export const syncAllProgramsToTerritories = async () => {
                                     const dbDateKey = territory.fecha_asignacion ? territory.fecha_asignacion.split('T')[0] : null;
                                     if (territory.asignado_a !== t.conductor || dbDateKey !== dateKey || territory.turno !== turno) {
                                         console.log(`Diagnostic Fix: Syncing Territory ${num} status to Program`);
+                                        const sundayDate = new Date(weekStart);
+                                        sundayDate.setDate(weekStart.getDate() - 1); // Standard S-13 Sunday
+
                                         await updateDoc(doc(db, "territorios", territory.id), {
                                             asignado_a: t.conductor,
-                                            fecha_asignacion: dayDate.toISOString(),
+                                            fecha_asignacion: sundayDate.toISOString(),
                                             turno: turno,
                                             auxiliar: t.auxiliar || '',
                                             lugar: t.lugar || '',
@@ -1736,15 +1753,18 @@ const syncScheduleToHistory = async (weekId, scheduleData) => {
                                 }));
                             }
                         } else {
+                            const sundayDate = new Date(weekStart);
+                            sundayDate.setDate(weekStart.getDate() - 1); // Standard S-13 Sunday
+
                             // Create new history record
                             promises.push(addDoc(collection(db, "historial_territorios"), {
                                 territorio_id: 'sync_auto', // Placeholder as we don't have the internal ID here
                                 numero: assignment.territorio,
                                 conductor: assignment.conductor,
-                                fecha_asignacion: dayDate.toISOString(),
+                                fecha_asignacion: sundayDate.toISOString(),
                                 fecha_entrega: null,
                                 estado: 'Asignado',
-                                timestamp: Timestamp.fromDate(dayDate)
+                                timestamp: Timestamp.fromDate(sundayDate)
                             }));
                         }
                     }

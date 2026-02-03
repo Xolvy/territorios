@@ -184,6 +184,44 @@ export class TerritoryIntelligence {
         const prompt = `Resume estas observaciones de predicación de forma muy breve y amigable: ${JSON.stringify(notes)}`;
         return await this.askGemini(apiKey, prompt);
     }
+
+    /**
+     * XOLVY UPDATES: Intelligence integration
+     */
+    async getUpdateInsight(moduleName, version, apiKey) {
+        if (!apiKey) return `Detecté una actualización para ${moduleName} (v${version}).`;
+
+        const moduleDescriptions = {
+            'territories_view': 'el visor de territorios con mejores mapas y datos',
+            'phones_view': 'el sistema de gestión de llamadas',
+            'conductor': 'tu panel de control personal',
+            'admin': 'las herramientas de administración central',
+            'maps_explorer': 'la exploración geográfica avanzada',
+            'phone_module': 'la vinculación telefónica directa',
+            'public_view': 'la gestión de predicación pública',
+            'rules_view': 'la configuración de reglas del sistema',
+            'availability': 'el panel de disponibilidad de conductores',
+            'recursos': 'el centro de recursos y ayudas',
+            'rescue': 'el sistema de misiones de rescate para territorios atrasados',
+            'onboarding': 'la guía de inicio para nuevos conductores',
+            'analytics_view': 'el análisis avanzado de datos y estadísticas',
+            'weekly_program': 'el sistema de programación semanal avanzado',
+            'program_views': 'la visualización detallada del programa de predicación',
+            'login': 'la seguridad y acceso al sistema'
+        };
+
+        const desc = moduleDescriptions[moduleName] || 'mejoras generales del sistema';
+        const prompt = `Un módulo llamado "${moduleName}" se está actualizando a la versión ${version}. 
+        Su función es: ${desc}. 
+        Saluda al conductor (que puede ser hombre o mujer) y dile brevemente y con entusiasmo que estás instalando esta mejora en segundo plano. 
+        Manténlo cortés, profesional y bajo un tono de "asistente avanzado de Xolvy". Máximo 25 palabras.`;
+
+        try {
+            return await this.askGemini(apiKey, prompt);
+        } catch (e) {
+            return `Estoy aplicando una actualización en **${moduleName}** para mejorar tu experiencia.`;
+        }
+    }
 }
 
 

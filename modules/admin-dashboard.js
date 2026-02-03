@@ -6,12 +6,23 @@ import { auth } from '../firebase-config.js';
 import { showNotification } from './utils/helpers.js';
 import { GlassButton } from './services/ui-components.js';
 
-// Import Views
-import { renderAnalyticsView } from './analytics-view.js';
-import { renderCasaEnCasaTab } from './admin/territories-view.js';
-import { renderPredicacionTab } from './admin/public-view.js';
-import { renderTelefonosTab } from './admin/phones-view.js';
-import { renderConfigTab } from './admin/rules-view.js';
+import { moduleRegistry } from './utils/module-registry.js';
+
+// --- MICRO-MODULE LOADER ---
+const SubModuleCache = new Map();
+async function loadSubModule(name, path) {
+    const fullPath = moduleRegistry.getModulePath(name, path);
+    // If version changed, force fresh reload
+    const isNew = SubModuleCache.get(`${name}_path`) !== fullPath;
+    if (!SubModuleCache.has(name) || isNew) {
+        console.log(`📡 [HMS] Swapping Micro-Module: ${name}`);
+        const finalPath = isNew ? `${fullPath}&ts=${Date.now()}` : fullPath;
+        const mod = await import(finalPath);
+        SubModuleCache.set(name, mod);
+        SubModuleCache.set(`${name}_path`, fullPath);
+    }
+    return SubModuleCache.get(name);
+}
 
 /**
  * Main Entry Point for the Administration Control Panel
@@ -35,6 +46,11 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
         window.dispatchModuleSync = () => {
             const currentTab = document.querySelector('.nav-item.active')?.dataset.tab;
             if (currentTab) loadTab(currentTab, appVersion);
+        };
+
+        window.refreshAdminView = async () => {
+            const currentTab = document.querySelector('.nav-item.active')?.dataset.tab || initialTab;
+            await loadTab(currentTab, appVersion);
         };
 
         // --- VERSION SYNCHRONIZATION ---
@@ -127,11 +143,11 @@ const setupNavigation = (appVersion) => {
     document.getElementById('logout-btn').onclick = async () => {
         localStorage.removeItem('demo_role');
         await auth.signOut();
-        Location.href = '/login';
+        location.href = '/login';
     };
 
     // View Switching
-    document.getElementById('btn-goto-conductores').onclick = () => Location.href = '/conductores';
+    document.getElementById('btn-goto-conductores').onclick = () => location.href = '/conductores';
 
     const tabs = document.querySelectorAll('.nav-item');
     tabs.forEach(btn => {
@@ -160,21 +176,26 @@ const loadTab = async (tabName, appVersion) => {
         switch (tabName) {
             case 'config':
                 const config = await getConfiguracion();
-                await renderConfigTab(contentDiv, config, appVersion, (tabId) => loadTab(tabId, appVersion));
+                const mRules = await loadSubModule('rules_view', './admin/rules-view.js');
+                await mRules.renderConfigTab(contentDiv, config, appVersion, (tabId) => loadTab(tabId, appVersion));
                 break;
             case 'casa-en-casa':
                 const cfg = await getConfiguracion();
-                await renderCasaEnCasaTab(contentDiv, cfg, appVersion);
+                const mTerrs = await loadSubModule('territories_view', './admin/territories-view.js');
+                await mTerrs.renderCasaEnCasaTab(contentDiv, cfg, appVersion);
                 break;
             case 'predicacion':
-                await renderPredicacionTab(contentDiv);
+                const mPublic = await loadSubModule('public_view', './admin/public-view.js');
+                await mPublic.renderPredicacionTab(contentDiv);
                 break;
             case 'telefonos':
-                await renderTelefonosTab(contentDiv);
+                const mPhones = await loadSubModule('phones_view', './admin/phones-view.js');
+                await mPhones.renderTelefonosTab(contentDiv);
                 break;
             case 'dashboard':
             default:
-                await renderAnalyticsView(contentDiv, appVersion);
+                const mAnalytics = await loadSubModule('analytics_view', './analytics-view.js');
+                await mAnalytics.renderAnalyticsView(contentDiv, appVersion);
                 break;
         }
     } catch (e) {

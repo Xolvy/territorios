@@ -1,6 +1,7 @@
 import { getSafeDateId, showNotification } from '../utils/helpers.js';
 import { getProgramaSemanal, saveProgramaSemanal, syncSlotWithTerritories, getTerritorios } from '../../data/firestore-services.js';
-import { renderFullProgramaCards } from './program-views.js';
+import { renderFullProgramaCards, generateLandscapePreviewHTML } from './program-views.js';
+export { renderFullProgramaCards, generateLandscapePreviewHTML };
 
 export const initializeWeeklyProgram = (container, userMods, allTerritorios, territoryMap, name, currentWeekStart, activeDayIndex, activeTurns) => {
     if (userMods.programa === false) return;
@@ -10,9 +11,12 @@ export const initializeWeeklyProgram = (container, userMods, allTerritorios, ter
     const daySelector = container.querySelector('#prog-day-selector');
     const turnFilters = container.querySelector('#prog-turn-filters');
 
+    // Internal State
+    let _currentWeek = new Date(currentWeekStart);
+
     const loadWeekData = async () => {
-        const weekId = getSafeDateId(currentWeekStart);
-        const monday = new Date(currentWeekStart);
+        const weekId = getSafeDateId(_currentWeek);
+        const monday = new Date(_currentWeek);
         const sunday = new Date(monday);
         sunday.setDate(sunday.getDate() + 6);
 
@@ -31,8 +35,22 @@ export const initializeWeeklyProgram = (container, userMods, allTerritorios, ter
 
         try {
             const prog = await getProgramaSemanal(weekId);
+
+            // Xolvy Data Shield: Robust normalization & ghost filtering for Conductor View
+            const normalizeT = (val) => String(val || '').trim();
+            const shieldedTerritorios = allTerritorios
+                .filter(rec => {
+                    const hasNum = rec.numero && String(rec.numero).trim().length > 0;
+                    return hasNum;
+                })
+                .map(rec => ({
+                    ...rec,
+                    numero: normalizeT(rec.numero),
+                    manzanas: String(rec.manzanas || '').replace(/Salmo/gi, 'Mz.').trim()
+                }));
+
             window._globalPrograma = prog;
-            window._globalTerritorios = allTerritorios;
+            window._globalTerritorios = shieldedTerritorios;
             renderFilters();
             renderDaySelector();
             renderFullProgramaCards(prog, programCardsContainer, territoryMap, name, activeDayIndex, activeTurns);
@@ -99,6 +117,46 @@ export const initializeWeeklyProgram = (container, userMods, allTerritorios, ter
         activeDayIndex = idx;
         renderDaySelector();
         renderFullProgramaCards(window._globalPrograma, programCardsContainer, territoryMap, name, activeDayIndex, activeTurns);
+    };
+
+    // --- BUTTON LISTENERS ---
+    const btnPrev = container.querySelector('#prog-prev-week');
+    const btnNext = container.querySelector('#prog-next-week');
+    const btnToday = container.querySelector('#prog-btn-today');
+    const btnShare = container.querySelector('#prog-btn-share');
+    const btnExport = container.querySelector('#prog-export-png');
+
+    if (btnPrev) btnPrev.onclick = () => { _currentWeek.setDate(_currentWeek.getDate() - 7); loadWeekData(); };
+    if (btnNext) btnNext.onclick = () => { _currentWeek.setDate(_currentWeek.getDate() + 7); loadWeekData(); };
+    if (btnToday) btnToday.onclick = () => {
+        const now = new Date();
+        const monday = new Date(now.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1)));
+        _currentWeek = monday;
+        loadWeekData();
+    };
+
+    if (btnShare) btnShare.onclick = () => {
+        const weekStr = weekRangeLabel?.innerText || 'Programa';
+        const text = `📅 *Programa Semanal (${weekStr})*\n\nConsulta los turnos y puntos de reunión actualizados en la aplicación.`;
+        if (navigator.share) {
+            navigator.share({ title: 'Programa Semanal', text: text, url: window.location.href });
+        } else {
+            window.open(`https://wa.me/?text=${encodeURIComponent(text + '\n' + window.location.href)}`, '_blank');
+        }
+    };
+
+    if (btnExport) btnExport.onclick = async () => {
+        const { default: html2canvas } = await import('html2canvas');
+        const element = container.querySelector('.group/prog');
+        if (!element) return;
+        showNotification("Generando imagen...", "info");
+        html2canvas(element, { scale: 2, useCORS: true }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = `Programa_Semanal_${getSafeDateId(_currentWeek)}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+            showNotification("Imagen descargada", "success");
+        });
     };
 
     // Navigation and Logic

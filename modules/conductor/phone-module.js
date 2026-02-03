@@ -4,7 +4,14 @@ import { showModal, showCustomConfirm, showCustomPrompt } from '../services/ui-h
 import { AppConfig } from '../utils/config.js';
 
 export const initializePhoneModule = (initialPhones, publicadores, displayName, tbody, onRefresh) => {
-    let myPhones = initialPhones;
+    // Xolvy Data Shield: Clean and filter phone records
+    const normalize = (val) => String(val || '').replace(/[\s\-\(\)]/g, '').trim();
+    const myPhones = (initialPhones || [])
+        .filter(p => p.telefono && String(p.telefono).trim().length > 0)
+        .map(p => ({
+            ...p,
+            telefono: normalize(p.telefono)
+        }));
 
     const render = () => {
         if (!tbody) return;

@@ -28,7 +28,11 @@ export default defineConfig({
                     'firebase-vendor': ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage'],
                     'leaflet-vendor': ['leaflet'],
                     'ui-vendor': ['sweetalert2', 'animejs', 'chart.js'],
-                    'utils-vendor': ['xlsx', 'jspdf', 'html2canvas', 'date-fns']
+                    'utils-vendor': ['xlsx', 'jspdf', 'html2canvas', 'date-fns'],
+                    // Separate modules for HMS
+                    'mod-admin': ['./modules/admin-dashboard.js'],
+                    'mod-conductor': ['./modules/conductor-dashboard.js'],
+                    'mod-login': ['./modules/login.js']
                 }
             }
         }
@@ -44,8 +48,8 @@ export default defineConfig({
             workbox: {
                 globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}'],
                 cleanupOutdatedCaches: true,
-                maximumFileSizeToCacheInBytes: 5000000,
-                cacheId: 'territorios-v2-4-1-7'
+                maximumFileSizeToCacheInBytes: 10000000, // Increased for modular assets
+                cacheId: 'territorios-shell-v2-4-1-7'
             },
             manifest: {
                 name: 'Gestión de Territorios',

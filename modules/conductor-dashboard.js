@@ -18,12 +18,23 @@ import { AppConfig } from './utils/config.js';
 import h2c from 'html2canvas';
 import { showModal, showCustomConfirm, showCustomPrompt, UIHelpers } from './services/ui-helpers.js';
 import { VoiceDictationHelper } from './conductor/voice-helper.js';
-import { renderAvailabilitySection } from './conductor/availability.js';
-import { renderRecursosSection } from './conductor/recursos.js';
-import { renderMapsExplorer } from './conductor/maps-explorer.js';
-import { renderRescueMissions } from './conductor/rescue.js';
-import { initializePhoneModule } from './conductor/phone-module.js';
-import { startOnboarding } from './conductor/onboarding.js';
+import { moduleRegistry } from './utils/module-registry.js';
+
+// --- MICRO-MODULE LOADER ---
+const SubModuleCache = new Map();
+async function loadSubModule(name, path) {
+    const fullPath = moduleRegistry.getModulePath(name, path);
+    // If version changed, force fresh reload
+    const isNew = SubModuleCache.get(`${name}_path`) !== fullPath;
+    if (!SubModuleCache.has(name) || isNew) {
+        console.log(`📡 [HMS] Swapping Micro-Module (Conductor): ${name}`);
+        const finalPath = isNew ? `${fullPath}&ts=${Date.now()}` : fullPath;
+        const mod = await import(finalPath);
+        SubModuleCache.set(name, mod);
+        SubModuleCache.set(`${name}_path`, fullPath);
+    }
+    return SubModuleCache.get(name);
+}
 
 const html2canvas = h2c;
 
@@ -45,16 +56,35 @@ window.showCustomAlert = (message) => {
 };
 
 export const renderConductorDashboard = async (container, nameOrEmail, appVersion, userRole = null) => {
+    // Xolvy Modular: Pre-fetch Micro-Modules for this view
+    const [mAvail, mRec, mMaps, mRescue, mPhone, mOnboard, mProg] = await Promise.all([
+        loadSubModule('availability', './conductor/availability.js'),
+        loadSubModule('recursos', './conductor/recursos.js'),
+        loadSubModule('maps_explorer', './conductor/maps-explorer.js'),
+        loadSubModule('rescue', './conductor/rescue.js'),
+        loadSubModule('phone_module', './conductor/phone-module.js'),
+        loadSubModule('onboarding', './conductor/onboarding.js'),
+        loadSubModule('weekly_program', './conductor/weekly-program.js')
+    ]);
+
+    // Xolvy Data Shield: Aggressive normalization for Conductor resolution
+    const normalize = (val) => String(val || '').trim().toLowerCase();
+    const cleanPhone = (val) => String(val || '').replace(/[\s\-\(\)]/g, '');
+
     let displayName = nameOrEmail;
     let conductorData = null;
     let config = null;
     try {
         config = await getConfiguracion();
-        const allC = await getConductores();
-        conductorData = allC.find(c => c.email === nameOrEmail || c.nombre === nameOrEmail || (c.telefono && c.telefono.replace(/\s+/g, '') === nameOrEmail.replace(/\s+/g, '')));
+        const allC = await getPublicadores(); // Use publicadores for broader match
+        conductorData = allC.find(c =>
+            normalize(c.email) === normalize(nameOrEmail) ||
+            normalize(c.nombre) === normalize(nameOrEmail) ||
+            (c.telefono && cleanPhone(c.telefono) === cleanPhone(nameOrEmail))
+        );
         if (conductorData) displayName = conductorData.nombre;
     } catch (err) {
-        console.error("Error resolving name:", err);
+        console.error("🛡️ [Data Shield] Error resolving name:", err);
     }
 
     const mods = conductorData?.modulos || {
@@ -409,7 +439,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
     if (btnAdmin) {
         btnAdmin.onclick = () => {
             window.history.pushState({}, '', '/administrador/dashboard');
-            Location.reload();
+            location.reload();
         };
     }
 
@@ -439,12 +469,12 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 rescue: false
             };
 
-            await loadUnifiedDashboard(container, displayName, container.querySelector('#agenda-intelligence-badge'), container.querySelector('#calendar-container'), container.querySelector('#territorios-container'), userMods, config, conductorData, userRole);
+            await loadUnifiedDashboard(container, displayName, container.querySelector('#agenda-intelligence-badge'), container.querySelector('#calendar-container'), container.querySelector('#territorios-container'), userMods, config, conductorData, userRole, mProg);
             const myPhones = await refreshPhones();
             const publicadores = await getPublicadores();
 
-            if (window.initializePhoneModule) {
-                window.initializePhoneModule(myPhones, publicadores, displayName, container.querySelector('#phone-tbody'), refreshPhones);
+            if (mPhone.initializePhoneModule) {
+                mPhone.initializePhoneModule(myPhones, publicadores, displayName, container.querySelector('#phone-tbody'), refreshPhones);
             }
         } catch (e) {
             console.error("Refresh error", e);
@@ -493,11 +523,11 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
     }
 };
 
-const loadUnifiedDashboard = async (container, name, intelligenceBadge, agendaContainer, territoriosContainer, userMods, config, conductorData, userRole) => {
+const loadUnifiedDashboard = async (container, name, intelligenceBadge, agendaContainer, territoriosContainer, userMods, config, conductorData, userRole, mProg) => {
     // We no longer hide the territories container as requested ("fusionar") 
     // to allow seeing all assigned territories independently of the weekly program.
 
-    window.startOnboarding = startOnboarding;
+    window.startOnboarding = mOnboard.startOnboarding;
 
     const getMonday = (d) => {
         d = new Date(d);
@@ -701,12 +731,12 @@ const loadUnifiedDashboard = async (container, name, intelligenceBadge, agendaCo
 
 
         intelligenceBadge.innerHTML = `
-    < div class="flex flex-wrap items-center gap-3" >
+            <div class="flex flex-wrap items-center gap-3">
                 <button onclick="const section = document.getElementById('programa-semanal-section'); if(section) { section.classList.remove('hidden'); section.style.display = 'block'; } const det = document.querySelector('.group\\\\/prog-details'); if(det) { det.open = true; setTimeout(() => { det.scrollIntoView({behavior:'smooth', block:'start'}); }, 100); }" 
                         class="flex items-center gap-3 ${colorClass} py-3.5 px-6 rounded-2xl border text-[10px] font-black uppercase tracking-[0.15em] shadow-sm backdrop-blur-md hover:scale-105 active:scale-95 transition-all">
                     <i class="fas fa-calendar-alt animate-pulse"></i> Programa de predicación
                 </button>
-                ${renderRescueMissions(allTerritorios, normalizedName, myExtraMissions, rescueCandidates, totalMissionCount)}
+                ${mRescue.renderRescueMissions(allTerritorios, normalizedName, myExtraMissions, rescueCandidates, totalMissionCount)}
             </div>
     `;
 
@@ -738,7 +768,7 @@ const loadUnifiedDashboard = async (container, name, intelligenceBadge, agendaCo
 
             if (territoriesToShow.length === 0) {
                 mapsGrid.innerHTML = `
-    < div class="col-span-full py-20 text-center space-y-4 opacity-30 group" >
+                    <div class="col-span-full py-20 text-center space-y-4 opacity-30 group">
                     <div class="w-20 h-20 bg-slate-100 dark:bg-white/5 rounded-3xl flex items-center justify-center text-3xl mx-auto group-hover:scale-110 transition-transform">
                         <i class="fas fa-search-location"></i>
                     </div>
@@ -747,7 +777,7 @@ const loadUnifiedDashboard = async (container, name, intelligenceBadge, agendaCo
     `;
             } else {
                 mapsGrid.innerHTML = territoriesToShow.map(t => `
-    < div class="modern-card !p-5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:border-primary/40 hover:shadow-xl transition-all group/card cursor-pointer shadow-sm relative overflow-hidden" onclick = "window.openInteractiveMapFromDashboard('${t.id}')" >
+                    <div class="modern-card !p-5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:border-primary/40 hover:shadow-xl transition-all group/card cursor-pointer shadow-sm relative overflow-hidden" onclick="window.openInteractiveMapFromDashboard('${t.id}')">
                     <div class="absolute inset-0 bg-primary/5 opacity-0 group-hover/card:opacity-100 transition-opacity pointer-events-none"></div>
                     <div class="flex justify-between items-start mb-4 relative z-10">
                         <span class="px-3 py-1 bg-primary/10 text-primary text-[10px] font-black rounded-lg uppercase tracking-widest">T-${t.numero}</span>
@@ -780,7 +810,7 @@ const loadUnifiedDashboard = async (container, name, intelligenceBadge, agendaCo
 
             if (type === 'png') {
                 modal.innerHTML = `
-    < div class="w-full h-full max-w-5xl mx-auto flex flex-col p-4 animate-fade-in" >
+                    <div class="w-full h-full max-w-5xl mx-auto flex flex-col p-4 animate-fade-in">
                     <div class="flex justify-between items-center mb-4 bg-white/80 dark:bg-[#0f1420]/90 backdrop-blur-2xl p-6 rounded-[2rem] border border-slate-200 dark:border-white/10 shadow-2xl">
                         <div class="flex items-center gap-5">
                             <div class="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-xl text-primary shadow-inner border border-primary/10">
@@ -818,7 +848,7 @@ const loadUnifiedDashboard = async (container, name, intelligenceBadge, agendaCo
             } else if (type === 'satellite') {
                 const mid = "13IX1r6TfV5T8ZPwU3jzGr0YeHE-AdEg";
                 modal.innerHTML = `
-    < div class="w-full h-full max-w-6xl mx-auto flex flex-col p-4 animate-fade-in" >
+                    <div class="w-full h-full max-w-6xl mx-auto flex flex-col p-4 animate-fade-in">
                     <div class="flex justify-between items-center mb-4 bg-white/80 dark:bg-[#0f1420]/90 backdrop-blur-2xl p-6 rounded-[2rem] border border-slate-200 dark:border-white/10 shadow-2xl">
                         <div class="flex items-center gap-5">
                             <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-xl text-emerald-500 shadow-inner border border-emerald-500/10">
@@ -950,13 +980,13 @@ const loadUnifiedDashboard = async (container, name, intelligenceBadge, agendaCo
 
         if (!hasShifts) {
             agendaContainer.innerHTML = `
-    < div class="col-span-full py-24 px-8 modern-card text-center animate-fade-in shadow-2xl bg-white dark:bg-white/[0.02] border-slate-200 dark:border-white/5 opacity-60" >
+                <div class="col-span-full py-16 sm:py-24 px-6 sm:px-8 modern-card text-center animate-fade-in shadow-2xl bg-white dark:bg-white/[0.02] border-slate-200 dark:border-white/5 opacity-60">
         <div class="flex flex-col items-center gap-6">
             <div class="w-24 h-24 bg-primary/10 rounded-[2.5rem] flex items-center justify-center text-5xl text-primary shadow-inner">
                 <i class="fas fa-inbox"></i>
             </div>
             <div class="space-y-2">
-                <h4 class="text-2xl font-black text-slate-800 dark:text-white tracking-tighter uppercase">Sin asignaciones activas</h4>
+                <h4 class="text-xl sm:text-2xl font-black text-slate-800 dark:text-white tracking-tighter uppercase">Sin asignaciones activas</h4>
                 <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] max-w-xs mx-auto leading-relaxed">
                     Revisa más tarde o contacta con el responsable
                 </p>
@@ -981,7 +1011,7 @@ const loadUnifiedDashboard = async (container, name, intelligenceBadge, agendaCo
     `;
         } else {
             agendaContainer.innerHTML = dayCards.map(dayData => `
-    <div class="group relative modern-card !p-6 transition-all duration-500 hover:shadow-2xl flex flex-col gap-6 shadow-sm border-slate-100 dark:border-white/5 bg-white dark:bg-slate-900/40">
+    <div class="group relative modern-card !p-5 sm:!p-6 transition-all duration-500 hover:shadow-2xl flex flex-col gap-6 shadow-sm border-slate-100 dark:border-white/5 bg-white dark:bg-slate-900/40">
                 <!-- Header Minimalista -->
                 <div class="flex justify-between items-center border-b border-slate-100 dark:border-white/5 pb-4">
                     <div>
@@ -1042,7 +1072,7 @@ const loadUnifiedDashboard = async (container, name, intelligenceBadge, agendaCo
                                 
                                  ${conductorData?.privilegios?.includes('Superintendente de Circuito') ? '' : `
                                 <div class="mt-auto pt-4">
-                                    <button class="territory-report-btn w-full bg-slate-900 dark:bg-teal-600/90 hover:bg-black dark:hover:bg-teal-500 py-4 rounded-2xl text-white font-black text-[9px] uppercase tracking-[0.3em] shadow-xl shadow-slate-900/10 active:scale-95 transition-all flex items-center justify-center gap-3"
+                                    <button class="territory-report-btn w-full bg-slate-900 dark:bg-teal-600/90 hover:bg-black dark:hover:bg-teal-500 py-3.5 sm:py-4 rounded-2xl text-white font-black text-[10px] sm:text-[11px] uppercase tracking-[0.2em] sm:tracking-[0.3em] shadow-xl shadow-slate-900/10 active:scale-95 transition-all flex items-center justify-center gap-3"
                                         data-ids="${a.attachedTerritories.map(t => t.id).join(',')}" 
                                         data-nums="${a.attachedTerritories.map(t => t.numero).join(',')}">
                                         Informar
@@ -1094,304 +1124,84 @@ const loadUnifiedDashboard = async (container, name, intelligenceBadge, agendaCo
         }, 0);
 
         if (userMods.disponibilidad !== false) {
-            renderAvailabilitySection(document.getElementById('availability-container'), name);
+            mAvail.renderAvailabilitySection(document.getElementById('availability-container'), name);
         }
         if (userRole !== 'Administrador' && userRole !== 'SuperAdmin' && userMods.agenda !== false) {
             renderAISection(name);
         }
         if (userMods.ayudas !== false) {
-            renderRecursosSection(document.getElementById('recursos-container'));
+            mRec.renderRecursosSection(document.getElementById('recursos-container'));
         }
 
         if (userMods.mapas !== false) {
-            renderMapsExplorer(container, allTerritorios, (t) => window.openInteractiveMap(t));
+            mMaps.renderMapsExplorer(container, allTerritorios, (t) => window.openInteractiveMap(t));
         }
 
         // Module: Programa Semanal (Global)
-        if (userMods.programa !== false) {
-            initializeWeeklyProgram(container, userMods, allTerritorios, territoryMap, name, currentWeekStart, activeDayIndex, activeTurns);
-        }
-    }
-};
-
-window.openTerritorySelector = (dayIndex, turnId, btnElement) => {
-    if (!btnElement || !window._globalPrograma) return;
-    const currentVal = btnElement.dataset.current;
-    window.showTerritorySelectionModal(currentVal, window._globalTerritorios, (newValue) => {
-        if (!window._globalPrograma.dias[dayIndex][turnId]) window._globalPrograma.dias[dayIndex][turnId] = {};
-        window._globalPrograma.dias[dayIndex][turnId].territorio = newValue;
-        btnElement.dataset.current = newValue;
-
-        // Update display inside the button
-        const span = btnElement.querySelector('span.truncate');
-        if (span) {
-            span.textContent = newValue || '—';
-            span.className = `text-[10px] font-black truncate ${newValue ? 'text-primary' : 'text-slate-400 opacity-40'}`;
+        if (userMods.programa !== false && mProg.initializeWeeklyProgram) {
+            mProg.initializeWeeklyProgram(container, userMods, allTerritorios, territoryMap, name, currentWeekStart, activeDayIndex, activeTurns);
         }
 
-        // Trigger save and sync
-        window.updateWeekData(dayIndex, turnId, 'territorio', newValue);
-    });
-};
+        window.openTerritorySelector = (dayIndex, turnId, btnElement) => {
+            if (!btnElement || !window._globalPrograma) return;
+            const currentVal = btnElement.dataset.current;
+            window.showTerritorySelectionModal(currentVal, window._globalTerritorios, (newValue) => {
+                if (!window._globalPrograma.dias[dayIndex][turnId]) window._globalPrograma.dias[dayIndex][turnId] = {};
+                window._globalPrograma.dias[dayIndex][turnId].territorio = newValue;
+                btnElement.dataset.current = newValue;
 
-window.updateWeekData = async (dayIndex, turnoId, field, value) => {
-    if (!window._globalPrograma) return;
-    if (!window._globalPrograma.dias[dayIndex][turnoId]) window._globalPrograma.dias[dayIndex][turnoId] = {};
-    window._globalPrograma.dias[dayIndex][turnoId][field] = value;
+                // Update display inside the button
+                const span = btnElement.querySelector('span.truncate');
+                if (span) {
+                    span.textContent = newValue || '—';
+                    span.className = `text-[10px] font-black truncate ${newValue ? 'text-primary' : 'text-slate-400 opacity-40'}`;
+                }
 
-    try {
-        const weekId = window._globalPrograma.id;
-        await saveProgramaSemanal(weekId, window._globalPrograma);
-        const tData = window._globalPrograma.dias[dayIndex][turnoId];
-        const diaObj = window._globalPrograma.dias[dayIndex];
-        const dateISO = new Date(diaObj.fecha + 'T12:00:00Z').toISOString();
-        await syncSlotWithTerritories(weekId, dayIndex, turnoId, tData, dateISO);
+                // Trigger save and sync
+                window.updateWeekData(dayIndex, turnId, 'territorio', newValue);
+            });
+        };
 
-        // Refresh local territory memory to ensure labels update correctly
-        const freshTerritories = await getTerritorios();
-        window._globalTerritorios = freshTerritories;
+        window.updateWeekData = async (dayIndex, turnoId, field, value) => {
+            if (!window._globalPrograma) return;
+            if (!window._globalPrograma.dias[dayIndex][turnoId]) window._globalPrograma.dias[dayIndex][turnoId] = {};
+            window._globalPrograma.dias[dayIndex][turnoId][field] = value;
 
-        // Re-render the program table to show synced states immediately
-        const programCardsContainer = container.querySelector('#weekly-program-cards');
-        if (programCardsContainer) {
-            renderFullProgramaCards(window._globalPrograma, programCardsContainer, territoryMap, name, activeDayIndex, activeTurns);
-        }
+            try {
+                const weekId = window._globalPrograma.id;
+                await saveProgramaSemanal(weekId, window._globalPrograma);
+                const tData = window._globalPrograma.dias[dayIndex][turnoId];
+                const diaObj = window._globalPrograma.dias[dayIndex];
+                const dateISO = new Date(diaObj.fecha + 'T12:00:00Z').toISOString();
+                await syncSlotWithTerritories(weekId, dayIndex, turnoId, tData, dateISO);
 
-        showNotification("Asignación sincronizada exitosamente", "success");
-    } catch (e) {
-        console.error("Update error:", e);
-        showNotification("Error al guardar revisión", "error");
-    }
-};
+                // Refresh local territory memory to ensure labels update correctly
+                const freshTerritories = await getTerritorios();
+                window._globalTerritorios = freshTerritories;
 
-const formatGroups = (val) => {
-    if (!val) return '—';
-    return String(val).toUpperCase().split(/[,/]/).map(s => s.trim().split(' ')[0]).join(' / ');
-};
+                // Re-render the program table to show synced states immediately
+                const programCardsContainer = container.querySelector('#weekly-program-cards');
+                if (programCardsContainer && mProg.renderFullProgramaCards) {
+                    mProg.renderFullProgramaCards(window._globalPrograma, programCardsContainer, territoryMap, name, activeDayIndex, activeTurns);
+                }
 
-const generateLandscapePreviewHTML = (programa) => {
-    if (!programa) return '';
-    const turnosArr = [
-        { id: 'manana', icon: 'fa-sun', label: 'MAÑANA', color: '#b45309', bg: '#fffbeb' },
-        { id: 'tarde', icon: 'fa-cloud-sun', label: 'TARDE', color: '#c2410c', bg: '#fff7ed' },
-        { id: 'noche', icon: 'fa-moon', label: 'NOCHE', color: '#3730a3', bg: '#f5f3ff' },
-        { id: 'zoom', icon: 'fa-video', label: 'ZOOM', color: '#065f46', bg: '#f0fdf4' }
-    ];
-
-    const hasBusyDay = (programa.dias || []).some(dia => {
-        const active = turnosArr.filter(t => {
-            const data = dia[t.id];
-            return data && (data.conductor || data.lugar);
-        });
-        return active.length > 2;
-    });
-
-    let html = `
-            <div id="landscape-preview-content" class="bg-slate-50 text-slate-900 font-['Outfit'] relative overflow-hidden flex flex-col p-6 pt-0" style="width: 1920px; height: 1080px; box-sizing: border-box;">
-                <header class="relative z-10 flex flex-col items-center mb-3 px-10 pt-4 w-full">
-                    <h1 class="text-[54px] font-black uppercase tracking-[0.1em] leading-none mb-1 text-slate-900">Programa de Predicación</h1>
-                    <p class="text-lg font-black uppercase tracking-[0.15em] text-slate-600 mb-3">Cronograma Semanal de Salidas</p>
-                    <div class="w-full h-1.5 bg-slate-900 rounded-full"></div>
-                </header>
-
-            <div class="relative z-10 grid grid-cols-7 gap-3 flex-1 overflow-hidden px-4 pb-7">
-                ${(programa.dias || []).map((dia, idx) => {
-        const activeTurns = turnosArr.filter(t => {
-            const data = dia[t.id];
-            return data && (data.conductor || data.lugar);
-        });
-
-        return `
-                        <div class="bg-white rounded-[2rem] flex flex-col shadow-xl shadow-slate-200/40 border border-slate-100/50 overflow-hidden relative h-full">
-                            <div class="${hasBusyDay ? 'px-4 py-3 min-h-[100px]' : 'px-5 py-6 min-h-[140px]'} border-b border-slate-50 bg-slate-50/20 shrink-0 flex flex-col justify-center">
-                                <h2 class="${hasBusyDay ? 'text-2xl' : 'text-3xl'} font-black uppercase tracking-tighter text-slate-900 leading-none mb-1">${dia.nombre}</h2>
-                                <span class="text-[10px] font-bold uppercase tracking-widest text-slate-300 opacity-80">${dia.fecha ? dia.fecha.split('-').reverse().join('/') : ''}</span>
-                            </div>
-                            
-                            <div class="${hasBusyDay ? 'p-2.5 space-y-5' : 'p-4 space-y-10'} flex-1 overflow-visible">
-                                ${activeTurns.map(t => {
-            const data = dia[t.id];
-            const isSunday = dia.nombre.toLowerCase() === 'domingo';
-            const hourInt = data.hora ? parseInt(data.hora) : (t.id === 'manana' ? 9 : t.id === 'tarde' ? 15 : 19);
-
-            let labelText = t.label; let displayIcon = t.icon; let displayColor = t.color;
-
-            if (isSunday && data.hora) {
-                if (hourInt < 11) { labelText = 'MAÑANA'; displayIcon = 'fa-sun'; displayColor = '#b45309'; }
-                else if (hourInt < 16) { labelText = 'MEDIODÍA'; displayIcon = 'fa-cloud-sun'; displayColor = '#c2410c'; }
-                else if (hourInt < 19) { labelText = 'TARDE'; displayIcon = 'fa-sun-haze'; displayColor = '#c2410c'; }
-                else { labelText = 'NOCHE'; displayIcon = 'fa-moon'; displayColor = '#3730a3'; }
+                showNotification("Asignación sincronizada exitosamente", "success");
+            } catch (e) {
+                console.error("Update error:", e);
+                showNotification("Error al guardar revisión", "error");
             }
-
-            return `
-                                        <div class="${hasBusyDay ? 'space-y-1.5' : 'space-y-4'}">
-                                            <div class="flex items-center gap-2">
-                                                <i class="fas ${displayIcon} text-[18px]" style="color: ${displayColor}"></i>
-                                                <span class="text-[18px] font-black uppercase tracking-[0.35em]" style="color: ${displayColor}">${labelText}</span>
-                                            </div>
-                                            
-                                            <div class="${hasBusyDay ? 'space-y-1' : 'space-y-3'}">
-                                                ${['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', 'Grupos'].map(field => {
-                if (t.id === 'zoom' && field === 'Auxiliar') return '';
-                let val = data[field.toLowerCase()];
-                if (!val || val === '—' || val === '') return '';
-                if (field === 'Grupos') { val = formatGroups(val); }
-                const isKeyField = field === 'Lugar' || field === 'Hora';
-                const fontSize = isKeyField ? (hasBusyDay ? '17px' : '22px') : (hasBusyDay ? '13px' : '15px');
-                return `
-                                                        <div class="flex flex-col leading-tight">
-                                                             <span class="text-[6px] font-black uppercase tracking-widest text-slate-300 mb-0.5">${field}</span>
-                                                             <span class="text-[${fontSize}] font-black uppercase tracking-tight text-slate-900">${val}</span>
-                                                        </div>
-                                                    `;
-            }).join('')}
-                                            </div>
-                                        </div>
-                                    `;
-        }).join('')}
-                            </div>
-                        </div>
-                    `;
-    }).join('')}
-            </div>
-        </div>
-    `;
-    return html;
-};
-
-
-const renderFullProgramaCards = (programa, container, territoryMap = {}, currentConductorName, activeDayIndex = -1, activeTurns = new Set(['manana', 'tarde', 'noche', 'zoom'])) => {
-    const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-    const shifts = ['manana', 'tarde', 'noche', 'zoom'];
-    const shiftLabels = { 'manana': 'Mañana', 'tarde': 'Tarde', 'noche': 'Noche', 'zoom': 'Zoom' };
-    const shiftIcons = { 'manana': 'fa-sun', 'tarde': 'fa-cloud-sun', 'noche': 'fa-moon', 'zoom': 'fa-video' };
-    const shiftColors = { 'manana': 'text-amber-500', 'tarde': 'text-orange-500', 'noche': 'text-indigo-400', 'zoom': 'text-emerald-500' };
-
-    if (!programa || !programa.dias || programa.dias.length === 0) {
-        container.innerHTML = `
-    < div class="col-span-full py-20 flex flex-col items-center justify-center text-center space-y-5 animate-fade-in opacity-30 group" >
-                <div class="w-24 h-24 bg-slate-100 dark:bg-white/5 rounded-[3rem] flex items-center justify-center text-4xl mb-2 transition-transform group-hover:scale-110 duration-700">
-                    <i class="fas fa-calendar-day"></i>
-                </div>
-                <div class="space-y-2">
-                    <p class="text-xs font-black text-slate-400 uppercase tracking-[0.4em]">No hay actividades para esta semana</p>
-                    <p class="text-[10px] text-slate-400 italic font-bold uppercase tracking-widest">Consulta con el responsable del grupo</p>
-                </div>
-            </div > `;
-        return;
+        };
     }
-
-    let html = `
-    < div class="col-span-full animate-fade-in" >
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-            ${days.map((dayName, dayIdx) => {
-        // Filter by activeDayIndex
-        if (activeDayIndex !== -1 && activeDayIndex !== dayIdx) return '';
-
-        const d = (programa.dias || []).find(x => x.nombre === dayName);
-        if (!d) return '';
-
-        // Check if day has any visible shift
-        const hasVisibleData = shifts.some(s => {
-            if (!activeTurns.has(s)) return false;
-            if (s === 'zoom' && dayName !== 'Martes') return false;
-            const sData = d[s];
-            return sData && (sData.conductor || sData.lugar || sData.hora);
-        });
-
-        if (!hasVisibleData) {
-            if (activeDayIndex !== -1) {
-                return `
-                    <div class="col-span-full py-20 flex flex-col items-center justify-center text-center opacity-30">
-                        <i class="fas fa-calendar-day text-4xl mb-4"></i>
-                        <p class="text-[10px] font-black uppercase tracking-widest italic">No hay salidas programadas para este día</p>
-                    </div>`;
-            }
-            return '';
-        }
-
-        return `
-                    <div class="modern-card !p-6 border-slate-100 dark:border-white/10 shadow-xl bg-white dark:bg-slate-900/40 space-y-6 hover:shadow-2xl transition-all duration-500">
-                        <div class="flex justify-between items-center border-b border-slate-100 dark:border-white/5 pb-4">
-                            <div>
-                                <h3 class="font-black text-xl text-slate-800 dark:text-white tracking-tighter uppercase leading-none mb-1">${dayName}</h3>
-                                <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">${d?.fecha ? d.fecha.split('-').reverse().join('/') : '-'}</span>
-                            </div>
-                            <div class="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-500">
-                                <i class="fas fa-calendar-day"></i>
-                            </div>
-                        </div>
-
-                        <div class="space-y-4">
-                            ${shifts.map(shift => {
-            if (!activeTurns.has(shift)) return '';
-            if (shift === 'zoom' && dayName !== 'Martes') return '';
-
-            const sData = d ? d[shift] : null;
-            if (!sData || (!sData.conductor && !sData.lugar)) return '';
-
-            const isConductor = sData.conductor === currentConductorName;
-            const isAuxiliar = sData.auxiliar === currentConductorName;
-            const isImpacted = isConductor || isAuxiliar;
-
-            return `
-                                <div class="p-4 rounded-2xl border border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02] ${isImpacted ? 'ring-2 ring-primary/20 bg-primary/5' : ''}">
-                                    <div class="flex items-center justify-between gap-2 mb-3">
-                                        <div class="flex items-center gap-2">
-                                            <i class="fas ${shiftIcons[shift]} ${shiftColors[shift]} text-[10px]"></i>
-                                            <span class="text-[9px] font-black uppercase tracking-widest text-slate-400">${shiftLabels[shift]}</span>
-                                        </div>
-                                        ${sData.hora ? `
-                                        <div class="flex items-center gap-1.5 px-2 py-0.5 bg-slate-100 dark:bg-white/5 rounded-full border border-slate-200/50 dark:border-white/5">
-                                            <i class="far fa-clock text-[8px] text-slate-400"></i>
-                                            <span class="text-[9px] font-black text-slate-600 dark:text-slate-400 tabular-nums">${sData.hora}</span>
-                                        </div>` : ''}
-                                    </div>
-                                    
-                                    <div class="space-y-3">
-                                        ${sData.lugar ? `
-                                            <div class="flex items-start gap-2">
-                                                <i class="fas fa-map-marker-alt text-slate-300 mt-1 text-[8px]"></i>
-                                                <p class="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase leading-snug">${sData.lugar}</p>
-                                            </div>` : ''}
-
-                                        <div class="grid grid-cols-1 gap-1.5">
-                                            <div class="flex items-center gap-2">
-                                                <div class="w-1 h-3 ${isConductor ? 'bg-primary' : 'bg-slate-300'} rounded-full"></div>
-                                                <span class="text-[10px] font-black ${isConductor ? 'text-primary' : 'text-slate-700 dark:text-slate-200'} truncate uppercase">${sData.conductor || '—'}</span>
-                                            </div>
-                                            ${sData.auxiliar ? `
-                                            <div class="flex items-center gap-2">
-                                                <div class="w-1 h-2 ${isAuxiliar ? 'bg-indigo-400' : 'bg-slate-200'} rounded-full"></div>
-                                                <span class="text-[8px] font-bold ${isAuxiliar ? 'text-indigo-500' : 'text-slate-400'} truncate uppercase">${sData.auxiliar}</span>
-                                            </div>` : ''}
-                                        </div>
-
-                                        <div class="mt-2 pt-2 border-t border-black/5 dark:border-white/5 space-y-2">
-                                            <div class="flex flex-wrap gap-1">
-                                                ${sData.territorio ? sData.territorio.split(',').map(num => `
-                                                    <span class="px-2 py-1 bg-slate-100 dark:bg-white/10 text-slate-500 dark:text-slate-400 rounded-lg text-[8px] font-black border border-slate-200 dark:border-white/10 uppercase">${num.trim()}</span>
-                                                `).join('') : '<span class="text-[8px] font-black text-slate-300 uppercase italic">Libre</span>'}
-                                            </div>
-                                            ${sData.faceta ? `
-                                            <div class="flex items-center gap-1.5 opacity-60">
-                                                <i class="fas fa-bullhorn text-[8px] text-primary"></i>
-                                                <span class="text-[9px] font-black text-primary uppercase tracking-tight">${sData.faceta}</span>
-                                            </div>
-                                            ` : ''}
-                                        </div>
-                                    </div>
-                                </div>`;
-        }).join('')}
-                        </div>
-                    </div>`;
-    }).join('')}
-        </div>
-    </div>
-    `;
-
-    container.innerHTML = html;
 };
+
+
+
+
+
+
+
+
+
 
 const initSwipeActions = () => {
     const cards = document.querySelectorAll('.territory-card-swipe');
@@ -1471,7 +1281,7 @@ const renderProgramaTableHelpers = (programa) => {
     const shiftColors = { 'manana': 'text-amber-500', 'tarde': 'text-orange-500', 'noche': 'text-indigo-400' };
 
     let html = `
-    < div class="mt-12 mb-6 animate-fade-in px-4" >
+        <div class="mt-12 mb-6 animate-fade-in px-4">
         <h3 class="text-xs font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-8">
             <span class="w-8 h-[1px] bg-slate-300 dark:bg-white/10"></span>
             Detalle del Programa Semanal
@@ -1515,10 +1325,9 @@ const renderProgramaTableHelpers = (programa) => {
                         </div>
                         `;
     }).join('')}
-                </div>
             </div>
         </div>
-    </div >>
+    </div>
     `;
     return html;
 };
@@ -1556,7 +1365,7 @@ window.openProgressModal = async (initialId, filterIds = null) => {
 
     // Build Modal with Admin-style UI (Image 3)
     showModal(`
-    < div class="flex flex-col h-full bg-slate-50 dark:bg-[#0b0e14]" >
+        <div class="flex flex-col h-full bg-slate-50 dark:bg-[#0b0e14] sm:rounded-[2rem] overflow-hidden">
             <header class="shrink-0 bg-slate-900 dark:bg-gradient-to-br dark:from-primary dark:to-primary-dark p-6 text-white relative overflow-hidden shadow-2xl">
                 <div class="absolute -right-10 -top-10 w-40 h-40 bg-white/5 rounded-full blur-3xl"></div>
                 <div class="relative z-10 flex items-center justify-between">
@@ -1693,7 +1502,7 @@ window.openProgressModal = async (initialId, filterIds = null) => {
                     <div class="absolute inset-0 bg-white/10 translate-x-full group-hover:translate-x-0 transition-transform duration-500"></div>
                 </button>
             </div>
-        </div >>
+        </div>
     `, (modal) => {
         const checks = modal.querySelectorAll('.return-check');
         const markAll = modal.querySelector('#mark-all-modal');
@@ -1965,7 +1774,7 @@ const bindFinalizar = (id) => {
 
         const modal = document.getElementById('modal-container');
         showModal(`
-    < div class="p-12 text-center space-y-12 animate-fade-in bg-slate-50 dark:bg-[#0b0e14]" >
+            <div class="p-12 text-center space-y-12 animate-fade-in bg-slate-50 dark:bg-[#0b0e14]">
                     <div class="relative inline-block">
                         <div class="w-32 h-32 bg-primary/10 dark:bg-primary/20 rounded-[3rem] flex items-center justify-center text-6xl text-primary shadow-inner border border-primary/20 animate-float">
                             <i class="fas fa-flag-checkered"></i>
@@ -2476,7 +2285,7 @@ window.handleRescueTerritory = async (id, num, newConductor, manzanasStr, isFree
         if (window.refreshConductorView) {
             await window.refreshConductorView();
         } else {
-            Location.reload();
+            location.reload();
         }
     } catch (err) {
         console.error(err);

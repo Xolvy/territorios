@@ -27,11 +27,11 @@
     <!-- Emergency Power-Up: Hard Sync if stuck -->
     <script>
         (function () {
-            const CURRENT_BUILD = "2.4.1.0";
+            const CURRENT_BUILD = "2.4.1.7";
             const lastForce = localStorage.getItem('last_force_sync');
             const now = Date.now();
 
-            // If the user is on v2.4.0.7 (legacy) we need to help them
+            // If the user is on v2.4.1.6 (legacy) we need to help them
             // This is a safety net for anyone who missed the update or has corrupted DB
             if (!lastForce || (now - parseInt(lastForce)) > 1000 * 60 * 60 * 24) {
                 localStorage.setItem('last_force_sync', now.toString());

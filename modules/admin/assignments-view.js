@@ -17,8 +17,22 @@ export const renderAsignacionesView = async (container) => {
         const [t, c, h, conf] = await Promise.all([
             getTerritorios(), getConductores(), getHistorialReport(), getConfiguracion()
         ]);
+
+        // Xolvy Data Shield: Robust normalization & ghost filtering
         const normalizeT = (val) => String(val || '').trim();
-        _globalTerritorios = t.sort((a, b) => normalizeT(a.numero).localeCompare(normalizeT(b.numero), undefined, { numeric: true }));
+        _globalTerritorios = t
+            .filter(rec => {
+                const hasNum = rec.numero && String(rec.numero).trim().length > 0;
+                if (!hasNum) console.warn(`🛡️ [Data Shield] Filtered ghost record: ${rec.id}`);
+                return hasNum;
+            })
+            .map(rec => ({
+                ...rec,
+                numero: normalizeT(rec.numero),
+                manzanas: String(rec.manzanas || '').replace(/Salmo/gi, 'Mz.').trim()
+            }))
+            .sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true }));
+
         _globalConductores = c.filter(p => p.es_conductor).sort((a, b) => a.nombre.localeCompare(b.nombre));
         _globalConfig = conf;
         renderInternal();

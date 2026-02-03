@@ -46,13 +46,32 @@ export const renderProgramaTab = async (container) => {
 
     const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
-    const [territorios, config, allPersonnel, historial] = await Promise.all([
+    const [rawTerritorios, config, allPersonnel, historial] = await Promise.all([
         getTerritorios(), getConfiguracion(), getPublicadores(), getHistorialReport()
     ]);
 
-    const normalizeT = (val) => String(val || '').trim();
-    territorios.sort((a, b) => normalizeT(a.numero).localeCompare(normalizeT(b.numero), undefined, { numeric: true, sensitivity: 'base' }));
-    const activeConductors = allPersonnel.filter(p => p.es_conductor).sort((a, b) => a.nombre.localeCompare(b.nombre));
+    // Xolvy Data Shield: Aggressive normalization & Ghost filtering
+    const normalize = (val) => String(val || '').trim();
+    const territorios = rawTerritorios
+        .filter(t => {
+            const hasNum = t.numero && normalize(t.numero).length > 0;
+            if (!hasNum) console.warn(`🛡️ [Data Shield] Territory Ghost Record Filtered in Program: ${t.id}`);
+            return hasNum;
+        })
+        .map(t => ({
+            ...t,
+            numero: normalize(t.numero),
+            manzanas: String(t.manzanas || '').replace(/Salmo/gi, 'Mz.').trim()
+        }))
+        .sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true, sensitivity: 'base' }));
+
+    const activeConductors = allPersonnel
+        .filter(p => {
+            const hasName = p.nombre && normalize(p.nombre).length > 0;
+            return hasName && p.es_conductor;
+        })
+        .map(p => ({ ...p, nombre: normalize(p.nombre) }))
+        .sort((a, b) => a.nombre.localeCompare(b.nombre));
 
     const options = {
         Lugar: config.lugares || ['Salón del Reino'],
@@ -246,12 +265,29 @@ export const renderProgramaTab = async (container) => {
         const normalizeT = (val) => String(val || '').trim();
         const normalizeLower = (val) => normalizeT(val).toLowerCase();
 
-        const getTStatus = (tNum, conductor) => {
+        const getTStatus = (tNum, conductor, fechaISO, turno) => {
             const t = freshTerritorios.find(x => normalizeLower(x.numero) === normalizeLower(tNum));
             if (!t || t.estado !== 'Asignado') return { isSync: false, isConflict: false };
-            const isSync = normalizeLower(t.asignado_a) === normalizeLower(conductor);
+
+            const dbDateKey = t.fecha_asignacion ? String(t.fecha_asignacion).split('T')[0] : null;
+            const targetDateKey = fechaISO ? fechaISO.split('T')[0] : null;
+
+            const nameMatch = normalizeLower(t.asignado_a) === normalizeLower(conductor);
+            const dateMatch = dbDateKey === targetDateKey;
+            const turnMatch = String(t.turno || '').toLowerCase() === String(turno || '').toLowerCase();
+
+            const isSync = nameMatch && dateMatch && turnMatch;
             const isConflict = !isSync;
-            return { isSync, isConflict };
+
+            return {
+                isSync,
+                isConflict,
+                details: {
+                    conductor: t.asignado_a,
+                    fecha: dbDateKey,
+                    turno: t.turno
+                }
+            };
         };
 
         const tableContainer = container.querySelector('#admin-prog-table');
@@ -319,11 +355,26 @@ export const renderProgramaTab = async (container) => {
                             <label class="text-[9px] font-black text-slate-400 tracking-[0.2em] uppercase ml-1 flex items-center justify-between">
                                 <span><i class="fas fa-map-marked-alt opacity-30"></i> ${field}</span>
                                 <div id="status-badge-${dayIndex}-${turnoId}">
-                                    ${val ? (allSync ?
-                                '<span class="text-emerald-500 font-bold flex items-center gap-1 animate-fade-in"><i class="fas fa-check-circle"></i> LISTO</span>' :
-                                (anyConflict ?
-                                    '<span class="text-rose-500 font-bold flex items-center gap-1 animate-fade-in" title="Ocupado por otro publicador"><i class="fas fa-exclamation-triangle"></i> OCUPADO</span>' :
-                                    `<span class="text-primary font-bold flex items-center gap-1 cursor-pointer hover:underline animate-fade-in" onclick="window.syncAssignmentFromProg(${dayIndex}, '${turnoId}')"><i class="fas fa-link animate-pulse"></i> ASIGNAR</span>`)) : ''}
+                                    ${val ? (() => {
+                                const results = tNums.map(n => getTStatus(n, conductor, dia.fecha, turnoId));
+                                const allSync = results.every(r => r.isSync);
+                                const conflict = results.find(r => r.isConflict);
+
+                                if (allSync) return '<span class="text-emerald-500 font-bold flex items-center gap-1 animate-fade-in"><i class="fas fa-check-circle"></i> LISTO</span>';
+
+                                if (conflict && conflict.details) {
+                                    const d = conflict.details;
+                                    const tooltip = `Ocupado por ${d.conductor || 'otro'} (${d.fecha || '?'} - ${d.turno || '?'})`;
+                                    return `<span class="text-rose-500 font-bold flex items-center gap-1 animate-fade-in group/hint relative cursor-help" title="${tooltip}">
+                                                <i class="fas fa-exclamation-triangle"></i> OCUPADO
+                                                <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-[8px] rounded opacity-0 group-hover/hint:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-xl">
+                                                    ${tooltip}
+                                                </div>
+                                            </span>`;
+                                }
+
+                                return `<span class="text-primary font-bold flex items-center gap-1 cursor-pointer hover:underline animate-fade-in" onclick="window.syncAssignmentFromProg(${dayIndex}, '${turnoId}')"><i class="fas fa-link animate-pulse"></i> ASIGNAR</span>`;
+                            })() : ''}
                                 </div>
                             </label>
                             <button onclick="window.openTerritorySelector(${dayIndex}, '${turnoId}', this)" 
@@ -429,18 +480,28 @@ export const renderProgramaTab = async (container) => {
         if (fieldId === 'territorio' || fieldId === 'conductor') {
             const badgeContainer = container.querySelector(`#status-badge-${dayIdx}-${turnoId}`);
             if (badgeContainer) {
-                const tNums = String(programa.dias[dayIdx][turnoId].territorio).split(/[,;]/).map(n => n.trim()).filter(n => n);
-                const conductor = programa.dias[dayIdx][turnoId].conductor;
-                const stats = tNums.map(n => getTStatus(n, conductor));
+                const dia = programa.dias[dayIdx];
+                const v = dia[turnoId].territorio;
+                const tNums = String(v || '').split(/[,;]/).map(n => n.trim()).filter(n => n);
+                const conductor = dia[turnoId].conductor;
 
-                const allSync = stats.length > 0 && stats.every(s => s.isSync);
-                const anyConflict = stats.some(s => s.isConflict);
-                const v = programa.dias[dayIdx][turnoId].territorio;
+                const results = tNums.map(n => getTStatus(n, conductor, dia.fecha, turnoId));
+                const allSync = results.every(r => r.isSync);
+                const conflict = results.find(r => r.isConflict);
 
                 badgeContainer.innerHTML = v ? (allSync ?
                     '<span class="text-emerald-500 font-bold flex items-center gap-1 animate-fade-in"><i class="fas fa-check-circle"></i> LISTO</span>' :
-                    (anyConflict ?
-                        '<span class="text-rose-500 font-bold flex items-center gap-1 animate-fade-in" title="Ocupado por otro publicador"><i class="fas fa-exclamation-triangle"></i> OCUPADO</span>' :
+                    (conflict ?
+                        (() => {
+                            const d = conflict.details;
+                            const tooltip = `Ocupado por ${d.conductor || 'otro'} (${d.fecha || '?'} - ${d.turno || '?'})`;
+                            return `<span class="text-rose-500 font-bold flex items-center gap-1 animate-fade-in group/hint relative cursor-help" title="${tooltip}">
+                                <i class="fas fa-exclamation-triangle"></i> OCUPADO
+                                <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-[8px] rounded opacity-0 group-hover/hint:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-xl">
+                                    ${tooltip}
+                                </div>
+                            </span>`;
+                        })() :
                         `<span class="text-primary font-bold flex items-center gap-1 cursor-pointer hover:underline animate-fade-in" onclick="window.syncAssignmentFromProg(${dayIdx}, '${turnoId}')"><i class="fas fa-link animate-pulse"></i> ASIGNAR</span>`)) : '';
             }
         }
@@ -549,7 +610,7 @@ export const renderProgramaTab = async (container) => {
     };
 
     window.openGroupSelector = async (dayIdx, turnoId, btn) => {
-        console.log("🛡️ [v2.4.1.6] Opening Multi-Group Selector...");
+        console.log("🛡️ [v2.4.1.9] Opening Multi-Group Selector...");
         const groups = await getGroupsConfig();
         const currentVal = programa.dias[dayIdx][turnoId].grupos || '';
 
@@ -564,7 +625,7 @@ export const renderProgramaTab = async (container) => {
                     </div>
                     <div>
                         <h3 class="text-2xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">Seleccionar Grupos</h3>
-                        <p class="text-[10px] text-indigo-500 font-bold uppercase tracking-[0.3em] mt-1 italic">Versión 2.4.1.6 • Selección Múltiple</p>
+                        <p class="text-[10px] text-indigo-500 font-bold uppercase tracking-[0.3em] mt-1 italic">Versión 2.4.1.9 • Selección Múltiple</p>
                     </div>
                 </header>
 

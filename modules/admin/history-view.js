@@ -9,16 +9,32 @@ import { formatPhoneNumber, getStatusColor, showNotification } from '../utils/he
 const { formatDisplayDateRange } = UIHelpers;
 
 export const renderHistorialView = async (container) => {
-    const [history, allTerritorios, allPublicadores] = await Promise.all([
+    const [history, tRaw, allPublicadores] = await Promise.all([
         getHistorialReport(),
         getTerritorios(),
         getPublicadores()
     ]);
 
+    // Xolvy Data Shield: Robust normalization & ghost filtering
+    const normalizeT = (val) => String(val || '').trim();
+    const allTerritorios = tRaw
+        .filter(rec => {
+            const hasNum = rec.numero && String(rec.numero).trim().length > 0;
+            if (!hasNum) console.warn(`🛡️ [Data Shield] Filtered ghost record: ${rec.id}`);
+            return hasNum;
+        })
+        .map(rec => ({
+            ...rec,
+            numero: normalizeT(rec.numero),
+            manzanas: String(rec.manzanas || '').replace(/Salmo/gi, 'Mz.').trim()
+        }));
+
     // Group history by territory number for easy access
     const historyByNum = history.reduce((acc, h) => {
-        if (!acc[h.numero]) acc[h.numero] = [];
-        acc[h.numero].push(h);
+        const num = normalizeT(h.numero);
+        if (!num) return acc;
+        if (!acc[num]) acc[num] = [];
+        acc[num].push({ ...h, numero: num });
         return acc;
     }, {});
 

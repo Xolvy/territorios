@@ -9,16 +9,28 @@ import { showModal, showCustomConfirm } from '../services/ui-helpers.js';
 export const renderS12View = async (container, config, appVersion) => {
     let terrs = [];
     try {
-        console.log("🔍 [v2.4.1.3] S12 View: Requesting fresh data...");
-        terrs = await getTerritorios();
-        console.log(`📊 [v2.4.1.3] S12 View: Received ${terrs.length} records.`);
-        terrs.sort((a, b) => (tString(a.numero)).localeCompare(tString(b.numero), undefined, { numeric: true }));
+        console.log("🔍 [Xolvy Data Shield] S12 View: Requesting fresh data...");
+        const tRaw = await getTerritorios();
+
+        // Xolvy Data Shield: Robust normalization & ghost filtering
+        const normalizeT = (val) => String(val || '').trim();
+        terrs = tRaw
+            .filter(rec => {
+                const hasNum = rec.numero && String(rec.numero).trim().length > 0;
+                if (!hasNum) console.warn(`🛡️ [Data Shield] Filtered ghost record: ${rec.id}`);
+                return hasNum;
+            })
+            .map(rec => ({
+                ...rec,
+                numero: normalizeT(rec.numero),
+                manzanas: String(rec.manzanas || '').replace(/Salmo/gi, 'Mz.').trim(),
+                localidad: String(rec.localidad || '').replace(/grupos?/gi, '').trim()
+            }))
+            .sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true }));
+
+        console.log(`📊 [Data Shield] S12 View: ${terrs.length} valid records ready.`);
     } catch (e) {
         console.error("Error sorting S12:", e);
-    }
-
-    function tString(val) {
-        return String(val || '').trim();
     }
 
     const renderGrid = (query = '') => {

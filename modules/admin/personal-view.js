@@ -6,9 +6,24 @@ import { showNotification, ensureOnline } from '../utils/helpers.js';
 import { showModal, showCustomConfirm } from '../services/ui-helpers.js';
 
 export const renderPersonalTab = async (container) => {
-    const publicadores = await getPublicadores();
+    // Xolvy Data Shield: Robust normalization & ghost filtering for Personnel
+    const normalize = (val) => String(val || '').trim();
+    const rawPublicadores = await getPublicadores();
     const groups = await getGroupsConfig();
-    publicadores.sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+    const publicadores = rawPublicadores
+        .filter(p => {
+            const hasName = p.nombre && normalize(p.nombre).length > 0;
+            if (!hasName) console.warn(`🛡️ [Data Shield] Personnel Ghost Record Filtered: ${p.id}`);
+            return hasName;
+        })
+        .map(p => ({
+            ...p,
+            nombre: normalize(p.nombre),
+            telefono: normalize(p.telefono),
+            email: normalize(p.email).toLowerCase()
+        }))
+        .sort((a, b) => a.nombre.localeCompare(b.nombre));
 
     const renderAvailPreview = (p) => {
         const disp = p.disponibilidad || [];

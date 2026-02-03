@@ -4,10 +4,15 @@ import { showNotification } from '../utils/helpers.js';
 export const renderAvailabilitySection = async (container, currentUserName) => {
     if (!container) return;
 
+    // Xolvy Data Shield: Robust normalization for user lookup
+    const normalize = (val) => String(val || '').trim().toLowerCase();
     const publicadores = await getPublicadores();
-    const me = publicadores.find(p => p.nombre.trim().toLowerCase() === currentUserName.trim().toLowerCase());
+    const me = publicadores.find(p => normalize(p.nombre) === normalize(currentUserName));
 
-    if (!me) return;
+    if (!me) {
+        console.warn(`🛡️ [Data Shield] User session mismatch for availability: ${currentUserName}`);
+        return;
+    }
 
     const currentDisp = me.disponibilidad || { lunes: [], martes: [], miercoles: [], jueves: [], viernes: [], sabado: [], domingo: [] };
     const dias = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
