@@ -166,8 +166,7 @@ const setupNavigation = (appVersion) => {
         location.href = '/login';
     };
 
-    // View Switching
-    document.getElementById('btn-goto-conductores').onclick = () => location.href = '/conductores';
+    // View Switching logic is now inline in the header badge
 
     const tabs = document.querySelectorAll('.nav-item');
     tabs.forEach(btn => {
