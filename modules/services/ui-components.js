@@ -1,4 +1,4 @@
-import * as animejs from 'animejs';
+import { animate } from 'animejs';
 
 /**
  * Super Premium UI Component Library for Vite 2026
@@ -47,25 +47,16 @@ export const Badge = (text, variant = 'teal') => {
 };
 
 export const animateEntrance = (selector) => {
-    if (typeof animejs === 'function') {
-        animejs({
-            targets: selector,
+    try {
+        animate(selector, {
             opacity: [0, 1],
             translateY: [20, 0],
             scale: [0.95, 1],
             duration: 800,
             delay: 50,
-            easing: 'easeOutQuart'
+            ease: 'outQuart'
         });
-    } else if (animejs.default) {
-        animejs.default({
-            targets: selector,
-            opacity: [0, 1],
-            translateY: [20, 0],
-            scale: [0.95, 1],
-            duration: 800,
-            delay: 50,
-            easing: 'easeOutQuart'
-        });
+    } catch (e) {
+        console.warn("Animation failed", e);
     }
 };

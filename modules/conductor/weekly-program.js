@@ -1,4 +1,6 @@
-import { getSafeDateId, showNotification } from '../utils/helpers.js';
+import { showNotification } from '../utils/helpers.js';
+import { UIHelpers } from '../services/ui-helpers.js';
+const { formatDateId: getSafeDateId } = UIHelpers;
 import { getProgramaSemanal, saveProgramaSemanal, syncSlotWithTerritories, getTerritorios } from '../../data/firestore-services.js';
 import { renderFullProgramaCards, generateLandscapePreviewHTML } from './program-views.js';
 export { renderFullProgramaCards, generateLandscapePreviewHTML };

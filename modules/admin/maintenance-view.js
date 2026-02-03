@@ -2,8 +2,11 @@ import {
     getTerritorios, getConductores, getTelefonos, getPublicadores, getProgramaSemanal, getConfiguracion, getHistorialReport,
     rebuildHistoryFromSchedule, restoreSystemBackup, setSystemVersion, masterResetAssignments, updateTerritorio
 } from '../../data/firestore-services.js';
-import { ensureOnline, formatDateId } from '../utils/helpers.js';
-import { showNotification, showCustomConfirm, showCustomPrompt } from '../services/ui-helpers.js';
+import { ensureOnline } from '../utils/helpers.js';
+import { showNotification } from '../utils/helpers.js';
+import { UIHelpers, showCustomConfirm, showCustomPrompt } from '../services/ui-helpers.js';
+
+const { formatDateId } = UIHelpers;
 import { TerritoryIntelligence } from '../utils/intelligence.js';
 
 export const renderMaintenanceTab = async (container, config, appVersion) => {

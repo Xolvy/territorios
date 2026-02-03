@@ -547,12 +547,7 @@ const loadUnifiedDashboard = async (container, name, intelligenceBadge, agendaCo
         return new Date(d.setDate(diff));
     };
 
-    const getSafeDateId = (d) => {
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${year} -${month} -${day} `;
-    };
+    const getSafeDateId = UIHelpers.formatDateId;
 
     const currentWeekId = getSafeDateId(getMonday(new Date()));
 
