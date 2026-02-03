@@ -91,14 +91,24 @@ export const initUpdateManager = () => {
         const serverForceTimestamp = data.forceTimestamp || 0;
         const localForceTimestamp = parseInt(localStorage.getItem('last_force_timestamp') || '0');
 
-        // Check if we need to force an update
-        const versionMismatch = String(serverVersion) !== String(APP_VERSION);
+        // Helper for semantic comparison (e.g., 2.4.2.10 > 2.4.2.9)
+        const isNewer = (vServer, vLocal) => {
+            const s = String(vServer).split('.').map(Number);
+            const l = String(vLocal).split('.').map(Number);
+            for (let i = 0; i < Math.max(s.length, l.length); i++) {
+                if ((s[i] || 0) > (l[i] || 0)) return true;
+                if ((s[i] || 0) < (l[i] || 0)) return false;
+            }
+            return false;
+        };
+
+        const hasUpdate = isNewer(serverVersion, APP_VERSION);
         const forceRequired = serverForceTimestamp > localForceTimestamp;
 
-        console.log(`📡 Update Check: Local=${APP_VERSION}, Server=${serverVersion} | Force=${forceRequired}`);
+        console.log(`📡 Update Check: Local=${APP_VERSION}, Server=${serverVersion} | NewAvailable=${hasUpdate}`);
 
-        // ONLY trigger full reload if the CORE shell version changed
-        if (versionMismatch) {
+        // ONLY trigger full reload if the CORE shell version is NEWER
+        if (hasUpdate) {
             // Check if we are locked in a loop
             if (UpdateShield.isLocked()) {
                 showRescuePill(serverVersion);
@@ -106,7 +116,6 @@ export const initUpdateManager = () => {
             }
 
             console.log("🚀 Core Update Required! Triggering discrete notification...");
-            // Use discrete notification instead of full-screen overlay
             showSmartUpdatePill(serverVersion, serverForceTimestamp, !!data.forceUpdate);
         } else if (forceRequired) {
             // If it's just a force sync without version change, we can just clear caches silently
