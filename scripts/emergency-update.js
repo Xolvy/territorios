@@ -27,7 +27,7 @@ const forceUpdate = async () => {
             forceTimestamp: Date.now()
         });
 
-        console.log("✅ Firestore Version Updated to 2.4.2.1 - Emergency Broadcast Sent!");
+        console.log("🚀 [Xolvy Modular] Force Update 2.4.2.1 Re-Enabled. Radical Purge Active.");
         process.exit(0);
     } catch (e) {
         console.error("❌ Error updating version:", e);

@@ -89,5 +89,29 @@ moduleRegistry.subscribe(async (moduleName, version) => {
 });
 ```
 
+## 5. Update Loop & Failure Protection (Anti-Loop Shield)
+
+To prevent infinite update cycles and handle synchronization failures gracefully:
+
+### 1. Loop Detection Logic
+
+- **Mechanism**: The `UpdateShield` object tracks attempts using `localStorage.getItem('xolvy_update_loop_stats')`.
+- **Threshold**: If **3 updates** are attempted within **5 minutes**, the system triggers a **Circuit Breaker**.
+- **Registration**: Every call to `runUpdateFlow` registers an attempt via `UpdateShield.registerAttempt()`.
+- **Success Reset**: When `initUpdateManager` detects a version transition (`lastSessionVersion !== APP_VERSION`), it calls `UpdateShield.reset()`.
+
+### 2. Failure Recovery (Safe Mode)
+
+- **Rescue Pill**: When `UpdateShield.isLocked()` is true, instead of the update notification, a **Rescue Pill** (Rose/Red theme) is displayed.
+- **Deep Reset**: The Rescue Pill allows a manual "Deep Reset" which:
+    1. Executes `UpdateShield.reset()`.
+    2. Performs a `performRadicalCachePurge(true)`.
+    3. Forces a network reload using a cache-busting query parameter (`?rescue=timestamp`).
+
+### 3. Verification
+
+- Use `console.warn` to track shield registration.
+- If a loop is detected, `console.error` will log the Circuit Breaker status.
+
 ---
 *Developed by Antigravity for Xolvy Projects.*

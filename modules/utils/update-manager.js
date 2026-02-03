@@ -9,6 +9,45 @@ import { showNotification } from "./helpers.js";
 
 const APP_VERSION = __APP_VERSION__;
 
+/**
+ * ANTI-LOOP SHIELD
+ * Prevents infinite update cycles by tracking attempts in localStorage
+ */
+const UpdateShield = {
+    getStats: () => {
+        try {
+            return JSON.parse(localStorage.getItem('xolvy_update_loop_stats') || '{"count":0, "lastAttempt":0}');
+        } catch (e) {
+            return { count: 0, lastAttempt: 0 };
+        }
+    },
+    saveStats: (stats) => localStorage.setItem('xolvy_update_loop_stats', JSON.stringify(stats)),
+    registerAttempt: () => {
+        const stats = UpdateShield.getStats();
+        const now = Date.now();
+        // If the last attempt was more than 5 minutes ago, we reset the counter
+        if (now - stats.lastAttempt > 300000) {
+            stats.count = 1;
+        } else {
+            stats.count++;
+        }
+        stats.lastAttempt = now;
+        UpdateShield.saveStats(stats);
+        console.warn(`🛡️ [Update Shield] Attempt ${stats.count}/3 registered.`);
+        return stats;
+    },
+    isLocked: () => {
+        const stats = UpdateShield.getStats();
+        const locked = stats.count >= 3 && (Date.now() - stats.lastAttempt < 300000);
+        if (locked) console.error("🚨 [Update Shield] CIRCUIT BREAKER ACTIVE: Update loop detected.");
+        return locked;
+    },
+    reset: () => {
+        console.log("🛡️ [Update Shield] Resetting loop statistics.");
+        localStorage.removeItem('xolvy_update_loop_stats');
+    }
+};
+
 export const initUpdateManager = () => {
     console.log(`🛡️ Update Manager: Active (v${APP_VERSION})`);
 
@@ -17,6 +56,11 @@ export const initUpdateManager = () => {
     if (lastSessionVersion && lastSessionVersion !== APP_VERSION) {
         console.log(`🧹 [Radical Purge] Version transition detected: ${lastSessionVersion} -> ${APP_VERSION}`);
         performRadicalCachePurge(false); // Silent purge if we already updated
+        localStorage.setItem('xolvy_last_shell_version', APP_VERSION);
+
+        // SUCCESS: We successfully moved to a new version, reset the loop shield
+        UpdateShield.reset();
+    } else if (!lastSessionVersion) {
         localStorage.setItem('xolvy_last_shell_version', APP_VERSION);
     }
     const urlParams = new URLSearchParams(window.location.search);
@@ -44,17 +88,13 @@ export const initUpdateManager = () => {
 
         // ONLY trigger full reload if the CORE shell version changed
         if (versionMismatch) {
-            // ANTI-LOOP PROTECTOR: 
-            const now = Date.now();
-            const lastAttempt = parseInt(sessionStorage.getItem('last_update_attempt') || '0');
-            if (now - lastAttempt < 10000) {
-                console.warn("⚠️ [Update Shield] Loop detected. Standing down.");
+            // Check if we are locked in a loop
+            if (UpdateShield.isLocked()) {
+                showRescuePill(serverVersion);
                 return;
             }
 
             console.log("🚀 Core Update Required! Triggering discrete notification...");
-            sessionStorage.setItem('last_update_attempt', now.toString());
-
             // Use discrete notification instead of full-screen overlay
             showSmartUpdatePill(serverVersion, serverForceTimestamp, !!data.forceUpdate);
         } else if (forceRequired) {
@@ -128,6 +168,9 @@ const showSmartUpdatePill = async (newVersion, forceTimestamp = 0, isForced = fa
         sessionStorage.setItem('xolvy_pre_update_state', JSON.stringify(currentState));
 
         try {
+            // Register attempt in the shield
+            UpdateShield.registerAttempt();
+
             status.innerText = "Aislación de activos...";
 
             // Radical Cache Purge BEFORE reload to kill Service Workers and Caches
@@ -394,8 +437,8 @@ const showIANotification = (message) => {
  */
 export const broadcastCurrentVersion = async () => {
     try {
-        const { db } = await import("../../firebase.js");
-        const { doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+        const { db } = await import("../../firebase-config.js");
+        const { doc, updateDoc } = await import("firebase/firestore");
         await updateDoc(doc(db, "configuracion", "version_control"), {
             latestVersion: APP_VERSION,
             forceTimestamp: Date.now(),
@@ -406,4 +449,47 @@ export const broadcastCurrentVersion = async () => {
         console.error("Broadcast error:", err);
         showNotification("Error al difundir versión", "error");
     }
+};
+
+/**
+ * RESCUE PILL: Shown when an update loop is detected
+ */
+const showRescuePill = (targetVersion) => {
+    if (document.getElementById('xolvy-rescue-pill')) return;
+
+    const pill = document.createElement('div');
+    pill.id = 'xolvy-rescue-pill';
+    pill.className = 'fixed bottom-8 left-1/2 -translate-x-1/2 z-[100000] w-[90%] max-w-md animate-slide-up';
+    pill.innerHTML = `
+        <div class="bg-rose-950/90 backdrop-blur-3xl border border-rose-500/50 p-5 rounded-[2.5rem] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] flex items-center gap-5">
+            <div class="w-14 h-14 bg-rose-500/20 rounded-2xl flex items-center justify-center text-2xl text-rose-400 shrink-0 shadow-inner">
+                <i class="fas fa-exclamation-triangle animate-pulse"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="text-[9px] font-black text-rose-400 uppercase tracking-[0.3em]">Modo Rescate Activo</span>
+                </div>
+                <h4 class="text-[14px] font-black text-white uppercase tracking-tight leading-tight">Bucle de Actualización</h4>
+                <p class="text-[10px] font-bold text-rose-300 opacity-80 uppercase tracking-widest mt-1">El sistema no pudo saltar a v${targetVersion}</p>
+            </div>
+            <button id="btn-rescue-action" class="bg-white text-rose-600 hover:bg-rose-100 px-6 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl transition-all active:scale-95">
+                Reset Profundo
+            </button>
+        </div>
+    `;
+
+    document.body.appendChild(pill);
+
+    pill.querySelector('#btn-rescue-action').onclick = async () => {
+        const btn = pill.querySelector('#btn-rescue-action');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-sync fa-spin"></i>';
+
+        console.warn("🆘 Executing Deep Reset...");
+        UpdateShield.reset(); // Reset shield so we can try one last time
+        await performRadicalCachePurge(true);
+
+        // Add a parameter to force network reload
+        window.location.href = window.location.pathname + '?rescue=' + Date.now();
+    };
 };

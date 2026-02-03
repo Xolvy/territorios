@@ -1,0 +1,63 @@
+
+> app-territorios@2.4.2.1 build
+> vite build
+
+[36mvite v7.3.1 [32mbuilding client environment for production...[36m[39m
+transforming...
+[32mÔ£ô[39m 412 modules transformed.
+
+Ô£¿ [vite-plugin-compression]:algorithm=gzip - compressed file successfully: 
+dist/D:/_CODE/app-territorios/assets/history-view-DtTaOvWz.js.gz          18.47kb / gzip: 3.92kb
+dist/D:/_CODE/app-territorios/assets/login-BMR2GokO.js.gz                 15.49kb / gzip: 4.07kb
+dist/D:/_CODE/app-territorios/assets/puntos-view-CTBDgeaF.js.gz           11.01kb / gzip: 2.89kb
+dist/D:/_CODE/app-territorios/assets/index-DalkpToC.js.gz                 48.19kb / gzip: 15.23kb
+dist/D:/_CODE/app-territorios/assets/purify.es-B1AVwBo1.js.gz             22.32kb / gzip: 8.46kb
+dist/D:/_CODE/app-territorios/assets/personal-view-B-gFSChP.js.gz         33.08kb / gzip: 6.61kb
+dist/D:/_CODE/app-territorios/assets/reports-view-oH9R_u-U.js.gz          15.02kb / gzip: 3.92kb
+dist/D:/_CODE/app-territorios/assets/resources-view-CRGBMpAf.js.gz        10.20kb / gzip: 2.63kb
+dist/D:/_CODE/app-territorios/assets/report-s13-DUmFhyz0.js.gz            26.71kb / gzip: 6.81kb
+dist/D:/_CODE/app-territorios/index.html.gz                               5.80kb / gzip: 2.19kb
+dist/D:/_CODE/app-territorios/manifest.json.gz                            1.80kb / gzip: 0.61kb
+dist/D:/_CODE/app-territorios/assets/program-view-aUJrNGsQ.js.gz          44.85kb / gzip: 9.32kb
+dist/D:/_CODE/app-territorios/service-worker.js.gz                        4.11kb / gzip: 1.23kb
+dist/D:/_CODE/app-territorios/assets/ui-helpers-BWjebXJY.js.gz            19.70kb / gzip: 4.82kb
+dist/D:/_CODE/app-territorios/sw.js.gz                                    2.45kb / gzip: 1.08kb
+dist/D:/_CODE/app-territorios/workbox-aaf7b92d.js.gz                      14.90kb / gzip: 5.13kb
+dist/D:/_CODE/app-territorios/assets/admin-dashboard-DuAprGlr.js.gz       95.11kb / gzip: 17.30kb
+dist/D:/_CODE/app-territorios/assets/conductor-dashboard-DzrVzDEs.js.gz   156.75kb / gzip: 35.09kb
+dist/D:/_CODE/app-territorios/assets/leaflet-vendor-7YezI1xC.js.gz        146.46kb / gzip: 42.06kb
+dist/D:/_CODE/app-territorios/assets/index.es-IYZobWDY.js.gz              154.97kb / gzip: 51.11kb
+dist/D:/_CODE/app-territorios/assets/index-BJNtPN0U.css.gz                205.56kb / gzip: 49.72kb
+dist/D:/_CODE/app-territorios/assets/ui-vendor-dUo1xeU2.js.gz             305.53kb / gzip: 97.22kb
+dist/D:/_CODE/app-territorios/assets/firebase-vendor-Dq2FxjjH.js.gz       565.03kb / gzip: 132.06kb
+dist/D:/_CODE/app-territorios/assets/utils-vendor-CAlbbVO0.js.gz          1052.67kb / gzip: 319.48kb
+
+
+
+Ô£¿ [36m[vite-plugin-image-optimizer][39m - optimized images successfully: 
+[2mdist[22m/[94mfavicon.svg[39m   [90m[32m0%[39m[90m [39m [33m[1mskipped[22m[39m [2moriginal: 0.90 kB <= optimized: 0.90 kB[22m
+[2mdist[22m/[94micon-512.svg[39m  [90m[32m0%[39m[90m [39m [33m[1mskipped[22m[39m [2moriginal: 0.90 kB <= optimized: 0.90 kB[22m
+[2mdist[22m/[94micon-192.svg[39m  [90m[32m0%[39m[90m [39m [33m[1mskipped[22m[39m [2moriginal: 0.90 kB <= optimized: 0.90 kB[22m
+
+
+
+­ƒÜ¿ [31m[vite-plugin-image-optimizer][39m - errors during optimization: 
+
+dist/assets/mapa-general.jpg      Input buffer contains unsupported image format
+
+dist/assets/mapa_territorio.png   Input buffer contains unsupported image format
+Ô£ù Build failed in 2.56s
+error during build:
+[vite-plugin-pwa:build] [plugin vite-plugin-pwa:build] modules/utils/update-manager.js: There was an error during the build:
+  Could not resolve "../../firebase.js" from "modules/utils/update-manager.js"
+Additionally, handling the error in the 'buildEnd' hook caused the following error:
+  Could not resolve "../../firebase.js" from "modules/utils/update-manager.js"
+file: D:/_CODE/app-territorios/modules/utils/update-manager.js
+    at getRollupError (file:///D:/_CODE/app-territorios/node_modules/rollup/dist/es/shared/parseAst.js:400:41)
+    at file:///D:/_CODE/app-territorios/node_modules/rollup/dist/es/shared/node-entry.js:23423:39
+    at async catchUnfinishedHookActions (file:///D:/_CODE/app-territorios/node_modules/rollup/dist/es/shared/node-entry.js:22881:16)
+    at async rollupInternal (file:///D:/_CODE/app-territorios/node_modules/rollup/dist/es/shared/node-entry.js:23406:5)
+    at async buildEnvironment (file:///D:/_CODE/app-territorios/node_modules/vite/dist/node/chunks/config.js:33541:12)
+    at async Object.build (file:///D:/_CODE/app-territorios/node_modules/vite/dist/node/chunks/config.js:33900:19)
+    at async Object.buildApp (file:///D:/_CODE/app-territorios/node_modules/vite/dist/node/chunks/config.js:33897:153)
+    at async CAC.<anonymous> (file:///D:/_CODE/app-territorios/node_modules/vite/dist/node/cli.js:629:3)
