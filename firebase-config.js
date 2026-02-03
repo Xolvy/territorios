@@ -43,33 +43,46 @@ const initFirestore = (withPersistence = true) => {
 
 // Emergency check for IndexedDB corruption (Power Up)
 try {
-  // If we just executed a purge, we might want to wait a bit or skip persistence for 1 session
   const justPurged = localStorage.getItem('xolvy_purge_executed');
-  const skipPersistence = (Date.now() - parseInt(justPurged || '0')) < 5000;
+  const forceDisable = localStorage.getItem('xolvy_disable_persistence') === 'true';
+  const skipPersistence = forceDisable || (Date.now() - parseInt(justPurged || '0')) < 5000;
 
   if (skipPersistence) {
-    console.warn("🛡️ [Firestore] Skip Persistence due to recent purge.");
+    console.warn("🛡️ [Firestore] Skip Persistence due to recovery flag or recent purge.");
+    // Auto-reset the flag for the next try, assuming this boot will be clean
+    localStorage.removeItem('xolvy_disable_persistence');
     firestoreDb = initFirestore(false);
   } else {
     firestoreDb = initFirestore(true);
   }
 } catch (e) {
-  console.error("🚨 Firestore: Critical Initialization Error (IndexedDB likely corrupted)", e);
-  // FALLBACK: Essential to prevent the "Refusing to open" white screen
-  try {
-    firestoreDb = getFirestore(app);
-    // Silent attempt to clean up for next time
-    window.indexedDB.deleteDatabase("firestore/[DEFAULT]/territorios-jw/main");
-  } catch (err) {
-    firestoreDb = getFirestore(app);
-  }
+  console.error("🚨 Firestore: Critical Initialization Error", e);
+  firestoreDb = getFirestore(app);
 }
 
 // Global Error Listener for Firebase Persistence Corruptions
 window.addEventListener('unhandledrejection', event => {
-  if (event.reason && event.reason.message && event.reason.message.includes('IndexedDB database data')) {
-    console.error("🔥 Persistence Corruption Detected mid-flight. Forcing reload in 3s...");
-    setTimeout(() => window.location.reload(), 3000);
+  const msg = event.reason?.message || '';
+  if (msg.includes('IndexedDB database data') || msg.includes('refusing to open IndexedDB')) {
+    console.error("🔥 Persistence Corruption Detected. Triggering emergency recovery...");
+
+    // Recovery: Disable persistence for the next boot and purge
+    localStorage.setItem('xolvy_purge_executed', Date.now().toString());
+    localStorage.setItem('xolvy_disable_persistence', 'true');
+
+    // Critical: Clean up what we can now
+    if ('caches' in window) {
+      caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+    }
+
+    if (window.indexedDB) {
+      window.indexedDB.deleteDatabase("firestore/[DEFAULT]/territorios-jw/main");
+    }
+
+    setTimeout(() => {
+      // Force reload with cache busting
+      window.location.href = `${window.location.pathname}?rescue=${Date.now()}`;
+    }, 1500);
   }
 });
 

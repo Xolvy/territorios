@@ -520,7 +520,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
             setupDashboardListeners();
 
-            if (mPhone.initializePhoneModule) {
+            if (mPhone && mPhone.initializePhoneModule) {
                 mPhone.initializePhoneModule(myPhones, publicadores, displayName, container.querySelector('#phone-tbody'), refreshPhones);
             }
         } catch (e) {
@@ -789,7 +789,10 @@ const loadUnifiedDashboard = async (container, name, intelligenceBadge, agendaCo
     // We no longer hide the territories container as requested ("fusionar") 
     // to allow seeing all assigned territories independently of the weekly program.
 
-    window.startOnboarding = mOnboard.startOnboarding;
+    window.startOnboarding = () => {
+        if (mOnboard?.startOnboarding) mOnboard.startOnboarding();
+        else showNotification("Módulo de guía no disponible.", "warning");
+    };
 
     const getMonday = (d) => {
         d = new Date(d);
