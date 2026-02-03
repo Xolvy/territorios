@@ -114,7 +114,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
     const wasProgOpen = container.querySelector('.group\\/prog-details')?.open;
 
     container.innerHTML = `
-        <div class="animate-fade-in pb-32 w-full max-w-7xl mx-auto p-2 md:p-8 space-y-8 md:space-y-20">
+        <div class="animate-fade-in pb-48 w-full max-w-7xl mx-auto p-2 md:p-8 space-y-8 md:space-y-20">
             <header class="flex flex-col md:flex-row justify-between items-start md:items-center px-4 md:px-6 py-6 modern-card !rounded-[2.5rem] border-slate-200 dark:border-white/10 shadow-xl gap-6 relative overflow-hidden group">
                 <div class="absolute inset-0 bg-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
                 <div class="flex items-center gap-5 relative z-10">
@@ -148,7 +148,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
                     <div class="hidden sm:flex flex-col items-end mr-4 text-right">
                          <p class="text-[8px] font-black text-slate-400 uppercase tracking-[0.3em] mb-0.5">Versión</p>
-                         <p class="text-[10px] font-black text-slate-800 dark:text-white tabular-nums">${appVersion || '2.4.0.7'}</p>
+                     <p class="text-[10px] font-black text-slate-800 dark:text-white tabular-nums">${appVersion || '2.4.3.2'}</p>
                     </div>
                     ${(userRole === 'Administrador' || userRole === 'SuperAdmin' || conductorData?.privilegios?.includes('Administrador')) ? `
                     <button id="btn-goto-admin" class="flex-1 md:flex-none bg-amber-500/10 hover:bg-amber-500 text-amber-600 hover:text-white px-4 md:px-6 py-3.5 rounded-xl border border-amber-500/20 transition-all font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95 min-w-0">
@@ -172,7 +172,13 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                            <span class="w-12 h-1 bg-indigo-500/20 rounded-full"></span>
                            Agenda Inteligente
                         </h3>
-                        <div id="agenda-intelligence-badge"></div>
+                        <div class="flex items-center gap-3">
+                            <button onclick="document.getElementById('details-programa').parentElement.scrollIntoView({ behavior: 'smooth' }); document.getElementById('details-programa').open = true;" 
+                                class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-black text-[9px] uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-indigo-600/20 active:scale-95 transition-all">
+                                <i class="fas fa-calendar-alt"></i> Programa de Predicación
+                            </button>
+                            <div id="agenda-intelligence-badge"></div>
+                        </div>
                     </div>
                     <div id="calendar-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
                         <div class="skeleton-pro h-48 rounded-[2.5rem]"></div>
@@ -182,7 +188,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
  
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-y-24 gap-x-8 px-2 md:px-4 mb-24">
                 <!--Module: Programa Semanal(Global Cards)-->
-                <div id="programa-semanal-section" class="lg:col-span-2 ${mods.programa !== false ? '' : 'hidden'} mb-24">
+                <div id="programa-semanal-section" class="lg:col-span-2 ${mods.programa !== false ? '' : 'hidden'} mb-12">
                     <div class="modern-card !p-0 border-slate-200 dark:border-white/10 shadow-2xl transition-all overflow-hidden group/prog bg-white dark:bg-slate-900/40">
                         <details id="details-programa" class="group/prog-details">
                              <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-6 md:p-8 cursor-pointer list-none select-none hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors border-b border-transparent group-open/prog-details:border-slate-100 dark:group-open/prog-details:border-white/5">
@@ -262,9 +268,9 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 </div>
 
                 <!--Module: Misiones de Rescate(Reordered to be above availability)-->
-                <div class="lg:col-span-2 hidden mb-24" id="ayudas-container"></div>
+                <div class="lg:col-span-2 hidden mb-12" id="ayudas-container"></div>
                 
-                <div class="lg:col-span-2 ${mods.disponibilidad !== false ? '' : 'hidden'} mb-24" id="availability-section">
+                <div class="lg:col-span-2 ${mods.disponibilidad !== false ? '' : 'hidden'} mb-12" id="availability-section">
                     <div class="modern-card !p-0 border-slate-200 dark:border-white/10 shadow-2xl transition-all overflow-hidden group/avail bg-white dark:bg-slate-900/40">
                          <details class="group/avail-details">
                              <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-6 md:p-8 cursor-pointer list-none select-none hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors border-b border-transparent group-open/avail-details:border-slate-100 dark:group-open/avail-details:border-white/5">
@@ -291,7 +297,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 </div>
 
                 <!--Module: Telefonos-->
-                <div class="lg:col-span-2 modern-card p-6 md:p-8 ${mods.telefonos !== false ? '' : 'hidden'} border-slate-200 dark:border-white/10 shadow-2xl transition-all duration-500 bg-white dark:bg-slate-900/40 mb-24" id="phone-module-card">
+                <div class="lg:col-span-2 modern-card p-6 md:p-8 ${mods.telefonos !== false ? '' : 'hidden'} border-slate-200 dark:border-white/10 shadow-2xl transition-all duration-500 bg-white dark:bg-slate-900/40 mb-12" id="phone-module-card">
                     <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 mb-8">
                         <div class="flex items-center gap-5 select-none group/phone-header">
                             <h3 class="text-2xl font-black text-slate-800 dark:text-white flex items-center gap-4 uppercase tracking-tight">
@@ -413,7 +419,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                     </div>
                 </div>
 
-                <div class="lg:col-span-2 modern-card border-slate-200 dark:border-white/10 shadow-2xl transition-all overflow-hidden !p-0 ${mods.mapas !== false ? '' : 'hidden'} bg-white dark:bg-slate-900/40 mb-24" id="interactive-maps-module">
+                <div class="lg:col-span-2 modern-card border-slate-200 dark:border-white/10 shadow-2xl transition-all overflow-hidden !p-0 ${mods.mapas !== false ? '' : 'hidden'} bg-white dark:bg-slate-900/40 mb-12" id="interactive-maps-module">
                     <details class="group/maps" ${container.querySelector('.group\\/maps')?.open ? 'open' : ''}>
                         <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-6 md:p-8 cursor-pointer list-none select-none hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
                             <div class="flex items-start gap-6">
@@ -460,7 +466,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 </div>
 
                 <!--Module: Ayudas Ministerio-->
-                <div class="lg:col-span-2 ${mods.ayudas !== false ? '' : 'hidden'} mb-24" id="recursos-container"></div>
+                <div class="lg:col-span-2 ${mods.ayudas !== false ? '' : 'hidden'} mb-12" id="recursos-container"></div>
             </div>
         </div>
         <div id="modal-container" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden overflow-y-auto z-50 p-4 md:p-10 flex justify-center items-start"></div>
@@ -484,11 +490,22 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
     // Helper for Phones
     const refreshPhones = async (forceRefresh = false) => {
         const allPhones = await getTelefonos(forceRefresh);
-        return allPhones.filter(t =>
-            t.solicitado_por === displayName ||
-            t.publicador_asignado === displayName ||
-            t.asignado_a === displayName
-        );
+        const normDN = displayName?.trim().toLowerCase();
+
+        console.log(`[Phones] Refreshing for: "${displayName}" (Normalized: "${normDN}")`);
+        console.log(`[Phones] Total in DB: ${allPhones.length}`);
+
+        const filtered = allPhones.filter(t => {
+            const sol = String(t.solicitado_por || '').trim().toLowerCase();
+            const pub = String(t.publicador_asignado || '').trim().toLowerCase();
+            const asg = String(t.asignado_a || '').trim().toLowerCase();
+
+            const isMatch = sol === normDN || pub === normDN || asg === normDN;
+            return isMatch;
+        });
+
+        console.log(`[Phones] Filtered count: ${filtered.length}`);
+        return filtered;
     };
 
     // Expose refresh function/trigger
@@ -1009,18 +1026,15 @@ const loadUnifiedDashboard = async (container, name, intelligenceBadge, agendaCo
 
         const rescueCount = rescueCandidates.length;
         const totalMissionCount = rescueCount + myExtraMissions.length;
-        const rescueBtnClass = totalMissionCount > 0
-            ? "bg-rose-600 text-white border-rose-500/20 shadow-xl shadow-rose-600/20"
-            : "bg-white dark:bg-white/5 text-rose-500 border-rose-500/30";
 
 
         intelligenceBadge.innerHTML = `
             <div class="flex flex-wrap items-center gap-3">
-                <button onclick="const det = document.getElementById('details-programa'); if(det) { det.open = true; setTimeout(() => { det.scrollIntoView({behavior:'smooth', block:'start'}); }, 100); }" 
-                        class="flex items-center gap-3 ${colorClass} py-3.5 px-6 rounded-2xl border text-[10px] font-black uppercase tracking-[0.15em] shadow-sm backdrop-blur-md hover:scale-105 active:scale-95 transition-all">
-                    <i class="fas fa-calendar-alt animate-pulse"></i> Programa de predicación
+                <button onclick="window.showRescueMissionsModal()" 
+                        class="flex items-center gap-3 ${totalMissionCount > 0 ? 'bg-indigo-600 border-indigo-500/20 shadow-indigo-600/20 text-white' : 'bg-white dark:bg-white/5 text-indigo-500 border-indigo-500/30'} py-3.5 px-6 rounded-2xl border text-[10px] font-black uppercase tracking-[0.15em] shadow-sm backdrop-blur-md hover:scale-105 active:scale-95 transition-all">
+                    <i class="fas fa-map-marked-alt ${totalMissionCount > 0 ? 'animate-pulse' : ''}"></i> 
+                    Oportunidades ${totalMissionCount > 0 ? `<span class="bg-white text-indigo-600 px-2 py-0.5 rounded-lg ml-1 font-black">${totalMissionCount}</span>` : ''}
                 </button>
-                ${mRescue.renderRescueMissions(allTerritorios, normalizedName, myExtraMissions, rescueCandidates, totalMissionCount)}
             </div>
     `;
 
@@ -2026,13 +2040,13 @@ async function renderAISection(name) {
     aiUI.id = 'ai-assistant-overlay';
     aiUI.innerHTML = `
         <!-- Proactive Speech Bubble -->
-        <div id="ai-speech-bubble" class="fixed bottom-28 right-6 z-40 max-w-[220px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl text-slate-800 dark:text-white p-5 rounded-[2rem] rounded-br-none shadow-2xl border border-primary/20 opacity-0 pointer-events-none translate-y-4 transition-all duration-500">
+        <div id="ai-speech-bubble" class="fixed bottom-36 right-6 z-40 max-w-[220px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl text-slate-800 dark:text-white p-5 rounded-[2rem] rounded-br-none shadow-2xl border border-primary/20 opacity-0 pointer-events-none translate-y-4 transition-all duration-500">
             <p class="text-[10px] font-black uppercase tracking-widest leading-none mb-1 opacity-50">Sugerencia IA</p>
             <p class="text-[13px] font-black leading-tight" id="ai-bubble-text">¿Te digo por donde empezar?</p>
             <div class="absolute bottom-[-10px] right-0 w-0 h-0 border-l-[12px] border-l-transparent border-t-[12px] border-t-white/95 dark:border-t-slate-900/95 transition-all"></div>
         </div>
 
-        <button id="ai-fab" class="fixed bottom-8 right-8 z-40 bg-slate-900 dark:bg-primary text-white rounded-full p-5 shadow-2xl border border-white/20 transition-all hover:scale-110 active:scale-95 group overflow-hidden">
+        <button id="ai-fab" class="fixed bottom-12 right-12 z-40 bg-slate-900 dark:bg-primary text-white rounded-full p-5 shadow-2xl border border-white/20 transition-all hover:scale-110 active:scale-95 group overflow-hidden">
             <div class="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent transition-opacity group-hover:opacity-0"></div>
             <i class="fas fa-brain text-4xl relative z-10 group-hover:rotate-12 transition-transform" style="animation: ai-glow 2s ease-in-out infinite alternate"></i>
             <div id="ai-suggestion-badge" class="hidden ai-badge">1</div>

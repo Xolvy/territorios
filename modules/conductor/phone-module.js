@@ -1,5 +1,5 @@
 import { showNotification } from '../utils/helpers.js';
-import { getTelefonos, updateTelefonoStatus, releaseUnusedTelefonos, solicitarNumeros, logSessionSummary } from '../../data/firestore-services.js';
+import { getTelefonos, updateTelefonoStatus, releaseUnusedTelefonos, solicitarNumeros, logSessionSummary, updateTelefono } from '../../data/firestore-services.js';
 import { showModal, showCustomConfirm, showCustomPrompt } from '../services/ui-helpers.js';
 import { AppConfig } from '../utils/config.js';
 
@@ -52,7 +52,8 @@ export const initializePhoneModule = (initialPhones, publicadores, displayName, 
 
     window.updatePhoneStaff = async (id, staff) => {
         try {
-            await updateTelefonoStatus(id, { publicador_asignado: staff });
+            // Corrected: passing staff as third param, null as status (keep current)
+            await updateTelefonoStatus(id, null, staff);
             showNotification(`Asignado a ${staff}`, 'success');
         } catch (e) {
             showNotification('Error al asignar publicador', 'error');
@@ -77,7 +78,8 @@ export const initializePhoneModule = (initialPhones, publicadores, displayName, 
 
     window.setPhoneStatus = async (id, status) => {
         try {
-            await updateTelefonoStatus(id, { estado: status, solicitado_por: displayName });
+            // Corrected signature usage for firestore-services.js
+            await updateTelefonoStatus(id, status, displayName);
             window.closeModal();
             onRefresh();
             showNotification(`Estado actualizado: ${status}`, 'success');
@@ -87,8 +89,9 @@ export const initializePhoneModule = (initialPhones, publicadores, displayName, 
     };
 
     window.openPhoneNotes = (id, phone, currentNotes) => {
-        showCustomPrompt(`Notas para ${phone}`, (newNotes) => {
-            updateTelefonoStatus(id, { notas: newNotes });
+        showCustomPrompt(`Notas para ${phone}`, async (newNotes) => {
+            // Use updateTelefono for simple object updates like notes
+            await updateTelefono(id, { notas: newNotes });
             onRefresh();
         }, currentNotes);
     };
