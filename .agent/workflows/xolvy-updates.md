@@ -14,7 +14,8 @@ The system consists of three main pillars:
 2. **Discrete HUD**: A sidebar element indicating the real-time synchronization state of specific modules.
 3. **AI Banner**: A premium notification that displays the "Brain" (IA) explanation of the update.
 4. **Smart Update Pill**: A floating, high-contrast notification for Core Shell version jumps.
-5. **Radical Purge (Persistence Killer)**: A mechanism to evict all browser caches and service workers during version jumps.
+5. **Radical Purge (Persistence Killer)**: A mechanism to evict all browser caches, service workers, and corrupted IndexedDB data during version jumps.
+6. **Admin Telemetry (Auto-Sync)**: An automatic synchronization mechanism that updates Firestore version metadata when an Administrator logs in with a newer code version.
 
 ## 2. Zero-Caching Persistent Purge
 
@@ -26,14 +27,16 @@ To prevent "stuck" versions (like persistence of v2.4.1.7 when v2.4.2.0 is expec
 - **Service Worker Sticking**: When outdated assets are served from the Workbox cache.
 - **Manual Rescue**: Can be triggered by the user or an administrator to fix local state issues.
 
-### Implementation
+### Implementation (`performRadicalCachePurge`)
 
 1. Call `await performRadicalCachePurge(true)` before any version-jump reload.
 2. The function will:
    - Delete all `caches` keys.
    - Unregister all `serviceWorker` registrations.
    - Clear `sessionStorage`.
+   - **Emergency IDB Cleanup**: Delete the main Firestore IndexedDB database (`firestore/[DEFAULT]/project-id/main`) to resolve corruption errors.
    - Set a `xolvy_purge_executed` timestamp in `localStorage` for tracking.
+   - **Persistence Disabling**: Set a `xolvy_disable_persistence` flag to allow the next boot to bypass the disk cache.
 
 ### A. Intelligence Integration
 
@@ -67,7 +70,8 @@ The `SmartUpdatePill` is the primary interface for full application upgrades (Sh
 
 ### 1. Triggering
 
-- It is triggered in `initUpdateManager` when a `versionMismatch` is detected between `APP_VERSION` and Firestore's `latestVersion`.
+- It is triggered in `initUpdateManager` when a **Semantic Mismatch** is detected.
+- **Semantic Comparison Rule**: An update is ONLY triggered if `serverVersion > localVersion`. This prevents downgrade loops and "stuck" versions when the server is outdated.
 - **Mandatory Updates**: If the `forceUpdate` flag is active in Firestore, the pill will automatically trigger the update flow after 3 seconds.
 
 ### 2. Interaction & Visuals
@@ -138,7 +142,32 @@ To prevent infinite update cycles and handle synchronization failures gracefully
 ---
 *Developed by Antigravity for Xolvy Projects.*
 
-## 7. Pre-Deployment Validation & Proactive Repair
+## 7. Admin Telemetry & Global Sync (Automatic Version Propagation)
+
+To prevent Firestore from lagging behind code deployments, the system implements automatic telemetry.
+
+### 1. The Lag Problem
+
+If code `v2.4.2.9` is deployed but Firestore still shows `v2.4.2.5`, clients will enter a stale state or ignore the update. Manual updates via the Maintenance tab are prone to human error.
+
+### 2. Auto-Sync Logic
+
+- **Detection**: Every `initUpdateManager` check compares `APP_VERSION` (Local) vs `serverVersion` (Firestore).
+- **Trigger**: If `Local > Server` AND the user is an **Administrator**, the system calls `broadcastCurrentVersion()`.
+- **Metadata**: The Firestore record is updated with:
+  - `latestVersion`: The new `APP_VERSION`.
+  - `forceTimestamp`: `Date.now()`.
+  - `forceUpdate`: `true`.
+  - `updatedAt`: Human-readable timestamp.
+
+### 3. Cascading Update
+
+Once an Admin logs in, the entire fleet of Conductors receives the `SmartUpdatePill` within seconds, ensuring 100% version parity across the organization.
+
+---
+*Developed by Antigravity for Xolvy Projects.*
+
+## 8. Pre-Deployment Validation & Proactive Repair
 
 Before broadcasting a new version (Shell or Module), the developer MUST ensure system stability to prevent widespread client failures.
 
@@ -181,4 +210,4 @@ Corruption in Firestore data (e.g., territory numbers with leading/trailing spac
 | **MIME Error in Build** | Check `app.js` and `glob` usage; ensure Vite is bundling the dynamic targets correctly. |
 
 ---
-*Last Protocol Update: v2.4.2.5*
+Protocol Update: v2.4.2.9

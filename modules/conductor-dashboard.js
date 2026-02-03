@@ -165,7 +165,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 </div>
             </header>
  
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 px-2 md:px-4">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-y-24 gap-x-8 px-2 md:px-4 mb-24">
                 <div class="lg:col-span-2 space-y-8 animate-fade-in ${mods.agenda !== false ? '' : 'hidden'}">
                     <div class="flex flex-col md:flex-row md:items-center justify-between px-4 gap-4">
                         <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] flex items-center gap-4">
@@ -180,10 +180,11 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 </div>
             </div>
  
-                <!--Module: Programa Semanal(Global Cards)-- >
-                <div id="programa-semanal-section" class="lg:col-span-2 ${mods.programa !== false ? '' : 'hidden'}">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-y-24 gap-x-8 px-2 md:px-4 mb-24">
+                <!--Module: Programa Semanal(Global Cards)-->
+                <div id="programa-semanal-section" class="lg:col-span-2 ${mods.programa !== false ? '' : 'hidden'} mb-24">
                     <div class="modern-card !p-0 border-slate-200 dark:border-white/10 shadow-2xl transition-all overflow-hidden group/prog bg-white dark:bg-slate-900/40">
-                        <details class="group/prog-details" ${wasProgOpen ? 'open' : ''}>
+                        <details id="details-programa" class="group/prog-details">
                              <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-6 md:p-8 cursor-pointer list-none select-none hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors border-b border-transparent group-open/prog-details:border-slate-100 dark:group-open/prog-details:border-white/5">
                                 <div class="flex items-start gap-6">
                                     <div class="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-2xl text-indigo-500 shadow-inner border border-indigo-500/10 group-open/prog-details:rotate-6 transition-transform">
@@ -261,13 +262,36 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 </div>
 
                 <!--Module: Misiones de Rescate(Reordered to be above availability)-->
-                <div class="lg:col-span-2 hidden" id="ayudas-container"></div>
+                <div class="lg:col-span-2 hidden mb-24" id="ayudas-container"></div>
                 
-                <div class="lg:col-span-2 ${mods.disponibilidad !== false ? '' : 'hidden'}" id="availability-container">
+                <div class="lg:col-span-2 ${mods.disponibilidad !== false ? '' : 'hidden'} mb-24" id="availability-section">
+                    <div class="modern-card !p-0 border-slate-200 dark:border-white/10 shadow-2xl transition-all overflow-hidden group/avail bg-white dark:bg-slate-900/40">
+                         <details class="group/avail-details">
+                             <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-6 md:p-8 cursor-pointer list-none select-none hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors border-b border-transparent group-open/avail-details:border-slate-100 dark:group-open/avail-details:border-white/5">
+                                <div class="flex items-start gap-6">
+                                    <div class="w-14 h-14 rounded-2xl bg-teal-500/10 flex items-center justify-center text-2xl text-teal-600 shadow-inner border border-teal-500/10 group-open/avail-details:rotate-6 transition-transform">
+                                        <i class="fas fa-user-clock"></i>
+                                    </div>
+                                    <div>
+                                        <div class="flex items-center gap-3">
+                                            <h3 class="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Mi Disponibilidad</h3>
+                                            <div class="w-6 h-6 rounded-lg bg-slate-100 dark:bg-white/10 flex items-center justify-center text-[10px] group-open/avail-details:rotate-180 transition-transform text-slate-400">
+                                                <i class="fas fa-chevron-down"></i>
+                                            </div>
+                                        </div>
+                                        <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mt-1 opacity-70">Gestiona tus horarios para el programa</p>
+                                    </div>
+                                </div>
+                            </summary>
+                            <div id="availability-container" class="p-4 md:p-8 animate-fade-in group-open/avail-details:block hidden">
+                                <!-- Content will be injected here -->
+                            </div>
+                         </details>
+                    </div>
                 </div>
 
                 <!--Module: Telefonos-->
-                <div class="lg:col-span-2 modern-card p-6 md:p-8 ${mods.telefonos !== false ? '' : 'hidden'} border-slate-200 dark:border-white/10 shadow-2xl transition-all duration-500 bg-white dark:bg-slate-900/40" id="phone-module-card">
+                <div class="lg:col-span-2 modern-card p-6 md:p-8 ${mods.telefonos !== false ? '' : 'hidden'} border-slate-200 dark:border-white/10 shadow-2xl transition-all duration-500 bg-white dark:bg-slate-900/40 mb-24" id="phone-module-card">
                     <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 mb-8">
                         <div class="flex items-center gap-5 select-none group/phone-header">
                             <h3 class="text-2xl font-black text-slate-800 dark:text-white flex items-center gap-4 uppercase tracking-tight">
@@ -389,7 +413,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                     </div>
                 </div>
 
-                <div class="lg:col-span-2 modern-card border-slate-200 dark:border-white/10 shadow-2xl transition-all overflow-hidden !p-0 ${mods.mapas !== false ? '' : 'hidden'} bg-white dark:bg-slate-900/40" id="interactive-maps-module">
+                <div class="lg:col-span-2 modern-card border-slate-200 dark:border-white/10 shadow-2xl transition-all overflow-hidden !p-0 ${mods.mapas !== false ? '' : 'hidden'} bg-white dark:bg-slate-900/40 mb-24" id="interactive-maps-module">
                     <details class="group/maps" ${container.querySelector('.group\\/maps')?.open ? 'open' : ''}>
                         <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-6 md:p-8 cursor-pointer list-none select-none hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
                             <div class="flex items-start gap-6">
@@ -436,7 +460,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 </div>
 
                 <!--Module: Ayudas Ministerio-->
-                <div class="lg:col-span-2 ${mods.ayudas !== false ? '' : 'hidden'}" id="recursos-container"></div>
+                <div class="lg:col-span-2 ${mods.ayudas !== false ? '' : 'hidden'} mb-24" id="recursos-container"></div>
             </div>
         </div>
         <div id="modal-container" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden overflow-y-auto z-50 p-4 md:p-10 flex justify-center items-start"></div>
@@ -992,7 +1016,7 @@ const loadUnifiedDashboard = async (container, name, intelligenceBadge, agendaCo
 
         intelligenceBadge.innerHTML = `
             <div class="flex flex-wrap items-center gap-3">
-                <button onclick="const section = document.getElementById('programa-semanal-section'); if(section) { section.classList.remove('hidden'); section.style.display = 'block'; } const det = document.querySelector('.group\\\\/prog-details'); if(det) { det.open = true; setTimeout(() => { det.scrollIntoView({behavior:'smooth', block:'start'}); }, 100); }" 
+                <button onclick="const det = document.getElementById('details-programa'); if(det) { det.open = true; setTimeout(() => { det.scrollIntoView({behavior:'smooth', block:'start'}); }, 100); }" 
                         class="flex items-center gap-3 ${colorClass} py-3.5 px-6 rounded-2xl border text-[10px] font-black uppercase tracking-[0.15em] shadow-sm backdrop-blur-md hover:scale-105 active:scale-95 transition-all">
                     <i class="fas fa-calendar-alt animate-pulse"></i> Programa de predicación
                 </button>

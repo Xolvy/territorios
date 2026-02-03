@@ -77,6 +77,19 @@ export const initUpdateManager = () => {
     } catch (e) {
         console.warn("🛡️ [Update Manager] Storage access denied.");
     }
+    // 1. HANDSHAKE: Check if we just updated to show "Online" status
+    try {
+        if (localStorage.getItem('xolvy_update_handshake') === 'true') {
+            console.log("🟢 [Xolvy Updates] Handshake detected. Showing 'Online' status.");
+            localStorage.removeItem('xolvy_update_handshake');
+
+            // Show a premium "Online" notification
+            setTimeout(() => {
+                showNotification("¡Conexión Restablecida! Sistema Optimizado", "success");
+            }, 1500);
+        }
+    } catch (e) { /* ignore */ }
+
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('updated') === 'true') {
         window.history.replaceState({}, document.title, window.location.pathname);
@@ -181,7 +194,8 @@ const showSmartUpdatePill = async (newVersion, forceTimestamp = 0, isForced = fa
     const runUpdateFlow = async () => {
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>';
-        status.innerText = "Sincronizando núcleo...";
+        status.innerText = "Modo Offline: Sincronizando...";
+        status.className = "text-[8px] font-black text-rose-400 uppercase tracking-widest mt-1 animate-pulse";
         spinner.classList.remove('hidden');
         icon.classList.add('opacity-0');
 
@@ -193,6 +207,8 @@ const showSmartUpdatePill = async (newVersion, forceTimestamp = 0, isForced = fa
             user: localStorage.getItem('selected_conductor_name')
         };
         sessionStorage.setItem('xolvy_pre_update_state', JSON.stringify(currentState));
+        // Flag for "Online" handshake after reload
+        localStorage.setItem('xolvy_update_handshake', 'true');
 
         try {
             // Register attempt in the shield
@@ -200,8 +216,9 @@ const showSmartUpdatePill = async (newVersion, forceTimestamp = 0, isForced = fa
 
             status.innerText = "Aislación de activos...";
 
-            // Radical Cache Purge BEFORE reload to kill Service Workers and Caches
-            await performRadicalCachePurge(true);
+            // MODIFIED: Use Smart Purge by default to avoid logging out users
+            // Radical purge is now only for the Rescue Pill or if locked
+            await performRadicalCachePurge(false);
 
             status.innerText = "Finalizando optimización...";
             await new Promise(r => setTimeout(r, 1200));
@@ -210,7 +227,8 @@ const showSmartUpdatePill = async (newVersion, forceTimestamp = 0, isForced = fa
             if (forceTimestamp) localStorage.setItem('last_force_timestamp', forceTimestamp.toString());
 
             title.innerText = "Optimización Completada";
-            status.innerText = "Reiniciando para aplicar cambios";
+            status.innerText = "Restableciendo conexión...";
+            status.className = "text-[8px] font-black text-emerald-400 uppercase tracking-widest mt-1";
             btn.innerHTML = '<i class="fas fa-check"></i>';
             btn.className = "relative z-10 bg-emerald-500 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-emerald-500/20";
 
@@ -220,6 +238,7 @@ const showSmartUpdatePill = async (newVersion, forceTimestamp = 0, isForced = fa
 
         } catch (err) {
             console.error("Discrete update failed:", err);
+            // Fallback to reload if something breaks
             window.location.reload();
         }
     };
@@ -270,10 +289,14 @@ export const performRadicalCachePurge = async (full = true) => {
 
         if (full) {
             // 3. Delete IndexedDB Databases (Firestore persistence often gets corrupted)
+            // WE ONLY DO THIS IN RADICAL MODE (Rescue) to avoid logging out users
             try {
                 if (window.indexedDB && window.indexedDB.databases) {
                     const dbs = await window.indexedDB.databases();
                     await Promise.all(dbs.map(db => {
+                        // DO NOT DELETE AUTH DATABASE IF POSSIBLE
+                        if (db.name.includes('auth')) return Promise.resolve();
+
                         console.log(`🗑️ [Purge] Deleting DB: ${db.name}`);
                         return new Promise((resolve) => {
                             const req = window.indexedDB.deleteDatabase(db.name);
@@ -291,7 +314,7 @@ export const performRadicalCachePurge = async (full = true) => {
                     ];
                     legacyDBs.forEach(dbName => window.indexedDB.deleteDatabase(dbName));
                 }
-                console.log("✅ [Purge] IndexedDB cleared");
+                console.log("✅ [Purge] Non-Auth IndexedDB cleared");
             } catch (idbErr) { console.warn("IndexDB purge partial failure:", idbErr); }
 
             // 4. Clear storage

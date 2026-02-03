@@ -1039,7 +1039,7 @@ export const checkAndResetTelephoneCycle = async (forceRequested = false) => {
         const processedRecords = snapshot.docs.filter(d => {
             const data = d.data();
             const hasStatus = data.estado && data.estado !== 'Sin asignar';
-            const isRequested = data.solicitado_por !== null && data.solicitado_por !== undefined;
+            const isRequested = !!data.solicitado_por;
             return hasStatus || isRequested;
         });
 
@@ -1055,41 +1055,55 @@ export const checkAndResetTelephoneCycle = async (forceRequested = false) => {
             }
 
             console.log("🚀 Telephone Cycle Complete! Resetting all records...");
-            const batch = writeBatch(db);
+            let batch = writeBatch(db);
+            let operationCount = 0;
             const now = new Date().toISOString();
 
-            snapshot.docs.forEach(d => {
+            for (const d of snapshot.docs) {
                 const data = d.data();
                 const currentStatus = data.estado;
 
+                let updateData = null;
+
                 // Reset logic
                 if (!currentStatus || ['Contestaron', 'No contestan', 'Colgaron', 'Sin asignar'].includes(currentStatus)) {
-                    batch.update(doc(db, "telefonos", d.id), {
+                    updateData = {
                         estado: 'Sin asignar',
                         publicador_asignado: null,
                         asignado_a: null,
                         solicitado_por: null,
                         fecha_asignacion: null,
-                        comentario: '', // Clear old comments for blank records (Request)
-                        // Preserve historical observations
+                        comentario: '',
                         ultima_observacion_ciclo: data.comentario || '',
                         fecha_ultimo_ciclo: now
-                    });
-                } else if (currentStatus === 'Revisita') {
-                    // Keep Revisita until manually returned
+                    };
                 } else if (currentStatus === 'No llamar') {
-                    batch.update(doc(db, "telefonos", d.id), {
+                    updateData = {
                         ultimo_estado: 'No llamar',
                         estado: 'Sin asignar',
                         fecha_ultimo_estado: now,
                         publicador_asignado: null,
                         asignado_a: null,
                         solicitado_por: null
-                    });
+                    };
                 }
-            });
+                // Keep Revisita until manually returned (no updateData for this case)
 
-            await batch.commit();
+                if (updateData) {
+                    batch.update(doc(db, "telefonos", d.id), updateData);
+                    operationCount++;
+
+                    if (operationCount >= 450) {
+                        await batch.commit();
+                        batch = writeBatch(db);
+                        operationCount = 0;
+                    }
+                }
+            }
+
+            if (operationCount > 0) {
+                await batch.commit();
+            }
             return true;
         }
         return false;
