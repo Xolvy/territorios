@@ -24,6 +24,9 @@ import { moduleRegistry } from './utils/module-registry.js';
 const SubModuleCache = new Map();
 const dynamicSubModules = import.meta.glob('./**/*.js');
 
+// Module scope variables for micro-modules to resolve closure/ReferenceError issues
+let mAvail, mRec, mMaps, mRescue, mPhone, mOnboard, mProg;
+
 async function loadSubModule(name, path) {
     const fullPath = moduleRegistry.getModulePath(name, path);
     // If version changed, force fresh reload
@@ -68,7 +71,7 @@ window.showCustomAlert = (message) => {
 
 export const renderConductorDashboard = async (container, nameOrEmail, appVersion, userRole = null) => {
     // Xolvy Modular: Pre-fetch Micro-Modules for this view
-    const [mAvail, mRec, mMaps, mRescue, mPhone, mOnboard, mProg] = await Promise.all([
+    [mAvail, mRec, mMaps, mRescue, mPhone, mOnboard, mProg] = await Promise.all([
         loadSubModule('availability', './conductor/availability.js'),
         loadSubModule('recursos', './conductor/recursos.js'),
         loadSubModule('maps_explorer', './conductor/maps-explorer.js'),
@@ -480,9 +483,42 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 rescue: false
             };
 
-            await loadUnifiedDashboard(container, displayName, container.querySelector('#agenda-intelligence-badge'), container.querySelector('#calendar-container'), container.querySelector('#territorios-container'), userMods, config, conductorData, userRole, mProg);
+            await loadUnifiedDashboard(container, displayName, container.querySelector('#agenda-intelligence-badge'), container.querySelector('#calendar-container'), container.querySelector('#territorios-container'), userMods, config, conductorData, userRole);
             const myPhones = await refreshPhones();
             const publicadores = await getPublicadores();
+
+            // Set up Solicitar Números logic
+            const setupSolicitarBtn = (btnId) => {
+                const btn = container.querySelector(`#${btnId}`);
+                if (btn) {
+                    btn.onclick = async () => {
+                        try {
+                            btn.disabled = true;
+                            const oldText = btn.innerHTML;
+                            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Solicitando...';
+
+                            const count = await solicitarNumeros(35, displayName);
+                            if (count > 0) {
+                                showNotification(`Se han asignado ${count} números nuevos.`, 'success');
+                                await window.refreshConductorView();
+                            } else {
+                                showNotification("No hay más números disponibles en este momento.", "warning");
+                                btn.disabled = false;
+                                btn.innerHTML = oldText;
+                            }
+                        } catch (err) {
+                            console.error("Error solicitando números:", err);
+                            showNotification("Error al solicitar números", "error");
+                            btn.disabled = false;
+                        }
+                    };
+                }
+            };
+
+            setupSolicitarBtn('btn-solicitar');
+            setupSolicitarBtn('btn-solicitar-more');
+
+            setupDashboardListeners();
 
             if (mPhone.initializePhoneModule) {
                 mPhone.initializePhoneModule(myPhones, publicadores, displayName, container.querySelector('#phone-tbody'), refreshPhones);
@@ -524,6 +560,221 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
         };
     }
 
+    // --- DASHBOARD LISTENERS SETUP ---
+    const setupDashboardListeners = () => {
+        // Phone Search & Filter
+        const searchPhone = container.querySelector('#search-phone');
+        const filterStatus = container.querySelector('#filter-phone-status');
+        if (searchPhone) {
+            searchPhone.oninput = () => {
+                const term = searchPhone.value.toLowerCase();
+                const status = filterStatus?.value || '';
+                refreshAndRenderPhoneTable(term, status);
+            };
+        }
+        if (filterStatus) {
+            filterStatus.onchange = () => {
+                const term = searchPhone?.value.toLowerCase() || '';
+                const status = filterStatus.value;
+                refreshAndRenderPhoneTable(term, status);
+            };
+        }
+
+        // Add Publisher
+        const btnAddPub = container.querySelector('#btn-add-publicador');
+        if (btnAddPub) {
+            btnAddPub.onclick = async () => {
+                const modal = document.getElementById('modal-container');
+                modal.innerHTML = `
+                    <div class="modern-card p-10 max-w-sm w-full shadow-2xl relative animate-bounce-in border-primary/20 bg-white dark:bg-[#0b0e14]">
+                        <div class="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-2xl text-primary mx-auto mb-6 shadow-inner border border-primary/10">
+                            <i class="fas fa-user-plus"></i>
+                        </div>
+                        <h3 class="text-2xl font-black text-slate-800 dark:text-white mb-2 uppercase tracking-tighter text-center">Nuevo Publicador</h3>
+                        <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-8 text-center">Registrar nuevo integrante</p>
+                        
+                        <div class="space-y-6">
+                            <div class="space-y-2">
+                                 <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Nombre Completo</label>
+                                 <input type="text" id="new-pub-name-input" placeholder="Ej: Juan Pérez" class="w-full bg-slate-50 dark:bg-white/5 border border-transparent focus:border-primary/30 rounded-2xl px-6 py-4 text-slate-800 dark:text-white focus:bg-white dark:focus:bg-white/10 outline-none transition-all placeholder:text-slate-400 font-bold shadow-inner">
+                            </div>
+                        </div>
+
+                        <div class="flex gap-4 mt-10">
+                            <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="flex-1 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-100 dark:bg-white/5 rounded-2xl hover:bg-slate-200 transition-colors">Cancelar</button>
+                            <button id="confirm-add-pub" class="flex-1 py-5 text-[10px] font-black uppercase tracking-widest text-white bg-primary rounded-2xl shadow-xl shadow-primary/30 hover:bg-primary-dark transition-all hover:scale-105 active:scale-95">Agregar</button>
+                        </div>
+                    </div>
+                `;
+                modal.classList.remove('hidden');
+                const inputName = document.getElementById('new-pub-name-input');
+                inputName.focus();
+
+                const submit = async () => {
+                    const name = inputName.value.trim();
+                    if (name.length > 0) {
+                        try {
+                            modal.classList.add('hidden');
+                            await addPublicador({ nombre: name });
+                            showNotification("Publicador agregado correctamente.", "success");
+                            window.refreshConductorView();
+                        } catch (e) {
+                            console.error(e);
+                            showNotification("Error al agregar publicador: " + e.message, "error");
+                        }
+                    }
+                };
+
+                document.getElementById('confirm-add-pub').onclick = submit;
+                inputName.onkeypress = (e) => { if (e.key === 'Enter') submit(); };
+            };
+        }
+
+        // Finalize Session
+        const bindFinalizar = (id) => {
+            const btn = container.querySelector(`#${id}`);
+            if (btn) {
+                btn.onclick = async () => {
+                    const allPhones = await getTelefonos();
+                    const myPhones = allPhones.filter(t => t.solicitado_por === displayName);
+                    if (myPhones.length === 0) {
+                        showNotification("No tienes números solicitados activos.", "info");
+                        return;
+                    }
+
+                    const summary = {
+                        total: myPhones.length,
+                        stats: {
+                            'Contestaron': 0,
+                            'No contestan': 0,
+                            'Colgaron': 0,
+                            'Revisita': 0,
+                            'Predicado': 0,
+                            'No llamar': 0,
+                            'Sin asignar': 0
+                        }
+                    };
+
+                    myPhones.forEach(t => {
+                        const st = t.estado || 'Sin asignar';
+                        if (summary.stats.hasOwnProperty(st)) summary.stats[st]++;
+                        else summary.stats['Sin asignar']++;
+                    });
+
+                    showModal(`
+                        <div class="p-12 text-center space-y-12 animate-fade-in bg-slate-50 dark:bg-[#0b0e14]">
+                                <div class="relative inline-block">
+                                    <div class="w-32 h-32 bg-primary/10 dark:bg-primary/20 rounded-[3rem] flex items-center justify-center text-6xl text-primary shadow-inner border border-primary/20 animate-float">
+                                        <i class="fas fa-flag-checkered"></i>
+                                    </div>
+                                    <div class="absolute -top-3 -right-3 w-12 h-12 bg-emerald-500 text-white rounded-full flex items-center justify-center text-xl font-black shadow-xl animate-bounce border-4 border-white dark:border-slate-900">
+                                         <i class="fas fa-check"></i>
+                                    </div>
+                                </div>
+                                
+                                <div class="space-y-4">
+                                    <h3 class="text-4xl font-black text-slate-800 dark:text-white tracking-tighter uppercase">Sesión Finalizada</h3>
+                                    <p class="text-[12px] text-primary font-black uppercase tracking-[0.4em] opacity-80">Resumen de Actividad Telefónica</p>
+                                </div>
+                                
+                                <div class="modern-card bg-white dark:bg-white/[0.03] p-10 border-slate-200 dark:border-white/5 space-y-10 shadow-2xl">
+                                    <div class="flex justify-between items-center bg-primary/10 dark:bg-primary/20 p-8 rounded-3xl border border-primary/10">
+                                         <span class="text-[11px] font-black text-primary uppercase tracking-[0.3em]">Total Registros</span>
+                                         <span class="text-5xl font-black text-primary tracking-tighter tabular-nums">${summary.total}</span>
+                                    </div>
+                                    <div class="space-y-5 text-left">
+                                         ${Object.entries(summary.stats)
+                            .filter(([_, count]) => count > 0)
+                            .map(([name, count]) => `
+                                                 <div class="flex justify-between items-center px-6 py-4 hover:bg-slate-50 dark:hover:bg-white/[0.05] rounded-2xl transition-all group/stat">
+                                                     <span class="text-[13px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest group-hover/stat:text-primary transition-colors">${name}</span>
+                                                     <span class="text-base font-black text-slate-800 dark:text-white tabular-nums">${count}</span>
+                                                 </div>
+                                             `).join('')}
+                                    </div>
+                                </div>
+
+                                <div class="space-y-4">
+                                    <textarea id="session-notes" placeholder="Notas adicionales sobre esta sesión (opcional)..." 
+                                        class="w-full bg-white dark:bg-white/[0.05] border border-slate-200 dark:border-white/10 rounded-[2rem] p-6 text-sm font-bold outline-none focus:border-primary transition-all text-slate-700 dark:text-white placeholder:text-slate-400 min-h-[120px] resize-none"></textarea>
+                                </div>
+
+                                <button id="btn-share-results" class="w-full bg-primary hover:bg-primary-dark py-6 rounded-3xl text-white font-black shadow-2xl shadow-primary/30 hover:shadow-primary/50 hover:scale-[1.02] active:scale-[0.98] transition-all uppercase tracking-[0.4em] text-xs flex items-center justify-center gap-5 group">
+                                     <i class="fas fa-paper-plane text-xl group-hover:rotate-12 transition-transform"></i> Enviar reporte
+                                </button>
+                                <button onclick="window.closeModal()" class="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-primary transition-colors">Volver</button>
+                        </div>
+                    `, async (modal) => {
+                        const shareBtn = modal.querySelector('#btn-share-results');
+                        if (shareBtn) {
+                            shareBtn.onclick = async () => {
+                                const notes = modal.querySelector('#session-notes')?.value || '';
+                                const statsText = Object.entries(summary.stats)
+                                    .filter(([_, count]) => count > 0)
+                                    .map(([name, count]) => `• ${name}: ${count}`)
+                                    .join('\n');
+
+                                const message = `📋 *Resumen de Predicación Telefónica*\n` +
+                                    `👤 *Conductor:* ${displayName}\n` +
+                                    `📊 *Total procesado:* ${summary.total}\n\n` +
+                                    `${statsText}\n\n` +
+                                    (notes ? `📝 *Notas:* ${notes}\n\n` : '') +
+                                    `_Enviado desde App Territorios_`;
+
+                                try {
+                                    await logSessionSummary({
+                                        conductor_id: displayName,
+                                        stats: summary.stats,
+                                        total: summary.total,
+                                        notas: notes
+                                    });
+                                    await releaseUnusedTelefonos(displayName);
+                                    showNotification("Sesión finalizada y números liberados.", "success");
+                                    window.closeModal();
+                                    await window.refreshConductorView();
+                                } catch (e) {
+                                    console.error("Error finalizing session:", e);
+                                    showNotification("Error al finalizar sesión", "error");
+                                }
+
+                                if (navigator.share) {
+                                    try { await navigator.share({ title: 'Resumen de Predicación', text: message }); } catch (err) { }
+                                } else {
+                                    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+                                }
+                            };
+                        }
+                    });
+                };
+            }
+        };
+
+        bindFinalizar('btn-finalizar-sesion');
+        bindFinalizar('btn-finalizar');
+
+        // Refrescar button
+        const btnRefresh = container.querySelector('#btn-refresh');
+        if (btnRefresh) {
+            btnRefresh.onclick = () => window.refreshConductorView();
+        }
+    };
+
+    const refreshAndRenderPhoneTable = async (term = '', status = '') => {
+        const myPhones = await refreshPhones(true);
+        const filtered = myPhones.filter(p => {
+            const matchesTerm = !term ||
+                p.telefono?.toLowerCase().includes(term) ||
+                p.propietario?.toLowerCase().includes(term) ||
+                p.direccion?.toLowerCase().includes(term);
+            const matchesStatus = !status || p.estado === status;
+            return matchesTerm && matchesStatus;
+        });
+        const publicadores = await getPublicadores();
+        if (mPhone.initializePhoneModule) {
+            mPhone.initializePhoneModule(filtered, publicadores, displayName, container.querySelector('#phone-tbody'), refreshPhones);
+        }
+    };
+
     try {
         // Clean up unassigned/unused numbers from previous sessions for a fresh "Solicitar" experience
         await releaseUnusedTelefonos(displayName);
@@ -534,7 +785,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
     }
 };
 
-const loadUnifiedDashboard = async (container, name, intelligenceBadge, agendaContainer, territoriosContainer, userMods, config, conductorData, userRole, mProg) => {
+const loadUnifiedDashboard = async (container, name, intelligenceBadge, agendaContainer, territoriosContainer, userMods, config, conductorData, userRole) => {
     // We no longer hide the territories container as requested ("fusionar") 
     // to allow seeing all assigned territories independently of the weekly program.
 
@@ -1710,234 +1961,7 @@ window.openProgressModal = async (initialId, filterIds = null) => {
     });
 };
 
-// Moved window.startVoiceDictation to top scope for accessibility from modals
 
-window.returnRevisita = async (id) => {
-    const row = document.getElementById(`rev - row - ${id} `);
-    // Demand comment for return
-    const reason = await showCustomPrompt("MOTIVO DE DEVOLUCIÓN", "¿Por qué devuelves este número? (Quedará disponible para otros)", "Ej: Me mudé, Propietario ocupado...");
-    if (!reason) return;
-
-    try {
-        await updateTelefono(id, {
-            estado: 'Sin asignar',
-            publicador_asignado: null,
-            asignado_a: null,
-            fecha_asignacion: null,
-            solicitado_por: null,
-            comentario_devolucion: reason,
-            fecha_devolucion: new Date().toISOString()
-        });
-
-        showNotification("Número devuelto exitosamente.", "success");
-        if (row) row.remove();
-
-        const tbodyRev = document.getElementById('revisitas-tbody');
-        if (tbodyRev && tbodyRev.children.length === 0) {
-            document.getElementById('no-revisitas-msg').classList.remove('hidden');
-        }
-
-        if (refreshCallback) {
-            telefonos = await refreshCallback();
-            render();
-        }
-    } catch (e) {
-        console.error(e);
-        showNotification("Error al devolver número", "error");
-    }
-};
-
-// End Session Logic
-const bindFinalizar = (id) => {
-    const btn = document.getElementById(id);
-    if (!btn) return;
-    btn.onclick = async () => {
-        const activeRequests = telefonos.filter(t => t.solicitado_por === userId);
-        if (activeRequests.length === 0) return;
-
-        const summary = {
-            total: activeRequests.length,
-            stats: {
-                'Contestaron': 0,
-                'No contestan': 0,
-                'Colgaron': 0,
-                'Revisita': 0,
-                'No llamar': 0,
-                'Sin asignar': 0
-            }
-        };
-
-        activeRequests.forEach(t => {
-            const st = t.estado || 'Sin asignar';
-            if (summary.stats.hasOwnProperty(st)) summary.stats[st]++;
-            else summary.stats['Sin asignar']++;
-        });
-
-        const statsText = Object.entries(summary.stats)
-            .filter(([_, count]) => count > 0)
-            .map(([name, count]) => `• ${name}: ${count} `)
-            .join('\n');
-
-        const modal = document.getElementById('modal-container');
-        showModal(`
-            <div class="p-12 text-center space-y-12 animate-fade-in bg-slate-50 dark:bg-[#0b0e14]">
-                    <div class="relative inline-block">
-                        <div class="w-32 h-32 bg-primary/10 dark:bg-primary/20 rounded-[3rem] flex items-center justify-center text-6xl text-primary shadow-inner border border-primary/20 animate-float">
-                            <i class="fas fa-flag-checkered"></i>
-                        </div>
-                        <div class="absolute -top-3 -right-3 w-12 h-12 bg-emerald-500 text-white rounded-full flex items-center justify-center text-xl font-black shadow-xl animate-bounce border-4 border-white dark:border-slate-900">
-                             <i class="fas fa-check"></i>
-                        </div>
-                    </div>
-                    
-                    <div class="space-y-4">
-                        <h3 class="text-4xl font-black text-slate-800 dark:text-white tracking-tighter uppercase">Sesión Finalizada</h3>
-                        <p class="text-[12px] text-primary font-black uppercase tracking-[0.4em] opacity-80">Resumen de Actividad Telefónica</p>
-                    </div>
-                    
-                    <div class="modern-card bg-white dark:bg-white/[0.03] p-10 border-slate-200 dark:border-white/5 space-y-10 shadow-2xl">
-                        <div class="flex justify-between items-center bg-primary/10 dark:bg-primary/20 p-8 rounded-3xl border border-primary/10">
-                             <span class="text-[11px] font-black text-primary uppercase tracking-[0.3em]">Total Registros</span>
-                             <span class="text-5xl font-black text-primary tracking-tighter tabular-nums">${summary.total}</span>
-                        </div>
-                        <div class="space-y-5 text-left">
-                             ${Object.entries(summary.stats)
-                .filter(([_, count]) => count > 0)
-                .map(([name, count]) => `
-                                     <div class="flex justify-between items-center px-6 py-4 hover:bg-slate-50 dark:hover:bg-white/[0.05] rounded-2xl transition-all group/stat">
-                                         <span class="text-[13px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest group-hover/stat:text-primary transition-colors">${name}</span>
-                                         <span class="text-base font-black text-slate-800 dark:text-white tabular-nums">${count}</span>
-                                     </div>
-                                 `).join('')}
-                        </div>
-                    </div>
-
-                    <div class="space-y-4">
-                        <textarea id="session-notes" placeholder="Notas adicionales sobre esta sesión (opcional)..." 
-                            class="w-full bg-white dark:bg-white/[0.05] border border-slate-200 dark:border-white/10 rounded-[2rem] p-6 text-sm font-bold outline-none focus:border-primary transition-all text-slate-700 dark:text-white placeholder:text-slate-400 min-h-[120px] resize-none"></textarea>
-                    </div>
-
-                    <button id="btn-share-results" class="w-full bg-primary hover:bg-primary-dark py-6 rounded-3xl text-white font-black shadow-2xl shadow-primary/30 hover:shadow-primary/50 hover:scale-[1.02] active:scale-[0.98] transition-all uppercase tracking-[0.4em] text-xs flex items-center justify-center gap-5 group">
-                         <i class="fas fa-paper-plane text-xl group-hover:rotate-12 transition-transform"></i> Enviar reporte
-                    </button>
-                    <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-primary transition-colors">Volver</button>
-                </div>
-    `, (modal) => {
-            // Modal callback
-        });
-
-        setPhoneOpen(false);
-
-        const shareBtn = document.getElementById('btn-share-results');
-        if (shareBtn) {
-            shareBtn.onclick = async () => {
-                const notes = document.getElementById('session-notes')?.value || '';
-
-                const message = `📋 * Resumen de Predicación Telefónica *\n` +
-                    `👤 * Conductor:* ${userId} \n` +
-                    `📊 * Total procesado:* ${summary.total} \n\n` +
-                    `${statsText} \n` +
-                    (notes ? `📝 * Notas:* ${notes} \n\n` : `\n`) +
-                    `_Enviado desde App Territorios_`;
-
-                try {
-                    await logSessionSummary({
-                        conductor_id: userId,
-                        stats: summary.stats,
-                        total: summary.total,
-                        notas: notes
-                    });
-                    await releaseUnusedTelefonos(userId);
-                } catch (e) {
-                    console.error("Error finalizing session:", e);
-                }
-
-                if (navigator.share) {
-                    try {
-                        await navigator.share({
-                            title: 'Resumen de Predicación',
-                            text: message
-                        });
-                    } catch (err) {
-                        console.log("Share failed or cancelled", err);
-                    }
-                } else {
-                    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
-                }
-                // Close modal after sharing
-                document.getElementById('modal-container').classList.add('hidden');
-            };
-        }
-    };
-};
-
-bindFinalizar('btn-finalizar-sesion');
-bindFinalizar('btn-finalizar');
-
-// Search and Filter Listeners
-const searchPhone = document.getElementById('search-phone');
-const filterStatus = document.getElementById('filter-phone-status');
-if (searchPhone) searchPhone.addEventListener('input', render);
-if (filterStatus) filterStatus.addEventListener('change', render);
-
-
-
-const btnAddPub = document.getElementById('btn-add-publicador');
-if (btnAddPub) {
-    const newBtn = btnAddPub.cloneNode(true);
-    btnAddPub.parentNode.replaceChild(newBtn, btnAddPub);
-    newBtn.addEventListener('click', async () => {
-        const modal = document.getElementById('modal-container');
-        modal.innerHTML = `
-                <div class="modern-card p-10 max-w-sm w-full shadow-2xl relative animate-bounce-in border-primary/20 bg-white dark:bg-[#0b0e14]">
-                    <div class="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-2xl text-primary mx-auto mb-6 shadow-inner border border-primary/10">
-                        <i class="fas fa-user-plus"></i>
-                    </div>
-                    <h3 class="text-2xl font-black text-slate-800 dark:text-white mb-2 uppercase tracking-tighter text-center">Nuevo Publicador</h3>
-                    <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-8 text-center">Registrar nuevo integrante</p>
-                    
-                    <div class="space-y-6">
-                        <div class="space-y-2">
-                             <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Nombre Completo</label>
-                             <input type="text" id="new-pub-name-input" placeholder="Ej: Juan Pérez" class="w-full bg-slate-50 dark:bg-white/5 border border-transparent focus:border-primary/30 rounded-2xl px-6 py-4 text-slate-800 dark:text-white focus:bg-white dark:focus:bg-white/10 outline-none transition-all placeholder:text-slate-400 font-bold shadow-inner">
-                        </div>
-                    </div>
-
-                    <div class="flex gap-4 mt-10">
-                        <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="flex-1 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-100 dark:bg-white/5 rounded-2xl hover:bg-slate-200 transition-colors">Cancelar</button>
-                        <button id="confirm-add-pub" class="flex-1 py-5 text-[10px] font-black uppercase tracking-widest text-white bg-primary rounded-2xl shadow-xl shadow-primary/30 hover:bg-primary-dark transition-all hover:scale-105 active:scale-95">Agregar</button>
-                    </div>
-                </div>
-`;
-        modal.classList.remove('hidden');
-
-        const inputName = document.getElementById('new-pub-name-input');
-        inputName.focus();
-
-        const submit = async () => {
-            const name = inputName.value.trim();
-            if (name.length > 0) {
-                try {
-                    modal.classList.add('hidden');
-                    await addPublicador({ nombre: name });
-                    showNotification("Publicador agregado correctamente.", "success");
-                    // Update local state and re-render dropdowns
-                    publicadores.push({ nombre: name });
-                    publicadores.sort((a, b) => a.nombre.localeCompare(b.nombre));
-                    render();
-                } catch (e) {
-                    console.error(e);
-                    showNotification("Error al agregar publicador: " + e.message, "error");
-                }
-            }
-        };
-
-        document.getElementById('confirm-add-pub').addEventListener('click', submit);
-        inputName.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') submit();
-        });
-    });
-}
 
 /* --- AI / INTELLIGENCE --- */
 /* --- AI / INTELLIGENCE --- */
