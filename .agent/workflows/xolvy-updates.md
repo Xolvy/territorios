@@ -137,3 +137,48 @@ To prevent infinite update cycles and handle synchronization failures gracefully
 
 ---
 *Developed by Antigravity for Xolvy Projects.*
+
+## 7. Pre-Deployment Validation & Proactive Repair
+
+Before broadcasting a new version (Shell or Module), the developer MUST ensure system stability to prevent widespread client failures.
+
+### 1. Pre-Flight Dependency Audit
+
+When updating core libraries (e.g., `animejs`, `chart.js`, `firebase`), verify the API surface across the entire project.
+
+- **Breaking Change Check**: If `animejs` v3 is updated to v4, all `import anime from 'animejs'` must change to `import { animate } from 'animejs'` and the usage updated (e.g., `easing` -> `ease`).
+- **Build Killers**: Any missing export (e.g., `formatDateId`) will cause the build to fail. Check `UIHelpers` and `helpers.js` exports BEFORE deploying.
+
+### 2. Mandatory Build Verification (The Build Shield)
+
+NEVER broadcast a version that hasn't passed a production build.
+// turbo
+
+1. Run `npm run build`.
+2. Inspect the output for `[vite-plugin-pwa:build]` or `Rollup Error` messages.
+3. If errors occur, resolve all missing imports/exports before pushing to Git or Firestore.
+
+### 3. Path & MIME Integrity (Glob Safety)
+
+- **Relative Paths**: Always use relative paths (`./modules/*.js`) in `import.meta.glob`.
+- **MIME Safety**: Absolute paths in production can trigger 404/MIME errors which cause the `UpdateShield` to trigger.
+- **Cache Busting**: Ensure the `ModuleRegistry` handles the `?v=` parameter correctly to prevent stale asset loading.
+
+### 4. Proactive Data Normalization (Smart Repair)
+
+Corruption in Firestore data (e.g., territory numbers with leading/trailing spaces) can cause logic failures in the new version.
+
+1. Before a version jump, the Administrator should run **"Reparación Cuántica"** (Smart Repair) from the Maintenance Tab.
+2. This normalizes territory numbers, syncs historical records with the schedule, and audits phone registries.
+
+## 8. Failure Prevention Rules (The Golden Rules)
+
+| Scenario | Preventive Action |
+| :--- | :--- |
+| **New Export Added** | Ensure it is exported from `modules/services/ui-helpers.js` OR `modules/utils/helpers.js` and properly imported in all views. |
+| **Library Version Bump** | Audit all `grep` matches of the library and update callback signatures/options. |
+| **HMS Loop Detected** | Check `module-registry.js` for absolute paths or version mismatches in the `constructor`. |
+| **MIME Error in Build** | Check `app.js` and `glob` usage; ensure Vite is bundling the dynamic targets correctly. |
+
+---
+*Last Protocol Update: v2.4.2.5*
