@@ -11,23 +11,23 @@ const LOCAL_STORAGE_KEY = 'xolvy_module_registry';
 class ModuleRegistry {
     constructor() {
         this.registry = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)) || {
-            core: "2.4.1.9",
-            login: "2.4.1.9",
-            admin: "2.4.1.9",
-            conductor: "2.4.1.9",
-            territories_view: "2.4.1.9",
-            public_view: "2.4.1.9",
-            phones_view: "2.4.1.9",
-            rules_view: "2.4.1.9",
-            availability: "2.4.1.9",
-            recursos: "2.4.1.9",
-            maps_explorer: "2.4.1.9",
-            rescue: "2.4.1.9",
-            phone_module: "2.4.1.9",
-            onboarding: "2.4.1.9",
-            analytics_view: "2.4.1.9",
-            weekly_program: "2.4.1.9",
-            program_views: "2.4.1.9"
+            core: "2.4.2.2",
+            login: "2.4.2.2",
+            admin: "2.4.2.2",
+            conductor: "2.4.2.2",
+            territories_view: "2.4.2.2",
+            public_view: "2.4.2.2",
+            phones_view: "2.4.2.2",
+            rules_view: "2.4.2.2",
+            availability: "2.4.2.2",
+            recursos: "2.4.2.2",
+            maps_explorer: "2.4.2.2",
+            rescue: "2.4.2.2",
+            phone_module: "2.4.2.2",
+            onboarding: "2.4.2.2",
+            analytics_view: "2.4.2.2",
+            weekly_program: "2.4.2.2",
+            program_views: "2.4.2.2"
         };
         this.listeners = [];
     }
@@ -105,7 +105,9 @@ class ModuleRegistry {
      */
     getModulePath(moduleName, basePath) {
         const v = this.getModuleVersion(moduleName);
-        return `${basePath}?v=${v}`;
+        // FORCE ABSOLUTE PATH to avoid /assets/ prepending in production
+        const absoluteBasePath = basePath.startsWith('.') ? basePath.substring(1) : basePath;
+        return `${absoluteBasePath}?v=${v}`;
     }
 
     subscribe(callback) {

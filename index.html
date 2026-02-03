@@ -27,42 +27,46 @@
     <!-- Emergency Power-Up: Hard Sync if stuck -->
     <script>
         (function () {
-            const CURRENT_BUILD = "2.4.1.7";
-            const lastForce = localStorage.getItem('last_force_sync');
-            const now = Date.now();
+            const CURRENT_BUILD = "2.4.2.2";
+            try {
+                const lastForce = localStorage.getItem('last_force_sync');
+                const now = Date.now();
 
-            // If the user is on v2.4.1.6 (legacy) we need to help them
-            // This is a safety net for anyone who missed the update or has corrupted DB
-            if (!lastForce || (now - parseInt(lastForce)) > 1000 * 60 * 60 * 24) {
-                localStorage.setItem('last_force_sync', now.toString());
+                if (!lastForce || (now - parseInt(lastForce)) > 1000 * 60 * 60 * 24) {
+                    localStorage.setItem('last_force_sync', now.toString());
+                }
+            } catch (e) {
+                console.warn("⚠️ Storage Access Denied at boot. Running in restricted mode.", e);
             }
 
             window.repairSystem = async function () {
                 console.warn("🚨 Emergency Repair Triggered");
-                if ('serviceWorker' in navigator) {
-                    const regs = await navigator.serviceWorker.getRegistrations();
-                    for (let r of regs) await r.unregister();
-                }
-                if ('caches' in window) {
-                    const keys = await caches.keys();
-                    await Promise.all(keys.map(k => caches.delete(k)));
-                }
-                localStorage.clear();
-                sessionStorage.clear();
                 try {
+                    if ('serviceWorker' in navigator) {
+                        const regs = await navigator.serviceWorker.getRegistrations();
+                        for (let r of regs) await r.unregister();
+                    }
+                    if ('caches' in window) {
+                        const keys = await caches.keys();
+                        await Promise.all(keys.map(k => caches.delete(k)));
+                    }
+                    localStorage.clear();
+                    sessionStorage.clear();
                     window.indexedDB.deleteDatabase("firestore/[DEFAULT]/territorios-jw/main");
-                } catch (e) { }
+                } catch (e) { console.error("Repair failed", e); }
                 window.location.href = window.location.pathname + '?repair=done&v=' + Date.now();
             };
 
             // Detect corruption loop from console
             const originalError = console.error;
             console.error = function (...args) {
-                if (args[0] && typeof args[0] === 'string' && args[0].includes('IndexedDB') && args[0].includes('corruption')) {
-                    originalError.apply(console, ["🚀 Auto-repairing corrupted DB..."]);
-                    window.indexedDB.deleteDatabase("firestore/[DEFAULT]/territorios-jw/main");
-                    setTimeout(() => location.reload(), 1000);
-                }
+                try {
+                    if (args[0] && typeof args[0] === 'string' && args[0].includes('IndexedDB') && args[0].includes('corruption')) {
+                        originalError.apply(console, ["🚀 Auto-repairing corrupted DB..."]);
+                        window.indexedDB.deleteDatabase("firestore/[DEFAULT]/territorios-jw/main");
+                        setTimeout(() => location.reload(), 1000);
+                    }
+                } catch (e) { }
                 originalError.apply(console, args);
             };
         })();

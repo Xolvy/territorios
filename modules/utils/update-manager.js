@@ -18,33 +18,43 @@ const UpdateShield = {
         try {
             return JSON.parse(localStorage.getItem('xolvy_update_loop_stats') || '{"count":0, "lastAttempt":0}');
         } catch (e) {
+            console.warn("🛡️ [Update Shield] Storage unavailable.");
             return { count: 0, lastAttempt: 0 };
         }
     },
-    saveStats: (stats) => localStorage.setItem('xolvy_update_loop_stats', JSON.stringify(stats)),
+    saveStats: (stats) => {
+        try {
+            localStorage.setItem('xolvy_update_loop_stats', JSON.stringify(stats));
+        } catch (e) { /* ignore */ }
+    },
     registerAttempt: () => {
-        const stats = UpdateShield.getStats();
-        const now = Date.now();
-        // If the last attempt was more than 5 minutes ago, we reset the counter
-        if (now - stats.lastAttempt > 300000) {
-            stats.count = 1;
-        } else {
-            stats.count++;
-        }
-        stats.lastAttempt = now;
-        UpdateShield.saveStats(stats);
-        console.warn(`🛡️ [Update Shield] Attempt ${stats.count}/3 registered.`);
-        return stats;
+        try {
+            const stats = UpdateShield.getStats();
+            const now = Date.now();
+            if (now - stats.lastAttempt > 300000) {
+                stats.count = 1;
+            } else {
+                stats.count++;
+            }
+            stats.lastAttempt = now;
+            UpdateShield.saveStats(stats);
+            console.warn(`🛡️ [Update Shield] Attempt ${stats.count}/3 registered.`);
+            return stats;
+        } catch (e) { return { count: 1, lastAttempt: Date.now() }; }
     },
     isLocked: () => {
-        const stats = UpdateShield.getStats();
-        const locked = stats.count >= 3 && (Date.now() - stats.lastAttempt < 300000);
-        if (locked) console.error("🚨 [Update Shield] CIRCUIT BREAKER ACTIVE: Update loop detected.");
-        return locked;
+        try {
+            const stats = UpdateShield.getStats();
+            const locked = stats.count >= 3 && (Date.now() - stats.lastAttempt < 300000);
+            if (locked) console.error("🚨 [Update Shield] CIRCUIT BREAKER ACTIVE: Update loop detected.");
+            return locked;
+        } catch (e) { return false; }
     },
     reset: () => {
-        console.log("🛡️ [Update Shield] Resetting loop statistics.");
-        localStorage.removeItem('xolvy_update_loop_stats');
+        try {
+            console.log("🛡️ [Update Shield] Resetting loop statistics.");
+            localStorage.removeItem('xolvy_update_loop_stats');
+        } catch (e) { /* ignore */ }
     }
 };
 
@@ -52,16 +62,20 @@ export const initUpdateManager = () => {
     console.log(`🛡️ Update Manager: Active (v${APP_VERSION})`);
 
     // 0. RADICAL PURGE: Verify if we are coming from a "stuck" state
-    const lastSessionVersion = localStorage.getItem('xolvy_last_shell_version');
-    if (lastSessionVersion && lastSessionVersion !== APP_VERSION) {
-        console.log(`🧹 [Radical Purge] Version transition detected: ${lastSessionVersion} -> ${APP_VERSION}`);
-        performRadicalCachePurge(false); // Silent purge if we already updated
-        localStorage.setItem('xolvy_last_shell_version', APP_VERSION);
+    try {
+        const lastSessionVersion = localStorage.getItem('xolvy_last_shell_version');
+        if (lastSessionVersion && lastSessionVersion !== APP_VERSION) {
+            console.log(`🧹 [Radical Purge] Version transition detected: ${lastSessionVersion} -> ${APP_VERSION}`);
+            performRadicalCachePurge(false); // Silent purge if we already updated
+            localStorage.setItem('xolvy_last_shell_version', APP_VERSION);
 
-        // SUCCESS: We successfully moved to a new version, reset the loop shield
-        UpdateShield.reset();
-    } else if (!lastSessionVersion) {
-        localStorage.setItem('xolvy_last_shell_version', APP_VERSION);
+            // SUCCESS: We successfully moved to a new version, reset the loop shield
+            UpdateShield.reset();
+        } else if (!lastSessionVersion) {
+            localStorage.setItem('xolvy_last_shell_version', APP_VERSION);
+        }
+    } catch (e) {
+        console.warn("🛡️ [Update Manager] Storage access denied.");
     }
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('updated') === 'true') {

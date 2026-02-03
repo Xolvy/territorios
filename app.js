@@ -38,9 +38,9 @@ async function loadModule(moduleName, basePath) {
 }
 
 // Shell View Accessors
-const loadLogin = async () => (await loadModule('login', './modules/login.js')).renderLogin;
-const loadAdmin = async () => (await loadModule('admin', './modules/admin-dashboard.js')).renderAdminDashboard;
-const loadConductor = async () => (await loadModule('conductor', './modules/conductor-dashboard.js')).renderConductorDashboard;
+const loadLogin = async () => (await loadModule('login', '/modules/login.js')).renderLogin;
+const loadAdmin = async () => (await loadModule('admin', '/modules/admin-dashboard.js')).renderAdminDashboard;
+const loadConductor = async () => (await loadModule('conductor', '/modules/conductor-dashboard.js')).renderConductorDashboard;
 
 
 // --- DIFFUSION LISTENER ---
