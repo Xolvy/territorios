@@ -122,6 +122,13 @@ export const initUpdateManager = () => {
             console.log("⚡ Force Sync requested without version change. Purging background caches.");
             localStorage.setItem('last_force_timestamp', serverForceTimestamp.toString());
             // No reload needed, HMS or next fetch will pick up changes
+        } else if (isNewer(APP_VERSION, serverVersion)) {
+            // TELEMETRY: If I am an Admin and my version is newer, I should auto-sync the server
+            const isAdmin = localStorage.getItem('demo_role') === 'Administrador';
+            if (isAdmin) {
+                console.log("📡 [Telemetry] Admin detected with newer version. Auto-syncing Firestore...");
+                broadcastCurrentVersion().catch(err => console.warn("Telemetry sync failed:", err));
+            }
         }
     });
 
@@ -486,7 +493,8 @@ export const broadcastCurrentVersion = async () => {
         await updateDoc(doc(db, "configuracion", "version_control"), {
             latestVersion: APP_VERSION,
             forceTimestamp: Date.now(),
-            forceUpdate: true
+            forceUpdate: true,
+            updatedAt: new Date().toLocaleString()
         });
         showNotification("¡Actualización Global Activada!", "success");
     } catch (err) {
