@@ -7,7 +7,7 @@ export const XolvyAdaptive = {
     init() {
         console.log("🌟 [Xolvy Adaptive] Initializing Premium Responsive Engine...");
         this.observeTables();
-        this.observeScrollMenus();
+        this.observeWrappingMenus();
         this.handleResize();
         window.addEventListener('resize', () => this.handleResize());
     },
@@ -41,14 +41,20 @@ export const XolvyAdaptive = {
     },
 
     /**
-     * Detects menus that should scroll horizontally instead of cutting off
+     * Ensures menus wrap to multiple rows instead of scrolling or cutting off
      */
-    observeScrollMenus() {
-        const scrollMenus = document.querySelectorAll('[data-adaptive-scroll="true"]');
-        scrollMenus.forEach(menu => {
-            menu.classList.add('xolvy-scroll-menu');
-            // Remove typical flex-wrap if present
-            menu.classList.remove('flex-wrap');
+    observeWrappingMenus() {
+        // Find legacy scroll menus and new wrap menus
+        const menus = document.querySelectorAll('[data-adaptive-scroll="true"], [data-adaptive-wrap="true"]');
+        menus.forEach(menu => {
+            menu.classList.add('flex-wrap');
+            menu.classList.remove('xolvy-scroll-menu', 'scrollbar-hide', 'overflow-x-auto');
+            // Ensure children don't shrink too much
+            Array.from(menu.children).forEach(child => {
+                if (child.tagName === 'BUTTON' || child.classList.contains('nav-item')) {
+                    child.classList.add('shrink-0');
+                }
+            });
         });
     },
 
@@ -99,7 +105,7 @@ export const XolvyAdaptive = {
      */
     refresh() {
         this.observeTables();
-        this.observeScrollMenus();
+        this.observeWrappingMenus();
         this.handleResize();
     }
 };

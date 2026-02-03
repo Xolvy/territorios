@@ -109,7 +109,7 @@ export const renderProgramaTab = async (container) => {
                          </button>
                     </div>
 
-                    <nav data-adaptive-scroll="true" class="flex items-center gap-2 bg-slate-100/50 dark:bg-white/5 p-1 rounded-2xl border border-slate-200/50 dark:border-white/5 shadow-sm w-full lg:w-max max-w-full overflow-x-auto scrollbar-hide shrink-0">
+                    <nav data-adaptive-wrap="true" class="flex items-center gap-2 bg-slate-100/50 dark:bg-white/5 p-1 rounded-2xl border border-slate-200/50 dark:border-white/5 shadow-sm w-full lg:w-max max-w-full shrink-0">
                         <button id="btn-sync-all-prog" class="btn-pro flex items-center gap-2 px-6 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-emerald-500/20 active:scale-95 group shrink-0">
                             <i class="fas fa-project-diagram group-hover:rotate-12 transition-transform"></i>
                             Formalizar Asignaciones

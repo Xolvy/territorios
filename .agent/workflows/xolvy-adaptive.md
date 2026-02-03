@@ -72,12 +72,12 @@ async function onDataLoaded() {
 }
 ```
 
-### D. Adaptive Horizontal Scroll (Swiping Menus)
+### D. Adaptive Multi-Row Menus (Wrapping)
 
-For menus with many buttons that would normally wrap or cut off, use `data-adaptive-scroll="true"`. This converts the container into a premium horizontal swipe-area on mobile with hidden scrollbars.
+For menus with many buttons, use `data-adaptive-wrap="true"`. Instead of creating a scrollbar or cutting off content, the adaptive engine forces the buttons to wrap into multiple rows, ensuring everything is always visible and clickable.
 
 ```html
-<nav data-adaptive-scroll="true" class="flex items-center gap-4">
+<nav data-adaptive-wrap="true" class="flex items-center gap-4">
     <button>Option 1</button>
     <button>Option 2</button>
     <button>Option 3</button>
@@ -94,8 +94,8 @@ Buttons with the `.btn-pro` class are monitored by the adaptive engine. On extre
 The adaptive logic is split between:
 
 - `modules/utils/adaptive.js`: Logic for DOM transformation, reordering, and scaling.
-- `src/input.css`: The `@media` rules for the card-style visualization and `.xolvy-scroll-menu` utilities.
+- `src/input.css`: The `@media` rules for the card-style visualization and `.xolvy-adaptive-menu` utilities.
 
 ---
 *Developed by Antigravity for Xolvy Projects.*
-*Protocol Update: v2.4.3.4 (Super Adaptive)*
+*Protocol Update: v2.4.3.7 (Super Adaptive - Wrap Mode)*
