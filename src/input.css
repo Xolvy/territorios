@@ -496,3 +496,87 @@ textarea:focus {
         padding: 1.25rem !important;
     }
 }
+
+/* 🌟 XOLVY ADAPTIVE - Enterprise Responsive Core */
+
+@media (max-width: 640px) {
+
+    /* Automatic Table-to-Card Transformation */
+    .xolvy-adaptive-ready {
+        display: block !important;
+        border: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
+    }
+
+    .xolvy-adaptive-ready thead {
+        display: none !important;
+    }
+
+    .xolvy-adaptive-ready tbody {
+        display: block !important;
+    }
+
+    .xolvy-adaptive-ready tr {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 0.75rem !important;
+        margin-bottom: 2rem !important;
+        padding: 1.5rem !important;
+        background: var(--bg-card) !important;
+        border: 1px solid var(--glass-border) !important;
+        border-radius: var(--radius-lg) !important;
+        box-shadow: 0 15px 35px -10px hsla(var(--glass-shadow)) !important;
+        position: relative !important;
+        overflow: hidden !important;
+        animation: slideUp 0.5s ease-out forwards;
+    }
+
+    .xolvy-adaptive-ready td {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        text-align: right !important;
+        padding: 0.75rem 0 !important;
+        border-bottom: 1px solid hsla(var(--text-main) / 0.05) !important;
+        min-height: 2.5rem !important;
+        width: 100% !important;
+    }
+
+    .xolvy-adaptive-ready td:last-child {
+        border-bottom: none !important;
+        margin-top: 0.5rem !important;
+        justify-content: center !important;
+    }
+
+    .xolvy-adaptive-ready td::before {
+        content: attr(data-label);
+        font-family: 'Outfit', sans-serif !important;
+        font-size: 9px !important;
+        font-weight: 900 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.15em !important;
+        color: var(--text-muted) !important;
+        text-align: left !important;
+        margin-right: 1.5rem !important;
+        opacity: 0.7 !important;
+    }
+
+    /* Floating Window Reordering Utility */
+    [data-adaptive-container="true"] {
+        display: flex !important;
+        flex-direction: column !important;
+    }
+}
+
+/* Premium Visual Polish for Adaptive Cards */
+.xolvy-adaptive-ready tr::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: hsl(var(--primary));
+    opacity: 0.3;
+}

@@ -17,7 +17,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                 </div>
             </div>
 
-            <div class="space-y-8">
+            <div class="space-y-8" data-adaptive-container="true">
                 <!-- 1. IDENTIDAD LOCAL -->
                 <section class="modern-card group border-slate-200 dark:border-white/5 shadow-xl relative overflow-hidden">
                     <div class="absolute -right-16 -top-16 w-32 h-32 bg-teal-500/5 rounded-full blur-3xl"></div>

@@ -6,6 +6,7 @@ import { getPermisosUsuario, migrateConductoresToPublicadores } from './data/fir
 import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js';
 import { initUpdateManager } from './modules/utils/update-manager.js';
 import { moduleRegistry } from './modules/utils/module-registry.js';
+import { XolvyAdaptive } from './modules/utils/adaptive.js';
 
 // Initialize Module Registry
 moduleRegistry.init();
@@ -79,6 +80,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.body.appendChild(createThemeToggle());
     initUpdateManager();
     initDiffusionListener();
+    XolvyAdaptive.init();
 
     const handleAuthChange = async (user) => {
         appContainer.innerHTML = '<div class="flex items-center justify-center min-h-screen"><div class="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div></div>';
@@ -161,11 +163,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 // Targeted refresh or full re-auth
                 if (shouldRefreshConductor && window.refreshConductorView) {
-                    window.refreshConductorView().then(() => restoreState());
+                    window.refreshConductorView().then(() => { restoreState(); XolvyAdaptive.refresh(); });
                 } else if (shouldRefreshAdmin && window.refreshAdminView) {
-                    window.refreshAdminView().then(() => restoreState());
+                    window.refreshAdminView().then(() => { restoreState(); XolvyAdaptive.refresh(); });
                 } else {
-                    handleAuthChange(user).then(() => restoreState());
+                    handleAuthChange(user).then(() => { restoreState(); XolvyAdaptive.refresh(); });
                 }
             }, 2000);
         } else {

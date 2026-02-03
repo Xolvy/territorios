@@ -114,7 +114,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
     const wasProgOpen = container.querySelector('.group\\/prog-details')?.open;
 
     container.innerHTML = `
-        <div class="animate-fade-in pb-48 w-full max-w-7xl mx-auto p-2 md:p-8 space-y-8 md:space-y-20">
+        <div class="animate-fade-in pb-48 w-full max-w-7xl mx-auto p-2 md:p-8 space-y-8 md:space-y-20" data-adaptive-container="true">
             <header class="flex flex-col md:flex-row justify-between items-start md:items-center px-4 md:px-6 py-6 modern-card !rounded-[2.5rem] border-slate-200 dark:border-white/10 shadow-xl gap-6 relative overflow-hidden group">
                 <div class="absolute inset-0 bg-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
                 <div class="flex items-center gap-5 relative z-10">
@@ -148,7 +148,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
                     <div class="hidden sm:flex flex-col items-end mr-4 text-right">
                          <p class="text-[8px] font-black text-slate-400 uppercase tracking-[0.3em] mb-0.5">Versión</p>
-                     <p class="text-[10px] font-black text-slate-800 dark:text-white tabular-nums">${appVersion || '2.4.3.2'}</p>
+                     <p class="text-[10px] font-black text-slate-800 dark:text-white tabular-nums">${appVersion || '2.4.3.3'}</p>
                     </div>
                     ${(userRole === 'Administrador' || userRole === 'SuperAdmin' || conductorData?.privilegios?.includes('Administrador')) ? `
                     <button id="btn-goto-admin" class="flex-1 md:flex-none bg-amber-500/10 hover:bg-amber-500 text-amber-600 hover:text-white px-4 md:px-6 py-3.5 rounded-xl border border-amber-500/20 transition-all font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95 min-w-0">
@@ -391,7 +391,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                         </div>
                         
                         <div class="table-container custom-scrollbar rounded-2xl border border-black/5 dark:border-white/5 bg-white/50 dark:bg-black/20 backdrop-blur-md shadow-inner">
-                            <table class="w-full text-left text-xs">
+                            <table class="w-full text-left text-xs" data-adaptive="true">
                                 <thead class="bg-gray-100/50 dark:bg-white/5 border-b border-black/5 dark:border-white/5 text-gray-500 dark:text-gray-400 font-black uppercase tracking-widest text-[9px] md:text-[10px]">
                                     <tr>
                                         <th class="p-2 md:p-4 text-teal-600 dark:text-teal-400">Teléfono</th>
