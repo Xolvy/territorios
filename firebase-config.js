@@ -43,21 +43,35 @@ const initFirestore = (withPersistence = true) => {
 
 // Emergency check for IndexedDB corruption (Power Up)
 try {
-  firestoreDb = initFirestore(true);
+  // If we just executed a purge, we might want to wait a bit or skip persistence for 1 session
+  const justPurged = localStorage.getItem('xolvy_purge_executed');
+  const skipPersistence = (Date.now() - parseInt(justPurged || '0')) < 5000;
+
+  if (skipPersistence) {
+    console.warn("🛡️ [Firestore] Skip Persistence due to recent purge.");
+    firestoreDb = initFirestore(false);
+  } else {
+    firestoreDb = initFirestore(true);
+  }
 } catch (e) {
   console.error("🚨 Firestore: Critical Initialization Error (IndexedDB likely corrupted)", e);
-  // If it fails with the specific corruption error, we force a non-persistent instance
-  // and attempt to clear the corrupted db for the next reload
-  if (e.message.includes('IndexedDB') || e.code === 'failed-precondition') {
-    firestoreDb = initFirestore(false);
-    // Attempt to delete corrupted databases from the browser
-    try {
-      window.indexedDB.deleteDatabase("firestore/[DEFAULT]/territorios-jw/main");
-    } catch (err) { /* ignore */ }
-  } else {
+  // FALLBACK: Essential to prevent the "Refusing to open" white screen
+  try {
+    firestoreDb = getFirestore(app);
+    // Silent attempt to clean up for next time
+    window.indexedDB.deleteDatabase("firestore/[DEFAULT]/territorios-jw/main");
+  } catch (err) {
     firestoreDb = getFirestore(app);
   }
 }
+
+// Global Error Listener for Firebase Persistence Corruptions
+window.addEventListener('unhandledrejection', event => {
+  if (event.reason && event.reason.message && event.reason.message.includes('IndexedDB database data')) {
+    console.error("🔥 Persistence Corruption Detected mid-flight. Forcing reload in 3s...");
+    setTimeout(() => window.location.reload(), 3000);
+  }
+});
 
 export const db = firestoreDb;
 export const storage = getStorage(app);

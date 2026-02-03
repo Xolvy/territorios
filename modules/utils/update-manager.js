@@ -242,11 +242,35 @@ export const performRadicalCachePurge = async (full = true) => {
         }
 
         if (full) {
-            // 3. Clear session storage but keep critical local storage (like login)
+            // 3. Delete IndexedDB Databases (Firestore persistence often gets corrupted)
+            try {
+                if (window.indexedDB && window.indexedDB.databases) {
+                    const dbs = await window.indexedDB.databases();
+                    await Promise.all(dbs.map(db => {
+                        console.log(`🗑️ [Purge] Deleting DB: ${db.name}`);
+                        return new Promise((resolve) => {
+                            const req = window.indexedDB.deleteDatabase(db.name);
+                            req.onsuccess = () => resolve();
+                            req.onerror = () => resolve();
+                            req.onblocked = () => resolve();
+                        });
+                    }));
+                } else if (window.indexedDB) {
+                    // Fallback for browsers that don't support .databases()
+                    const legacyDBs = [
+                        "firestore/[DEFAULT]/territorios-jw/main",
+                        "firebase-heartbeat-database",
+                        "firebase-installations-database"
+                    ];
+                    legacyDBs.forEach(dbName => window.indexedDB.deleteDatabase(dbName));
+                }
+                console.log("✅ [Purge] IndexedDB cleared");
+            } catch (idbErr) { console.warn("IndexDB purge partial failure:", idbErr); }
+
+            // 4. Clear storage
             sessionStorage.clear();
 
-            // 4. Force browser to reload from network on next request
-            // We set a marker for the next load
+            // 5. Force browser to reload from network on next request
             localStorage.setItem('xolvy_purge_executed', Date.now().toString());
         }
     } catch (e) {
