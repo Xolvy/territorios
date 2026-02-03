@@ -192,6 +192,7 @@ export class TerritoryIntelligence {
         if (!apiKey) return `Detecté una actualización para ${moduleName} (v${version}).`;
 
         const moduleDescriptions = {
+            'core': 'el motor principal del sistema, optimizando el rendimiento y la seguridad',
             'territories_view': 'el visor de territorios con mejores mapas y datos',
             'phones_view': 'el sistema de gestión de llamadas',
             'conductor': 'tu panel de control personal',

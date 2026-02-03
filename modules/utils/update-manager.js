@@ -46,14 +46,11 @@ export const initUpdateManager = () => {
                 return;
             }
 
-            console.log("🚀 Core Update Required! Triggering overlay...");
+            console.log("🚀 Core Update Required! Triggering discrete notification...");
             sessionStorage.setItem('last_update_attempt', now.toString());
 
-            if (data.forceUpdate) {
-                showPremiumUpdateOverlay(serverVersion, serverForceTimestamp);
-            } else {
-                showUpdateSuggestion(serverVersion, serverForceTimestamp);
-            }
+            // Use discrete notification instead of full-screen overlay
+            showSmartUpdatePill(serverVersion, serverForceTimestamp, !!data.forceUpdate);
         } else if (forceRequired) {
             // If it's just a force sync without version change, we can just clear caches silently
             console.log("⚡ Force Sync requested without version change. Purging background caches.");
@@ -66,126 +63,117 @@ export const initUpdateManager = () => {
     // This is optional but helps keep the Firestore doc in sync
 };
 
-const showPremiumUpdateOverlay = async (newVersion, forceTimestamp = 0) => {
-    if (document.getElementById('premium-update-overlay')) return;
+const showSmartUpdatePill = async (newVersion, forceTimestamp = 0, isForced = false) => {
+    if (document.getElementById('smart-update-pill')) return;
 
-    // 1. SAVE STATE: Before we do anything, let's preserve the working context
-    const currentState = {
-        path: window.location.pathname,
-        timestamp: Date.now(),
-        scroll: window.scrollY,
-        role: localStorage.getItem('demo_role'),
-        user: localStorage.getItem('selected_conductor_name')
-    };
-    sessionStorage.setItem('xolvy_pre_update_state', JSON.stringify(currentState));
+    const pill = document.createElement('div');
+    pill.id = 'smart-update-pill';
+    // Floating pill at the top center
+    pill.className = 'fixed top-6 left-1/2 -translate-x-1/2 z-[100000] w-[90%] max-w-md animate-slide-down';
 
-    const overlay = document.createElement('div');
-    overlay.id = 'premium-update-overlay';
-    overlay.className = 'fixed inset-0 bg-[#020617] backdrop-blur-[100px] z-[99999] flex items-center justify-center p-6 text-white overflow-hidden';
-
-    overlay.innerHTML = `
-        <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-600/10 rounded-full blur-[120px] animate-pulse"></div>
-        <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-600/10 rounded-full blur-[120px] animate-pulse" style="animation-delay: 2s"></div>
-        
-        <div class="max-w-md w-full text-center space-y-12 animate-slide-up relative z-10">
-            <div class="relative inline-block group">
-                <div class="absolute inset-0 bg-indigo-500/20 blur-3xl rounded-full scale-125"></div>
-                
-                <div class="relative w-28 h-28 bg-white/[0.03] backdrop-blur-md rounded-[2.5rem] border border-white/10 flex items-center justify-center text-4xl shadow-2xl overflow-hidden">
-                    <div class="absolute inset-0 bg-gradient-to-tr from-indigo-500/10 to-transparent"></div>
-                    <i class="fas fa-rocket text-indigo-400 animate-bounce-subtle relative z-10"></i>
-                </div>
+    pill.innerHTML = `
+        <div class="bg-slate-900/90 backdrop-blur-3xl border border-indigo-500/30 p-4 rounded-[2rem] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6)] flex items-center gap-4 relative overflow-hidden group">
+            <!-- Progress Background Pulse -->
+            <div id="pill-progress-bg" class="absolute inset-0 bg-indigo-500/5 translate-x-[-100%] transition-transform duration-700 ease-out"></div>
+            
+            <div class="relative w-12 h-12 bg-indigo-500/20 rounded-2xl flex items-center justify-center text-xl text-indigo-400 shrink-0 shadow-inner overflow-hidden">
+                <i id="pill-icon" class="fas fa-rocket animate-pulse"></i>
+                <div id="pill-spinner" class="absolute inset-0 border-2 border-transparent border-t-indigo-500 rounded-full hidden animate-spin"></div>
             </div>
-
-            <div class="space-y-6">
-                <div class="space-y-1">
-                    <h2 class="text-4xl md:text-5xl font-black tracking-tighter uppercase italic leading-none text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40">
-                        Próxima
-                    </h2>
-                    <h2 class="text-4xl md:text-5xl font-black tracking-tighter uppercase leading-none text-white">
-                        Generación
-                    </h2>
+            
+            <div class="flex-1 min-w-0 relative z-10">
+                <div class="flex items-center gap-2 mb-0.5">
+                    <span class="text-[8px] font-black text-indigo-400 uppercase tracking-[0.3em]">Xolvy Core v${newVersion}</span>
+                    ${isForced ? '<span class="px-1.5 py-0.5 bg-rose-500/20 text-rose-500 text-[6px] font-black rounded-full uppercase tracking-tighter">Obligatoria</span>' : ''}
                 </div>
-                
-                <p class="text-slate-400 font-bold text-[10px] uppercase tracking-[0.4em] leading-relaxed max-w-[300px] mx-auto opacity-80">
-                    Preparando salto a v${newVersion} • Estabilidad y Potencia garantizada
-                </p>
+                <h4 id="pill-title" class="text-[12px] font-black text-white uppercase tracking-tight truncate leading-tight">Mejora de Sistema Disponible</h4>
+                <p id="pill-status" class="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-1">Listo para optimizar tu experiencia</p>
             </div>
-
-            <div class="space-y-4 max-w-[320px] mx-auto">
-                <div class="relative w-full h-2 bg-white/5 rounded-full overflow-hidden border border-white/[0.03]">
-                    <div id="update-progress-bar" class="absolute inset-y-0 left-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-500 w-0 transition-all duration-[2000ms] ease-out">
-                         <div class="absolute right-0 top-0 bottom-0 w-8 bg-white blur-md opacity-40"></div>
-                    </div>
-                </div>
-                
-                <div class="flex justify-between items-center px-1">
-                    <span id="update-status-text" class="text-[8px] font-black text-slate-500 uppercase tracking-widest">Sincronizando Núcleo...</span>
-                    <span id="update-percent" class="text-[8px] font-black text-indigo-400 uppercase tracking-widest">0%</span>
-                </div>
-            </div>
-
-            <div class="pt-10">
-                <p class="text-[8px] font-black text-slate-700 uppercase tracking-[0.8em] animate-pulse">
-                    XOLVY REVOLUTION • 2026
-                </p>
-            </div>
+            
+            <button id="btn-pill-action" class="relative z-10 bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-indigo-600/20 active:scale-95 transition-all outline-none">
+                Actualizar
+            </button>
         </div>
     `;
 
-    document.body.appendChild(overlay);
+    document.body.appendChild(pill);
 
-    // Parallel background actions while showing the UI
-    const startUpdateFlow = async () => {
-        const bar = document.getElementById('update-progress-bar');
-        const statusEl = document.getElementById('update-status-text');
-        const percentEl = document.getElementById('update-percent');
+    const btn = pill.querySelector('#btn-pill-action');
+    const status = pill.querySelector('#pill-status');
+    const title = pill.querySelector('#pill-title');
+    const icon = pill.querySelector('#pill-icon');
+    const spinner = pill.querySelector('#pill-spinner');
+    const progressBg = pill.querySelector('#pill-progress-bg');
 
-        // Progress simulation
-        let percent = 0;
-        const pInterval = setInterval(() => {
-            if (percent < 90) percent += 0.5; // Slow down near the end
-            if (percentEl) percentEl.innerText = `${Math.floor(percent)}%`;
-            if (bar) bar.style.width = `${percent}%`;
-        }, 15);
+    const runUpdateFlow = async () => {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>';
+        status.innerText = "Sincronizando núcleo...";
+        spinner.classList.remove('hidden');
+        icon.classList.add('opacity-0');
 
-        const currentMsg = (msg) => { if (statusEl) statusEl.innerText = msg; };
+        // Preservation of state (Rule 1.3)
+        const currentState = {
+            path: window.location.pathname,
+            timestamp: Date.now(),
+            role: localStorage.getItem('demo_role'),
+            user: localStorage.getItem('selected_conductor_name')
+        };
+        sessionStorage.setItem('xolvy_pre_update_state', JSON.stringify(currentState));
 
         try {
-            currentMsg("Aislación de activos...");
-
-            // 2. STAGE SERVICE WORKER: Force download of new assets
+            // Stage 1: Service Worker update
             if ('serviceWorker' in navigator) {
                 const regs = await navigator.serviceWorker.getRegistrations();
                 for (let r of regs) {
                     if (r.waiting) r.waiting.postMessage({ type: 'SKIP_WAITING' });
-                    await r.update(); // Trigger check
+                    await r.update();
                 }
             }
 
-            currentMsg("Compresión de datos...");
-            await new Promise(r => setTimeout(r, 800));
+            progressBg.style.transform = 'translateX(-50%)';
+            status.innerText = "Finalizando optimización...";
+            await new Promise(r => setTimeout(r, 1200));
 
-            currentMsg("Inmortalizando sesión...");
-            // Finalize simulation
-            percent = 100;
-            if (percentEl) percentEl.innerText = "100%";
-            if (bar) bar.style.width = "100%";
-
-            // 3. CLEANUP & RELOAD
+            progressBg.style.transform = 'translateX(0%)';
             if (forceTimestamp) localStorage.setItem('last_force_timestamp', forceTimestamp.toString());
+
+            title.innerText = "Optimización Completada";
+            status.innerText = "Reiniciando para aplicar cambios";
+            btn.innerHTML = '<i class="fas fa-check"></i>';
+            btn.className = "relative z-10 bg-emerald-500 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-emerald-500/20";
 
             setTimeout(() => {
                 window.location.href = `${window.location.pathname}?updated=true&v=${Date.now()}`;
-            }, 600);
+            }, 800);
 
         } catch (err) {
-            console.error("Seamless update failed, falling back to hard refresh:", err);
+            console.error("Discrete update failed:", err);
             window.location.reload();
         }
     };
 
-    setTimeout(startUpdateFlow, 300);
+    btn.onclick = runUpdateFlow;
+
+    // AI Integration: Announce the core update
+    try {
+        const apiKey = localStorage.getItem('gemini_api_key');
+        if (apiKey) {
+            const { TerritoryIntelligence } = await import("./intelligence.js");
+            const intelligence = new TerritoryIntelligence([], [], [], {}, [], []);
+            const message = await intelligence.getUpdateInsight('core', newVersion, apiKey);
+            showIANotification(message);
+        }
+    } catch (e) { console.warn("AI Insight for Core Update failed", e); }
+
+    // If forced, start automatically after AI has a chance to show up
+    if (isForced) {
+        setTimeout(runUpdateFlow, 3000);
+    }
+};
+
+const showPremiumUpdateOverlay = () => {
+    console.warn("Legacy Full-Screen Overlay bypassed in favor of Smart Pill.");
 };
 
 const showUpdateSuggestion = (newVersion, forceTimestamp = 0) => {
