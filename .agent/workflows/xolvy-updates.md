@@ -13,8 +13,26 @@ The system consists of three main pillars:
 1. **AI Insight**: Generates context-aware messages about the update using Gemini AI.
 2. **Discrete HUD**: A sidebar element indicating the real-time synchronization state of specific modules.
 3. **AI Banner**: A premium notification that displays the "Brain" (IA) explanation of the update.
+4. **Radical Purge (Persistence Killer)**: A mechanism to evict all browser caches and service workers during version jumps.
 
-## 2. Implementation Steps
+## 2. Zero-Caching Persistent Purge
+
+To prevent "stuck" versions (like persistence of v2.4.1.7 when v2.4.2.0 is expected), the system implements `performRadicalCachePurge`.
+
+### Use Cases
+
+- **Core Version Jump**: When `APP_VERSION` changes in `package.json`.
+- **Service Worker Sticking**: When outdated assets are served from the Workbox cache.
+- **Manual Rescue**: Can be triggered by the user or an administrator to fix local state issues.
+
+### Implementation
+
+1. Call `await performRadicalCachePurge(true)` before any version-jump reload.
+2. The function will:
+   - Delete all `caches` keys.
+   - Unregister all `serviceWorker` registrations.
+   - Clear `sessionStorage`.
+   - Set a `xolvy_purge_executed` timestamp in `localStorage` for tracking.
 
 ### A. Intelligence Integration
 

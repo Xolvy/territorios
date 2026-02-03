@@ -12,7 +12,13 @@ const APP_VERSION = __APP_VERSION__;
 export const initUpdateManager = () => {
     console.log(`🛡️ Update Manager: Active (v${APP_VERSION})`);
 
-    // 1. Success Message after Update
+    // 0. RADICAL PURGE: Verify if we are coming from a "stuck" state
+    const lastSessionVersion = localStorage.getItem('xolvy_last_shell_version');
+    if (lastSessionVersion && lastSessionVersion !== APP_VERSION) {
+        console.log(`🧹 [Radical Purge] Version transition detected: ${lastSessionVersion} -> ${APP_VERSION}`);
+        performRadicalCachePurge(false); // Silent purge if we already updated
+        localStorage.setItem('xolvy_last_shell_version', APP_VERSION);
+    }
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('updated') === 'true') {
         setTimeout(() => {
@@ -122,16 +128,11 @@ const showSmartUpdatePill = async (newVersion, forceTimestamp = 0, isForced = fa
         sessionStorage.setItem('xolvy_pre_update_state', JSON.stringify(currentState));
 
         try {
-            // Stage 1: Service Worker update
-            if ('serviceWorker' in navigator) {
-                const regs = await navigator.serviceWorker.getRegistrations();
-                for (let r of regs) {
-                    if (r.waiting) r.waiting.postMessage({ type: 'SKIP_WAITING' });
-                    await r.update();
-                }
-            }
+            status.innerText = "Aislación de activos...";
 
-            progressBg.style.transform = 'translateX(-50%)';
+            // Radical Cache Purge BEFORE reload to kill Service Workers and Caches
+            await performRadicalCachePurge(true);
+
             status.innerText = "Finalizando optimización...";
             await new Promise(r => setTimeout(r, 1200));
 
@@ -174,6 +175,40 @@ const showSmartUpdatePill = async (newVersion, forceTimestamp = 0, isForced = fa
 
 const showPremiumUpdateOverlay = () => {
     console.warn("Legacy Full-Screen Overlay bypassed in favor of Smart Pill.");
+};
+
+/**
+ * PERISTENCE KILLER: Ensures NO old assets (especially Service Workers) survive a version jump
+ */
+export const performRadicalCachePurge = async (full = true) => {
+    console.warn("🔥 [Xolvy Updates] Initiating Radical Cache Purge...");
+
+    try {
+        // 1. Clear all Caches (Radical Eviction)
+        if ('caches' in window) {
+            const keys = await caches.keys();
+            await Promise.all(keys.map(key => caches.delete(key)));
+            console.log("✅ [Purge] Browser Caches cleared");
+        }
+
+        // 2. Unregister all Service Workers immediately
+        if ('serviceWorker' in navigator) {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(regs.map(r => r.unregister()));
+            console.log("✅ [Purge] Service Workers unregistered");
+        }
+
+        if (full) {
+            // 3. Clear session storage but keep critical local storage (like login)
+            sessionStorage.clear();
+
+            // 4. Force browser to reload from network on next request
+            // We set a marker for the next load
+            localStorage.setItem('xolvy_purge_executed', Date.now().toString());
+        }
+    } catch (e) {
+        console.error("Purge failed:", e);
+    }
 };
 
 const showUpdateSuggestion = (newVersion, forceTimestamp = 0) => {

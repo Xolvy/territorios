@@ -49,7 +49,7 @@ export default defineConfig({
                 globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}'],
                 cleanupOutdatedCaches: true,
                 maximumFileSizeToCacheInBytes: 10000000, // Increased for modular assets
-                cacheId: 'territorios-shell-v2-4-1-7'
+                cacheId: `territorios-shell-${pkg.version.replace(/\./g, '-')}`
             },
             manifest: {
                 name: 'Gestión de Territorios',

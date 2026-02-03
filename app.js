@@ -11,7 +11,7 @@ import { moduleRegistry } from './modules/utils/module-registry.js';
 moduleRegistry.init();
 
 // The version is injected by Vite at build time (Core Shell Version)
-const APP_VERSION = '2.4.2.0';
+const APP_VERSION = __APP_VERSION__;
 
 // --- XOLVY MODULAR: MICRO-MODULE ENGINE ---
 // Xolvy Modular: Independent Updates & Hot Module Swapping (HMS) logic
