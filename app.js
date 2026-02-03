@@ -14,22 +14,30 @@ moduleRegistry.init();
 const APP_VERSION = __APP_VERSION__;
 
 // --- XOLVY MODULAR: MICRO-MODULE ENGINE ---
-// Xolvy Modular: Independent Updates & Hot Module Swapping (HMS) logic
 const ModuleCache = new Map();
+// Recursive glob to find all modules in subdirectories
+const dynamicModules = import.meta.glob('./modules/**/*.js');
 
 async function loadModule(moduleName, basePath) {
     const path = moduleRegistry.getModulePath(moduleName, basePath);
-
-    // Xolvy Modular: Independent Update Logic
-    // If the path-version changed since last load, we force a fresh import
     const cacheKey = moduleName;
     const isNewVersion = ModuleCache.get(`${cacheKey}_path`) !== path;
 
     if (!ModuleCache.has(cacheKey) || isNewVersion) {
         console.log(`📦 [Xolvy Modular] Loading ${moduleName} (v${moduleRegistry.getModuleVersion(moduleName)})`);
-        // We add a cache-buster ONLY if we are forcing a swap in a running session
-        const finalPath = isNewVersion ? `${path}&ts=${Date.now()}` : path;
-        const mod = await import(finalPath);
+
+        let mod;
+        // Normalize path for glob lookup
+        const globPath = basePath.startsWith('./') ? basePath : `./${basePath.startsWith('/') ? basePath.substring(1) : basePath}`;
+
+        if (dynamicModules[globPath]) {
+            mod = await dynamicModules[globPath]();
+        } else {
+            // Fallback for extreme cases (cache busting)
+            const finalPath = isNewVersion ? `${path}&ts=${Date.now()}` : path;
+            mod = await import(/* @vite-ignore */ finalPath);
+        }
+
         ModuleCache.set(cacheKey, mod);
         ModuleCache.set(`${cacheKey}_path`, path);
     }
@@ -38,9 +46,9 @@ async function loadModule(moduleName, basePath) {
 }
 
 // Shell View Accessors
-const loadLogin = async () => (await loadModule('login', '/modules/login.js')).renderLogin;
-const loadAdmin = async () => (await loadModule('admin', '/modules/admin-dashboard.js')).renderAdminDashboard;
-const loadConductor = async () => (await loadModule('conductor', '/modules/conductor-dashboard.js')).renderConductorDashboard;
+const loadLogin = async () => (await loadModule('login', './modules/login.js')).renderLogin;
+const loadAdmin = async () => (await loadModule('admin', './modules/admin-dashboard.js')).renderAdminDashboard;
+const loadConductor = async () => (await loadModule('conductor', './modules/conductor-dashboard.js')).renderConductorDashboard;
 
 
 // --- DIFFUSION LISTENER ---

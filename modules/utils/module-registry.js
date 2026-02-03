@@ -11,23 +11,23 @@ const LOCAL_STORAGE_KEY = 'xolvy_module_registry';
 class ModuleRegistry {
     constructor() {
         this.registry = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)) || {
-            core: "2.4.2.2",
-            login: "2.4.2.2",
-            admin: "2.4.2.2",
-            conductor: "2.4.2.2",
-            territories_view: "2.4.2.2",
-            public_view: "2.4.2.2",
-            phones_view: "2.4.2.2",
-            rules_view: "2.4.2.2",
-            availability: "2.4.2.2",
-            recursos: "2.4.2.2",
-            maps_explorer: "2.4.2.2",
-            rescue: "2.4.2.2",
-            phone_module: "2.4.2.2",
-            onboarding: "2.4.2.2",
-            analytics_view: "2.4.2.2",
-            weekly_program: "2.4.2.2",
-            program_views: "2.4.2.2"
+            core: "2.4.2.5",
+            login: "2.4.2.5",
+            admin: "2.4.2.5",
+            conductor: "2.4.2.5",
+            territories_view: "2.4.2.5",
+            public_view: "2.4.2.5",
+            phones_view: "2.4.2.5",
+            rules_view: "2.4.2.5",
+            availability: "2.4.2.5",
+            recursos: "2.4.2.5",
+            maps_explorer: "2.4.2.5",
+            rescue: "2.4.2.5",
+            phone_module: "2.4.2.5",
+            onboarding: "2.4.2.5",
+            analytics_view: "2.4.2.5",
+            weekly_program: "2.4.2.5",
+            program_views: "2.4.2.5"
         };
         this.listeners = [];
     }
@@ -105,9 +105,8 @@ class ModuleRegistry {
      */
     getModulePath(moduleName, basePath) {
         const v = this.getModuleVersion(moduleName);
-        // FORCE ABSOLUTE PATH to avoid /assets/ prepending in production
-        const absoluteBasePath = basePath.startsWith('.') ? basePath.substring(1) : basePath;
-        return `${absoluteBasePath}?v=${v}`;
+        // Use relative paths that Vite can understand
+        return `${basePath}?v=${v}`;
     }
 
     subscribe(callback) {

@@ -10,14 +10,25 @@ import { moduleRegistry } from './utils/module-registry.js';
 
 // --- MICRO-MODULE LOADER ---
 const SubModuleCache = new Map();
+const dynamicSubModules = import.meta.glob('./**/*.js');
+
 async function loadSubModule(name, path) {
     const fullPath = moduleRegistry.getModulePath(name, path);
     // If version changed, force fresh reload
     const isNew = SubModuleCache.get(`${name}_path`) !== fullPath;
     if (!SubModuleCache.has(name) || isNew) {
         console.log(`📡 [HMS] Swapping Micro-Module: ${name}`);
-        const finalPath = isNew ? `${fullPath}&ts=${Date.now()}` : fullPath;
-        const mod = await import(finalPath);
+
+        let mod;
+        const globPath = path.startsWith('./') ? path : `./${path.startsWith('/') ? path.substring(1) : path}`;
+
+        if (dynamicSubModules[globPath]) {
+            mod = await dynamicSubModules[globPath]();
+        } else {
+            const finalPath = isNew ? `${fullPath}&ts=${Date.now()}` : fullPath;
+            mod = await import(/* @vite-ignore */ finalPath);
+        }
+
         SubModuleCache.set(name, mod);
         SubModuleCache.set(`${name}_path`, fullPath);
     }
