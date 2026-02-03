@@ -7,6 +7,7 @@ export const XolvyAdaptive = {
     init() {
         console.log("🌟 [Xolvy Adaptive] Initializing Premium Responsive Engine...");
         this.observeTables();
+        this.observeScrollMenus();
         this.handleResize();
         window.addEventListener('resize', () => this.handleResize());
     },
@@ -18,13 +19,18 @@ export const XolvyAdaptive = {
     observeTables() {
         const tables = document.querySelectorAll('table[data-adaptive="true"]');
         tables.forEach(table => {
-            const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.innerText);
+            const headRows = table.querySelectorAll('thead tr');
+            // Support multi-row headers if present (use last row for labels)
+            const lastHeaderRow = headRows[headRows.length - 1];
+            if (!lastHeaderRow) return;
+
+            const headers = Array.from(lastHeaderRow.querySelectorAll('th')).map(th => th.innerText);
             const rows = table.querySelectorAll('tbody tr');
 
             rows.forEach(row => {
                 const cells = row.querySelectorAll('td');
                 cells.forEach((cell, index) => {
-                    if (headers[index]) {
+                    if (headers[index] && !cell.hasAttribute('data-label')) {
                         cell.setAttribute('data-label', headers[index]);
                     }
                 });
@@ -35,10 +41,25 @@ export const XolvyAdaptive = {
     },
 
     /**
+     * Detects menus that should scroll horizontally instead of cutting off
+     */
+    observeScrollMenus() {
+        const scrollMenus = document.querySelectorAll('[data-adaptive-scroll="true"]');
+        scrollMenus.forEach(menu => {
+            menu.classList.add('xolvy-scroll-menu');
+            // Remove typical flex-wrap if present
+            menu.classList.remove('flex-wrap');
+        });
+    },
+
+    /**
      * Handles complex reordering of elements based on data-mobile-order attributes.
      */
     handleResize() {
-        const isMobile = window.innerWidth < 768;
+        const width = window.innerWidth;
+        const isMobile = width < 768;
+        const isUltraSmall = width < 480;
+
         const adaptiveContainers = document.querySelectorAll('[data-adaptive-container="true"]');
 
         adaptiveContainers.forEach(container => {
@@ -63,6 +84,14 @@ export const XolvyAdaptive = {
             // Re-append in new order
             children.forEach(child => container.appendChild(child));
         });
+
+        // Global UI Scaling for extreme small screens
+        if (isUltraSmall) {
+            document.querySelectorAll('.btn-pro').forEach(btn => {
+                btn.classList.add('px-3', 'py-2', 'text-[9px]');
+                btn.classList.remove('px-6', 'py-4', 'px-8', 'px-10');
+            });
+        }
     },
 
     /**
@@ -70,6 +99,7 @@ export const XolvyAdaptive = {
      */
     refresh() {
         this.observeTables();
+        this.observeScrollMenus();
         this.handleResize();
     }
 };

@@ -76,8 +76,8 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
 
         // --- MAIN SHELL RENDER ---
         container.innerHTML = `
-            <div class="animate-fade-in pb-32 lg:pb-8 w-full max-w-[1600px] mx-auto p-2 md:p-8 overflow-x-hidden">
-                <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 lg:mb-10 p-4 md:p-8 glass-morphism rounded-2xl lg:rounded-[2rem] gap-6">
+            <div class="animate-fade-in pb-32 lg:pb-8 w-full max-w-[1600px] mx-auto p-2 md:p-8 overflow-x-hidden" data-adaptive-container="true">
+                <header class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 lg:mb-10 p-4 md:p-8 glass-morphism rounded-2xl lg:rounded-[2rem] gap-6" data-mobile-order="1">
                     <div class="flex items-center gap-4 md:gap-6">
                         <div class="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-primary to-slate-900 rounded-2xl flex items-center justify-center text-2xl md:text-3xl shadow-xl shadow-primary/20 border border-primary/20 transition-transform hover:scale-105 duration-500 shrink-0">
                             <i class="fas fa-university text-white"></i>
@@ -89,25 +89,34 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                                 </span>
-                                <p class="text-[10px] text-slate-500 font-black uppercase tracking-widest">Sincronizado • v${appVersion}</p>
+                                <p class="text-[9px] md:text-[10px] text-slate-500 font-black uppercase tracking-widest">Sincronizado • v${appVersion}</p>
                             </div>
                         </div>
                     </div>
                     
-                    <div class="flex flex-wrap items-center gap-4 w-full md:w-auto">
+                    <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
                         <!-- Version Badge (Requested in Image) -->
                         <div class="hidden sm:flex flex-col items-center bg-slate-50 dark:bg-white/5 px-6 py-2.5 rounded-2xl border border-slate-100 dark:border-white/10 shadow-sm">
                             <span class="text-[7px] font-black text-slate-400 uppercase tracking-[0.3em] mb-0.5">Versión del Sistema</span>
-                            <span class="text-[11px] font-black text-primary uppercase tracking-tighter">Build ${appVersion}</span>
+                            <span class="text-[10px] font-black text-slate-800 dark:text-white tracking-widest uppercase">Build v${appVersion}</span>
                         </div>
 
-                        <div class="flex items-center gap-3 flex-1 md:flex-none">
-                            ${GlassButton('Vista Conductor', 'fas fa-id-badge', 'secondary', 'flex-1 md:flex-none uppercase tracking-widest text-[10px] py-4', 'btn-goto-conductores')}
-                            ${GlassButton('Salir', 'fas fa-sign-out-alt', 'danger', 'flex-1 md:flex-none uppercase tracking-widest text-[10px] py-4', 'logout-btn')}
+                        <!-- UI Role/Switch Badge -->
+                        <div class="flex-1 lg:flex-none flex items-center justify-between gap-4 bg-slate-100 dark:bg-white/5 px-5 py-3 rounded-2xl border border-slate-200 dark:border-white/10 shadow-inner min-w-[180px]">
+                             <div class="flex items-center gap-3">
+                                 <div class="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+                                 <span class="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">Vista Admin</span>
+                             </div>
+                             <button onclick="window.history.pushState({}, '', '/conductores'); location.reload();" class="text-[9px] font-black text-primary hover:text-indigo-500 uppercase tracking-widest transition-colors flex items-center gap-2">
+                                 <i class="fas fa-random text-[10px]"></i> Conductor
+                             </button>
                         </div>
+                        
+                        <button id="logout-btn" class="flex-1 lg:flex-none btn-pro bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white px-8 py-3.5 rounded-2xl border border-rose-500/20 transition-all font-black text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-rose-500/5 active:scale-95">
+                            <i class="fas fa-sign-out-alt"></i> Salir
+                        </button>
                     </div>
                 </header>
-
                 <div class="flex flex-col lg:flex-row gap-8 items-start">
                     <!-- Navigation -->
                     <aside class="w-full lg:w-72 lg:sticky lg:top-8 z-40 shrink-0">

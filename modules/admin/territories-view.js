@@ -7,19 +7,19 @@ export const renderCasaEnCasaTab = async (container, config, appVersion) => {
     let _activeSub = 'programa';
 
     container.innerHTML = `
-        <div class="space-y-6 md:space-y-8 animate-fade-in px-1 md:px-6">
-            <header class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
-                <div class="flex items-center gap-6">
-                    <div class="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center text-white text-2xl shadow-xl shadow-primary/30 border border-primary/20 shrink-0">
+        <div class="space-y-6 md:space-y-8 animate-fade-in px-1 md:px-6" data-adaptive-container="true">
+            <header class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6" data-mobile-order="1">
+                <div class="flex items-center gap-4 md:gap-6">
+                    <div class="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center text-white text-2xl shadow-xl shadow-primary/30 border border-primary/20 shrink-0">
                         <i class="fas fa-home"></i>
                     </div>
                     <div>
-                        <h2 class="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Territorios</h2>
-                        <p class="text-[10px] text-slate-500 font-extrabold uppercase tracking-widest mt-1">Gestión Casa en Casa</p>
+                        <h2 class="text-xl md:text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Territorios</h2>
+                        <p class="text-[9px] md:text-[10px] text-slate-500 font-extrabold uppercase tracking-widest mt-1">Gestión Casa en Casa</p>
                     </div>
                 </div>
 
-                <nav class="flex flex-row overflow-x-auto scrollbar-hide items-center gap-1 bg-white/50 dark:bg-white/[0.03] p-1 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm w-full xl:w-auto backdrop-blur-xl">
+                <nav data-adaptive-scroll="true" class="flex flex-row overflow-x-auto scrollbar-hide items-center gap-1 bg-white/50 dark:bg-white/[0.03] p-1.5 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm w-full lg:w-auto backdrop-blur-xl">
                     ${renderSubTab('programa', 'fas fa-calendar-check', 'Programa')}
                     ${renderSubTab('reportes', 'fas fa-chart-bar', 'REPORTES')}
                     ${renderSubTab('puntos', 'fas fa-map-marker-alt', 'ZONAS ESPECIALES')}
@@ -87,4 +87,3 @@ const renderSubTab = (id, icon, label) => `
         <span class="text-[11px] font-extrabold uppercase tracking-wider">${label}</span>
     </button>
 `;
-

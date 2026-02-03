@@ -72,12 +72,30 @@ async function onDataLoaded() {
 }
 ```
 
+### D. Adaptive Horizontal Scroll (Swiping Menus)
+
+For menus with many buttons that would normally wrap or cut off, use `data-adaptive-scroll="true"`. This converts the container into a premium horizontal swipe-area on mobile with hidden scrollbars.
+
+```html
+<nav data-adaptive-scroll="true" class="flex items-center gap-4">
+    <button>Option 1</button>
+    <button>Option 2</button>
+    <button>Option 3</button>
+    <!-- ... -->
+</nav>
+```
+
+### E. Auto-Scaling Buttons (.btn-pro)
+
+Buttons with the `.btn-pro` class are monitored by the adaptive engine. On extreme small devices (`< 480px`), the engine automatically reduces their padding and font size to prevent layout breakage.
+
 ## 3. Maintenance & Customization
 
 The adaptive logic is split between:
 
-- `modules/utils/adaptive.js`: Logic for DOM transformation and reordering.
-- `src/input.css`: The `@media` rules for the card-style visualization.
+- `modules/utils/adaptive.js`: Logic for DOM transformation, reordering, and scaling.
+- `src/input.css`: The `@media` rules for the card-style visualization and `.xolvy-scroll-menu` utilities.
 
 ---
 *Developed by Antigravity for Xolvy Projects.*
+*Protocol Update: v2.4.3.4 (Super Adaptive)*

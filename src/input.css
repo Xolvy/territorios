@@ -580,3 +580,37 @@ textarea:focus {
     background: hsl(var(--primary));
     opacity: 0.3;
 }
+
+/* 🚀 XOLVY SCROLL MENU - Superior Horizontal UX */
+.xolvy-scroll-menu {
+    display: flex !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    scroll-snap-type: x mandatory !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-bottom: 8px !important;
+    gap: 0.5rem !important;
+    scrollbar-width: none !important;
+    /* Hide for Firefox */
+}
+
+.xolvy-scroll-menu::-webkit-scrollbar {
+    display: none !important;
+    /* Hide for Chrome/Safari */
+}
+
+.xolvy-scroll-menu>* {
+    scroll-snap-align: start !important;
+    flex-shrink: 0 !important;
+}
+
+/* Adaptive Text Scaling */
+@media (max-width: 480px) {
+    .text-adaptive-xs {
+        font-size: 9px !important;
+    }
+
+    .text-adaptive-sm {
+        font-size: 11px !important;
+    }
+}

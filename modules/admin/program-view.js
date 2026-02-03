@@ -98,40 +98,41 @@ export const renderProgramaTab = async (container) => {
                 
                 <div class="flex flex-wrap items-center justify-center gap-3 w-full xl:w-auto">
                     <div class="flex items-center bg-slate-100 dark:bg-white/5 rounded-2xl p-1 border border-slate-200 dark:border-white/5 shadow-inner">
-                         <button id="prev-week" class="p-4 hover:bg-white dark:hover:bg-white/10 rounded-xl transition-all text-slate-400 hover:text-primary">
+                         <button id="prev-week" class="p-4 hover:bg-white dark:hover:bg-white/10 rounded-xl transition-all text-slate-400 hover:text-primary active:scale-95">
                             <i class="fas fa-chevron-left"></i>
                          </button>
                          <div class="px-8 py-2 min-w-[200px] text-center">
                              <span id="week-range-label" class="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest">Cargando...</span>
                          </div>
-                         <button id="next-week" class="p-4 hover:bg-white dark:hover:bg-white/10 rounded-xl transition-all text-slate-400 hover:text-primary">
+                         <button id="next-week" class="p-4 hover:bg-white dark:hover:bg-white/10 rounded-xl transition-all text-slate-400 hover:text-primary active:scale-95">
                             <i class="fas fa-chevron-right"></i>
                          </button>
                     </div>
 
-                    <div class="flex gap-2">
-                        <button id="btn-sync-all-prog" class="flex items-center gap-2 px-6 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-emerald-500/20 active:scale-95 group">
+                    <nav data-adaptive-scroll="true" class="flex items-center gap-2 bg-slate-100/50 dark:bg-white/5 p-1 rounded-2xl border border-slate-200/50 dark:border-white/5 shadow-sm">
+                        <button id="btn-sync-all-prog" class="btn-pro flex items-center gap-2 px-6 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-emerald-500/20 active:scale-95 group">
                             <i class="fas fa-project-diagram group-hover:rotate-12 transition-transform"></i>
                             Formalizar Asignaciones
                         </button>
 
-                        <button id="btn-reset-today" class="bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 px-6 py-4 rounded-xl font-black hover:bg-slate-50 transition-all text-[10px] uppercase tracking-widest">Hoy</button>
-                        <button id="btn-reception-prog" class="flex items-center gap-2 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-rose-500 px-6 py-4 rounded-xl font-black hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all text-[10px] uppercase tracking-widest group" title="Recibir territorios finalizados">
+                        <button id="btn-reset-today" class="btn-pro bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 px-6 py-4 rounded-xl font-black hover:bg-slate-50 transition-all text-[10px] uppercase tracking-widest">Hoy</button>
+                        <button id="btn-reception-prog" class="btn-pro flex items-center gap-2 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-rose-500 px-6 py-4 rounded-xl font-black hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all text-[10px] uppercase tracking-widest group" title="Recibir territorios finalizados">
                             <i class="fas fa-file-import group-hover:-translate-x-1 transition-transform"></i>
                             Recepción
                         </button>
-                        <button id="btn-copy-prev-week" class="flex items-center gap-2 px-6 py-4 bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 hover:bg-indigo-500 hover:text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-indigo-500/5 group" title="Replicar estructura de la semana pasada">
+                        <button id="btn-copy-prev-week" class="btn-pro flex items-center gap-2 px-6 py-4 bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 hover:bg-indigo-500 hover:text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-indigo-500/5 group" title="Replicar estructura de la semana pasada">
                             <i class="fas fa-copy group-hover:scale-110 transition-transform"></i>
                             Replicar
                         </button>
-                         <button id="btn-resync-prog" class="p-4 bg-primary/10 border border-primary/20 text-primary hover:bg-primary hover:text-white rounded-xl transition-all shadow-lg shadow-primary/5" title="Sincronizar">
-                            <i class="fas fa-sync-alt"></i>
-                        </button>
-                    </div>
+                    </nav>
+
+                    <button id="btn-resync-prog" class="p-4 bg-primary/10 border border-primary/20 text-primary hover:bg-primary hover:text-white rounded-xl transition-all shadow-lg shadow-primary/5 active:scale-95" title="Sincronizar">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
                 </div>
             </header>
 
-            <div id="day-selector-container" class="flex flex-wrap items-center justify-center gap-2 mt-8 animate-fade-in"></div>
+            <div id="day-selector-container" class="flex flex-wrap items-center justify-center gap-2 mt-8 animate-fade-in" data-adaptive-scroll="true"></div>
 
             <div class="relative group min-h-[500px]">
                 <div id="prog-loading-overlay" class="absolute inset-0 bg-white/80 dark:bg-slate-900/80 z-50 backdrop-blur-sm flex items-center justify-center hidden rounded-[2.5rem]">
