@@ -65,10 +65,7 @@ export const initUpdateManager = () => {
     }
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('updated') === 'true') {
-        setTimeout(() => {
-            showNotification(`🚀 ¡Sistema Actualizado a v${APP_VERSION}!`, "success");
-            window.history.replaceState({}, document.title, window.location.pathname);
-        }, 1000);
+        window.history.replaceState({}, document.title, window.location.pathname);
     }
 
     // 2. Listen for Server-Side Force Updates
