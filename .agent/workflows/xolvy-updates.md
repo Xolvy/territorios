@@ -13,7 +13,8 @@ The system consists of three main pillars:
 1. **AI Insight**: Generates context-aware messages about the update using Gemini AI.
 2. **Discrete HUD**: A sidebar element indicating the real-time synchronization state of specific modules.
 3. **AI Banner**: A premium notification that displays the "Brain" (IA) explanation of the update.
-4. **Radical Purge (Persistence Killer)**: A mechanism to evict all browser caches and service workers during version jumps.
+4. **Smart Update Pill**: A floating, high-contrast notification for Core Shell version jumps.
+5. **Radical Purge (Persistence Killer)**: A mechanism to evict all browser caches and service workers during version jumps.
 
 ## 2. Zero-Caching Persistent Purge
 
@@ -60,7 +61,28 @@ Updates are triggered via the `ModuleRegistry` subscription in `app.js`:
 - **Smooth Transitions**: Use `animate-slide-left` for HUD entry and `animate-slide-up` for AI banners.
 - **Progress Timing**: The AI banner progress bar must match the `setTimeout` duration of the banner removal (usually 12s).
 
-## 4. HMS Hook (Reference)
+## 4. Smart Update Pill (Core Upgrades)
+
+The `SmartUpdatePill` is the primary interface for full application upgrades (Shell Version).
+
+### 1. Triggering
+
+- It is triggered in `initUpdateManager` when a `versionMismatch` is detected between `APP_VERSION` and Firestore's `latestVersion`.
+- **Mandatory Updates**: If the `forceUpdate` flag is active in Firestore, the pill will automatically trigger the update flow after 3 seconds.
+
+### 2. Interaction & Visuals
+
+- **Glassmorphism**: Uses `backdrop-blur-3xl` and `bg-slate-900/90`.
+- **States**:
+  - *Available*: Displays the version and an "Update" button.
+  - *Processing*: Shows a progress background pulse and a spinner.
+  - *Success*: Transitions to emerald green before reloading.
+
+### 3. State Preservation
+
+- Before reloading via the pill, the current UI state (path, user, role) must be "immortalized" in `sessionStorage` under `xolvy_pre_update_state`.
+
+## 5. HMS Hook (Reference)
 
 ```javascript
 moduleRegistry.subscribe(async (moduleName, version) => {
@@ -89,7 +111,7 @@ moduleRegistry.subscribe(async (moduleName, version) => {
 });
 ```
 
-## 5. Update Loop & Failure Protection (Anti-Loop Shield)
+## 6. Update Loop & Failure Protection (Anti-Loop Shield)
 
 To prevent infinite update cycles and handle synchronization failures gracefully:
 
