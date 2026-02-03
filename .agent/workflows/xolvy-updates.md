@@ -13,13 +13,14 @@ The system consists of three main pillars:
 1. **AI Insight**: Generates context-aware messages about the update using Gemini AI.
 2. **Discrete HUD**: A sidebar element indicating the real-time synchronization state of specific modules.
 3. **AI Banner**: A premium notification that displays the "Brain" (IA) explanation of the update.
-4. **Smart Update Pill**: A floating, high-contrast notification for Core Shell version jumps.
-5. **Radical Purge (Persistence Killer)**: A mechanism to evict all browser caches, service workers, and corrupted IndexedDB data during version jumps.
+4. **Silent Background Sync**: Core Shell version jumps occur automatically in the background without user interruption.
+5. **HUD Progress Sidebar**: A discrete HUD indicating the real-time synchronization state of Núcleo or specific modules.
 6. **Admin Telemetry (Auto-Sync)**: An automatic synchronization mechanism that updates Firestore version metadata when an Administrator logs in with a newer code version.
+7. **Seamless Handshake**: A post-reload visual feedback mechanism to confirm successful reconnection without requiring a re-login.
 
-## 2. Zero-Caching Persistent Purge
+## 2. Zero-Caching Persistent Purge & Session Preservation
 
-To prevent "stuck" versions (like persistence of v2.4.1.7 when v2.4.2.0 is expected), the system implements `performRadicalCachePurge`.
+To prevent "stuck" versions while maintaining a premium UX (avoiding unnecessary logouts), the system implements `performRadicalCachePurge` with logic-aware scoping.
 
 ### Use Cases
 
@@ -29,14 +30,15 @@ To prevent "stuck" versions (like persistence of v2.4.1.7 when v2.4.2.0 is expec
 
 ### Implementation (`performRadicalCachePurge`)
 
-1. Call `await performRadicalCachePurge(true)` before any version-jump reload.
-2. The function will:
-   - Delete all `caches` keys.
-   - Unregister all `serviceWorker` registrations.
-   - Clear `sessionStorage`.
-   - **Emergency IDB Cleanup**: Delete the main Firestore IndexedDB database (`firestore/[DEFAULT]/project-id/main`) to resolve corruption errors.
-   - Set a `xolvy_purge_executed` timestamp in `localStorage` for tracking.
-   - **Persistence Disabling**: Set a `xolvy_disable_persistence` flag to allow the next boot to bypass the disk cache.
+1. **Smart Purge** (`full = false`):
+   - Clears `caches` and unregisters Service Workers.
+   - **Session Preservation**: Does NOT delete IndexedDB databases containing `auth` or `firebase-heartbeat`.
+   - *Goal*: Update assets without logging the user out.
+2. **Radical Purge** (`full = true`):
+   - Clears `caches`, `sessionStorage`, and unregisters Service Workers.
+   - **Total Erasure**: Deletes ALL IndexedDB databases.
+   - *Goal*: Emergency recovery from corrupted states.
+3. Call `await performRadicalCachePurge(isRescueMode)` before any reload.
 
 ### A. Intelligence Integration
 
@@ -64,27 +66,25 @@ Updates are triggered via the `ModuleRegistry` subscription in `app.js`:
 - **Smooth Transitions**: Use `animate-slide-left` for HUD entry and `animate-slide-up` for AI banners.
 - **Progress Timing**: The AI banner progress bar must match the `setTimeout` duration of the banner removal (usually 12s).
 
-## 4. Smart Update Pill (Core Upgrades)
+## 4. Silent Background Sync (Core Upgrades)
 
-The `SmartUpdatePill` is the primary interface for full application upgrades (Shell Version).
+Core upgrades are now handled automatically to prevent fragmentation and user fatigue.
 
 ### 1. Triggering
 
-- It is triggered in `initUpdateManager` when a **Semantic Mismatch** is detected.
-- **Semantic Comparison Rule**: An update is ONLY triggered if `serverVersion > localVersion`. This prevents downgrade loops and "stuck" versions when the server is outdated.
-- **Mandatory Updates**: If the `forceUpdate` flag is active in Firestore, the pill will automatically trigger the update flow after 3 seconds.
+- It is triggered in `initUpdateManager` when a **Semantic Mismatch** is detected (`serverVersion > localVersion`).
+- **No Manual Action**: The system starts `startBackgroundUpdate` immediately.
 
-### 2. Interaction & Visuals
+### 2. Visuals & HUD integration
 
-- **Glassmorphism**: Uses `backdrop-blur-3xl` and `bg-slate-900/90`.
-- **States**:
-  - *Available*: Displays the version and an "Update" button.
-  - *Processing*: Shows a progress background pulse and a spinner.
-  - *Success*: Transitions to emerald green before reloading.
+- **Sync Start**: A HUD card appears in the sidebar saying: *"Sincronizando Núcleo v[Version]"*.
+- **Offline Indication**: The HUD icon spins, and the AI may provide an IA Notification about the core changes.
+- **Sync Finish**: The HUD transitions to an emerald checkmark, and the page reloads automatically with a session-preserving handshake.
 
-### 3. State Preservation
+### 3. State Preservation & Handshake
 
-- Before reloading via the pill, the current UI state (path, user, role) must be "immortalized" in `sessionStorage` under `xolvy_pre_update_state`.
+- **Immortalization**: Before reloading, the UI state is saved in `sessionStorage` (`xolvy_pre_update_state`).
+- **Seamless Handshake**: Upon reload, `initUpdateManager` detects the flag and triggers a success notification bubble: *"¡Conexión Restablecida! Sistema Optimizado"*.
 
 ## 5. HMS Hook (Reference)
 
@@ -128,7 +128,7 @@ To prevent infinite update cycles and handle synchronization failures gracefully
 
 ### 2. Failure Recovery (Safe Mode)
 
-- **Rescue Pill**: When `UpdateShield.isLocked()` is true, instead of the update notification, a **Rescue Pill** (Rose/Red theme) is displayed.
+- **Rescue UI**: When `UpdateShield.isLocked()` is true, instead of background sync, a **Rescue UI** is centered on the screen.
 - **Deep Reset**: The Rescue Pill allows a manual "Deep Reset" which:
     1. Executes `UpdateShield.reset()`.
     2. Performs a `performRadicalCachePurge(true)`.
@@ -162,7 +162,7 @@ If code `v2.4.2.9` is deployed but Firestore still shows `v2.4.2.5`, clients wil
 
 ### 3. Cascading Update
 
-Once an Admin logs in, the entire fleet of Conductors receives the `SmartUpdatePill` within seconds, ensuring 100% version parity across the organization.
+Once an Admin logs in, the entire fleet of Conductors receives the **Background Sync** within seconds, ensuring 100% version parity across the organization.
 
 ---
 *Developed by Antigravity for Xolvy Projects.*
@@ -210,4 +210,4 @@ Corruption in Firestore data (e.g., territory numbers with leading/trailing spac
 | **MIME Error in Build** | Check `app.js` and `glob` usage; ensure Vite is bundling the dynamic targets correctly. |
 
 ---
-Protocol Update: v2.4.2.9
+Protocol Update: v2.4.3.1

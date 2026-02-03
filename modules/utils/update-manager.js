@@ -128,8 +128,8 @@ export const initUpdateManager = () => {
                 return;
             }
 
-            console.log("🚀 Core Update Required! Triggering discrete notification...");
-            showSmartUpdatePill(serverVersion, serverForceTimestamp, !!data.forceUpdate);
+            console.log("🚀 Core Update Required! Starting background sync...");
+            startBackgroundUpdate(serverVersion, serverForceTimestamp);
         } else if (forceRequired) {
             // If it's just a force sync without version change, we can just clear caches silently
             console.log("⚡ Force Sync requested without version change. Purging background caches.");
@@ -149,121 +149,66 @@ export const initUpdateManager = () => {
     // This is optional but helps keep the Firestore doc in sync
 };
 
-const showSmartUpdatePill = async (newVersion, forceTimestamp = 0, isForced = false) => {
-    if (document.getElementById('smart-update-pill')) return;
+/**
+ * BACKGROUND UPDATE ENGINE
+ * Performs the update silently using the HUD sidebar
+ */
+const startBackgroundUpdate = async (newVersion, forceTimestamp = 0) => {
+    if (document.getElementById('xolvy-core-sync-hud')) return;
 
-    const pill = document.createElement('div');
-    pill.id = 'smart-update-pill';
-    // Floating pill at the top center
-    pill.className = 'fixed top-6 left-1/2 -translate-x-1/2 z-[100000] w-[90%] max-w-md animate-slide-down';
+    // 1. Show HUD card for the core update
+    notifyModuleUpdate("Núcleo v" + newVersion, newVersion);
 
-    pill.innerHTML = `
-        <div class="bg-slate-900/90 backdrop-blur-3xl border border-indigo-500/30 p-4 rounded-[2rem] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6)] flex items-center gap-4 relative overflow-hidden group">
-            <!-- Progress Background Pulse -->
-            <div id="pill-progress-bg" class="absolute inset-0 bg-indigo-500/5 translate-x-[-100%] transition-transform duration-700 ease-out"></div>
-            
-            <div class="relative w-12 h-12 bg-indigo-500/20 rounded-2xl flex items-center justify-center text-xl text-indigo-400 shrink-0 shadow-inner overflow-hidden">
-                <i id="pill-icon" class="fas fa-rocket animate-pulse"></i>
-                <div id="pill-spinner" class="absolute inset-0 border-2 border-transparent border-t-indigo-500 rounded-full hidden animate-spin"></div>
-            </div>
-            
-            <div class="flex-1 min-w-0 relative z-10">
-                <div class="flex items-center gap-2 mb-0.5">
-                    <span class="text-[8px] font-black text-indigo-400 uppercase tracking-[0.3em]">Xolvy Core v${newVersion}</span>
-                    ${isForced ? '<span class="px-1.5 py-0.5 bg-rose-500/20 text-rose-500 text-[6px] font-black rounded-full uppercase tracking-tighter">Obligatoria</span>' : ''}
-                </div>
-                <h4 id="pill-title" class="text-[12px] font-black text-white uppercase tracking-tight truncate leading-tight">Mejora de Sistema Disponible</h4>
-                <p id="pill-status" class="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-1">Listo para optimizar tu experiencia</p>
-            </div>
-            
-            <button id="btn-pill-action" class="relative z-10 bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-indigo-600/20 active:scale-95 transition-all outline-none">
-                Actualizar
-            </button>
-        </div>
-    `;
+    // Flag for "Online" handshake after reload
+    localStorage.setItem('xolvy_update_handshake', 'true');
 
-    document.body.appendChild(pill);
-
-    const btn = pill.querySelector('#btn-pill-action');
-    const status = pill.querySelector('#pill-status');
-    const title = pill.querySelector('#pill-title');
-    const icon = pill.querySelector('#pill-icon');
-    const spinner = pill.querySelector('#pill-spinner');
-    const progressBg = pill.querySelector('#pill-progress-bg');
-
-    const runUpdateFlow = async () => {
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>';
-        status.innerText = "Modo Offline: Sincronizando...";
-        status.className = "text-[8px] font-black text-rose-400 uppercase tracking-widest mt-1 animate-pulse";
-        spinner.classList.remove('hidden');
-        icon.classList.add('opacity-0');
-
-        // Preservation of state (Rule 1.3)
-        const currentState = {
-            path: window.location.pathname,
-            timestamp: Date.now(),
-            role: localStorage.getItem('demo_role'),
-            user: localStorage.getItem('selected_conductor_name')
-        };
-        sessionStorage.setItem('xolvy_pre_update_state', JSON.stringify(currentState));
-        // Flag for "Online" handshake after reload
-        localStorage.setItem('xolvy_update_handshake', 'true');
-
-        try {
-            // Register attempt in the shield
-            UpdateShield.registerAttempt();
-
-            status.innerText = "Aislación de activos...";
-
-            // MODIFIED: Use Smart Purge by default to avoid logging out users
-            // Radical purge is now only for the Rescue Pill or if locked
-            await performRadicalCachePurge(false);
-
-            status.innerText = "Finalizando optimización...";
-            await new Promise(r => setTimeout(r, 1200));
-
-            progressBg.style.transform = 'translateX(0%)';
-            if (forceTimestamp) localStorage.setItem('last_force_timestamp', forceTimestamp.toString());
-
-            title.innerText = "Optimización Completada";
-            status.innerText = "Restableciendo conexión...";
-            status.className = "text-[8px] font-black text-emerald-400 uppercase tracking-widest mt-1";
-            btn.innerHTML = '<i class="fas fa-check"></i>';
-            btn.className = "relative z-10 bg-emerald-500 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-emerald-500/20";
-
-            setTimeout(() => {
-                window.location.href = `${window.location.pathname}?updated=true&v=${Date.now()}`;
-            }, 800);
-
-        } catch (err) {
-            console.error("Discrete update failed:", err);
-            // Fallback to reload if something breaks
-            window.location.reload();
-        }
+    // Preservation of state (Rule 1.3)
+    const currentState = {
+        path: window.location.pathname,
+        timestamp: Date.now(),
+        role: localStorage.getItem('demo_role'),
+        user: localStorage.getItem('selected_conductor_name')
     };
+    sessionStorage.setItem('xolvy_pre_update_state', JSON.stringify(currentState));
 
-    btn.onclick = runUpdateFlow;
-
-    // AI Integration: Announce the core update
     try {
+        // AI Announcement (Background)
         const apiKey = localStorage.getItem('gemini_api_key');
         if (apiKey) {
-            const { TerritoryIntelligence } = await import("./intelligence.js");
-            const intelligence = new TerritoryIntelligence([], [], [], {}, [], []);
-            const message = await intelligence.getUpdateInsight('core', newVersion, apiKey);
-            showIANotification(message);
+            import("./intelligence.js").then(async ({ TerritoryIntelligence }) => {
+                const intelligence = new TerritoryIntelligence([], [], [], {}, [], []);
+                const message = await intelligence.getUpdateInsight('core', newVersion, apiKey);
+                showIANotification(message);
+            }).catch(() => { });
         }
-    } catch (e) { console.warn("AI Insight for Core Update failed", e); }
 
-    // If forced, start automatically after AI has a chance to show up
-    if (isForced) {
-        setTimeout(runUpdateFlow, 3000);
+        // Register attempt in the shield
+        UpdateShield.registerAttempt();
+
+        // 2. Perform the update swap
+        // Wait 4 seconds so the user can see the sync notification in the HUD
+        await new Promise(r => setTimeout(r, 4000));
+
+        // Radical Cache Purge (Smart Mode - Session Preserved)
+        await performRadicalCachePurge(false);
+
+        if (forceTimestamp) localStorage.setItem('last_force_timestamp', forceTimestamp.toString());
+
+        // 3. Finalize and Reload
+        completeXolvyUpdate("Núcleo v" + newVersion);
+
+        setTimeout(() => {
+            window.location.href = `${window.location.pathname}?updated=true&v=${Date.now()}`;
+        }, 1500);
+
+    } catch (err) {
+        console.error("Background update failed:", err);
+        window.location.reload();
     }
 };
 
 const showPremiumUpdateOverlay = () => {
-    console.warn("Legacy Full-Screen Overlay bypassed in favor of Smart Pill.");
+    console.warn("Legacy Full-Screen Overlay bypassed in favor of Background Sync.");
 };
 
 /**
@@ -328,30 +273,8 @@ export const performRadicalCachePurge = async (full = true) => {
     }
 };
 
-const showUpdateSuggestion = (newVersion, forceTimestamp = 0) => {
-    if (document.getElementById('update-suggestion-toast')) return;
-
-    const toast = document.createElement('div');
-    toast.id = 'update-suggestion-toast';
-    toast.className = 'fixed bottom-8 left-1/2 -translate-x-1/2 z-[10000] w-[92%] max-w-sm animate-slide-up';
-    toast.innerHTML = `
-        <div class="bg-slate-900/80 backdrop-blur-2xl border border-white/10 p-4 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-center gap-4">
-            <div class="w-12 h-12 bg-indigo-500/20 rounded-2xl flex items-center justify-center text-xl text-indigo-400 shadow-inner overflow-hidden relative group">
-                <div class="absolute inset-0 bg-indigo-500/10 blur-xl animate-pulse"></div>
-                <i class="fas fa-sparkles relative z-10 animate-bounce-subtle"></i>
-            </div>
-            <div class="flex-1 min-w-0">
-                <h4 class="text-[9px] font-black text-indigo-400/80 uppercase tracking-[0.2em] mb-0.5">Mejora Disponible</h4>
-                <p class="text-[11px] font-bold text-white uppercase tracking-tight truncate">Versión ${newVersion} lista</p>
-            </div>
-            <button id="btn-update-soft" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-600/20 active:scale-95 transition-all outline-none">
-                Instalar
-            </button>
-        </div>
-    `;
-
-    document.body.appendChild(toast);
-    document.getElementById('btn-update-soft').onclick = () => showPremiumUpdateOverlay(newVersion, forceTimestamp);
+const showUpdateSuggestion = () => {
+    console.warn("Legacy showUpdateSuggestion removed.");
 };
 
 /**
@@ -534,21 +457,18 @@ const showRescuePill = (targetVersion) => {
 
     const pill = document.createElement('div');
     pill.id = 'xolvy-rescue-pill';
-    pill.className = 'fixed bottom-8 left-1/2 -translate-x-1/2 z-[100000] w-[90%] max-w-md animate-slide-up';
+    pill.className = 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[100000] w-[90%] max-w-sm animate-fade-in';
     pill.innerHTML = `
-        <div class="bg-rose-950/90 backdrop-blur-3xl border border-rose-500/50 p-5 rounded-[2.5rem] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] flex items-center gap-5">
-            <div class="w-14 h-14 bg-rose-500/20 rounded-2xl flex items-center justify-center text-2xl text-rose-400 shrink-0 shadow-inner">
-                <i class="fas fa-exclamation-triangle animate-pulse"></i>
+        <div class="bg-slate-900/90 backdrop-blur-3xl border border-indigo-500/20 p-8 rounded-[3rem] shadow-[0_40px_100px_rgba(0,0,0,0.8)] text-center">
+            <div class="w-20 h-20 bg-indigo-500/10 rounded-[2rem] flex items-center justify-center text-4xl text-indigo-400 mx-auto mb-6 shadow-inner">
+                <i class="fas fa-shield-check"></i>
             </div>
-            <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2 mb-1">
-                    <span class="text-[9px] font-black text-rose-400 uppercase tracking-[0.3em]">Modo Rescate Activo</span>
-                </div>
-                <h4 class="text-[14px] font-black text-white uppercase tracking-tight leading-tight">Bucle de Actualización</h4>
-                <p class="text-[10px] font-bold text-rose-300 opacity-80 uppercase tracking-widest mt-1">El sistema no pudo saltar a v${targetVersion}</p>
-            </div>
-            <button id="btn-rescue-action" class="bg-white text-rose-600 hover:bg-rose-100 px-6 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl transition-all active:scale-95">
-                Reset Profundo
+            <h4 class="text-xl font-black text-white uppercase tracking-tighter mb-2">Sincronización de Sistema</h4>
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest leading-relaxed mb-8">
+                Se requiere un ajuste manual para sincronizar la versión v${targetVersion}. Pulsa el botón para restablecer la conexión de forma segura.
+            </p>
+            <button id="btn-rescue-action" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-5 rounded-2xl text-[11px] font-black uppercase tracking-[0.3em] shadow-xl shadow-indigo-600/20 transition-all active:scale-95 outline-none">
+                Restablecer Conexión
             </button>
         </div>
     `;
