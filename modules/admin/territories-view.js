@@ -22,7 +22,7 @@ export const renderCasaEnCasaTab = async (container, config, appVersion) => {
                 <nav data-adaptive-wrap="true" class="flex flex-row items-center gap-1 bg-white/50 dark:bg-white/[0.03] p-1.5 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm w-full lg:w-max max-w-full backdrop-blur-xl shrink-0 overflow-hidden">
                     ${renderSubTab('programa', 'fas fa-calendar-check', 'Programa')}
                     ${renderSubTab('mapas', 'fas fa-map-marked-alt', 'MAPAS')}
-                    ${renderSubTab('reportes', 'fas fa-chart-bar', 'REPORTES')}
+                    ${renderSubTab('reportes', 'fas fa-chart-bar', 'HISTORIAL Y REPORTES')}
                     ${renderSubTab('puntos', 'fas fa-map-marker-alt', 'ZONAS ESPECIALES')}
                     <div class="w-px h-5 bg-slate-200 dark:bg-white/10 mx-2 shrink-0"></div>
                     ${renderSubTab('recursos', 'fas fa-folder-open', 'RECURSOS')}

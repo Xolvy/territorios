@@ -61,6 +61,9 @@ export const renderHistorialView = async (container) => {
                 </div>
                 
                 <div class="flex flex-wrap items-center gap-4 w-full xl:w-auto">
+                    <button id="btn-global-obs" class="h-14 px-8 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-indigo-500/20 active:scale-95 flex items-center gap-3">
+                        <i class="fas fa-comment-alt"></i> Bitácora de Observaciones
+                    </button>
                     <div class="flex-1 md:flex-none relative group min-w-[320px]">
                         <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors cursor-default"><i class="fas fa-search text-xs"></i></span>
                         <input type="text" id="hist-search" placeholder="Buscar por territorio, publicador o localidad..." class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl !pl-12 pr-6 py-4.5 text-[13px] font-bold shadow-sm outline-none focus:border-primary transition-all text-slate-700 dark:text-white">
@@ -189,8 +192,11 @@ export const renderHistorialView = async (container) => {
                         </div>
 
                         <div class="flex items-center gap-2 shrink-0 w-full lg:w-auto mt-4 lg:mt-0 pt-4 lg:pt-0 border-t lg:border-t-0 border-slate-50 dark:border-white/5">
-                            <button onclick="window.viewTimeline('${t.numero}')" class="flex-1 lg:flex-none h-12 px-5 flex items-center justify-center gap-2 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg active:scale-95">
+                            <button onclick="window.viewTimeline('${t.numero}', 's13')" class="flex-1 lg:flex-none h-12 px-5 flex items-center justify-center gap-2 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg active:scale-95">
                                 <i class="fas fa-clock-rotate-left text-xs"></i> Cronología
+                            </button>
+                            <button onclick="window.viewTimeline('${t.numero}', 'obs')" class="flex-1 lg:flex-none h-12 px-5 flex items-center justify-center gap-2 bg-indigo-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-lg shadow-indigo-500/20 active:scale-95">
+                                <i class="fas fa-comment-dots text-xs"></i> Notas
                             </button>
                             <button onclick="window.quickAssign('${t.id}', '${t.numero}')" class="w-12 h-12 flex items-center justify-center bg-slate-100 dark:bg-white/5 text-slate-500 hover:text-primary rounded-2xl transition-all">
                                 <i class="fas fa-plus"></i>
@@ -199,41 +205,17 @@ export const renderHistorialView = async (container) => {
                     </div>
 
                     <div id="timeline-${t.numero}" class="hidden animate-slide-up border-t border-slate-50 dark:border-white/5 bg-slate-50/50 dark:bg-black/20 p-6 lg:p-10">
-                         <div class="flex items-center gap-4 mb-10">
-                            <h5 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Cronología S-13</h5>
-                            <div class="h-px flex-1 bg-slate-200 dark:bg-white/5"></div>
+                         <div class="flex items-center justify-between gap-4 mb-10">
+                            <h5 id="timeline-title-${t.numero}" class="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Cronología S-13</h5>
+                            <div class="h-px flex-1 bg-slate-200 dark:bg-white/5 mx-4"></div>
+                            <div class="flex gap-2">
+                                <button onclick="window.viewTimeline('${t.numero}', 's13')" id="t-btn-s13-${t.numero}" class="px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest bg-slate-900 text-white">S-13</button>
+                                <button onclick="window.viewTimeline('${t.numero}', 'obs')" id="t-btn-obs-${t.numero}" class="px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest bg-slate-200 dark:bg-white/5 text-slate-500">Notas</button>
+                            </div>
                         </div>
 
-                        <div class="relative space-y-8 before:absolute before:left-5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200 dark:before:bg-white/5">
-                            ${tHistory.length === 0 ? `
-                                <div class="py-10 text-center opacity-40 ml-10">
-                                    <p class="text-[10px] font-bold uppercase tracking-widest italic">Sin antecedentes en la base de datos</p>
-                                </div>
-                            ` : tHistory.map(h => `
-                                <div class="relative pl-12 group/item">
-                                    <div class="absolute left-3.5 top-2 w-3.5 h-3.5 bg-emerald-500 rounded-full border-4 border-white dark:border-[#0d1117] z-10 shadow-sm transition-transform group-hover/item:scale-150"></div>
-                                    <div class="p-6 bg-white dark:bg-white/[0.02] rounded-3xl border border-slate-100 dark:border-white/5 shadow-sm hover:shadow-xl transition-all">
-                                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-8">
-                                            <div class="flex flex-col">
-                                                <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Responsable</span>
-                                                <span class="text-xs font-black text-slate-800 dark:text-white uppercase">${h.conductor}</span>
-                                            </div>
-                                            <div class="flex flex-col text-center lg:text-left">
-                                                <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Entregado</span>
-                                                <span class="text-[11px] font-bold text-slate-600 dark:text-gray-400">${UIHelpers.fmtDateAt(h.fecha_asignacion)}</span>
-                                            </div>
-                                            <div class="flex flex-col text-center lg:text-left">
-                                                <span class="text-[7px] font-black text-emerald-500 uppercase tracking-widest mb-1.5">Devuelto</span>
-                                                <span class="text-[11px] font-black text-emerald-600">${UIHelpers.fmtDateAt(h.fecha_entrega)}</span>
-                                            </div>
-                                            <div class="flex flex-col text-right">
-                                                <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Notas</span>
-                                                <span class="text-[10px] font-medium text-slate-500 dark:text-gray-500 italic">"${h.observaciones || 'Sin notas'}"</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            `).join('')}
+                        <div id="timeline-content-${t.numero}" class="relative space-y-8 before:absolute before:left-5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200 dark:before:bg-white/5">
+                            <!-- Injected by viewTimeline -->
                         </div>
                     </div>
                 </div>
@@ -241,12 +223,116 @@ export const renderHistorialView = async (container) => {
         }).join('');
     };
 
-    window.viewTimeline = (num) => {
+    window.viewTimeline = (num, mode = 's13') => {
         const el = document.getElementById(`timeline-${num}`);
-        if (!el) return;
+        const content = document.getElementById(`timeline-content-${num}`);
+        const title = document.getElementById(`timeline-title-${num}`);
+        const btnS13 = document.getElementById(`t-btn-s13-${num}`);
+        const btnObs = document.getElementById(`t-btn-obs-${num}`);
+
+        if (!el || !content) return;
+
         const isHidden = el.classList.contains('hidden');
-        document.querySelectorAll('[id^="timeline-"]').forEach(d => d.classList.add('hidden'));
-        if (isHidden) el.classList.remove('hidden');
+        if (isHidden) {
+            document.querySelectorAll('[id^="timeline-"]').forEach(d => d.classList.add('hidden'));
+            el.classList.remove('hidden');
+        } else if (mode === el.dataset.mode) {
+            el.classList.add('hidden');
+            return;
+        }
+
+        el.dataset.mode = mode;
+        title.innerText = mode === 's13' ? 'Cronología S-13' : 'Observaciones y Notas';
+
+        // Update sub-tab buttons
+        btnS13.className = `px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest ${mode === 's13' ? 'bg-slate-900 text-white' : 'bg-slate-200 dark:bg-white/5 text-slate-500'}`;
+        btnObs.className = `px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest ${mode === 'obs' ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-white/5 text-slate-500'}`;
+
+        const tHistory = (historyByNum[num] || [])
+            .filter(h => {
+                if (mode === 's13') return h.estado === 'Completado' || h.estado === 'Predicado' || h.estado === 'Asignado';
+                return h.observaciones && h.observaciones.trim().length > 0;
+            })
+            .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+
+        if (tHistory.length === 0) {
+            content.innerHTML = `<div class="py-10 text-center opacity-40 ml-10"><p class="text-[10px] font-bold uppercase tracking-widest italic">Sin registros para esta vista</p></div>`;
+            return;
+        }
+
+        content.innerHTML = tHistory.map(h => `
+            <div class="relative pl-12 group/item">
+                <div class="absolute left-3.5 top-2 w-3.5 h-3.5 ${mode === 's13' ? 'bg-emerald-500' : 'bg-indigo-500'} rounded-full border-4 border-white dark:border-[#0d1117] z-10 shadow-sm transition-transform group-hover/item:scale-150"></div>
+                <div class="p-6 bg-white dark:bg-white/[0.02] rounded-3xl border border-slate-100 dark:border-white/5 shadow-sm hover:shadow-xl transition-all">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div class="flex flex-col">
+                            <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Responsable</span>
+                            <span class="text-xs font-black text-slate-800 dark:text-white uppercase">${h.conductor || 'Anónimo'}</span>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Evento</span>
+                            <span class="text-[10px] font-black ${h.estado === 'Completado' ? 'text-emerald-500' : 'text-slate-500'} uppercase">${h.estado}</span>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Fecha</span>
+                            <span class="text-[11px] font-bold text-slate-600 dark:text-gray-400">${UIHelpers.fmtDateAt(h.fecha_entrega || h.fecha_asignacion || h.timestamp)}</span>
+                        </div>
+                        <div class="flex flex-col ${mode === 'obs' ? 'col-span-1 md:col-span-2 lg:col-span-1' : ''}">
+                            <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Observación</span>
+                            <span class="text-[10px] font-medium text-slate-500 dark:text-gray-400 italic">"${h.observaciones || 'Sin notas'}"</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    };
+
+    window.showGlobalObservations = () => {
+        const obs = history.filter(h => h.observaciones && h.observaciones.trim().length > 0)
+            .sort((a, b) => new Date(b.timestamp || b.fecha_entrega || 0) - new Date(a.timestamp || a.fecha_entrega || 0));
+
+        showModal(`
+            <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[3rem] overflow-hidden">
+                <header class="shrink-0 bg-indigo-600 p-8 text-white relative overflow-hidden">
+                    <div class="absolute inset-0 bg-white/10 backdrop-blur-3xl"></div>
+                    <div class="relative z-10 flex items-center gap-6">
+                        <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-3xl shadow-lg">
+                            <i class="fas fa-comments"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-black uppercase tracking-tight leading-none mb-1">Bitácora Global</h3>
+                            <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Observaciones de todos los territorios</p>
+                        </div>
+                    </div>
+                </header>
+
+                <div class="flex-1 overflow-y-auto custom-scrollbar p-10 space-y-6 bg-slate-50 dark:bg-black/20">
+                    ${obs.length === 0 ? `
+                        <div class="py-20 text-center opacity-40">
+                            <p class="text-xs font-black uppercase tracking-widest">No hay observaciones registradas aún.</p>
+                        </div>
+                    ` : obs.map(h => `
+                        <div class="modern-card p-6 border-slate-100 dark:border-white/5 bg-white dark:bg-white/[0.02] shadow-sm hover:border-indigo-500/30 transition-all flex flex-col md:flex-row gap-6 md:items-center">
+                            <div class="w-12 h-12 bg-slate-900 text-white rounded-xl flex items-center justify-center font-black text-sm shrink-0">
+                                ${h.numero}
+                            </div>
+                            <div class="flex-1 space-y-1">
+                                <div class="flex items-center gap-3">
+                                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">${h.conductor}</span>
+                                    <span class="w-1 h-1 bg-slate-200 dark:bg-white/10 rounded-full"></span>
+                                    <span class="text-[9px] font-bold text-slate-400">${UIHelpers.fmtDateAt(h.timestamp || h.fecha_entrega)}</span>
+                                </div>
+                                <p class="text-[13px] font-bold text-slate-700 dark:text-white leading-relaxed italic">"${h.observaciones}"</p>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <footer class="p-8 border-t border-slate-100 dark:border-white/5 bg-white dark:bg-black/40 text-center">
+                    <button onclick="this.closest('.fixed').classList.add('hidden')" class="px-10 py-4 bg-slate-100 dark:bg-white/5 text-slate-500 font-black rounded-2xl text-[10px] uppercase tracking-widest transition-all">Cerrar Bitácora</button>
+                </footer>
+            </div>
+        `, null, 'max-w-3xl');
     };
 
     window.quickAssign = (id, num) => {
@@ -327,6 +413,7 @@ export const renderHistorialView = async (container) => {
 
     searchInp.oninput = renderGrid;
     statusFilter.onchange = renderGrid;
+    container.querySelector('#btn-global-obs').onclick = window.showGlobalObservations;
     renderGrid();
 };
 
