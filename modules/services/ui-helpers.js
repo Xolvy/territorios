@@ -291,7 +291,7 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
                         <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 group-focus-within:text-primary transition-colors">
                             <i class="fas fa-search"></i>
                         </span>
-                        <input type="text" id="modal-terr-search" placeholder="Buscar por número o manzana..." class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 focus:border-primary rounded-2xl pl-12 pr-4 py-4 text-sm font-bold shadow-sm outline-none transition-all">
+                        <input type="text" id="modal-terr-search" placeholder="Buscar por número o manzana..." class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 focus:border-primary rounded-2xl !pl-12 pr-4 py-4 text-sm font-bold shadow-sm outline-none transition-all">
                     </div>
                     <div class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm">
                         <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Saturación:</span>

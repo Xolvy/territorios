@@ -26,7 +26,7 @@ export const renderTelefonosTab = async (container) => {
                 <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
                     <div class="relative flex-1 md:flex-none md:w-64 group">
                         <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors"><i class="fas fa-search"></i></span>
-                        <input type="text" id="phone-search" placeholder="Número o nombre..." class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl pl-14 pr-4 py-4 text-sm font-bold shadow-sm outline-none focus:border-primary transition-all text-slate-700 dark:text-white">
+                        <input type="text" id="phone-search" placeholder="Número o nombre..." class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl !pl-14 pr-4 py-4 text-sm font-bold shadow-sm outline-none focus:border-primary transition-all text-slate-700 dark:text-white">
                     </div>
                     <button id="add-phone-btn" class="flex-1 md:flex-none px-8 py-4 bg-primary hover:bg-primary-light text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-3">
                         <i class="fas fa-plus-circle"></i> Agregar Registro

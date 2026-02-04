@@ -43,7 +43,7 @@ export const renderPredicacionTab = async (container) => {
                     <div class="flex flex-wrap items-center gap-4 w-full lg:w-auto">
                         <div class="relative flex-1 lg:min-w-[400px] group no-print">
                             <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors"><i class="fas fa-search text-xs"></i></span>
-                            <input type="text" id="public-search" placeholder="Filtrar día o publicador..." value="${currentSearchQuery}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl pl-12 pr-4 py-4 text-xs font-black shadow-inner outline-none focus:border-primary transition-all uppercase">
+                            <input type="text" id="public-search" placeholder="Filtrar día o publicador..." value="${currentSearchQuery}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl !pl-12 pr-4 py-4 text-xs font-black shadow-inner outline-none focus:border-primary transition-all uppercase">
                         </div>
                         
                         <div class="grid grid-cols-3 gap-3 w-full lg:w-auto no-print">
@@ -113,7 +113,7 @@ export const renderPredicacionTab = async (container) => {
 
         // Bind PDF
         container.querySelector('#export-pdf').onclick = () => {
-            
+
             const target = container.querySelector('#pdf-content');
             showNotification("Generando reporte ejecutivo...", "info");
 
@@ -153,7 +153,7 @@ export const renderPredicacionTab = async (container) => {
         if (exportBtn) {
             exportBtn.onclick = () => {
                 const element = container.querySelector('#pdf-content');
-                
+
                 showNotification("Generando PDF S-13...", "info");
 
                 html2canvas(element, {

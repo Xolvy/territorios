@@ -375,7 +375,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                     <i class="fas fa-search"></i>
                                 </span>
                                 <input type="text" id="search-phone" placeholder="Buscar por número o propietario..." 
-                                       class="w-full bg-slate-50 dark:bg-white/5 border border-transparent focus:border-primary/20 rounded-2xl pl-14 pr-6 py-5 text-sm font-bold shadow-inner outline-none transition-all placeholder:text-slate-400">
+                                       class="w-full bg-slate-50 dark:bg-white/5 border border-transparent focus:border-primary/20 rounded-2xl !pl-14 pr-6 py-5 text-sm font-bold shadow-inner outline-none transition-all placeholder:text-slate-400">
                             </div>
                             <div class="md:col-span-4 relative group">
                                 <span class="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">
@@ -453,7 +453,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                         <i class="fas fa-search text-xs"></i>
                                     </span>
                                     <input type="text" id="search-explorer-maps" placeholder="Buscar territorio por número o zona..." 
-                                        class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl pl-12 pr-6 py-4 text-[13px] text-slate-700 dark:text-white focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400 font-black uppercase tracking-tight">
+                                        class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl !pl-12 pr-6 py-4 text-[13px] text-slate-700 dark:text-white focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400 font-black uppercase tracking-tight">
                                 </div>
                                  <div class="flex items-center gap-3 overflow-x-auto pb-2 md:pb-0">
                                     <button onclick="window.openGlobalMap('png')" class="flex-shrink-0 flex items-center gap-3 px-6 py-4 bg-slate-50 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-white/10 rounded-2xl transition-all font-black text-[10px] uppercase tracking-widest group shadow-sm active:scale-95">

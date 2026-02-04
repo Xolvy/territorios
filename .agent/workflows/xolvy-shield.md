@@ -17,7 +17,8 @@ Follow these steps to apply "Xolvy Shield" to any new or existing module to ensu
     - **OCUPADO**: Conflict found.
     - **ASIGNAR**: Needs formalization.
 5. **Enforce Terminology**: Use `.replace()` logic to strip prefixes like "Grupo " or fix legacy terms like "Salmo" to "Mz.".
-6. **Add 'Shield' Comments**: Mark these sections with `// Xolvy Data Shield: [Description]` to make it part of the system's identity.
+6. **Nested Array Serialization**: Firestore doesn't support nested arrays (GeoJSON). ALWAYS use `JSON.stringify(geojson)` before saving and `JSON.parse(data.geojson)` in the normalization engine to ensure map persistence.
+7. **Add 'Shield' Comments**: Mark these sections with `// Xolvy Data Shield: [Description]` to make it part of the system's identity.
 
 // turbo
 7. Verify implementation by running `npm run lint` or checking the module in the browser.

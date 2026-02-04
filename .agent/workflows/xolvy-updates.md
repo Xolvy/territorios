@@ -11,11 +11,11 @@ This workflow defines the implementation and management of the **Xolvy Updates**
 The system consists of three main pillars:
 
 1. **AI Insight**: Generates context-aware messages about the update using Gemini AI.
-2. **Discrete HUD**: A sidebar element indicating the real-time synchronization state of specific modules.
-3. **AI Banner**: A premium notification that displays the "Brain" (IA) explanation of the update.
-4. **Silent Background Sync**: Core Shell version jumps occur automatically in the background without user interruption.
-5. **HUD Progress Sidebar**: A discrete HUD indicating the real-time synchronization state of Núcleo or specific modules.
-6. **Admin Telemetry (Auto-Sync)**: An automatic synchronization mechanism that updates Firestore version metadata when an Administrator logs in with a newer code version.
+2. **Workflow HUD**: A side-aligned trace that visualizes the HMS (Hot Module Swapping) process in real-time.
+3. **HMS Telemetry**: Discrete log traces inside the HUD (Handshake, Asset Search, Shield Validation).
+4. **AI Banner**: A premium notification that displays the "Brain" (IA) explanation of the update.
+5. **Silent Background Sync**: Core Shell version jumps occur automatically in the background without user interruption.
+6. **Admin Telemetry (Auto-Sync)**: An automatic synchronization mechanism that updates Firestore version metadata.
 7. **Seamless Handshake**: A post-reload visual feedback mechanism to confirm successful reconnection without requiring a re-login.
 
 ## 2. Zero-Caching Persistent Purge & Session Preservation

@@ -63,7 +63,7 @@ export const renderHistorialView = async (container) => {
                 <div class="flex flex-wrap items-center gap-4 w-full xl:w-auto">
                     <div class="flex-1 md:flex-none relative group min-w-[320px]">
                         <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors cursor-default"><i class="fas fa-search text-xs"></i></span>
-                        <input type="text" id="hist-search" placeholder="Buscar por territorio, publicador o localidad..." class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl pl-12 pr-6 py-4.5 text-[13px] font-bold shadow-sm outline-none focus:border-primary transition-all text-slate-700 dark:text-white">
+                        <input type="text" id="hist-search" placeholder="Buscar por territorio, publicador o localidad..." class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl !pl-12 pr-6 py-4.5 text-[13px] font-bold shadow-sm outline-none focus:border-primary transition-all text-slate-700 dark:text-white">
                     </div>
                 </div>
             </header>

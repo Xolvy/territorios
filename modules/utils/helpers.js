@@ -24,7 +24,7 @@ export const getStatusColor = (status) => {
 
 
 
-export const showNotification = (message, type = 'success', duration = 5000) => {
+export const showNotification = (message, type = 'success', duration = 5000, workflow = []) => {
     // 1. Text Optimization for glanceability
     let displayMessage = message;
     if (message.includes('Conexión Restablecida')) displayMessage = 'Sistema Sincronizado';
@@ -35,7 +35,7 @@ export const showNotification = (message, type = 'success', duration = 5000) => 
     if (message.includes('Sincronizando')) displayMessage = message.replace('Sincronizando ', 'Sinc: ');
 
     // Fallback truncation for very long ad-hoc messages
-    if (displayMessage.length > 40) displayMessage = displayMessage.substring(0, 37) + '...';
+    if (displayMessage.length > 50) displayMessage = displayMessage.substring(0, 47) + '...';
 
     // 2. HUD Container (Bottom Right)
     let hud = document.getElementById('xolvy-notifications-hud');
@@ -57,32 +57,47 @@ export const showNotification = (message, type = 'success', duration = 5000) => 
         error: { bg: 'bg-rose-500/10 border-rose-500/20', text: 'text-rose-500', icon: 'fa-triangle-exclamation', label: 'ERROR' },
         warning: { bg: 'bg-amber-500/10 border-amber-500/20', text: 'text-amber-500', icon: 'fa-circle-exclamation', label: 'AVISO' },
         info: { bg: 'bg-indigo-500/10 border-indigo-500/20', text: 'text-indigo-500', icon: 'fa-circle-info', label: 'INFO' },
-        sync: { bg: 'bg-indigo-600/20 border-indigo-500/30', text: 'text-indigo-400', icon: 'fa-sync-alt fa-spin-slow', label: 'XOLVY UPDATES' }
+        sync: { bg: 'bg-slate-900/60 border-indigo-500/40', text: 'text-indigo-400', icon: 'fa-sync-alt fa-spin-slow', label: 'XOLVY WORKFLOW' }
     };
 
     const isSync = type === 'sync' || message.includes('Sincronizando');
     const s = styles[isSync ? 'sync' : type] || styles.success;
 
-    card.className = `${s.bg} border backdrop-blur-3xl px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-4 animate-slide-left pointer-events-auto transform transition-all duration-500 hover:scale-[1.02] group max-w-[320px]`;
+    // Workflow log rendering
+    const workflowHTML = workflow.length > 0
+        ? `<div class="mt-2.5 pt-2.5 border-t border-white/5 space-y-1">
+             ${workflow.map(step => `
+                <div class="flex items-center gap-1.5 opacity-60">
+                    <i class="fas fa-caret-right text-[6px] text-indigo-500"></i>
+                    <span class="text-[7px] font-bold text-slate-400 uppercase tracking-widest">${step}</span>
+                </div>
+             `).join('')}
+           </div>`
+        : '';
+
+    card.className = `${s.bg} border backdrop-blur-3xl px-5 py-3.5 rounded-2xl shadow-2xl flex flex-col gap-1 animate-slide-left pointer-events-auto transform transition-all duration-500 hover:scale-[1.02] group min-w-[280px] max-w-[340px]`;
     card.innerHTML = `
-        <div class="w-10 h-10 ${s.bg} rounded-xl flex items-center justify-center ${s.text} shadow-inner shrink-0 group-hover:scale-110 transition-transform">
-             <i class="fas ${s.icon} text-lg"></i>
-        </div>
-        <div class="flex flex-col min-w-[120px]">
-            <div class="flex items-center gap-2 mb-0.5">
-                <span class="text-[8px] font-black ${s.text} uppercase tracking-[0.25em]">${s.label}</span>
-                <span class="w-1 h-1 ${s.text.replace('text-', 'bg-')} rounded-full animate-pulse"></span>
+        <div class="flex items-center gap-4 w-full">
+            <div class="w-10 h-10 ${isSync ? 'bg-indigo-500/20' : (s.bg.includes('bg-emerald') ? 'bg-emerald-500/20' : s.bg)} rounded-xl flex items-center justify-center ${s.text} shadow-inner shrink-0 group-hover:scale-110 transition-transform">
+                 <i class="fas ${s.icon} text-lg"></i>
             </div>
-            <h4 class="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none">${displayMessage}</h4>
+            <div class="flex flex-col flex-1">
+                <div class="flex items-center gap-2 mb-0.5">
+                    <span class="text-[8px] font-black ${s.text} uppercase tracking-[0.25em]">${s.label}</span>
+                    <span class="w-1 h-1 ${s.text.replace('text-', 'bg-')} rounded-full animate-pulse"></span>
+                </div>
+                <h4 class="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none">${displayMessage}</h4>
+            </div>
+            <button class="ml-2 text-slate-400 hover:text-rose-500 transition-colors opacity-40 hover:opacity-100" onclick="this.closest('div.animate-slide-left').remove()">
+                <i class="fas fa-times text-[10px]"></i>
+            </button>
         </div>
-        <button class="ml-2 text-slate-400 hover:text-rose-500 transition-colors" onclick="this.closest('div').remove()">
-            <i class="fas fa-times text-[10px]"></i>
-        </button>
+        ${workflowHTML}
     `;
 
     // Manage Singleton Sync Cards
     if (isSync) {
-        const existing = Array.from(hud.children).find(c => c.innerHTML.includes('XOLVY UPDATES'));
+        const existing = Array.from(hud.children).find(c => c.innerHTML.includes('XOLVY WORKFLOW') || c.innerHTML.includes('XOLVY UPDATES'));
         if (existing) existing.remove();
     }
 
@@ -101,14 +116,40 @@ export const showNotification = (message, type = 'success', duration = 5000) => 
     return id;
 };
 
+export const updateNotificationWorkflow = (id, step) => {
+    const card = document.getElementById(id);
+    if (!card) return;
+
+    let container = card.querySelector('.space-y-1');
+    if (!container) {
+        const hr = document.createElement('div');
+        hr.className = 'mt-2.5 pt-2.5 border-t border-white/5 space-y-1';
+        card.appendChild(hr);
+        container = hr;
+    }
+
+    const stepEl = document.createElement('div');
+    stepEl.className = 'flex items-center gap-1.5 animate-fade-in';
+    stepEl.innerHTML = `
+        <i class="fas fa-caret-right text-[6px] text-indigo-500"></i>
+        <span class="text-[7px] font-bold text-slate-400 uppercase tracking-widest">${step}</span>
+    `;
+    container.appendChild(stepEl);
+};
+
 export const completeSyncNotification = (moduleName) => {
     const hud = document.getElementById('xolvy-notifications-hud');
     if (!hud) return;
     const cards = Array.from(hud.children);
-    const card = cards.find(c => c.innerText.includes(moduleName) || c.innerText.includes('XOLVY UPDATES'));
+    const card = cards.find(c => c.innerText.includes(moduleName) || c.innerText.includes('XOLVY WORKFLOW'));
 
     if (card) {
-        card.className = 'bg-emerald-500/10 border-emerald-500/30 border backdrop-blur-3xl px-5 py-3.5 rounded-2xl shadow-[0_20px_50px_rgba(16,185,129,0.3)] flex items-center gap-4 animate-slide-left pointer-events-auto transform transition-all duration-700';
+        card.className = 'bg-emerald-500/10 border-emerald-500/30 border backdrop-blur-3xl px-5 py-3.5 rounded-2xl shadow-[0_20px_50px_rgba(16,185,129,0.3)] flex flex-col gap-1 animate-slide-left pointer-events-auto transform transition-all duration-700';
+
+        // Cleanup workflow logs
+        const workflowDiv = card.querySelector('.border-t');
+        if (workflowDiv) workflowDiv.remove();
+
         const iconWrap = card.querySelector('.w-10');
         if (iconWrap) {
             iconWrap.className = 'w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-400 shadow-inner scale-110 transition-transform';
@@ -116,7 +157,7 @@ export const completeSyncNotification = (moduleName) => {
         }
         const label = card.querySelector('span');
         if (label) {
-            label.innerText = 'ACTUALIZADO';
+            label.innerText = 'WORKFLOW FINALIZADO';
             label.className = 'text-[8px] font-black text-emerald-500 uppercase tracking-[0.25em]';
         }
         const title = card.querySelector('h4');

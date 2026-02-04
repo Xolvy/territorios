@@ -1,6 +1,6 @@
 import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 import { db } from "../../firebase-config.js";
-import { showNotification } from "./helpers.js";
+import { showNotification, updateNotificationWorkflow } from "./helpers.js";
 
 /**
  * UPDATE MANAGER - SUPER POWER UP
@@ -282,32 +282,45 @@ const showUpdateSuggestion = () => {
  */
 
 export const notifyModuleUpdate = async (moduleName, version) => {
-    // 1. Show HUD
-    showXolvyUpdateHUD(moduleName, version);
+    // 1. Show HUD and get ID
+    const notifId = showXolvyUpdateHUD(moduleName, version);
 
-    // 2. IA Integration (Optional speaker)
+    // 2. Trace Workflow (HMS Telemetry)
+    setTimeout(() => updateNotificationWorkflow(notifId, 'Validando Módulos...'), 500);
+    setTimeout(() => updateNotificationWorkflow(notifId, 'Buscando Assets HMS...'), 1200);
+
+    // 3. IA Integration (Optional speaker)
     try {
-        const { moduleRegistry } = await import("./module-registry.js");
-        // We only "speak" if it's a significant module
-        const significantModules = ['conductor', 'admin', 'territories_view', 'phones_view', 'weekly_program', 'program_views'];
-        if (significantModules.includes(moduleName)) {
-            const apiKey = localStorage.getItem('gemini_api_key');
-            if (apiKey) {
-                const { TerritoryIntelligence } = await import("./intelligence.js");
-                const intelligence = new TerritoryIntelligence([], [], [], {}, [], []);
-                const message = await intelligence.getUpdateInsight(moduleName, version, apiKey);
+        const apiKey = localStorage.getItem('gemini_api_key');
+        const significantModules = ['conductor', 'admin', 'territories_view', 'phones_view', 'weekly_program', 'program_views', 'core'];
 
-                // Show as an IA Notification
-                showIANotification(message);
+        const isSignificant = significantModules.includes(moduleName) || moduleName.toLowerCase().includes('núcleo');
+
+        if (apiKey && isSignificant) {
+            const { TerritoryIntelligence } = await import("./intelligence.js");
+            const intelligence = new TerritoryIntelligence([], [], [], {}, [], []);
+            const cleanModuleName = moduleName.includes('Núcleo') ? 'core' : moduleName;
+            const message = await intelligence.getUpdateInsight(cleanModuleName, version, apiKey);
+
+            if (message) {
+                // Log IA Status in the HUD
+                updateNotificationWorkflow(notifId, 'IA Analizando Cambios...');
+                setTimeout(() => {
+                    updateNotificationWorkflow(notifId, 'Insight IA Recibido');
+                    showIANotification(message);
+                }, 1000);
             }
+        } else {
+            setTimeout(() => updateNotificationWorkflow(notifId, 'Compilando Delta de Parche...'), 1800);
         }
     } catch (e) {
         console.warn("Xolvy Updates: AI Insight failed", e);
+        updateNotificationWorkflow(notifId, 'Tráfico IA Limitado');
     }
 };
 
 const showXolvyUpdateHUD = (moduleName, version) => {
-    showNotification(`Sincronizando ${moduleName} v${version}`, 'sync', 0);
+    return showNotification(`Sincronizando ${moduleName} v${version}`, 'sync', 0, ['Iniciando Handshake...']);
 };
 
 import { completeSyncNotification } from "./helpers.js";
