@@ -320,12 +320,24 @@ const normalizeTerritorioData = (id, data) => {
         localidad = localidad.replace(/grupos?/gi, '').trim();
     }
 
+    // Xolvy Data Shield: GeoJSON deserialization (Nested arrays fix)
+    let geojson = data.geojson;
+    if (typeof geojson === 'string') {
+        try {
+            geojson = JSON.parse(geojson);
+        } catch (e) {
+            console.warn(`⚠️ [Shield] GeoJSON corruption in ${id}`);
+            geojson = null;
+        }
+    }
+
     return {
         ...data,
         id,
         numero: numeroStr,
         manzanas: manzanas,
         localidad: localidad,
+        geojson: geojson,
         estado: data.estado || 'Disponible'
     };
 };
@@ -367,7 +379,9 @@ export const updateTerritoryGeoJSON = async (numero, geojson) => {
         const snap = await getDocs(q);
         if (!snap.empty) {
             const docRef = doc(db, "territorios", snap.docs[0].id);
-            await updateDoc(docRef, { geojson });
+            // Xolvy Data Shield: Serializing GeoJSON because Firestore doesn't support nested arrays
+            const serializedGeoJSON = JSON.stringify(geojson);
+            await updateDoc(docRef, { geojson: serializedGeoJSON });
             return true;
         }
         return false;
