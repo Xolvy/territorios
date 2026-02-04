@@ -11,7 +11,7 @@ export const MapViewer = {
             <div class="flex flex-col h-full w-full animate-fade-in bg-white dark:bg-slate-900 rounded-[2.5rem] overflow-hidden shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)] border border-white/10 relative">
                 
                 <!-- GLASS HEADER -->
-                <div class="absolute top-6 left-6 right-6 z-20 flex justify-between items-center p-4 bg-white/70 dark:bg-gray-900/60 backdrop-blur-2xl rounded-3xl border border-white/20 dark:border-white/5 shadow-2xl">
+                <div class="absolute top-6 left-6 right-6 z-40 flex justify-between items-center p-4 bg-white/70 dark:bg-gray-900/60 backdrop-blur-2xl rounded-3xl border border-white/20 dark:border-white/5 shadow-2xl">
                     <div class="flex items-center gap-4">
                         <div class="w-12 h-12 bg-indigo-500 rounded-2xl flex items-center justify-center text-2xl shadow-[0_0_20px_rgba(79,70,229,0.4)] border border-white/20">
                             <i class="fas fa-map-marked-alt text-white text-xl"></i>
@@ -22,6 +22,12 @@ export const MapViewer = {
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
+                        <!-- VIEW TOGGLE BUTTON (Only if image exists) -->
+                        ${imagen ? `
+                        <button id="btn-toggle-view" class="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2 border border-white/20 shadow-lg">
+                            <i class="fas fa-sync-alt"></i> <span>Ver Mapa Interactivo</span>
+                        </button>
+                        ` : ''}
                         <button id="close-map" class="w-10 h-10 bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white rounded-xl transition-all flex items-center justify-center">
                             <i class="fas fa-times"></i>
                         </button>
@@ -29,7 +35,7 @@ export const MapViewer = {
                 </div>
 
                 <!-- FLOATING SIDE CONTROLS -->
-                <div class="absolute right-6 top-32 z-20 flex flex-col gap-3">
+                <div id="map-controls" class="absolute right-6 top-32 z-20 flex flex-col gap-3 ${imagen ? 'hidden' : ''}">
                     <button id="btn-my-location" class="w-12 h-12 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl text-slate-700 dark:text-white rounded-2xl shadow-xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all border border-white/20 group" title="Mi Ubicación">
                         <i class="fas fa-location-arrow text-sm group-hover:text-indigo-500"></i>
                     </button>
@@ -46,6 +52,7 @@ export const MapViewer = {
                 </div>
 
                 <div class="flex-1 w-full relative overflow-hidden bg-[#0f172a]">
+                    <!-- INTERACTIVE MAP CONTAINER -->
                     <div id="google-map" class="absolute inset-0 w-full h-full transition-opacity duration-700 ${imagen ? 'opacity-0 pointer-events-none' : 'opacity-100'}">
                         <div id="map-loader" class="absolute inset-0 z-[1000] bg-gray-950 flex items-center justify-center">
                             <div class="flex flex-col items-center gap-6">
@@ -58,14 +65,12 @@ export const MapViewer = {
                         </div>
                     </div>
                     
+                    <!-- STATIC IMAGE VIEW (PNG) -->
                     ${imagen ? `
                     <div id="static-image-viewer" class="absolute inset-0 w-full h-full flex items-center justify-center p-4 transition-opacity duration-500 opacity-100 overflow-auto bg-black/40 backdrop-blur-sm z-30">
                         <div class="bg-white p-2 rounded-3xl shadow-[0_40px_80px_rgba(0,0,0,0.8)] border border-white/20 transform hover:scale-[1.02] transition-transform">
                             <img id="map-img-element" src="${imagen}" class="max-w-full max-h-full object-contain cursor-zoom-in rounded-2xl" onclick="window.toggleImageZoom(this)">
                         </div>
-                        <button onclick="document.getElementById('static-image-viewer').classList.add('hidden'); document.getElementById('google-map').classList.remove('opacity-0', 'pointer-events-none');" class="absolute top-10 right-10 w-12 h-12 bg-white/20 backdrop-blur-xl rounded-full text-white flex items-center justify-center hover:bg-rose-500 hover:scale-110 transition-all border border-white/20">
-                             <i class="fas fa-times"></i>
-                        </button>
                     </div>
                     ` : ''}
 
@@ -75,6 +80,30 @@ export const MapViewer = {
                 </div>
             </div>
         `;
+
+        const btnToggle = container.querySelector('#btn-toggle-view');
+        const staticView = container.querySelector('#static-image-viewer');
+        const interactiveView = container.querySelector('#google-map');
+        const controls = container.querySelector('#map-controls');
+
+        if (btnToggle && staticView) {
+            btnToggle.onclick = () => {
+                const isShowingImage = !staticView.classList.contains('hidden');
+                if (isShowingImage) {
+                    staticView.classList.add('hidden');
+                    interactiveView.classList.remove('opacity-0', 'pointer-events-none');
+                    controls.classList.remove('hidden');
+                    btnToggle.querySelector('span').innerText = "Ver Imagen PNG";
+                    btnToggle.classList.replace('bg-indigo-500', 'bg-emerald-600');
+                } else {
+                    staticView.classList.remove('hidden');
+                    interactiveView.classList.add('opacity-0', 'pointer-events-none');
+                    controls.classList.add('hidden');
+                    btnToggle.querySelector('span').innerText = "Ver Mapa Interactivo";
+                    btnToggle.classList.replace('bg-emerald-600', 'bg-indigo-500');
+                }
+            };
+        }
 
         document.getElementById('close-map').onclick = () => {
             const modal = document.getElementById('modal-container');
