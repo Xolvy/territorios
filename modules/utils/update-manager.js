@@ -307,81 +307,13 @@ export const notifyModuleUpdate = async (moduleName, version) => {
 };
 
 const showXolvyUpdateHUD = (moduleName, version) => {
-    let hud = document.getElementById('xolvy-updates-hud');
-    if (!hud) {
-        hud = document.createElement('div');
-        hud.id = 'xolvy-updates-hud';
-        hud.className = 'fixed top-1/2 -translate-y-1/2 right-4 z-[10000] flex flex-col items-end gap-3 pointer-events-none transition-all duration-700';
-        document.body.appendChild(hud);
-    }
-
-    const card = document.createElement('div');
-    card.className = 'xolvy-hud-glass px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-4 animate-slide-left pointer-events-auto transform transition-all duration-500 hover:scale-[1.02] hover:bg-slate-900/60 group border-indigo-500/20';
-    card.innerHTML = `
-        <div class="relative w-12 h-12 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-400 overflow-hidden shrink-0 shadow-inner group-hover:scale-110 transition-transform">
-            <div class="absolute inset-0 bg-gradient-to-tr from-indigo-500/20 to-transparent animate-pulse"></div>
-            <i class="fas fa-sync-alt animate-spin-slow text-lg"></i>
-        </div>
-        <div class="flex flex-col min-w-[140px]">
-            <div class="flex items-center gap-2 mb-0.5">
-                <span class="text-[8px] font-black text-indigo-400 uppercase tracking-[0.25em]">Xolvy Updates</span>
-                <span class="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-ping"></span>
-            </div>
-            <h4 class="text-[11px] font-extrabold text-white/90 uppercase tracking-tight leading-none">Sincronizando ${moduleName}</h4>
-            <p class="text-[7px] font-black text-slate-500 uppercase tracking-widest mt-1 opacity-60">Versión ${version} • HMS Core Active</p>
-        </div>
-    `;
-
-    hud.appendChild(card);
-
-    // Remove after 8 seconds with smooth exit
-    setTimeout(() => {
-        card.classList.add('opacity-0', 'translate-x-[200px]', 'scale-90');
-        setTimeout(() => card.remove(), 700);
-    }, 8500);
+    showNotification(`Sincronizando ${moduleName} v${version}`, 'sync', 0);
 };
 
+import { completeSyncNotification } from "./helpers.js";
+
 export const completeXolvyUpdate = (moduleName) => {
-    const hud = document.getElementById('xolvy-updates-hud');
-    if (!hud) return;
-
-    // Find the card for this module
-    const cards = hud.querySelectorAll('div');
-    for (const card of cards) {
-        if (card.innerText.includes(moduleName)) {
-            // Update to success state
-            card.className = 'xolvy-hud-glass px-4 py-3 rounded-2xl shadow-[0_20px_50px_rgba(16,185,129,0.3)] flex items-center gap-4 animate-slide-left pointer-events-auto transform transition-all duration-700 bg-emerald-500/10 border-emerald-500/30';
-
-            const iconContainer = card.querySelector('.relative');
-            if (iconContainer) {
-                iconContainer.className = 'relative w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-400 overflow-hidden shrink-0 shadow-inner scale-110';
-                iconContainer.innerHTML = '<i class="fas fa-check text-lg scale-110 transition-transform"></i>';
-            }
-
-            const header = card.querySelector('h4');
-            if (header) {
-                header.innerText = `${moduleName} Actualizado`;
-                header.className = 'text-[11px] font-extrabold text-emerald-400 uppercase tracking-tight leading-none';
-            }
-
-            const ping = card.querySelector('.animate-ping');
-            if (ping) {
-                ping.className = 'w-1.5 h-1.5 bg-emerald-500 rounded-full';
-            }
-
-            const label = card.querySelector('span'); // Xolvy Updates
-            if (label) {
-                label.className = 'text-[8px] font-black text-emerald-400 uppercase tracking-[0.25em]';
-            }
-
-            // Remove sooner since it's done
-            setTimeout(() => {
-                card.classList.add('opacity-0', 'translate-x-[200px]', 'scale-90');
-                setTimeout(() => card.remove(), 700);
-            }, 4000);
-            break;
-        }
-    }
+    completeSyncNotification(moduleName);
 };
 
 const showIANotification = (message) => {

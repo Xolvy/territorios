@@ -7486,3 +7486,41 @@ textarea:focus {
 .ia-banner-glow {
     background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.4), transparent 70%);
 }
+
+/* XOLVY ADAPTIVE GLOBAL ENGINE */
+[data-adaptive-wrap="true"] {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 0.5rem !important;
+}
+
+@media (max-width: 768px) {
+    [data-adaptive-wrap="true"]>* {
+        flex: 1 1 auto !important;
+        min-width: 140px !important;
+        justify-content: center !important;
+        text-align: center !important;
+    }
+
+    .pro-button,
+    .sub-tab-casa {
+        padding: 0.75rem 1rem !important;
+        font-size: 10px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    [data-adaptive-wrap="true"]>* {
+        min-width: calc(50% - 0.5rem) !important;
+    }
+}
+
+/* Scroll Hide Utility */
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}

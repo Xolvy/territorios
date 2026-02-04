@@ -22,71 +22,114 @@ export const getStatusColor = (status) => {
     return 'text-gray-500';
 };
 
-export const showNotification = (message, type = 'success') => {
-    let banner = document.getElementById('app-notification-banner');
-    if (!banner) {
-        banner = document.createElement('div');
-        banner.id = 'app-notification-banner';
-        banner.className = 'fixed top-6 left-0 right-0 mx-auto w-max max-w-[calc(100vw-2rem)] z-[10000] transition-all duration-700 transform -translate-y-32 opacity-0 pointer-events-none scale-90';
-        banner.innerHTML = `
-            <div class="glass-morphism bg-white/60 dark:bg-slate-900/60 backdrop-blur-2xl px-6 py-4 sm:px-8 sm:py-5 rounded-[2.5rem] shadow-[0_30px_90px_-20px_rgba(0,0,0,0.3)] border border-white/40 dark:border-white/10 flex items-center gap-4 sm:gap-6 min-w-[280px] sm:min-w-[340px] pointer-events-auto">
-                <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl icon-container shadow-inner border border-white/20">🔔</div>
-                <div class="flex-1 min-w-0">
-                    <h4 class="font-black text-[10px] uppercase tracking-[0.2em] title mb-1">Notificación</h4>
-                    <p class="text-xs font-bold text-slate-600 dark:text-slate-300 message truncate"></p>
-                </div>
-                <button onclick="this.closest('#app-notification-banner').classList.add('-translate-y-32', 'opacity-0', 'scale-90')" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 transition-colors">✕</button>
+
+
+export const showNotification = (message, type = 'success', duration = 5000) => {
+    // 1. Text Optimization for glanceability
+    let displayMessage = message;
+    if (message.includes('Conexión Restablecida')) displayMessage = 'Sistema Sincronizado';
+    if (message.includes('No hay más números')) displayMessage = 'Sin Números Libres';
+    if (message.includes('¡Actualización Global Activada!')) displayMessage = 'Sincronizando Global';
+    if (message.includes('Referencia guardada')) displayMessage = 'Referencia Guardada';
+    if (message.includes('¡Importación exitosa!')) displayMessage = 'Datos Importados';
+    if (message.includes('Sincronizando')) displayMessage = message.replace('Sincronizando ', 'Sinc: ');
+
+    // Fallback truncation for very long ad-hoc messages
+    if (displayMessage.length > 40) displayMessage = displayMessage.substring(0, 37) + '...';
+
+    // 2. HUD Container (Bottom Right)
+    let hud = document.getElementById('xolvy-notifications-hud');
+    if (!hud) {
+        hud = document.createElement('div');
+        hud.id = 'xolvy-notifications-hud';
+        hud.className = 'fixed bottom-6 right-6 z-[10000] flex flex-col items-end gap-3 pointer-events-none';
+        document.body.appendChild(hud);
+    }
+
+    // 3. Notification Card
+    const card = document.createElement('div');
+    const id = 'notif-' + Date.now();
+    card.id = id;
+
+    // Type Styling
+    const styles = {
+        success: { bg: 'bg-emerald-500/10 border-emerald-500/20', text: 'text-emerald-500', icon: 'fa-check-circle', label: 'ÉXITO' },
+        error: { bg: 'bg-rose-500/10 border-rose-500/20', text: 'text-rose-500', icon: 'fa-triangle-exclamation', label: 'ERROR' },
+        warning: { bg: 'bg-amber-500/10 border-amber-500/20', text: 'text-amber-500', icon: 'fa-circle-exclamation', label: 'AVISO' },
+        info: { bg: 'bg-indigo-500/10 border-indigo-500/20', text: 'text-indigo-500', icon: 'fa-circle-info', label: 'INFO' },
+        sync: { bg: 'bg-indigo-600/20 border-indigo-500/30', text: 'text-indigo-400', icon: 'fa-sync-alt fa-spin-slow', label: 'XOLVY UPDATES' }
+    };
+
+    const isSync = type === 'sync' || message.includes('Sincronizando');
+    const s = styles[isSync ? 'sync' : type] || styles.success;
+
+    card.className = `${s.bg} border backdrop-blur-3xl px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-4 animate-slide-left pointer-events-auto transform transition-all duration-500 hover:scale-[1.02] group max-w-[320px]`;
+    card.innerHTML = `
+        <div class="w-10 h-10 ${s.bg} rounded-xl flex items-center justify-center ${s.text} shadow-inner shrink-0 group-hover:scale-110 transition-transform">
+             <i class="fas ${s.icon} text-lg"></i>
+        </div>
+        <div class="flex flex-col min-w-[120px]">
+            <div class="flex items-center gap-2 mb-0.5">
+                <span class="text-[8px] font-black ${s.text} uppercase tracking-[0.25em]">${s.label}</span>
+                <span class="w-1 h-1 ${s.text.replace('text-', 'bg-')} rounded-full animate-pulse"></span>
             </div>
-        `;
-        document.body.appendChild(banner);
-    }
-    const content = banner.querySelector('.message');
-    content.textContent = message;
+            <h4 class="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none">${displayMessage}</h4>
+        </div>
+        <button class="ml-2 text-slate-400 hover:text-rose-500 transition-colors" onclick="this.closest('div').remove()">
+            <i class="fas fa-times text-[10px]"></i>
+        </button>
+    `;
 
-    const icon = banner.querySelector('.icon-container');
-    const title = banner.querySelector('.title');
-
-    if (type === 'error') {
-        icon.textContent = '❌';
-        icon.className = 'w-12 h-12 bg-rose-500/20 text-rose-500 rounded-2xl flex items-center justify-center text-2xl icon-container shadow-inner border border-rose-500/20';
-        title.className = 'font-black text-[10px] uppercase tracking-[0.2em] text-rose-500 title mb-1';
-        title.textContent = 'Error de Sistema';
-    } else if (type === 'warning') {
-        icon.textContent = '⚠️';
-        icon.className = 'w-12 h-12 bg-amber-500/20 text-amber-500 rounded-2xl flex items-center justify-center text-2xl icon-container shadow-inner border border-amber-500/20';
-        title.className = 'font-black text-[10px] uppercase tracking-[0.2em] text-amber-600 title mb-1';
-        title.textContent = 'Atención';
-    } else if (type === 'info') {
-        icon.textContent = 'ℹ️';
-        icon.className = 'w-12 h-12 bg-blue-500/20 text-blue-500 rounded-2xl flex items-center justify-center text-2xl icon-container shadow-inner border border-blue-500/20';
-        title.className = 'font-black text-[10px] uppercase tracking-[0.2em] text-blue-600 title mb-1';
-        title.textContent = 'Información';
-    } else {
-        icon.textContent = '✨';
-        icon.className = 'w-12 h-12 bg-teal-500/20 text-teal-500 rounded-2xl flex items-center justify-center text-2xl icon-container shadow-inner border border-teal-500/20';
-        title.className = 'font-black text-[10px] uppercase tracking-[0.2em] text-teal-600 title mb-1';
-        title.textContent = 'Éxito';
+    // Manage Singleton Sync Cards
+    if (isSync) {
+        const existing = Array.from(hud.children).find(c => c.innerHTML.includes('XOLVY UPDATES'));
+        if (existing) existing.remove();
     }
 
-    requestAnimationFrame(() => banner.classList.remove('-translate-y-32', 'opacity-0', 'scale-90'));
+    hud.appendChild(card);
 
-    // Clear previous timeout if exists
-    if (banner.dataset.timeoutId) clearTimeout(parseInt(banner.dataset.timeoutId));
+    // Auto-remove
+    if (duration > 0) {
+        setTimeout(() => {
+            if (card.parentElement) {
+                card.classList.add('opacity-0', 'translate-x-[100px]', 'scale-90');
+                setTimeout(() => card.remove(), 700);
+            }
+        }, duration);
+    }
 
-    const tid = setTimeout(() => banner.classList.add('-translate-y-32', 'opacity-0', 'scale-90'), 5000);
-    banner.dataset.timeoutId = tid;
+    return id;
 };
 
-export const formatMapUrl = (url) => {
-    if (!url) return '';
-    // Handle Google Drive
-    if (url.includes('drive.google.com')) {
-        const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
-        if (match && match[1]) {
-            return `https://drive.google.com/uc?export=view&id=${match[1]}`;
+export const completeSyncNotification = (moduleName) => {
+    const hud = document.getElementById('xolvy-notifications-hud');
+    if (!hud) return;
+    const cards = Array.from(hud.children);
+    const card = cards.find(c => c.innerText.includes(moduleName) || c.innerText.includes('XOLVY UPDATES'));
+
+    if (card) {
+        card.className = 'bg-emerald-500/10 border-emerald-500/30 border backdrop-blur-3xl px-5 py-3.5 rounded-2xl shadow-[0_20px_50px_rgba(16,185,129,0.3)] flex items-center gap-4 animate-slide-left pointer-events-auto transform transition-all duration-700';
+        const iconWrap = card.querySelector('.w-10');
+        if (iconWrap) {
+            iconWrap.className = 'w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-400 shadow-inner scale-110 transition-transform';
+            iconWrap.innerHTML = '<i class="fas fa-check text-lg"></i>';
         }
+        const label = card.querySelector('span');
+        if (label) {
+            label.innerText = 'ACTUALIZADO';
+            label.className = 'text-[8px] font-black text-emerald-500 uppercase tracking-[0.25em]';
+        }
+        const title = card.querySelector('h4');
+        if (title) {
+            title.innerText = moduleName + ' al día';
+            title.className = 'text-[11px] font-black text-emerald-400 uppercase tracking-tight leading-none';
+        }
+
+        setTimeout(() => {
+            card.classList.add('opacity-0', 'translate-x-[100px]', 'scale-90');
+            setTimeout(() => card.remove(), 700);
+        }, 3000);
     }
-    return url;
 };
 
 /**
