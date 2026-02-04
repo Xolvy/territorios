@@ -146,16 +146,25 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                         </button>
                     </div>
 
-                    <div class="hidden sm:flex flex-col items-end mr-4 text-right">
-                         <p class="text-[8px] font-black text-slate-400 uppercase tracking-[0.3em] mb-0.5">Versión</p>
-                     <p class="text-[10px] font-black text-slate-800 dark:text-white tabular-nums">${appVersion || '2.4.3.7'}</p>
+                    <!-- Version Badge Consistent with Admin -->
+                    <div class="hidden lg:flex flex-col items-center bg-slate-50 dark:bg-white/5 px-6 py-2 rounded-2xl border border-slate-100 dark:border-white/10 shadow-sm mr-2 shrink-0">
+                         <span class="text-[7px] font-black text-slate-400 uppercase tracking-[0.3em] mb-0.5 whitespace-nowrap">Versión Sistema</span>
+                         <span class="text-[10px] font-black text-slate-800 dark:text-white tracking-widest uppercase tabular-nums">v${appVersion || '2.4.3.7'}</span>
                     </div>
                     ${(userRole === 'Administrador' || userRole === 'SuperAdmin' || conductorData?.privilegios?.includes('Administrador')) ? `
-                    <button id="btn-goto-admin" class="flex-1 md:flex-none bg-amber-500/10 hover:bg-amber-500 text-amber-600 hover:text-white px-4 md:px-6 py-3.5 rounded-xl border border-amber-500/20 transition-all font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95 min-w-0">
-                        <i class="fas fa-user-shield"></i> <span class="truncate">Panel Admin</span>
-                    </button>
+                    <!-- UI Role/Switch Badge -->
+                    <div class="flex-1 lg:flex-none flex items-center justify-between gap-4 bg-slate-100 dark:bg-white/5 px-5 py-2.5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-inner min-w-[200px] shrink-0">
+                         <div class="flex items-center gap-3">
+                             <div class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></div>
+                             <span class="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest whitespace-nowrap">Conductor</span>
+                         </div>
+                         <div class="w-px h-4 bg-slate-300 dark:bg-white/10 mx-1"></div>
+                         <button id="btn-goto-admin" class="text-[9px] font-black text-indigo-600 hover:text-indigo-500 uppercase tracking-widest transition-colors flex items-center gap-2 whitespace-nowrap group/switch">
+                             <i class="fas fa-user-shield text-[10px] group-hover:scale-110 transition-transform"></i> Panel Admin
+                         </button>
+                    </div>
                     ` : `
-                    <button onclick="window.startOnboarding()" class="flex-1 md:flex-none bg-slate-50 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 px-4 md:px-6 py-3.5 rounded-xl border border-slate-200 dark:border-white/10 transition-all font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95 min-w-0">
+                    <button onclick="window.startOnboarding()" class="flex-1 md:flex-none bg-slate-50 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 px-6 py-3 rounded-2xl border border-slate-200 dark:border-white/10 transition-all font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95 min-w-0">
                         <i class="fas fa-circle-info text-indigo-500"></i> <span class="truncate">Ayuda</span>
                     </button>
                     `}
