@@ -9,44 +9,62 @@ export const generateS12Report = (territories, layout = 1) => {
     showNotification("Generando Tarjetas S-12...", "info");
 
     const drawCard = (x, y, w, h, t) => {
-        // Draw Border
-        doc.setDrawColor(200);
-        doc.setLineWidth(0.1);
+        // Main Border (Professional card look)
+        doc.setDrawColor(30);
+        doc.setLineWidth(0.4);
         doc.rect(x, y, w, h);
 
-        // Header
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(10);
-        doc.text("Tarjeta del mapa del territorio", x + w / 2, y + 10, { align: "center" });
+        // Header Section
+        doc.setFillColor(245, 245, 245);
+        doc.rect(x, y, w, 15, 'F');
+        doc.setDrawColor(200);
+        doc.line(x, y + 15, x + w, y + 15);
 
-        // Fields
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        doc.setTextColor(40);
+        doc.text("TARJETA DEL MAPA DEL TERRITORIO", x + w / 2, y + 9, { align: "center" });
+
+        // Fields (Compact info)
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "bold");
+        doc.text("LOCALIDAD:", x + 8, y + 25);
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(8);
-        doc.text("Localidad:", x + 5, y + 20);
-        doc.line(x + 20, y + 20.5, x + w - 30, y + 20.5); // underscores
-        doc.text("Terr. núm.", x + w - 28, y + 20);
-        doc.line(x + w - 12, y + 20.5, x + w - 5, y + 20.5);
+        doc.text(t.localidad || t.nombre || '—', x + 30, y + 25);
 
-        // Data
         doc.setFont("helvetica", "bold");
-        doc.text(t.localidad || t.nombre || '', x + 22, y + 20);
-        doc.text(t.numero || '', x + w - 11, y + 20);
+        doc.text("TERR. NÚM.", x + w - 35, y + 25);
+        doc.setFontSize(14);
+        doc.text(t.numero || '—', x + w - 12, y + 25, { align: "right" });
 
-        // Map Area placeholder text
+        // Map Area (Enhanced placeholder)
+        const mapY = y + 30;
+        const mapH = h - 65;
+        doc.setDrawColor(220);
+        doc.setLineWidth(0.1);
+        doc.rect(x + 5, mapY, w - 10, mapH);
+
+        // Subtle grid for the map area
+        doc.setDrawColor(245);
+        for (let gi = 10; gi < (w - 10); gi += 10) doc.line(x + 5 + gi, mapY, x + 5 + gi, mapY + mapH);
+        for (let gj = 10; gj < mapH; gj += 10) doc.line(x + 5, mapY + gj, x + 5 + w - 10, mapY + gj);
+
         doc.setFont("helvetica", "italic");
+        doc.setFontSize(8);
+        doc.setTextColor(180);
+        doc.text("(Pegue el mapa de Google Maps aquí o dibuje el croquis del territorio)", x + w / 2, mapY + mapH / 2, { align: "center" });
+
+        // Footer block (Official note)
+        doc.setTextColor(60);
         doc.setFontSize(7);
-        doc.setTextColor(150);
-        doc.text("(Pegue el mapa arriba o dibuje el territorio)", x + w / 2, y + h - 15, { align: "center" });
-
-        // Footer block
-        doc.setTextColor(0);
-        doc.setFontSize(6);
         doc.setFont("helvetica", "bold");
-        const footerText = "Sírvase mantener esta tarjeta en el sobre. No la manche, marque, ni doble. Cada vez que se haya trabajado completamente el territorio, infórmelo al hermano que atiende los archivos del territorio.";
-        const lines = doc.splitTextToSize(footerText, w - 10);
-        doc.text(lines, x + 5, y + h - 10);
+        const footerText = "Nota: Por favor, mantenga esta tarjeta en buenas condiciones. Al completar el territorio en su totalidad, devuélvala al responsable de territorios.";
+        const lines = doc.splitTextToSize(footerText, w - 15);
+        doc.text(lines, x + 8, y + h - 15);
 
-        doc.text("S-12-S", x + 5, y + h - 2);
+        doc.setFontSize(8);
+        doc.text("S-12-S", x + 8, y + h - 5);
+        doc.text(`Doc. Generado: ${new Date().toLocaleDateString()}`, x + w - 8, y + h - 5, { align: "right" });
     };
 
     let count = 0;

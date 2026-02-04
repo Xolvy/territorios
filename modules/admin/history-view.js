@@ -15,19 +15,23 @@ export const renderHistorialView = async (container) => {
         getPublicadores()
     ]);
 
-    // Xolvy Data Shield: Robust normalization & ghost filtering
+    // Xolvy Data Shield: Unique 1-22 only
     const normalizeT = (val) => String(val || '').trim();
+    const seen = new Set();
     const allTerritorios = tRaw
         .filter(rec => {
-            const hasNum = rec.numero && String(rec.numero).trim().length > 0;
-            if (!hasNum) console.warn(`🛡️ [Data Shield] Filtered ghost record: ${rec.id}`);
-            return hasNum;
+            const num = parseInt(normalizeT(rec.numero));
+            if (!num || isNaN(num) || num < 1 || num > 22) return false;
+            if (seen.has(num)) return false;
+            seen.add(num);
+            return true;
         })
         .map(rec => ({
             ...rec,
             numero: normalizeT(rec.numero),
             manzanas: String(rec.manzanas || '').replace(/Salmo/gi, 'Mz.').trim()
-        }));
+        }))
+        .sort((a, b) => parseInt(a.numero) - parseInt(b.numero));
 
     // Group history by territory number for easy access
     const historyByNum = history.reduce((acc, h) => {
@@ -38,85 +42,44 @@ export const renderHistorialView = async (container) => {
         return acc;
     }, {});
 
-    // Stats
-    const totalTerrs = allTerritorios.length;
+    // Stats recalculation (radar)
     const assignedCount = allTerritorios.filter(t => t.estado === 'Asignado').length;
-    const coverage = totalTerrs > 0 ? Math.round((assignedCount / totalTerrs) * 100) : 0;
-    const missingCount = allTerritorios.filter(t => t.estado === 'Disponible' || t.estado === 'Sin asignar').length;
+    const coverage = allTerritorios.length > 0 ? Math.round((assignedCount / allTerritorios.length) * 100) : 0;
 
     container.innerHTML = `
-        <div class="space-y-12 animate-fade-in p-2 md:p-6 max-w-7xl mx-auto w-full overflow-x-hidden pb-20">
-            <!-- Header -->
-            <header class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-8">
-                <div class="space-y-1">
-                    <div class="flex items-center gap-4">
-                        <div class="w-14 h-14 bg-gradient-to-br from-primary to-indigo-600 rounded-2xl flex items-center justify-center text-white text-2xl shadow-xl shadow-primary/20 border border-white/20">
-                            <i class="fas fa-chart-pie"></i>
-                        </div>
-                        <div>
-                             <h3 class="text-2xl md:text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Control de Actividad</h3>
-                             <p class="text-[10px] text-slate-400 font-extrabold uppercase tracking-[0.4em] ml-1 opacity-70">Monitor inteligente y S-13</p>
-                        </div>
-                    </div>
+        <div class="relative animate-fade-in p-2 md:p-4 max-w-7xl mx-auto w-full overflow-x-hidden pb-20">
+            <!-- Floating Stats (Xolvy Radar) -->
+            <div class="fixed top-24 right-6 z-50 flex flex-col gap-2 pointer-events-none">
+                <div class="pointer-events-auto bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200 dark:border-white/10 px-4 py-2 rounded-2xl shadow-xl flex items-center gap-3">
+                    <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                    <span class="text-[9px] font-black uppercase text-slate-500">${coverage}% Cobertura</span>
                 </div>
-                
-                <div class="flex flex-wrap items-center gap-4 w-full xl:w-auto">
-                    <button id="btn-global-obs" class="h-14 px-8 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-indigo-500/20 active:scale-95 flex items-center gap-3">
-                        <i class="fas fa-comment-alt"></i> Bitácora de Observaciones
-                    </button>
-                    <div class="flex-1 md:flex-none relative group min-w-[320px]">
-                        <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors cursor-default"><i class="fas fa-search text-xs"></i></span>
-                        <input type="text" id="hist-search" placeholder="Buscar por territorio, publicador o localidad..." class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl !pl-12 pr-6 py-4.5 text-[13px] font-bold shadow-sm outline-none focus:border-primary transition-all text-slate-700 dark:text-white">
-                    </div>
-                </div>
-            </header>
-
-            <!-- Quick Stats -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div class="modern-card p-6 border-slate-100 dark:border-white/5 flex items-center gap-6 group hover:bg-primary/5 transition-colors">
-                    <div class="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary text-xl shadow-inner">
-                        <i class="fas fa-chart-line"></i>
-                    </div>
-                    <div>
-                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Cobertura Global</p>
-                        <p class="text-2xl font-black text-slate-800 dark:text-white">${coverage}%</p>
-                    </div>
-                </div>
-                <div class="modern-card p-6 border-slate-100 dark:border-white/5 flex items-center gap-6 group hover:bg-rose-500/5 transition-colors">
-                    <div class="w-16 h-16 bg-rose-500/10 rounded-2xl flex items-center justify-center text-rose-500 text-xl shadow-inner">
-                        <i class="fas fa-map-location-dot"></i>
-                    </div>
-                    <div>
-                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Territorios Libres</p>
-                        <p class="text-2xl font-black text-slate-800 dark:text-white">${missingCount}</p>
-                    </div>
-                </div>
-                <div class="modern-card p-6 border-slate-100 dark:border-white/5 flex items-center gap-6 group hover:bg-emerald-500/5 transition-colors">
-                    <div class="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 text-xl shadow-inner">
-                        <i class="fas fa-file-invoice"></i>
-                    </div>
-                    <div>
-                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Registros S-13</p>
-                        <p class="text-2xl font-black text-slate-800 dark:text-white">${history.length}</p>
-                    </div>
+                <div class="pointer-events-auto bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200 dark:border-white/10 px-4 py-2 rounded-2xl shadow-xl flex items-center gap-3">
+                    <div class="w-2 h-2 rounded-full bg-rose-500"></div>
+                    <span class="text-[9px] font-black uppercase text-slate-500">${assignedCount} Ocupados</span>
                 </div>
             </div>
 
-            <!-- List Section -->
-            <div class="space-y-6">
-                <div class="flex items-center justify-between px-4">
-                    <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-4">
-                        <span class="w-12 h-1 bg-primary/20 rounded-full"></span> 
-                        Listado Maestro de Actividad
-                    </h4>
-                    <select id="hist-filter-status" class="bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 text-[10px] font-black uppercase text-slate-500 outline-none focus:border-primary transition-all cursor-pointer">
+            <header class="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
+                <div class="relative group w-full md:w-96">
+                    <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors cursor-default"><i class="fas fa-search text-xs"></i></span>
+                    <input type="text" id="hist-search" placeholder="Filtrar actividad..." class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl !pl-12 pr-6 py-3.5 text-[12px] font-bold shadow-sm outline-none focus:border-primary transition-all text-slate-700 dark:text-white">
+                </div>
+                <div class="flex items-center gap-3 w-full md:w-auto">
+                    <button id="btn-global-obs" class="flex-1 md:flex-none h-12 px-6 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-95 flex items-center justify-center gap-3">
+                        <i class="fas fa-comment-alt"></i> Bitácora
+                    </button>
+                    <select id="hist-filter-status" class="flex-1 md:flex-none h-12 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 text-[9px] font-black uppercase text-slate-500 outline-none focus:border-primary transition-all cursor-pointer">
                         <option value="">TODOS</option>
                         <option value="Asignado">Asignados</option>
-                        <option value="Disponible">Disponibles</option>
+                        <option value="Disponible">Libres</option>
                     </select>
                 </div>
+            </header>
 
-                <div id="unified-control-grid" class="space-y-4">
+            <!-- List Section -->
+            <div class="space-y-4">
+                <div id="unified-control-grid" class="space-y-3">
                     <!-- Dynamic Grid -->
                 </div>
             </div>
@@ -154,40 +117,31 @@ export const renderHistorialView = async (container) => {
                 .filter(h => h.estado === 'Completado' || h.estado === 'Predicado')
                 .sort((a, b) => new Date(b.fecha_entrega || b.timestamp) - new Date(a.fecha_entrega || a.timestamp));
 
-            const stateColors = {
-                'Asignado': 'bg-primary text-white shadow-primary/30',
-                'Completado': 'bg-emerald-500 text-white shadow-emerald-500/20',
-                'Disponible': 'bg-slate-100 dark:bg-white/5 text-slate-400'
-            };
-
-            const diffDays = t.fecha_asignacion ? Math.floor((new Date() - new Date(t.fecha_asignacion)) / (1000 * 60 * 60 * 24)) : 0;
+            const isFree = t.estado === 'Libre' || t.estado === 'Disponible' || t.estado === 'Sin asignar';
+            const numBg = isFree ? 'bg-emerald-500 shadow-emerald-500/30' : 'bg-rose-500 shadow-rose-500/30';
 
             return `
-                <div class="modern-card !p-0 border-slate-100 dark:border-white/5 shadow-xl hover:shadow-2xl transition-all group overflow-hidden flex flex-col bg-white dark:bg-[#0d1117]">
-                    <div class="flex flex-col lg:flex-row items-center p-5 lg:p-7 gap-6">
-                        <div class="w-16 h-16 bg-slate-900 rounded-[1.5rem] flex items-center justify-center text-white text-xl font-black shadow-2xl shrink-0 group-hover:scale-110 transition-transform duration-500">
+                <div class="modern-card !p-0 border-slate-100 dark:border-white/5 shadow-sm hover:shadow-md transition-all group overflow-hidden flex flex-col bg-white dark:bg-[#0d1117]">
+                    <div class="flex flex-col lg:flex-row items-center p-4 lg:p-5 gap-6">
+                        <div class="w-14 h-14 ${numBg} rounded-2xl flex items-center justify-center text-white text-xl font-black shadow-lg shrink-0 group-hover:scale-110 transition-transform duration-500">
                             ${t.numero}
                         </div>
                         
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 flex-1 w-full lg:w-auto">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 flex-1 w-full lg:w-auto">
                             <div class="flex flex-col">
-                                <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 opacity-60">Localidad</span>
-                                <div class="flex items-center gap-2 text-slate-800 dark:text-white">
-                                    <i class="fas fa-location-dot text-[10px] text-primary"></i>
-                                    <span class="text-[14px] font-black uppercase truncate">${t.localidad || 'Mi Ciudad'}</span>
+                                <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 opacity-60">Localidad</span>
+                                <div class="flex items-center gap-2 text-slate-700 dark:text-white">
+                                    <span class="text-[12px] font-black uppercase truncate">${t.localidad || 'Mi Ciudad'}</span>
                                 </div>
                             </div>
                             <div class="flex flex-col">
-                                <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 opacity-60">Manzanas</span>
+                                <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 opacity-60">Manzanas</span>
                                 <div class="flex items-center gap-2 text-slate-500 dark:text-slate-400">
-                                    <i class="fas fa-th-large text-[10px]"></i>
-                                    <span class="text-[11px] font-bold truncate">${t.manzanas || 'Sin manzanas'}</span>
+                                    <span class="text-[10px] font-bold truncate">${t.manzanas || 'Sin manzanas'}</span>
                                 </div>
                             </div>
                             <div class="flex flex-col lg:items-end justify-center">
-                                <span class="${stateColors[t.estado] || 'bg-slate-100 text-slate-400'} text-[9px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest transition-all">
-                                    ${t.estado}
-                                </span>
+                                ${t.asignado_a ? `<span class="text-[9px] font-black text-slate-400 uppercase truncate max-w-[120px] bg-slate-50 dark:bg-white/5 px-3 py-1 rounded-lg border border-slate-100 dark:border-white/5">${t.asignado_a}</span>` : ''}
                             </div>
                         </div>
 
@@ -413,7 +367,8 @@ export const renderHistorialView = async (container) => {
 
     searchInp.oninput = renderGrid;
     statusFilter.onchange = renderGrid;
-    container.querySelector('#btn-global-obs').onclick = window.showGlobalObservations;
+    const btnGlobal = container.querySelector('#btn-global-obs');
+    if (btnGlobal) btnGlobal.onclick = window.showGlobalObservations;
     renderGrid();
 };
 
