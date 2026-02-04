@@ -114,67 +114,62 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
     const wasProgOpen = container.querySelector('.group\\/prog-details')?.open;
 
     container.innerHTML = `
-        <div class="animate-fade-in pb-48 w-full max-w-7xl mx-auto p-2 md:p-8 space-y-8 md:space-y-20" data-adaptive-container="true">
-            <header class="flex flex-col md:flex-row justify-between items-start md:items-center px-4 md:px-6 py-6 modern-card !rounded-[2.5rem] border-slate-200 dark:border-white/10 shadow-xl gap-6 relative overflow-hidden group">
-                <div class="absolute inset-0 bg-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
-                <div class="flex items-center gap-5 relative z-10">
-                    <div class="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center text-2xl text-white shadow-xl shadow-indigo-500/30 rotate-3 hover:rotate-0 transition-all duration-700 animate-float">
+        <div class="animate-fade-in pb-32 w-full max-w-7xl mx-auto p-2 md:p-8 space-y-8 md:space-y-12" data-adaptive-container="true">
+            <header class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 lg:mb-10 p-4 md:p-8 glass-morphism rounded-2xl lg:rounded-[2rem] gap-6" data-mobile-order="1">
+                <div class="flex items-center gap-4 md:gap-6 relative z-10">
+                    <div class="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-indigo-600 to-slate-900 rounded-2xl flex items-center justify-center text-white text-2xl md:text-3xl shadow-xl shadow-indigo-500/20 border border-white/10 transition-transform hover:scale-105 duration-500 shrink-0">
                         <i class="fas fa-user-circle"></i>
                     </div>
-                    <div class="space-y-1">
-                        <h1 class="text-2xl font-black text-slate-800 dark:text-white tracking-tighter uppercase">Hola, ${displayName.split(' ')[0]}</h1>
-                        <div class="flex flex-col">
-                            <p class="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-black tracking-[0.3em] flex items-center gap-2">
-                               <span class="relative flex h-1.5 w-1.5">
-                                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                  <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
-                               </span> <span class="text-slate-600 dark:text-slate-300 font-extrabold">Panel Conductor PRO</span>
-                            </p>
-                            <p class="text-[8px] font-black text-indigo-500 uppercase tracking-[0.2em] mt-0.5 opacity-70">${config.congregacion?.nombre || ''}</p>
+                    <div>
+                        <h1 class="text-xl md:text-3xl font-black text-slate-900 dark:text-white leading-tight uppercase tracking-tighter">Hola, ${displayName.split(' ')[0]}</h1>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span class="relative flex h-2 w-2">
+                               <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                               <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                            </span>
+                            <p class="text-[9px] md:text-[10px] text-slate-500 font-black uppercase tracking-widest">Panel Conductor • v${appVersion}</p>
                         </div>
                     </div>
                 </div>
-                <div class="flex flex-wrap items-center gap-2.5 w-full md:w-auto relative z-10">
-                    <!-- Connection Status Badge -->
-                    <div id="connection-hub" class="flex items-center gap-3 px-4 py-3 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm mr-2 transition-all">
-                        <div id="status-dot" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                        <span id="status-text" class="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">En Línea</span>
-                        <div class="w-px h-4 bg-slate-300 dark:bg-white/10 mx-1"></div>
-                        <button id="btn-sync-all" class="text-[9px] font-black text-indigo-500 uppercase tracking-widest hover:text-indigo-400 flex items-center gap-2 transition-colors group/syncall" title="Sincronizar todo para uso offline">
-                            <i class="fas fa-arrows-rotate group-hover/syncall:rotate-180 transition-transform duration-700"></i>
-                            <span class="hidden xs:inline">Sincronizar</span>
-                        </button>
+
+                <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto relative z-10">
+                    <!-- Status Badge -->
+                    <div id="connection-hub" class="flex items-center gap-4 bg-slate-100 dark:bg-white/5 px-4 md:px-6 py-2.5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-inner shrink-0">
+                         <div class="flex items-center gap-2">
+                             <div id="status-dot" class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                             <span id="status-text" class="text-[8px] md:text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest whitespace-nowrap">En Línea</span>
+                         </div>
+                         <div class="w-px h-3 bg-slate-300 dark:bg-white/10 mx-0.5"></div>
+                         <button id="btn-sync-all" class="text-[8px] md:text-[9px] font-black text-indigo-600 hover:text-indigo-500 uppercase tracking-widest transition-colors flex items-center gap-2 whitespace-nowrap group/syncall">
+                             <i class="fas fa-arrows-rotate group-hover/syncall:rotate-180 transition-transform duration-700"></i> Sincronizar
+                         </button>
                     </div>
 
-                    <!-- Version Badge Consistent with Admin -->
-                    <div class="hidden lg:flex flex-col items-center bg-slate-50 dark:bg-white/5 px-6 py-2 rounded-2xl border border-slate-100 dark:border-white/10 shadow-sm mr-2 shrink-0">
-                         <span class="text-[7px] font-black text-slate-400 uppercase tracking-[0.3em] mb-0.5 whitespace-nowrap">Versión Sistema</span>
-                         <span class="text-[10px] font-black text-slate-800 dark:text-white tracking-widest uppercase tabular-nums">v${appVersion || '2.4.3.7'}</span>
-                    </div>
                     ${(userRole === 'Administrador' || userRole === 'SuperAdmin' || conductorData?.privilegios?.includes('Administrador')) ? `
                     <!-- UI Role/Switch Badge -->
-                    <div class="flex-1 lg:flex-none flex items-center justify-between gap-4 bg-slate-100 dark:bg-white/5 px-5 py-2.5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-inner min-w-[200px] shrink-0">
-                         <div class="flex items-center gap-3">
-                             <div class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></div>
-                             <span class="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest whitespace-nowrap">Conductor</span>
+                    <div class="flex-1 lg:flex-none flex items-center justify-center gap-4 bg-slate-100 dark:bg-white/5 px-4 md:px-6 py-2.5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-inner min-w-fit shrink-0">
+                         <div class="flex items-center gap-2">
+                             <div class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></div>
+                             <span class="text-[8px] md:text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest whitespace-nowrap">Conductor</span>
                          </div>
-                         <div class="w-px h-4 bg-slate-300 dark:bg-white/10 mx-1"></div>
-                         <button id="btn-goto-admin" class="text-[9px] font-black text-indigo-600 hover:text-indigo-500 uppercase tracking-widest transition-colors flex items-center gap-2 whitespace-nowrap group/switch">
-                             <i class="fas fa-user-shield text-[10px] group-hover:scale-110 transition-transform"></i> Panel Admin
+                         <div class="w-px h-3 bg-slate-300 dark:bg-white/10 mx-0.5"></div>
+                         <button id="btn-goto-admin" class="text-[8px] md:text-[9px] font-black text-indigo-600 hover:text-indigo-500 uppercase tracking-widest transition-colors flex items-center gap-2 whitespace-nowrap group/switch shrink-0 px-1">
+                             <i class="fas fa-user-shield text-[10px] group-hover:scale-110 transition-transform"></i> Admin
                          </button>
                     </div>
                     ` : `
                     <button onclick="window.startOnboarding()" class="flex-1 md:flex-none bg-slate-50 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 px-6 py-3 rounded-2xl border border-slate-200 dark:border-white/10 transition-all font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95 min-w-0">
-                        <i class="fas fa-circle-info text-indigo-500"></i> <span class="truncate">Ayuda</span>
+                        <i class="fas fa-circle-info text-indigo-500"></i> Ayuda
                     </button>
                     `}
-                    <button id="logout-btn" class="flex-1 md:flex-none bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white px-4 md:px-6 py-3.5 rounded-xl border border-rose-500/20 transition-all font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95 min-w-0">
-                        <i class="fas fa-sign-out-alt"></i> <span class="truncate">Salir</span>
+
+                    <button id="logout-btn" class="flex-1 lg:flex-none btn-pro bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white px-8 py-3.5 rounded-2xl border border-rose-500/20 transition-all font-black text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-rose-500/5 active:scale-95">
+                        <i class="fas fa-sign-out-alt"></i> Salir
                     </button>
                 </div>
             </header>
  
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-y-24 gap-x-8 px-2 md:px-4 mb-24">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-y-12 gap-x-8 px-2 md:px-4 mb-12">
                 <div class="lg:col-span-2 space-y-8 animate-fade-in ${mods.agenda !== false ? '' : 'hidden'}">
                     <div class="flex flex-col md:flex-row md:items-center justify-between px-4 gap-4">
                         <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] flex items-center gap-4">
@@ -195,9 +190,9 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 </div>
             </div>
  
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-y-24 gap-x-8 px-2 md:px-4 mb-24">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-y-12 gap-x-8 px-2 md:px-4 mb-12">
                 <!--Module: Programa Semanal(Global Cards)-->
-                <div id="programa-semanal-section" class="lg:col-span-2 ${mods.programa !== false ? '' : 'hidden'} mb-12">
+                <div id="programa-semanal-section" class="lg:col-span-2 ${mods.programa !== false ? '' : 'hidden'} mb-4">
                     <div class="modern-card !p-0 border-slate-200 dark:border-white/10 shadow-2xl transition-all overflow-hidden group/prog bg-white dark:bg-slate-900/40">
                         <details id="details-programa" class="group/prog-details">
                              <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-6 md:p-8 cursor-pointer list-none select-none hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors border-b border-transparent group-open/prog-details:border-slate-100 dark:group-open/prog-details:border-white/5">
@@ -277,9 +272,9 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 </div>
 
                 <!--Module: Misiones de Rescate(Reordered to be above availability)-->
-                <div class="lg:col-span-2 hidden mb-12" id="ayudas-container"></div>
+                <div class="lg:col-span-2 hidden mb-4" id="ayudas-container"></div>
                 
-                <div class="lg:col-span-2 ${mods.disponibilidad !== false ? '' : 'hidden'} mb-12" id="availability-section">
+                <div class="lg:col-span-2 ${mods.disponibilidad !== false ? '' : 'hidden'} mb-4" id="availability-section">
                     <div class="modern-card !p-0 border-slate-200 dark:border-white/10 shadow-2xl transition-all overflow-hidden group/avail bg-white dark:bg-slate-900/40">
                          <details class="group/avail-details">
                              <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-6 md:p-8 cursor-pointer list-none select-none hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors border-b border-transparent group-open/avail-details:border-slate-100 dark:group-open/avail-details:border-white/5">
@@ -306,7 +301,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 </div>
 
                 <!--Module: Telefonos-->
-                <div class="lg:col-span-2 modern-card p-6 md:p-8 ${mods.telefonos !== false ? '' : 'hidden'} border-slate-200 dark:border-white/10 shadow-2xl transition-all duration-500 bg-white dark:bg-slate-900/40 mb-12" id="phone-module-card">
+                <div class="lg:col-span-2 modern-card p-6 md:p-8 ${mods.telefonos !== false ? '' : 'hidden'} border-slate-200 dark:border-white/10 shadow-2xl transition-all duration-500 bg-white dark:bg-slate-900/40 mb-4" id="phone-module-card">
                     <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 mb-8">
                         <div class="flex items-center gap-5 select-none group/phone-header">
                             <h3 class="text-2xl font-black text-slate-800 dark:text-white flex items-center gap-4 uppercase tracking-tight">
@@ -427,7 +422,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                     </div>
                 </div>
 
-                <div class="lg:col-span-2 modern-card border-slate-200 dark:border-white/10 shadow-2xl transition-all overflow-hidden !p-0 ${mods.mapas !== false ? '' : 'hidden'} bg-white dark:bg-slate-900/40 mb-12" id="interactive-maps-module">
+                <div class="lg:col-span-2 modern-card border-slate-200 dark:border-white/10 shadow-2xl transition-all overflow-hidden !p-0 ${mods.mapas !== false ? '' : 'hidden'} bg-white dark:bg-slate-900/40 mb-4" id="interactive-maps-module">
                     <details class="group/maps" ${container.querySelector('.group\\/maps')?.open ? 'open' : ''}>
                         <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-6 md:p-8 cursor-pointer list-none select-none hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
                             <div class="flex items-start gap-6">
@@ -474,7 +469,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 </div>
 
                 <!--Module: Ayudas Ministerio-->
-                <div class="lg:col-span-2 ${mods.ayudas !== false ? '' : 'hidden'} mb-12" id="recursos-container"></div>
+                <div class="lg:col-span-2 ${mods.ayudas !== false ? '' : 'hidden'} mb-4" id="recursos-container"></div>
             </div>
         </div>
         <div id="modal-container" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden overflow-y-auto z-50 p-4 md:p-10 flex justify-center items-start"></div>

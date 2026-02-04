@@ -12,8 +12,8 @@ export const renderAnalyticsView = async (container, appVersion) => {
     }
 
     container.innerHTML = `
-        <div class="h-full flex flex-col gap-4 md:gap-8 animate-fade-in custom-scrollbar pb-10 px-1 md:px-4">
-            <header class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-100 dark:border-white/5 pb-6 md:pb-8 gap-4 md:gap-6 px-4 md:px-6">
+        <div class="h-full flex flex-col gap-3 md:gap-6 animate-fade-in custom-scrollbar pb-10 px-1 md:px-4">
+            <header class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-100 dark:border-white/5 pb-4 md:pb-6 gap-4 md:gap-6 px-4 md:px-6">
                 <div class="flex items-center gap-4 md:gap-6">
                     <div class="w-12 h-12 md:w-16 md:h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-2xl md:text-3xl text-primary shadow-inner border border-primary/10 animate-float shrink-0">
                         <i class="fas fa-chart-pie"></i>
@@ -125,7 +125,7 @@ export const renderAnalyticsView = async (container, appVersion) => {
 
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 overflow-hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 overflow-hidden">
                 <div class="modern-card p-4 sm:p-6 md:p-10 flex flex-col bg-white dark:bg-white/[0.02]">
                     <h3 class="text-[10px] md:text-[12px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em] md:tracking-[0.3em] mb-6 md:mb-10 flex items-center gap-3">
                         <span class="w-6 md:w-8 h-[1px] bg-slate-300 dark:bg-white/10"></span>

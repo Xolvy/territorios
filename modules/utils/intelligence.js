@@ -67,6 +67,23 @@ export class TerritoryIntelligence {
         }
     }
 
+    async detectBestModel(apiKey) {
+        try {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+            const data = await response.json();
+            if (data.models && data.models.length > 0) {
+                // Prefer 1.5 Pro, then 1.5 Flash, then 1.0 Pro
+                const models = data.models.map(m => m.name.replace('models/', ''));
+                if (models.includes('gemini-1.5-pro')) return { name: 'gemini-1.5-pro', version: 'v1beta' };
+                if (models.includes('gemini-1.5-flash')) return { name: 'gemini-1.5-flash', version: 'v1beta' };
+                return { name: 'gemini-pro', version: 'v1beta' };
+            }
+        } catch (e) {
+            console.error("Error detecting models:", e);
+        }
+        return { name: 'gemini-1.5-flash', version: 'v1beta' }; // Default fallback
+    }
+
     addToOfflineQueue(prompt) {
         const queue = JSON.parse(localStorage.getItem('ai_offline_queue') || '[]');
         queue.push({ prompt, timestamp: Date.now() });

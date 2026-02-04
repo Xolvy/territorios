@@ -19,14 +19,14 @@ export const renderCasaEnCasaTab = async (container, config, appVersion) => {
                     </div>
                 </div>
 
-                <nav data-adaptive-wrap="true" class="flex flex-row items-center gap-1 bg-white/50 dark:bg-white/[0.03] p-1.5 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm w-full lg:w-max max-w-full backdrop-blur-xl shrink-0 overflow-hidden">
+                <nav data-adaptive-wrap="true" class="flex flex-row items-center gap-1.5 bg-slate-100 dark:bg-white/5 p-1.5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-inner w-full lg:w-max max-w-full backdrop-blur-xl shrink-0">
                     ${renderSubTab('programa', 'fas fa-calendar-check', 'Programa')}
-                    ${renderSubTab('mapas', 'fas fa-map-marked-alt', 'MAPAS')}
-                    ${renderSubTab('reportes', 'fas fa-chart-bar', 'HISTORIAL Y REPORTES')}
-                    ${renderSubTab('puntos', 'fas fa-map-marker-alt', 'ZONAS ESPECIALES')}
-                    <div class="w-px h-5 bg-slate-200 dark:bg-white/10 mx-2 shrink-0"></div>
-                    ${renderSubTab('recursos', 'fas fa-folder-open', 'RECURSOS')}
-                    ${renderSubTab('personal', 'fas fa-users', 'PERSONAL')}
+                    ${renderSubTab('mapas', 'fas fa-map-marked-alt', 'Mapas')}
+                    ${renderSubTab('reportes', 'fas fa-history', 'Historial')}
+                    ${renderSubTab('puntos', 'fas fa-map-marker-alt', 'Zonas')}
+                    <div class="w-px h-5 bg-slate-300 dark:bg-white/10 mx-2 shrink-0"></div>
+                    ${renderSubTab('recursos', 'fas fa-folder-open', 'Recursos')}
+                    ${renderSubTab('personal', 'fas fa-users', 'Publicadores')}
                 </nav>
             </header>
             
@@ -41,7 +41,7 @@ export const renderCasaEnCasaTab = async (container, config, appVersion) => {
         container.querySelectorAll('.sub-tab-casa').forEach(btn => {
             const isActive = btn.dataset.sub === sub;
             btn.classList.toggle('active', isActive);
-            btn.className = `sub-tab-casa group px-5 py-3 rounded-xl transition-all flex items-center gap-3 whitespace-nowrap font-extrabold border shadow-sm ${isActive ? 'bg-slate-900 dark:bg-white/10 text-white border-slate-800 shadow-lg' : 'text-slate-600 dark:text-slate-400 border-transparent hover:bg-white dark:hover:bg-white/5'}`;
+            btn.className = `sub-tab-casa group px-4 md:px-6 py-2 md:py-3 rounded-xl transition-all flex items-center justify-center gap-2 md:gap-3 whitespace-nowrap font-black border ${isActive ? 'bg-slate-900 dark:bg-white/10 text-white border-slate-800 shadow-lg' : 'text-slate-600 dark:text-slate-400 border-transparent hover:bg-white dark:hover:bg-white/5 shadow-none'}`;
         });
 
         subContainer.innerHTML = `<div class="p-20 text-center opacity-30"><i class="fas fa-circle-notch fa-spin text-3xl"></i></div>`;
@@ -93,8 +93,8 @@ export const renderCasaEnCasaTab = async (container, config, appVersion) => {
 };
 
 const renderSubTab = (id, icon, label) => `
-    <button class="sub-tab-casa group px-3 md:px-5 py-2.5 md:py-3 rounded-xl transition-all flex items-center justify-center gap-2 md:gap-3 whitespace-nowrap font-extrabold flex-1 sm:flex-none" data-sub="${id}">
+    <button class="sub-tab-casa group px-4 md:px-6 py-2 md:py-3 rounded-xl transition-all flex items-center justify-center gap-2 md:gap-3 whitespace-nowrap font-black flex-1 sm:flex-none" data-sub="${id}">
         <i class="${icon} text-xs md:text-sm"></i>
-        <span class="text-[9px] md:text-[11px] font-extrabold uppercase tracking-tight md:tracking-wider truncate max-w-[100px] md:max-w-none">${label}</span>
+        <span class="text-[9px] md:text-[10px] uppercase tracking-widest">${label}</span>
     </button>
 `;
