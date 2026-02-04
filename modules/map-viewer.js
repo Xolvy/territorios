@@ -63,7 +63,7 @@ export const MapViewer = {
                         <div class="bg-white p-2 rounded-3xl shadow-[0_40px_80px_rgba(0,0,0,0.8)] border border-white/20 transform hover:scale-[1.02] transition-transform">
                             <img id="map-img-element" src="${imagen}" class="max-w-full max-h-full object-contain cursor-zoom-in rounded-2xl" onclick="window.toggleImageZoom(this)">
                         </div>
-                        <button onclick="document.getElementById('static-image-viewer').classList.add('hidden')" class="absolute top-10 right-10 w-12 h-12 bg-white/20 backdrop-blur-xl rounded-full text-white flex items-center justify-center hover:bg-rose-500 hover:scale-110 transition-all border border-white/20">
+                        <button onclick="document.getElementById('static-image-viewer').classList.add('hidden'); document.getElementById('google-map').classList.remove('opacity-0', 'pointer-events-none');" class="absolute top-10 right-10 w-12 h-12 bg-white/20 backdrop-blur-xl rounded-full text-white flex items-center justify-center hover:bg-rose-500 hover:scale-110 transition-all border border-white/20">
                              <i class="fas fa-times"></i>
                         </button>
                     </div>
@@ -82,18 +82,15 @@ export const MapViewer = {
             container.innerHTML = '';
         };
 
-        if (imagen) return;
-
-        // --- GOOGLE MAPS ULTRA LOGIC ---
         const initGoogleMap = () => {
             const mapElement = document.getElementById('google-map');
             if (!mapElement || typeof google === 'undefined') return;
 
             let center = { lat: -2.1894, lng: -79.8891 };
             if (coordenadas) {
-                if (typeof coordenadas === 'string') {
+                if (typeof coordenadas === 'string' && coordenadas.includes(',')) {
                     const [lat, lng] = coordenadas.split(',').map(s => parseFloat(s.trim()));
-                    center = { lat, lng };
+                    if (!isNaN(lat) && !isNaN(lng)) center = { lat, lng };
                 } else if (coordenadas.lat && coordenadas.lng) {
                     center = { lat: coordenadas.lat, lng: coordenadas.lng };
                 }
