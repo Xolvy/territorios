@@ -360,6 +360,36 @@ export const updateTerritorio = async (id, data) => {
     await updateDoc(doc(db, "territorios", id), data);
 };
 
+export const updateTerritoryGeoJSON = async (numero, geojson) => {
+    try {
+        ServiceCache.clear('territorios');
+        const q = query(collection(db, "territorios"), where("numero", "==", String(numero)));
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+            const docRef = doc(db, "territorios", snap.docs[0].id);
+            await updateDoc(docRef, { geojson });
+            return true;
+        }
+        return false;
+    } catch (e) {
+        console.error("Error updating territory GeoJSON:", e);
+        throw e;
+    }
+};
+
+export const addTerritoryReference = async (territoryId, reference) => {
+    try {
+        const docRef = doc(db, "territorios", territoryId);
+        await updateDoc(docRef, {
+            referencias: arrayUnion(reference)
+        });
+        return true;
+    } catch (e) {
+        console.error("Error adding territory reference:", e);
+        throw e;
+    }
+};
+
 export const deleteTerritorio = async (id) => {
     ServiceCache.clear('territorios');
     await deleteDoc(doc(db, "territorios", id));

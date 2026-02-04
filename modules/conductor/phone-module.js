@@ -61,7 +61,7 @@ export const initializePhoneModule = (initialPhones, publicadores, displayName, 
     };
 
     window.openPhoneStatusSelector = (id, phone) => {
-        const statuses = ['Sin asignar', 'Contestaron', 'No contestan', 'Colgaron', 'Revisita', 'Predicado', 'No llamar', 'Suspendido', 'Testigo'];
+        const statuses = ['Sin asignar', 'Contestaron', 'No contestan', 'Colgaron', 'Revisita', 'No llamar', 'Suspendido', 'Testigo'];
         showModal(`
             <div class="p-8 space-y-6">
                 <h3 class="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Estado: ${phone}</h3>

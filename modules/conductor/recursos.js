@@ -6,7 +6,7 @@ export const renderRecursosSection = (container) => {
 
     const resources = [
         {
-            title: 'Guía de Predicación',
+            title: 'Ayudas para el ministerio',
             icon: 'fa-book-open',
             color: 'text-blue-500',
             bg: 'bg-blue-500/10',
@@ -81,13 +81,13 @@ export const renderRecursosSection = (container) => {
                                 <p class="text-[10px] font-black uppercase tracking-widest">No hay guías registradas todavía</p>
                             </div>
                         ` : data.map(r => `
-                            <div onclick="window.open('${r.link}', '_blank')" class="modern-card p-6 border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/5 hover:border-blue-500/30 transition-all cursor-pointer group">
+                            <div onclick="window.open('${r.url}', '_blank')" class="modern-card p-6 border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/5 hover:border-blue-500/30 transition-all cursor-pointer group">
                                 <div class="flex items-center gap-5">
                                     <div class="w-12 h-12 bg-blue-500/10 text-blue-500 rounded-xl flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
                                         <i class="fas fa-file-pdf"></i>
                                     </div>
                                     <div class="flex-1">
-                                        <h4 class="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">${r.nombre}</h4>
+                                        <h4 class="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight">${r.titulo}</h4>
                                         <p class="text-[9px] text-slate-400 font-bold uppercase mt-1 line-clamp-1">${r.descripcion || 'Click para abrir recurso'}</p>
                                     </div>
                                     <i class="fas fa-chevron-right text-slate-300 text-xs"></i>

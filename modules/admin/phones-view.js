@@ -31,6 +31,10 @@ export const renderTelefonosTab = async (container) => {
                     <button id="add-phone-btn" class="flex-1 md:flex-none px-8 py-4 bg-primary hover:bg-primary-light text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-3">
                         <i class="fas fa-plus-circle"></i> Agregar Registro
                     </button>
+                    <label class="flex items-center gap-2 px-4 py-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl cursor-pointer">
+                        <input type="checkbox" id="show-hidden-phones" class="w-4 h-4 rounded text-primary">
+                        <span class="text-[9px] font-black uppercase text-slate-400 tracking-wider">Ver Ocultos</span>
+                    </label>
                 </div>
             </header>
 
@@ -63,13 +67,36 @@ export const renderTelefonosTab = async (container) => {
     const mobileList = container.querySelector('#phone-mobile-list');
     const searchInput = container.querySelector('#phone-search');
 
-    const renderData = (query = '') => {
+    const renderData = (query = '', showHidden = false) => {
+        const now = new Date();
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(now.getMonth() - 6);
+
         const lowerCaseQuery = query.toLowerCase();
-        const filtered = query ? telefonos.filter(t =>
-            t.numero.includes(query) ||
-            (t.nombre && t.nombre.toLowerCase().includes(lowerCaseQuery)) ||
-            (t.propietario && t.propietario.toLowerCase().includes(lowerCaseQuery))
-        ) : telefonos;
+        let filtered = telefonos;
+
+        if (!showHidden) {
+            filtered = filtered.filter(t => {
+                // Hide Revisita
+                if (t.estado === 'Revisita') return false;
+
+                // Hide 'No llamar' if within 6 months
+                if (t.ultimo_estado === 'No llamar') {
+                    const lastDate = t.fecha_ultimo_estado ? new Date(t.fecha_ultimo_estado) : new Date(0);
+                    if (lastDate > sixMonthsAgo) return false;
+                }
+
+                return true;
+            });
+        }
+
+        if (query) {
+            filtered = filtered.filter(t =>
+                t.numero.includes(query) ||
+                (t.nombre && t.nombre.toLowerCase().includes(lowerCaseQuery)) ||
+                (t.propietario && t.propietario.toLowerCase().includes(lowerCaseQuery))
+            );
+        }
 
         const rows = filtered.map(t => `
             <tr class="group hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
@@ -79,7 +106,7 @@ export const renderTelefonosTab = async (container) => {
                             <i class="fas fa-address-book"></i>
                         </div>
                         <div>
-                            <p class="text-sm font-black text-slate-800 dark:text-gray-100 uppercase tracking-tight">${t.nombre || t.propietario || 'Desconocido'}</p>
+                            <p class="text-sm font-black text-slate-800 dark:text-gray-100 uppercase tracking-tight">${t.propietario || t.nombre || 'Desconocido'}</p>
                             <p class="text-xs font-mono text-slate-400 font-bold">${formatPhoneNumber(t.numero)}</p>
                         </div>
                     </div>
@@ -117,7 +144,7 @@ export const renderTelefonosTab = async (container) => {
                                 <i class="fas fa-mobile-screen-button"></i>
                             </div>
                             <div>
-                                <h4 class="text-sm font-black text-slate-800 dark:text-white uppercase truncate max-w-[150px]">${t.nombre || 'Desconocido'}</h4>
+                                <h4 class="text-sm font-black text-slate-800 dark:text-white uppercase truncate max-w-[150px]">${t.propietario || t.nombre || 'Desconocido'}</h4>
                                 <p class="text-xs font-mono font-bold text-slate-400 mt-1">${formatPhoneNumber(t.numero)}</p>
                             </div>
                         </div>
@@ -142,7 +169,18 @@ export const renderTelefonosTab = async (container) => {
     };
 
     renderData();
-    if (searchInput) searchInput.oninput = (e) => renderData(e.target.value.trim());
+    if (searchInput) {
+        searchInput.oninput = (e) => {
+            const showHidden = container.querySelector('#show-hidden-phones').checked;
+            renderData(e.target.value.trim(), showHidden);
+        };
+    }
+    const hideToggle = container.querySelector('#show-hidden-phones');
+    if (hideToggle) {
+        hideToggle.onchange = (e) => {
+            renderData(searchInput.value.trim(), e.target.checked);
+        };
+    }
 
     // --- Modal CRUD ---
     const openPhoneModal = (phone = null) => {
@@ -170,7 +208,7 @@ export const renderTelefonosTab = async (container) => {
                         </div>
                         <div class="space-y-3">
                             <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Nombre del Dueño (Propietario)</label>
-                            <input type="text" id="p-name" value="${phone?.nombre || ''}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary uppercase shadow-inner" placeholder="Escriba el nombre si se conoce...">
+                            <input type="text" id="p-name" value="${phone?.propietario || phone?.nombre || ''}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary uppercase shadow-inner" placeholder="Escriba el nombre si se conoce...">
                         </div>
                         <div class="space-y-3">
                             <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Dirección</label>
@@ -187,9 +225,8 @@ export const renderTelefonosTab = async (container) => {
                                     <option value="No contestan" ${phone?.estado === 'No contestan' ? 'selected' : ''}>No contestan</option>
                                     <option value="Colgaron" ${phone?.estado === 'Colgaron' ? 'selected' : ''}>Colgaron</option>
                                     <option value="Revisita" ${phone?.estado === 'Revisita' ? 'selected' : ''}>Revisita</option>
-                                    <option value="Predicado" ${phone?.estado === 'Predicado' ? 'selected' : ''}>Predicado</option>
                                     <option value="No llamar" ${phone?.estado === 'No llamar' ? 'selected' : ''}>No llamar</option>
-                                    <option value="Suspendido" ${phone?.estado === 'Suspendido' ? 'selected' : ''}>Suspendido / Equivocado</option>
+                                    <option value="Suspendido" ${phone?.estado === 'Suspendido' ? 'selected' : ''}>Suspendido</option>
                                     <option value="Testigo" ${phone?.estado === 'Testigo' ? 'selected' : ''}>Testigo</option>
                                 </select>
                             </div>
@@ -230,7 +267,7 @@ export const renderTelefonosTab = async (container) => {
 
                 const data = {
                     numero: num,
-                    nombre: name,
+                    propietario: name,
                     direccion: address,
                     estado: status,
                     solicitado_por: applicant || null,

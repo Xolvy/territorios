@@ -379,7 +379,6 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                     <option value="No contestan">No contestan</option>
                                     <option value="Colgaron">Colgaron</option>
                                     <option value="Revisita">Revisita</option>
-                                    <option value="Predicado">Predicado</option>
                                     <option value="No llamar">No llamar</option>
                                     <option value="Suspendido">Suspendido</option>
                                     <option value="Testigo">Testigo</option>
@@ -561,8 +560,19 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
             setupDashboardListeners();
 
+            // Toggle View Visibility
+            const compactView = container.querySelector('#phone-compact-view');
+            const expandedView = container.querySelector('#phone-expanded-view');
+            if (myPhones.length > 0) {
+                compactView?.classList.add('hidden');
+                expandedView?.classList.remove('hidden');
+            } else {
+                compactView?.classList.remove('hidden');
+                expandedView?.classList.add('hidden');
+            }
+
             if (mPhone && mPhone.initializePhoneModule) {
-                mPhone.initializePhoneModule(myPhones, publicadores, displayName, container.querySelector('#phone-tbody'), refreshPhones);
+                mPhone.initializePhoneModule(myPhones, publicadores, displayName, container.querySelector('#phone-tbody'), window.refreshConductorView);
             }
         } catch (e) {
             console.error("Refresh error", e);

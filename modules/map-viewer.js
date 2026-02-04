@@ -1,205 +1,311 @@
-import L from 'leaflet';
-import leafletImage from 'leaflet-image';
+import { addTerritoryReference } from '../data/firestore-services.js';
+import { showNotification } from './utils/helpers.js';
+import { showCustomPrompt } from './services/ui-helpers.js';
 
 export const MapViewer = {
     render: (container, territory, options = {}) => {
-        const { numero, manzanas, coordenadas, imagen, id } = territory;
+        const { numero, manzanas, coordenadas, imagen, id, geojson, referencias = [] } = territory;
         const { readOnly = false } = options;
 
         container.innerHTML = `
-            <div class="flex flex-col h-full w-full animate-fade-in bg-white dark:bg-slate-900 rounded-[2rem] overflow-hidden shadow-2xl border border-black/5 dark:border-white/10">
-                <div class="flex justify-between items-center p-6 bg-white dark:bg-gray-900 border-b dark:border-white/10 z-10">
+            <div class="flex flex-col h-full w-full animate-fade-in bg-white dark:bg-slate-900 rounded-[2.5rem] overflow-hidden shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)] border border-white/10 relative">
+                
+                <!-- GLASS HEADER -->
+                <div class="absolute top-6 left-6 right-6 z-20 flex justify-between items-center p-4 bg-white/70 dark:bg-gray-900/60 backdrop-blur-2xl rounded-3xl border border-white/20 dark:border-white/5 shadow-2xl">
                     <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 bg-teal-500/10 rounded-2xl flex items-center justify-center text-2xl shadow-inner border border-teal-500/20">🗺️</div>
+                        <div class="w-12 h-12 bg-indigo-500 rounded-2xl flex items-center justify-center text-2xl shadow-[0_0_20px_rgba(79,70,229,0.4)] border border-white/20">
+                            <i class="fas fa-map-marked-alt text-white text-xl"></i>
+                        </div>
                         <div>
-                            <h3 class="font-black text-slate-800 dark:text-white tracking-tight leading-none mb-1">Territorio ${numero}</h3>
-                            <p class="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-black tracking-widest leading-none">${manzanas || 'Cualquier zona'}</p>
+                            <h3 class="font-black text-slate-800 dark:text-white tracking-tighter leading-none mb-1 text-lg">Territorio ${numero}</h3>
+                            <p class="text-[9px] text-indigo-500 dark:text-indigo-400 uppercase font-black tracking-[0.2em] leading-none">${manzanas || 'Zona Premium'}</p>
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
-                         <button id="btn-export-interactive-map" class="p-2.5 bg-slate-100 dark:bg-white/5 hover:bg-teal-500/10 hover:text-teal-600 rounded-xl transition-all border border-transparent hover:border-teal-500/20" title="Guardar como Imagen">
-                            <i class="fas fa-camera text-sm"></i>
-                        </button>
-                         <button id="btn-share-map" class="p-2.5 bg-slate-100 dark:bg-white/5 hover:bg-teal-500/10 hover:text-teal-600 rounded-xl transition-all border border-transparent hover:border-teal-500/20" title="Compartir enlace/ubicación">
-                            <i class="fas fa-share-nodes text-sm"></i>
-                        </button>
-                        <button id="close-map" class="p-2.5 bg-slate-100 dark:bg-white/5 hover:bg-red-500/10 hover:text-red-500 rounded-xl transition-all border border-transparent hover:border-red-500/20">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
+                        <button id="close-map" class="w-10 h-10 bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white rounded-xl transition-all flex items-center justify-center">
+                            <i class="fas fa-times"></i>
                         </button>
                     </div>
                 </div>
 
-                <!-- Map / Image Container -->
+                <!-- FLOATING SIDE CONTROLS -->
+                <div class="absolute right-6 top-32 z-20 flex flex-col gap-3">
+                    <button id="btn-my-location" class="w-12 h-12 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl text-slate-700 dark:text-white rounded-2xl shadow-xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all border border-white/20 group" title="Mi Ubicación">
+                        <i class="fas fa-location-arrow text-sm group-hover:text-indigo-500"></i>
+                    </button>
+                    <button id="btn-3d-toggle" class="w-12 h-12 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl text-slate-700 dark:text-white rounded-2xl shadow-xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all border border-white/20 group" title="Vista 3D/2D">
+                        <span class="font-black text-[10px] group-hover:text-indigo-500 uppercase">3D</span>
+                    </button>
+                    <button id="btn-map-type" class="w-12 h-12 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl text-slate-700 dark:text-white rounded-2xl shadow-xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all border border-white/20 group" title="Cambiar Capas">
+                        <i class="fas fa-layer-group text-sm group-hover:text-indigo-500"></i>
+                    </button>
+                    ${!readOnly ? `
+                    <button id="btn-add-point" class="w-12 h-12 bg-indigo-500 text-white rounded-2xl shadow-[0_10px_20px_rgba(79,70,229,0.3)] flex items-center justify-center hover:scale-110 active:scale-95 transition-all border border-white/20" title="Añadir Referencia">
+                        <i class="fas fa-plus"></i>
+                    </button>` : ''}
+                </div>
+
                 <div class="flex-1 w-full relative overflow-hidden bg-[#0f172a]">
-                    <!-- Interactive Leaflet Map -->
-                    <div id="leaflet-map" class="absolute inset-0 w-full h-full transition-opacity duration-500 ${imagen ? 'opacity-0 pointer-events-none' : 'opacity-100'}">
-                        <div id="map-loader" class="absolute inset-0 z-[1000] bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
+                    <div id="google-map" class="absolute inset-0 w-full h-full transition-opacity duration-700 ${imagen ? 'opacity-0 pointer-events-none' : 'opacity-100'}">
+                        <div id="map-loader" class="absolute inset-0 z-[1000] bg-gray-950 flex items-center justify-center">
+                            <div class="flex flex-col items-center gap-6">
+                                <div class="w-16 h-16 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
+                                <div class="text-center">
+                                    <p class="text-[10px] font-black uppercase text-indigo-500 tracking-[0.4em] animate-pulse">Iniciando Motor Radar</p>
+                                    <p class="text-[8px] text-slate-500 uppercase tracking-widest mt-2 ml-1">Renderizando Experiencia Premium</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     
-                    <!-- Static Image View with Dark Background and white backing for image only -->
                     ${imagen ? `
-                    <div id="static-image-viewer" class="absolute inset-0 w-full h-full flex items-center justify-center p-4 transition-opacity duration-500 opacity-100 overflow-auto">
-                        <div class="bg-white p-2 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/20">
-                            <img id="map-img-element" src="${imagen}" class="max-w-full max-h-full object-contain cursor-zoom-in" onclick="window.toggleImageZoom(this)">
+                    <div id="static-image-viewer" class="absolute inset-0 w-full h-full flex items-center justify-center p-4 transition-opacity duration-500 opacity-100 overflow-auto bg-black/40 backdrop-blur-sm z-30">
+                        <div class="bg-white p-2 rounded-3xl shadow-[0_40px_80px_rgba(0,0,0,0.8)] border border-white/20 transform hover:scale-[1.02] transition-transform">
+                            <img id="map-img-element" src="${imagen}" class="max-w-full max-h-full object-contain cursor-zoom-in rounded-2xl" onclick="window.toggleImageZoom(this)">
                         </div>
+                        <button onclick="document.getElementById('static-image-viewer').classList.add('hidden')" class="absolute top-10 right-10 w-12 h-12 bg-white/20 backdrop-blur-xl rounded-full text-white flex items-center justify-center hover:bg-rose-500 hover:scale-110 transition-all border border-white/20">
+                             <i class="fas fa-times"></i>
+                        </button>
                     </div>
-                    ` : `
-                    <div class="absolute inset-0 flex items-center justify-center p-12 text-center">
-                        <div class="space-y-4">
-                            <div class="text-6xl opacity-20 text-slate-400">🗺️</div>
-                            <p class="text-sm font-bold text-slate-500">Sin imagen de mapa disponible.<br><span class="text-[10px] font-black uppercase tracking-widest">Usando vista satelital interactiva</span></p>
-                        </div>
+                    ` : ''}
+
+                    <div id="edit-hint" class="absolute bottom-10 left-1/2 -translate-x-1/2 bg-indigo-500/90 backdrop-blur-xl text-white px-8 py-4 rounded-3xl text-[10px] font-black uppercase tracking-[0.2em] shadow-2xl z-30 hidden animate-bounce border border-white/20">
+                        <i class="fas fa-crosshairs mr-2"></i> Toca el mapa para situar punto
                     </div>
-                    `}
                 </div>
             </div>
         `;
 
-        // --- HANDLERS ---
-        const hideModal = () => {
+        document.getElementById('close-map').onclick = () => {
             const modal = document.getElementById('modal-container');
             if (modal) modal.classList.add('hidden');
             container.innerHTML = '';
         };
 
-        document.getElementById('close-map').onclick = hideModal;
+        if (imagen) return;
 
+        // --- GOOGLE MAPS ULTRA LOGIC ---
+        const initGoogleMap = () => {
+            const mapElement = document.getElementById('google-map');
+            if (!mapElement || typeof google === 'undefined') return;
 
-        // --- SHARE / DOWNLOAD ---
-        const btnShare = document.getElementById('btn-share-map');
-        const btnExport = document.getElementById('btn-export-interactive-map');
-
-        if (btnExport) {
-            btnExport.onclick = async () => {
-                const mapEl = document.getElementById('leaflet-map');
-                const imgEl = document.getElementById('map-img-element');
-
-                if (imgEl && imagen) {
-                    // Simple download for static image
-                    const a = document.createElement('a');
-                    a.href = imagen;
-                    a.download = `Mapa_T${numero}.png`;
-                    a.click();
-                } else if (leafletImage && window._currentLeafletMap) {
-                    // Export interactive map to PNG
-                    if (window.showNotification) window.showNotification("Generando imagen del mapa...", "info");
-
-                    leafletImage(window._currentLeafletMap, (err, canvas) => {
-                        if (err) {
-                            console.error(err);
-                            if (window.showNotification) window.showNotification("Error al exportar mapa", "error");
-                            return;
-                        }
-                        const link = document.createElement('a');
-                        link.download = `Mapa_Interactivo_T${numero}.png`;
-                        link.href = canvas.toDataURL();
-                        link.click();
-                        if (window.showNotification) window.showNotification("¡Mapa guardado!", "success");
-                    });
+            let center = { lat: -2.1894, lng: -79.8891 };
+            if (coordenadas) {
+                if (typeof coordenadas === 'string') {
+                    const [lat, lng] = coordenadas.split(',').map(s => parseFloat(s.trim()));
+                    center = { lat, lng };
+                } else if (coordenadas.lat && coordenadas.lng) {
+                    center = { lat: coordenadas.lat, lng: coordenadas.lng };
                 }
-            };
-        }
+            }
 
-        if (btnShare) {
-            btnShare.onclick = async () => {
-                const text = `Territorio ${numero}: ${manzanas || ''}`;
-                const url = Location.href;
+            const mapStyle = document.documentElement.classList.contains('dark') ? [
+                { "elementType": "geometry", "stylers": [{ "color": "#1e293b" }] },
+                { "elementType": "labels.text.stroke", "stylers": [{ "color": "#1e293b" }] },
+                { "elementType": "labels.text.fill", "stylers": [{ "color": "#94a3b8" }] },
+                { "featureType": "administrative.locality", "elementType": "labels.text.fill", "stylers": [{ "color": "#f1f5f9" }] },
+                { "featureType": "poi", "elementType": "labels.text.fill", "stylers": [{ "color": "#818cf8" }] },
+                { "featureType": "poi.park", "elementType": "geometry", "stylers": [{ "color": "#0f172a" }] },
+                { "featureType": "road", "elementType": "geometry", "stylers": [{ "color": "#334155" }] },
+                { "featureType": "road", "elementType": "geometry.stroke", "stylers": [{ "color": "#1e293b" }] },
+                { "featureType": "road", "elementType": "labels.text.fill", "stylers": [{ "color": "#64748b" }] },
+                { "featureType": "road.highway", "elementType": "geometry", "stylers": [{ "color": "#475569" }] },
+                { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#020617" }] }
+            ] : [];
 
-                if (navigator.share) {
-                    try {
-                        await navigator.share({
-                            title: `Mapa T-${numero}`,
-                            text: text,
-                            url: url
+            const map = new google.maps.Map(mapElement, {
+                center,
+                zoom: 18,
+                styles: mapStyle,
+                mapTypeId: 'satellite',
+                tilt: 45,
+                heading: 0,
+                disableDefaultUI: true,
+                zoomControl: false,
+                gestureHandling: 'greedy',
+                backgroundColor: '#0f172a'
+            });
+
+            // 1. Radar Animation (My Location)
+            let userMarker = null;
+            const btnLoc = document.getElementById('btn-my-location');
+
+            btnLoc.onclick = () => {
+                if (!navigator.geolocation) return showNotification("GPS no disponible", "error");
+
+                showNotification("Sincronizando ubicación...", "info");
+                navigator.geolocation.getCurrentPosition((pos) => {
+                    const userCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+
+                    if (!userMarker) {
+                        userMarker = new google.maps.Marker({
+                            position: userCoords,
+                            map,
+                            icon: {
+                                path: google.maps.SymbolPath.CIRCLE,
+                                scale: 8,
+                                fillColor: "#4f46e5",
+                                fillOpacity: 1,
+                                strokeWeight: 4,
+                                strokeColor: "#ffffff"
+                            },
                         });
-                    } catch (e) { console.error("Share error", e); }
-                } else {
-                    // Fallback to copy link
-                    navigator.clipboard.writeText(`${text} \n ${url}`);
-                    if (window.showNotification) window.showNotification("Enlace copiado al portapapeles", "success");
-                }
-            };
-        }
-
-        // --- MAP LOGIC (Only if no image or forced) ---
-        let leafletInstance = null;
-        if (!imagen) {
-            const initLeaflet = () => {
-                const mapElement = document.getElementById('leaflet-map');
-                if (!mapElement || leafletInstance) return;
-
-                let center = [0, 0];
-                let zoom = 2;
-
-                if (coordenadas) {
-                    if (typeof coordenadas === 'string') {
-                        center = coordenadas.split(',').map(s => parseFloat(s.trim()));
-                    } else if (coordenadas.lat && coordenadas.lng) {
-                        center = [coordenadas.lat, coordenadas.lng];
+                    } else {
+                        userMarker.setPosition(userCoords);
                     }
-                    zoom = 16;
-                }
 
-                leafletInstance = L.map('leaflet-map').setView(center, zoom);
-                window._currentLeafletMap = leafletInstance;
+                    map.panTo(userCoords);
+                    map.setZoom(19);
+                }, () => showNotification("Acceso GPS denegado", "error"));
+            };
 
-                const tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '&copy; OpenStreetMap',
-                    maxZoom: 19,
-                    crossOrigin: true // Critical for leaflet-image
-                }).addTo(leafletInstance);
+            // 2. 3D Tilt Multiplier
+            let is3D = true;
+            document.getElementById('btn-3d-toggle').onclick = () => {
+                is3D = !is3D;
+                map.setTilt(is3D ? 45 : 0);
+                document.getElementById('btn-3d-toggle').querySelector('span').innerText = is3D ? '3D' : '2D';
+            };
 
-                // Offline Tile Detection
-                tiles.on('tileerror', () => {
-                    if (!navigator.onLine) {
-                        const existing = document.getElementById('map-offline-alert');
-                        if (!existing) {
-                            const alert = document.createElement('div');
-                            alert.id = 'map-offline-alert';
-                            alert.className = 'absolute top-20 left-1/2 -translate-x-1/2 z-[2000] bg-rose-600 text-white px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-2xl animate-bounce';
-                            alert.innerText = '⚠️ Modo Offline: Algunos mapas pueden no cargar';
-                            mapElement.appendChild(alert);
+            // 3. Polygon Interactive Hover
+            if (geojson) {
+                map.data.addGeoJson(geojson);
+
+                const normalStyle = {
+                    fillColor: '#6366f1',
+                    strokeWeight: 3,
+                    strokeColor: '#ffffff',
+                    fillOpacity: 0.15,
+                    cursor: 'pointer'
+                };
+
+                const hoverStyle = {
+                    fillColor: '#818cf8',
+                    strokeWeight: 5,
+                    strokeColor: '#ffffff',
+                    fillOpacity: 0.4
+                };
+
+                map.data.setStyle(normalStyle);
+
+                map.data.addListener('mouseover', (event) => {
+                    map.data.overrideStyle(event.feature, hoverStyle);
+                    const name = event.feature.getProperty('name') || 'Manzana';
+                    showNotification(name, "info", 1000);
+                });
+
+                map.data.addListener('mouseout', (event) => {
+                    map.data.revertStyle();
+                });
+
+                // Auto-center bounds
+                const bounds = new google.maps.LatLngBounds();
+                map.data.forEach((feature) => {
+                    const geometry = feature.getGeometry();
+                    if (geometry.getType() === 'Polygon') {
+                        geometry.getArray().forEach(path => {
+                            path.getArray().forEach(latlng => bounds.extend(latlng));
+                        });
+                    }
+                });
+                if (!bounds.isEmpty()) map.fitBounds(bounds);
+            }
+
+            // Reference Markers
+            referencias.forEach(ref => {
+                new google.maps.Marker({
+                    position: ref.coords,
+                    map,
+                    title: ref.nombre,
+                    label: {
+                        text: ref.nombre,
+                        color: "white",
+                        fontSize: "9px",
+                        fontWeight: "900",
+                        className: "bg-indigo-600/90 px-3 py-1 rounded-full backdrop-blur-md shadow-lg border border-white/20 mt-8"
+                    }
+                });
+            });
+
+            // Map Type Toggle
+            document.getElementById('btn-map-type').onclick = () => {
+                const current = map.getMapTypeId();
+                map.setMapTypeId(current === 'satellite' ? 'roadmap' : 'satellite');
+            };
+
+            // Admin: Add Point Logic
+            if (!readOnly) {
+                let isPinning = false;
+                const hint = document.getElementById('edit-hint');
+                const btnPin = document.getElementById('btn-add-point');
+
+                btnPin.onclick = () => {
+                    isPinning = !isPinning;
+                    btnPin.classList.toggle('bg-indigo-600');
+                    btnPin.classList.toggle('bg-rose-500'); // Warning color
+                    hint.classList.toggle('hidden');
+                    map.setOptions({ draggableCursor: isPinning ? 'crosshair' : null });
+                };
+
+                map.addListener('click', async (e) => {
+                    if (!isPinning) return;
+                    const coords = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+                    showCustomPrompt("Nombre del Punto", "Escribe una referencia rápida...", async (nombre) => {
+                        if (!nombre) return;
+                        try {
+                            await addTerritoryReference(id, { nombre, coords });
+                            new google.maps.Marker({
+                                position: coords,
+                                map,
+                                title: nombre,
+                                animation: google.maps.Animation.DROP
+                            });
+                            showNotification("Referencia guardada", "success");
+                        } catch (err) {
+                            showNotification("Error de guardado", "error");
+                        } finally {
+                            btnPin.click();
                         }
-                    }
+                    });
                 });
+            }
 
-                if (coordenadas) {
-                    L.marker(center).addTo(leafletInstance)
-                        .bindPopup(`Territorio ${numero}`)
-                        .openPopup();
+            google.maps.event.addListenerOnce(map, 'idle', () => {
+                document.getElementById('map-loader')?.classList.add('transition-opacity', 'duration-1000', 'opacity-0');
+                setTimeout(() => document.getElementById('map-loader')?.remove(), 1000);
+            });
+        };
+
+        if (window.google && window.google.maps) {
+            initGoogleMap();
+        } else {
+            const checkGoogle = setInterval(() => {
+                if (window.google && window.google.maps) {
+                    initGoogleMap();
+                    clearInterval(checkGoogle);
                 }
-
-                leafletInstance.whenReady(() => {
-                    document.getElementById('map-loader')?.classList.add('hidden');
-                });
-            };
-            initLeaflet();
+            }, 100);
+            setTimeout(() => clearInterval(checkGoogle), 5000);
         }
     }
 };
 
-// --- GLOBAL ATTACH ---
 window.openInteractiveMap = (territory, options = {}) => {
     const modal = document.getElementById('modal-container');
     if (!modal) return;
-
-    modal.innerHTML = '<div id="map-viewer-root" class="w-full h-full max-w-4xl mx-auto"></div>';
+    modal.innerHTML = '<div id="map-viewer-root" class="w-full h-full max-w-6xl mx-auto p-2 md:p-8"></div>';
     modal.classList.remove('hidden');
-
     MapViewer.render(document.getElementById('map-viewer-root'), territory, options);
 };
 
 window.toggleImageZoom = (img) => {
     if (img.classList.contains('cursor-zoom-in')) {
-        img.classList.remove('cursor-zoom-in', 'max-h-full');
-        img.classList.add('cursor-zoom-out', 'w-[200%]', 'max-w-none');
+        img.classList.replace('cursor-zoom-in', 'cursor-zoom-out');
+        img.classList.replace('max-h-full', 'max-w-none');
+        img.style.width = '200%';
     } else {
-        img.classList.add('cursor-zoom-in', 'max-h-full');
-        img.classList.remove('cursor-zoom-out', 'w-[200%]', 'max-w-none');
+        img.classList.replace('cursor-zoom-out', 'cursor-zoom-in');
+        img.classList.replace('max-w-none', 'max-h-full');
+        img.style.width = '';
     }
 };
-
