@@ -12,7 +12,7 @@ export const renderAnalyticsView = async (container, appVersion) => {
     }
 
     container.innerHTML = `
-        <div class="h-full flex flex-col gap-3 md:gap-6 animate-fade-in custom-scrollbar pb-10 px-1 md:px-4">
+        <div class="h-full flex flex-col gap-3 md:gap-6 animate-fade-in custom-scrollbar pt-4 md:pt-8 pb-10 px-1 md:px-4">
             <header class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-100 dark:border-white/5 pb-4 md:pb-6 gap-4 md:gap-6 px-4 md:px-6">
                 <div class="flex items-center gap-4 md:gap-6">
                     <div class="w-12 h-12 md:w-16 md:h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-2xl md:text-3xl text-primary shadow-inner border border-primary/10 animate-float shrink-0">
