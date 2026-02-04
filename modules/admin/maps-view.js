@@ -66,11 +66,7 @@ export const renderMapsView = async (container, config, appVersion) => {
                         <span class="truncate">${t.localidad || t.nombre || '—'}</span>
                     </p>
                     
-                    <div class="pt-4 border-t border-slate-100 dark:border-white/5 flex flex-wrap items-center justify-between gap-2">
-                        <div class="flex items-center gap-1.5 min-w-0">
-                            <span class="text-[7px] md:text-[8px] font-black px-1.5 py-0.5 md:py-1 rounded-md ${isAssigned ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-600' : 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600'} uppercase tracking-tight shrink-0">${t.estado || 'Disponible'}</span>
-                            ${t.asignado_a ? `<span class="text-[7px] font-black text-slate-400 uppercase truncate max-w-[50px] md:max-w-[70px]">${t.asignado_a}</span>` : ''}
-                        </div>
+                    <div class="pt-4 border-t border-slate-100 dark:border-white/5 flex flex-wrap items-center justify-end gap-2">
                         <div class="text-[7px] md:text-[8px] font-black text-slate-400 uppercase bg-slate-50 dark:bg-white/5 px-1.5 py-0.5 md:py-1 rounded-md border border-slate-100 dark:border-white/5 shrink-0">${allMzs} MZ</div>
                     </div>
                 </div>
@@ -228,7 +224,10 @@ export const renderMapsView = async (container, config, appVersion) => {
     // Card Proxies (Matches window globals in s12-view.js for re-use if needed)
     window.viewMapFromBaseS12 = (id) => {
         const t = terrs.find(x => x.id === id);
-        if (t) MapViewer.openInteractiveMap(t);
+        if (t) {
+            if (window.openInteractiveMap) window.openInteractiveMap(t);
+            else MapViewer.render(document.getElementById('modal-container'), t);
+        }
     };
 
     window.editTerritorioS12 = async (id) => {
