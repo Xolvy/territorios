@@ -848,7 +848,7 @@ export const renderProgramaTab = async (container) => {
                         <button id="reception-select-all" class="px-4 py-2 bg-white dark:bg-white/5 rounded-xl text-[8px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-all border border-slate-200/50 shadow-sm">Deseleccionar Todos</button>
                     </div>
 
-                    <div id="bulk-reception-list" class="space-y-2">
+                    <div id="bulk-reception-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <!-- List filled by script -->
                     </div>
 
@@ -891,48 +891,88 @@ export const renderProgramaTab = async (container) => {
                     }
                 });
 
-                listContainer.innerHTML = sorted.map(t => `
-                    <div class="modern-card !p-4 border-slate-100 dark:border-white/5 group hover:border-rose-500/30 transition-all animate-fade-in relative overflow-hidden flex items-center justify-between gap-4">
-                        <div class="flex items-center gap-4 flex-1 min-w-0">
-                            <div class="relative w-8 h-8 flex items-center justify-center">
-                                <input type="checkbox" class="reception-check w-5 h-5 rounded-[0.5rem] accent-rose-500 cursor-pointer z-10" value="${t.id}" checked>
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <div class="flex items-baseline gap-2">
-                                    <h4 class="text-lg font-black text-slate-800 dark:text-white leading-none">#${t.numero}</h4>
-                                    <span class="text-[8px] font-black text-slate-400 uppercase tracking-tighter">${UIHelpers.fmtDateAt(t.fecha_asignacion)}</span>
+                listContainer.innerHTML = sorted.map(t => {
+                    const mzCount = t.manzanas ? String(t.manzanas).split(/[,;]/).map(s => s.trim()).filter(Boolean).length : 0;
+
+                    return `
+                    <div class="modern-card !p-5 border-slate-100 dark:border-white/5 group hover:border-rose-500/30 transition-all animate-fade-in relative overflow-hidden flex flex-col gap-4">
+                        <div class="flex items-start justify-between">
+                            <div class="flex items-center gap-2">
+                                <div class="w-10 h-10 bg-slate-100 dark:bg-white/5 rounded-2xl flex items-center justify-center text-lg font-black text-slate-700 dark:text-white shadow-inner">
+                                    ${t.numero}
                                 </div>
-                                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1 truncate">${t.asignado_a}</p>
+                                <div class="p-2 bg-indigo-500/5 text-indigo-500 rounded-xl">
+                                    <i class="fas fa-map-marked-alt text-[10px]"></i>
+                                </div>
+                            </div>
+                            <!-- Bulk Checkbox -->
+                            <div class="reception-check-container relative w-6 h-6">
+                                <input type="checkbox" class="reception-check absolute inset-0 opacity-0 cursor-pointer z-10" value="${t.id}" checked>
+                                <div class="w-6 h-6 border-2 border-slate-200 dark:border-white/10 rounded-lg flex items-center justify-center transition-all bg-white dark:bg-transparent">
+                                    <i class="fas fa-check text-[10px] text-rose-500 opacity-0 transition-opacity"></i>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="flex items-center gap-1.5 shrink-0">
-                            <!-- ✅ COMPLETO -->
-                            <button onclick="window.quickReturn('${t.id}', 'Completado')" 
-                                    class="w-9 h-9 flex items-center justify-center bg-emerald-500/10 text-emerald-500 rounded-xl hover:bg-emerald-500 hover:text-white transition-all shadow-sm" 
-                                    title="Marcar como Predicado (S-13)">
-                                <i class="fas fa-check text-xs"></i>
-                            </button>
-                            
-                            <!-- ✂️ PARCIAL -->
-                            <button onclick="window.openPartialReception('${t.id}')" 
-                                    class="w-9 h-9 flex items-center justify-center bg-amber-500/10 text-amber-500 rounded-xl hover:bg-amber-500 hover:text-white transition-all shadow-sm" 
-                                    title="Devolución Parcial (Dividir manzanas)">
-                                <i class="fas fa-scissors text-xs"></i>
-                            </button>
+                        <div class="space-y-0.5 mt-1">
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-location-dot text-[8px] text-slate-400 opacity-40"></i>
+                                <h4 class="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-tight truncate">${t.nombre || 'Territorio ' + t.numero}</h4>
+                            </div>
+                            <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest pl-4 truncate">${t.asignado_a || '—'}</p>
+                        </div>
 
-                            <!-- 🔄 LIBERAR -->
-                            <button onclick="window.quickReturn('${t.id}', 'Disponible')" 
-                                    class="w-9 h-9 flex items-center justify-center bg-slate-100 dark:bg-white/10 text-slate-400 hover:bg-slate-700 dark:hover:bg-white hover:text-white transition-all shadow-sm" 
-                                    title="Liberar sin predicar (No cuenta en S-13)">
-                                <i class="fas fa-undo-alt text-xs"></i>
-                            </button>
+                        <div class="flex items-center justify-between mt-2 pt-3 border-t border-slate-50 dark:border-white/5">
+                            <div class="flex flex-col gap-1">
+                                <span class="text-[8px] font-black text-slate-400 uppercase tracking-tighter">${UIHelpers.fmtDateAt(t.fecha_asignacion)}</span>
+                                ${mzCount > 0 ? `<span class="bg-indigo-500/5 text-indigo-500 text-[7px] font-black px-1.5 py-0.5 rounded w-fit uppercase">${mzCount} MZ</span>` : ''}
+                            </div>
+                            
+                            <div class="flex items-center gap-1">
+                                <!-- ✅ COMPLETO -->
+                                <button onclick="window.quickReturn('${t.id}', 'Completado')" 
+                                        class="w-8 h-8 flex items-center justify-center bg-emerald-500/10 text-emerald-500 rounded-lg hover:bg-emerald-500 hover:text-white transition-all shadow-sm group/btn" 
+                                        title="Marcar como Completado">
+                                    <i class="fas fa-check text-[10px] group-hover/btn:scale-110 transition-transform"></i>
+                                </button>
+                                
+                                <!-- ✂️ PARCIAL -->
+                                <button onclick="window.openPartialReception('${t.id}')" 
+                                        class="w-8 h-8 flex items-center justify-center bg-amber-500/10 text-amber-500 rounded-lg hover:bg-amber-500 hover:text-white transition-all shadow-sm group/btn" 
+                                        title="Devolución Parcial">
+                                    <i class="fas fa-scissors text-[10px] group-hover/btn:scale-110 transition-transform"></i>
+                                </button>
+
+                                <!-- 🔄 LIBERAR -->
+                                <button onclick="window.quickReturn('${t.id}', 'Disponible')" 
+                                        class="w-8 h-8 flex items-center justify-center bg-slate-100 dark:bg-white/10 text-slate-400 hover:bg-slate-700 dark:hover:bg-white hover:text-white transition-all shadow-sm group/btn" 
+                                        title="Liberar sin predicar">
+                                    <i class="fas fa-undo-alt text-[10px] group-hover/btn:rotate-[-45deg] transition-transform"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
-                `).join('');
+                `;
+                }).join('');
 
                 modal.querySelectorAll('.reception-check').forEach(cb => {
-                    cb.onchange = updateCounter;
+                    cb.onchange = (e) => {
+                        const icon = e.target.parentElement.querySelector('i');
+                        const box = e.target.parentElement.querySelector('div');
+                        if (e.target.checked) {
+                            icon.classList.remove('opacity-0');
+                            box.classList.add('border-rose-500');
+                        } else {
+                            icon.classList.add('opacity-0');
+                            box.classList.remove('border-rose-500');
+                        }
+                        updateCounter();
+                    };
+                    // Initial state
+                    if (cb.checked) {
+                        cb.parentElement.querySelector('i').classList.remove('opacity-0');
+                        cb.parentElement.querySelector('div').classList.add('border-rose-500');
+                    }
                 });
                 updateCounter();
             };
