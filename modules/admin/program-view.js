@@ -820,78 +820,208 @@ export const renderProgramaTab = async (container) => {
 
         if (assigned.length === 0) return showNotification("No hay territorios asignados en la semana seleccionada", "info");
 
+        let sortMode = 'territorio'; // 'territorio' | 'fecha'
+
         showModal(`
             <div class="flex flex-col h-full max-h-[85vh] w-full max-w-xl mx-auto">
                 <header class="p-6 pb-2 shrink-0 border-b border-slate-50 dark:border-white/5">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 bg-rose-500/10 rounded-2xl flex items-center justify-center text-2xl text-rose-500 shadow-inner">
-                            <i class="fas fa-file-import"></i>
-                        </div>
-                        <div>
-                            <h3 class="text-xl font-black uppercase tracking-tight text-slate-800 dark:text-white leading-none">Recepción Manual</h3>
-                            <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">Devolver territorios</p>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-rose-500/10 rounded-2xl flex items-center justify-center text-2xl text-rose-500 shadow-inner">
+                                <i class="fas fa-file-import"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-black uppercase tracking-tight text-slate-800 dark:text-white leading-none">Recepción Manual</h3>
+                                <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">Devolver territorios</p>
+                            </div>
                         </div>
                     </div>
                 </header>
 
                 <div class="flex-1 overflow-y-auto px-6 space-y-4 custom-scrollbar py-4">
-                    <div class="flex justify-between items-center">
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Registros de esta semana:</p>
-                        <button id="reception-select-all" class="px-4 py-2 bg-slate-100 dark:bg-white/5 rounded-xl text-[8px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-all border border-slate-200/50">Seleccionar Todos</button>
+                    <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-50 dark:bg-black/20 p-3 rounded-2xl border border-slate-200/50 mb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest mr-2">Ordenar por:</span>
+                            <button id="sort-by-terr" class="px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all border border-transparent active-sort bg-primary text-white shadow-lg shadow-primary/20">Territorio</button>
+                            <button id="sort-by-date" class="px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all border border-slate-200/50 text-slate-500 hover:bg-white dark:hover:bg-white/10">Fecha</button>
+                        </div>
+                        <button id="reception-select-all" class="px-4 py-2 bg-white dark:bg-white/5 rounded-xl text-[8px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-all border border-slate-200/50 shadow-sm">Deseleccionar Todos</button>
                     </div>
 
                     <div id="bulk-reception-list" class="space-y-2">
-                        ${assigned.map(t => `
-                            <div class="flex items-center gap-2 group">
-                                <label class="flex-1 flex items-center gap-3 p-3.5 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5 hover:bg-white dark:hover:bg-white/5 cursor-pointer transition-all active:scale-[0.98]">
-                                    <input type="checkbox" class="reception-check w-5 h-5 rounded accent-rose-500 shrink-0" value="${t.id}" checked>
-                                    <div class="flex-1 min-w-0">
-                                        <p class="text-[11px] font-black text-slate-800 dark:text-white uppercase truncate">#${t.numero} • ${t.asignado_a}</p>
-                                        <div class="flex items-center gap-2 mt-1">
-                                            <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest">${UIHelpers.fmtDateAt(t.fecha_asignacion)}</span>
-                                            ${t.faceta ? `<span class="text-[7px] font-black text-primary uppercase px-1.5 py-0.5 bg-primary/10 rounded">${t.faceta}</span>` : ''}
-                                        </div>
-                                    </div>
-                                </label>
-                                <button onclick="window.openPartialReception('${t.id}')" class="w-12 h-12 flex items-center justify-center bg-amber-500/10 text-amber-500 rounded-xl hover:bg-amber-500 hover:text-white transition-all shadow-sm shrink-0" title="Devolución Parcial">
-                                    <i class="fas fa-scissors text-xs"></i>
-                                </button>
-                            </div>
-                        `).join('')}
+                        <!-- List filled by script -->
                     </div>
 
-                <div class="space-y-4">
-                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Fecha de Entrega/Devolución</label>
-                    <input type="date" id="reception-global-date" value="${new Date().toISOString().split('T')[0]}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[14px] font-black text-rose-500 outline-none focus:border-rose-500 transition-all uppercase shadow-inner">
-                </div>
+                    <div class="p-4 bg-amber-500/5 rounded-2xl border border-amber-500/10 flex items-center gap-4 group/toggle cursor-pointer" id="toggle-no-preached">
+                         <div class="relative w-10 h-6 shrink-0">
+                             <input type="checkbox" id="check-no-preached" class="absolute inset-0 opacity-0 cursor-pointer z-10">
+                             <div class="toggle-bg w-10 h-6 bg-slate-200 dark:bg-slate-800 rounded-full transition-colors group-hover/toggle:bg-slate-300 dark:group-hover/toggle:bg-slate-700"></div>
+                             <div class="toggle-dot absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform shadow-sm"></div>
+                         </div>
+                         <div class="flex-1">
+                             <p class="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-tight leading-none mb-1">Devolver sin predicar</p>
+                             <p class="text-[8px] font-bold text-slate-400 uppercase tracking-widest">No se marcará como "Abarcado" en el historial S-13</p>
+                         </div>
+                    </div>
 
-                <div class="pt-6 border-t border-slate-50 dark:border-white/5 flex gap-4">
-                    <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest transition-all">Cancelar</button>
-                    <button id="confirm-bulk-reception" class="flex-[2] py-5 bg-rose-500 hover:bg-rose-400 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-rose-500/20 flex items-center justify-center gap-3 transition-transform active:scale-95">
-                        <i class="fas fa-check-circle"></i> Confirmar Devolución
-                    </button>
+                    <div class="space-y-4">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Fecha de Entrega/Devolución</label>
+                        <input type="date" id="reception-global-date" value="${new Date().toISOString().split('T')[0]}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[14px] font-black text-rose-500 outline-none focus:border-rose-500 transition-all uppercase shadow-inner">
+                    </div>
+
+                    <div class="pt-6 border-t border-slate-50 dark:border-white/5 flex gap-4">
+                        <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest transition-all hover:bg-slate-100 dark:hover:bg-white/10">Cancelar</button>
+                        <button id="confirm-bulk-reception" class="flex-[2] py-5 bg-rose-500 hover:bg-rose-400 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-rose-500/20 flex items-center justify-center gap-3 transition-transform active:scale-95 group">
+                            <i class="fas fa-check-circle group-hover:scale-110 transition-transform"></i>
+                            <span id="btn-reception-text">Confirmar Devolución</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         `, (modal) => {
-            const updateCounter = () => {
-                const checked = modal.querySelectorAll('.reception-check:checked').length;
-                const btn = modal.querySelector('#confirm-bulk-reception');
-                if (btn) btn.innerHTML = `<i class="fas fa-check-circle"></i> Confirmar Devolución (${checked})`;
-            };
+            const listContainer = modal.querySelector('#bulk-reception-list');
+            const checks = () => modal.querySelectorAll('.reception-check');
 
-            let allSelected = true;
-            updateCounter();
+            const renderList = () => {
+                const sorted = [...assigned].sort((a, b) => {
+                    if (sortMode === 'territorio') {
+                        return a.numero.localeCompare(b.numero, undefined, { numeric: true });
+                    } else {
+                        return new Date(a.fecha_asignacion) - new Date(b.fecha_asignacion);
+                    }
+                });
 
-            modal.querySelector('#reception-select-all').onclick = () => {
-                allSelected = !allSelected;
-                modal.querySelectorAll('.reception-check').forEach(cb => cb.checked = allSelected);
-                modal.querySelector('#reception-select-all').innerText = allSelected ? 'Deseleccionar' : 'Seleccionar Todos';
+                listContainer.innerHTML = sorted.map(t => `
+                    <div class="modern-card !p-4 border-slate-100 dark:border-white/5 group hover:border-rose-500/30 transition-all animate-fade-in relative overflow-hidden flex items-center justify-between gap-4">
+                        <div class="flex items-center gap-4 flex-1 min-w-0">
+                            <div class="relative w-8 h-8 flex items-center justify-center">
+                                <input type="checkbox" class="reception-check w-5 h-5 rounded-[0.5rem] accent-rose-500 cursor-pointer z-10" value="${t.id}" checked>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-baseline gap-2">
+                                    <h4 class="text-lg font-black text-slate-800 dark:text-white leading-none">#${t.numero}</h4>
+                                    <span class="text-[8px] font-black text-slate-400 uppercase tracking-tighter">${UIHelpers.fmtDateAt(t.fecha_asignacion)}</span>
+                                </div>
+                                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1 truncate">${t.asignado_a}</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <!-- ✅ COMPLETO -->
+                            <button onclick="window.quickReturn('${t.id}', 'Completado')" 
+                                    class="w-9 h-9 flex items-center justify-center bg-emerald-500/10 text-emerald-500 rounded-xl hover:bg-emerald-500 hover:text-white transition-all shadow-sm" 
+                                    title="Marcar como Predicado (S-13)">
+                                <i class="fas fa-check text-xs"></i>
+                            </button>
+                            
+                            <!-- ✂️ PARCIAL -->
+                            <button onclick="window.openPartialReception('${t.id}')" 
+                                    class="w-9 h-9 flex items-center justify-center bg-amber-500/10 text-amber-500 rounded-xl hover:bg-amber-500 hover:text-white transition-all shadow-sm" 
+                                    title="Devolución Parcial (Dividir manzanas)">
+                                <i class="fas fa-scissors text-xs"></i>
+                            </button>
+
+                            <!-- 🔄 LIBERAR -->
+                            <button onclick="window.quickReturn('${t.id}', 'Disponible')" 
+                                    class="w-9 h-9 flex items-center justify-center bg-slate-100 dark:bg-white/10 text-slate-400 hover:bg-slate-700 dark:hover:bg-white hover:text-white transition-all shadow-sm" 
+                                    title="Liberar sin predicar (No cuenta en S-13)">
+                                <i class="fas fa-undo-alt text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+
+                modal.querySelectorAll('.reception-check').forEach(cb => {
+                    cb.onchange = updateCounter;
+                });
                 updateCounter();
             };
 
-            modal.querySelectorAll('.reception-check').forEach(cb => {
-                cb.onchange = updateCounter;
-            });
+            // Helpers for per-item actions
+            window.quickReturn = async (id, status) => {
+                const date = modal.querySelector('#reception-global-date').value;
+                const note = status === 'Disponible' ? "Liberación rápida (sin predicar)" : "Recepción rápida (completado)";
+
+                try {
+                    showNotification("Procesando...", "info");
+                    await returnTerritorioMultiple([id], note, new Date(date + 'T12:00:00Z').toISOString(), status);
+
+                    // Remove from local list and re-render
+                    const idx = assigned.findIndex(x => x.id === id);
+                    if (idx > -1) assigned.splice(idx, 1);
+
+                    if (assigned.length === 0) modal.classList.add('hidden');
+                    else renderList();
+
+                    const updatedT = await getTerritorios();
+                    territorios.length = 0;
+                    territorios.push(...updatedT);
+                    renderTable();
+                    showNotification("Territorio procesado con éxito", "success");
+                } catch (e) {
+                    showNotification("Error: " + e.message, "error");
+                }
+            };
+
+            const updateCounter = () => {
+                const checked = modal.querySelectorAll('.reception-check:checked').length;
+                const text = modal.querySelector('#btn-reception-text');
+                if (text) text.innerText = `Confirmar Devolución (${checked})`;
+            };
+
+            const updateSortUI = () => {
+                const btnTerr = modal.querySelector('#sort-by-terr');
+                const btnDate = modal.querySelector('#sort-by-date');
+
+                if (sortMode === 'territorio') {
+                    btnTerr.classList.add('bg-primary', 'text-white', 'shadow-lg', 'shadow-primary/20');
+                    btnTerr.classList.remove('text-slate-500', 'border-slate-200/50');
+                    btnDate.classList.remove('bg-primary', 'text-white', 'shadow-lg', 'shadow-primary/20');
+                    btnDate.classList.add('text-slate-500', 'border-slate-200/50');
+                } else {
+                    btnDate.classList.add('bg-primary', 'text-white', 'shadow-lg', 'shadow-primary/20');
+                    btnDate.classList.remove('text-slate-500', 'border-slate-200/50');
+                    btnTerr.classList.remove('bg-primary', 'text-white', 'shadow-lg', 'shadow-primary/20');
+                    btnTerr.classList.add('text-slate-500', 'border-slate-200/50');
+                }
+                renderList();
+            };
+
+            modal.querySelector('#sort-by-terr').onclick = () => {
+                sortMode = 'territorio';
+                updateSortUI();
+            };
+            modal.querySelector('#sort-by-date').onclick = () => {
+                sortMode = 'fecha';
+                updateSortUI();
+            };
+
+            let allSelected = true;
+            modal.querySelector('#reception-select-all').onclick = () => {
+                allSelected = !allSelected;
+                modal.querySelectorAll('.reception-check').forEach(cb => cb.checked = allSelected);
+                modal.querySelector('#reception-select-all').innerText = allSelected ? 'Deseleccionar Todos' : 'Seleccionar Todos';
+                updateCounter();
+            };
+
+            // Toggle "No Preached" UI Logic
+            const checkNoPreached = modal.querySelector('#check-no-preached');
+            const toggleBtn = modal.querySelector('#toggle-no-preached');
+            const dot = modal.querySelector('.toggle-dot');
+            const bg = modal.querySelector('.toggle-bg');
+
+            toggleBtn.onclick = () => {
+                checkNoPreached.checked = !checkNoPreached.checked;
+                if (checkNoPreached.checked) {
+                    dot.style.transform = 'translateX(1rem)';
+                    bg.classList.add('bg-amber-500');
+                    bg.classList.remove('bg-slate-200', 'dark:bg-slate-800');
+                } else {
+                    dot.style.transform = 'translateX(0)';
+                    bg.classList.remove('bg-amber-500');
+                    bg.classList.add('bg-slate-200', 'dark:bg-slate-800');
+                }
+            };
 
             modal.querySelector('#confirm-bulk-reception').onclick = async (e) => {
                 const checked = Array.from(modal.querySelectorAll('.reception-check:checked')).map(cb => cb.value);
@@ -901,21 +1031,26 @@ export const renderProgramaTab = async (container) => {
                 const date = dateInput.value;
                 if (!date) return;
 
+                const onlyReturn = checkNoPreached.checked;
+                const finalStatus = onlyReturn ? 'Disponible' : 'Completado';
+                const finalNotes = onlyReturn ? "Devolución sin predicar (Recepción Manual)" : "Recepción desde Programa";
+
                 const btn = e.currentTarget;
                 btn.disabled = true;
                 btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> PROCESANDO...';
 
-                await returnTerritorioMultiple(checked, "Recepción desde Programa", new Date(date + 'T12:00:00Z').toISOString(), "Completado");
+                await returnTerritorioMultiple(checked, finalNotes, new Date(date + 'T12:00:00Z').toISOString(), finalStatus);
 
-                showNotification(`Se recibieron ${checked.length} territorios`);
+                showNotification(onlyReturn ? `Se liberaron ${checked.length} territorios.` : `Se recibieron ${checked.length} territorios.`);
                 modal.classList.add('hidden');
 
-                // Actualizar datos locales
                 const updatedT = await getTerritorios();
                 territorios.length = 0;
                 territorios.push(...updatedT);
                 renderTable();
             };
+
+            renderList();
         });
     };
 

@@ -593,7 +593,7 @@ export const returnTerritorioMultiple = async (ids, notes, customDate, status = 
             faceta: null,
             turno: null,
             ultima_fecha: dateToUse,
-            estado: status === 'Perdido' ? 'Extraviado' : 'Predicado',
+            estado: status === 'Perdido' ? 'Extraviado' : (status === 'Disponible' ? 'Sin asignar' : 'Predicado'),
             prog_sync: null
         });
 

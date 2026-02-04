@@ -205,18 +205,26 @@ export const renderAnalyticsView = async (container, appVersion) => {
             });
 
             // --- S-13 (Historical) Calculations ---
-            const touchedNums = new Set(historial.map(h => String(h.numero)));
-            const s13CoveragePercent = total > 0 ? Math.round((touchedNums.size / total) * 100) : 0;
-            const s13MissingCount = territorios.filter(t => !touchedNums.has(String(t.numero))).length;
-
+            const allUniqueTouched = new Set();
+            let totalWorkActs = 0;
             const territoryFreq = {};
+
             historial.forEach(h => {
                 if (!h.numero) return;
+                // Normalize and split territory numbers (handle "1", "1, 2", etc.)
                 const nums = h.numero.toString().split(/[,;]/).map(n => n.trim()).filter(n => n);
                 nums.forEach(num => {
+                    allUniqueTouched.add(num);
                     territoryFreq[num] = (territoryFreq[num] || 0) + 1;
+                    totalWorkActs++;
                 });
             });
+
+            const uniqueWorkedCount = allUniqueTouched.size;
+            const s13CoveragePercent = total > 0 ? Math.min(100, Math.round((uniqueWorkedCount / total) * 100)) : 0;
+            const s13MissingCount = total - uniqueWorkedCount;
+            const workRounds = total > 0 ? (totalWorkActs / total).toFixed(1) : 0;
+
             const mostFreqSorted = Object.entries(territoryFreq).sort((a, b) => b[1] - a[1]);
             const topTerritory = mostFreqSorted[0]?.[0] || '--';
             const topCount = mostFreqSorted[0]?.[1] || 0;
@@ -224,7 +232,7 @@ export const renderAnalyticsView = async (container, appVersion) => {
             const latestTouch = {};
             historial.forEach(h => {
                 const d = h.fecha_entrega || h.fecha_asignacion;
-                if (!d) return;
+                if (!d || !h.numero) return;
                 const nums = h.numero.toString().split(/[,;]/).map(n => n.trim()).filter(n => n);
                 nums.forEach(num => {
                     if (!latestTouch[num] || new Date(d) > new Date(latestTouch[num])) {
@@ -250,10 +258,10 @@ export const renderAnalyticsView = async (container, appVersion) => {
 
             // Update S-13 Stats
             document.getElementById('stat-s13-coverage').innerText = `${s13CoveragePercent}%`;
-            document.getElementById('stat-s13-coverage-info').innerText = `${touchedNums.size} de ${total} abarcados`;
+            document.getElementById('stat-s13-coverage-info').innerText = `${uniqueWorkedCount} de ${total} territorios • ${workRounds} vueltas`;
             document.getElementById('stat-s13-missing').innerText = s13MissingCount;
             document.getElementById('stat-s13-frequent').innerText = topTerritory === '--' ? '--' : `Territorio ${topTerritory}`;
-            document.getElementById('stat-s13-frequent-info').innerText = `${topCount} ${topCount === 1 ? 'vez' : 'veces'}`;
+            document.getElementById('stat-s13-frequent-info').innerText = `${topCount} informes registrados`;
             document.getElementById('stat-s13-oldest').innerText = oldestTerritory === '--' ? '--' : `#${oldestTerritory}`;
             document.getElementById('stat-s13-oldest-info').innerText = `Hace ${daysRezago} días`;
 

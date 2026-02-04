@@ -105,35 +105,41 @@ export const renderS13CommandCenter = async (container) => {
     // Calculate Stats
     const updateStats = () => {
         const total = territories.length;
-        const touchedNums = new Set(history.map(h => String(h.numero)));
-        const coverage = total > 0 ? Math.round((touchedNums.size / total) * 100) : 0;
-        const missing = territories.filter(t => !touchedNums.has(String(t.numero))).length;
+        const allUniqueTouched = new Set();
+        let totalWorkActs = 0;
+        const territoryFreq = {};
+        const latestTouch = {};
+
+        history.forEach(h => {
+            if (!h.numero) return;
+            const nums = String(h.numero).split(/[,/]/).map(n => n.trim()).filter(n => n);
+            const d = h.fecha_entrega || h.fecha_asignacion;
+
+            nums.forEach(n => {
+                allUniqueTouched.add(n);
+                territoryFreq[n] = (territoryFreq[n] || 0) + 1;
+                totalWorkActs++;
+                if (d && (!latestTouch[n] || new Date(d) > new Date(latestTouch[n]))) {
+                    latestTouch[n] = d;
+                }
+            });
+        });
+
+        const coverage = total > 0 ? Math.min(100, Math.round((allUniqueTouched.size / total) * 100)) : 0;
+        const missing = total - allUniqueTouched.size;
+        const workRounds = total > 0 ? (totalWorkActs / total).toFixed(1) : 0;
 
         container.querySelector('#cc-stat-coverage').innerText = `${coverage}%`;
-        container.querySelector('#cc-stat-coverage-sub').innerText = `${touchedNums.size} de ${total} abarcados`;
+        container.querySelector('#cc-stat-coverage-sub').innerText = `${allUniqueTouched.size} de ${total} territorios • ${workRounds} vueltas`;
         container.querySelector('#cc-stat-missing').innerText = missing;
         container.querySelector('#cc-stat-missing-bar').style.width = `${(missing / total) * 100}%`;
 
-        const territoryFreq = {};
-        history.forEach(h => {
-            const nums = String(h.numero).split(/[,/]/).map(n => n.trim());
-            nums.forEach(n => { if (n) territoryFreq[n] = (territoryFreq[n] || 0) + 1; });
-        });
         const sortedFreq = Object.entries(territoryFreq).sort((a, b) => b[1] - a[1]);
         if (sortedFreq[0]) {
             container.querySelector('#cc-stat-frequent').innerText = `Territorio ${sortedFreq[0][0]}`;
-            container.querySelector('#cc-stat-frequent-sub').innerText = `Asignado ${sortedFreq[0][1]} veces`;
+            container.querySelector('#cc-stat-frequent-sub').innerText = `${sortedFreq[0][1]} informes registrados`;
         }
 
-        const latestTouch = {};
-        history.forEach(h => {
-            const d = h.fecha_entrega || h.fecha_asignacion;
-            if (!d) return;
-            const nums = String(h.numero).split(/[,/]/).map(n => n.trim());
-            nums.forEach(n => {
-                if (!latestTouch[n] || new Date(d) > new Date(latestTouch[n])) latestTouch[n] = d;
-            });
-        });
         const rezagoSorted = territories.filter(t => latestTouch[t.numero]).sort((a, b) => new Date(latestTouch[a.numero]) - new Date(latestTouch[b.numero]));
         if (rezagoSorted[0]) {
             const days = Math.floor((new Date() - new Date(latestTouch[rezagoSorted[0].numero])) / (1000 * 60 * 60 * 24));
@@ -409,7 +415,7 @@ export const renderHistoryTab = (container, options = {}) => {
             btn.disabled = true;
 
             try {
-                
+
                 const doc = new jsPDF('p', 'mm', 'a4');
 
                 const pdfWidth = 210;
