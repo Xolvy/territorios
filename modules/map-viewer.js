@@ -214,14 +214,18 @@ export const MapViewer = {
 
                 map.data.setStyle(normalStyle);
 
-                map.data.addListener('mouseover', (event) => {
-                    map.data.overrideStyle(event.feature, hoverStyle);
-                    const name = event.feature.getProperty('name') || 'Manzana';
-                    showNotification(name, "info", 1000);
-                });
-
                 map.data.addListener('mouseout', (event) => {
                     map.data.revertStyle();
+                });
+
+                // PERMITIR CLIC EN POLÍGONOS PARA AÑADIR PUNTOS
+                map.data.addListener('click', (event) => {
+                    // Manually trigger the map click logic if we are pinning
+                    if (window.setPinningModeActive) {
+                        google.maps.event.trigger(map, 'click', {
+                            latLng: event.latLng
+                        });
+                    }
                 });
 
                 // Auto-center bounds
@@ -267,6 +271,7 @@ export const MapViewer = {
 
                 btnPin.onclick = () => {
                     isPinning = !isPinning;
+                    window.setPinningModeActive = isPinning; // Global flag for data layer click
                     btnPin.classList.toggle('bg-indigo-600');
                     btnPin.classList.toggle('bg-rose-500'); // Warning color
                     hint.classList.toggle('hidden');
