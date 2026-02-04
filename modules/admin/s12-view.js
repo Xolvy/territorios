@@ -168,7 +168,7 @@ export const renderS12View = async (container, config, appVersion) => {
         const tipos = config.tipos_territorio || ['Casa en Casa', 'Negocios', 'Pública'];
 
         showModal(`
-    < div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden" >
+            <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden">
                 <header class="shrink-0 bg-primary p-8 text-white relative overflow-hidden">
                     <div class="absolute inset-0 bg-white/10 backdrop-blur-3xl"></div>
                     <div class="relative z-10 flex items-center gap-6">
@@ -215,7 +215,7 @@ export const renderS12View = async (container, config, appVersion) => {
                         <i class="fas fa-save"></i> Actualizar Registro
                     </button>
                 </footer>
-            </div >
+            </div>
     `, (modal) => {
             modal.querySelector('#btn-cancel-t-edit').onclick = () => modal.classList.add('hidden');
             modal.querySelector('#btn-save-t-edit').onclick = async () => {
@@ -247,7 +247,7 @@ export const renderS12View = async (container, config, appVersion) => {
     window.viewMapFromBaseS12 = async (id) => {
         showNotification("Cargando mapa...", "info");
         try {
-            const { MapViewer } = await import('../map-viewer.js?v=' + (appVersion || 'latest'));
+            const { MapViewer } = await import('/modules/map-viewer.js?v=' + (appVersion || 'latest'));
             const t = terrs.find(x => x.id === id);
 
             if (!t) {
