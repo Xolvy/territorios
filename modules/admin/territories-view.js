@@ -53,8 +53,8 @@ export const renderCasaEnCasaTab = async (container, config, appVersion) => {
                     await renderProgramaTab(subContainer, config, appVersion);
                     break;
                 case 'mapas':
-                    const { renderMapsAdmin } = await import('./maps-admin.js');
-                    await renderMapsAdmin(subContainer, config);
+                    const { renderMapsView } = await import('./maps-view.js');
+                    await renderMapsView(subContainer, config, appVersion);
                     break;
                 case 'reportes':
                     const { renderReportsTab } = await import('./reports-view.js');
