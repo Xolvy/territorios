@@ -19,7 +19,7 @@ export const renderCasaEnCasaTab = async (container, config, appVersion) => {
                     </div>
                 </div>
 
-                <nav data-adaptive-wrap="true" class="flex flex-row items-center gap-1.5 bg-white/50 dark:bg-white/[0.03] p-1.5 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm w-full lg:w-max max-w-full backdrop-blur-xl shrink-0">
+                <nav data-adaptive-wrap="true" class="flex flex-row items-center gap-1 bg-white/50 dark:bg-white/[0.03] p-1.5 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm w-full lg:w-max max-w-full backdrop-blur-xl shrink-0 overflow-hidden">
                     ${renderSubTab('programa', 'fas fa-calendar-check', 'Programa')}
                     ${renderSubTab('mapas', 'fas fa-map-marked-alt', 'MAPAS')}
                     ${renderSubTab('reportes', 'fas fa-chart-bar', 'REPORTES')}
@@ -93,8 +93,8 @@ export const renderCasaEnCasaTab = async (container, config, appVersion) => {
 };
 
 const renderSubTab = (id, icon, label) => `
-    <button class="sub-tab-casa group px-5 py-3 rounded-xl transition-all flex items-center gap-3 whitespace-nowrap font-extrabold" data-sub="${id}">
-        <i class="${icon} text-sm"></i>
-        <span class="text-[11px] font-extrabold uppercase tracking-wider">${label}</span>
+    <button class="sub-tab-casa group px-3 md:px-5 py-2.5 md:py-3 rounded-xl transition-all flex items-center justify-center gap-2 md:gap-3 whitespace-nowrap font-extrabold flex-1 sm:flex-none" data-sub="${id}">
+        <i class="${icon} text-xs md:text-sm"></i>
+        <span class="text-[9px] md:text-[11px] font-extrabold uppercase tracking-tight md:tracking-wider truncate max-w-[100px] md:max-w-none">${label}</span>
     </button>
 `;
