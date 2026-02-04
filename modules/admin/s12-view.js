@@ -5,6 +5,7 @@ import {
 } from '../../data/firestore-services.js';
 import { showNotification } from '../utils/helpers.js';
 import { showModal, showCustomConfirm } from '../services/ui-helpers.js';
+import { MapViewer } from '../map-viewer.js';
 
 export const renderS12View = async (container, config, appVersion) => {
     let terrs = [];
@@ -247,7 +248,6 @@ export const renderS12View = async (container, config, appVersion) => {
     window.viewMapFromBaseS12 = async (id) => {
         showNotification("Cargando mapa...", "info");
         try {
-            const { MapViewer } = await import('/modules/map-viewer.js?v=' + (appVersion || 'latest'));
             const t = terrs.find(x => x.id === id);
 
             if (!t) {
