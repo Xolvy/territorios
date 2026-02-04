@@ -103,13 +103,13 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
                         </div>
 
                         <!-- UI Role/Switch Badge -->
-                        <div class="flex-1 lg:flex-none flex items-center justify-between gap-4 bg-slate-100 dark:bg-white/5 px-6 py-2.5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-inner min-w-[240px] shrink-0">
-                             <div class="flex items-center gap-3">
-                                 <div class="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
-                                 <span class="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest whitespace-nowrap">Vista Admin</span>
+                        <div class="flex-1 lg:flex-none flex items-center justify-center gap-4 bg-slate-100 dark:bg-white/5 px-4 md:px-6 py-2.5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-inner min-w-fit shrink-0">
+                             <div class="flex items-center gap-2">
+                                 <div class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></div>
+                                 <span class="text-[8px] md:text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest whitespace-nowrap">Vista Admin</span>
                              </div>
-                             <div class="w-px h-4 bg-slate-300 dark:bg-white/10 mx-1"></div>
-                             <button onclick="window.history.pushState({}, '', '/conductores'); location.reload();" class="text-[9px] font-black text-primary hover:text-indigo-600 uppercase tracking-widest transition-colors flex items-center gap-2 whitespace-nowrap group/switch shrink-0">
+                             <div class="w-px h-3 bg-slate-300 dark:bg-white/10 mx-0.5"></div>
+                             <button onclick="window.history.pushState({}, '', '/conductores'); location.reload();" class="text-[8px] md:text-[9px] font-black text-primary hover:text-indigo-600 uppercase tracking-widest transition-colors flex items-center gap-2 whitespace-nowrap group/switch shrink-0 px-1">
                                  <i class="fas fa-random text-[10px] group-hover:rotate-180 transition-transform duration-500"></i> Conductor
                              </button>
                         </div>
