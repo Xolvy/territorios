@@ -130,13 +130,15 @@ export const MapViewer = {
             const map = L.map('leaflet-map', {
                 center,
                 zoom: 18,
+                maxZoom: 21,
                 zoomControl: false,
                 attributionControl: true
             });
 
             // ESRI WORLD IMAGERY (The high-res satellite choice)
             const esriSatelital = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                maxZoom: 19,
+                maxZoom: 21,
+                maxNativeZoom: 18,
                 attribution: 'Tiles &copy; Esri &mdash; Maxar, Earthstar Geographics'
             }).addTo(map);
 
