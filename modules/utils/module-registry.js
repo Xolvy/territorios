@@ -21,7 +21,7 @@ class ModuleRegistry {
             rules_view: "2.4.3.7",
             availability: "2.4.2.5",
             recursos: "2.4.3.7",
-            maps_explorer: "2.4.2.5",
+            maps_explorer: "2.4.5.8",
             rescue: "2.4.3.7",
             phone_module: "2.4.3.7",
             onboarding: "2.4.2.5",
