@@ -83,12 +83,21 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                 <button id="add-horario" class="text-[9px] text-emerald-500 hover:underline">+ Añadir</button>
                             </label>
                             <div id="list-horarios" class="flex flex-wrap gap-2 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 min-h-[60px]">
-                                ${(config.horarios_programa || []).map((h, i) => `
-                                    <div class="bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-bold flex items-center gap-2 shadow-sm animate-scale-in">
-                                        ${h}
-                                        <button onclick="window.removeConfigItem('horarios', ${i})" class="text-slate-400 hover:text-red-500 transition-colors"><i class="fas fa-times"></i></button>
-                                    </div>
-                                `).join('')}
+                                ${(() => {
+            const sortItems = (list) => [...list].sort((a, b) => {
+                const isUpperA = String(a) === String(a).toUpperCase();
+                const isUpperB = String(b) === String(b).toUpperCase();
+                if (isUpperA && !isUpperB) return 1;
+                if (!isUpperA && isUpperB) return -1;
+                return String(a).localeCompare(String(b), undefined, { sensitivity: 'base' });
+            });
+            return sortItems(config.horarios_programa || []).map((h, i) => `
+                                        <div class="bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-bold flex items-center gap-2 shadow-sm animate-scale-in">
+                                            ${h}
+                                            <button onclick="window.removeConfigItem('horarios', ${i})" class="text-slate-400 hover:text-red-500 transition-colors"><i class="fas fa-times"></i></button>
+                                        </div>
+                                    `).join('');
+        })()}
                             </div>
                         </div>
 
@@ -98,13 +107,22 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                 Lugares de Reunión
                                 <button id="add-lugar" class="text-[9px] text-emerald-500 hover:underline">+ Añadir</button>
                             </label>
-                            <div id="list-lugares" class="flex flex-wrap gap-2 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 min-h-[60px]">
-                                ${(config.lugares || []).map((l, i) => `
-                                    <div class="bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-bold flex items-center gap-2 shadow-sm animate-scale-in">
-                                        ${l}
-                                        <button onclick="window.removeConfigItem('lugares', ${i})" class="text-slate-400 hover:text-red-500 transition-colors"><i class="fas fa-times"></i></button>
-                                    </div>
-                                `).join('')}
+                             <div id="list-lugares" class="flex flex-wrap gap-2 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 min-h-[60px]">
+                                ${(() => {
+            const sortItems = (list) => [...list].sort((a, b) => {
+                const isUpperA = String(a) === String(a).toUpperCase();
+                const isUpperB = String(b) === String(b).toUpperCase();
+                if (isUpperA && !isUpperB) return 1;
+                if (!isUpperA && isUpperB) return -1;
+                return String(a).localeCompare(String(b), undefined, { sensitivity: 'base' });
+            });
+            return sortItems(config.lugares || []).map((l, i) => `
+                                        <div class="bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-bold flex items-center gap-2 shadow-sm animate-scale-in">
+                                            ${l}
+                                            <button onclick="window.removeConfigItem('lugares', ${i})" class="text-slate-400 hover:text-red-500 transition-colors"><i class="fas fa-times"></i></button>
+                                        </div>
+                                    `).join('');
+        })()}
                             </div>
                         </div>
                     </div>
@@ -123,12 +141,21 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                             <button id="add-faceta" class="text-[9px] text-amber-500 hover:underline">+ Añadir</button>
                         </label>
                         <div id="list-facetas" class="flex flex-wrap gap-2 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 min-h-[60px]">
-                            ${(config.facetas || []).map((f, i) => `
-                                <div class="bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-bold flex items-center gap-2 shadow-sm animate-scale-in">
-                                    ${f}
-                                    <button onclick="window.removeConfigItem('facetas', ${i})" class="text-slate-400 hover:text-red-500 transition-colors"><i class="fas fa-times"></i></button>
-                                </div>
-                            `).join('')}
+                            ${(() => {
+            const sortItems = (list) => [...list].sort((a, b) => {
+                const isUpperA = String(a) === String(a).toUpperCase();
+                const isUpperB = String(b) === String(b).toUpperCase();
+                if (isUpperA && !isUpperB) return 1;
+                if (!isUpperA && isUpperB) return -1;
+                return String(a).localeCompare(String(b), undefined, { sensitivity: 'base' });
+            });
+            return sortItems(config.facetas || []).map((f, i) => `
+                                    <div class="bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-bold flex items-center gap-2 shadow-sm animate-scale-in">
+                                        ${f}
+                                        <button onclick="window.removeConfigItem('facetas', ${i})" class="text-slate-400 hover:text-red-500 transition-colors"><i class="fas fa-times"></i></button>
+                                    </div>
+                                `).join('');
+        })()}
                         </div>
                     </div>
                 </section>

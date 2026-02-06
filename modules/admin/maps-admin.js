@@ -71,7 +71,8 @@ export const renderMapsAdmin = async (container, config) => {
             const placemarks = xml.querySelectorAll('Placemark');
             const territoryGroups = {};
 
-            // 1. Extraer Polígonos de Manzanas
+            // 1. Extraer Polígonos de Manzanas y Puntos de Interés
+            const poisData = [];
             placemarks.forEach(pm => {
                 const name = pm.querySelector('name')?.textContent || '';
                 const tMatch = name.match(/\(T(\d+)\)/i);
@@ -79,6 +80,7 @@ export const renderMapsAdmin = async (container, config) => {
                     const tNum = tMatch[1];
                     if (!territoryGroups[tNum]) territoryGroups[tNum] = [];
 
+                    // Case: Polygon (Blocks)
                     const polygon = pm.querySelector('Polygon');
                     if (polygon) {
                         const coordsText = polygon.querySelector('coordinates')?.textContent || '';
@@ -94,6 +96,22 @@ export const renderMapsAdmin = async (container, config) => {
                                 type: "Polygon",
                                 coordinates: [coords]
                             }
+                        });
+                    }
+
+                    // Case: Point (POI / Special Zones)
+                    const point = pm.querySelector('Point');
+                    if (point) {
+                        const coordsText = point.querySelector('coordinates')?.textContent || '';
+                        const [lng, lat] = coordsText.trim().split(',').map(Number);
+                        const desc = pm.querySelector('description')?.textContent || '';
+
+                        poisData.push({
+                            nombre: name.replace(/\(T\d+\)/i, '').trim(),
+                            tipo: 'Otro',
+                            territorio_numero: tNum,
+                            descripcion: desc,
+                            lat, lng
                         });
                     }
                 }
@@ -116,8 +134,15 @@ export const renderMapsAdmin = async (container, config) => {
                     features: territoryGroups[tNum]
                 };
 
-                const success = await updateTerritoryGeoJSON(tNum, geojson);
-                if (success) {
+                const territoryId = await updateTerritoryGeoJSON(tNum, geojson);
+                if (territoryId) {
+                    // Sync POIs for this territory if any
+                    const tPois = poisData.filter(p => p.territorio_numero === tNum);
+                    for (const poi of tPois) {
+                        const { addPuntoInteres } = await import('../../data/firestore-services.js');
+                        await addPuntoInteres({ ...poi, territorio_id: territoryId });
+                    }
+
                     completed++;
                     const percent = (completed / total) * 100;
                     progressBar.style.width = `${percent}%`;

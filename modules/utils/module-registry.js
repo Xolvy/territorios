@@ -15,7 +15,7 @@ class ModuleRegistry {
             login: "2.4.2.5",
             admin: "2.4.2.5",
             conductor: "2.4.3.7",
-            territories_view: "2.4.6.2",
+            territories_view: "2.4.6.3",
             public_view: "2.4.2.5",
             phones_view: "2.4.2.5",
             rules_view: "2.4.3.7",

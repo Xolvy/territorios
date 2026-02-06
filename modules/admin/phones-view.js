@@ -144,7 +144,7 @@ export const renderTelefonosTab = async (container) => {
                                 <i class="fas fa-mobile-screen-button"></i>
                             </div>
                             <div>
-                                <h4 class="text-sm font-black text-slate-800 dark:text-white uppercase truncate max-w-[150px]">${t.propietario || t.nombre || 'Desconocido'}</h4>
+                                <h4 class="text-sm font-black text-slate-800 dark:text-white uppercase leading-tight">${t.propietario || t.nombre || 'Desconocido'}</h4>
                                 <p class="text-xs font-mono font-bold text-slate-400 mt-1">${formatPhoneNumber(t.numero)}</p>
                             </div>
                         </div>

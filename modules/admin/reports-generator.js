@@ -8,7 +8,7 @@ export const generateS12Report = (territories, layout = 1) => {
 
     showNotification("Generando Tarjetas S-12...", "info");
 
-    const drawCard = (x, y, w, h, t) => {
+    const drawCard = async (x, y, w, h, t) => {
         // Main Border (Professional card look)
         doc.setDrawColor(30);
         doc.setLineWidth(0.4);
@@ -44,15 +44,27 @@ export const generateS12Report = (territories, layout = 1) => {
         doc.setLineWidth(0.1);
         doc.rect(x + 5, mapY, w - 10, mapH);
 
-        // Subtle grid for the map area
-        doc.setDrawColor(245);
-        for (let gi = 10; gi < (w - 10); gi += 10) doc.line(x + 5 + gi, mapY, x + 5 + gi, mapY + mapH);
-        for (let gj = 10; gj < mapH; gj += 10) doc.line(x + 5, mapY + gj, x + 5 + w - 10, mapY + gj);
+        // Try to add image if exists
+        if (t.mapa_url) {
+            try {
+                const imgData = await loadImage(t.mapa_url);
+                doc.addImage(imgData, 'JPEG', x + 5, mapY, w - 10, mapH, undefined, 'FAST');
+            } catch (e) {
+                console.warn("Could not load map image for territory " + t.numero, e);
+            }
+        }
 
-        doc.setFont("helvetica", "italic");
-        doc.setFontSize(8);
-        doc.setTextColor(180);
-        doc.text("(Pegue el mapa de Google Maps aquí o dibuje el croquis del territorio)", x + w / 2, mapY + mapH / 2, { align: "center" });
+        // Subtle grid for the map area (only if no image)
+        if (!t.mapa_url) {
+            doc.setDrawColor(245);
+            for (let gi = 10; gi < (w - 10); gi += 10) doc.line(x + 5 + gi, mapY, x + 5 + gi, mapY + mapH);
+            for (let gj = 10; gj < mapH; gj += 10) doc.line(x + 5, mapY + gj, x + 5 + w - 10, mapY + gj);
+
+            doc.setFont("helvetica", "italic");
+            doc.setFontSize(8);
+            doc.setTextColor(180);
+            doc.text("(Pegue el mapa de Google Maps aquí o dibuje el croquis del territorio)", x + w / 2, mapY + mapH / 2, { align: "center" });
+        }
 
         // Footer block (Official note)
         doc.setTextColor(60);
@@ -67,35 +79,54 @@ export const generateS12Report = (territories, layout = 1) => {
         doc.text(`Doc. Generado: ${new Date().toLocaleDateString()}`, x + w - 8, y + h - 5, { align: "right" });
     };
 
+    const loadImage = (url) => {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.crossOrigin = "Anonymous";
+            img.onload = () => {
+                const canvas = document.createElement("canvas");
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext("2d");
+                ctx.drawImage(img, 0, 0);
+                resolve(canvas.toDataURL("image/jpeg", 0.8));
+            };
+            img.onerror = () => reject(new Error("Failed to load image"));
+            img.src = url;
+        });
+    };
+
     let count = 0;
     const padding = 10;
 
-    territories.forEach((t, i) => {
-        if (layout === 1) {
-            if (i > 0) doc.addPage();
-            drawCard(padding, padding, pageWidth - padding * 2, pageHeight - padding * 2, t);
-        } else if (layout === 2) {
-            const cardH = (pageHeight - padding * 3) / 2;
-            const y = padding + (count % 2) * (cardH + padding);
-            drawCard(padding, y, pageWidth - padding * 2, cardH, t);
-            count++;
-            if (count % 2 === 0 && i < territories.length - 1) doc.addPage();
-        } else if (layout === 4) {
-            const cardW = (pageWidth - padding * 3) / 2;
-            const cardH = (pageHeight - padding * 3) / 2;
-            const x = padding + (count % 2) * (cardW + padding);
-            const y = padding + Math.floor((count % 4) / 2) * (cardH + padding);
-            drawCard(x, y, cardW, cardH, t);
-            count++;
-            if (count % 4 === 0 && i < territories.length - 1) {
-                doc.addPage();
-                count = 0;
+    (async () => {
+        for (let i = 0; i < territories.length; i++) {
+            const t = territories[i];
+            if (layout === 1) {
+                if (i > 0) doc.addPage();
+                await drawCard(padding, padding, pageWidth - padding * 2, pageHeight - padding * 2, t);
+            } else if (layout === 2) {
+                const cardH = (pageHeight - padding * 3) / 2;
+                const y = padding + (count % 2) * (cardH + padding);
+                await drawCard(padding, y, pageWidth - padding * 2, cardH, t);
+                count++;
+                if (count % 2 === 0 && i < territories.length - 1) doc.addPage();
+            } else if (layout === 4) {
+                const cardW = (pageWidth - padding * 3) / 2;
+                const cardH = (pageHeight - padding * 3) / 2;
+                const x = padding + (count % 2) * (cardW + padding);
+                const y = padding + Math.floor((count % 4) / 2) * (cardH + padding);
+                await drawCard(x, y, cardW, cardH, t);
+                count++;
+                if (count % 4 === 0 && i < territories.length - 1) {
+                    doc.addPage();
+                    count = 0;
+                }
             }
         }
-    });
-
-    doc.save(`S12_Tarjetas_${new Date().getTime()}.pdf`);
-    showNotification("PDF de Tarjetas S-12 generado", "success");
+        doc.save(`S12_Tarjetas_${new Date().getTime()}.pdf`);
+        showNotification("PDF de Tarjetas S-12 generado", "success");
+    })();
 };
 
 export const generateS13Report = (history, from, to) => {
@@ -104,11 +135,17 @@ export const generateS13Report = (history, from, to) => {
 
     showNotification("Generando Registro S-13...", "info");
 
-    // Filter history by date
+    // Filter history by date and SUCCESS status
     const filtered = history.filter(h => {
-        const date = h.fecha_entrega || h.timestamp;
-        if (!date) return false;
-        return date >= from && date <= to;
+        const rawDate = h.fecha_entrega || h.timestamp;
+        if (!rawDate) return false;
+
+        // Xolvy Shield: Normalize Firestore Timestamp or ISO string to YYYY-MM-DD for safe comparison
+        const date = rawDate.toDate ? rawDate.toDate().toISOString().split('T')[0] : String(rawDate).split('T')[0];
+
+        // Only include completed records in official S-13 (exclude overlapped/absorbed)
+        const isSuccess = h.estado === 'Completado' || h.estado === 'Predicado';
+        return isSuccess && date >= from && date <= to;
     });
 
     // Group by territory so we don't repeat the same territory number on multiple rows if unnecessary

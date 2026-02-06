@@ -1,8 +1,16 @@
 import * as dateFns from 'date-fns';
 
 export const UIHelpers = {
-    fmtDate: (d) => d ? new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }) : '',
-    fmtDateAt: (d) => d ? new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }) : '',
+    fmtDate: (d) => {
+        if (!d) return '';
+        const date = d.toDate ? d.toDate() : new Date(d);
+        return isNaN(date.getTime()) ? '—' : date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
+    },
+    fmtDateAt: (d) => {
+        if (!d) return '';
+        const date = d.toDate ? d.toDate() : new Date(d);
+        return isNaN(date.getTime()) ? '—' : date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+    },
 
     getMonday: (d) => {
         d = new Date(d);

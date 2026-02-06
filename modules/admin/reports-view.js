@@ -60,7 +60,16 @@ export const renderReportsTab = async (container, config, appVersion) => {
         let history = [];
 
         try {
-            [terrs, history] = await Promise.all([getTerritorios(), getHistorialReport()]);
+            const raw = await getTerritorios();
+            // Xolvy Shield: Prevent duplicates by Number (Fix Terr 9 issue)
+            const seen = new Set();
+            terrs = raw.filter(t => {
+                const n = String(t.numero);
+                if (seen.has(n)) return false;
+                seen.add(n);
+                return true;
+            });
+            history = await getHistorialReport();
             terrs.sort((a, b) => String(a.numero).localeCompare(String(b.numero), undefined, { numeric: true }));
         } catch (e) { console.error(e); }
 
@@ -123,8 +132,7 @@ export const renderReportsTab = async (container, config, appVersion) => {
         target.querySelector('#btn-do-print-s13').onclick = async () => {
             const from = target.querySelector('#print-s13-from').value;
             const to = target.querySelector('#print-s13-to').value;
-            const { generateS13Report } = await import('./reports-generator.js');
-            generateS13Report(history, from, to);
+            showS13Preview(history, from, to);
         };
     };
 
@@ -176,11 +184,94 @@ export const renderReportsTab = async (container, config, appVersion) => {
                 const layout = parseInt(btn.dataset.layout);
                 const selectedIds = Array.from(target.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
                 if (selectedIds.length === 0) return showNotification("Seleccione territorios", "warning");
+
                 const selectedTerrs = terrs.filter(t => selectedIds.includes(t.id));
-                const { generateS12Report } = await import('./reports-generator.js');
-                generateS12Report(selectedTerrs, layout);
+                showS12Preview(selectedTerrs, layout);
             };
         });
+    };
+
+    const showS12Preview = (selected, layout) => {
+        showModal(`
+            <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden">
+                <header class="shrink-0 bg-indigo-600 p-8 text-white">
+                    <h3 class="text-xl font-black uppercase tracking-widest">Vista Previa S-12</h3>
+                    <p class="text-[9px] opacity-60 uppercase tracking-[0.4em] font-black">Revisión de ${selected.length} tarjetas</p>
+                </header>
+                <div class="flex-1 overflow-y-auto p-10 space-y-4 bg-slate-50 dark:bg-black/20">
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        ${selected.map(t => `
+                            <div class="p-4 bg-white dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 text-center">
+                                <span class="text-lg font-black text-slate-800 dark:text-white">#${t.numero}</span>
+                                <p class="text-[8px] font-bold text-slate-400 truncate uppercase mt-1">${t.localidad || '—'}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                <footer class="p-8 border-t border-slate-100 dark:border-white/5 flex gap-4">
+                    <button onclick="this.closest('.fixed').classList.add('hidden')" class="flex-1 py-4 bg-slate-100 dark:bg-white/5 text-slate-500 font-black rounded-xl text-[10px] uppercase">Atrás</button>
+                    <button id="btn-final-s12" class="flex-[2] py-4 bg-indigo-600 text-white font-black rounded-xl text-[10px] uppercase tracking-widest">Confirmar y Descargar PDF</button>
+                </footer>
+            </div>
+        `, (modal) => {
+            modal.querySelector('#btn-final-s12').onclick = async () => {
+                const { generateS12Report } = await import('./reports-generator.js');
+                generateS12Report(selected, layout);
+                modal.closest('.fixed').classList.add('hidden');
+            };
+        });
+    };
+
+    const showS13Preview = (history, from, to) => {
+        // Filter logic identical to generator
+        const filtered = history.filter(h => {
+            const date = h.fecha_entrega || h.timestamp;
+            if (!date) return false;
+            const d = date.toDate ? date.toDate().toISOString().split('T')[0] : String(date).split('T')[0];
+            const isSuccess = h.estado === 'Completado' || h.estado === 'Predicado';
+            return isSuccess && d >= from && d <= to;
+        });
+
+        showModal(`
+            <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[3rem] overflow-hidden">
+                <header class="shrink-0 bg-emerald-600 p-8 text-white">
+                    <h3 class="text-xl font-black uppercase tracking-widest">Vista Previa S-13</h3>
+                    <p class="text-[9px] opacity-60 uppercase tracking-[0.4em] font-black">${filtered.length} Registros detectados</p>
+                </header>
+                <div class="flex-1 overflow-y-auto p-8 custom-scrollbar bg-slate-50 dark:bg-black/20">
+                    <table class="w-full text-left border-separate border-spacing-y-2">
+                        <thead>
+                            <tr class="text-[8px] font-black text-slate-400 uppercase tracking-widest">
+                                <th class="px-4 pb-2">Terr</th>
+                                <th class="px-4 pb-2">Conductor</th>
+                                <th class="px-4 pb-2">Asignación</th>
+                                <th class="px-4 pb-2">Entrega</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${filtered.map(h => `
+                                <tr class="bg-white dark:bg-white/5 text-[10px] font-bold text-slate-700 dark:text-gray-300 shadow-sm">
+                                    <td class="px-4 py-3 rounded-l-xl border-y border-l border-slate-100 dark:border-white/5">#${h.numero}</td>
+                                    <td class="px-4 py-3 border-y border-slate-100 dark:border-white/5 uppercase">${h.conductor || '—'}</td>
+                                    <td class="px-4 py-3 border-y border-slate-100 dark:border-white/5">${UIHelpers.fmtDate(h.fecha_asignacion)}</td>
+                                    <td class="px-4 py-3 rounded-r-xl border-y border-r border-slate-100 dark:border-white/5 font-black text-emerald-500">${UIHelpers.fmtDate(h.fecha_entrega)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                <footer class="p-8 border-t border-slate-100 dark:border-white/5 flex gap-4 bg-white dark:bg-black/30">
+                    <button onclick="this.closest('.fixed').classList.add('hidden')" class="flex-1 py-4 bg-slate-100 dark:bg-white/5 text-slate-500 font-black rounded-xl text-[10px] uppercase">Editar Filtro</button>
+                    <button id="btn-final-s13" class="flex-[2] py-4 bg-emerald-600 text-white font-black rounded-xl text-[10px] uppercase tracking-widest">Imprimir Registro PDF</button>
+                </footer>
+            </div>
+        `, (modal) => {
+            modal.querySelector('#btn-final-s13').onclick = async () => {
+                const { generateS13Report } = await import('./reports-generator.js');
+                generateS13Report(history, from, to);
+                modal.closest('.fixed').classList.add('hidden');
+            };
+        }, 'max-w-4xl');
     };
 
     const renderLayoutBtnPrint = (num, icon, label) => `

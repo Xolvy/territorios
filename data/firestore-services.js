@@ -155,28 +155,41 @@ export const logReturn = async (territorioId, fechaEntrega, status = 'Completado
         const snapshot = await getDocs(q);
 
         if (!snapshot.empty) {
-            // Find the most recent 'Asignado' entry in memory
+            // Find ALL open assignments for this territory
             const assignments = snapshot.docs
                 .map(d => ({ id: d.id, ...d.data() }))
                 .filter(rec => rec.estado === 'Asignado');
 
-            // Sort by timestamp desc
+            // Sort by timestamp desc (Newest first)
             assignments.sort((a, b) => {
-                const timeA = a.timestamp?.toMillis ? a.timestamp.toMillis() : (a.timestamp || 0);
-                const timeB = b.timestamp?.toMillis ? b.timestamp.toMillis() : (b.timestamp || 0);
+                const timeA = a.timestamp?.toMillis ? a.timestamp.toMillis() : (new Date(a.fecha_asignacion || 0).getTime());
+                const timeB = b.timestamp?.toMillis ? b.timestamp.toMillis() : (new Date(b.fecha_asignacion || 0).getTime());
                 return timeB - timeA;
             });
 
             if (assignments.length > 0) {
-                const histDoc = assignments[0];
-                const updateData = {
-                    fecha_entrega: fechaEntrega || new Date().toISOString(),
-                    estado: status // 'Completado' or 'Devuelto'
-                };
-                if (notas) updateData.observaciones = notas;
-                if (fotos) updateData.fotos = fotos;
+                const newest = assignments[0];
+                const dateStr = fechaEntrega || new Date().toISOString();
 
-                await updateDoc(doc(db, "historial_territorios", histDoc.id), updateData);
+                // 1. Success Record: The most recent assignment
+                await updateDoc(doc(db, "historial_territorios", newest.id), {
+                    fecha_entrega: dateStr,
+                    estado: status, // Normally 'Completado'
+                    observaciones: notas || newest.observaciones
+                });
+
+                // 2. Absorption: If there were multiple assignments, "absorb" the older ones
+                if (assignments.length > 1) {
+                    const batch = writeBatch(db);
+                    for (let i = 1; i < assignments.length; i++) {
+                        batch.update(doc(db, "historial_territorios", assignments[i].id), {
+                            estado: 'Sobrepuesto', // Hidden from S-13 and stats
+                            fecha_entrega: dateStr,
+                            observaciones: `Absorbido por asignación posterior (${newest.conductor})`
+                        });
+                    }
+                    await batch.commit();
+                }
                 return;
             }
         }
@@ -378,13 +391,14 @@ export const updateTerritoryGeoJSON = async (numero, geojson) => {
         const q = query(collection(db, "territorios"), where("numero", "==", String(numero)));
         const snap = await getDocs(q);
         if (!snap.empty) {
-            const docRef = doc(db, "territorios", snap.docs[0].id);
+            const id = snap.docs[0].id;
+            const docRef = doc(db, "territorios", id);
             // Xolvy Data Shield: Serializing GeoJSON because Firestore doesn't support nested arrays
             const serializedGeoJSON = JSON.stringify(geojson);
             await updateDoc(docRef, { geojson: serializedGeoJSON });
-            return true;
+            return id;
         }
-        return false;
+        return null;
     } catch (e) {
         console.error("Error updating territory GeoJSON:", e);
         throw e;
@@ -405,8 +419,86 @@ export const addTerritoryReference = async (territoryId, reference) => {
 };
 
 export const deleteTerritorio = async (id) => {
-    ServiceCache.clear('territorios');
-    await deleteDoc(doc(db, "territorios", id));
+    try {
+        ServiceCache.clear('territorios');
+        ServiceCache.clear('puntos_interes');
+        ServiceCache.clear('historial');
+        ServiceCache.clear('programa');
+
+        // 0. Get territory info first for logging and numeric lookup
+        const tSnap = await getDoc(doc(db, "territorios", id));
+        if (!tSnap.exists()) return;
+        const tData = tSnap.data();
+        const tNum = String(tData.numero || '').trim();
+
+        const batch = writeBatch(db);
+
+        // 1. Delete the territory itself
+        batch.delete(doc(db, "territorios", id));
+
+        // 2. Clear related History (Cascading Delete)
+        const histQuery = query(collection(db, "historial_territorios"), where("territorio_id", "==", id));
+        const histSnap = await getDocs(histQuery);
+        histSnap.forEach(d => batch.delete(d.ref));
+
+        // 3. Clear related POIs (Special Zones)
+        const poiQuery = query(collection(db, "puntos_interes"), where("territorio_id", "==", id));
+        const poiSnap = await getDocs(poiQuery);
+        poiSnap.forEach(d => batch.delete(d.ref));
+
+        // 4. Scrub from Weekly Program (Last 8 weeks to Next 4 weeks)
+        const turnos = ['manana', 'tarde', 'noche', 'zoom'];
+        const today = new Date();
+        const monday = new Date(today);
+        monday.setDate(today.getDate() - (today.getDay() === 0 ? 6 : today.getDay() - 1));
+
+        for (let i = -8; i <= 4; i++) {
+            const d = new Date(monday);
+            d.setDate(monday.getDate() + (i * 7));
+            const weekId = d.toISOString().split('T')[0];
+            const progRef = doc(db, "programa_semanal", weekId);
+            const pSnap = await getDoc(progRef);
+
+            if (pSnap.exists()) {
+                const prog = pSnap.data();
+                let wasModified = false;
+
+                if (Array.isArray(prog.dias)) {
+                    prog.dias.forEach(dia => {
+                        turnos.forEach(turno => {
+                            const slot = dia[turno];
+                            if (slot && slot.territorio) {
+                                const terrs = String(slot.territorio).split(/ \/ | \/|,/).map(s => s.trim());
+                                if (terrs.includes(tNum)) {
+                                    const newTerrs = terrs.filter(s => s !== tNum);
+                                    slot.territorio = newTerrs.join(' / ');
+                                    if (newTerrs.length === 0) {
+                                        slot.conductor = '';
+                                        slot.auxiliar = '';
+                                        slot.lugar = '';
+                                        slot.hora = '';
+                                        slot.faceta = '';
+                                    }
+                                    wasModified = true;
+                                }
+                            }
+                        });
+                    });
+                }
+
+                if (wasModified) {
+                    batch.set(progRef, prog);
+                }
+            }
+        }
+
+        await batch.commit();
+        console.log(`🛡️ [Master Database] Purge complete for T-${tNum}. All references in History, POIs, and Schedules have been sanitized.`);
+        return true;
+    } catch (e) {
+        console.error("Critical error in master territory deletion:", e);
+        throw e;
+    }
 };
 
 /* --- PUNTOS DE INTERÉS --- */

@@ -56,7 +56,8 @@ export const renderMapsView = async (container, config, appVersion) => {
                     </div>
                     
                     <div class="flex gap-1 opacity-10 md:opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
-                        <button onclick="window.editTerritorioS12('${t.id}')" class="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center bg-slate-50 dark:bg-white/5 text-slate-400 hover:text-primary rounded-lg border border-slate-200 dark:border-white/10 transition-all"><i class="fas fa-edit text-[10px]"></i></button>
+                        <button onclick="window.editTerritorioS12('${t.id}')" class="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center bg-slate-50 dark:bg-white/5 text-slate-400 hover:text-primary rounded-lg border border-slate-200 dark:border-white/10 transition-all" title="Editar"><i class="fas fa-edit text-[10px]"></i></button>
+                        <button onclick="window.deleteTerritorioS12('${t.id}')" class="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center bg-slate-50 dark:bg-white/5 text-slate-400 hover:text-rose-500 rounded-lg border border-slate-200 dark:border-white/10 transition-all" title="Eliminar"><i class="fas fa-trash-alt text-[10px]"></i></button>
                     </div>
                 </div>
                 
@@ -172,12 +173,15 @@ export const renderMapsView = async (container, config, appVersion) => {
                     const placemarks = xml.querySelectorAll('Placemark');
                     const groups = {};
 
+                    const poisData = [];
                     placemarks.forEach(pm => {
                         const name = pm.querySelector('name')?.textContent || '';
                         const match = name.match(/\(T(\d+)\)/i);
                         if (match) {
                             const tNum = match[1];
                             if (!groups[tNum]) groups[tNum] = [];
+
+                            // Polygons
                             const poly = pm.querySelector('Polygon');
                             if (poly) {
                                 const coordsText = poly.querySelector('coordinates')?.textContent || '';
@@ -190,6 +194,20 @@ export const renderMapsView = async (container, config, appVersion) => {
                                     geometry: { type: "Polygon", coordinates: [coords] }
                                 });
                             }
+
+                            // Points (POIs) - Link to Special Zones
+                            const point = pm.querySelector('Point');
+                            if (point) {
+                                const coordsText = point.querySelector('coordinates')?.textContent || '';
+                                const [lng, lat] = coordsText.trim().split(',').map(Number);
+                                poisData.push({
+                                    nombre: name.replace(/\(T\d+\)/i, '').trim(),
+                                    tipo: 'Otro',
+                                    territorio_numero: tNum,
+                                    descripcion: pm.querySelector('description')?.textContent || '',
+                                    lat, lng
+                                });
+                            }
                         }
                     });
 
@@ -199,7 +217,17 @@ export const renderMapsView = async (container, config, appVersion) => {
                     let done = 0;
                     for (const num of tNums) {
                         const geojson = { type: "FeatureCollection", features: groups[num] };
-                        await updateTerritoryGeoJSON(num, geojson);
+                        const tId = await updateTerritoryGeoJSON(num, geojson);
+
+                        if (tId) {
+                            // Sync POIs
+                            const tPois = poisData.filter(p => p.territorio_numero === num);
+                            for (const poi of tPois) {
+                                const { addPuntoInteres } = await import('../../data/firestore-services.js');
+                                await addPuntoInteres({ ...poi, territorio_id: tId });
+                            }
+                        }
+
                         done++;
                         const pct = (done / tNums.length) * 100;
                         bar.style.width = pct + '%';
@@ -309,6 +337,22 @@ export const renderMapsView = async (container, config, appVersion) => {
                     btn.innerHTML = '<i class="fas fa-save"></i> Guardar Cambios';
                 }
             };
+        });
+    };
+
+    window.deleteTerritorioS12 = async (id) => {
+        const t = terrs.find(x => x.id === id);
+        if (!t) return;
+
+        showCustomConfirm(`¿Estás seguro de eliminar el Territorio ${t.numero}?`, async () => {
+            try {
+                await deleteTerritorio(id);
+                showNotification("Territorio eliminado correctamente", "success");
+                await loadData();
+                renderGrid();
+            } catch (e) {
+                showNotification("Error al eliminar: " + e.message, "error");
+            }
         });
     };
 };

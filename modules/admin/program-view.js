@@ -37,6 +37,35 @@ const getFieldIcon = (field) => {
     return map[field] || 'fa-info-circle';
 };
 
+const getTurnoStyling = (turnoId, horaStr) => {
+    const defaults = {
+        manana: { label: 'Mañana', icon: 'fa-sun', color: 'text-amber-500', bg: 'bg-amber-500/10' },
+        tarde: { label: 'Tarde', icon: 'fa-cloud-sun', color: 'text-orange-500', bg: 'bg-orange-500/10' },
+        noche: { label: 'Noche', icon: 'fa-moon', color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
+        zoom: { label: 'Zoom', icon: 'fa-video', color: 'text-emerald-500', bg: 'bg-emerald-500/10' }
+    };
+
+    if (turnoId === 'zoom') return defaults.zoom;
+    if (!horaStr || horaStr === '—') return defaults[turnoId] || defaults.manana;
+
+    // Parse Time
+    let hours = -1;
+    const time = horaStr.toLowerCase().trim();
+    const match = time.match(/(\d{1,2})[:.]?(\d{0,2})?\s*(am|pm)?/);
+
+    if (match) {
+        hours = parseInt(match[1]);
+        const ampm = match[3];
+        if (ampm === 'pm' && hours < 12) hours += 12;
+        if (ampm === 'am' && hours === 12) hours = 0;
+    }
+
+    if (hours === -1) return defaults[turnoId] || defaults.manana;
+    if (hours < 12) return defaults.manana;
+    if (hours < 18) return defaults.tarde;
+    return defaults.noche;
+};
+
 export const renderProgramaTab = async (container) => {
     const today = new Date();
     let currentWeekStart = getMonday(today);
@@ -323,14 +352,22 @@ export const renderProgramaTab = async (container) => {
                 if (!activeTurns.has(turnoId)) return;
 
                 const data = dia[turnoId] || {};
+                const styling = getTurnoStyling(turnoId, data.hora);
 
                 html += `
                     <div class="flex-1 min-w-[280px] max-w-full lg:max-w-[400px] modern-card !p-4 md:!p-8 border-slate-100 dark:border-white/5 shadow-xl hover:shadow-2xl transition-all group/turn relative">
                         <div class="flex items-center gap-4 mb-8">
-                            <div class="w-12 h-12 ${t.bg} ${t.color} rounded-2xl flex items-center justify-center text-lg shadow-inner group-hover/turn:scale-110 transition-transform duration-500">
-                                <i class="fas ${t.icon}"></i>
+                            <div class="w-12 h-12 ${styling.bg} ${styling.color} rounded-2xl flex items-center justify-center text-lg shadow-inner group-hover/turn:scale-110 transition-transform duration-500">
+                                <i class="fas ${styling.icon}"></i>
                             </div>
-                            <span class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 block mb-0.5">${t.label}</span>
+                            <span class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 block mb-0.5">${styling.label}</span>
+
+                            <!-- Botón Limpiar -->
+                            <button onclick="window.clearTurnData(${dayIndex}, '${turnoId}')" 
+                                    class="absolute top-6 right-6 w-8 h-8 rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center text-[10px] opacity-0 group-hover/turn:opacity-100 shadow-sm border border-rose-500/20 active:scale-90"
+                                    title="Limpiar datos del turno">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
                         </div>
 
                         <div class="space-y-4 md:space-y-6">
@@ -505,6 +542,27 @@ export const renderProgramaTab = async (container) => {
                         })() :
                         `<span class="text-primary font-bold flex items-center gap-1 cursor-pointer hover:underline animate-fade-in" onclick="window.syncAssignmentFromProg(${dayIdx}, '${turnoId}')"><i class="fas fa-link animate-pulse"></i> ASIGNAR</span>`)) : '';
             }
+        }
+
+        // Full re-render if time changed to update icon/label in header
+        if (fieldId === 'hora') {
+            renderTable();
+        }
+    };
+
+    window.clearTurnData = async (dayIdx, turnoId) => {
+        if (!confirm('¿Limpiar todos los datos de este turno?')) return;
+
+        programa.dias[dayIdx][turnoId] = {};
+
+        try {
+            showNotification("Limpiando turno...", "info");
+            await saveProgramaSemanal(programa.id, programa);
+            renderTable();
+            showNotification("Datos del turno eliminados", "success");
+        } catch (e) {
+            console.error(e);
+            showNotification("Error al limpiar datos", "error");
         }
     };
 
@@ -779,46 +837,10 @@ export const renderProgramaTab = async (container) => {
     };
 
     container.querySelector('#btn-reception-prog').onclick = async () => {
-        // Filter by currently viewed week (including the Sunday prior)
-        const monday = new Date(currentWeekStart);
-        monday.setHours(0, 0, 0, 0);
+        // Show ALL assigned territories, regardless of the week, so users can return overdue ones
+        const assigned = territorios.filter(t => t.estado === 'Asignado' && t.fecha_asignacion);
 
-        const sundayPrior = new Date(monday);
-        sundayPrior.setDate(monday.getDate() - 1);
-
-        const nextSunday = new Date(monday);
-        nextSunday.setDate(monday.getDate() + 7);
-
-        const assigned = territorios.filter(t => {
-            if (t.estado !== 'Asignado' || !t.fecha_asignacion) return false;
-
-            const d = new Date(t.fecha_asignacion);
-            const isWithinWeek = d >= sundayPrior && d < nextSunday;
-            if (!isWithinWeek) return false;
-
-            // If it has the flag, it's definitely from the program
-            if (t.prog_sync) return true;
-
-            // Fallback: Check if it's on Sunday Prior OR if it exists in the current program data
-            const isSundayPrior = d.toISOString().split('T')[0] === sundayPrior.toISOString().split('T')[0];
-            if (isSundayPrior) return true;
-
-            // Ultimate fallback: check if territory number is in any turn of the program
-            const tNum = String(t.numero);
-            for (const dia of programa.dias) {
-                for (const turno of ['manana', 'tarde', 'noche', 'zoom']) {
-                    const data = dia[turno];
-                    if (data && data.territorio) {
-                        const nums = String(data.territorio).split(/[,;]/).map(n => n.trim());
-                        if (nums.includes(tNum)) return true;
-                    }
-                }
-            }
-
-            return false;
-        });
-
-        if (assigned.length === 0) return showNotification("No hay territorios asignados en la semana seleccionada", "info");
+        if (assigned.length === 0) return showNotification("No hay territorios asignados para devolver", "info");
 
         let sortMode = 'territorio'; // 'territorio' | 'fecha'
 
@@ -883,6 +905,7 @@ export const renderProgramaTab = async (container) => {
             const checks = () => modal.querySelectorAll('.reception-check');
 
             const renderList = () => {
+                const now = new Date();
                 const sorted = [...assigned].sort((a, b) => {
                     if (sortMode === 'territorio') {
                         return a.numero.localeCompare(b.numero, undefined, { numeric: true });
@@ -893,12 +916,16 @@ export const renderProgramaTab = async (container) => {
 
                 listContainer.innerHTML = sorted.map(t => {
                     const mzCount = t.manzanas ? String(t.manzanas).split(/[,;]/).map(s => s.trim()).filter(Boolean).length : 0;
+                    const asigDate = new Date(t.fecha_asignacion);
+                    const diffDays = Math.ceil(Math.abs(now - asigDate) / (1000 * 60 * 60 * 24));
+                    const isLate = diffDays > 10;
 
                     return `
-                    <div class="modern-card !p-5 border-slate-100 dark:border-white/5 group hover:border-rose-500/30 transition-all animate-fade-in relative overflow-hidden flex flex-col gap-4">
+                    <div class="modern-card !p-5 ${isLate ? 'border-rose-500/20 bg-rose-500/[0.01]' : 'border-slate-100 dark:border-white/5'} group hover:border-rose-500/30 transition-all animate-fade-in relative overflow-hidden flex flex-col gap-4">
+                        ${isLate ? '<div class="absolute -right-8 -top-8 w-16 h-16 bg-rose-500/10 rotate-45 flex items-end justify-center pb-1"><i class="fas fa-clock text-[8px] text-rose-500 mb-1"></i></div>' : ''}
                         <div class="flex items-start justify-between">
                             <div class="flex items-center gap-2">
-                                <div class="w-10 h-10 bg-slate-100 dark:bg-white/5 rounded-2xl flex items-center justify-center text-lg font-black text-slate-700 dark:text-white shadow-inner">
+                                <div class="w-10 h-10 ${isLate ? 'bg-rose-500/10 text-rose-500' : 'bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-white'} rounded-2xl flex items-center justify-center text-lg font-black shadow-inner">
                                     ${t.numero}
                                 </div>
                                 <div class="p-2 bg-indigo-500/5 text-indigo-500 rounded-xl">
@@ -924,7 +951,10 @@ export const renderProgramaTab = async (container) => {
 
                         <div class="flex items-center justify-between mt-2 pt-3 border-t border-slate-50 dark:border-white/5">
                             <div class="flex flex-col gap-1">
-                                <span class="text-[8px] font-black text-slate-400 uppercase tracking-tighter">${UIHelpers.fmtDateAt(t.fecha_asignacion)}</span>
+                                <span class="text-[8px] font-black ${isLate ? 'text-rose-500' : 'text-slate-400'} uppercase tracking-tighter">
+                                    ${UIHelpers.fmtDateAt(t.fecha_asignacion)}
+                                    ${isLate ? ` • <span class="animate-pulse">${diffDays} DÍAS</span>` : ''}
+                                </span>
                                 ${mzCount > 0 ? `<span class="bg-indigo-500/5 text-indigo-500 text-[7px] font-black px-1.5 py-0.5 rounded w-fit uppercase">${mzCount} MZ</span>` : ''}
                             </div>
                             
@@ -1039,9 +1069,11 @@ export const renderProgramaTab = async (container) => {
             let allSelected = true;
             modal.querySelector('#reception-select-all').onclick = () => {
                 allSelected = !allSelected;
-                modal.querySelectorAll('.reception-check').forEach(cb => cb.checked = allSelected);
+                modal.querySelectorAll('.reception-check').forEach(cb => {
+                    cb.checked = allSelected;
+                    cb.dispatchEvent(new Event('change'));
+                });
                 modal.querySelector('#reception-select-all').innerText = allSelected ? 'Deseleccionar Todos' : 'Seleccionar Todos';
-                updateCounter();
             };
 
             // Toggle "No Preached" UI Logic

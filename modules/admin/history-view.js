@@ -49,13 +49,13 @@ export const renderHistorialView = async (container) => {
     container.innerHTML = `
         <div class="relative animate-fade-in p-2 md:p-4 max-w-7xl mx-auto w-full overflow-x-hidden pb-20">
             <!-- Floating Stats (Xolvy Radar) -->
-            <div class="fixed top-24 right-6 z-50 flex flex-col gap-2 pointer-events-none">
+            <div class="absolute top-0 right-0 z-10 flex flex-col md:flex-row gap-2 pointer-events-none pr-2">
                 <div class="pointer-events-auto bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200 dark:border-white/10 px-4 py-2 rounded-2xl shadow-xl flex items-center gap-3">
-                    <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                    <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
                     <span class="text-[9px] font-black uppercase text-slate-500">${coverage}% Cobertura</span>
                 </div>
                 <div class="pointer-events-auto bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200 dark:border-white/10 px-4 py-2 rounded-2xl shadow-xl flex items-center gap-3">
-                    <div class="w-2 h-2 rounded-full bg-rose-500"></div>
+                    <div class="w-1.5 h-1.5 rounded-full bg-rose-500"></div>
                     <span class="text-[9px] font-black uppercase text-slate-500">${assignedCount} Ocupados</span>
                 </div>
             </div>
@@ -114,7 +114,6 @@ export const renderHistorialView = async (container) => {
 
         grid.innerHTML = displayList.map(t => {
             const tHistory = (historyByNum[t.numero] || [])
-                .filter(h => h.estado === 'Completado' || h.estado === 'Predicado')
                 .sort((a, b) => new Date(b.fecha_entrega || b.timestamp) - new Date(a.fecha_entrega || a.timestamp));
 
             const isFree = t.estado === 'Libre' || t.estado === 'Disponible' || t.estado === 'Sin asignar';
@@ -122,37 +121,39 @@ export const renderHistorialView = async (container) => {
 
             return `
                 <div class="modern-card !p-0 border-slate-100 dark:border-white/5 shadow-sm hover:shadow-md transition-all group overflow-hidden flex flex-col bg-white dark:bg-[#0d1117]">
-                    <div class="flex flex-col lg:flex-row items-center p-4 lg:p-5 gap-6">
-                        <div class="w-14 h-14 ${numBg} rounded-2xl flex items-center justify-center text-white text-xl font-black shadow-lg shrink-0 group-hover:scale-110 transition-transform duration-500">
-                            ${t.numero}
-                        </div>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 flex-1 w-full lg:w-auto">
-                            <div class="flex flex-col">
-                                <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 opacity-60">Localidad</span>
-                                <div class="flex items-center gap-2 text-slate-700 dark:text-white">
-                                    <span class="text-[12px] font-black uppercase truncate">${t.localidad || 'Mi Ciudad'}</span>
-                                </div>
+                    <div class="flex flex-col p-4 lg:p-6 gap-6">
+                        <div class="flex items-center gap-6 w-full">
+                            <div class="w-16 h-16 ${numBg} rounded-2xl flex items-center justify-center text-white text-2xl font-black shadow-lg shrink-0 group-hover:scale-110 transition-transform duration-500">
+                                ${t.numero}
                             </div>
-                            <div class="flex flex-col">
-                                <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 opacity-60">Manzanas</span>
-                                <div class="flex items-center gap-2 text-slate-500 dark:text-slate-400">
-                                    <span class="text-[10px] font-bold truncate">${t.manzanas || 'Sin manzanas'}</span>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 flex-1">
+                                <div class="flex flex-col">
+                                    <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 opacity-60">Localidad</span>
+                                    <div class="flex items-center gap-2 text-slate-700 dark:text-white">
+                                        <span class="text-[13px] font-black uppercase truncate">${t.localidad || 'Mi Ciudad'}</span>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="flex flex-col lg:items-end justify-center">
-                                ${t.asignado_a ? `<span class="text-[9px] font-black text-slate-400 uppercase truncate max-w-[120px] bg-slate-50 dark:bg-white/5 px-3 py-1 rounded-lg border border-slate-100 dark:border-white/5">${t.asignado_a}</span>` : ''}
+                                <div class="flex flex-col">
+                                    <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 opacity-60">Manzanas</span>
+                                    <div class="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+                                        <span class="text-[11px] font-bold truncate">${t.manzanas || 'Sin manzanas'}</span>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col lg:items-end justify-center">
+                                    ${t.asignado_a ? `<span class="text-[9px] font-black text-slate-400 uppercase truncate max-w-[150px] bg-slate-50 dark:bg-white/5 px-3 py-1.5 rounded-lg border border-slate-100 dark:border-white/5">${t.asignado_a}</span>` : ''}
+                                </div>
                             </div>
                         </div>
 
-                        <div class="flex items-center gap-2 shrink-0 w-full lg:w-auto mt-4 lg:mt-0 pt-4 lg:pt-0 border-t lg:border-t-0 border-slate-50 dark:border-white/5">
-                            <button onclick="window.viewTimeline('${t.numero}', 's13')" class="flex-1 lg:flex-none h-12 px-5 flex items-center justify-center gap-2 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg active:scale-95">
+                        <div class="flex items-center gap-2 w-full pt-4 border-t border-slate-50 dark:border-white/5">
+                            <button onclick="window.viewTimeline('${t.numero}', 's13')" class="flex-1 h-14 flex items-center justify-center gap-3 bg-slate-900 dark:bg-slate-800 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-slate-800 transition-all shadow-lg active:scale-95">
                                 <i class="fas fa-clock-rotate-left text-xs"></i> Cronología
                             </button>
-                            <button onclick="window.viewTimeline('${t.numero}', 'obs')" class="flex-1 lg:flex-none h-12 px-5 flex items-center justify-center gap-2 bg-indigo-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-lg shadow-indigo-500/20 active:scale-95">
+                            <button onclick="window.viewTimeline('${t.numero}', 'obs')" class="flex-1 h-14 flex items-center justify-center gap-3 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-indigo-500 transition-all shadow-xl shadow-indigo-600/20 active:scale-95">
                                 <i class="fas fa-comment-dots text-xs"></i> Notas
                             </button>
-                            <button onclick="window.quickAssign('${t.id}', '${t.numero}')" class="w-12 h-12 flex items-center justify-center bg-slate-100 dark:bg-white/5 text-slate-500 hover:text-primary rounded-2xl transition-all">
+                            <button onclick="window.quickAssign('${t.id}', '${t.numero}')" class="w-14 h-14 flex items-center justify-center bg-slate-100 dark:bg-white/5 text-slate-500 hover:text-primary rounded-2xl transition-all border border-slate-200 dark:border-white/10 shrink-0">
                                 <i class="fas fa-plus"></i>
                             </button>
                         </div>
@@ -204,7 +205,7 @@ export const renderHistorialView = async (container) => {
 
         const tHistory = (historyByNum[num] || [])
             .filter(h => {
-                if (mode === 's13') return h.estado === 'Completado' || h.estado === 'Predicado' || h.estado === 'Asignado';
+                if (mode === 's13') return true; // Show all states in general chronology
                 return h.observaciones && h.observaciones.trim().length > 0;
             })
             .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
@@ -214,31 +215,45 @@ export const renderHistorialView = async (container) => {
             return;
         }
 
-        content.innerHTML = tHistory.map(h => `
-            <div class="relative pl-12 group/item">
-                <div class="absolute left-3.5 top-2 w-3.5 h-3.5 ${mode === 's13' ? 'bg-emerald-500' : 'bg-indigo-500'} rounded-full border-4 border-white dark:border-[#0d1117] z-10 shadow-sm transition-transform group-hover/item:scale-150"></div>
+        content.innerHTML = tHistory.map(h => {
+            const getStatusBadge = (status) => {
+                const s = String(status || '').toLowerCase();
+                if (s === 'asignado') return { text: 'Asignado', color: 'text-rose-500 bg-rose-500/10' };
+                if (s === 'completado' || s === 'predicado') return { text: 'Completado', color: 'text-emerald-500 bg-emerald-500/10' };
+                if (s === 'disponible' || s === 'libre') return { text: 'Liberado', color: 'text-slate-500 bg-slate-100 dark:bg-white/10' };
+                if (s === 'devuelto') return { text: 'Devuelto', color: 'text-amber-500 bg-amber-500/10' };
+                if (s === 'sobrepuesto') return { text: 'Absorbido', color: 'text-indigo-400 bg-indigo-500/10' };
+                if (s === 'extraviado') return { text: 'Extraviado', color: 'text-rose-600 bg-rose-600/10' };
+                return { text: status, color: 'text-slate-400 bg-slate-50 dark:bg-white/5' };
+            };
+            const badge = getStatusBadge(h.estado);
+
+            return `
+            <div class="relative pl-12 group/item animate-fade-in">
+                <div class="absolute left-3.5 top-2 w-3.5 h-3.5 ${mode === 's13' ? (h.estado === 'Asignado' ? 'bg-rose-500' : 'bg-emerald-500') : 'bg-indigo-500'} rounded-full border-4 border-white dark:border-[#0d1117] z-10 shadow-sm transition-transform group-hover/item:scale-150"></div>
                 <div class="p-6 bg-white dark:bg-white/[0.02] rounded-3xl border border-slate-100 dark:border-white/5 shadow-sm hover:shadow-xl transition-all">
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <div class="flex flex-col">
                             <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Responsable</span>
-                            <span class="text-xs font-black text-slate-800 dark:text-white uppercase">${h.conductor || 'Anónimo'}</span>
+                            <span class="text-xs font-black text-slate-800 dark:text-white uppercase truncate">${h.conductor || 'Anónimo'}</span>
                         </div>
                         <div class="flex flex-col">
                             <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Evento</span>
-                            <span class="text-[10px] font-black ${h.estado === 'Completado' ? 'text-emerald-500' : 'text-slate-500'} uppercase">${h.estado}</span>
+                            <span class="text-[10px] font-black ${badge.color} px-3 py-1 rounded-lg w-fit transition-all">${badge.text}</span>
                         </div>
                         <div class="flex flex-col">
                             <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Fecha</span>
                             <span class="text-[11px] font-bold text-slate-600 dark:text-gray-400">${UIHelpers.fmtDateAt(h.fecha_entrega || h.fecha_asignacion || h.timestamp)}</span>
                         </div>
-                        <div class="flex flex-col ${mode === 'obs' ? 'col-span-1 md:col-span-2 lg:col-span-1' : ''}">
+                        <div class="flex flex-col col-span-1 md:col-span-1 lg:col-span-1">
                             <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Observación</span>
-                            <span class="text-[10px] font-medium text-slate-500 dark:text-gray-400 italic">"${h.observaciones || 'Sin notas'}"</span>
+                            <span class="text-[10px] font-medium text-slate-500 dark:text-gray-400 italic leading-tight">"${h.observaciones || 'Sin notas'}"</span>
                         </div>
                     </div>
                 </div>
             </div>
-        `).join('');
+        `;
+        }).join('');
     };
 
     window.showGlobalObservations = () => {
