@@ -494,22 +494,37 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
     // Helper for Phones
     const refreshPhones = async (forceRefresh = false) => {
         const allPhones = await getTelefonos(forceRefresh);
-        const normDN = displayName?.trim().toLowerCase();
+        const cleanStr = (s) => String(s || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
 
-        console.log(`[Phones] Refreshing for: "${displayName}" (Normalized: "${normDN}")`);
+        const userEmail = auth.currentUser?.email?.toLowerCase() || '';
+        const userName = cleanStr(displayName);
+
+        console.log(`[Phones] Refreshing for: "${userName}" / "${userEmail}"`);
         console.log(`[Phones] Total in DB: ${allPhones.length}`);
 
         const filtered = allPhones.filter(t => {
-            const sol = String(t.solicitado_por || '').trim().toLowerCase();
-            const pub = String(t.publicador_asignado || '').trim().toLowerCase();
-            const asg = String(t.asignado_a || '').trim().toLowerCase();
+            const sol = cleanStr(t.solicitado_por);
+            const pub = cleanStr(t.publicador_asignado);
+            const asg = cleanStr(t.asignado_a);
 
-            const isMatch = sol === normDN || pub === normDN || asg === normDN;
+            // Match if requested by me, or assigned specifically to me (by name or email)
+            const isMatch = (sol === userName || sol === userEmail) ||
+                (pub === userName || pub === userEmail) ||
+                (asg === userName || asg === userEmail);
             return isMatch;
         });
 
         console.log(`[Phones] Filtered count: ${filtered.length}`);
         return filtered;
+    };
+
+    // Robust Refresh for Table specifically
+    window.refreshPhoneTableOnly = async () => {
+        const searchPhone = container.querySelector('#search-phone');
+        const filterStatus = container.querySelector('#filter-phone-status');
+        const term = searchPhone?.value.toLowerCase() || '';
+        const status = filterStatus?.value || '';
+        await refreshAndRenderPhoneTable(term, status);
     };
 
     // Expose refresh function/trigger
@@ -645,16 +660,12 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
         const filterStatus = container.querySelector('#filter-phone-status');
         if (searchPhone) {
             searchPhone.oninput = () => {
-                const term = searchPhone.value.toLowerCase();
-                const status = filterStatus?.value || '';
-                refreshAndRenderPhoneTable(term, status);
+                window.refreshPhoneTableOnly();
             };
         }
         if (filterStatus) {
             filterStatus.onchange = () => {
-                const term = searchPhone?.value.toLowerCase() || '';
-                const status = filterStatus.value;
-                refreshAndRenderPhoneTable(term, status);
+                window.refreshPhoneTableOnly();
             };
         }
 
@@ -935,7 +946,8 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
         });
         const publicadores = await getPublicadores();
         if (mPhone.initializePhoneModule) {
-            mPhone.initializePhoneModule(filtered, publicadores, displayName, container.querySelector('#phone-tbody'), refreshPhones);
+            // Corrected: pass refreshPhoneTableOnly as onRefresh to maintain filters
+            mPhone.initializePhoneModule(filtered, publicadores, displayName, container.querySelector('#phone-tbody'), window.refreshPhoneTableOnly);
         }
     };
 

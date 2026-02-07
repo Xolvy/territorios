@@ -7,10 +7,10 @@ export const initializePhoneModule = (initialPhones, publicadores, displayName, 
     // Xolvy Data Shield: Clean and filter phone records
     const normalize = (val) => String(val || '').replace(/[\s\-\(\)]/g, '').trim();
     const myPhones = (initialPhones || [])
-        .filter(p => p.telefono && String(p.telefono).trim().length > 0)
+        .filter(p => (p.telefono || p.phone || p.numero) && String(p.telefono || p.phone || p.numero).trim().length > 0)
         .map(p => ({
             ...p,
-            telefono: normalize(p.telefono)
+            telefono: normalize(p.telefono || p.phone || p.numero)
         }));
 
     const render = () => {
