@@ -516,8 +516,12 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
     window.refreshConductorView = async () => {
         try {
             const config = await getConfiguracion();
-            const allC = await getConductores();
-            const conductorData = allC.find(c => c.nombre === displayName);
+            const allC = await getPublicadores();
+            const normalized = displayName.trim().toLowerCase();
+            const conductorData = allC.find(c =>
+                String(c.nombre || '').trim().toLowerCase() === normalized ||
+                String(c.email || '').trim().toLowerCase() === normalized
+            );
             const userMods = conductorData?.modulos || {
                 agenda: true,
                 programa: true,
@@ -529,7 +533,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
             };
 
             await loadUnifiedDashboard(container, displayName, container.querySelector('#agenda-intelligence-badge'), container.querySelector('#calendar-container'), container.querySelector('#territorios-container'), userMods, config, conductorData, userRole);
-            const myPhones = await refreshPhones();
+            const myPhones = await refreshPhones(true); // Force refresh to see newly requested numbers
             const publicadores = await getPublicadores();
 
             // Set up Solicitar Números logic
@@ -571,9 +575,13 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
             if (myPhones.length > 0) {
                 compactView?.classList.add('hidden');
                 expandedView?.classList.remove('hidden');
+                container.querySelector('#phone-actions')?.classList.remove('hidden');
+                container.querySelector('#btn-solicitar-more')?.classList.remove('hidden');
+                container.querySelector('#btn-finalizar-sesion')?.classList.remove('hidden');
             } else {
                 compactView?.classList.remove('hidden');
                 expandedView?.classList.add('hidden');
+                container.querySelector('#phone-actions')?.classList.add('hidden');
             }
 
             if (mPhone && mPhone.initializePhoneModule) {
@@ -650,24 +658,89 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
             };
         }
 
-        // Revisitas Filter Toggle
+        // Revisitas Modal
         const btnRevisitas = container.querySelector('#btn-revisitas');
         if (btnRevisitas) {
-            btnRevisitas.onclick = () => {
-                const currentStatus = filterStatus?.value;
-                const newStatus = currentStatus === 'Revisita' ? '' : 'Revisita';
-                if (filterStatus) filterStatus.value = newStatus;
+            btnRevisitas.onclick = async () => {
+                showNotification("Cargando revisitas...", "info");
+                const allPhones = await getTelefonos(true);
+                const revisitas = allPhones.filter(p => p.estado === 'Revisita');
 
-                // Visual feedback
-                if (newStatus === 'Revisita') {
-                    btnRevisitas.classList.replace('bg-amber-500/10', 'bg-amber-500');
-                    btnRevisitas.classList.replace('text-amber-600', 'text-white');
-                } else {
-                    btnRevisitas.classList.replace('bg-amber-500', 'bg-amber-500/10');
-                    btnRevisitas.classList.replace('text-white', 'text-amber-600');
-                }
+                showModal(`
+                    <div class="p-8 space-y-8 bg-slate-50 dark:bg-[#0b0e14]">
+                        <div class="flex items-center gap-6">
+                            <div class="w-16 h-16 bg-amber-500/10 rounded-2xl flex items-center justify-center text-3xl text-amber-500 shadow-inner border border-amber-500/10">
+                                <i class="fas fa-sync-alt rotate-180"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter leading-none mb-1">Centro de Revisitas</h3>
+                                <p class="text-[10px] text-amber-500 font-black uppercase tracking-[0.3em]">Gestión de contactos interesados</p>
+                            </div>
+                        </div>
 
-                refreshAndRenderPhoneTable(searchPhone?.value || '', newStatus);
+                        <div class="space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
+                            ${revisitas.length === 0 ? `
+                                <div class="py-12 text-center opacity-40">
+                                    <p class="text-[10px] font-black uppercase tracking-[0.4em]">No hay revisitas registradas</p>
+                                </div>
+                            ` : revisitas.map(r => `
+                                <div class="modern-card bg-white dark:bg-white/[0.03] !p-6 border-slate-200 dark:border-white/5 group hover:border-amber-500/30 transition-all shadow-sm">
+                                    <div class="flex justify-between items-start mb-4">
+                                        <div>
+                                            <h4 class="text-lg font-black text-slate-800 dark:text-white tabular-nums">${formatPhoneNumber(r.telefono)}</h4>
+                                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">${r.propietario || 'Propietario no registrado'}</p>
+                                        </div>
+                                        <div class="px-3 py-1 bg-amber-500/10 text-amber-500 rounded-lg text-[8px] font-black uppercase tracking-widest">Revisita</div>
+                                    </div>
+                                    
+                                    <div class="flex items-center gap-3 mb-6 bg-slate-50 dark:bg-black/20 p-4 rounded-xl border border-black/5">
+                                        <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary text-xs">
+                                            <i class="fas fa-user-edit"></i>
+                                        </div>
+                                        <div class="flex-1">
+                                            <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Responsable</p>
+                                            <p class="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase">${r.asignado_a || r.publicador_asignado || 'Sin asignar'}</p>
+                                        </div>
+                                    </div>
+
+                                    ${r.notas ? `
+                                        <div class="mb-6 p-4 bg-amber-50/30 dark:bg-amber-500/5 rounded-xl border border-amber-500/10 italic text-[11px] text-slate-600 dark:text-slate-400 font-medium">
+                                            "${r.notas}"
+                                        </div>
+                                    ` : ''}
+
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <button onclick="window.returnPhoneToPool('${r.id}')" class="py-3 bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-rose-500/5 flex items-center justify-center gap-2">
+                                            <i class="fas fa-undo-alt"></i> Devolver
+                                        </button>
+                                        <button onclick="window.reAssignAndCall('${r.id}', '${r.telefono}')" class="py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-xl shadow-indigo-600/20 flex items-center justify-center gap-2">
+                                            <i class="fas fa-phone-alt"></i> Llamar
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        
+                        <button onclick="window.closeModal()" class="w-full py-4 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] hover:text-primary transition-colors">Cerrar Ventana</button>
+                    </div>
+                `, null, 'max-w-2xl');
+
+                window.returnPhoneToPool = async (id) => {
+                    showCustomConfirm("¿Estás seguro de devolver este número al pozo general? Dejará de aparecer en tus revisitas.", async () => {
+                        await updateTelefonoStatus(id, 'Sin asignar', null);
+                        window.closeModal();
+                        showNotification("Número devuelto al pozo general");
+                        window.refreshConductorView();
+                    });
+                };
+
+                window.reAssignAndCall = async (id, phone) => {
+                    // Re-request properly if not currently requested by me
+                    await solicitarNumeros(1, displayName);
+                    // Open notes
+                    window.openPhoneNotes(id, phone, '');
+                    window.closeModal();
+                };
             };
         }
 
@@ -1183,22 +1256,24 @@ const loadUnifiedDashboard = async (container, name, intelligenceBadge, agendaCo
                                 <p class="text-[9px] text-slate-400 font-black uppercase tracking-[0.2em] mt-0.5">Mapa Estático de la Congregación</p>
                             </div>
                         </div>
-                        <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="w-12 h-12 bg-slate-100 dark:bg-white/5 hover:bg-rose-500/10 hover:text-rose-500 rounded-2xl transition-all border border-transparent hover:border-rose-500/20 flex items-center justify-center shadow-sm">
-                            <i class="fas fa-times"></i>
-                        </button>
+                            <button onclick="document.getElementById('modal-container').classList.add('hidden'); document.getElementById('modal-container').classList.remove('flex');" class="w-12 h-12 bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white rounded-2xl transition-all flex items-center justify-center text-lg active:scale-95">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
                     </div>
+                    
                     <div class="flex-1 overflow-hidden rounded-[2.5rem] bg-slate-100 dark:bg-black/40 border border-slate-200 dark:border-white/5 flex items-center justify-center relative touch-none shadow-inner" id="png-zoom-container">
-                        <img id="global-png-map" src="./assets/mapa-general.jpg" class="max-w-full max-h-full object-contain transition-all duration-200 ease-out shadow-2xl origin-center" style="transform: scale(1) translate(0px, 0px);">
+                        <img id="global-png-map" src="assets/mapa-general.jpg" class="max-w-full max-h-full object-contain transition-all duration-200 ease-out shadow-2xl origin-center" style="transform: scale(1) translate(0px, 0px);">
                         
-                        <!-- Zoom Controls Floating -->
-                        <div class="absolute bottom-10 right-10 flex flex-col gap-3">
-                            <button onclick="window.adjustGlobalZoom(0.3)" class="w-14 h-14 rounded-2xl bg-white/95 dark:bg-[#1a1c2a]/95 backdrop-blur shadow-2xl text-primary font-black border border-slate-200 dark:border-white/10 flex items-center justify-center hover:scale-110 active:scale-90 transition-all">
+                         <!-- Dynamic Controls -->
+                        <div class="absolute bottom-10 right-10 flex flex-col gap-3 z-50">
+                            <button id="btn-global-zoom-in" class="w-12 h-12 rounded-2xl bg-white/95 dark:bg-[#1a1c2a]/95 backdrop-blur shadow-2xl text-primary font-black border border-slate-200 dark:border-white/10 flex items-center justify-center hover:scale-110 active:scale-90 transition-all">
                                 <i class="fas fa-plus"></i>
                             </button>
-                            <button onclick="window.adjustGlobalZoom(-0.3)" class="w-14 h-14 rounded-2xl bg-white/95 dark:bg-[#1a1c2a]/95 backdrop-blur shadow-2xl text-primary font-black border border-slate-200 dark:border-white/10 flex items-center justify-center hover:scale-110 active:scale-90 transition-all">
+                            <button id="btn-global-zoom-out" class="w-12 h-12 rounded-2xl bg-white/95 dark:bg-[#1a1c2a]/95 backdrop-blur shadow-2xl text-primary font-black border border-slate-200 dark:border-white/10 flex items-center justify-center hover:scale-110 active:scale-90 transition-all">
                                 <i class="fas fa-minus"></i>
                             </button>
-                            <button onclick="window.resetGlobalZoom()" class="w-14 h-14 rounded-2xl bg-primary text-white shadow-2xl flex items-center justify-center hover:scale-110 active:scale-90 transition-all group">
+                            <button id="btn-global-zoom-reset" class="w-12 h-12 rounded-2xl bg-primary text-white shadow-2xl flex items-center justify-center hover:scale-110 active:scale-90 transition-all group">
                                 <i class="fas fa-undo-alt group-hover:rotate-[-45deg] transition-transform"></i>
                             </button>
                         </div>
@@ -1206,110 +1281,25 @@ const loadUnifiedDashboard = async (container, name, intelligenceBadge, agendaCo
                 </div>
     `;
                 // Initialize Pan and Zoom logic
-                setTimeout(() => window.initPanZoom('global-png-map', 'png-zoom-container'), 100);
+                modal.classList.add('flex');
+                setTimeout(() => {
+                    panZoomController = UIHelpers.initImagePanZoom('global-png-map', 'png-zoom-container');
+                    if (panZoomController) {
+                        modal.querySelector('#btn-global-zoom-in').onclick = () => panZoomController.zoom(0.3);
+                        modal.querySelector('#btn-global-zoom-out').onclick = () => panZoomController.zoom(-0.3);
+                        modal.querySelector('#btn-global-zoom-reset').onclick = () => panZoomController.reset();
+                    }
+                }, 100);
             } else if (type === 'satellite') {
                 modal.innerHTML = '<div id="global-map-root" class="w-full h-full max-w-6xl mx-auto p-4 md:p-10"></div>';
                 MapViewer.renderGlobal(document.getElementById('global-map-root'), allTerritorios);
             }
         };
 
-        // --- GLOBAL MAP UTILS ---
-        let zoomState = { scale: 1, x: 0, y: 0 };
-        window.adjustGlobalZoom = (delta) => {
-            const img = document.getElementById('global-png-map');
-            if (!img) return;
-            zoomState.scale = Math.max(0.5, Math.min(5, zoomState.scale + delta));
-            img.style.transform = `scale(${zoomState.scale}) translate(${zoomState.x}px, ${zoomState.y}px)`;
-        };
+        let panZoomController = null;
 
-        window.resetGlobalZoom = () => {
-            const img = document.getElementById('global-png-map');
-            if (!img) return;
-            zoomState = { scale: 1, x: 0, y: 0 };
-            img.style.transform = `scale(1) translate(0px, 0px)`;
-        };
 
-        window.initPanZoom = (imgId, containerId) => {
-            const img = document.getElementById(imgId);
-            const container = document.getElementById(containerId);
-            if (!img || !container) return;
 
-            let isDragging = false;
-            let startX, startY;
-            let lastX = 0, lastY = 0;
-
-            const updateTransform = () => {
-                img.style.transform = `scale(${zoomState.scale}) translate(${zoomState.x}px, ${zoomState.y}px)`;
-            };
-
-            container.onmousedown = (e) => {
-                if (zoomState.scale <= 1) return;
-                isDragging = true;
-                startX = e.clientX - lastX;
-                startY = e.clientY - lastY;
-                container.style.cursor = 'grabbing';
-            };
-
-            window.onmousemove = (e) => {
-                if (!isDragging) return;
-                lastX = e.clientX - startX;
-                lastY = e.clientY - startY;
-                zoomState.x = lastX / zoomState.scale;
-                zoomState.y = lastY / zoomState.scale;
-                updateTransform();
-            };
-
-            window.onmouseup = () => {
-                isDragging = false;
-                container.style.cursor = 'default';
-            };
-
-            // Touch Support
-            let lastTouchDist = 0;
-            container.ontouchstart = (e) => {
-                if (e.touches.length === 1) {
-                    isDragging = true;
-                    startX = e.touches[0].clientX - lastX;
-                    startY = e.touches[0].clientY - lastY;
-                } else if (e.touches.length === 2) {
-                    lastTouchDist = Math.hypot(
-                        e.touches[0].clientX - e.touches[1].clientX,
-                        e.touches[0].clientY - e.touches[1].clientY
-                    );
-                }
-            };
-
-            container.ontouchmove = (e) => {
-                if (e.touches.length === 1 && isDragging) {
-                    lastX = e.touches[0].clientX - startX;
-                    lastY = e.touches[0].clientY - startY;
-                    zoomState.x = lastX / zoomState.scale;
-                    zoomState.y = lastY / zoomState.scale;
-                    updateTransform();
-                } else if (e.touches.length === 2) {
-                    const dist = Math.hypot(
-                        e.touches[0].clientX - e.touches[1].clientX,
-                        e.touches[0].clientY - e.touches[1].clientY
-                    );
-                    const delta = (dist - lastTouchDist) / 100;
-                    zoomState.scale = Math.max(0.5, Math.min(5, zoomState.scale + delta));
-                    lastTouchDist = dist;
-                    updateTransform();
-                }
-            };
-
-            container.ontouchend = () => {
-                isDragging = false;
-            };
-
-            // Mouse Wheel Zoom
-            container.onwheel = (e) => {
-                e.preventDefault();
-                const delta = e.deltaY > 0 ? -0.1 : 0.1;
-                zoomState.scale = Math.max(0.5, Math.min(5, zoomState.scale + delta));
-                updateTransform();
-            };
-        };
 
         if (!hasShifts) {
             agendaContainer.innerHTML = `
@@ -1878,7 +1868,7 @@ window.openProgressModal = async (initialId, filterIds = null) => {
             btn.onclick = () => {
                 const tid = btn.dataset.tid;
                 const val = btn.dataset.val;
-                const siblings = modal.querySelectorAll(`.completion - toggle[data - tid="${tid}"]`);
+                const siblings = modal.querySelectorAll(`.completion-toggle[data-tid="${tid}"]`);
                 siblings.forEach(s => {
                     s.classList.add('opacity-40', 'grayscale');
                     s.classList.remove('active', 'border-teal-500', 'bg-teal-500/5', 'border-amber-500', 'bg-amber-500/5');
@@ -1888,7 +1878,7 @@ window.openProgressModal = async (initialId, filterIds = null) => {
                 if (val === 'full') btn.classList.add('border-teal-500', 'bg-teal-500/5');
                 else btn.classList.add('border-amber-500', 'bg-amber-500/5');
 
-                const selector = modal.querySelector(`.partial - selector[data - tid="${tid}"]`);
+                const selector = modal.querySelector(`.partial-selector[data-tid="${tid}"]`);
                 if (val === 'parcial') selector.classList.remove('hidden');
                 else selector.classList.add('hidden');
             };
@@ -1898,13 +1888,13 @@ window.openProgressModal = async (initialId, filterIds = null) => {
         modal.querySelectorAll('.btn-sel-all-mz').forEach(btn => {
             btn.onclick = () => {
                 const tid = btn.dataset.tid;
-                const mzs = modal.querySelectorAll(`.mz - done - check[data - tid="${tid}"]`);
+                const mzs = modal.querySelectorAll(`.mz-done-check[data-tid="${tid}"]`);
                 const someUnchecked = Array.from(mzs).some(m => !m.checked);
                 mzs.forEach(m => m.checked = someUnchecked);
                 btn.innerText = someUnchecked ? 'Desmarcar todas' : 'Marcar todas las manzanas';
 
                 // Ensure the territory is selected if user marks apples
-                const check = modal.querySelector(`.return - check[value = "${tid}"]`);
+                const check = modal.querySelector(`.return-check[value="${tid}"]`);
                 if (someUnchecked && !check.checked) {
                     check.checked = true;
                     updateVisibility(check);
@@ -1916,7 +1906,7 @@ window.openProgressModal = async (initialId, filterIds = null) => {
         modal.querySelectorAll('.photo-input').forEach(input => {
             input.onchange = (e) => {
                 const tid = input.dataset.tid;
-                const grid = modal.querySelector(`.photos - grid[data - tid="${tid}"]`);
+                const grid = modal.querySelector(`.photos-grid[data-tid="${tid}"]`);
                 Array.from(e.target.files).forEach(file => {
                     if (file.size > 800 * 1024) return showNotification("Foto muy grande (max 800KB)", "warning");
                     const reader = new FileReader();
@@ -1924,11 +1914,11 @@ window.openProgressModal = async (initialId, filterIds = null) => {
                         const container = document.createElement('div');
                         container.className = 'relative w-16 h-16 rounded-2xl overflow-hidden border border-black/10 group animate-scale-in shadow-sm';
                         container.innerHTML = `
-    < img src = "${ev.target.result}" class="w-full h-full object-cover" >
-        <button onclick="this.parentElement.remove()" class="absolute inset-0 bg-rose-500/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-            <i class="fas fa-trash-alt text-xs"></i>
-        </button>
-`;
+                            <img src="${ev.target.result}" class="w-full h-full object-cover">
+                            <button onclick="this.parentElement.remove()" class="absolute inset-0 bg-rose-500/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <i class="fas fa-trash-alt text-xs"></i>
+                            </button>
+                        `;
                         grid.insertBefore(container, grid.lastElementChild);
                     };
                     reader.readAsDataURL(file);
@@ -1952,11 +1942,7 @@ window.openProgressModal = async (initialId, filterIds = null) => {
                         await returnTerritorio(id, notes, null, 'Disponible');
                     }
                     showNotification("Reporte registrado. Territorios liberados.");
-                    const mc = document.getElementById('modal-container');
-                    if (mc) {
-                        mc.classList.add('hidden');
-                        mc.innerHTML = '';
-                    }
+                    window.closeModal();
                     if (window.refreshConductorView) await window.refreshConductorView();
                 } catch (err) {
                     console.error(err);
@@ -1980,7 +1966,7 @@ window.openProgressModal = async (initialId, filterIds = null) => {
 
             try {
                 for (const tid of targetIds) {
-                    const toggle = modal.querySelector(`.completion - toggle[data - tid="${tid}"].active`);
+                    const toggle = modal.querySelector(`.completion-toggle[data-tid="${tid}"].active`);
                     const isPartial = toggle && toggle.dataset.val === 'parcial';
                     const t = myTerritories.find(x => x.id === tid);
 
@@ -1995,8 +1981,8 @@ window.openProgressModal = async (initialId, filterIds = null) => {
                     const original = t.manzanas ? t.manzanas.split(',').map(m => m.trim()).filter(Boolean) : [];
 
                     if (isPartial) {
-                        const checksMz = Array.from(modal.querySelectorAll(`.mz - done - check[data - tid="${tid}"]: checked`)).map(c => c.value);
-                        const manual = modal.querySelector(`.manual - input - modal[data - tid="${tid}"]`);
+                        const checksMz = Array.from(modal.querySelectorAll(`.mz-done-check[data-tid="${tid}"]:checked`)).map(c => c.value);
+                        const manual = modal.querySelector(`.manual-input-modal[data-tid="${tid}"]`);
                         const manualVal = manual ? manual.value.split(',').map(s => s.trim()).filter(Boolean) : [];
                         const completed = checksMz.concat(manualVal);
                         const remaining = original.filter(x => !completed.includes(x));
@@ -2020,11 +2006,7 @@ window.openProgressModal = async (initialId, filterIds = null) => {
                 }
 
                 showNotification("¡Excelente! Informes registrados con éxito.");
-                const mc = document.getElementById('modal-container');
-                if (mc) {
-                    mc.classList.add('hidden');
-                    mc.innerHTML = '';
-                }
+                window.closeModal();
                 if (window.refreshConductorView) await window.refreshConductorView();
 
             } catch (err) {

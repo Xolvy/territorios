@@ -53,11 +53,11 @@ export const showNotification = (message, type = 'success', duration = 5000, wor
 
     // Type Styling
     const styles = {
-        success: { bg: 'bg-emerald-500/10 border-emerald-500/20', text: 'text-emerald-500', icon: 'fa-check-circle', label: 'ÉXITO' },
-        error: { bg: 'bg-rose-500/10 border-rose-500/20', text: 'text-rose-500', icon: 'fa-triangle-exclamation', label: 'ERROR' },
-        warning: { bg: 'bg-amber-500/10 border-amber-500/20', text: 'text-amber-500', icon: 'fa-circle-exclamation', label: 'AVISO' },
-        info: { bg: 'bg-indigo-500/10 border-indigo-500/20', text: 'text-indigo-500', icon: 'fa-circle-info', label: 'INFO' },
-        sync: { bg: 'bg-slate-900/60 border-indigo-500/40', text: 'text-indigo-400', icon: 'fa-sync-alt fa-spin-slow', label: 'XOLVY WORKFLOW' }
+        success: { bg: 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-500/20', text: 'text-emerald-600 dark:text-emerald-400', icon: 'fa-check-circle', label: 'ÉXITO' },
+        error: { bg: 'bg-rose-50 dark:bg-rose-500/10 border-rose-500/20', text: 'text-rose-600 dark:text-rose-400', icon: 'fa-triangle-exclamation', label: 'ERROR' },
+        warning: { bg: 'bg-amber-50 dark:bg-amber-500/10 border-amber-500/20', text: 'text-amber-600 dark:text-amber-400', icon: 'fa-circle-exclamation', label: 'AVISO' },
+        info: { bg: 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-500/20', text: 'text-indigo-600 dark:text-indigo-400', icon: 'fa-circle-info', label: 'INFO' },
+        sync: { bg: 'bg-slate-900 border-indigo-500/40', text: 'text-indigo-400', icon: 'fa-sync-alt fa-spin-slow', label: 'XOLVY WORKFLOW' }
     };
 
     const isSync = type === 'sync' || message.includes('Sincronizando');
@@ -75,10 +75,10 @@ export const showNotification = (message, type = 'success', duration = 5000, wor
            </div>`
         : '';
 
-    card.className = `${s.bg} border backdrop-blur-3xl px-5 py-3.5 rounded-2xl shadow-2xl flex flex-col gap-1 animate-slide-left pointer-events-auto transform transition-all duration-500 hover:scale-[1.02] group min-w-[280px] max-w-[340px]`;
+    card.className = `${s.bg} border backdrop-blur-xl px-5 py-3.5 rounded-2xl shadow-2xl flex flex-col gap-1 animate-slide-left pointer-events-auto transform transition-all duration-500 hover:scale-[1.02] group min-w-[280px] max-w-[340px]`;
     card.innerHTML = `
         <div class="flex items-center gap-4 w-full">
-            <div class="w-10 h-10 ${isSync ? 'bg-indigo-500/20' : (s.bg.includes('bg-emerald') ? 'bg-emerald-500/20' : s.bg)} rounded-xl flex items-center justify-center ${s.text} shadow-inner shrink-0 group-hover:scale-110 transition-transform">
+            <div class="w-10 h-10 ${isSync ? 'bg-indigo-500/20' : 'bg-white/50 dark:bg-white/5'} rounded-xl flex items-center justify-center ${s.text} shadow-inner shrink-0 group-hover:scale-110 transition-transform">
                  <i class="fas ${s.icon} text-lg"></i>
             </div>
             <div class="flex flex-col flex-1">

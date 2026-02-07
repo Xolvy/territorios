@@ -11,7 +11,7 @@ export const MapViewer = {
             <div class="flex flex-col h-full w-full animate-fade-in bg-white dark:bg-slate-900 rounded-[2.5rem] overflow-hidden shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)] border border-white/10 relative">
                 
                 <!-- GLASS HEADER -->
-                <div class="absolute top-6 left-6 right-6 z-40 flex justify-between items-center p-4 bg-white/70 dark:bg-gray-900/60 backdrop-blur-2xl rounded-3xl border border-white/20 dark:border-white/5 shadow-2xl">
+                <div class="z-40 flex justify-between items-center p-4 m-6 bg-white/70 dark:bg-gray-900/60 backdrop-blur-2xl rounded-3xl border border-white/20 dark:border-white/5 shadow-2xl">
                     <div class="flex items-center gap-4">
                         <div class="w-12 h-12 bg-indigo-500 rounded-2xl flex items-center justify-center text-2xl shadow-[0_0_20px_rgba(79,70,229,0.4)] border border-white/20">
                             <i class="fas fa-map-marked-alt text-white text-xl"></i>
@@ -24,12 +24,12 @@ export const MapViewer = {
                     <div class="flex items-center gap-2">
                         <!-- VIEW TOGGLE BUTTON (Only if image exists) -->
                         ${imagen ? `
-                        <button id="btn-toggle-view" class="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2 border border-white/20 shadow-lg">
-                            <i class="fas fa-sync-alt"></i> <span>Ver Mapa Interactivo</span>
+                        <button id="btn-toggle-view" class="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2 border border-white/20 shadow-lg group">
+                            <i class="fas fa-sync-alt group-hover:rotate-180 transition-transform duration-500"></i> <span>Ver Mapa Interactivo</span>
                         </button>
                         ` : ''}
-                        <button id="close-map" class="w-10 h-10 bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white rounded-xl transition-all flex items-center justify-center">
-                            <i class="fas fa-times"></i>
+                        <button id="close-map" class="w-10 h-10 bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white rounded-xl transition-all flex items-center justify-center group">
+                            <i class="fas fa-times group-hover:rotate-90 transition-transform"></i>
                         </button>
                     </div>
                 </div>
@@ -67,9 +67,20 @@ export const MapViewer = {
                     
                     <!-- STATIC IMAGE VIEW (PNG) -->
                     ${imagen ? `
-                    <div id="static-image-viewer" class="absolute inset-0 w-full h-full flex items-center justify-center p-4 transition-opacity duration-500 opacity-100 overflow-auto bg-black/40 backdrop-blur-sm z-30">
-                        <div class="bg-white p-2 rounded-3xl shadow-[0_40px_80px_rgba(0,0,0,0.8)] border border-white/20 transform hover:scale-[1.02] transition-transform">
-                            <img id="map-img-element" src="${imagen}" class="max-w-full max-h-full object-contain cursor-zoom-in rounded-2xl" onclick="window.toggleImageZoom(this)">
+                    <div id="static-image-viewer" class="absolute inset-0 w-full h-full flex items-center justify-center p-4 transition-opacity duration-500 opacity-100 overflow-hidden bg-slate-100 dark:bg-black/40 backdrop-blur-sm z-30 touch-none" id="territory-image-container">
+                        <img id="map-img-element" src="${imagen}" class="max-w-full max-h-full object-contain shadow-2xl rounded-2xl transition-all duration-200 ease-out origin-center" style="transform: scale(1) translate(0px, 0px);">
+                        
+                        <!-- Floating Zoom Controls -->
+                        <div class="absolute bottom-10 right-10 flex flex-col gap-3 z-50">
+                            <button id="btn-zoom-in" class="w-12 h-12 rounded-2xl bg-white/95 dark:bg-[#1a1c2a]/95 backdrop-blur shadow-2xl text-primary font-black border border-slate-200 dark:border-white/10 flex items-center justify-center hover:scale-110 active:scale-90 transition-all">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                            <button id="btn-zoom-out" class="w-12 h-12 rounded-2xl bg-white/95 dark:bg-[#1a1c2a]/95 backdrop-blur shadow-2xl text-primary font-black border border-slate-200 dark:border-white/10 flex items-center justify-center hover:scale-110 active:scale-90 transition-all">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <button id="btn-zoom-reset" class="w-12 h-12 rounded-2xl bg-primary text-white shadow-2xl flex items-center justify-center hover:scale-110 active:scale-90 transition-all group">
+                                <i class="fas fa-undo-alt group-hover:rotate-[-45deg] transition-transform"></i>
+                            </button>
                         </div>
                     </div>
                     ` : ''}
@@ -105,9 +116,29 @@ export const MapViewer = {
             };
         }
 
+        if (imagen) {
+            setTimeout(() => {
+                if (UIHelpers.initImagePanZoom) {
+                    const controller = UIHelpers.initImagePanZoom('map-img-element', 'static-image-viewer');
+                    if (controller) {
+                        const btnIn = container.querySelector('#btn-zoom-in');
+                        const btnOut = container.querySelector('#btn-zoom-out');
+                        const btnReset = container.querySelector('#btn-zoom-reset');
+
+                        if (btnIn) btnIn.onclick = () => controller.zoom(0.3);
+                        if (btnOut) btnOut.onclick = () => controller.zoom(-0.3);
+                        if (btnReset) btnReset.onclick = () => controller.reset();
+                    }
+                }
+            }, 100);
+        }
+
         document.getElementById('close-map').onclick = () => {
             const modal = document.getElementById('modal-container');
-            if (modal) modal.classList.add('hidden');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
             container.innerHTML = '';
         };
 
@@ -385,6 +416,11 @@ export const MapViewer = {
                         features.forEach(f => {
                             f.setProperty('numero', t.numero);
                             f.setProperty('id', t.id);
+                            f.setProperty('manzanas', t.manzanas);
+
+                            // Extract specific manzana from GeoJSON if available
+                            const explicitMz = f.getProperty('name') || f.getProperty('manzana') || f.getProperty('label');
+                            if (explicitMz) f.setProperty('mz_label', explicitMz);
 
                             const geo = f.getGeometry();
                             if (geo.getType() === 'Polygon') {
@@ -457,7 +493,10 @@ export const MapViewer = {
                 const id = event.feature.getProperty('id');
                 const t = allTerritorios.find(x => x.id === id);
                 if (t) {
-                    showNotification(`Territorio ${t.numero} seleccionado`, "info");
+                    const explicitMz = event.feature.getProperty('mz_label');
+                    const generalMz = event.feature.getProperty('manzanas');
+                    const mzDisplay = explicitMz ? ` (Mz. ${explicitMz})` : (generalMz ? ` (Mz. ${generalMz})` : '');
+                    showNotification(`Territorio ${t.numero}${mzDisplay} seleccionado`, "info");
                 }
             });
 
@@ -482,17 +521,6 @@ window.openInteractiveMap = (territory, options = {}) => {
     if (!modal) return;
     modal.innerHTML = '<div id="map-viewer-root" class="w-full h-full max-w-6xl mx-auto p-2 md:p-8"></div>';
     modal.classList.remove('hidden');
+    modal.classList.add('flex');
     MapViewer.render(document.getElementById('map-viewer-root'), territory, options);
-};
-
-window.toggleImageZoom = (img) => {
-    if (img.classList.contains('cursor-zoom-in')) {
-        img.classList.replace('cursor-zoom-in', 'cursor-zoom-out');
-        img.classList.replace('max-h-full', 'max-w-none');
-        img.style.width = '200%';
-    } else {
-        img.classList.replace('cursor-zoom-out', 'cursor-zoom-in');
-        img.classList.replace('max-w-none', 'max-h-full');
-        img.style.width = '';
-    }
 };

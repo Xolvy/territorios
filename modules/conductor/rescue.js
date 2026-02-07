@@ -60,9 +60,9 @@ export const renderRescueMissions = (allTerritorios, normalizedName, myExtraMiss
                                 ${rescueCandidates.map(t => {
             const isFree = t.estado === 'Libre' || t.estado === 'Disponible' || t.estado === 'Sin asignar';
             const isIncomplete = t.is_incomplete === true;
-            const accent = isIncomplete ? 'amber' : (isFree ? 'teal' : 'rose');
+            const accent = isFree ? 'teal' : 'rose';
             const icon = isIncomplete ? 'fa-puzzle-piece' : (isFree ? 'fa-door-open' : 'fa-clock');
-            const tag = isIncomplete ? 'INCOMPLETO' : (isFree ? 'DISPONIBLE' : 'RESISTENTE');
+            const tag = isFree ? 'DISPONIBLE' : 'INCOMPLETO';
 
             return `
                                     <div class="modern-card !p-8 bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5 shadow-xl hover:shadow-2xl transition-all group overflow-hidden relative">

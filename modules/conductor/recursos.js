@@ -105,11 +105,11 @@ export const renderRecursosSection = (container) => {
 
     window.showPreguntasFrecuentes = () => {
         const faqs = [
-            { q: '¿Cómo informo un territorio?', a: 'En tu Agenda Inteligente, pulsa el botón "Informar" en la tarjeta del territorio correspondiente. Podrás marcarlo como terminado o entrega parcial.' },
-            { q: '¿Cómo solicito números telefónicos?', a: 'Ve a la sección "Predicación Telefónica", elige la cantidad de números que necesitas (ej: 5, 10 o 15) y pulsa "Solicitar Números". El sistema te asignará un bloque disponible al instante.' },
-            { q: '¿Cómo veo los límites del territorio?', a: 'Usa el "Explorer de Mapas" para tu sector o pulsa "Mapa Satelital" en la cabecera para ver el Explorador Global con todos los polígonos y puntos de referencia de la congregación.' },
-            { q: '¿Qué es el botón "POR COMPLETAR"?', a: 'Son las Misiones de Rescate o "Bolsa de Trabajo". Aquí aparecen territorios con mucho retraso o que están libres para que cualquier publicador pueda ayudar a completarlos voluntariamente.' },
-            { q: '¿Qué hacer si no puedo predicar mi turno?', a: 'Ve a "Mi Disponibilidad" y desmarca el turno. Esto avisará al sistema y al responsable para que el territorio sea liberado y pueda ser asignado a otro compañero.' }
+            { q: '¿Cómo informo un territorio?', a: 'En tu Agenda Inteligente, pulsa "Informar". Ahora puedes adjuntar fotos de evidencia, dictar notas por voz y reportar avances por manzanas (informe parcial) si no terminaste todo el sector.' },
+            { q: '¿Cómo solicito números telefónicos?', a: 'En "Predicación Telefónica" pulsa "Solicitar". El sistema te asignará un bloque. Al terminar, usa el botón "Finalizar Sesión" para registrar tu actividad y liberar los números pendientes.' },
+            { q: '¿Qué es el botón "POR COMPLETAR"?', a: 'Muestra territorios libres (DISPONIBLE) o que han quedado a medias (INCOMPLETO). Puedes tomarlos voluntariamente para ayudar a terminar el sector de la congregación.' },
+            { q: '¿Cómo funcionan las Revisitas telefónicas?', a: 'Usa el botón "Revisitas" en el módulo de teléfonos para ver contactos interesados. Puedes llamarlos directamente o devolverlos al pozo general si ya no son necesarios.' },
+            { q: '¿Se pueden informar varios territorios a la vez?', a: '¡Sí! Al abrir el modal de informe, puedes marcar las casillas de varios territorios y enviar un reporte masivo con una sola nota, ahorrando tiempo.' }
         ];
 
         showModal(`
@@ -168,7 +168,7 @@ export const renderRecursosSection = (container) => {
                             <div class="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0 font-black">1</div>
                             <div class="space-y-1">
                                 <h5 class="text-xs font-black text-slate-800 dark:text-white uppercase">Exploración Dual</h5>
-                                <p class="text-[12px] text-slate-500 dark:text-slate-400 font-bold leading-relaxed">Usa el mapa individual para tu sector o el <b>Explorador Global</b> para ver toda la congregación con sus polígonos actualizados en tiempo real.</p>
+                                <p class="text-[12px] text-slate-500 dark:text-slate-400 font-bold leading-relaxed">Usa el mapa individual para tu sector o el <b>Explorador Global</b> (disponible en vista Imagen o Satélite) para ver toda la congregación con sus polígonos actualizados.</p>
                             </div>
                         </div>
                         <div class="flex gap-4">

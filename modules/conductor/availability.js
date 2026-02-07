@@ -35,7 +35,7 @@ export const renderAvailabilitySection = async (container, currentUserName) => {
         const dayDisp = currentDisp[dia] || [];
         return `
                             <div class="grid grid-cols-4 gap-2 items-center p-3 hover:bg-white dark:hover:bg-white/5 rounded-2xl transition-all group border border-transparent hover:border-slate-200 dark:hover:border-white/5">
-                                <span class="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest group-hover:text-primary transition-colors">${dia.substring(0, 3)} <span class="hidden sm:inline">${dia.substring(3)}</span></span>
+                                <span class="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest group-hover:text-primary transition-colors">${dia.substring(0, 3)}<span class="hidden sm:inline">${dia.substring(3)}</span></span>
                                 
                                 ${turnos.map(turno => {
             const isChecked = dayDisp.includes(turno);

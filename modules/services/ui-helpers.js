@@ -39,6 +39,103 @@ export const UIHelpers = {
             const f = (d) => `${d.getDate()}/${d.getMonth() + 1}`;
             return `${f(start)} - ${f(end)}, ${start.getFullYear()}`;
         } catch (e) { return date; }
+    },
+
+    initImagePanZoom: (imgId, containerId) => {
+        const img = document.getElementById(imgId);
+        const container = document.getElementById(containerId);
+        if (!img || !container) return null;
+
+        let state = { scale: 1, x: 0, y: 0 };
+        let isDragging = false;
+        let startX, startY;
+        let lastX = 0, lastY = 0;
+        let lastTouchDist = 0;
+
+        const updateTransform = () => {
+            img.style.transform = `scale(${state.scale}) translate(${state.x}px, ${state.y}px)`;
+        };
+
+        // Mouse Events
+        container.onmousedown = (e) => {
+            e.preventDefault();
+            isDragging = true;
+            startX = e.clientX - lastX;
+            startY = e.clientY - lastY;
+            container.style.cursor = 'grabbing';
+        };
+
+        window.onmousemove = (e) => {
+            if (!isDragging) return;
+            lastX = e.clientX - startX;
+            lastY = e.clientY - startY;
+            state.x = lastX / state.scale;
+            state.y = lastY / state.scale;
+            updateTransform();
+        };
+
+        window.onmouseup = () => {
+            isDragging = false;
+            container.style.cursor = 'default';
+        };
+
+        // Touch Events
+        container.ontouchstart = (e) => {
+            if (e.touches.length === 1) {
+                isDragging = true;
+                startX = e.touches[0].clientX - lastX;
+                startY = e.touches[0].clientY - lastY;
+            } else if (e.touches.length === 2) {
+                lastTouchDist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+            }
+        };
+
+        container.ontouchmove = (e) => {
+            if (e.touches.length === 1 && isDragging) {
+                lastX = e.touches[0].clientX - startX;
+                lastY = e.touches[0].clientY - startY;
+                state.x = lastX / state.scale;
+                state.y = lastY / state.scale;
+                updateTransform();
+            } else if (e.touches.length === 2) {
+                e.preventDefault(); // Prevent scroll while pinching
+                const dist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                const delta = (dist - lastTouchDist) / 100;
+                state.scale = Math.max(1, Math.min(10, state.scale + delta));
+                lastTouchDist = dist;
+                updateTransform();
+            }
+        };
+
+        container.ontouchend = () => {
+            isDragging = false;
+        };
+
+        // Wheel Zoom
+        container.onwheel = (e) => {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? -0.2 : 0.2;
+            state.scale = Math.max(1, Math.min(10, state.scale + delta));
+            updateTransform();
+        };
+
+        return {
+            reset: () => {
+                state = { scale: 1, x: 0, y: 0 };
+                lastX = 0; lastY = 0;
+                updateTransform();
+            },
+            zoom: (delta) => {
+                state.scale = Math.max(1, Math.min(10, state.scale + delta));
+                updateTransform();
+            }
+        };
     }
 };
 
@@ -139,6 +236,14 @@ export const showCustomAlert = (message) => {
     if (!message) return;
     const type = message.toLowerCase().includes('error') ? 'error' : 'success';
     showNotification(message, type);
+};
+
+window.closeModal = () => {
+    const mc = document.getElementById('modal-container');
+    if (mc) {
+        mc.classList.add('hidden');
+        mc.innerHTML = '';
+    }
 };
 
 window.showModal = showModal;
