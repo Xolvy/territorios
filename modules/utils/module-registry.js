@@ -11,21 +11,21 @@ const LOCAL_STORAGE_KEY = 'xolvy_module_registry';
 class ModuleRegistry {
     constructor() {
         this.registry = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)) || {
-            core: "2.4.2.5",
+            core: "2.4.2.6",
             login: "2.4.2.5",
-            admin: "2.4.2.5",
-            conductor: "2.4.3.7",
-            territories_view: "2.4.6.3",
+            admin: "2.4.2.6",
+            conductor: "2.4.6.5",
+            territories_view: "2.4.6.5",
             public_view: "2.4.2.5",
             phones_view: "2.4.2.5",
             rules_view: "2.4.3.7",
             availability: "2.4.2.5",
             recursos: "2.4.3.7",
             maps_explorer: "2.4.5.8",
-            rescue: "2.4.3.7",
+            rescue: "2.4.6.5",
             phone_module: "2.4.3.7",
             onboarding: "2.4.2.5",
-            analytics_view: "2.4.5.6",
+            analytics_view: "2.4.5.7",
             weekly_program: "2.4.2.5",
             program_views: "2.4.2.5"
         };

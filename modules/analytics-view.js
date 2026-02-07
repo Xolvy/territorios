@@ -1,5 +1,5 @@
 import Chart from 'chart.js/auto';
-import { getTerritorios, getConductores, getGlobalSettings, getHistorialReport } from '../data/firestore-services.js';
+import { getTerritorios, getConductores, getGlobalSettings, getHistorialReport, getGlobalStats, resyncGlobalStats } from '../data/firestore-services.js';
 
 // --- Helper UI Components ---
 const renderStatCard = (label, id, icon, color, sub) => `
@@ -185,6 +185,9 @@ export const renderAnalyticsView = async (container, appVersion) => {
                              <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span> Sincronizado
                         </span>
                     </div>
+                    <button id="btn-resync-stats" class="px-6 py-4 bg-white/5 hover:bg-emerald-500/10 text-emerald-400 rounded-2xl border border-white/5 backdrop-blur-md transition-all font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 shadow-xl active:scale-95 group" title="Recalcular Banco Común">
+                        <i class="fas fa-shield-halved group-hover:scale-110 transition-transform"></i> Recalcular
+                    </button>
                     <button id="btn-refresh-analytics" class="flex-1 md:flex-none px-8 py-4 bg-white/5 hover:bg-white/10 text-white rounded-2xl border border-white/10 backdrop-blur-md transition-all font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 shadow-xl active:scale-95 group">
                         <i class="fas fa-sync-alt group-hover:rotate-180 transition-transform duration-700"></i> Actualizar
                     </button>
@@ -203,17 +206,17 @@ export const renderAnalyticsView = async (container, appVersion) => {
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <!-- S-13 Mastery Card -->
                 <div class="lg:col-span-2 glass-card p-1 relative overflow-hidden group">
-                    <div class="bg-slate-900/40 backdrop-blur-3xl rounded-[2.2rem] p-8 h-full border border-white/5 flex flex-col md:flex-row gap-8 items-center relative z-10">
+                    <div class="bg-indigo-50 dark:bg-slate-900/40 backdrop-blur-3xl rounded-[2.2rem] p-8 h-full border border-slate-200 dark:border-white/5 flex flex-col md:flex-row gap-8 items-center relative z-10">
                         <div class="flex-1 space-y-6">
                             <div class="flex items-center gap-3">
                                 <span class="px-3 py-1 bg-emerald-500/10 text-emerald-500 text-[8px] font-black uppercase tracking-widest rounded-full border border-emerald-500/20">Registro S-13</span>
-                                <h3 class="text-xl font-black text-white uppercase tracking-tight">Cobertura Global</h3>
+                                <h3 class="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Cobertura Global</h3>
                             </div>
                             <div class="flex items-baseline gap-2">
-                                <span class="text-6xl font-black text-white tracking-tighter tabular-nums" id="stat-s13-coverage">0%</span>
-                                <span class="text-emerald-400 font-bold text-sm" id="stat-s13-diff">+0% vs mes ant.</span>
+                                <span class="text-6xl font-black text-slate-800 dark:text-white tracking-tighter tabular-nums" id="stat-s13-coverage">0%</span>
+                                <span class="text-emerald-500 font-bold text-sm" id="stat-s13-diff">+0% vs mes ant.</span>
                             </div>
-                            <div class="h-3 w-full bg-white/5 rounded-full overflow-hidden p-0.5 border border-white/5">
+                            <div class="h-3 w-full bg-slate-200 dark:bg-white/5 rounded-full overflow-hidden p-0.5 border border-slate-100 dark:border-white/5">
                                 <div id="stat-s13-progress-bar" class="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-1000" style="width: 0%"></div>
                             </div>
                             <p class="text-[10px] text-slate-400 font-medium uppercase tracking-wider leading-relaxed" id="stat-s13-coverage-info">
@@ -227,24 +230,24 @@ export const renderAnalyticsView = async (container, appVersion) => {
                 </div>
 
                 <!-- Strategic Quick Look -->
-                <div class="glass-card bg-gradient-to-br from-indigo-600/20 to-violet-600/20 backdrop-blur-3xl rounded-[2.2rem] p-8 border border-white/10 flex flex-col justify-between group shadow-xl">
+                <div class="glass-card bg-indigo-50/50 dark:bg-gradient-to-br dark:from-indigo-600/20 dark:to-violet-600/20 backdrop-blur-3xl rounded-[2.2rem] p-8 border border-slate-200 dark:border-white/10 flex flex-col justify-between group shadow-xl">
                     <div class="flex justify-between items-start">
-                        <div class="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center text-xl text-white shadow-inner border border-white/5">
+                        <div class="w-12 h-12 bg-indigo-500/10 dark:bg-white/10 rounded-xl flex items-center justify-center text-xl text-indigo-600 dark:text-white shadow-inner border border-indigo-500/5 dark:border-white/5">
                             <i class="fas fa-wand-magic-sparkles"></i>
                         </div>
-                        <span class="text-[8px] font-black text-white/50 uppercase tracking-[0.2em]">Foco Estratégico</span>
+                        <span class="text-[8px] font-black text-slate-400 dark:text-white/50 uppercase tracking-[0.2em]">Foco Estratégico</span>
                     </div>
                     <div class="space-y-4">
                         <div class="space-y-1">
-                            <p class="text-[10px] font-black text-indigo-300 uppercase tracking-widest">Mayor Rezago (S-13)</p>
-                            <p class="text-2xl font-black text-white tracking-tighter" id="stat-s13-oldest">#--</p>
-                            <p class="text-[9px] text-indigo-200/40 font-bold uppercase" id="stat-s13-oldest-info">Escaneando historial...</p>
+                            <p class="text-[10px] font-black text-indigo-600 dark:text-indigo-300 uppercase tracking-widest">Mayor Rezago (S-13)</p>
+                            <p class="text-2xl font-black text-slate-800 dark:text-white tracking-tighter" id="stat-s13-oldest">#--</p>
+                            <p class="text-[9px] text-indigo-600/60 dark:text-indigo-200/40 font-bold uppercase" id="stat-s13-oldest-info">Escaneando historial...</p>
                         </div>
-                        <div class="h-px bg-white/10"></div>
+                        <div class="h-px bg-slate-200 dark:bg-white/10"></div>
                         <div class="space-y-1">
-                            <p class="text-[10px] font-black text-violet-300 uppercase tracking-widest">Zona Caliente</p>
-                            <p class="text-xl font-black text-white truncate" id="stat-s13-frequent">--</p>
-                            <p class="text-[9px] text-violet-200/40 font-bold uppercase" id="stat-s13-frequent-info">Nivel de rotación</p>
+                            <p class="text-[10px] font-black text-violet-600 dark:text-violet-300 uppercase tracking-widest">Punto de Enfoque</p>
+                            <p class="text-xl font-black text-slate-800 dark:text-white truncate" id="stat-s13-frequent">--</p>
+                            <p class="text-[9px] text-violet-600/60 dark:text-violet-200/40 font-bold uppercase" id="stat-s13-frequent-info">Nivel de rotación</p>
                         </div>
                     </div>
                 </div>
@@ -319,16 +322,19 @@ export const renderAnalyticsView = async (container, appVersion) => {
     // --- Data Management & Chart Initialization ---
     const loadData = async () => {
         try {
-            const [territorios, conductores, historial] = await Promise.all([
+            const [territorios, conductores, historial, globalStats] = await Promise.all([
                 getTerritorios(),
                 getConductores(),
-                getHistorialReport()
+                getHistorialReport(),
+                getGlobalStats()
             ]);
 
             const expDays = settings?.expiration_days || 120;
-            const total = territorios.length;
+
+            // Xolvy Intelligence: Use aggregated stats for primary metrics, fallback to calculated if needed
+            const total = globalStats.total_territorios || territorios.length;
+            const assignedCount = globalStats.territorios_asignados !== undefined ? globalStats.territorios_asignados : territorios.filter(t => t.estado === 'Asignado').length;
             const assigned = territorios.filter(t => t.estado === 'Asignado');
-            const assignedCount = assigned.length;
 
             const now = new Date();
             const lateTerritories = assigned.filter(t => {
@@ -419,5 +425,19 @@ export const renderAnalyticsView = async (container, appVersion) => {
     const refreshBtn = document.getElementById('btn-refresh-analytics');
     if (refreshBtn) {
         refreshBtn.onclick = () => renderAnalyticsView(container, appVersion);
+    }
+
+    const resyncBtn = document.getElementById('btn-resync-stats');
+    if (resyncBtn) {
+        resyncBtn.onclick = async () => {
+            const icon = resyncBtn.querySelector('i');
+            icon.classList.add('fa-spin');
+            resyncBtn.disabled = true;
+
+            await resyncGlobalStats();
+
+            showNotification("Estadísticas sincronizadas con el Banco Común", "success");
+            renderAnalyticsView(container, appVersion);
+        };
     }
 };

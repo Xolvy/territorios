@@ -2,23 +2,58 @@
 description: How to implement the Xolvy Shield data integrity pattern in a module
 ---
 
-Follow these steps to apply "Xolvy Shield" to any new or existing module to ensure data robustness:
+# Xolvy Data Shield: Common Bank & Atomic Integrity
 
-1. **Identify Critical Fields**: Determine which fields are essential for the module (e.g., `numero`, `id`, `fecha`).
-2. **Implement Normalization**: Add a normalization helper at the top of the file or in a shared utility.
+Follow these steps to apply "Xolvy Shield" to ensure data robustness, cross-module synchronization, and a **Unified Common Bank** (Banco Común) architecture:
 
-    ```javascript
-    const normalize = (val) => String(val || '').trim();
-    ```
+## 1. Unified Common Bank (Architecture)
 
-3. **Apply Ghost Filtering**: When fetching data from Firestore or any source, filter out records that don't meet the normalization criteria.
-4. **Add Visual Status Badges**: If the module involves data that can be "soft" or "hard" assigned, implement a status badge component:
-    - **LISTO**: Valid sync.
-    - **OCUPADO**: Conflict found.
-    - **ASIGNAR**: Needs formalization.
-5. **Enforce Terminology**: Use `.replace()` logic to strip prefixes like "Grupo " or fix legacy terms like "Salmo" to "Mz.".
-6. **Nested Array Serialization**: Firestore doesn't support nested arrays (GeoJSON). ALWAYS use `JSON.stringify(geojson)` before saving and `JSON.parse(data.geojson)` in the normalization engine to ensure map persistence.
-7. **Add 'Shield' Comments**: Mark these sections with `// Xolvy Data Shield: [Description]` to make it part of the system's identity.
+- **Single Source of Truth**: Identify the master collection (e.g., `historial_territorios`).
+- **Universal Access**: All modules (Admin, Conductor, Public) MUST query this collection for historical or state-dependent data.
+- **Reference Integrity**: Documents in sub-collections must reference the `id` of the master document to maintain a clean relational map.
+
+## 2. Atomic Transactions (Pattern)
+
+ALWAYS use `runTransaction` for operations that touch multiple documents.
+
+```javascript
+await runTransaction(db, async (transaction) => {
+    // 1. Read all required docs first
+    const masterDoc = await transaction.get(masterRef);
+    // 2. Perform logic & validations
+    // 3. Queue all updates at once
+    transaction.update(masterRef, { status: 'Updated' });
+    transaction.set(historyRef, { log: 'Change' });
+    transaction.update(statsRef, { count: increment(1) });
+});
+```
+
+## 3. Global Aggregations & Manual Resync
+
+- **Pre-calculated Stats**: Maintain a `configuracion/stats_globales` document.
+- **Resync Utility**: Every "Common Bank" implementation MUST include a `resyncGlobalStats()` function to audit and recover counts from raw data if drift occurs.
+
+## 4. Auditability: Soft Deletes
+
+- **Pattern**: NEVER use `deleteDoc` on common bank records.
+- **Implementation**: Add `{ deleted: true, deletedAt: Timestamp.now() }` fields.
+- **Filtering**: Update all queries to include `where("deleted", "!=", true)`.
+
+## 5. Bilateral Propagation (Bilateral Sync)
+
+Any modification in the History bank must trigger:
+
+- **Territory Sync**: Update the current assignment state.
+- **Program Sync**: Move/Update territories in the `programa_semanal` slots (Morning/Afternoon/Evening/Zoom).
+
+## 6. Shielded Normalization
+
+```javascript
+const shield = {
+    num: (v) => String(v || '').replace(/[^0-9(P)]/g, ''), // Supports Partials (P)
+    date: (v) => (v || new Date().toISOString()).split('T')[0]
+};
+```
 
 // turbo
-7. Verify implementation by running `npm run lint` or checking the module in the browser.
+10. Verify that Admin Reports and Conductor Views render identical data from the same Atomic Common Bank.

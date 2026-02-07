@@ -83,8 +83,11 @@ export const renderRecursosSection = (container) => {
                         ` : data.map(r => `
                             <div onclick="window.open('${r.url}', '_blank')" class="modern-card p-6 border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/5 hover:border-blue-500/30 transition-all cursor-pointer group">
                                 <div class="flex items-center gap-5">
-                                    <div class="w-12 h-12 bg-blue-500/10 text-blue-500 rounded-xl flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
-                                        <i class="fas fa-file-pdf"></i>
+                                    <div class="w-16 h-12 bg-blue-500/10 text-blue-500 rounded-xl flex items-center justify-center text-xl group-hover:scale-105 transition-transform overflow-hidden border border-blue-500/10">
+                                        ${r.imagen ?
+                `<img src="${r.imagen}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity">` :
+                `<i class="fas fa-file-pdf"></i>`
+            }
                                     </div>
                                     <div class="flex-1">
                                         <h4 class="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight">${r.titulo}</h4>
@@ -103,9 +106,10 @@ export const renderRecursosSection = (container) => {
     window.showPreguntasFrecuentes = () => {
         const faqs = [
             { q: '¿Cómo informo un territorio?', a: 'En tu Agenda Inteligente, pulsa el botón "Informar" en la tarjeta del territorio correspondiente. Podrás marcarlo como terminado o entrega parcial.' },
-            { q: '¿Cómo solicito números telefónicos?', a: 'Ve a la sección "Predicación Telefónica", elige si es para ti o tu grupo y pulsa "Solicitar Números". El sistema te asignará un bloque nuevo.' },
-            { q: '¿Cómo veo los límites del territorio?', a: 'En el módulo "Explorer de Mapas", selecciona tu territorio. Se abrirá el mapa interactivo donde verás las manzanas y calles exactas.' },
-            { q: '¿Qué hacer si no puedo predicar mi turno?', a: 'Ve a "Mi Disponibilidad" y desmarca el turno. Esto avisará al sistema y al responsable para que alguien más pueda cubrirlo.' }
+            { q: '¿Cómo solicito números telefónicos?', a: 'Ve a la sección "Predicación Telefónica", elige la cantidad de números que necesitas (ej: 5, 10 o 15) y pulsa "Solicitar Números". El sistema te asignará un bloque disponible al instante.' },
+            { q: '¿Cómo veo los límites del territorio?', a: 'Usa el "Explorer de Mapas" para tu sector o pulsa "Mapa Satelital" en la cabecera para ver el Explorador Global con todos los polígonos y puntos de referencia de la congregación.' },
+            { q: '¿Qué es el botón "POR COMPLETAR"?', a: 'Son las Misiones de Rescate o "Bolsa de Trabajo". Aquí aparecen territorios con mucho retraso o que están libres para que cualquier publicador pueda ayudar a completarlos voluntariamente.' },
+            { q: '¿Qué hacer si no puedo predicar mi turno?', a: 'Ve a "Mi Disponibilidad" y desmarca el turno. Esto avisará al sistema y al responsable para que el territorio sea liberado y pueda ser asignado a otro compañero.' }
         ];
 
         showModal(`
@@ -163,22 +167,22 @@ export const renderRecursosSection = (container) => {
                         <div class="flex gap-4">
                             <div class="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0 font-black">1</div>
                             <div class="space-y-1">
-                                <h5 class="text-xs font-black text-slate-800 dark:text-white uppercase">Acceso al Mapa</h5>
-                                <p class="text-[12px] text-slate-500 dark:text-slate-400 font-bold leading-relaxed">Selecciona tu territorio en el "Explorador de Mapas" o desde tu Agenda Inteligente para ver la vista satelital.</p>
+                                <h5 class="text-xs font-black text-slate-800 dark:text-white uppercase">Exploración Dual</h5>
+                                <p class="text-[12px] text-slate-500 dark:text-slate-400 font-bold leading-relaxed">Usa el mapa individual para tu sector o el <b>Explorador Global</b> para ver toda la congregación con sus polígonos actualizados en tiempo real.</p>
                             </div>
                         </div>
                         <div class="flex gap-4">
                             <div class="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0 font-black">2</div>
                             <div class="space-y-1">
-                                <h5 class="text-xs font-black text-slate-800 dark:text-white uppercase">Ubicación en GPS</h5>
-                                <p class="text-[12px] text-slate-500 dark:text-slate-400 font-bold leading-relaxed">Pulsa el ícono de la mira para centrar el mapa en tu posición actual. Asegúrate de permitir el acceso al GPS.</p>
+                                <h5 class="text-xs font-black text-slate-800 dark:text-white uppercase">Radar GPS Automático</h5>
+                                <p class="text-[12px] text-slate-500 dark:text-slate-400 font-bold leading-relaxed">El sistema activa un <b>radar de ubicación (círculo índigo)</b> que te sigue automáticamente. Ya no necesitas pulsar botones para saber dónde estás.</p>
                             </div>
                         </div>
                         <div class="flex gap-4">
                             <div class="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0 font-black">3</div>
                             <div class="space-y-1">
-                                <h5 class="text-xs font-black text-slate-800 dark:text-white uppercase">Capas del Mapa</h5>
-                                <p class="text-[12px] text-slate-500 dark:text-slate-400 font-bold leading-relaxed">Puedes alternar entre vista de calle (vector) y satelital para identificar mejor los techos y entradas de las casas.</p>
+                                <h5 class="text-xs font-black text-slate-800 dark:text-white uppercase">Perspectiva y 3D</h5>
+                                <p class="text-[12px] text-slate-500 dark:text-slate-400 font-bold leading-relaxed">Activa el <b>modo 3D</b> para identificar entradas y alturas. Toca cualquier polígono para ver información del territorio o puntos de interés.</p>
                             </div>
                         </div>
                     </div>

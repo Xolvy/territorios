@@ -19,39 +19,42 @@ export const renderAvailabilitySection = async (container, currentUserName) => {
     const turnos = ['mañana', 'tarde', 'noche'];
 
     container.innerHTML = `
-        <div class="space-y-8 animate-fade-in">
-            <div class="flex items-center gap-4">
-                <div class="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 shadow-inner">
-                    <i class="fas fa-clock"></i>
+        <div class="animate-fade-in space-y-2">
+            <!-- Compact Single Card Grid -->
+            <div class="modern-card bg-slate-50/50 dark:bg-white/[0.02] border-slate-200 dark:border-white/5 p-4 md:p-6">
+                <!-- Header Labels -->
+                <div class="grid grid-cols-4 gap-2 mb-4 px-4 opacity-50">
+                    <div class="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">Día</div>
+                    <div class="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 text-center">Mañana</div>
+                    <div class="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 text-center">Tarde</div>
+                    <div class="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 text-center">Noche</div>
                 </div>
-                <div>
-                    <h4 class="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Mi Disponibilidad</h4>
-                    <p class="text-[10px] text-slate-400 font-extrabold uppercase tracking-[0.3em]">Gestiona tus horarios para el programa</p>
-                </div>
-            </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                ${dias.map(dia => `
-                    <div class="modern-card p-5 border-slate-100 dark:border-white/5 space-y-4">
-                        <h5 class="text-[10px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-50 dark:border-white/5 pb-2">${dia}</h5>
-                        <div class="flex flex-col gap-2">
-                            ${turnos.map(turno => {
-        const isChecked = currentDisp[dia]?.includes(turno);
+                <div class="space-y-1">
+                    ${dias.map(dia => {
+        const dayDisp = currentDisp[dia] || [];
         return `
-                                    <label class="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-transparent hover:border-emerald-500/30 transition-all cursor-pointer group">
-                                        <span class="text-[11px] font-black uppercase text-slate-600 dark:text-slate-300">${turno}</span>
-                                        <input type="checkbox" data-dia="${dia}" data-turno="${turno}" ${isChecked ? 'checked' : ''} class="w-5 h-5 rounded-lg border-2 border-slate-200 dark:border-white/10 text-emerald-500 focus:ring-emerald-500 transition-all cursor-pointer">
-                                    </label>
-                                `;
+                            <div class="grid grid-cols-4 gap-2 items-center p-3 hover:bg-white dark:hover:bg-white/5 rounded-2xl transition-all group border border-transparent hover:border-slate-200 dark:hover:border-white/5">
+                                <span class="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest group-hover:text-primary transition-colors">${dia.substring(0, 3)} <span class="hidden sm:inline">${dia.substring(3)}</span></span>
+                                
+                                ${turnos.map(turno => {
+            const isChecked = dayDisp.includes(turno);
+            return `
+                                        <div class="flex justify-center">
+                                            <input type="checkbox" data-dia="${dia}" data-turno="${turno}" ${isChecked ? 'checked' : ''} 
+                                                class="w-6 h-6 rounded-lg border-2 border-slate-200 dark:border-white/10 text-emerald-500 focus:ring-emerald-500 transition-all cursor-pointer bg-white dark:bg-slate-900">
+                                        </div>
+                                    `;
+        }).join('')}
+                            </div>
+                        `;
     }).join('')}
-                        </div>
-                    </div>
-                `).join('')}
+                </div>
             </div>
 
-            <div class="flex justify-end pt-4">
-                <button id="btn-save-disp" class="bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-emerald-500/20 active:scale-95 transition-all flex items-center gap-3">
-                    <i class="fas fa-save"></i> Guardar Disponibilidad
+            <div class="flex justify-center pt-4">
+                <button id="btn-save-disp" class="w-full max-w-xs bg-emerald-500 hover:bg-emerald-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] shadow-xl shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-3">
+                    <i class="fas fa-save shadow-lg"></i> Guardar Disponibilidad
                 </button>
             </div>
         </div>

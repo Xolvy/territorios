@@ -382,7 +382,7 @@ export const renderProgramaTab = async (container) => {
                     html += `<div class="space-y-1.5">`;
 
                     if (field === 'Territorio') {
-                        const tNums = String(val).split(/[,;]/).map(n => n.trim()).filter(n => n);
+                        const tNums = Array.from(new Set(String(val).split(/[,;/]/).map(n => n.trim()).filter(Boolean)));
                         const conductor = dia[turnoId].conductor;
                         const stats = tNums.map(n => getTStatus(n, conductor));
 
@@ -394,7 +394,7 @@ export const renderProgramaTab = async (container) => {
                                 <span><i class="fas fa-map-marked-alt opacity-30"></i> ${field}</span>
                                 <div id="status-badge-${dayIndex}-${turnoId}">
                                     ${val ? (() => {
-                                const results = tNums.map(n => getTStatus(n, conductor, dia.fecha, turnoId));
+                                const results = Array.from(new Set(String(val).split(/[,;/]/).map(n => n.trim()).filter(Boolean))).map(n => getTStatus(n, conductor, dia.fecha, turnoId));
                                 const allSync = results.every(r => r.isSync);
                                 const conflict = results.find(r => r.isConflict);
 
@@ -520,7 +520,7 @@ export const renderProgramaTab = async (container) => {
             if (badgeContainer) {
                 const dia = programa.dias[dayIdx];
                 const v = dia[turnoId].territorio;
-                const tNums = String(v || '').split(/[,;]/).map(n => n.trim()).filter(n => n);
+                const tNums = Array.from(new Set(String(v || '').split(/[,;/]/).map(n => n.trim()).filter(Boolean)));
                 const conductor = dia[turnoId].conductor;
 
                 const results = tNums.map(n => getTStatus(n, conductor, dia.fecha, turnoId));
@@ -574,7 +574,7 @@ export const renderProgramaTab = async (container) => {
 
         if (!rawNum || !cond) return showNotification("Faltan datos en el programa para asignar", "warning");
 
-        const tNums = String(rawNum).split(/[,;]/).map(n => n.trim()).filter(n => n);
+        const tNums = Array.from(new Set(String(rawNum).split(/[,;/]/).map(n => n.trim()).filter(Boolean)));
         const freshT = await getTerritorios();
         const foundTs = tNums.map(num => freshT.find(t => t.numero === num)).filter(Boolean);
 
@@ -1193,26 +1193,12 @@ export const renderProgramaTab = async (container) => {
                     `}).join('')}
                 </div>
 
-                <div class="space-y-4">
-                    <div class="flex items-center justify-between">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Fecha Global de Asignación</label>
-                        <span class="text-[9px] font-bold text-emerald-500 uppercase bg-emerald-500/5 px-2 py-0.5 rounded">Recomendado: Domingo anterior</span>
-                    </div>
-                    <input type="date" id="sync-all-date" value="${(() => {
-                const d = new Date(currentWeekStart);
-                d.setDate(d.getDate() - 1);
-                // Local date string YYYY-MM-DD
-                const year = d.getFullYear();
-                const month = String(d.getMonth() + 1).padStart(2, '0');
-                const day = String(d.getDate()).padStart(2, '0');
-                return `${year}-${month}-${day}`;
-            })()}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[14px] font-black text-primary outline-none focus:border-primary transition-all uppercase shadow-inner">
-                    <p class="text-[9px] text-slate-400 font-bold uppercase tracking-tight ml-1 leading-relaxed">
-                        Esta fecha se usará para el registro histórico (S-13). Por defecto hemos seleccionado el Domingo anterior al inicio de esta semana (${(() => {
-                const d = new Date(currentWeekStart);
-                d.setDate(d.getDate() - 1);
-                return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'long' });
-            })()}).
+                <div class="p-5 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl space-y-2">
+                    <p class="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest flex items-center gap-2">
+                        <i class="fas fa-shield-alt"></i> Sincronización Bilateral Activa
+                    </p>
+                    <p class="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-tight leading-relaxed">
+                        Las asignaciones se sincronizarán usando la fecha exacta de cada día del programa. Esto permite que un territorio se use varias veces en la misma semana sin conflictos y elimina registros obsoletos de la base de datos.
                     </p>
                 </div>
 
@@ -1246,34 +1232,50 @@ export const renderProgramaTab = async (container) => {
                 const checkedIdxs = Array.from(modal.querySelectorAll('.sync-check:checked')).map(cb => parseInt(cb.value));
                 if (checkedIdxs.length === 0) return showNotification("Seleccione al menos una asignación", "warning");
 
-                const date = modal.querySelector('#sync-all-date').value;
-                if (!date) return;
-
                 const btn = e.currentTarget;
                 btn.disabled = true;
                 btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> PROCESANDO...';
 
-                const { assignTerritorio } = await import('../../data/firestore-services.js');
+                const { syncSlotWithTerritories } = await import('../../data/firestore-services.js');
                 showNotification(`Formalizando ${checkedIdxs.length} asignaciones...`, 'info');
 
+                // 1. Group checked assignments by Slot (Day + Turn) 
+                // This is CRITICAL to handle "Total Replacement" correctly
+                const slotsToSync = new Map();
                 for (const idx of checkedIdxs) {
                     const item = toSync[idx];
-                    if (!item.tInfo || !item.data.conductor) {
-                        console.warn(`Skipping invalid item: ${item.data.territorio}`);
-                        continue;
+                    const slotKey = `${item.dayIdx}_${item.turnoId}`;
+                    if (!slotsToSync.has(slotKey)) {
+                        slotsToSync.set(slotKey, {
+                            dayIdx: item.dayIdx,
+                            turnoId: item.turnoId,
+                            dia: item.dia,
+                            conductor: item.data.conductor,
+                            tNums: [],
+                            fullData: item.data
+                        });
                     }
-                    await assignTerritorio(item.tInfo.id, item.data.conductor, {
-                        fecha_asignacion: new Date(date + 'T12:00:00Z').toISOString(),
-                        lugar: item.data.lugar || null,
-                        hora: item.data.hora || null,
-                        faceta: item.data.faceta || null,
-                        turno: item.turnoId,
-                        dia: item.dia.nombre,
-                        conductor: item.data.conductor,
-                        territorio: item.specificT,
-                        notes: item.data.notas || null,
+                    slotsToSync.get(slotKey).tNums.push(item.specificT);
+                }
+
+                // 2. Synchronize each slot
+                const weekId = programa.id;
+                for (const [key, slot] of slotsToSync) {
+                    // Calculate the Actual Date for this specific day (Monday, Tuesday, etc.)
+                    // Standards: weekId is Monday. 
+                    const slotDate = new Date(weekId + 'T12:00:00Z');
+                    slotDate.setUTCDate(slotDate.getUTCDate() + slot.dayIdx);
+                    const slotDateISO = slotDate.toISOString();
+
+                    const syncData = {
+                        ...slot.fullData,
+                        // Override territory list with ONLY the ones selected in the modal for this slot
+                        territorio: slot.tNums.join(' / '),
                         prog_sync: true
-                    });
+                    };
+
+                    console.log(`Bilateral Sync: Formalizing slot ${slot.dia.nombre} ${slot.turnoId} with ${slot.tNums.length} territories`);
+                    await syncSlotWithTerritories(weekId, slot.dayIdx, slot.turnoId, syncData, slotDateISO);
                 }
 
                 showNotification(`¡${checkedIdxs.length} asignaciones formalizadas con éxito!`, 'success');

@@ -17,6 +17,7 @@ import { MapViewer } from './map-viewer.js';
 import { AppConfig } from './utils/config.js';
 import h2c from 'html2canvas';
 import { showModal, showCustomConfirm, showCustomPrompt, UIHelpers } from './services/ui-helpers.js';
+window.AppConfig = AppConfig;
 import { VoiceDictationHelper } from './conductor/voice-helper.js';
 import { moduleRegistry } from './utils/module-registry.js';
 
@@ -178,7 +179,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                         </h3>
                         <div class="flex items-center gap-3">
                             <button onclick="document.getElementById('details-programa').parentElement.scrollIntoView({ behavior: 'smooth' }); document.getElementById('details-programa').open = true;" 
-                                class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-black text-[9px] uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-indigo-600/20 active:scale-95 transition-all">
+                                class="bg-indigo-600 hover:bg-indigo-700 text-white py-3.5 px-6 rounded-2xl font-black text-[10px] uppercase tracking-[0.15em] flex items-center gap-3 shadow-lg shadow-indigo-600/20 active:scale-95 transition-all">
                                 <i class="fas fa-calendar-alt"></i> Programa de Predicación
                             </button>
                             <div id="agenda-intelligence-badge"></div>
@@ -649,6 +650,27 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
             };
         }
 
+        // Revisitas Filter Toggle
+        const btnRevisitas = container.querySelector('#btn-revisitas');
+        if (btnRevisitas) {
+            btnRevisitas.onclick = () => {
+                const currentStatus = filterStatus?.value;
+                const newStatus = currentStatus === 'Revisita' ? '' : 'Revisita';
+                if (filterStatus) filterStatus.value = newStatus;
+
+                // Visual feedback
+                if (newStatus === 'Revisita') {
+                    btnRevisitas.classList.replace('bg-amber-500/10', 'bg-amber-500');
+                    btnRevisitas.classList.replace('text-amber-600', 'text-white');
+                } else {
+                    btnRevisitas.classList.replace('bg-amber-500', 'bg-amber-500/10');
+                    btnRevisitas.classList.replace('text-white', 'text-amber-600');
+                }
+
+                refreshAndRenderPhoneTable(searchPhone?.value || '', newStatus);
+            };
+        }
+
         // Add Publisher
         const btnAddPub = container.querySelector('#btn-add-publicador');
         if (btnAddPub) {
@@ -731,27 +753,27 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                     });
 
                     showModal(`
-                        <div class="p-12 text-center space-y-12 animate-fade-in bg-slate-50 dark:bg-[#0b0e14]">
+                        <div class="p-8 text-center space-y-8 animate-fade-in bg-slate-50 dark:bg-[#0b0e14]">
                                 <div class="relative inline-block">
-                                    <div class="w-32 h-32 bg-primary/10 dark:bg-primary/20 rounded-[3rem] flex items-center justify-center text-6xl text-primary shadow-inner border border-primary/20 animate-float">
+                                    <div class="w-24 h-24 bg-primary/10 dark:bg-primary/20 rounded-[2.5rem] flex items-center justify-center text-5xl text-primary shadow-inner border border-primary/20 animate-float">
                                         <i class="fas fa-flag-checkered"></i>
                                     </div>
-                                    <div class="absolute -top-3 -right-3 w-12 h-12 bg-emerald-500 text-white rounded-full flex items-center justify-center text-xl font-black shadow-xl animate-bounce border-4 border-white dark:border-slate-900">
+                                    <div class="absolute -top-2 -right-2 w-10 h-10 bg-emerald-500 text-white rounded-full flex items-center justify-center text-lg font-black shadow-xl animate-bounce border-4 border-white dark:border-slate-900">
                                          <i class="fas fa-check"></i>
                                     </div>
                                 </div>
                                 
-                                <div class="space-y-4">
-                                    <h3 class="text-4xl font-black text-slate-800 dark:text-white tracking-tighter uppercase">Sesión Finalizada</h3>
-                                    <p class="text-[12px] text-primary font-black uppercase tracking-[0.4em] opacity-80">Resumen de Actividad Telefónica</p>
+                                <div class="space-y-2">
+                                    <h3 class="text-3xl font-black text-slate-800 dark:text-white tracking-tighter uppercase">Sesión Finalizada</h3>
+                                    <p class="text-[10px] text-primary font-black uppercase tracking-[0.4em] opacity-80">Resumen de Actividad Telefónica</p>
                                 </div>
                                 
-                                <div class="modern-card bg-white dark:bg-white/[0.03] p-10 border-slate-200 dark:border-white/5 space-y-10 shadow-2xl">
-                                    <div class="flex justify-between items-center bg-primary/10 dark:bg-primary/20 p-8 rounded-3xl border border-primary/10">
-                                         <span class="text-[11px] font-black text-primary uppercase tracking-[0.3em]">Total Registros</span>
-                                         <span class="text-5xl font-black text-primary tracking-tighter tabular-nums">${summary.total}</span>
+                                <div class="modern-card bg-white dark:bg-white/[0.03] p-6 border-slate-200 dark:border-white/5 space-y-6 shadow-2xl">
+                                    <div class="flex justify-between items-center bg-primary/10 dark:bg-primary/20 p-6 rounded-2xl border border-primary/10">
+                                         <span class="text-[10px] font-black text-primary uppercase tracking-[0.3em]">Total Registros</span>
+                                         <span class="text-4xl font-black text-primary tracking-tighter tabular-nums">${summary.total}</span>
                                     </div>
-                                    <div class="space-y-5 text-left">
+                                    <div class="space-y-3 text-left">
                                          ${Object.entries(summary.stats)
                             .filter(([_, count]) => count > 0)
                             .map(([name, count]) => `
@@ -763,15 +785,15 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                     </div>
                                 </div>
 
-                                <div class="space-y-4">
+                                <div class="space-y-3">
                                     <textarea id="session-notes" placeholder="Notas adicionales sobre esta sesión (opcional)..." 
-                                        class="w-full bg-white dark:bg-white/[0.05] border border-slate-200 dark:border-white/10 rounded-[2rem] p-6 text-sm font-bold outline-none focus:border-primary transition-all text-slate-700 dark:text-white placeholder:text-slate-400 min-h-[120px] resize-none"></textarea>
+                                        class="w-full bg-white dark:bg-white/[0.05] border border-slate-200 dark:border-white/10 rounded-2xl p-5 text-sm font-bold outline-none focus:border-primary transition-all text-slate-700 dark:text-white placeholder:text-slate-400 min-h-[100px] resize-none"></textarea>
                                 </div>
 
-                                <button id="btn-share-results" class="w-full bg-primary hover:bg-primary-dark py-6 rounded-3xl text-white font-black shadow-2xl shadow-primary/30 hover:shadow-primary/50 hover:scale-[1.02] active:scale-[0.98] transition-all uppercase tracking-[0.4em] text-xs flex items-center justify-center gap-5 group">
+                                <button id="btn-share-results" class="w-full bg-primary hover:bg-primary-dark py-5 rounded-2xl text-white font-black shadow-2xl shadow-primary/30 hover:shadow-primary/50 hover:scale-[1.02] active:scale-[0.98] transition-all uppercase tracking-[0.4em] text-xs flex items-center justify-center gap-5 group">
                                      <i class="fas fa-paper-plane text-xl group-hover:rotate-12 transition-transform"></i> Enviar reporte
                                 </button>
-                                <button onclick="window.closeModal()" class="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-primary transition-colors">Volver</button>
+                                <button onclick="window.closeModal()" class="text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-primary transition-colors">Volver</button>
                         </div>
                     `, async (modal) => {
                         const shareBtn = modal.querySelector('#btn-share-results');
@@ -849,6 +871,8 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
         await releaseUnusedTelefonos(displayName);
         // Initial render
         await window.refreshConductorView();
+        // Initialize AI Assistant
+        renderAISection(displayName);
     } catch (e) {
         console.error("Error loading initial view:", e);
     }
@@ -1017,7 +1041,7 @@ const loadUnifiedDashboard = async (container, name, intelligenceBadge, agendaCo
                 plD.setHours(0, 0, 0, 0);
                 shifts.forEach(s => {
                     if (d[s] && d[s].territorio) {
-                        const nums = d[s].territorio.split(/[,/]+/).map(n => n.trim()).filter(Boolean);
+                        const nums = Array.from(new Set(String(d[s].territorio).split(/[,/]+/).map(n => n.trim()).filter(Boolean)));
                         nums.forEach(num => {
                             if (!plannedDates[num]) plannedDates[num] = new Set();
                             plannedDates[num].add(plD.getTime());
@@ -1052,16 +1076,28 @@ const loadUnifiedDashboard = async (container, name, intelligenceBadge, agendaCo
             return isDelayed || isFree || isIncomplete;
         });
 
+        // Sort: Incomplete territories at the top
+        rescueCandidates.sort((a, b) => {
+            if (a.is_incomplete && !b.is_incomplete) return -1;
+            if (!a.is_incomplete && b.is_incomplete) return 1;
+            // Then by number
+            return (parseInt(a.numero) || 0) - (parseInt(b.numero) || 0);
+        });
+
         const rescueCount = rescueCandidates.length;
         const totalMissionCount = rescueCount + myExtraMissions.length;
 
+
+        if (mRescue?.renderRescueMissions) {
+            mRescue.renderRescueMissions(allTerritorios, normalizedName, myExtraMissions, rescueCandidates, totalMissionCount);
+        }
 
         intelligenceBadge.innerHTML = `
             <div class="flex flex-wrap items-center gap-3">
                 <button onclick="window.showRescueMissionsModal()" 
                         class="flex items-center gap-3 ${totalMissionCount > 0 ? 'bg-indigo-600 border-indigo-500/20 shadow-indigo-600/20 text-white' : 'bg-white dark:bg-white/5 text-indigo-500 border-indigo-500/30'} py-3.5 px-6 rounded-2xl border text-[10px] font-black uppercase tracking-[0.15em] shadow-sm backdrop-blur-md hover:scale-105 active:scale-95 transition-all">
                     <i class="fas fa-map-marked-alt ${totalMissionCount > 0 ? 'animate-pulse' : ''}"></i> 
-                    Oportunidades ${totalMissionCount > 0 ? `<span class="bg-white text-indigo-600 px-2 py-0.5 rounded-lg ml-1 font-black">${totalMissionCount}</span>` : ''}
+                    POR COMPLETAR ${totalMissionCount > 0 ? `<span class="bg-white text-indigo-600 px-2 py-0.5 rounded-lg ml-1 font-black">${totalMissionCount}</span>` : ''}
                 </button>
             </div>
     `;
@@ -1172,37 +1208,8 @@ const loadUnifiedDashboard = async (container, name, intelligenceBadge, agendaCo
                 // Initialize Pan and Zoom logic
                 setTimeout(() => window.initPanZoom('global-png-map', 'png-zoom-container'), 100);
             } else if (type === 'satellite') {
-                const mid = "13IX1r6TfV5T8ZPwU3jzGr0YeHE-AdEg";
-                modal.innerHTML = `
-                    <div class="w-full h-full max-w-6xl mx-auto flex flex-col p-4 animate-fade-in">
-                    <div class="flex justify-between items-center mb-4 bg-white/80 dark:bg-[#0f1420]/90 backdrop-blur-2xl p-6 rounded-[2rem] border border-slate-200 dark:border-white/10 shadow-2xl">
-                        <div class="flex items-center gap-5">
-                            <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-xl text-emerald-500 shadow-inner border border-emerald-500/10">
-                                <i class="fas fa-satellite"></i>
-                            </div>
-                            <div>
-                                <h4 class="font-black text-slate-800 dark:text-white uppercase tracking-widest text-[11px]">Explorador Satelital</h4>
-                                <p class="text-[9px] text-emerald-500 font-black uppercase mt-0.5 tracking-[0.2em] animate-pulse">GPS Activo en tiempo real</p>
-                            </div>
-                        </div>
-                        <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="w-12 h-12 bg-slate-100 dark:bg-white/5 hover:bg-rose-500/10 hover:text-rose-500 rounded-2xl transition-all border border-transparent hover:border-rose-500/20 flex items-center justify-center shadow-sm">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    <div class="flex-1 rounded-[2.5rem] overflow-hidden bg-slate-100 border border-slate-200 dark:border-white/5 shadow-2xl relative">
-                        <iframe id="satellite-iframe" src="https://www.google.com/maps/d/u/0/embed?mid=${mid}&ehbc=2E312F" width="100%" height="100%" style="border:0;" allow="geolocation"></iframe>
-                        
-                        <!-- Real-time Location Overlay Helper -->
-                        <div class="absolute bottom-10 left-1/2 -translate-x-1/2 bg-white/95 dark:bg-[#0f1420]/95 backdrop-blur-md px-6 py-3 rounded-full border border-slate-200 dark:border-white/10 shadow-2xl flex items-center gap-3 pointer-events-none">
-                            <span class="relative flex h-2 w-2">
-                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                                <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-                            </span>
-                            <span class="text-[9px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-widest">Sincronizando con GPS del Dispositivo</span>
-                        </div>
-                    </div>
-                </div>
-    `;
+                modal.innerHTML = '<div id="global-map-root" class="w-full h-full max-w-6xl mx-auto p-4 md:p-10"></div>';
+                MapViewer.renderGlobal(document.getElementById('global-map-root'), allTerritorios);
             }
         };
 
@@ -1642,7 +1649,7 @@ const renderProgramaTableHelpers = (programa) => {
                                     </div>` : ''}
                                     ${sData.territorio ? `
                                         <div class="mt-4 flex flex-wrap gap-2">
-                                            ${sData.territorio.split(',').map(t => `<span class="px-2 py-1 bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-slate-500 rounded-lg text-[9px] font-black border border-slate-200 dark:border-white/5 uppercase tracking-widest">${t.trim()}</span>`).join('')}
+                                            ${Array.from(new Set(String(sData.territorio).split(/[,/]/).map(t => t.trim()).filter(Boolean))).map(t => `<span class="px-2 py-1 bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-slate-500 rounded-lg text-[9px] font-black border border-slate-200 dark:border-white/5 uppercase tracking-widest">${t}</span>`).join('')}
                                         </div>
                                     ` : ''}
                                 </div>

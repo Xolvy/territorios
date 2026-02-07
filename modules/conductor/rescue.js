@@ -17,8 +17,8 @@ export const renderRescueMissions = (allTerritorios, normalizedName, myExtraMiss
                             <i class="fas fa-rocket"></i>
                         </div>
                         <div class="space-y-1">
-                            <h3 class="text-2xl font-black uppercase tracking-tighter">Oportunidades de Predicación</h3>
-                            <p class="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Territorios disponibles y puntos estratégicos</p>
+                            <h3 class="text-2xl font-black uppercase tracking-tighter">Por completar</h3>
+                            <p class="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Territorios pendientes y disponibles</p>
                         </div>
                     </div>
                 </header>
@@ -49,7 +49,7 @@ export const renderRescueMissions = (allTerritorios, normalizedName, myExtraMiss
 
                     <!-- Oportunidades -->
                     <section class="space-y-4">
-                        <h4 class="text-[10px] font-black uppercase text-slate-400 tracking-[0.4em] ml-2">Territorios Disponibles</h4>
+                        <h4 class="text-[10px] font-black uppercase text-slate-400 tracking-[0.4em] ml-2">Lista de Trabajo</h4>
                         ${rescueCandidates.length === 0 ? `
                         <div class="text-center py-12 px-8 bg-white dark:bg-white/5 rounded-[2.5rem] border-2 border-dashed border-slate-200 dark:border-white/10 opacity-60">
                             <i class="fas fa-check-circle text-4xl text-emerald-500 mb-4"></i>
@@ -96,7 +96,7 @@ export const renderRescueMissions = (allTerritorios, normalizedName, myExtraMiss
                                         <button onclick="window.handleRescueTerritory('${t.id}', '${t.numero}', '${normalizedName.replace(/'/g, "\\\'")}', '${(t.manzanas || '').replace(/'/g, "\\\'")}', true)"
                                                 class="w-full py-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] shadow-lg shadow-indigo-600/20 transition-all active:scale-95 flex items-center justify-center gap-3">
                                             <i class="fas fa-plus"></i> 
-                                            TOMAR OPORTUNIDAD
+                                            ${isIncomplete ? 'CONTINUAR PREDICACIÓN' : 'TOMAR TERRITORIO'}
                                         </button>
                                     </div>
                                     `;

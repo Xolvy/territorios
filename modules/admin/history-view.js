@@ -69,6 +69,9 @@ export const renderHistorialView = async (container) => {
                     <button id="btn-global-obs" class="flex-1 md:flex-none h-12 px-6 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-95 flex items-center justify-center gap-3">
                         <i class="fas fa-comment-alt"></i> Bitácora
                     </button>
+                    <button id="btn-manual-log" class="flex-1 md:flex-none h-12 px-6 bg-teal-600 hover:bg-teal-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-95 flex items-center justify-center gap-3">
+                        <i class="fas fa-file-signature"></i> Cargar Manual
+                    </button>
                     <select id="hist-filter-status" class="flex-1 md:flex-none h-12 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 text-[9px] font-black uppercase text-slate-500 outline-none focus:border-primary transition-all cursor-pointer">
                         <option value="">TODOS</option>
                         <option value="Asignado">Asignados</option>
@@ -226,29 +229,47 @@ export const renderHistorialView = async (container) => {
                 if (s === 'extraviado') return { text: 'Extraviado', color: 'text-rose-600 bg-rose-600/10' };
                 return { text: status, color: 'text-slate-400 bg-slate-50 dark:bg-white/5' };
             };
-            const badge = getStatusBadge(h.estado);
+            const canEdit = h.estado === 'Asignado';
+            const canComplete = h.estado === 'Asignado';
 
             return `
             <div class="relative pl-12 group/item animate-fade-in">
                 <div class="absolute left-3.5 top-2 w-3.5 h-3.5 ${mode === 's13' ? (h.estado === 'Asignado' ? 'bg-rose-500' : 'bg-emerald-500') : 'bg-indigo-500'} rounded-full border-4 border-white dark:border-[#0d1117] z-10 shadow-sm transition-transform group-hover/item:scale-150"></div>
                 <div class="p-6 bg-white dark:bg-white/[0.02] rounded-3xl border border-slate-100 dark:border-white/5 shadow-sm hover:shadow-xl transition-all">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        <div class="flex flex-col">
-                            <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Responsable</span>
-                            <span class="text-xs font-black text-slate-800 dark:text-white uppercase truncate">${h.conductor || 'Anónimo'}</span>
+                    <div class="flex flex-col gap-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div class="flex flex-col">
+                                <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Responsable</span>
+                                <span class="text-xs font-black text-slate-800 dark:text-white uppercase truncate">${h.conductor || 'Anónimo'}${h.auxiliar ? ' <span class="text-[8px] opacity-40">/ ' + h.auxiliar + '</span>' : ''}</span>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Evento</span>
+                                <span class="text-[10px] font-black ${badge.color} px-3 py-1 rounded-lg w-fit transition-all">${badge.text}</span>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Fecha</span>
+                                <span class="text-[11px] font-bold text-slate-600 dark:text-gray-400">${UIHelpers.fmtDateAt(h.fecha_entrega || h.fecha_asignacion || h.timestamp)}</span>
+                            </div>
+                            <div class="flex flex-col col-span-1 md:col-span-1 lg:col-span-1">
+                                <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Observación</span>
+                                <span class="text-[10px] font-medium text-slate-500 dark:text-gray-400 italic leading-tight">"${h.observaciones || 'Sin notas'}"</span>
+                            </div>
                         </div>
-                        <div class="flex flex-col">
-                            <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Evento</span>
-                            <span class="text-[10px] font-black ${badge.color} px-3 py-1 rounded-lg w-fit transition-all">${badge.text}</span>
-                        </div>
-                        <div class="flex flex-col">
-                            <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Fecha</span>
-                            <span class="text-[11px] font-bold text-slate-600 dark:text-gray-400">${UIHelpers.fmtDateAt(h.fecha_entrega || h.fecha_asignacion || h.timestamp)}</span>
-                        </div>
-                        <div class="flex flex-col col-span-1 md:col-span-1 lg:col-span-1">
-                            <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Observación</span>
-                            <span class="text-[10px] font-medium text-slate-500 dark:text-gray-400 italic leading-tight">"${h.observaciones || 'Sin notas'}"</span>
-                        </div>
+
+                        ${(canEdit || canComplete) ? `
+                            <div class="flex items-center gap-3 pt-4 border-t border-slate-100 dark:border-white/5">
+                                ${canEdit ? `
+                                    <button onclick="window.editHistoryRecord('${h.id}')" class="px-5 py-2.5 bg-slate-900 dark:bg-white/5 text-white dark:text-slate-400 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all">
+                                        <i class="fas fa-edit mr-2"></i> Corregir
+                                    </button>
+                                ` : ''}
+                                ${canComplete ? `
+                                    <button onclick="window.quickComplete('${h.territorio_id}', '${h.id}')" class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-500 shadow-lg shadow-emerald-500/20 transition-all">
+                                        <i class="fas fa-check-circle mr-2"></i> Finalizar
+                                    </button>
+                                ` : ''}
+                            </div>
+                        ` : ''}
                     </div>
                 </div>
             </div>
@@ -355,25 +376,174 @@ export const renderHistorialView = async (container) => {
         const hist = history.find(h => h.id === id);
         if (!hist) return;
 
+        const dateVal = (hist.fecha_asignacion || new Date().toISOString()).split('T')[0];
+
         showModal(`
             <div class="p-8 space-y-10">
-                <h3 class="text-xl font-black uppercase tracking-tighter">Editar Registro Histórico</h3>
+                <header class="flex items-center gap-6">
+                    <div class="w-16 h-16 bg-blue-500/10 rounded-3xl flex items-center justify-center text-3xl text-blue-500 shadow-inner">
+                        <i class="fas fa-edit"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-black uppercase tracking-tighter">Corregir Registro S-13</h3>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em] mt-1">Territorio #${hist.numero}</p>
+                    </div>
+                </header>
+
                 <div class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Conductor</label>
+                            <select id="edit-h-conductor" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all uppercase appearance-none cursor-pointer">
+                                ${allPublicadores.map(p => `<option value="${p.nombre}" ${p.nombre === hist.conductor ? 'selected' : ''}>${p.nombre}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Fecha Asignación</label>
+                            <input type="date" id="edit-h-date" value="${dateVal}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-blue-500 outline-none focus:border-primary transition-all shadow-inner">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Turno</label>
+                            <select id="edit-h-turno" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all">
+                                <option value="manana" ${hist.turno === 'manana' ? 'selected' : ''}>MAÑANA</option>
+                                <option value="tarde" ${hist.turno === 'tarde' ? 'selected' : ''}>TARDE</option>
+                                <option value="noche" ${hist.turno === 'noche' ? 'selected' : ''}>NOCHE</option>
+                                <option value="zoom" ${hist.turno === 'zoom' ? 'selected' : ''}>ZOOM</option>
+                            </select>
+                        </div>
+                        <div class="pt-6">
+                            <p class="text-[9px] text-slate-400 font-bold uppercase leading-tight italic">⚠️ Cambiar el turno o fecha actualizará automáticamente el Programa Semanal.</p>
+                        </div>
+                    </div>
                     <div class="space-y-3">
                         <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Notas / Observaciones</label>
-                        <textarea id="edit-h-notes" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[12px] font-bold text-slate-700 dark:text-white outline-none focus:border-primary transition-all shadow-inner h-32">${hist.observaciones || ''}</textarea>
+                        <textarea id="edit-h-notes" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[12px] font-bold text-slate-700 dark:text-white outline-none focus:border-primary transition-all shadow-inner h-32" placeholder="Escribe detalles importantes...">${hist.observaciones || ''}</textarea>
                     </div>
                 </div>
+
                 <div class="flex gap-4 pt-6 border-t border-slate-50 dark:border-white/5">
                     <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest">Cancelar</button>
-                    <button id="confirm-edit-h" class="flex-[2] py-5 bg-primary text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20 transition-all active:scale-95">Guardar Cambios</button>
+                    <button id="confirm-edit-h" class="flex-[2] py-5 bg-blue-600 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-blue-500/20 transition-all active:scale-95">Actualizar Historial</button>
                 </div>
             </div>
         `, (modal) => {
             modal.querySelector('#confirm-edit-h').onclick = async () => {
+                const conductor = modal.querySelector('#edit-h-conductor').value;
+                const fecha = modal.querySelector('#edit-h-date').value;
+                const turno = modal.querySelector('#edit-h-turno').value;
                 const notes = modal.querySelector('#edit-h-notes').value;
-                await updateHistoryRecord(id, { observaciones: notes });
-                showNotification("Registro actualizado");
+
+                if (!conductor || !fecha) return showNotification("Complete los campos obligatorios", "warning");
+
+                await updateHistoryRecord(id, {
+                    conductor: conductor,
+                    fecha_asignacion: new Date(fecha + 'T12:00:00Z').toISOString(),
+                    turno: turno,
+                    observaciones: notes
+                });
+                showNotification("Registro actualizado exitosamente");
+                modal.classList.add('hidden');
+                renderHistorialView(container);
+            };
+        });
+    };
+
+    window.quickComplete = async (tId, hId) => {
+        showCustomConfirm("¿Deseas marcar este territorio como completado ahora?", async () => {
+            await returnTerritorio(tId, "Completado desde Historial", new Date().toISOString());
+            showNotification("Territorio finalizado");
+            renderHistorialView(container);
+        });
+    };
+
+    window.showManualLogModal = () => {
+        showModal(`
+            <div class="p-8 space-y-10">
+                <header class="flex items-center gap-6">
+                    <div class="w-16 h-16 bg-teal-500/10 rounded-3xl flex items-center justify-center text-3xl text-teal-600 shadow-inner">
+                        <i class="fas fa-file-signature"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-black uppercase tracking-tighter">Cargar Registro Manual</h3>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em] mt-1">Saturación Histórica S-13</p>
+                    </div>
+                </header>
+
+                <div class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Territorio</label>
+                            <select id="manual-h-num" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all uppercase appearance-none cursor-pointer">
+                                ${allTerritorios.map(t => `<option value="${t.numero}">${t.numero} - ${t.localidad}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Conductor</label>
+                            <select id="manual-h-conductor" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all uppercase appearance-none cursor-pointer">
+                                ${allPublicadores.map(p => `<option value="${p.nombre}">${p.nombre}</option>`).join('')}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Fecha Asignación</label>
+                            <input type="date" id="manual-h-date-asig" value="${new Date().toISOString().split('T')[0]}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-blue-500 outline-none">
+                        </div>
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Turno</label>
+                            <select id="manual-h-turno" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none">
+                                <option value="manana">MAÑANA</option>
+                                <option value="tarde">TARDE</option>
+                                <option value="noche">NOCHE</option>
+                                <option value="zoom">ZOOM</option>
+                            </select>
+                        </div>
+                        <div class="space-y-3">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Fecha Entrega (Opt)</label>
+                            <input type="date" id="manual-h-date-ent" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-emerald-500 outline-none">
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Notas / Observaciones</label>
+                        <textarea id="manual-h-notes" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[12px] font-bold text-slate-700 dark:text-white outline-none focus:border-primary h-24" placeholder="Cargado manualmente para S-13..."></textarea>
+                    </div>
+                </div>
+
+                <div class="flex gap-4 pt-6 border-t border-slate-50 dark:border-white/5">
+                    <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest">Cerrar</button>
+                    <button id="confirm-manual-h" class="flex-[2] py-5 bg-teal-600 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-teal-500/20 transition-all active:scale-95">Guardar Registro</button>
+                </div>
+            </div>
+        `, (modal) => {
+            modal.querySelector('#confirm-manual-h').onclick = async () => {
+                const num = modal.querySelector('#manual-h-num').value;
+                const conductor = modal.querySelector('#manual-h-conductor').value;
+                const asig = modal.querySelector('#manual-h-date-asig').value;
+                const ent = modal.querySelector('#manual-h-date-ent').value;
+                const turno = modal.querySelector('#manual-h-turno').value;
+                const notes = modal.querySelector('#manual-h-notes').value;
+
+                if (!num || !conductor || !asig) return showNotification("Faltan datos", "warning");
+
+                const tObj = allTerritorios.find(x => x.numero === num);
+
+                const { timestamp } = await import('firebase/firestore');
+
+                await addHistoryRecord({
+                    territorio_id: tObj ? tObj.id : 'manual-' + num,
+                    numero: num,
+                    conductor: conductor,
+                    fecha_asignacion: new Date(asig + 'T12:00:00Z').toISOString(),
+                    fecha_entrega: ent ? new Date(ent + 'T12:00:00Z').toISOString() : null,
+                    turno: turno,
+                    estado: ent ? 'Completado' : 'Asignado',
+                    observaciones: notes || 'Carga manual',
+                    timestamp: timestamp ? timestamp.now() : new Date()
+                });
+
+                showNotification("Registro manual guardado");
                 modal.classList.add('hidden');
                 renderHistorialView(container);
             };
@@ -384,6 +554,8 @@ export const renderHistorialView = async (container) => {
     statusFilter.onchange = renderGrid;
     const btnGlobal = container.querySelector('#btn-global-obs');
     if (btnGlobal) btnGlobal.onclick = window.showGlobalObservations;
+    const btnManual = container.querySelector('#btn-manual-log');
+    if (btnManual) btnManual.onclick = () => window.showManualLogModal();
     renderGrid();
 };
 

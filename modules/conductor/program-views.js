@@ -119,8 +119,8 @@ export const renderFullProgramaCards = (programa, container, territoryMap = {}, 
                                                         </span>
                                                     </button>
                                                 ` : `
-                                                    ${sData.territorio ? sData.territorio.split(/[,;]/).map(t => `
-                                                        <span class="px-2 py-1 bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400 rounded-lg text-[10px] font-black border border-slate-200 dark:border-white/10 uppercase">${t.trim()}</span>
+                                                    ${sData.territorio ? Array.from(new Set(String(sData.territorio).split(/[,;/]/).map(t => t.trim()).filter(Boolean))).map(t => `
+                                                        <span class="px-2 py-1 bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400 rounded-lg text-[10px] font-black border border-slate-200 dark:border-white/10 uppercase">${t}</span>
                                                     `).join('') : '<span class="text-[9px] font-black text-slate-300 uppercase italic opacity-40">Libre</span>'}
                                                 `}
                                             </div>
