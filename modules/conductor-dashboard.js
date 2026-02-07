@@ -674,8 +674,18 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
         if (btnRevisitas) {
             btnRevisitas.onclick = async () => {
                 showNotification("Cargando revisitas...", "info");
-                const allPhones = await getTelefonos(true);
+                const [allPhones, allPubs] = await Promise.all([
+                    getTelefonos(true),
+                    getPublicadores()
+                ]);
                 const revisitas = allPhones.filter(p => p.estado === 'Revisita');
+
+                const resolveName = (raw) => {
+                    const clean = String(raw || '').trim();
+                    if (!clean) return 'Sin asignar';
+                    const found = allPubs.find(p => p.id === clean || p.email?.toLowerCase() === clean.toLowerCase() || p.nombre === clean);
+                    return found ? found.nombre : clean;
+                };
 
                 showModal(`
                     <div class="p-8 space-y-8 bg-slate-50 dark:bg-[#0b0e14]">
@@ -710,7 +720,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                         </div>
                                         <div class="flex-1">
                                             <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Responsable</p>
-                                            <p class="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase">${r.asignado_a || r.publicador_asignado || 'Sin asignar'}</p>
+                                            <p class="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase">${resolveName(r.asignado_a || r.publicador_asignado)}</p>
                                         </div>
                                     </div>
 
@@ -720,12 +730,9 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                         </div>
                                     ` : ''}
 
-                                    <div class="grid grid-cols-2 gap-3">
-                                        <button onclick="window.returnPhoneToPool('${r.id}')" class="py-3 bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-rose-500/5 flex items-center justify-center gap-2">
-                                            <i class="fas fa-undo-alt"></i> Devolver
-                                        </button>
-                                        <button onclick="window.reAssignAndCall('${r.id}', '${r.telefono}')" class="py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-xl shadow-indigo-600/20 flex items-center justify-center gap-2">
-                                            <i class="fas fa-phone-alt"></i> Llamar
+                                    <div class="flex justify-center">
+                                        <button onclick="window.returnPhoneToPool('${r.id}')" class="w-full py-3 bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-rose-500/5 flex items-center justify-center gap-2">
+                                            <i class="fas fa-undo-alt"></i> Devolver al Pozo
                                         </button>
                                     </div>
                                 </div>
@@ -737,8 +744,12 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 `, null, 'max-w-2xl');
 
                 window.returnPhoneToPool = async (id) => {
-                    showCustomConfirm("¿Estás seguro de devolver este número al pozo general? Dejará de aparecer en tus revisitas.", async () => {
-                        await updateTelefonoStatus(id, 'Sin asignar', null);
+                    showCustomPrompt("Indica la razón de la devolución (esto se guardará en el historial):", async (reason) => {
+                        if (!reason || reason.trim().length === 0) {
+                            showNotification("Debes indicar una razón", "warning");
+                            return;
+                        }
+                        await updateTelefonoStatus(id, 'Sin asignar', null, reason);
                         window.closeModal();
                         showNotification("Número devuelto al pozo general");
                         window.refreshConductorView();
