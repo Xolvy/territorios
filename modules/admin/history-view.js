@@ -15,6 +15,9 @@ export const renderHistorialView = async (container) => {
         getPublicadores()
     ]);
 
+    // Force re-import if needed for repair
+    const { runSystemDiagnosticsAndRepair } = await import('../../data/firestore-services.js');
+
     // Xolvy Data Shield: Unique 1-22 only
     const normalizeT = (val) => String(val || '').trim();
     const seen = new Set();
@@ -33,12 +36,16 @@ export const renderHistorialView = async (container) => {
         }))
         .sort((a, b) => parseInt(a.numero) - parseInt(b.numero));
 
-    // Group history by territory number for easy access (Robust Normalization)
+    // Group history by territory number for easy access (Robust Normalization & Multi-Territory Support)
     const historyByNum = history.reduce((acc, h) => {
-        const num = normalizeT(h.numero);
-        if (!num) return acc;
-        if (!acc[num]) acc[num] = [];
-        acc[num].push({ ...h, numero: num });
+        // Support for multi-territory records (e.g., "1 / 2" or "15, 16")
+        const rawNum = String(h.numero || '');
+        const nums = rawNum.split(/[,/]/).map(s => normalizeT(s)).filter(Boolean);
+
+        nums.forEach(num => {
+            if (!acc[num]) acc[num] = [];
+            acc[num].push({ ...h, numero: num });
+        });
         return acc;
     }, {});
 
@@ -85,6 +92,9 @@ export const renderHistorialView = async (container) => {
                         <option value="Asignado">Asignados</option>
                         <option value="Disponible">Libres</option>
                     </select>
+                    <button id="btn-sync-history" class="w-12 h-12 bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-emerald-500 rounded-xl border border-slate-200 dark:border-white/10 transition-all flex items-center justify-center group" title="Sincronizar todo el historial">
+                        <i class="fas fa-sync-alt group-hover:rotate-180 transition-transform duration-700"></i>
+                    </button>
                 </div>
             </header>
 
@@ -102,6 +112,29 @@ export const renderHistorialView = async (container) => {
     const grid = container.querySelector('#unified-control-grid');
     const searchInp = container.querySelector('#hist-search');
     const statusFilter = container.querySelector('#hist-filter-status');
+    const syncBtn = container.querySelector('#btn-sync-history');
+
+    if (syncBtn) {
+        syncBtn.onclick = async () => {
+            const icon = syncBtn.querySelector('i');
+            icon.classList.add('fa-spin');
+            syncBtn.disabled = true;
+
+            try {
+                await runSystemDiagnosticsAndRepair((msg, pc) => {
+                    showNotification(`⚡ Sincronizando: ${msg}`, 'info');
+                });
+                showNotification("¡Historial reconstruido con éxito!", "success");
+                // Re-render everything
+                renderHistorialView(container);
+            } catch (e) {
+                showNotification("Error en sincronización: " + e.message, "error");
+            } finally {
+                icon.classList.remove('fa-spin');
+                syncBtn.disabled = false;
+            }
+        };
+    }
 
     const renderGrid = () => {
         const query = searchInp.value.toLowerCase().trim();

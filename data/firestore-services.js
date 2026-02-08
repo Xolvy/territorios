@@ -452,7 +452,7 @@ export const getTerritorios = async () => {
                 return hasNum;
             });
 
-        console.log(`🛡️ [v2.4.1.7] Shield Sync: ${results.length} valid records ready.`);
+        console.log(`🛡️ [v2.4.6.9] Shield Sync: ${results.length} valid records ready.`);
         return results;
     } catch (e) {
         console.error("Critical error fetching territories:", e);
@@ -2069,41 +2069,43 @@ const syncScheduleToHistory = async (weekId, scheduleData) => {
 
         if (scheduleData.dias && Array.isArray(scheduleData.dias)) {
             scheduleData.dias.forEach((dia, index) => {
-                // Calculate specific date for this day
                 const dayDate = new Date(weekStart);
                 dayDate.setDate(weekStart.getDate() + index);
                 const dateKey = dayDate.toISOString().split('T')[0];
 
-                ['manana', 'tarde', 'noche'].forEach(turno => {
+                ['manana', 'tarde', 'noche', 'zoom'].forEach(turno => {
                     const assignment = dia[turno];
-                    // Only sync if Territory AND Conductor are set
                     if (assignment && assignment.territorio && assignment.conductor) {
-                        const key = `${assignment.territorio}_${dateKey}`;
-                        const existing = historyMap.get(key);
+                        // Support multi-territory split (Xolvy Shield)
+                        const tNums = String(assignment.territorio).split(/[,/]/).map(s => s.trim()).filter(Boolean);
 
-                        if (existing) {
-                            // Check if conductor changed
-                            if (existing.conductor !== assignment.conductor) {
-                                // Update existing history record
-                                promises.push(updateDoc(doc(db, "historial_territorios", existing.id), {
-                                    conductor: assignment.conductor
+                        tNums.forEach(num => {
+                            const key = `${num}_${dateKey}`;
+                            const existing = historyMap.get(key);
+
+                            if (existing) {
+                                if (existing.conductor !== assignment.conductor) {
+                                    promises.push(updateDoc(doc(db, "historial_territorios", existing.id), {
+                                        conductor: assignment.conductor,
+                                        auxiliar: assignment.auxiliar || '',
+                                        timestamp: Timestamp.fromDate(dayDate) // Re-sync timestamp to dayDate
+                                    }));
+                                }
+                            } else {
+                                promises.push(addDoc(collection(db, "historial_territorios"), {
+                                    territorio_id: 'sync_auto',
+                                    numero: num,
+                                    conductor: assignment.conductor,
+                                    auxiliar: assignment.auxiliar || '',
+                                    fecha_asignacion: dayDate.toISOString(),
+                                    fecha_entrega: null,
+                                    estado: 'Asignado',
+                                    timestamp: Timestamp.fromDate(dayDate),
+                                    turno: turno,
+                                    prog_sync: true
                                 }));
                             }
-                        } else {
-                            const sundayDate = new Date(weekStart);
-                            sundayDate.setDate(weekStart.getDate() - 1); // Standard S-13 Sunday
-
-                            // Create new history record
-                            promises.push(addDoc(collection(db, "historial_territorios"), {
-                                territorio_id: 'sync_auto', // Placeholder as we don't have the internal ID here
-                                numero: assignment.territorio,
-                                conductor: assignment.conductor,
-                                fecha_asignacion: sundayDate.toISOString(),
-                                fecha_entrega: null,
-                                estado: 'Asignado',
-                                timestamp: Timestamp.fromDate(sundayDate)
-                            }));
-                        }
+                        });
                     }
                 });
             });
@@ -2111,7 +2113,8 @@ const syncScheduleToHistory = async (weekId, scheduleData) => {
 
         if (promises.length > 0) {
             await Promise.all(promises);
-            console.log(`Synced ${promises.length} assignments to History.`);
+            console.log(`✅ [Sync] S-13 History updated with ${promises.length} entries.`);
+            ServiceCache.clear('historial');
         }
 
     } catch (e) {
