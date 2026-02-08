@@ -11,10 +11,10 @@ const LOCAL_STORAGE_KEY = 'xolvy_module_registry';
 class ModuleRegistry {
     constructor() {
         this.registry = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)) || {
-            core: "2.4.2.6",
+            core: "2.4.3.0",
             login: "2.4.2.5",
-            admin: "2.4.2.6",
-            conductor: "2.4.6.5",
+            admin: "2.4.3.0",
+            conductor: "2.4.7.0",
             territories_view: "2.4.6.5",
             public_view: "2.4.2.5",
             phones_view: "2.4.2.5",
