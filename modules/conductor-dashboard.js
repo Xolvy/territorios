@@ -1418,9 +1418,10 @@ const loadUnifiedDashboard = async (container, name, intelligenceBadge, agendaCo
                                 
                                  ${conductorData?.privilegios?.includes('Superintendente de Circuito') ? '' : `
                                 <div class="mt-auto pt-4">
-                                    <button class="territory-report-btn w-full bg-slate-900 dark:bg-teal-600/90 hover:bg-black dark:hover:bg-teal-500 py-3.5 sm:py-4 rounded-2xl text-white font-black text-[10px] sm:text-[11px] uppercase tracking-[0.2em] sm:tracking-[0.3em] shadow-xl shadow-slate-900/10 active:scale-95 transition-all flex items-center justify-center gap-3"
+                                    <button class="territory-report-btn w-full bg-slate-900 dark:bg-teal-600 shadow-xl hover:bg-black dark:hover:bg-teal-500 py-3.5 sm:py-4 rounded-2xl text-white font-black text-[10px] sm:text-[11px] uppercase tracking-[0.2em] sm:tracking-[0.3em] active:scale-95 transition-all flex items-center justify-center gap-3"
                                         data-ids="${a.attachedTerritories.map(t => t.id).join(',')}" 
                                         data-nums="${a.attachedTerritories.map(t => t.numero).join(',')}">
+                                        <i class="fas fa-file-signature text-[12px] opacity-70"></i>
                                         Informar
                                     </button>
                                 </div>
@@ -1712,16 +1713,16 @@ window.openProgressModal = async (initialId, filterIds = null) => {
     // Build Modal with Admin-style UI (Image 3)
     showModal(`
         <div class="flex flex-col h-full bg-slate-50 dark:bg-[#0b0e14] sm:rounded-[2rem] overflow-hidden">
-            <header class="shrink-0 bg-slate-900 dark:bg-gradient-to-br dark:from-primary dark:to-primary-dark p-6 text-white relative overflow-hidden shadow-2xl">
-                <div class="absolute -right-10 -top-10 w-40 h-40 bg-white/5 rounded-full blur-3xl"></div>
+            <header class="shrink-0 bg-white dark:bg-slate-900 p-6 relative overflow-hidden shadow-sm dark:shadow-2xl border-b border-slate-100 dark:border-white/5">
+                <div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-indigo-500/5 dark:from-primary dark:to-primary-dark opacity-100 dark:opacity-100 transition-opacity"></div>
                 <div class="relative z-10 flex items-center justify-between">
                     <div class="flex items-center gap-5">
-                        <div class="w-12 h-12 bg-white/10 backdrop-blur-xl rounded-xl flex items-center justify-center text-xl border border-white/20 shadow-inner">
+                        <div class="w-12 h-12 bg-primary/10 dark:bg-white/10 backdrop-blur-xl rounded-xl flex items-center justify-center text-xl text-primary dark:text-white border border-primary/20 dark:border-white/20 shadow-inner">
                             <i class="fas fa-chart-line animate-float"></i>
                         </div>
                         <div>
-                            <h3 class="text-xl font-black tracking-tighter uppercase leading-none mb-1">Informe de Actividad</h3>
-                            <p class="text-[9px] opacity-60 uppercase tracking-[0.4em] font-black">Registro de Territorios Asignados</p>
+                            <h3 class="text-xl font-black text-slate-800 dark:text-white tracking-tighter uppercase leading-none mb-1">Informe de Actividad</h3>
+                            <p class="text-[9px] text-slate-500 dark:text-white/60 uppercase tracking-[0.4em] font-black">Registro de Territorios Asignados</p>
                         </div>
                     </div>
                 </div>

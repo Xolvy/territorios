@@ -307,17 +307,17 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
 
     showModal(`
         <div class="flex flex-col h-[85vh] sm:h-[750px] overflow-hidden">
-            <header class="shrink-0 bg-slate-900 p-8 text-white relative overflow-hidden">
-                <div class="absolute inset-0 bg-gradient-to-br from-primary/20 to-indigo-900/40 backdrop-blur-3xl"></div>
+            <header class="shrink-0 bg-white dark:bg-slate-900 p-8 relative overflow-hidden border-b border-slate-100 dark:border-white/5">
+                <div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-indigo-500/5 dark:from-primary/20 dark:to-indigo-900/40 backdrop-blur-3xl"></div>
                 <div class="relative z-10 flex justify-between items-center">
                     <div>
-                        <h3 class="text-2xl font-black uppercase tracking-tight leading-none mb-1">Selector Inteligente</h3>
-                        <p class="text-[10px] opacity-70 font-bold uppercase tracking-[0.2em] flex items-center gap-2">
+                        <h3 class="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none mb-1">Selector Inteligente</h3>
+                        <p class="text-[10px] text-slate-500 dark:text-white/70 font-bold uppercase tracking-[0.2em] flex items-center gap-2">
                            <i class="fas fa-microchip animate-pulse text-primary"></i> 
                            Gestión avanzada de saturación
                         </p>
                     </div>
-                    <div class="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center text-2xl shadow-2xl border border-white/20">
+                    <div class="w-14 h-14 bg-primary/10 dark:bg-white/10 rounded-2xl flex items-center justify-center text-2xl shadow-2xl border border-primary/20 dark:border-white/20">
                         <i class="fas fa-map-marked-alt text-primary"></i>
                     </div>
                 </div>

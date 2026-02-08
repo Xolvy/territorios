@@ -53,11 +53,11 @@ export const showNotification = (message, type = 'success', duration = 5000, wor
 
     // Type Styling
     const styles = {
-        success: { bg: 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-500/20', text: 'text-emerald-600 dark:text-emerald-400', icon: 'fa-check-circle', label: 'ÉXITO' },
-        error: { bg: 'bg-rose-50 dark:bg-rose-500/10 border-rose-500/20', text: 'text-rose-600 dark:text-rose-400', icon: 'fa-triangle-exclamation', label: 'ERROR' },
-        warning: { bg: 'bg-amber-50 dark:bg-amber-500/10 border-amber-500/20', text: 'text-amber-600 dark:text-amber-400', icon: 'fa-circle-exclamation', label: 'AVISO' },
-        info: { bg: 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-500/20', text: 'text-indigo-600 dark:text-indigo-400', icon: 'fa-circle-info', label: 'INFO' },
-        sync: { bg: 'bg-slate-900 border-indigo-500/40', text: 'text-indigo-400', icon: 'fa-sync-alt fa-spin-slow', label: 'XOLVY WORKFLOW' }
+        success: { bg: 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-500/30', text: 'text-emerald-600 dark:text-emerald-400', icon: 'fa-check-circle', label: 'ÉXITO' },
+        error: { bg: 'bg-rose-50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-500/30', text: 'text-rose-600 dark:text-rose-400', icon: 'fa-triangle-exclamation', label: 'ERROR' },
+        warning: { bg: 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-500/30', text: 'text-amber-600 dark:text-amber-400', icon: 'fa-circle-exclamation', label: 'AVISO' },
+        info: { bg: 'bg-indigo-50 dark:bg-indigo-950/20 border-indigo-200 dark:border-indigo-500/30', text: 'text-indigo-600 dark:text-indigo-400', icon: 'fa-circle-info', label: 'INFO' },
+        sync: { bg: 'bg-indigo-50 dark:bg-slate-950 border-indigo-200 dark:border-indigo-500/40', text: 'text-indigo-600 dark:text-indigo-400', icon: 'fa-sync-alt fa-spin-slow', label: 'XOLVY WORKFLOW' }
     };
 
     const isSync = type === 'sync' || message.includes('Sincronizando');
@@ -65,11 +65,11 @@ export const showNotification = (message, type = 'success', duration = 5000, wor
 
     // Workflow log rendering
     const workflowHTML = workflow.length > 0
-        ? `<div class="mt-2.5 pt-2.5 border-t border-white/5 space-y-1">
+        ? `<div class="mt-2.5 pt-2.5 border-t ${isSync ? 'border-indigo-500/20' : 'border-slate-200 dark:border-white/5'} space-y-1">
              ${workflow.map(step => `
                 <div class="flex items-center gap-1.5 opacity-60">
                     <i class="fas fa-caret-right text-[6px] text-indigo-500"></i>
-                    <span class="text-[7px] font-bold text-slate-400 uppercase tracking-widest">${step}</span>
+                    <span class="text-[7px] font-black ${isSync ? 'text-indigo-900/50 dark:text-indigo-300/50' : 'text-slate-500 dark:text-slate-400'} uppercase tracking-widest">${step}</span>
                 </div>
              `).join('')}
            </div>`
@@ -78,7 +78,7 @@ export const showNotification = (message, type = 'success', duration = 5000, wor
     card.className = `${s.bg} border backdrop-blur-xl px-5 py-3.5 rounded-2xl shadow-2xl flex flex-col gap-1 animate-slide-left pointer-events-auto transform transition-all duration-500 hover:scale-[1.02] group min-w-[280px] max-w-[340px]`;
     card.innerHTML = `
         <div class="flex items-center gap-4 w-full">
-            <div class="w-10 h-10 ${isSync ? 'bg-indigo-500/20' : 'bg-white/50 dark:bg-white/5'} rounded-xl flex items-center justify-center ${s.text} shadow-inner shrink-0 group-hover:scale-110 transition-transform">
+            <div class="w-10 h-10 ${isSync ? 'bg-indigo-500/10 dark:bg-indigo-500/20' : 'bg-white/50 dark:bg-white/5'} rounded-xl flex items-center justify-center ${s.text} shadow-inner shrink-0 group-hover:scale-110 transition-transform">
                  <i class="fas ${s.icon} text-lg"></i>
             </div>
             <div class="flex flex-col flex-1">
@@ -86,7 +86,7 @@ export const showNotification = (message, type = 'success', duration = 5000, wor
                     <span class="text-[8px] font-black ${s.text} uppercase tracking-[0.25em]">${s.label}</span>
                     <span class="w-1 h-1 ${s.text.replace('text-', 'bg-')} rounded-full animate-pulse"></span>
                 </div>
-                <h4 class="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none">${displayMessage}</h4>
+                <h4 class="text-[11px] font-black ${isSync ? 'text-indigo-900 dark:text-indigo-100' : 'text-slate-800 dark:text-white'} uppercase tracking-tight leading-none">${displayMessage}</h4>
             </div>
             <button class="ml-2 text-slate-400 hover:text-rose-500 transition-colors opacity-40 hover:opacity-100" onclick="this.closest('div.animate-slide-left').remove()">
                 <i class="fas fa-times text-[10px]"></i>
@@ -107,7 +107,7 @@ export const showNotification = (message, type = 'success', duration = 5000, wor
     if (duration > 0) {
         setTimeout(() => {
             if (card.parentElement) {
-                card.classList.add('opacity-0', 'translate-x-[100px]', 'scale-90');
+                card.classList.add('opacity-0', 'translate-x-[100px]', 'scale-90', 'blur-sm');
                 setTimeout(() => card.remove(), 700);
             }
         }, duration);
@@ -144,7 +144,7 @@ export const completeSyncNotification = (moduleName) => {
     const card = cards.find(c => c.innerText.includes(moduleName) || c.innerText.includes('XOLVY WORKFLOW'));
 
     if (card) {
-        card.className = 'bg-emerald-500/10 border-emerald-500/30 border backdrop-blur-3xl px-5 py-3.5 rounded-2xl shadow-[0_20px_50px_rgba(16,185,129,0.3)] flex flex-col gap-1 animate-slide-left pointer-events-auto transform transition-all duration-700';
+        card.className = 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-500/20 dark:border-emerald-500/30 border backdrop-blur-3xl px-5 py-3.5 rounded-2xl shadow-[0_20px_50px_rgba(16,185,129,0.1)] dark:shadow-[0_20px_50px_rgba(16,185,129,0.3)] flex flex-col gap-1 animate-slide-left pointer-events-auto transform transition-all duration-700';
 
         // Cleanup workflow logs
         const workflowDiv = card.querySelector('.border-t');
@@ -152,18 +152,18 @@ export const completeSyncNotification = (moduleName) => {
 
         const iconWrap = card.querySelector('.w-10');
         if (iconWrap) {
-            iconWrap.className = 'w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-400 shadow-inner scale-110 transition-transform';
+            iconWrap.className = 'w-10 h-10 bg-emerald-500/10 dark:bg-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-inner scale-110 transition-transform';
             iconWrap.innerHTML = '<i class="fas fa-check text-lg"></i>';
         }
         const label = card.querySelector('span');
         if (label) {
             label.innerText = 'WORKFLOW FINALIZADO';
-            label.className = 'text-[8px] font-black text-emerald-500 uppercase tracking-[0.25em]';
+            label.className = 'text-[8px] font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-[0.25em]';
         }
         const title = card.querySelector('h4');
         if (title) {
             title.innerText = moduleName + ' al día';
-            title.className = 'text-[11px] font-black text-emerald-400 uppercase tracking-tight leading-none';
+            title.className = 'text-[11px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-tight leading-none';
         }
 
         setTimeout(() => {

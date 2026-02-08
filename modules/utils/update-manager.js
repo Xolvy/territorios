@@ -333,24 +333,24 @@ const showIANotification = (message) => {
     const banner = document.createElement('div');
     banner.className = 'fixed bottom-24 right-6 left-6 md:left-auto md:w-[380px] z-[10001] animate-slide-up';
     banner.innerHTML = `
-        <div class="ia-banner-glow bg-indigo-600/90 backdrop-blur-2xl p-6 rounded-[2.5rem] shadow-[0_30px_90px_-20px_rgba(79,70,229,0.5)] border border-white/20 relative overflow-hidden group">
-            <div class="absolute inset-0 ia-scanline opacity-10 pointer-events-none"></div>
-            <div class="absolute -top-20 -right-20 w-48 h-48 bg-white/10 rounded-full blur-3xl group-hover:bg-white/20 transition-all duration-1000"></div>
+        <div class="ia-banner-glow bg-white/80 dark:bg-indigo-600/90 backdrop-blur-2xl p-6 rounded-[2.5rem] shadow-[0_30px_90px_-20px_rgba(79,70,229,0.2)] dark:shadow-[0_30px_90px_-20px_rgba(79,70,229,0.5)] border border-indigo-200 dark:border-white/20 relative overflow-hidden group">
+            <div class="absolute inset-0 ia-scanline opacity-5 dark:opacity-10 pointer-events-none"></div>
+            <div class="absolute -top-20 -right-20 w-48 h-48 bg-indigo-500/10 dark:bg-white/10 rounded-full blur-3xl group-hover:bg-white/20 transition-all duration-1000"></div>
             
             <div class="flex items-start gap-5 relative z-10">
                 <div class="relative shrink-0">
-                    <div class="w-14 h-14 bg-white/20 rounded-[1.25rem] flex items-center justify-center text-3xl shadow-xl rotate-3 group-hover:rotate-12 transition-transform duration-500">
+                    <div class="w-14 h-14 bg-indigo-500/10 dark:bg-white/20 rounded-[1.25rem] flex items-center justify-center text-3xl shadow-xl rotate-3 group-hover:rotate-12 transition-transform duration-500">
                         🤖
                     </div>
-                    <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 border-4 border-indigo-600 rounded-full"></div>
+                    <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 border-4 border-white dark:border-indigo-600 rounded-full"></div>
                 </div>
                 
                 <div class="flex-1 space-y-2 pt-1">
                     <div class="flex justify-between items-center">
-                        <h4 class="text-[10px] font-black text-white/70 uppercase tracking-[0.3em]">Cerebro Territorial</h4>
-                        <span class="text-[8px] font-bold bg-white/10 text-white/50 px-2 py-0.5 rounded-full uppercase">AI Intel</span>
+                        <h4 class="text-[10px] font-black text-indigo-600/70 dark:text-white/70 uppercase tracking-[0.3em]">Cerebro Territorial</h4>
+                        <span class="text-[8px] font-bold bg-indigo-500/10 dark:bg-white/10 text-indigo-600/50 dark:text-white/50 px-2 py-0.5 rounded-full uppercase">AI Intel</span>
                     </div>
-                    <p class="text-[13px] font-bold text-white leading-[1.6] italic tracking-tight">
+                    <p class="text-[13px] font-bold text-slate-800 dark:text-white leading-[1.6] italic tracking-tight">
                         "${message}"
                     </p>
                 </div>
@@ -404,12 +404,12 @@ const showRescuePill = (targetVersion) => {
     pill.id = 'xolvy-rescue-pill';
     pill.className = 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[100000] w-[90%] max-w-sm animate-fade-in';
     pill.innerHTML = `
-        <div class="bg-slate-900/90 backdrop-blur-3xl border border-indigo-500/20 p-8 rounded-[3rem] shadow-[0_40px_100px_rgba(0,0,0,0.8)] text-center">
-            <div class="w-20 h-20 bg-indigo-500/10 rounded-[2rem] flex items-center justify-center text-4xl text-indigo-400 mx-auto mb-6 shadow-inner">
+        <div class="bg-white/90 dark:bg-slate-900/90 backdrop-blur-3xl border border-slate-200 dark:border-indigo-500/20 p-8 rounded-[3rem] shadow-[0_40px_100px_rgba(0,0,0,0.2)] dark:shadow-[0_40px_100px_rgba(0,0,0,0.8)] text-center">
+            <div class="w-20 h-20 bg-indigo-500/10 rounded-[2rem] flex items-center justify-center text-4xl text-indigo-500 mx-auto mb-6 shadow-inner">
                 <i class="fas fa-shield-check"></i>
             </div>
-            <h4 class="text-xl font-black text-white uppercase tracking-tighter mb-2">Sincronización de Sistema</h4>
-            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest leading-relaxed mb-8">
+            <h4 class="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-2">Sincronización de Sistema</h4>
+            <p class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-relaxed mb-8">
                 Se requiere un ajuste manual para sincronizar la versión v${targetVersion}. Pulsa el botón para restablecer la conexión de forma segura.
             </p>
             <button id="btn-rescue-action" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-5 rounded-2xl text-[11px] font-black uppercase tracking-[0.3em] shadow-xl shadow-indigo-600/20 transition-all active:scale-95 outline-none">
