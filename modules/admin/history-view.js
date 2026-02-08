@@ -33,7 +33,7 @@ export const renderHistorialView = async (container) => {
         }))
         .sort((a, b) => parseInt(a.numero) - parseInt(b.numero));
 
-    // Group history by territory number for easy access
+    // Group history by territory number for easy access (Robust Normalization)
     const historyByNum = history.reduce((acc, h) => {
         const num = normalizeT(h.numero);
         if (!num) return acc;
@@ -41,6 +41,14 @@ export const renderHistorialView = async (container) => {
         acc[num].push({ ...h, numero: num });
         return acc;
     }, {});
+
+    // Helper to extract a sortable value from different date formats
+    const getSortableDate = (h) => {
+        const d = h.timestamp || h.fecha_entrega || h.fecha_asignacion;
+        if (!d) return 0;
+        const date = d.toDate ? d.toDate() : new Date(d);
+        return isNaN(date.getTime()) ? 0 : date.getTime();
+    };
 
     // Stats recalculation (radar)
     const assignedCount = allTerritorios.filter(t => t.estado === 'Asignado').length;
@@ -117,7 +125,7 @@ export const renderHistorialView = async (container) => {
 
         grid.innerHTML = displayList.map(t => {
             const tHistory = (historyByNum[t.numero] || [])
-                .sort((a, b) => new Date(b.fecha_entrega || b.timestamp) - new Date(a.fecha_entrega || a.timestamp));
+                .sort((a, b) => getSortableDate(b) - getSortableDate(a));
 
             const isFree = t.estado === 'Libre' || t.estado === 'Disponible' || t.estado === 'Sin asignar';
             const numBg = isFree ? 'bg-emerald-500 shadow-emerald-500/30' : 'bg-rose-500 shadow-rose-500/30';
@@ -211,7 +219,7 @@ export const renderHistorialView = async (container) => {
                 if (mode === 's13') return true; // Show all states in general chronology
                 return h.observaciones && h.observaciones.trim().length > 0;
             })
-            .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+            .sort((a, b) => getSortableDate(b) - getSortableDate(a));
 
         if (tHistory.length === 0) {
             content.innerHTML = `<div class="py-10 text-center opacity-40 ml-10"><p class="text-[10px] font-bold uppercase tracking-widest italic">Sin registros para esta vista</p></div>`;

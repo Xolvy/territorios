@@ -799,6 +799,7 @@ export const returnTerritorio = async (id, notes, customDate, status = 'Completa
 
         await logReturn(id, dateToUse, status, notes, fotos);
         ServiceCache.clear('territorios');
+        ServiceCache.clear('historial');
         ServiceCache.clear('stats_globales');
     } catch (e) {
         console.error("Atomic transaction failed in returnTerritorio:", e);
@@ -1059,6 +1060,8 @@ export const updateAssignmentData = async (id, updates = {}) => {
     if (finalData && finalData.fecha_asignacion) {
         await syncAssignmentToWeeklyProgram({ id, ...finalData }, finalData.asignado_a, finalData);
     }
+    ServiceCache.clear('territorios');
+    ServiceCache.clear('historial');
 };
 
 export const getMisTerritorios = async (conductorName) => {
@@ -1785,6 +1788,9 @@ export const syncSlotWithTerritories = async (weekId, dayIdx, turno, tData, date
                 }
             }
         }
+        ServiceCache.clear('territorios');
+        ServiceCache.clear('historial');
+        ServiceCache.clear('stats_globales');
     } catch (e) {
         console.error("Error in syncSlotWithTerritories:", e);
     }
