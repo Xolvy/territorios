@@ -36,10 +36,19 @@ export const renderHistorialView = async (container) => {
         }))
         .sort((a, b) => parseInt(a.numero) - parseInt(b.numero));
 
+    // Build ID to Num mapping for robust history linking
+    const idToNum = {};
+    allTerritorios.forEach(t => idToNum[t.id] = t.numero);
+
     // Group history by territory number for easy access (Robust Normalization & Multi-Territory Support)
     const historyByNum = history.reduce((acc, h) => {
         // Support for multi-territory records (e.g., "1 / 2" or "15, 16")
-        const rawNum = String(h.numero || '');
+        // FALLBACK: If numero is missing, use ID mapping
+        let rawNum = String(h.numero || '');
+        if (!rawNum && h.territorio_id && idToNum[h.territorio_id]) {
+            rawNum = idToNum[h.territorio_id];
+        }
+
         const nums = rawNum.split(/[,/]/).map(s => normalizeT(s)).filter(Boolean);
 
         nums.forEach(num => {
@@ -241,11 +250,12 @@ export const renderHistorialView = async (container) => {
         }
 
         el.dataset.mode = mode;
-        title.innerText = mode === 's13' ? 'Cronología S-13' : 'Observaciones y Notas';
+        const isObs = mode === 'obs';
+        title.innerText = isObs ? 'Observaciones y Notas' : 'Cronología S-13';
 
         // Update sub-tab buttons
-        btnS13.className = `px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest ${mode === 's13' ? 'bg-slate-900 text-white' : 'bg-slate-200 dark:bg-white/5 text-slate-500'}`;
-        btnObs.className = `px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest ${mode === 'obs' ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-white/5 text-slate-500'}`;
+        if (btnS13) btnS13.className = `px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest ${!isObs ? 'bg-slate-900 text-white' : 'bg-slate-200 dark:bg-white/5 text-slate-500'}`;
+        if (btnObs) btnObs.className = `px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest ${isObs ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-white/5 text-slate-500'}`;
 
         const tHistory = (historyByNum[num] || [])
             .filter(h => {

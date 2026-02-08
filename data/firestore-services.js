@@ -211,7 +211,8 @@ export const logReturn = async (territorioId, fechaEntrega, status = 'Completado
                 await updateDoc(doc(db, "historial_territorios", newest.id), {
                     fecha_entrega: dateStr,
                     estado: status, // Normally 'Completado'
-                    observaciones: notas || newest.observaciones
+                    observaciones: notas || newest.observaciones,
+                    timestamp: Timestamp.now() // Refresh timestamp for better sorting in logs
                 });
 
                 // 2. Absorption: If there were multiple assignments, "absorb" the older ones
@@ -221,7 +222,8 @@ export const logReturn = async (territorioId, fechaEntrega, status = 'Completado
                         batch.update(doc(db, "historial_territorios", assignments[i].id), {
                             estado: 'Sobrepuesto', // Hidden from S-13 and stats
                             fecha_entrega: dateStr,
-                            observaciones: `Absorbido por asignación posterior (${newest.conductor})`
+                            observaciones: `Absorbido por asignación posterior (${newest.conductor})`,
+                            timestamp: Timestamp.now()
                         });
                     }
                     await batch.commit();
@@ -230,9 +232,23 @@ export const logReturn = async (territorioId, fechaEntrega, status = 'Completado
             }
         }
 
-        // Fallback: If no open history found (maybe assigned before update), create a closed one?
-        // Or just ignore. Let's ignore to avoid phantom data, or log a warning.
-        console.warn("No open history found for returned territory", territorioId);
+        // Fallback: If no open history found but we REALLY need to log this return (e.g. forced diagnostic return)
+        // We create a "detached" history record to ensure the audit trail is complete.
+        const tRef = doc(db, "territorios", territorioId);
+        const tSnap = await getDoc(tRef);
+        if (tSnap.exists()) {
+            const tData = tSnap.data();
+            await addDoc(collection(db, "historial_territorios"), {
+                territorio_id: territorioId,
+                numero: tData.numero,
+                fecha_entrega: fechaEntrega || new Date().toISOString(),
+                estado: status,
+                observaciones: notas || 'Cierre forzado de registro',
+                timestamp: Timestamp.now(),
+                conductor: tData.asignado_a || 'Sistema',
+                auxiliar: tData.auxiliar || ''
+            });
+        }
     } catch (e) {
         console.error("Error logging return history:", e);
     }
