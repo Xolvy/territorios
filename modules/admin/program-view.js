@@ -1193,14 +1193,7 @@ export const renderProgramaTab = async (container) => {
                     `}).join('')}
                 </div>
 
-                <div class="p-5 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl space-y-2">
-                    <p class="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest flex items-center gap-2">
-                        <i class="fas fa-shield-alt"></i> Sincronización Bilateral Activa
-                    </p>
-                    <p class="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-tight leading-relaxed">
-                        Las asignaciones se sincronizarán usando la fecha exacta de cada día del programa. Esto permite que un territorio se use varias veces en la misma semana sin conflictos y elimina registros obsoletos de la base de datos.
-                    </p>
-                </div>
+
 
                 <div class="space-y-3 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 shrink-0">
                     <div class="flex items-center justify-between">
@@ -1213,9 +1206,15 @@ export const renderProgramaTab = async (container) => {
                     </p>
                 </div>
 
-                 <div class="flex gap-4 pt-4 border-t border-slate-50 dark:border-white/5 shrink-0">
-                    <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="flex-1 py-4 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-lg text-[10px] uppercase tracking-widest">Cerrar</button>
-                    <button id="confirm-sync-all" class="flex-[2] py-4 bg-emerald-500 text-white font-black rounded-lg text-[10px] uppercase tracking-widest shadow-xl shadow-emerald-500/20 hover:scale-[1.02] transition-all">Formalizar Selección</button>
+                <div class="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-white/5 shrink-0">
+                    <div class="flex items-center gap-2 opacity-20 hover:opacity-100 transition-opacity">
+                        <i class="fas fa-shield-alt text-[8px] text-emerald-500"></i>
+                        <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest">Sincronización Bilateral Activa</span>
+                    </div>
+                    <div class="flex gap-4">
+                        <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="px-6 py-4 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-lg text-[10px] uppercase tracking-widest">Cerrar</button>
+                        <button id="confirm-sync-all" class="px-8 py-4 bg-emerald-500 text-white font-black rounded-lg text-[10px] uppercase tracking-widest shadow-xl shadow-emerald-500/20 hover:scale-[1.02] transition-all">Formalizar Selección</button>
+                    </div>
                 </div>
             </div>
         `, (modal) => {
