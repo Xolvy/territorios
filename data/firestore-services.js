@@ -1953,10 +1953,10 @@ export const syncAllProgramsToTerritories = async () => {
             const weekStart = new Date(weekId + 'T12:00:00Z');
             if (isNaN(weekStart.getTime())) continue;
 
-            // FIX: Only sync if program is current (last 14 days or future) 
+            // FIX: Only sync if program is current (last 30 days or future) 
             // This prevents old "zombie" assignments from resurrecting during repair
             const cutoff = new Date();
-            cutoff.setDate(cutoff.getDate() - 14);
+            cutoff.setDate(cutoff.getDate() - 30);
             if (weekStart < cutoff) {
                 console.log(`Diagnostic: Skipping old program record ${weekId}`);
                 continue;
@@ -1967,7 +1967,6 @@ export const syncAllProgramsToTerritories = async () => {
                     const dia = prog.dias[dayIdx];
                     const dayDate = new Date(weekStart);
                     dayDate.setDate(weekStart.getDate() + dayIdx);
-                    // Use only the date part for the key to avoid time mismatches
                     const dateKey = dayDate.toISOString().split('T')[0];
 
                     for (const turno of ['manana', 'tarde', 'noche', 'zoom']) {
@@ -1987,16 +1986,19 @@ export const syncAllProgramsToTerritories = async () => {
                                 expectedAssignments.add(`${num}_${dateKey}_${turno}`);
                                 const territory = terrByNum[num];
                                 if (territory) {
-                                    const dbDateKey = territory.fecha_asignacion ? territory.fecha_asignacion.split('T')[0] : null;
+                                    const asigDate = new Date(dayDate);
+                                    asigDate.setDate(asigDate.getDate() - 7);
+                                    const dbAsigKey = territory.fecha_asignacion ? territory.fecha_asignacion.split('T')[0] : null;
+                                    const expectedAsigKey = asigDate.toISOString().split('T')[0];
 
                                     // FIX: Check if details match. 
                                     // For 'Asignado' state, we want them to reflect the program's conductor and day.
-                                    if (territory.asignado_a !== t.conductor || dbDateKey !== dateKey || territory.turno !== turno) {
-                                        console.log(`Diagnostic Fix: Syncing Territory ${num} status to Program (Slot: ${dateKey} ${turno})`);
+                                    if (territory.asignado_a !== t.conductor || dbAsigKey !== expectedAsigKey || territory.turno !== turno) {
+                                        console.log(`Diagnostic Fix: Syncing Territory ${num} status to Program (Asig: ${expectedAsigKey})`);
 
                                         await updateDoc(doc(db, "territorios", territory.id), {
                                             asignado_a: t.conductor,
-                                            fecha_asignacion: dayDate.toISOString(), // Use Actual Day Date
+                                            fecha_asignacion: asigDate.toISOString(),
                                             turno: turno,
                                             auxiliar: t.auxiliar || '',
                                             lugar: t.lugar || '',
@@ -2021,8 +2023,13 @@ export const syncAllProgramsToTerritories = async () => {
         for (const t of allTerritories) {
             // Only cleanup if it has a turno and fecha_asignacion (came from program)
             if (t.estado === 'Asignado' && t.fecha_asignacion && t.turno) {
-                const dbDateKey = t.fecha_asignacion.split('T')[0];
-                const key = `${t.numero}_${dbDateKey}_${t.turno}`;
+                // S-13 Lead Time adjustment: Map Assignment Date back to Program Day for verification
+                const asigDate = new Date(t.fecha_asignacion);
+                const programDay = new Date(asigDate);
+                programDay.setDate(programDay.getDate() + 7);
+                const progDateKey = programDay.toISOString().split('T')[0];
+
+                const key = `${t.numero}_${progDateKey}_${t.turno}`;
                 if (!expectedAssignments.has(key)) {
                     console.log(`Diagnostic Fix: Returning Orphaned Territory ${t.numero} (Key: ${key})`);
                     await updateDoc(doc(db, "territorios", t.id), {
