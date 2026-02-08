@@ -1202,6 +1202,17 @@ export const renderProgramaTab = async (container) => {
                     </p>
                 </div>
 
+                <div class="space-y-3 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 shrink-0">
+                    <div class="flex items-center justify-between">
+                        <label class="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 block">¿Fecha general de asignación?</label>
+                        <span class="text-[8px] font-bold text-emerald-500 uppercase bg-emerald-500/5 px-2 py-0.5 rounded">Opcional</span>
+                    </div>
+                    <input type="date" id="sync-global-date" class="w-full bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-white/10 p-4 rounded-xl text-[12px] font-black text-emerald-500 outline-none focus:border-emerald-500 transition-all uppercase shadow-inner">
+                    <p class="text-[8px] text-slate-400 font-bold uppercase tracking-widest italic leading-normal px-1">
+                        Si se deja vacío, se usará la fecha de cada día del programa (Sincronización Bilateral).
+                    </p>
+                </div>
+
                  <div class="flex gap-4 pt-4 border-t border-slate-50 dark:border-white/5 shrink-0">
                     <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="flex-1 py-4 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-lg text-[10px] uppercase tracking-widest">Cerrar</button>
                     <button id="confirm-sync-all" class="flex-[2] py-4 bg-emerald-500 text-white font-black rounded-lg text-[10px] uppercase tracking-widest shadow-xl shadow-emerald-500/20 hover:scale-[1.02] transition-all">Formalizar Selección</button>
@@ -1239,34 +1250,43 @@ export const renderProgramaTab = async (container) => {
                 const { syncSlotWithTerritories } = await import('../../data/firestore-services.js');
                 showNotification(`Formalizando ${checkedIdxs.length} asignaciones...`, 'info');
 
-                // 1. Group checked assignments by Slot (Day + Turn) 
-                // This is CRITICAL to handle "Total Replacement" correctly
-                const slotsToSync = new Map();
+                // 1. Resolve and Group checked assignments by "Effective Slot" (Date + Turn)
+                // This is CRITICAL to handle "Total Replacement" correctly without conflicts
+                const weekId = programa.id;
+                const globalDate = modal.querySelector('#sync-global-date').value;
+                const effectiveSlots = new Map();
+
                 for (const idx of checkedIdxs) {
                     const item = toSync[idx];
-                    const slotKey = `${item.dayIdx}_${item.turnoId}`;
-                    if (!slotsToSync.has(slotKey)) {
-                        slotsToSync.set(slotKey, {
+
+                    let resolvedDateISO;
+                    if (globalDate) {
+                        resolvedDateISO = new Date(globalDate + 'T12:00:00Z').toISOString();
+                    } else {
+                        const d = new Date(weekId + 'T12:00:00Z');
+                        d.setUTCDate(d.getUTCDate() + item.dayIdx);
+                        resolvedDateISO = d.toISOString();
+                    }
+
+                    // The Key for Bilateral Sync grouping is resolved Date + Turn
+                    const slotKey = `${resolvedDateISO.split('T')[0]}_${item.turnoId}`;
+
+                    if (!effectiveSlots.has(slotKey)) {
+                        effectiveSlots.set(slotKey, {
                             dayIdx: item.dayIdx,
                             turnoId: item.turnoId,
                             dia: item.dia,
                             conductor: item.data.conductor,
                             tNums: [],
-                            fullData: item.data
+                            fullData: item.data,
+                            resolvedDateISO
                         });
                     }
-                    slotsToSync.get(slotKey).tNums.push(item.specificT);
+                    effectiveSlots.get(slotKey).tNums.push(item.specificT);
                 }
 
-                // 2. Synchronize each slot
-                const weekId = programa.id;
-                for (const [key, slot] of slotsToSync) {
-                    // Calculate the Actual Date for this specific day (Monday, Tuesday, etc.)
-                    // Standards: weekId is Monday. 
-                    const slotDate = new Date(weekId + 'T12:00:00Z');
-                    slotDate.setUTCDate(slotDate.getUTCDate() + slot.dayIdx);
-                    const slotDateISO = slotDate.toISOString();
-
+                // 2. Synchronize each effective slot
+                for (const [key, slot] of effectiveSlots) {
                     const syncData = {
                         ...slot.fullData,
                         // Override territory list with ONLY the ones selected in the modal for this slot
@@ -1274,8 +1294,8 @@ export const renderProgramaTab = async (container) => {
                         prog_sync: true
                     };
 
-                    console.log(`Bilateral Sync: Formalizing slot ${slot.dia.nombre} ${slot.turnoId} with ${slot.tNums.length} territories`);
-                    await syncSlotWithTerritories(weekId, slot.dayIdx, slot.turnoId, syncData, slotDateISO);
+                    console.log(`Bilateral Sync: Formalizing slot with resolved date ${slot.resolvedDateISO} and ${slot.tNums.length} territories`);
+                    await syncSlotWithTerritories(weekId, slot.dayIdx, slot.turnoId, syncData, slot.resolvedDateISO);
                 }
 
                 showNotification(`¡${checkedIdxs.length} asignaciones formalizadas con éxito!`, 'success');

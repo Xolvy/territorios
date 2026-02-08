@@ -229,6 +229,7 @@ export const renderHistorialView = async (container) => {
                 if (s === 'extraviado') return { text: 'Extraviado', color: 'text-rose-600 bg-rose-600/10' };
                 return { text: status, color: 'text-slate-400 bg-slate-50 dark:bg-white/5' };
             };
+            const badge = getStatusBadge(h.estado);
             const canEdit = h.estado === 'Asignado';
             const canComplete = h.estado === 'Asignado';
 
