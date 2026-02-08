@@ -618,10 +618,10 @@ export const assignTerritorio = async (id, conductorName, details = {}) => {
             const tData = tSnap.data();
 
             const updateData = {
-                asignado_a: conductorName,
+                asignado_a: details.estado === 'Asignado' ? conductorName : null,
                 fecha_asignacion: details.fecha_asignacion || new Date().toISOString(),
                 fecha_salida: details.fecha_salida || null,
-                estado: 'Asignado',
+                estado: details.estado || 'Asignado',
                 auxiliar: details.auxiliar || null,
                 lugar: details.lugar || null,
                 hora: details.hora || null,
@@ -632,17 +632,19 @@ export const assignTerritorio = async (id, conductorName, details = {}) => {
                 prog_sync: details.prog_sync || details.sync || false
             };
 
-            // 1. Update Territory
-            transaction.update(tRef, updateData);
+            // 1. Update Territory (Optional for history sync)
+            if (!details.skipTerritoryUpdate) {
+                transaction.update(tRef, updateData);
+            }
 
-            // 2. Add to History (Using a random ID or predictable ID to avoid duplicates)
+            // 2. Add to History
             const histId = `asig_${id}_${new Date().getTime()}`;
             transaction.set(doc(db, "historial_territorios", histId), {
                 territorio_id: id,
                 numero: tData.numero,
                 conductor: conductorName,
                 ...details,
-                estado: 'Asignado',
+                estado: details.estado || 'Asignado',
                 timestamp: Timestamp.now(),
                 fecha_asignacion: updateData.fecha_asignacion
             });
@@ -1749,10 +1751,21 @@ export const syncSlotWithTerritories = async (weekId, dayIdx, turno, tData, date
                         campana: tDataDB.campana || ''
                     };
 
-                    const assignmentDate = new Date(dateISO);
+                    const programDay = new Date(dateISO);
+                    const assignmentDate = new Date(programDay);
+                    assignmentDate.setDate(assignmentDate.getDate() - 7);
+
+                    const now = new Date();
+                    const isPast = programDay < now;
+                    // Skip territory update if the program day is more than 3 days in the past (Safety Shield)
+                    const skipUpdate = isPast && (now - programDay > 1000 * 60 * 60 * 24 * 3);
+
                     const newDetails = {
                         asignado_a: normalizedConductor,
                         fecha_asignacion: assignmentDate.toISOString(),
+                        fecha_entrega: isPast ? programDay.toISOString() : null,
+                        estado: isPast ? 'Completado' : 'Asignado',
+                        skipTerritoryUpdate: skipUpdate,
                         turno: turno,
                         auxiliar: String(tData.auxiliar || '').trim(),
                         lugar: String(tData.lugar || '').trim(),
@@ -2082,13 +2095,19 @@ const syncScheduleToHistory = async (weekId, scheduleData) => {
                         tNums.forEach(num => {
                             const key = `${num}_${dateKey}`;
                             const existing = historyMap.get(key);
+                            const asigDate = new Date(dayDate);
+                            asigDate.setDate(asigDate.getDate() - 7);
+                            const isPast = dayDate < new Date();
 
                             if (existing) {
                                 if (existing.conductor !== assignment.conductor) {
                                     promises.push(updateDoc(doc(db, "historial_territorios", existing.id), {
                                         conductor: assignment.conductor,
                                         auxiliar: assignment.auxiliar || '',
-                                        timestamp: Timestamp.fromDate(dayDate) // Re-sync timestamp to dayDate
+                                        fecha_asignacion: asigDate.toISOString(),
+                                        fecha_entrega: isPast ? dayDate.toISOString() : null,
+                                        estado: isPast ? 'Completado' : 'Asignado',
+                                        timestamp: Timestamp.fromDate(dayDate)
                                     }));
                                 }
                             } else {
@@ -2097,9 +2116,9 @@ const syncScheduleToHistory = async (weekId, scheduleData) => {
                                     numero: num,
                                     conductor: assignment.conductor,
                                     auxiliar: assignment.auxiliar || '',
-                                    fecha_asignacion: dayDate.toISOString(),
-                                    fecha_entrega: null,
-                                    estado: 'Asignado',
+                                    fecha_asignacion: asigDate.toISOString(),
+                                    fecha_entrega: isPast ? dayDate.toISOString() : null,
+                                    estado: isPast ? 'Completado' : 'Asignado',
                                     timestamp: Timestamp.fromDate(dayDate),
                                     turno: turno,
                                     prog_sync: true

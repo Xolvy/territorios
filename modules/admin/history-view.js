@@ -289,8 +289,11 @@ export const renderHistorialView = async (container) => {
                                 <span class="text-[10px] font-black ${badge.color} px-3 py-1 rounded-lg w-fit transition-all">${badge.text}</span>
                             </div>
                             <div class="flex flex-col">
-                                <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Fecha</span>
-                                <span class="text-[11px] font-bold text-slate-600 dark:text-gray-400">${UIHelpers.fmtDateAt(h.fecha_entrega || h.fecha_asignacion || h.timestamp)}</span>
+                                <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Cronología (Asig. ➔ Entrega)</span>
+                                <div class="flex flex-col gap-0.5">
+                                    <span class="text-[10px] font-bold text-slate-600 dark:text-gray-400">Asig: ${UIHelpers.fmtDate(h.fecha_asignacion || h.timestamp)}</span>
+                                    ${h.fecha_entrega ? `<span class="text-[10px] font-black text-emerald-500">Entr: ${UIHelpers.fmtDate(h.fecha_entrega)}</span>` : '<span class="text-[9px] text-rose-400 font-bold uppercase animate-pulse">En curso...</span>'}
+                                </div>
                             </div>
                             <div class="flex flex-col col-span-1 md:col-span-1 lg:col-span-1">
                                 <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Observación</span>
