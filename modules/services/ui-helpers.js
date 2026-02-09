@@ -442,19 +442,6 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
                 </div>
             </div>
 
-            <div class="shrink-0 p-6 bg-white dark:bg-[#0a0f18] border-t border-slate-100 dark:border-white/5 flex flex-col gap-4">
-                <div class="bg-primary/5 p-5 rounded-3xl border border-primary/10">
-                    <div class="flex items-center justify-between mb-3 px-1">
-                        <span class="text-[10px] font-black text-primary uppercase tracking-widest">Resumen de Selección:</span>
-                        <button id="modal-terr-clear" class="text-[10px] font-black text-red-500 hover:text-red-600 uppercase tracking-widest transition-colors flex items-center gap-2">
-                            <i class="fas fa-undo-alt"></i> Limpiar
-                        </button>
-                    </div>
-                    <div id="modal-selection-preview" class="text-[11px] font-mono text-primary font-bold break-all bg-white dark:bg-white/5 p-4 rounded-xl border border-primary/10 min-h-[48px] shadow-inner">
-                        ${current || 'Nada seleccionado'}
-                    </div>
-                </div>
-                
                 <button id="modal-terr-confirm" class="w-full bg-primary hover:bg-primary-light text-white py-5 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 transition-all hover:scale-[1.01] active:scale-[0.99]">
                     Confirmar Selección
                 </button>
@@ -463,7 +450,6 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
     `, (modal) => {
         const listContainer = modal.querySelector('#modal-terr-list');
         const searchInput = modal.querySelector('#modal-terr-search');
-        const preview = modal.querySelector('#modal-selection-preview');
         const confirmBtn = modal.querySelector('#modal-terr-confirm');
 
         window.modalToggleTerr = (num) => {
@@ -475,8 +461,11 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
 
         const updatePreview = () => {
             const keys = Object.keys(selections).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+            const quickText = modal.querySelector('#quick-selection-text');
+            if (!quickText) return;
+
             if (keys.length === 0) {
-                preview.innerText = 'Nada seleccionado';
+                quickText.innerText = 'Nada seleccionado';
                 return;
             }
 
@@ -485,10 +474,8 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
                 if (!mzs) return num;
                 return `${num}(${mzs.join(', ')})`;
             }).join(', ');
-            preview.innerText = result;
 
-            const quickText = modal.querySelector('#quick-selection-text');
-            if (quickText) quickText.innerText = result || 'Nada seleccionado';
+            quickText.innerText = result;
         };
 
         const render = () => {
@@ -624,12 +611,6 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
 
         searchInput.oninput = render;
 
-        modal.querySelector('#modal-terr-clear').onclick = () => {
-            selections = {};
-            render();
-            updatePreview();
-        };
-
         const quickClear = modal.querySelector('#quick-clear-btn');
         if (quickClear) {
             quickClear.onclick = () => {
@@ -640,8 +621,14 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
         }
 
         confirmBtn.onclick = () => {
-            const displayStr = preview.innerText === 'Nada seleccionado' ? '' : preview.innerText;
-            onSelect(displayStr, selections);
+            const keys = Object.keys(selections).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+            const result = keys.map(num => {
+                const mzs = selections[num];
+                if (!mzs) return num;
+                return `${num}(${mzs.join(', ')})`;
+            }).join(', ');
+
+            onSelect(result, selections);
             const modalEl = document.getElementById(containerId);
             if (modalEl) {
                 modalEl.classList.add('hidden');
