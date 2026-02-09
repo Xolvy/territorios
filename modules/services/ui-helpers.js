@@ -323,6 +323,15 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
                 </div>
             </header>
             
+            <div id="modal-quick-summary" class="shrink-0 px-8 py-3 bg-primary text-white flex items-center justify-between animate-fade-in z-30 shadow-lg">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-shopping-cart text-[10px] opacity-70"></i>
+                    <span class="text-[9px] font-black uppercase tracking-widest">Resumen de selección:</span>
+                    <span id="quick-selection-text" class="text-[11px] font-bold lowercase tracking-tight opacity-90 truncate max-w-[200px] sm:max-w-md">${current || 'Nada seleccionado'}</span>
+                </div>
+                <button id="quick-clear-btn" class="text-[9px] font-black uppercase tracking-widest bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg transition-all">Limpiar</button>
+            </div>
+            
             ${weekAssignments.length > 0 ? `
             <div class="shrink-0 px-8 py-4 bg-orange-500/5 border-b border-orange-500/10 flex flex-wrap items-center gap-3 animate-fade-in relative z-20">
                 <i class="fas fa-exclamation-circle text-orange-500 text-[10px]"></i>
@@ -477,6 +486,9 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
                 return `${num}(${mzs.join(', ')})`;
             }).join(', ');
             preview.innerText = result;
+
+            const quickText = modal.querySelector('#quick-selection-text');
+            if (quickText) quickText.innerText = result || 'Nada seleccionado';
         };
 
         const render = () => {
@@ -518,7 +530,10 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
                                  <div class="flex items-center gap-3">
                                     <input type="checkbox" class="terr-check w-5 h-5 rounded-lg border-2 border-slate-300 dark:border-white/10 text-primary focus:ring-primary transition-all cursor-pointer" 
                                             data-num="${t.numero}" ${isSelected ? 'checked' : ''}>
-                                     <span class="text-lg font-black ${weekAssignments.includes(t.numero) ? 'text-orange-500 animate-pulse' : 'text-slate-800 dark:text-white'} uppercase tracking-tighter">#${t.numero}</span>
+                                     <div class="flex flex-col">
+                                         <span class="text-lg font-black ${weekAssignments.includes(t.numero) ? 'text-orange-500 animate-pulse' : 'text-slate-800 dark:text-white'} uppercase tracking-tighter">#${t.numero}</span>
+                                         ${weekAssignments.includes(t.numero) ? `<span class="text-[7px] font-black text-orange-500 uppercase tracking-[0.2em]">En Programa</span>` : ''}
+                                     </div>
                                      ${t.is_incomplete ? `<i class="fas fa-magic text-indigo-500 text-[10px] animate-pulse" title="Fragmento sugerido"></i>` : ''}
                                   </div>
                                   <div class="flex items-center gap-2">
@@ -614,6 +629,15 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
             render();
             updatePreview();
         };
+
+        const quickClear = modal.querySelector('#quick-clear-btn');
+        if (quickClear) {
+            quickClear.onclick = () => {
+                selections = {};
+                render();
+                updatePreview();
+            };
+        }
 
         confirmBtn.onclick = () => {
             const displayStr = preview.innerText === 'Nada seleccionado' ? '' : preview.innerText;
