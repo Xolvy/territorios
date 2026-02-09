@@ -797,30 +797,92 @@ export const renderProgramaTab = async (container) => {
     container.querySelector('#btn-resync-prog').onclick = loadWeekData;
 
     container.querySelector('#btn-export-xls-prog').onclick = () => {
-        const exportData = [];
+        const turns = [
+            { id: 'manana', label: 'MAÑANA' },
+            { id: 'tarde', label: 'TARDE' },
+            { id: 'noche', label: 'NOCHE' },
+            { id: 'zoom', label: 'ZOOM' }
+        ];
+
+        const fields = [
+            { label: 'HORA', key: 'hora' },
+            { label: 'CONDUCTOR', key: 'conductor' },
+            { label: 'AUXILIAR', key: 'auxiliar' },
+            { label: 'FACETA', key: 'faceta' },
+            { label: 'TERRITORIO', key: 'territorio' },
+            { label: 'LUGAR', key: 'lugar' }
+        ];
+
+        let xml = `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:html="http://www.w3.org/TR/REC-html40">
+ <Styles>
+  <Style ss:ID="sLabel">
+   <Font ss:Bold="1" ss:Size="9" ss:Color="#0d9488"/>
+   <Interior ss:Color="#f8fafc" ss:Pattern="Solid"/>
+   <Alignment ss:Vertical="Center" ss:Horizontal="Left"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#e2e8f0"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#e2e8f0"/>
+   </Borders>
+  </Style>
+  <Style ss:ID="sData">
+   <Font ss:Size="9"/>
+   <Alignment ss:Vertical="Center" ss:WrapText="1"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#f1f5f9"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#f1f5f9"/>
+   </Borders>
+  </Style>
+  <Style ss:ID="sHeader">
+   <Font ss:Bold="1" ss:Size="10" ss:Color="#FFFFFF"/>
+   <Interior ss:Color="#0d9488" ss:Pattern="Solid"/>
+   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+  </Style>
+ </Styles>
+ <Worksheet ss:Name="Programa Semanal">
+  <Table ss:DefaultColumnWidth="120">
+   <Column ss:Width="100"/>
+   <Row ss:Height="25">
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String">CATEGORÍA</Data></Cell>`;
+
         programa.dias.forEach(dia => {
-            ['manana', 'tarde', 'noche', 'zoom'].forEach(turno => {
-                const data = dia[turno];
-                if (data && (data.conductor || data.lugar || data.territorio)) {
-                    exportData.push({
-                        'Día': dia.nombre,
-                        'Fecha': dia.fecha,
-                        'Turno': turno.toUpperCase(),
-                        'Hora': data.hora || '—',
-                        'Lugar': data.lugar || '—',
-                        'Conductor': data.conductor || '—',
-                        'Auxiliar': data.auxiliar || '—',
-                        'Grupos': data.grupos || '—',
-                        'Territorio': data.territorio || '—',
-                        'Faceta': data.faceta || '—'
-                    });
-                }
+            xml += `<Cell ss:StyleID="sHeader"><Data ss:Type="String">${dia.nombre.toUpperCase()}</Data></Cell>`;
+        });
+        xml += '</Row>';
+
+        turns.forEach(turno => {
+            fields.forEach(field => {
+                xml += '<Row ss:Height="22" ss:AutoFitHeight="1">';
+                xml += `<Cell ss:StyleID="sLabel"><Data ss:Type="String">${field.label}</Data></Cell>`;
+                programa.dias.forEach(dia => {
+                    const val = dia[turno.id]?.[field.key] || '';
+                    xml += `<Cell ss:StyleID="sData"><Data ss:Type="String">${val}</Data></Cell>`;
+                });
+                xml += '</Row>';
             });
+            // Spacer
+            xml += '<Row ss:Height="12"></Row>';
         });
 
-        if (exportData.length === 0) return showNotification("No hay datos para exportar", "warning");
-        generatePlainXLS(exportData, `Programa_Semanal_${programa.id}`);
-        showNotification("Excel generado con éxito", "success");
+        xml += `  </Table>
+ </Worksheet>
+</Workbook>`;
+
+        const blob = new Blob([xml], { type: 'application/vnd.ms-excel' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Programa_Semanal_${programa.id}.xls`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showNotification("Excel Matricial generado", "success");
     };
 
     container.querySelector('#btn-export-img-prog').onclick = async () => {
