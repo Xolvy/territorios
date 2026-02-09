@@ -140,12 +140,15 @@ export const renderProgramaTab = async (container) => {
                     </div>
 
                     <nav data-adaptive-wrap="true" class="flex items-center gap-2 bg-slate-100/50 dark:bg-white/5 p-1 rounded-2xl border border-slate-200/50 dark:border-white/5 shadow-sm w-full lg:w-max max-w-full shrink-0">
-                        <button id="btn-sync-all-prog" class="btn-pro flex items-center gap-2 px-6 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-emerald-500/20 active:scale-95 group shrink-0">
+                        <button id="btn-sync-all-prog" class="btn-pro flex items-center gap-2 px-6 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-emerald-500/20 active:scale-95 group shrink-0" title="Formalizar todas las asignaciones programadas">
                             <i class="fas fa-project-diagram group-hover:rotate-12 transition-transform"></i>
-                            Formalizar Asignaciones
+                            Formalizar
                         </button>
 
                         <button id="btn-reset-today" class="btn-pro bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 px-6 py-4 rounded-xl font-black hover:bg-slate-50 transition-all text-[10px] uppercase tracking-widest shrink-0">Hoy</button>
+                        <button id="btn-resync-prog" class="btn-pro p-4 bg-primary/10 border border-primary/20 text-primary hover:bg-primary hover:text-white rounded-xl transition-all shadow-lg shadow-primary/5 active:scale-95 shrink-0" title="Sincronizar Datos">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
                         <button id="btn-reception-prog" class="btn-pro flex items-center gap-2 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-rose-500 px-6 py-4 rounded-xl font-black hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all text-[10px] uppercase tracking-widest group shrink-0" title="Recibir territorios finalizados">
                             <i class="fas fa-file-import group-hover:-translate-x-1 transition-transform"></i>
                             Recepción
@@ -167,9 +170,7 @@ export const renderProgramaTab = async (container) => {
                         </button>
                     </nav>
 
-                    <button id="btn-resync-prog" class="p-4 bg-primary/10 border border-primary/20 text-primary hover:bg-primary hover:text-white rounded-xl transition-all shadow-lg shadow-primary/5 active:scale-95" title="Sincronizar">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
+
                 </div>
             </header>
 
@@ -309,7 +310,8 @@ export const renderProgramaTab = async (container) => {
 
         const getTStatus = (tNum, conductor, fechaISO, turno) => {
             const t = freshTerritorios.find(x => normalizeLower(x.numero) === normalizeLower(tNum));
-            if (!t || t.estado !== 'Asignado') return { isSync: false, isConflict: false };
+            if (!t) return { isSync: false, isConflict: false, numero: tNum };
+            if (t.estado !== 'Asignado') return { isSync: false, isConflict: false, numero: tNum };
 
             const dbDateKey = t.fecha_asignacion ? String(t.fecha_asignacion).split('T')[0] : null;
             const targetDateKey = fechaISO ? fechaISO.split('T')[0] : null;
@@ -324,7 +326,9 @@ export const renderProgramaTab = async (container) => {
             return {
                 isSync,
                 isConflict,
+                numero: tNum,
                 details: {
+                    id: t.id,
                     conductor: t.asignado_a,
                     fecha: dbDateKey,
                     turno: t.turno
@@ -410,20 +414,23 @@ export const renderProgramaTab = async (container) => {
                                 const allSync = results.every(r => r.isSync);
                                 const conflict = results.find(r => r.isConflict);
 
-                                if (allSync) return '<span class="text-emerald-500 font-bold flex items-center gap-1 animate-fade-in"><i class="fas fa-check-circle"></i> LISTO</span>';
-
-                                if (conflict && conflict.details) {
-                                    const d = conflict.details;
-                                    const tooltip = `Ocupado por ${d.conductor || 'otro'} (${d.fecha || '?'} - ${d.turno || '?'})`;
-                                    return `<span class="text-rose-500 font-bold flex items-center gap-1 animate-fade-in group/hint relative cursor-help" title="${tooltip}">
-                                                <i class="fas fa-exclamation-triangle"></i> OCUPADO
-                                                <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-[8px] rounded opacity-0 group-hover/hint:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-xl">
-                                                    ${tooltip}
-                                                </div>
-                                            </span>`;
+                                if (allSync) {
+                                    return `<button class="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 text-emerald-500 rounded-lg font-black text-[9px] uppercase tracking-wider hover:bg-emerald-500 hover:text-white transition-all">
+                                                <i class="fas fa-check-circle"></i> LISTO
+                                            </button>`;
                                 }
 
-                                return `<span class="text-primary font-bold flex items-center gap-1 cursor-pointer hover:underline animate-fade-in" onclick="window.syncAssignmentFromProg(${dayIndex}, '${turnoId}')"><i class="fas fa-link animate-pulse"></i> ASIGNAR</span>`;
+                                if (conflict && conflict.details) {
+                                    return `<button onclick="window.showConflictDetails(${dayIndex}, '${turnoId}')" 
+                                                    class="flex items-center gap-1.5 px-3 py-1 bg-rose-500/10 text-rose-500 rounded-lg font-black text-[9px] uppercase tracking-wider hover:bg-rose-500 hover:text-white transition-all animate-pulse shadow-lg shadow-rose-500/10">
+                                                <i class="fas fa-exclamation-triangle"></i> OCUPADO
+                                            </button>`;
+                                }
+
+                                return `<button onclick="window.syncAssignmentFromProg(${dayIndex}, '${turnoId}')" 
+                                                class="flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-primary rounded-lg font-black text-[9px] uppercase tracking-wider hover:bg-primary hover:text-white transition-all shadow-lg shadow-primary/10 group">
+                                            <i class="fas fa-link group-hover:rotate-12 transition-transform"></i> ASIGNAR
+                                        </button>`;
                             })() : ''}
                                 </div>
                             </label>
@@ -539,20 +546,26 @@ export const renderProgramaTab = async (container) => {
                 const allSync = results.every(r => r.isSync);
                 const conflict = results.find(r => r.isConflict);
 
-                badgeContainer.innerHTML = v ? (allSync ?
-                    '<span class="text-emerald-500 font-bold flex items-center gap-1 animate-fade-in"><i class="fas fa-check-circle"></i> LISTO</span>' :
-                    (conflict ?
-                        (() => {
-                            const d = conflict.details;
-                            const tooltip = `Ocupado por ${d.conductor || 'otro'} (${d.fecha || '?'} - ${d.turno || '?'})`;
-                            return `<span class="text-rose-500 font-bold flex items-center gap-1 animate-fade-in group/hint relative cursor-help" title="${tooltip}">
-                                <i class="fas fa-exclamation-triangle"></i> OCUPADO
-                                <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-[8px] rounded opacity-0 group-hover/hint:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-xl">
-                                    ${tooltip}
-                                </div>
-                            </span>`;
-                        })() :
-                        `<span class="text-primary font-bold flex items-center gap-1 cursor-pointer hover:underline animate-fade-in" onclick="window.syncAssignmentFromProg(${dayIdx}, '${turnoId}')"><i class="fas fa-link animate-pulse"></i> ASIGNAR</span>`)) : '';
+                if (!v) {
+                    badgeContainer.innerHTML = '';
+                    return;
+                }
+
+                if (allSync) {
+                    badgeContainer.innerHTML = `<button class="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 text-emerald-500 rounded-lg font-black text-[9px] uppercase tracking-wider hover:bg-emerald-500 hover:text-white transition-all">
+                                                    <i class="fas fa-check-circle"></i> LISTO
+                                                </button>`;
+                } else if (conflict && conflict.details) {
+                    badgeContainer.innerHTML = `<button onclick="window.showConflictDetails(${dayIdx}, '${turnoId}')" 
+                                                        class="flex items-center gap-1.5 px-3 py-1 bg-rose-500/10 text-rose-500 rounded-lg font-black text-[9px] uppercase tracking-wider hover:bg-rose-500 hover:text-white transition-all animate-pulse shadow-lg shadow-rose-500/10">
+                                                    <i class="fas fa-exclamation-triangle"></i> OCUPADO
+                                                </button>`;
+                } else {
+                    badgeContainer.innerHTML = `<button onclick="window.syncAssignmentFromProg(${dayIdx}, '${turnoId}')" 
+                                                        class="flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-primary rounded-lg font-black text-[9px] uppercase tracking-wider hover:bg-primary hover:text-white transition-all shadow-lg shadow-primary/10 group">
+                                                    <i class="fas fa-link group-hover:rotate-12 transition-transform"></i> ASIGNAR
+                                                </button>`;
+                }
             }
         }
 
@@ -578,7 +591,74 @@ export const renderProgramaTab = async (container) => {
         });
     };
 
-    window.syncAssignmentFromProg = async (dayIdx, turnoId) => {
+    window.showConflictDetails = (dayIdx, turnoId) => {
+        const dia = programa.dias[dayIdx];
+        const data = dia[turnoId];
+        const tNums = Array.from(new Set(String(data.territorio || '').split(/[,;/]/).map(n => n.trim()).filter(Boolean)));
+        const conductor = data.conductor;
+        const results = tNums.map(n => getTStatus(n, conductor, dia.fecha, turnoId));
+        const conflicts = results.filter(r => r.isConflict);
+
+        if (conflicts.length === 0) return;
+
+        showModal(`
+            <div class="p-8 space-y-8 bg-white dark:bg-[#0a0f18] rounded-[2.5rem] max-w-lg border border-rose-500/20 animate-scale-in">
+                <header class="flex items-center gap-6">
+                    <div class="w-16 h-16 bg-rose-500/10 rounded-3xl flex items-center justify-center text-3xl text-rose-500 shadow-inner">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">Conflicto detectado</h3>
+                        <p class="text-[10px] text-rose-500 font-bold uppercase tracking-[0.3em] mt-1">S-13 ya tiene otras asignaciones</p>
+                    </div>
+                </header>
+
+                <div class="space-y-4">
+                    <p class="text-[11px] font-bold text-slate-500 uppercase px-1">Se han detectado los siguientes conflictos en el inventario:</p>
+                    <div class="space-y-2">
+                        ${conflicts.map(c => `
+                            <div class="flex items-center justify-between p-4 bg-rose-500/5 rounded-2xl border border-rose-500/10 transition-all hover:bg-rose-500/10">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-10 h-10 bg-rose-500 text-white flex items-center justify-center rounded-xl font-black text-xs shadow-lg shadow-rose-500/20">#${c.numero}</div>
+                                    <div class="flex flex-col">
+                                        <span class="text-xs font-black text-slate-800 dark:text-white uppercase leading-tight">${c.details.conductor}</span>
+                                        <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">${UIHelpers.fmtDateAt(c.details.fecha)} • ${c.details.turno || 'Sin Turno'}</span>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="px-2 py-1 bg-rose-500/10 text-rose-500 text-[8px] font-black rounded-lg uppercase">Ocupado</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <div class="p-6 bg-slate-50 dark:bg-white/5 rounded-[2.5rem] border border-slate-200 dark:border-white/10 relative overflow-hidden group">
+                    <div class="absolute -right-4 -top-4 w-20 h-20 bg-rose-500/5 rotate-12 rounded-3xl group-hover:scale-110 transition-transform"></div>
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                        <i class="fas fa-shield-alt text-rose-500"></i> ¿Deseas corregir el S-13?
+                    </p>
+                    <p class="text-[11px] text-slate-600 dark:text-slate-300 font-medium leading-relaxed italic">
+                        Al <b>Forzar Asignación</b>, se liberarán inmediatamente estos territorios de sus poseedores actuales para asignarlos a <b>${conductor}</b> según este programa.
+                    </p>
+                </div>
+
+                <div class="flex gap-4 pt-4 shrink-0">
+                    <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all">Ignorar</button>
+                    <button id="confirm-force-sync" class="flex-[2.5] py-5 bg-rose-500 hover:bg-rose-600 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-rose-500/20 active:scale-95 transition-all group">
+                        <i class="fas fa-bolt mr-2 group-hover:animate-bounce"></i> FORZAR ASIGNACIÓN
+                    </button>
+                </div>
+            </div>
+        `, (modal) => {
+            modal.querySelector('#confirm-force-sync').onclick = async () => {
+                modal.classList.add('hidden');
+                await window.syncAssignmentFromProg(dayIdx, turnoId, true);
+            };
+        });
+    };
+
+    window.syncAssignmentFromProg = async (dayIdx, turnoId, force = false) => {
         const dia = programa.dias[dayIdx];
         const data = dia[turnoId];
         const rawNum = data.territorio;
@@ -591,6 +671,15 @@ export const renderProgramaTab = async (container) => {
         const foundTs = tNums.map(num => freshT.find(t => t.numero === num)).filter(Boolean);
 
         if (foundTs.length === 0) return showNotification("Territorios no encontrados", "error");
+
+        if (force) {
+            // Logic for force: Return conflicting territories first
+            showNotification("Corrigiendo conflictos...", "info");
+            const conflictTs = foundTs.filter(t => t.estado === 'Asignado');
+            for (const t of conflictTs) {
+                await returnTerritorio(t.id, "Liberación forzada por conflicto en programa semanal", new Date().toISOString(), 'Disponible');
+            }
+        }
 
         showModal(`
             <div class="p-8 space-y-10">
