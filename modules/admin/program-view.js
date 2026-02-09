@@ -801,19 +801,19 @@ export const renderProgramaTab = async (container) => {
         const congId = '14282';
 
         const turns = [
-            { id: 'manana', label: 'MAÑANA', headerColor: '#A5F3FC', dataColor: '#FEF9C3' }, // Cyan header, Yellow data
-            { id: 'tarde', label: 'TARDE', headerColor: '#FFD9B3', dataColor: '#FFEDD5' },   // Orange light
-            { id: 'noche', label: 'NOCHE', headerColor: '#BFDBFE', dataColor: '#DBEAFE' },   // Blue light
-            { id: 'zoom', label: 'ZOOM', headerColor: '#BBF7D0', dataColor: '#DCFCE7' }     // Emerald light
+            { id: 'manana', label: 'MAÑANA', headerColor: '#A5F3FC', dataColor: '#FEF9C3' },
+            { id: 'tarde', label: 'TARDE', headerColor: '#FFD9B3', dataColor: '#FFEDD5' },
+            { id: 'noche', label: 'NOCHE', headerColor: '#BFDBFE', dataColor: '#DBEAFE' },
+            { id: 'zoom', label: 'ZOOM', headerColor: '#BBF7D0', dataColor: '#DCFCE7' }
         ];
 
         const fields = [
-            { label: 'LUGAR', key: 'lugar' },
-            { label: 'HORA', key: 'hora' },
-            { label: 'CONDUCTOR', key: 'conductor' },
-            { label: 'AUXILIAR', key: 'auxiliar' },
-            { label: 'FACETA', key: 'faceta' },
-            { label: 'TERRITORIO', key: 'territorio' }
+            { label: 'LUGAR', key: 'lugar', isBold: true },
+            { label: 'HORA', key: 'hora', isBold: true },
+            { label: 'CONDUCTOR', key: 'conductor', isBold: false },
+            { label: 'AUXILIAR', key: 'auxiliar', isBold: false },
+            { label: 'FACETA', key: 'faceta', isBold: false },
+            { label: 'TERRITORIO', key: 'territorio', isBold: true }
         ];
 
         let xml = `<?xml version="1.0"?>
@@ -832,15 +832,15 @@ export const renderProgramaTab = async (container) => {
    <Font ss:Bold="1" ss:Size="12" ss:Color="#000000"/>
    <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
   </Style>
-  <Style ss:ID="sHeader">
+  <Style ss:ID="sHeaderBase">
    <Font ss:Bold="1" ss:Size="10" ss:Color="#000000"/>
    <Interior ss:Color="#94a3b8" ss:Pattern="Solid"/>
    <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
    <Borders>
-    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#000000"/>
-    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#000000"/>
-    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#000000"/>
-    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#000000"/>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="2" ss:Color="#000000"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="2" ss:Color="#000000"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="2" ss:Color="#000000"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="2" ss:Color="#000000"/>
    </Borders>
   </Style>
   ${turns.map(t => `
@@ -861,8 +861,15 @@ export const renderProgramaTab = async (container) => {
    <Alignment ss:Vertical="Center" ss:Horizontal="Center" ss:WrapText="1"/>
    <Borders>
     <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#94a3b8"/>
-    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#94a3b8"/>
-    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#94a3b8"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#94a3b8"/>
+   </Borders>
+  </Style>
+  <Style ss:ID="sDataBold_${t.id}">
+   <Font ss:Bold="1" ss:Size="9" ss:Color="#000000"/>
+   <Interior ss:Color="${t.dataColor}" ss:Pattern="Solid"/>
+   <Alignment ss:Vertical="Center" ss:Horizontal="Center" ss:WrapText="1"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#94a3b8"/>
     <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#94a3b8"/>
    </Borders>
   </Style>
@@ -872,8 +879,6 @@ export const renderProgramaTab = async (container) => {
    <Alignment ss:Vertical="Center" ss:Horizontal="Left"/>
    <Borders>
     <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#94a3b8"/>
-    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#94a3b8"/>
-    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#94a3b8"/>
     <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#94a3b8"/>
    </Borders>
   </Style>
@@ -885,18 +890,16 @@ export const renderProgramaTab = async (container) => {
    <Column ss:Width="110" ss:Span="6"/> <!-- Days -->
    <Column ss:Width="80"/> <!-- Grupos -->
 
-   <!-- Document Header -->
-   <Row ss:Height="25">
+   <Row ss:Height="30">
     <Cell ss:MergeAcross="8" ss:StyleID="sTitle"><Data ss:Type="String">PROGRAMA DE PREDICACIÓN</Data></Cell>
    </Row>
-   <Row ss:Height="20">
+   <Row ss:Height="25">
     <Cell ss:MergeAcross="8" ss:StyleID="sSubtitle"><Data ss:Type="String">${congName.toUpperCase()} ${congId}</Data></Cell>
    </Row>
-   <Row ss:Height="15"></Row> <!-- Spacer -->
+   <Row ss:Height="10"></Row>
 
-   <!-- Main Table Header -->
    <Row ss:Height="25">
-    <Cell ss:StyleID="sHeader"><Data ss:Type="String">DETALLE</Data></Cell>`;
+    <Cell ss:StyleID="sHeaderBase"><Data ss:Type="String">DETALLE</Data></Cell>`;
 
         programa.dias.forEach(dia => {
             const dayParts = dia.fecha ? dia.fecha.split('-').reverse() : [];
@@ -913,22 +916,19 @@ export const renderProgramaTab = async (container) => {
 
                 programa.dias.forEach(dia => {
                     const val = dia[turno.id]?.[field.key] || '';
-                    xml += `<Cell ss:StyleID="sData_${turno.id}"><Data ss:Type="String">${val}</Data></Cell>`;
+                    const styleId = field.isBold ? `sDataBold_${turno.id}` : `sData_${turno.id}`;
+                    xml += `<Cell ss:StyleID="${styleId}"><Data ss:Type="String">${val}</Data></Cell>`;
                 });
 
-                // Group Column (only on first row of turn, or as requested)
                 if (fIdx === 0) {
-                    // Find common groups for this turn if possible, or just the first day's groups
-                    // Based on the mockup, we show the groups assigned to this turn block
                     const groups = programa.dias.map(d => d[turno.id]?.grupos).filter(Boolean).join(', ');
                     const uniqueGroups = Array.from(new Set(groups.split(/[,;/]/).map(g => g.trim()))).filter(Boolean).join(' Y ');
-                    xml += `<Cell ss:MergeDown="5" ss:StyleID="sData_${turno.id}"><Data ss:Type="String">${uniqueGroups}</Data></Cell>`;
+                    xml += `<Cell ss:MergeDown="5" ss:StyleID="sDataBold_${turno.id}"><Data ss:Type="String">${uniqueGroups}</Data></Cell>`;
                 }
 
                 xml += '</Row>';
             });
-            // Spacer between turns
-            xml += '<Row ss:Height="15"></Row>';
+            xml += '<Row ss:Height="10"></Row>';
         });
 
         xml += `  </Table>
@@ -944,7 +944,7 @@ export const renderProgramaTab = async (container) => {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        showNotification("Excel Cromático generado", "success");
+        showNotification("Excel Definitivo generado", "success");
     };
 
     container.querySelector('#btn-export-img-prog').onclick = async () => {
