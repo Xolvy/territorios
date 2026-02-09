@@ -307,8 +307,27 @@ export const formatManzanas = (text) => {
 };
 
 export const formatGroups = (val) => {
-    if (!val) return '—';
-    return String(val).toUpperCase().split(/[,/]/).map(s => s.trim().split(' ')[0]).join(' / ');
+    if (!val || val === '—') return '—';
+    if (val.toLowerCase() === 'todos') return 'TODOS';
+
+    // Xolvy Data Shield: Aggressive 'Grupo' stripping
+    let clean = val.replace(/grupos?/gi, '').trim();
+
+    // Split by common separators and clean up
+    let parts = clean.split(/[,;&y]+/).map(p => p.trim()).filter(Boolean);
+    if (parts.length === 0) return '—';
+
+    // Xolvy Data Shield: Numerical Sorting for consistency
+    parts.sort((a, b) => {
+        const na = parseInt(a);
+        const nb = parseInt(b);
+        if (!isNaN(na) && !isNaN(nb)) return na - nb;
+        return a.localeCompare(b);
+    });
+
+    if (parts.length === 1) return parts[0];
+    const last = parts.pop();
+    return parts.join(', ') + ' y ' + last;
 };
 
 // Global click-outside to close modals

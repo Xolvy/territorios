@@ -3,27 +3,11 @@ import {
     getProgramaSemanal, saveProgramaSemanal, getGroupsConfig, returnTerritorioMultiple,
     getHistorialReport, returnTerritorioParcial, runProgramDiagnostic, formalizeWeek
 } from '../../data/firestore-services.js';
-import { showNotification, generatePlainXLS } from '../utils/helpers.js';
+import { showNotification, generatePlainXLS, formatGroups } from '../utils/helpers.js';
 import { UIHelpers, showModal, showTerritorySelectionModal, showCustomConfirm } from '../services/ui-helpers.js';
 import { generateLandscapePreviewHTML } from '../conductor/program-views.js';
 
 const { getMonday, formatDateId } = UIHelpers;
-
-const formatGroups = (val) => {
-    if (!val || val === '—') return '—';
-    if (val.toLowerCase() === 'todos') return 'TODOS';
-
-    // Xolvy Data Shield: Aggressive 'Grupo' stripping
-    let clean = val.replace(/grupos?/gi, '').trim();
-
-    // Split by common separators and clean up
-    let parts = clean.split(/[,;&y]+/).map(p => p.trim()).filter(Boolean);
-    if (parts.length === 0) return '—';
-
-    if (parts.length === 1) return parts[0];
-    const last = parts.pop();
-    return parts.join(', ') + ' y ' + last;
-};
 
 const getFieldIcon = (field) => {
     const map = {
@@ -38,18 +22,10 @@ const getFieldIcon = (field) => {
     return map[field] || 'fa-info-circle';
 };
 
-const getTurnoStyling = (turnoId, horaStr) => {
-    const defaults = {
-        manana: { label: 'Mañana', icon: 'fa-sun', color: 'text-amber-500', bg: 'bg-amber-500/10' },
-        tarde: { label: 'Tarde', icon: 'fa-cloud-sun', color: 'text-orange-500', bg: 'bg-orange-500/10' },
-        noche: { label: 'Noche', icon: 'fa-moon', color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
-        zoom: { label: 'Zoom', icon: 'fa-video', color: 'text-emerald-500', bg: 'bg-emerald-500/10' }
-    };
+const getEffectiveShiftId = (turnoId, horaStr) => {
+    if (turnoId === 'zoom') return 'zoom';
+    if (!horaStr || horaStr === '—') return turnoId;
 
-    if (turnoId === 'zoom') return defaults.zoom;
-    if (!horaStr || horaStr === '—') return defaults[turnoId] || defaults.manana;
-
-    // Parse Time
     let hours = -1;
     const time = horaStr.toLowerCase().trim();
     const match = time.match(/(\d{1,2})[:.]?(\d{0,2})?\s*(am|pm)?/);
@@ -61,10 +37,22 @@ const getTurnoStyling = (turnoId, horaStr) => {
         if (ampm === 'am' && hours === 12) hours = 0;
     }
 
-    if (hours === -1) return defaults[turnoId] || defaults.manana;
-    if (hours < 12) return defaults.manana;
-    if (hours < 18) return defaults.tarde;
-    return defaults.noche;
+    if (hours === -1) return turnoId;
+    if (hours < 12) return 'manana';
+    if (hours < 18) return 'tarde';
+    return 'noche';
+};
+
+const getTurnoStyling = (turnoId, horaStr) => {
+    const defaults = {
+        manana: { label: 'Mañana', icon: 'fa-sun', color: 'text-amber-500', bg: 'bg-amber-500/10' },
+        tarde: { label: 'Tarde', icon: 'fa-cloud-sun', color: 'text-orange-500', bg: 'bg-orange-500/10' },
+        noche: { label: 'Noche', icon: 'fa-moon', color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
+        zoom: { label: 'Zoom', icon: 'fa-video', color: 'text-emerald-500', bg: 'bg-emerald-500/10' }
+    };
+
+    const effectiveId = getEffectiveShiftId(turnoId, horaStr);
+    return defaults[effectiveId] || defaults.manana;
 };
 
 export const renderProgramaTab = async (container) => {
@@ -453,7 +441,8 @@ export const renderProgramaTab = async (container) => {
                     } else {
                         let finalOpts = opts;
                         if (field === 'Conductor' || field === 'Auxiliar') {
-                            const availKey = `${dia.nombre}_${turnoId}`;
+                            const effectiveShiftId = getEffectiveShiftId(turnoId, data.hora);
+                            const availKey = `${dia.nombre}_${effectiveShiftId}`;
                             const available = activeConductors.filter(c => c.disponibilidad && c.disponibilidad.includes(availKey));
                             const nonAvailable = activeConductors.filter(c => !c.disponibilidad || !c.disponibilidad.includes(availKey));
 
@@ -866,7 +855,8 @@ export const renderProgramaTab = async (container) => {
 
             modal.querySelector('#confirm-groups').onclick = () => {
                 const checked = Array.from(modal.querySelectorAll('.group-checkbox:checked')).map(cb => cb.value);
-                const finalVal = checked.includes('Todos') ? 'Todos' : checked.join(', ');
+                const rawVal = checked.includes('Todos') ? 'Todos' : checked.join(', ');
+                const finalVal = formatGroups(rawVal);
                 window.setProgramGroup(dayIdx, turnoId, finalVal);
                 modal.classList.add('hidden');
             };
