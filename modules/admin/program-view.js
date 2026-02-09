@@ -347,7 +347,7 @@ export const renderProgramaTab = async (container) => {
                         <div class="h-0.5 flex-1 bg-gradient-to-r from-primary/30 to-transparent rounded-full opacity-30"></div>
                     </div>
 
-                    <div class="flex flex-wrap gap-4 md:gap-8">
+                    <div class="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 md:gap-8">
             `;
 
             turnos.forEach(t => {
@@ -359,7 +359,7 @@ export const renderProgramaTab = async (container) => {
                 const styling = getTurnoStyling(turnoId, data.hora);
 
                 html += `
-                    <div class="flex-1 min-w-[280px] max-w-full lg:max-w-[400px] modern-card !p-4 md:!p-8 border-slate-100 dark:border-white/5 shadow-xl hover:shadow-2xl transition-all group/turn relative">
+                    <div class="modern-card !p-4 md:!p-8 border-slate-100 dark:border-white/5 shadow-xl hover:shadow-2xl transition-all group/turn relative">
                         <div class="flex items-center gap-4 mb-8">
                             <div class="w-12 h-12 ${styling.bg} ${styling.color} rounded-2xl flex items-center justify-center text-lg shadow-inner group-hover/turn:scale-110 transition-transform duration-500">
                                 <i class="fas ${styling.icon}"></i>

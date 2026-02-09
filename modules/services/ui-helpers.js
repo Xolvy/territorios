@@ -394,24 +394,24 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
                              <div class="flex gap-2 overflow-x-auto pb-4 px-2 snap-x">
                                  ${incomplete.map(s => `
                                      <button onclick="window.modalToggleTerr('${s.numero}')" 
-                                             class="snap-center shrink-0 flex flex-col items-start gap-1 p-3 bg-white dark:bg-white/5 border border-rose-500/30 rounded-2xl min-w-[160px] hover:border-rose-500 transition-all shadow-sm active:scale-95 text-left group">
+                                             class="snap-center shrink-0 flex flex-col items-start gap-0.5 p-2 bg-white dark:bg-white/5 border border-rose-500/30 rounded-xl min-w-[140px] hover:border-rose-500 transition-all shadow-sm active:scale-95 text-left group">
                                          <div class="flex items-center justify-between w-full">
-                                             <span class="text-base font-black text-slate-800 dark:text-white uppercase tracking-tighter italic">T-${s.numero}</span>
-                                             <div class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></div>
+                                             <span class="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tighter italic">T-${s.numero}</span>
+                                             <div class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></div>
                                          </div>
-                                         <p class="text-[8px] font-bold text-slate-500 dark:text-slate-400 overflow-hidden text-ellipsis line-clamp-1">${s.manzanas || 'Todo'}</p>
-                                         <span class="text-[7px] font-black uppercase tracking-widest text-rose-500 mt-0.5">Incompleto</span>
+                                         <p class="text-[7.5px] font-bold text-slate-500 dark:text-slate-400 overflow-hidden text-ellipsis line-clamp-1">${s.manzanas || 'Todo'}</p>
+                                         <span class="text-[6.5px] font-black uppercase tracking-widest text-rose-500 mt-0.5">Incompleto</span>
                                      </button>
                                  `).join('')}
                                  ${outdated.map(s => `
                                      <button onclick="window.modalToggleTerr('${s.numero}')" 
-                                             class="snap-center shrink-0 flex flex-col items-start gap-1 p-3 bg-white dark:bg-white/5 border border-amber-500/30 rounded-2xl min-w-[160px] hover:border-amber-500 transition-all shadow-sm active:scale-95 text-left group">
+                                             class="snap-center shrink-0 flex flex-col items-start gap-0.5 p-2 bg-white dark:bg-white/5 border border-amber-500/30 rounded-xl min-w-[140px] hover:border-amber-500 transition-all shadow-sm active:scale-95 text-left group">
                                          <div class="flex items-center justify-between w-full">
-                                             <span class="text-base font-black text-slate-800 dark:text-white uppercase tracking-tighter italic">T-${s.numero}</span>
-                                             <div class="w-2 h-2 rounded-full bg-amber-500"></div>
+                                             <span class="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tighter italic">T-${s.numero}</span>
+                                             <div class="w-1.5 h-1.5 rounded-full bg-amber-500"></div>
                                          </div>
-                                         <p class="text-[8px] font-bold text-slate-500 dark:text-slate-400 overflow-hidden text-ellipsis line-clamp-1">Última: ${stats[s.numero]?.lastEntrega ? UIHelpers.fmtDateAt(stats[s.numero].lastEntrega) : 'Nunca'}</p>
-                                         <span class="text-[7px] font-black uppercase tracking-widest text-amber-500 mt-0.5">Sugerido</span>
+                                         <p class="text-[7.5px] font-bold text-slate-500 dark:text-slate-400 overflow-hidden text-ellipsis line-clamp-1">Última: ${stats[s.numero]?.lastEntrega ? UIHelpers.fmtDateAt(stats[s.numero].lastEntrega) : 'Nunca'}</p>
+                                         <span class="text-[6.5px] font-black uppercase tracking-widest text-amber-500 mt-0.5">Sugerido</span>
                                      </button>
                                  `).join('')}
                              </div>
