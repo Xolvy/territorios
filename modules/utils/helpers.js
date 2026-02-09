@@ -4,7 +4,9 @@ export const normalize = (val) => String(val || '').trim();
 export const formatPhoneNumber = (numero) => {
     if (!numero) return '';
     const cleaned = numero.toString().replace(/\D/g, '');
-    return cleaned.length === 7 ? `${cleaned.slice(0, 3)} ${cleaned.slice(3)}` : numero;
+    if (cleaned.length === 7) return `${cleaned.slice(0, 3)} ${cleaned.slice(3)}`;
+    if (cleaned.length === 10) return `${cleaned.slice(0, 3)} ${cleaned.slice(3, 6)} ${cleaned.slice(6)}`;
+    return numero;
 };
 
 export const getStatusColor = (status) => {

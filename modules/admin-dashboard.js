@@ -89,6 +89,10 @@ const loadTab = async (tabName, appVersion) => {
                 const mPhones = await loadSubModule('phones_view', './admin/phones-view.js');
                 await mPhones.renderTelefonosTab(contentDiv);
                 break;
+            case 'reportes':
+                const mReports = await loadSubModule('reports_view', './admin/reports-view.js');
+                await mReports.renderReportsTab(contentDiv);
+                break;
             case 'dashboard':
             default:
                 const mAnalytics = await loadSubModule('analytics_view', './analytics-view.js');
@@ -134,7 +138,7 @@ const setupNavigation = (appVersion) => {
             target.classList.remove('hover:bg-primary/5', 'text-slate-500', 'dark:text-gray-400');
 
             const tabId = target.dataset.tab;
-            const urlMap = { 'dashboard': 'dashboard', 'casa-en-casa': 'territorios', 'predicacion': 'predicacion', 'telefonos': 'telefonos', 'config': 'config' };
+            const urlMap = { 'dashboard': 'dashboard', 'casa-en-casa': 'territorios', 'predicacion': 'predicacion', 'telefonos': 'telefonos', 'reportes': 'reportes', 'config': 'config' };
 
             window.history.pushState({}, '', `/administrador/${urlMap[tabId] || 'dashboard'}`);
             loadTab(tabId, appVersion);
@@ -230,6 +234,7 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
                             ${renderNavItem('casa-en-casa', 'fas fa-map-location-dot', 'Territorios', initialTab === 'casa-en-casa')}
                             ${renderNavItem('predicacion', 'fas fa-bullhorn', 'P. Pública', initialTab === 'predicacion')}
                             ${renderNavItem('telefonos', 'fas fa-phone-volume', 'Telefonía', initialTab === 'telefonos')}
+                            ${renderNavItem('reportes', 'fas fa-file-invoice', 'Reportes', initialTab === 'reportes')}
                             <div class="hidden lg:block h-px bg-slate-200 dark:bg-white/10 my-4 mx-4"></div>
                             ${renderNavItem('config', 'fas fa-sliders', 'Ajustes', initialTab === 'config')}
                         </nav>

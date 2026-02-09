@@ -1,4 +1,4 @@
-import { showNotification } from '../utils/helpers.js';
+import { showNotification, formatPhoneNumber } from '../utils/helpers.js';
 import { getTelefonos, updateTelefonoStatus, releaseUnusedTelefonos, solicitarNumeros, logSessionSummary, updateTelefono } from '../../data/firestore-services.js';
 import { showModal, showCustomConfirm, showCustomPrompt } from '../services/ui-helpers.js';
 import { AppConfig } from '../utils/config.js';
@@ -22,7 +22,7 @@ export const initializePhoneModule = (initialPhones, publicadores, displayName, 
                 <td class="p-0 sm:p-4 block sm:table-cell align-middle">
                     <div class="flex flex-col">
                         <div class="flex items-center justify-between sm:justify-start gap-4">
-                            <span class="text-[14px] sm:text-[13px] font-black text-slate-800 dark:text-white tabular-nums tracking-tight">${p.telefono}</span>
+                            <span class="text-[14px] sm:text-[13px] font-black text-slate-800 dark:text-white tabular-nums tracking-tight">${formatPhoneNumber(p.telefono)}</span>
                             <!-- Mobile Status Badge (Only Mobile) -->
                             <div class="sm:hidden px-2 py-0.5 bg-indigo-500/10 text-indigo-500 rounded-lg text-[8px] font-black uppercase tracking-widest border border-indigo-500/10">
                                 ${p.estado || 'SIN ASIGNAR'}

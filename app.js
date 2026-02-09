@@ -181,7 +181,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Small delay to show the "Receiving" state in HUD
             setTimeout(() => {
-                completeXolvyUpdate(moduleName);
+                completeXolvyUpdate(moduleName, version);
 
                 // Targeted refresh or full re-auth
                 if (shouldRefreshConductor && window.refreshConductorView) {
@@ -195,7 +195,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else {
             // Not in the relevant view, just finish the HUD
             setTimeout(() => {
-                completeXolvyUpdate(moduleName);
+                completeXolvyUpdate(moduleName, version);
             }, 2500);
         }
     });

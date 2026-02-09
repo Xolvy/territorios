@@ -16,10 +16,10 @@ const APP_VERSION = __APP_VERSION__;
 const UpdateShield = {
     getStats: () => {
         try {
-            return JSON.parse(localStorage.getItem('xolvy_update_loop_stats') || '{"count":0, "lastAttempt":0}');
+            return JSON.parse(localStorage.getItem('xolvy_update_loop_stats') || '{"count":0, "lastAttempt":0, "lastTarget":""}');
         } catch (e) {
             console.warn("🛡️ [Update Shield] Storage unavailable.");
-            return { count: 0, lastAttempt: 0 };
+            return { count: 0, lastAttempt: 0, lastTarget: "" };
         }
     },
     saveStats: (stats) => {
@@ -27,20 +27,26 @@ const UpdateShield = {
             localStorage.setItem('xolvy_update_loop_stats', JSON.stringify(stats));
         } catch (e) { /* ignore */ }
     },
-    registerAttempt: () => {
+    registerAttempt: (targetVersion) => {
         try {
             const stats = UpdateShield.getStats();
             const now = Date.now();
-            if (now - stats.lastAttempt > 300000) {
+
+            // If target changed, reset count (we are trying a new version)
+            if (stats.lastTarget !== targetVersion) {
+                stats.count = 1;
+            } else if (now - stats.lastAttempt > 300000) {
                 stats.count = 1;
             } else {
                 stats.count++;
             }
+
             stats.lastAttempt = now;
+            stats.lastTarget = targetVersion;
             UpdateShield.saveStats(stats);
-            console.warn(`🛡️ [Update Shield] Attempt ${stats.count}/3 registered.`);
+            console.warn(`🛡️ [Update Shield] Attempt ${stats.count}/3 for v${targetVersion} registered.`);
             return stats;
-        } catch (e) { return { count: 1, lastAttempt: Date.now() }; }
+        } catch (e) { return { count: 1, lastAttempt: Date.now(), lastTarget: targetVersion }; }
     },
     isLocked: () => {
         try {
@@ -157,7 +163,7 @@ const startBackgroundUpdate = async (newVersion, forceTimestamp = 0) => {
     if (document.getElementById('xolvy-core-sync-hud')) return;
 
     // 1. Show HUD card for the core update
-    notifyModuleUpdate("Núcleo v" + newVersion, newVersion);
+    notifyModuleUpdate("Núcleo", newVersion);
 
     // Flag for "Online" handshake after reload
     localStorage.setItem('xolvy_update_handshake', 'true');
@@ -183,7 +189,7 @@ const startBackgroundUpdate = async (newVersion, forceTimestamp = 0) => {
         }
 
         // Register attempt in the shield
-        UpdateShield.registerAttempt();
+        UpdateShield.registerAttempt(newVersion);
 
         // 2. Perform the update swap
         // Wait 4 seconds so the user can see the sync notification in the HUD
@@ -195,7 +201,7 @@ const startBackgroundUpdate = async (newVersion, forceTimestamp = 0) => {
         if (forceTimestamp) localStorage.setItem('last_force_timestamp', forceTimestamp.toString());
 
         // 3. Finalize and Reload
-        completeXolvyUpdate("Núcleo v" + newVersion);
+        completeXolvyUpdate("Núcleo", newVersion);
 
         setTimeout(() => {
             window.location.href = `${window.location.pathname}?updated=true&v=${Date.now()}`;
@@ -325,8 +331,9 @@ const showXolvyUpdateHUD = (moduleName, version) => {
 
 import { completeSyncNotification } from "./helpers.js";
 
-export const completeXolvyUpdate = (moduleName) => {
-    completeSyncNotification(moduleName);
+export const completeXolvyUpdate = (moduleName, version) => {
+    const finalName = version ? `${moduleName} v${version}` : moduleName;
+    completeSyncNotification(finalName);
 };
 
 const showIANotification = (message) => {
@@ -404,17 +411,21 @@ const showRescuePill = (targetVersion) => {
     pill.id = 'xolvy-rescue-pill';
     pill.className = 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[100000] w-[90%] max-w-sm animate-fade-in';
     pill.innerHTML = `
-        <div class="bg-white/90 dark:bg-slate-900/90 backdrop-blur-3xl border border-slate-200 dark:border-indigo-500/20 p-8 rounded-[3rem] shadow-[0_40px_100px_rgba(0,0,0,0.2)] dark:shadow-[0_40px_100px_rgba(0,0,0,0.8)] text-center">
-            <div class="w-20 h-20 bg-indigo-500/10 rounded-[2rem] flex items-center justify-center text-4xl text-indigo-500 mx-auto mb-6 shadow-inner">
+        <div class="bg-white/95 dark:bg-slate-900/95 backdrop-blur-3xl border border-slate-200 dark:border-indigo-500/20 p-8 rounded-[3rem] shadow-[0_40px_100px_rgba(0,0,0,0.2)] dark:shadow-[0_40px_100px_rgba(0,0,0,0.8)] text-center">
+            <div class="w-20 h-20 bg-indigo-500/10 rounded-[2rem] flex items-center justify-center text-4xl text-indigo-500 mx-auto mb-6 shadow-inner animate-float">
                 <i class="fas fa-shield-check"></i>
             </div>
             <h4 class="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-2">Sincronización de Sistema</h4>
-            <p class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-relaxed mb-8">
-                Se requiere un ajuste manual para sincronizar la versión v${targetVersion}. Pulsa el botón para restablecer la conexión de forma segura.
+            <p class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-relaxed mb-4">
+                El sistema detectó que tu versión local (v${APP_VERSION}) no logra alcanzar la versión v${targetVersion}.
             </p>
-            <button id="btn-rescue-action" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-5 rounded-2xl text-[11px] font-black uppercase tracking-[0.3em] shadow-xl shadow-indigo-600/20 transition-all active:scale-95 outline-none">
+            <p class="text-[10px] font-bold text-amber-600 dark:text-amber-500 uppercase tracking-widest leading-relaxed mb-8 bg-amber-500/5 p-4 rounded-2xl border border-amber-500/10">
+                <i class="fas fa-info-circle mr-1"></i> Esto ocurre si la actualización no se desplegó completamente en el servidor. Pulsa el botón para limpiar el rastro y volver a intentar.
+            </p>
+            <button id="btn-rescue-action" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-5 rounded-2xl text-[11px] font-black uppercase tracking-[0.3em] shadow-xl shadow-indigo-600/20 transition-all active:scale-95 outline-none mb-3">
                 Restablecer Conexión
             </button>
+            <p class="text-[9px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest">Si eres administrador, verifica el despliegue del código.</p>
         </div>
     `;
 

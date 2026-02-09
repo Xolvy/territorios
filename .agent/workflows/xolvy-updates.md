@@ -115,29 +115,31 @@ moduleRegistry.subscribe(async (moduleName, version) => {
 });
 ```
 
-## 6. Update Loop & Failure Protection (Anti-Loop Shield)
+## 6. Update Loop & Failure Protection (Anti-Loop Shield: UpdateShield)
 
-To prevent infinite update cycles and handle synchronization failures gracefully:
+To prevent infinite update cycles and handle synchronization failures gracefully (e.g., when Firestore metadata is ahead of the deployed code):
 
-### 1. Loop Detection Logic
+### 1. Loop & Version Detection Logic
 
-- **Mechanism**: The `UpdateShield` object tracks attempts using `localStorage.getItem('xolvy_update_loop_stats')`.
-- **Threshold**: If **3 updates** are attempted within **5 minutes**, the system triggers a **Circuit Breaker**.
-- **Registration**: Every call to `runUpdateFlow` registers an attempt via `UpdateShield.registerAttempt()`.
+- **Mechanism**: The `UpdateShield` object tracks attempts and target versions using `localStorage.getItem('xolvy_update_loop_stats')`.
+- **Target Tracking**: The shield records the `lastTarget` version it attempted to reach.
+- **Threshold**: If **3 updates** are attempted within **5 minutes** for the **same target version**, the system triggers a **Circuit Breaker**.
+- **Registration**: Every `startBackgroundUpdate` call registers an attempt via `UpdateShield.registerAttempt(targetVersion)`.
 - **Success Reset**: When `initUpdateManager` detects a version transition (`lastSessionVersion !== APP_VERSION`), it calls `UpdateShield.reset()`.
 
 ### 2. Failure Recovery (Safe Mode)
 
 - **Rescue UI**: When `UpdateShield.isLocked()` is true, instead of background sync, a **Rescue UI** is centered on the screen.
-- **Deep Reset**: The Rescue Pill allows a manual "Deep Reset" which:
+- **Rescue Feedback**: The UI informs the user of their current version vs the target version and provides a "Deep Reset" button.
+- **Deep Reset**: The Rescue Pill allows a manual reset which:
     1. Executes `UpdateShield.reset()`.
     2. Performs a `performRadicalCachePurge(true)`.
     3. Forces a network reload using a cache-busting query parameter (`?rescue=timestamp`).
 
 ### 3. Verification
 
-- Use `console.warn` to track shield registration.
-- If a loop is detected, `console.error` will log the Circuit Breaker status.
+- Use `console.warn` to track shield registration: `Shield registration for v[Version]`.
+- If a loop is detected, the `Rescue UI` will be displayed with an `animate-float` icon to indicate a high-priority system state.
 
 ---
 *Developed by Antigravity for Xolvy Projects.*

@@ -3,8 +3,9 @@ import {
     getProgramaSemanal, saveProgramaSemanal, getGroupsConfig, returnTerritorioMultiple,
     getHistorialReport, returnTerritorioParcial
 } from '../../data/firestore-services.js';
-import { showNotification } from '../utils/helpers.js';
-import { UIHelpers, showModal, showTerritorySelectionModal } from '../services/ui-helpers.js';
+import { showNotification, generatePlainXLS } from '../utils/helpers.js';
+import { UIHelpers, showModal, showTerritorySelectionModal, showCustomConfirm } from '../services/ui-helpers.js';
+import { generateLandscapePreviewHTML } from '../conductor/program-views.js';
 
 const { getMonday, formatDateId } = UIHelpers;
 
@@ -152,6 +153,17 @@ export const renderProgramaTab = async (container) => {
                         <button id="btn-copy-prev-week" class="btn-pro flex items-center gap-2 px-6 py-4 bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 hover:bg-indigo-500 hover:text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-indigo-500/5 group shrink-0" title="Replicar estructura de la semana pasada">
                             <i class="fas fa-copy group-hover:scale-110 transition-transform"></i>
                             Replicar
+                        </button>
+                        
+                        <div class="w-px h-6 bg-slate-200 dark:bg-white/10 mx-1"></div>
+
+                        <button id="btn-export-img-prog" class="btn-pro flex items-center gap-2 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 px-6 py-4 rounded-xl font-black hover:bg-slate-50 transition-all text-[10px] uppercase tracking-widest shrink-0" title="Exportar como Imagen">
+                            <i class="fas fa-image text-indigo-500"></i>
+                            Imagen
+                        </button>
+                        <button id="btn-export-xls-prog" class="btn-pro flex items-center gap-2 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 px-6 py-4 rounded-xl font-black hover:bg-slate-50 transition-all text-[10px] uppercase tracking-widest shrink-0" title="Exportar a Excel">
+                            <i class="fas fa-file-excel text-emerald-500"></i>
+                            Excel
                         </button>
                     </nav>
 
@@ -551,19 +563,19 @@ export const renderProgramaTab = async (container) => {
     };
 
     window.clearTurnData = async (dayIdx, turnoId) => {
-        if (!confirm('¿Limpiar todos los datos de este turno?')) return;
+        showCustomConfirm('¿Limpiar todos los datos de este turno?', async () => {
+            programa.dias[dayIdx][turnoId] = {};
 
-        programa.dias[dayIdx][turnoId] = {};
-
-        try {
-            showNotification("Limpiando turno...", "info");
-            await saveProgramaSemanal(programa.id, programa);
-            renderTable();
-            showNotification("Datos del turno eliminados", "success");
-        } catch (e) {
-            console.error(e);
-            showNotification("Error al limpiar datos", "error");
-        }
+            try {
+                showNotification("Limpiando turno...", "info");
+                await saveProgramaSemanal(programa.id, programa);
+                renderTable();
+                showNotification("Datos del turno eliminados", "success");
+            } catch (e) {
+                console.error(e);
+                showNotification("Error al limpiar datos", "error");
+            }
+        });
     };
 
     window.syncAssignmentFromProg = async (dayIdx, turnoId) => {
@@ -656,11 +668,27 @@ export const renderProgramaTab = async (container) => {
     };
 
     window.openTerritorySelector = (dayIdx, turnoId, btn) => {
-        // Mostramos todos los territorios en el selector para evitar que aparezca vacío
-        // El modal ya indica visualmente cuáles están disponibles o saturados
+        // Extract all territories already in this week's program to highlight them
+        const weekAssignments = [];
+        if (programa && programa.dias) {
+            programa.dias.forEach(d => {
+                ['manana', 'tarde', 'noche', 'zoom'].forEach(turn => {
+                    const tStr = d[turn]?.territorio;
+                    if (tStr) {
+                        // Handle multiple territories like "1, 2(Mz 1), 3"
+                        const parts = tStr.split(/[,;/]+/).map(p => p.trim()).filter(Boolean);
+                        parts.forEach(p => {
+                            const num = p.replace(/\(.*\)/, '').trim(); // Remove apple notes
+                            if (num) weekAssignments.push(num);
+                        });
+                    }
+                });
+            });
+        }
+
         showTerritorySelectionModal(btn.dataset.current || '', territorios, (res) => {
             window.updateWeekData(dayIdx, turnoId, 'territorio', res);
-        }, 'modal-container-nested', historial);
+        }, 'modal-container-nested', historial, weekAssignments);
     };
 
     window.openGroupSelector = async (dayIdx, turnoId, btn) => {
@@ -767,6 +795,71 @@ export const renderProgramaTab = async (container) => {
     };
 
     container.querySelector('#btn-resync-prog').onclick = loadWeekData;
+
+    container.querySelector('#btn-export-xls-prog').onclick = () => {
+        const exportData = [];
+        programa.dias.forEach(dia => {
+            ['manana', 'tarde', 'noche', 'zoom'].forEach(turno => {
+                const data = dia[turno];
+                if (data && (data.conductor || data.lugar || data.territorio)) {
+                    exportData.push({
+                        'Día': dia.nombre,
+                        'Fecha': dia.fecha,
+                        'Turno': turno.toUpperCase(),
+                        'Hora': data.hora || '—',
+                        'Lugar': data.lugar || '—',
+                        'Conductor': data.conductor || '—',
+                        'Auxiliar': data.auxiliar || '—',
+                        'Grupos': data.grupos || '—',
+                        'Territorio': data.territorio || '—',
+                        'Faceta': data.faceta || '—'
+                    });
+                }
+            });
+        });
+
+        if (exportData.length === 0) return showNotification("No hay datos para exportar", "warning");
+        generatePlainXLS(exportData, `Programa_Semanal_${programa.id}`);
+        showNotification("Excel generado con éxito", "success");
+    };
+
+    container.querySelector('#btn-export-img-prog').onclick = async () => {
+        const { default: html2canvas } = await import('html2canvas');
+        showNotification("Preparando captura profesional...", "info");
+
+        // Create Territory Map for the engine
+        const territoryMap = {};
+        territorios.forEach(t => territoryMap[t.numero] = t);
+
+        const previewHTML = generateLandscapePreviewHTML(programa, territoryMap);
+
+        const captureContainer = document.createElement('div');
+        captureContainer.style.position = 'fixed';
+        captureContainer.style.left = '-9999px';
+        captureContainer.style.top = '0';
+        captureContainer.innerHTML = previewHTML;
+        document.body.appendChild(captureContainer);
+
+        try {
+            const canvas = await html2canvas(captureContainer.querySelector('#landscape-preview-content'), {
+                scale: 1,
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: '#f8fafc'
+            });
+
+            const link = document.createElement('a');
+            link.download = `Programa_${programa.id}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            showNotification("Imagen descargada con éxito", "success");
+        } catch (err) {
+            console.error(err);
+            showNotification("Error al generar imagen", "error");
+        } finally {
+            document.body.removeChild(captureContainer);
+        }
+    };
 
     container.querySelector('#btn-copy-prev-week').onclick = async () => {
         const { showCustomConfirm } = await import('../services/ui-helpers.js');

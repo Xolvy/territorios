@@ -89,6 +89,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
     let displayName = nameOrEmail;
     let conductorData = null;
     let config = null;
+    const sessionHandledIds = new Set();
     try {
         config = await getConfiguracion();
         const allC = await getPublicadores(); // Use publicadores for broader match
@@ -101,7 +102,6 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
         // Xolvy Session Tracking: Track phones handled in THIS specific session
         // to avoid hiding them immediately (which is confusing)
-        const sessionHandledIds = new Set();
     } catch (err) {
         console.error("🛡️ [Data Shield] Error resolving name:", err);
     }
@@ -947,13 +947,6 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                         showNotification("Sesión finalizada con éxito.", "success");
                                         window.closeModal();
                                         await window.refreshConductorView();
-
-                                        // Only share after finalization is complete
-                                        if (navigator.share) {
-                                            try { await navigator.share({ title: 'Resumen de Predicación', text: message }); } catch (err) { }
-                                        } else {
-                                            window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
-                                        }
                                     } catch (e) {
                                         console.error("Error finalizing session:", e);
                                         showNotification("Error al finalizar sesión", "error");
@@ -980,8 +973,9 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
     const refreshAndRenderPhoneTable = async (term = '', status = '') => {
         const myPhones = await refreshPhones(true);
         const filtered = myPhones.filter(p => {
+            const cleanTerm = term.replace(/[\s\-\(\)]/g, '');
             const matchesTerm = !term ||
-                p.telefono?.toLowerCase().includes(term) ||
+                (p.telefono && cleanPhone(p.telefono).includes(cleanTerm)) ||
                 p.propietario?.toLowerCase().includes(term) ||
                 p.direccion?.toLowerCase().includes(term);
 
@@ -1534,6 +1528,24 @@ const loadUnifiedDashboard = async (container, name, intelligenceBadge, agendaCo
 
         window.openTerritorySelector = (dayIndex, turnId, btnElement) => {
             if (!btnElement || !window._globalPrograma) return;
+
+            // Extract all territories already in this week's program to highlight them
+            const weekAssignments = [];
+            if (window._globalPrograma.dias) {
+                window._globalPrograma.dias.forEach(d => {
+                    ['manana', 'tarde', 'noche', 'zoom'].forEach(turn => {
+                        const tStr = d[turn]?.territorio;
+                        if (tStr) {
+                            const parts = tStr.split(/[,;/]+/).map(p => p.trim()).filter(Boolean);
+                            parts.forEach(p => {
+                                const num = p.replace(/\(.*\)/, '').trim();
+                                if (num) weekAssignments.push(num);
+                            });
+                        }
+                    });
+                });
+            }
+
             const currentVal = btnElement.dataset.current;
             window.showTerritorySelectionModal(currentVal, window._globalTerritorios, (newValue) => {
                 if (!window._globalPrograma.dias[dayIndex][turnId]) window._globalPrograma.dias[dayIndex][turnId] = {};
@@ -1549,7 +1561,7 @@ const loadUnifiedDashboard = async (container, name, intelligenceBadge, agendaCo
 
                 // Trigger save and sync
                 window.updateWeekData(dayIndex, turnId, 'territorio', newValue);
-            });
+            }, 'modal-container', null, weekAssignments); // Pass weekAssignments as 6th param
         };
 
         window.updateWeekData = async (dayIndex, turnoId, field, value) => {

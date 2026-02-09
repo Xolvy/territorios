@@ -251,7 +251,7 @@ window.showCustomConfirm = showCustomConfirm;
 window.showCustomPrompt = showCustomPrompt;
 window.showCustomAlert = showCustomAlert;
 
-export const showTerritorySelectionModal = (current, territorios, onSelect, containerId = 'modal-container', historial = []) => {
+export const showTerritorySelectionModal = (current, territorios, onSelect, containerId = 'modal-container', historial = [], weekAssignments = []) => {
     let filtered = [...territorios].sort((a, b) => (a.numero || '').localeCompare(b.numero || '', undefined, { numeric: true }));
 
     // --- Power Up: Process Stats ---
@@ -322,6 +322,18 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
                     </div>
                 </div>
             </header>
+            
+            ${weekAssignments.length > 0 ? `
+            <div class="shrink-0 px-8 py-4 bg-orange-500/5 border-b border-orange-500/10 flex flex-wrap items-center gap-3 animate-fade-in relative z-20">
+                <i class="fas fa-exclamation-circle text-orange-500 text-[10px]"></i>
+                <span class="text-[9px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-[0.2em]">En Programa Semanal:</span>
+                <div class="flex flex-wrap gap-1.5">
+                    ${Array.from(new Set(weekAssignments)).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).map(num => `
+                        <span class="px-2.5 py-1 bg-orange-500 text-white text-[10px] font-black rounded-lg shadow-sm shadow-orange-500/20">#${num}</span>
+                    `).join('')}
+                </div>
+            </div>
+            ` : ''}
             
             <div class="flex-1 p-6 space-y-8 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-black/20">
                 <!-- Power Up: Smart Suggestions Section -->
@@ -506,7 +518,7 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
                                  <div class="flex items-center gap-3">
                                     <input type="checkbox" class="terr-check w-5 h-5 rounded-lg border-2 border-slate-300 dark:border-white/10 text-primary focus:ring-primary transition-all cursor-pointer" 
                                             data-num="${t.numero}" ${isSelected ? 'checked' : ''}>
-                                     <span class="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tighter">#${t.numero}</span>
+                                     <span class="text-lg font-black ${weekAssignments.includes(t.numero) ? 'text-orange-500 animate-pulse' : 'text-slate-800 dark:text-white'} uppercase tracking-tighter">#${t.numero}</span>
                                      ${t.is_incomplete ? `<i class="fas fa-magic text-indigo-500 text-[10px] animate-pulse" title="Fragmento sugerido"></i>` : ''}
                                   </div>
                                   <div class="flex items-center gap-2">
