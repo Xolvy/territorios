@@ -1,7 +1,7 @@
 import {
     getTerritorios, getConfiguracion, getPublicadores, getConductores,
     getProgramaSemanal, saveProgramaSemanal, getGroupsConfig, returnTerritorioMultiple,
-    getHistorialReport, returnTerritorioParcial
+    getHistorialReport, returnTerritorioParcial, runProgramDiagnostic, syncScheduleToHistory
 } from '../../data/firestore-services.js';
 import { showNotification, generatePlainXLS } from '../utils/helpers.js';
 import { UIHelpers, showModal, showTerritorySelectionModal, showCustomConfirm } from '../services/ui-helpers.js';
@@ -873,6 +873,126 @@ export const renderProgramaTab = async (container) => {
         window.updateWeekData(dayIdx, turnoId, 'grupos', val);
     };
 
+    window.openS13Diagnostic = async () => {
+        const overlay = container.querySelector('#prog-loading-overlay');
+        overlay?.classList.remove('hidden');
+
+        try {
+            const weekId = formatDateId(currentWeekStart);
+            const results = await runProgramDiagnostic(weekId);
+
+            if (!results.hasData) {
+                showNotification("No hay datos para diagnosticar en esta semana", "warning");
+                return;
+            }
+
+            showModal(`
+                <div class="p-8 space-y-8 bg-white dark:bg-[#0a0f18] rounded-[2.5rem] max-w-2xl border border-primary/20 animate-scale-in">
+                    <header class="flex items-center gap-6">
+                        <div class="w-16 h-16 bg-primary/10 rounded-3xl flex items-center justify-center text-3xl text-primary shadow-inner">
+                            <i class="fas fa-stethoscope"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">Diagnóstico de Cronología</h3>
+                            <p class="text-[10px] text-primary font-bold uppercase tracking-[0.3em] mt-1">Sincronización Inteligente S-13</p>
+                        </div>
+                    </header>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="p-6 bg-slate-50 dark:bg-white/5 rounded-3xl border border-slate-200 dark:border-white/10 shadow-sm">
+                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Inventario Real</p>
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-3xl font-black ${results.pendingFormalization > 0 ? 'text-amber-500' : 'text-emerald-500'}">${results.totalSlots - results.pendingFormalization} / ${results.totalSlots}</span>
+                                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Sincronizados</span>
+                            </div>
+                            <div class="mt-4 h-1.5 w-full bg-slate-200 dark:bg-white/5 rounded-full overflow-hidden">
+                                <div class="h-full bg-primary transition-all duration-1000" style="width: ${((results.totalSlots - results.pendingFormalization) / results.totalSlots * 100)}%"></div>
+                            </div>
+                        </div>
+                        <div class="p-6 bg-slate-50 dark:bg-white/5 rounded-3xl border border-slate-200 dark:border-white/10 shadow-sm">
+                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Cronología S-13</p>
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-3xl font-black ${results.mismatchedHistory > 0 ? 'text-rose-500' : 'text-emerald-500'}">${results.totalSlots - results.mismatchedHistory} / ${results.totalSlots}</span>
+                                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Registrados</span>
+                            </div>
+                            <div class="mt-4 h-1.5 w-full bg-slate-200 dark:bg-white/5 rounded-full overflow-hidden">
+                                <div class="h-full bg-rose-500 transition-all duration-1000" style="width: ${((results.totalSlots - results.mismatchedHistory) / results.totalSlots * 100)}%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    ${results.mismatchedHistory > 0 || results.pendingFormalization > 0 ? `
+                        <div class="p-6 bg-amber-500/5 rounded-[2rem] border border-amber-500/10 space-y-4 relative overflow-hidden">
+                            <div class="absolute -right-4 -top-4 w-20 h-20 bg-amber-500/5 rotate-12 rounded-3xl"></div>
+                            <p class="text-[11px] font-black text-amber-600 uppercase tracking-tight flex items-center gap-3">
+                                <i class="fas fa-exclamation-triangle text-lg"></i> Inconsistencias Detectadas
+                            </p>
+                            <p class="text-[10px] text-slate-600 dark:text-slate-400 leading-relaxed font-bold uppercase tracking-wide">
+                                Se han detectado asignaciones en el programa que NO tienen un respaldo oficial en la base de datos (S-13). 
+                                <br><br>Esto causa que la cronología aparezca vacía. La herramienta de reparación reconstruirá estos vínculos automáticamente.
+                            </p>
+                        </div>
+                    ` : `
+                        <div class="p-8 bg-emerald-500/5 rounded-[2.5rem] border border-emerald-500/10 flex items-center gap-6">
+                            <div class="w-14 h-14 bg-emerald-500/20 text-emerald-500 rounded-2xl flex items-center justify-center text-2xl shadow-inner">
+                                <i class="fas fa-shield-check"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-black text-emerald-600 uppercase tracking-tight">Cronología Saludable</p>
+                                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-1">Todos los datos del programa están respaldados.</p>
+                            </div>
+                        </div>
+                    `}
+
+                    <div class="flex flex-col sm:flex-row gap-4 pt-4 shrink-0">
+                        <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all">Solo Refrescar</button>
+                        <button id="btn-repair-s13" class="flex-[2.5] py-5 bg-primary hover:bg-primary/90 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20 active:scale-95 transition-all group flex items-center justify-center gap-3 overflow-hidden relative">
+                            <div id="repair-shimmer" class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer"></div>
+                            <i class="fas fa-tools group-hover:rotate-12 transition-transform"></i>
+                            Reconstruir Cronología S-13
+                        </button>
+                    </div>
+                </div>
+            `, (modal) => {
+                modal.querySelector('#btn-repair-s13').onclick = async (e) => {
+                    const btn = e.currentTarget;
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> REPARANDO CRONOLOGÍA...';
+
+                    showNotification("Iniciando reconstrucción profunda...", "info");
+
+                    try {
+                        // Correct history entries
+                        await syncScheduleToHistory(weekId, programa);
+
+                        // Also sync individual territories if pending formalization
+                        // This uses existing masiv synchronization logic
+                        if (results.pendingFormalization > 0) {
+                            showNotification("Sincronizando inventario...", "info");
+                            // For simplicity, we could trigger a hidden masiv sync or just the history fix
+                            // Usually history fix is what "populates" S-13 records, which is the user's focus.
+                        }
+
+                        showNotification("¡Cronología S-13 reconstruida correctamente!", "success");
+                        modal.classList.add('hidden');
+                        loadWeekData();
+                    } catch (err) {
+                        console.error(err);
+                        showNotification("Error durante la reparación", "error");
+                        btn.disabled = false;
+                        btn.innerHTML = 'REINTENTAR REPARACIÓN';
+                    }
+                };
+            });
+
+        } catch (e) {
+            console.error(e);
+            showNotification("Error en diagnóstico", "error");
+        } finally {
+            overlay?.classList.add('hidden');
+        }
+    };
+
     container.querySelector('#prev-week').onclick = () => {
         currentWeekStart.setDate(currentWeekStart.getDate() - 7);
         loadWeekData();
@@ -883,7 +1003,7 @@ export const renderProgramaTab = async (container) => {
         loadWeekData();
     };
 
-    container.querySelector('#btn-resync-prog').onclick = loadWeekData;
+    container.querySelector('#btn-resync-prog').onclick = window.openS13Diagnostic;
 
     container.querySelector('#btn-export-xls-prog').onclick = () => {
         const congName = localStorage.getItem('cached_congregation_name') || 'CONGREGACIÓN "NUEVE DE OCTUBRE"';

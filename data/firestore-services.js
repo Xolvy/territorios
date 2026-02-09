@@ -1800,11 +1800,11 @@ export const syncSlotWithTerritories = async (weekId, dayIdx, turno, tData, date
                     if (explicitAssignmentDate) {
                         assignmentDate = new Date(explicitAssignmentDate.split('T')[0] + 'T12:00:00Z');
                     } else {
-                        // Calculate Sunday BEFORE this week starts
+                        // Calculate MONDAY of this week starts (to keep S-13 reports within the week range)
                         const d = new Date(programDay);
-                        const day = d.getUTCDay(); // 0 is Sun, 1 is Mon...
-                        const diffToPrevSun = day === 0 ? 7 : day; // If Sun, go back 7. If Mon, go back 1.
-                        d.setUTCDate(d.getUTCDate() - diffToPrevSun);
+                        const day = d.getUTCDay(); // 1 is Mon, 0 is Sun
+                        const diffToMonday = day === 0 ? 6 : day - 1;
+                        d.setUTCDate(d.getUTCDate() - diffToMonday);
                         assignmentDate = d;
                     }
 
@@ -2105,7 +2105,7 @@ export const deleteProgramaSemanal = async (weekId) => {
 };
 
 // --- HELPER: Sync Schedule to History (S-13) ---
-const syncScheduleToHistory = async (weekId, scheduleData) => {
+export const syncScheduleToHistory = async (weekId, scheduleData) => {
     try {
         const weekStart = new Date(weekId);
         // Validate date
@@ -2155,8 +2155,12 @@ const syncScheduleToHistory = async (weekId, scheduleData) => {
                         tNums.forEach(num => {
                             const key = `${num}_${dateKey}`;
                             const existing = historyMap.get(key);
-                            const asigDate = new Date(dayDate);
-                            asigDate.setDate(asigDate.getDate() - 7);
+
+                            // Align S-13 dates to be "within the week" per user preference
+                            // Assignment = Monday of the week, Return = Actual preaching day
+                            const asigDate = new Date(weekStart);
+                            asigDate.setHours(12, 0, 0, 0);
+
                             const isPast = dayDate < new Date();
 
                             if (existing) {
@@ -2198,6 +2202,83 @@ const syncScheduleToHistory = async (weekId, scheduleData) => {
 
     } catch (e) {
         console.error("Error syncing schedule to history:", e);
+    }
+};
+
+/**
+ * Diagnostic tool to check if the program matches the official inventory and S-13 history.
+ */
+export const runProgramDiagnostic = async (weekId) => {
+    try {
+        const prog = await getProgramaSemanal(weekId);
+        if (!prog) return { hasData: false };
+
+        const territories = await getTerritorios();
+        const history = await getHistorialReport();
+
+        const anomalies = [];
+        let totalSlots = 0;
+        let pendingFormalization = 0;
+        let mismatchedHistory = 0;
+
+        const weekStart = new Date(weekId + 'T12:00:00Z');
+
+        prog.dias.forEach((dia, dayIdx) => {
+            const dayDate = new Date(weekStart);
+            dayDate.setDate(weekStart.getDate() + dayIdx);
+            const dateISO = dayDate.toISOString();
+            const dateKey = dateISO.split('T')[0];
+
+            ['manana', 'tarde', 'noche', 'zoom'].forEach(turno => {
+                const data = dia[turno];
+                if (data && data.territorio && data.conductor) {
+                    totalSlots++;
+                    const tNums = String(data.territorio).split(/[,;/]/).map(s => s.trim()).filter(Boolean);
+
+                    tNums.forEach(num => {
+                        const cleanNum = String(num).trim();
+                        const t = territories.find(x => String(x.numero || '').trim() === cleanNum);
+                        const isAssignedInInventory = t && t.estado === 'Asignado' && t.asignado_a === data.conductor;
+
+                        const hEntry = history.find(h => String(h.numero || '').trim() === cleanNum && h.fecha_asignacion && h.fecha_asignacion.startsWith(weekId));
+
+                        if (!isAssignedInInventory) {
+                            pendingFormalization++;
+                            anomalies.push({
+                                type: 'inventory_mismatch',
+                                territory: cleanNum,
+                                day: dia.nombre,
+                                turno,
+                                programConductor: data.conductor,
+                                currentInventory: t ? (t.estado === 'Asignado' ? t.asignado_a : 'Disponible') : 'No existe'
+                            });
+                        }
+
+                        if (!hEntry) {
+                            mismatchedHistory++;
+                            anomalies.push({
+                                type: 'missing_history',
+                                territory: cleanNum,
+                                day: dia.nombre,
+                                turno,
+                                conductor: data.conductor
+                            });
+                        }
+                    });
+                }
+            });
+        });
+
+        return {
+            hasData: true,
+            totalSlots,
+            pendingFormalization,
+            mismatchedHistory,
+            anomalies: anomalies.slice(0, 50) // Cap to avoid UI flood
+        };
+    } catch (e) {
+        console.error("Error running diagnostic:", e);
+        return { error: e.message };
     }
 };
 

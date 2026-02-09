@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf';
 import { showNotification } from '../utils/helpers.js';
+import { UIHelpers } from '../services/ui-helpers.js';
 
 export const generateS12Report = (territories, layout = 1) => {
     const doc = new jsPDF('p', 'mm', 'a4');
@@ -141,7 +142,7 @@ export const generateS13Report = (history, from, to) => {
         if (!rawDate) return false;
 
         // Xolvy Shield: Normalize Firestore Timestamp or ISO string to YYYY-MM-DD for safe comparison
-        const date = rawDate.toDate ? rawDate.toDate().toISOString().split('T')[0] : String(rawDate).split('T')[0];
+        const date = UIHelpers.formatDateId(rawDate);
 
         // Only include completed records in official S-13 (exclude overlapped/absorbed)
         const isSuccess = h.estado === 'Completado' || h.estado === 'Predicado';
@@ -152,7 +153,7 @@ export const generateS13Report = (history, from, to) => {
     // Wait, the official S-13 has one row per territory and 4 columns for assignments.
     // Let's group by territory number.
     const grouped = filtered.reduce((acc, h) => {
-        const num = h.numero;
+        const num = String(h.numero);
         if (!acc[num]) acc[num] = [];
         acc[num].push(h);
         return acc;

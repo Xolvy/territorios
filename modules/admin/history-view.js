@@ -178,9 +178,10 @@ export const renderHistorialView = async (container) => {
 
                 // --- RELEVANCE FILTER ---
                 // Show if: Currently assigned, has completion history, is in current Program, or user is searching
+                const tNumKey = String(t.numero || '');
                 const isAsignado = t.estado === 'Asignado' || (t.asignado_a && t.asignado_a.trim() !== '');
-                const hasHistory = (historyByNum[t.numero] || []).some(h => h.fecha_entrega);
-                const inProgram = programTerritories.has(t.numero);
+                const hasHistory = (historyByNum[tNumKey] || []).length > 0;
+                const inProgram = programTerritories.has(tNumKey);
 
                 const isRelevant = isAsignado || hasHistory || inProgram || query.length > 0;
 
@@ -195,7 +196,8 @@ export const renderHistorialView = async (container) => {
         }
 
         grid.innerHTML = displayList.map(t => {
-            const tHistory = (historyByNum[t.numero] || [])
+            const tNumKey = String(t.numero || '');
+            const tHistory = (historyByNum[tNumKey] || [])
                 .sort((a, b) => getSortableDate(b) - getSortableDate(a));
 
             const isFree = t.estado === 'Libre' || t.estado === 'Disponible' || t.estado === 'Sin asignar';

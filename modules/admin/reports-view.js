@@ -170,7 +170,7 @@ export const renderReportsTab = async (container, config, appVersion) => {
             const filtered = history.filter(h => {
                 const date = h.fecha_entrega || h.timestamp;
                 if (!date) return false;
-                const d = date.toDate ? date.toDate().toISOString().split('T')[0] : String(date).split('T')[0];
+                const d = UIHelpers.formatDateId(date);
                 const isSuccess = h.estado === 'Completado' || h.estado === 'Predicado';
                 return isSuccess && d >= from && d <= to;
             });
