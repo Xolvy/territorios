@@ -24,7 +24,7 @@ export const getStatusColor = (status) => {
 
 
 
-export const showNotification = (message, type = 'success', duration = 5000, workflow = [], onUndo = null) => {
+export const showNotification = (message, type = 'success', duration = 5000, workflow = [], onUndo = null, onComplete = null) => {
     // 1. Text Optimization for glanceability
     let displayMessage = message;
     if (message.includes('Conexión Restablecida')) displayMessage = 'Sistema Sincronizado';
@@ -75,14 +75,15 @@ export const showNotification = (message, type = 'success', duration = 5000, wor
            </div>`
         : '';
 
-    // Undo Action HUD
-    const undoHTML = onUndo ? `
+    // Undo/Cancel Action HUD
+    const undoLabel = onComplete ? 'Cancelar' : 'Deshacer';
+    const undoHTML = onUndo || onComplete ? `
         <div class="mt-4 flex items-center justify-between gap-4">
              <div class="flex-1 h-1.5 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden">
                  <div id="notif-progress-${id}" class="h-full ${s.text.replace('text-', 'bg-')} w-full transition-all ease-linear" style="transition-duration: ${duration}ms"></div>
              </div>
              <button id="notif-undo-${id}" class="px-5 py-2 rounded-xl bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 text-[9px] font-black uppercase tracking-widest ${s.text} shadow-sm hover:scale-105 active:scale-95 transition-all">
-                <i class="fas fa-undo-alt mr-1.5"></i> Deshacer
+                <i class="fas ${onComplete ? 'fa-times' : 'fa-undo-alt'} mr-1.5"></i> ${undoLabel}
              </button>
         </div>
     ` : '';
@@ -100,7 +101,7 @@ export const showNotification = (message, type = 'success', duration = 5000, wor
                 </div>
                 <h4 class="text-[11px] font-black ${isSync ? 'text-indigo-900 dark:text-indigo-100' : 'text-slate-800 dark:text-white'} uppercase tracking-tight leading-none">${displayMessage}</h4>
             </div>
-            <button class="ml-2 text-slate-400 hover:text-rose-500 transition-colors opacity-40 hover:opacity-100" onclick="this.closest('div.animate-slide-left').remove()">
+            <button id="notif-close-${id}" class="ml-2 text-slate-400 hover:text-rose-500 transition-colors opacity-40 hover:opacity-100">
                 <i class="fas fa-times text-[10px]"></i>
             </button>
         </div>
@@ -116,12 +117,33 @@ export const showNotification = (message, type = 'success', duration = 5000, wor
 
     hud.appendChild(card);
 
-    // Bind Undo
-    if (onUndo) {
+    let completeTimer = null;
+    let autoRemoveTimer = null;
+
+    const clearTimers = () => {
+        if (completeTimer) clearTimeout(completeTimer);
+        if (autoRemoveTimer) clearTimeout(autoRemoveTimer);
+    };
+
+    const removeCard = (withDelay = true) => {
+        clearTimers();
+        if (withDelay) {
+            card.classList.add('opacity-0', 'translate-x-[100px]', 'scale-90', 'blur-sm');
+            setTimeout(() => card.remove(), 700);
+        } else {
+            card.remove();
+        }
+    };
+
+    // Bind Close
+    card.querySelector(`#notif-close-${id}`).onclick = () => removeCard();
+
+    // Bind Undo/Cancel
+    if (onUndo || onComplete) {
         const btn = card.querySelector(`#notif-undo-${id}`);
         btn.onclick = () => {
-            onUndo();
-            card.remove();
+            if (onUndo) onUndo();
+            removeCard(false);
         };
 
         // Trigger progress bar animation in next frame
@@ -131,14 +153,18 @@ export const showNotification = (message, type = 'success', duration = 5000, wor
         });
     }
 
-    // Auto-remove
+    // Auto-complete or Auto-remove
     if (duration > 0) {
-        setTimeout(() => {
-            if (card.parentElement) {
-                card.classList.add('opacity-0', 'translate-x-[100px]', 'scale-90', 'blur-sm');
-                setTimeout(() => card.remove(), 700);
-            }
-        }, duration);
+        if (onComplete) {
+            completeTimer = setTimeout(() => {
+                onComplete();
+                removeCard();
+            }, duration);
+        } else {
+            autoRemoveTimer = setTimeout(() => {
+                if (card.parentElement) removeCard();
+            }, duration);
+        }
     }
 
     return id;

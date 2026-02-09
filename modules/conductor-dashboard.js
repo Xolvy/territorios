@@ -932,27 +932,31 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                     (notes ? `📝 *Notas:* ${notes}\n\n` : '') +
                                     `_Enviado desde App Territorios_`;
 
-                                try {
-                                    await logSessionSummary({
-                                        conductor_id: displayName,
-                                        stats: summary.stats,
-                                        total: summary.total,
-                                        notas: notes
-                                    });
-                                    await releaseUnusedTelefonos(displayName);
-                                    showNotification("Sesión finalizada y números liberados.", "success");
-                                    window.closeModal();
-                                    await window.refreshConductorView();
-                                } catch (e) {
-                                    console.error("Error finalizing session:", e);
-                                    showNotification("Error al finalizar sesión", "error");
-                                }
+                                // Xolvy Adapt: Pre-action countdown for Finalize
+                                showNotification("Finalizando sesión...", "info", 5000, ["Preparando reporte", "Cerrando registros"], null, async () => {
+                                    try {
+                                        await logSessionSummary({
+                                            conductor_id: displayName,
+                                            stats: summary.stats,
+                                            total: summary.total,
+                                            notas: notes
+                                        });
+                                        await releaseUnusedTelefonos(displayName);
+                                        showNotification("Sesión finalizada con éxito.", "success");
+                                        window.closeModal();
+                                        await window.refreshConductorView();
 
-                                if (navigator.share) {
-                                    try { await navigator.share({ title: 'Resumen de Predicación', text: message }); } catch (err) { }
-                                } else {
-                                    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
-                                }
+                                        // Only share after finalization is complete
+                                        if (navigator.share) {
+                                            try { await navigator.share({ title: 'Resumen de Predicación', text: message }); } catch (err) { }
+                                        } else {
+                                            window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+                                        }
+                                    } catch (e) {
+                                        console.error("Error finalizing session:", e);
+                                        showNotification("Error al finalizar sesión", "error");
+                                    }
+                                });
                             };
                         }
                     });
