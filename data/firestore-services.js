@@ -28,6 +28,7 @@ const COL_TERRITORIOS = "territorios";
 const COL_BANCO_S13 = "banco_maestro_s13";
 const COL_VISOR = "visor_programacion";
 const COL_AUDITORIA = "bitacora_auditoria";
+const COL_BITACORA_OBS = "bitacora_territorios";
 
 // Internal wrapper for auto-cached calls
 const fetchCached = async (key, fetchFn) => {
@@ -197,13 +198,38 @@ export const logReturn = async (territorioId, fechaEntrega, status = 'Completado
             });
             await batch.commit();
             await saveAuditLog('ENTREGA_TERRITORIO', { territorio: num });
+
+            // Propagar a Bitácora Global si hay notas (Solo observaciones de conductores)
+            if (notas && notas.trim().length > 0) {
+                const conductor = snapshot.docs[0].data().conductor || 'Anónimo';
+                await addDoc(collection(db, COL_BITACORA_OBS), {
+                    territorio_id: num,
+                    conductor: conductor,
+                    nota: notas,
+                    fecha: fechaEntrega || new Date().toISOString(),
+                    timestamp: Timestamp.now()
+                });
+            }
         }
         ServiceCache.clear('territorios_combined');
     } catch (e) {
         console.error("Error al registrar entrega:", e);
     }
 };
+export const getGlobalObservations = async () => {
+    try {
+        const q = query(collection(db, COL_BITACORA_OBS), orderBy("timestamp", "desc"), limit(200));
+        const snap = await getDocs(q);
+        return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (e) {
+        console.error("Error fetching global observations:", e);
+        return [];
+    }
+};
 
+export const deleteObservation = async (id) => {
+    await deleteDoc(doc(db, COL_BITACORA_OBS, id));
+};
 
 export const getHistorialReport = async () => {
     return fetchCached('historial', async () => {
@@ -234,20 +260,32 @@ export const addHistoryRecord = async (data) => {
     if (!data.timestamp) {
         data.timestamp = Timestamp.fromDate(new Date(data.fecha_asignacion || new Date()));
     }
-    const docRef = await addDoc(collection(db, "historial_territorios"), data);
+    const docRef = await addDoc(collection(db, COL_BANCO_S13), data);
     ServiceCache.clear('historial');
 
     // Propagation to Weekly Program
     if (data.fecha_asignacion) {
         await syncAssignmentToWeeklyProgram({ id: data.territorio_id || docRef.id, numero: data.numero }, data.conductor, data);
     }
+
+    // Bitácora Sync
+    if (data.observaciones && data.observaciones.trim().length > 0) {
+        await addDoc(collection(db, COL_BITACORA_OBS), {
+            territorio_id: data.numero || data.territorio_id,
+            conductor: data.conductor || 'Anónimo',
+            nota: data.observaciones,
+            fecha: data.fecha_asignacion || data.fecha_entrega || new Date().toISOString(),
+            timestamp: Timestamp.now()
+        });
+    }
+
     return docRef;
 };
 
 export const updateHistoryRecord = async (id, data) => {
     try {
         await runTransaction(db, async (transaction) => {
-            const histRef = doc(db, "historial_territorios", id);
+            const histRef = doc(db, COL_BANCO_S13, id);
             const oldSnap = await transaction.get(histRef);
             if (!oldSnap.exists()) return;
             const old = oldSnap.data();

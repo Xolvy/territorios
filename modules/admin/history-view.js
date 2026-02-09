@@ -2,7 +2,7 @@ import Chart from 'chart.js/auto';
 import {
     getHistorialReport, getConductores, getTerritorios, getPublicadores, getConfiguracion,
     assignTerritorio, returnTerritorio, transferTerritory, addHistoryRecord, updateHistoryRecord, deleteHistoryRecord, updateTerritorio,
-    getProgramaSemanal
+    getProgramaSemanal, getGlobalObservations
 } from '../../data/firestore-services.js';
 import { UIHelpers, showModal, showCustomConfirm, showCustomPrompt, showTerritorySelectionModal } from '../services/ui-helpers.js';
 import { formatPhoneNumber, getStatusColor, showNotification } from '../utils/helpers.js';
@@ -360,9 +360,9 @@ export const renderHistorialView = async (container) => {
         }).join('');
     };
 
-    window.showGlobalObservations = () => {
-        const obs = history.filter(h => h.observaciones && h.observaciones.trim().length > 0)
-            .sort((a, b) => new Date(b.timestamp || b.fecha_entrega || 0) - new Date(a.timestamp || a.fecha_entrega || 0));
+    window.showGlobalObservations = async () => {
+        showNotification("Cargando bitácora...", "info");
+        const obs = await getGlobalObservations();
 
         showModal(`
             <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[3rem] overflow-hidden">
@@ -374,7 +374,7 @@ export const renderHistorialView = async (container) => {
                         </div>
                         <div>
                             <h3 class="text-2xl font-black uppercase tracking-tight leading-none mb-1">Bitácora Global</h3>
-                            <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Observaciones de todos los territorios</p>
+                            <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Observaciones de cada territorio</p>
                         </div>
                     </div>
                 </header>
@@ -387,15 +387,15 @@ export const renderHistorialView = async (container) => {
                     ` : obs.map(h => `
                         <div class="modern-card p-6 border-slate-100 dark:border-white/5 bg-white dark:bg-white/[0.02] shadow-sm hover:border-indigo-500/30 transition-all flex flex-col md:flex-row gap-6 md:items-center">
                             <div class="w-12 h-12 bg-slate-900 text-white rounded-xl flex items-center justify-center font-black text-sm shrink-0">
-                                ${h.numero}
+                                ${h.territorio_id || h.numero}
                             </div>
                             <div class="flex-1 space-y-1">
                                 <div class="flex items-center gap-3">
                                     <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">${h.conductor}</span>
                                     <span class="w-1 h-1 bg-slate-200 dark:bg-white/10 rounded-full"></span>
-                                    <span class="text-[9px] font-bold text-slate-400">${UIHelpers.fmtDateAt(h.timestamp || h.fecha_entrega)}</span>
+                                    <span class="text-[9px] font-bold text-slate-400">${UIHelpers.fmtDateAt(h.timestamp || h.fecha)}</span>
                                 </div>
-                                <p class="text-[13px] font-bold text-slate-700 dark:text-white leading-relaxed italic">"${h.observaciones}"</p>
+                                <p class="text-[13px] font-bold text-slate-700 dark:text-white leading-relaxed italic">"${h.nota || h.observaciones}"</p>
                             </div>
                         </div>
                     `).join('')}
