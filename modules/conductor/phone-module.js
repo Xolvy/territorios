@@ -18,52 +18,69 @@ export const initializePhoneModule = (initialPhones, publicadores, displayName, 
 
         tbody.innerHTML = myPhones.map(p => `
             <tr class="flex flex-col sm:table-row hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors group border-b border-black/5 dark:border-white/5 p-4 sm:p-0 gap-4 sm:gap-0">
-                <!-- Mobile: Header with Phone & Status -->
-                <td class="p-0 sm:p-4 block sm:table-cell">
+                <!-- Col 1: Telefono (Desktop) / Header (Mobile) -->
+                <td class="p-0 sm:p-4 block sm:table-cell align-middle">
                     <div class="flex flex-col">
                         <div class="flex items-center justify-between sm:justify-start gap-4">
                             <span class="text-[14px] sm:text-[13px] font-black text-slate-800 dark:text-white tabular-nums tracking-tight">${p.telefono}</span>
+                            <!-- Mobile Status Badge (Only Mobile) -->
                             <div class="sm:hidden px-2 py-0.5 bg-indigo-500/10 text-indigo-500 rounded-lg text-[8px] font-black uppercase tracking-widest border border-indigo-500/10">
                                 ${p.estado || 'SIN ASIGNAR'}
                             </div>
                         </div>
-                        <p class="font-black text-[11px] sm:text-[10px] text-slate-600 dark:text-slate-300 uppercase mt-1 sm:mt-0">${p.propietario || '---'}</p>
-                        ${p.ultimo_resultado ? `<span class="text-[8px] font-black uppercase text-slate-400 mt-1 tracking-widest hidden sm:block">${p.ultimo_resultado}</span>` : ''}
+                        <!-- Owner only visible in first col if on Mobile -->
+                        <p class="sm:hidden font-black text-[11px] text-slate-600 dark:text-slate-300 uppercase mt-1">${p.propietario || '---'}</p>
                     </div>
                 </td>
                 
-                <!-- Desktop Propietario (Hidden on Mobile) -->
-                <td class="p-4 hidden sm:table-cell">
+                <!-- Col 2: Propietario (Desktop Only) -->
+                <td class="p-4 hidden sm:table-cell align-middle">
                     <p class="font-black text-[10px] text-slate-600 dark:text-slate-300 uppercase">${p.propietario || '---'}</p>
                 </td>
 
-                <!-- Address (Visible in both, slightly adjusted for mobile) -->
-                <td class="p-0 sm:p-4 block sm:table-cell">
+                <!-- Col 3: Direccion (Desktop Only or merged below on Mobile) -->
+                <td class="p-0 sm:p-4 block sm:table-cell align-middle">
                     <div class="flex items-center gap-2">
                         <i class="fas fa-map-marker-alt text-primary/30 text-[9px] sm:hidden"></i>
                         <p class="text-[10px] sm:text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase truncate max-w-full sm:max-w-[150px]">${p.direccion || '---'}</p>
                     </div>
                 </td>
 
-                <!-- Actions: Publisher, Status, Notes -->
-                <td class="p-0 sm:p-4 block sm:table-cell">
+                <!-- Col 4: Publicador (Both) -->
+                <td class="p-0 sm:p-4 block sm:table-cell align-middle">
                     <div class="flex flex-row items-center gap-2 sm:gap-4">
                         <div class="flex-1">
-                            <p class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 sm:hidden ml-1">Publicador</p>
-                            <select onchange="window.updatePhoneStaff('${p.id}', this.value)" class="w-full sm:w-auto bg-slate-100 dark:bg-white/5 border-none rounded-xl px-3 py-2.5 sm:py-1.5 text-[10px] font-black uppercase tracking-widest outline-none focus:ring-1 focus:ring-primary transition-all">
+                            <p class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 sm:hidden ml-1">Asignar Publicador</p>
+                            <select onchange="window.updatePhoneStaff('${p.id}', this.value)" class="w-full sm:w-auto bg-slate-100 dark:bg-white/5 border-none rounded-xl sm:rounded-lg px-3 py-2.5 sm:py-1.5 text-[10px] font-black uppercase tracking-widest outline-none focus:ring-1 focus:ring-primary transition-all">
                                 <option value="">SIN ASIGNAR</option>
                                 ${publicadores.map(pub => `<option value="${pub.nombre}" ${p.publicador_asignado === pub.nombre ? 'selected' : ''}>${pub.nombre}</option>`).join('')}
                             </select>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <button onclick="window.openPhoneStatusSelector('${p.id}', '${p.telefono}')" class="hidden sm:block px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-all">
-                                ${p.estado || 'SIN ASIGNAR'}
+                        
+                        <!-- Side Actions: Notes (Desktop) / Notes (Mobile) -->
+                        <div class="flex items-center gap-2 sm:hidden">
+                             <button onclick="window.openPhoneStatusSelector('${p.id}', '${p.telefono}')" class="px-3 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 border border-black/5 whitespace-nowrap">
+                                ESTADO
                             </button>
-                            <button onclick="window.openPhoneNotes('${p.id}', '${p.telefono}', '${(p.notas || '').replace(/'/g, "\\\'")}')" class="w-11 h-11 sm:w-8 sm:h-8 flex items-center justify-center text-slate-400 hover:text-primary transition-colors bg-slate-100 dark:bg-white/5 sm:bg-transparent rounded-xl border border-black/5 sm:border-none">
-                                <i class="fas fa-sticky-note sm:text-lg"></i>
+                            <button onclick="window.openPhoneNotes('${p.id}', '${p.telefono}', '${(p.notas || '').replace(/'/g, "\\\'")}')" class="w-11 h-11 flex items-center justify-center text-slate-400 hover:text-primary transition-colors bg-slate-100 dark:bg-white/5 rounded-xl border border-black/5">
+                                <i class="fas fa-sticky-note"></i>
                             </button>
                         </div>
                     </div>
+                </td>
+
+                <!-- Col 5: Estado (Desktop Only Button) -->
+                <td class="p-4 hidden sm:table-cell text-center align-middle">
+                    <button onclick="window.openPhoneStatusSelector('${p.id}', '${p.telefono}')" class="px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-all">
+                        ${p.estado || 'SIN ASIGNAR'}
+                    </button>
+                </td>
+
+                <!-- Col 6: Notas (Desktop Only Icon) -->
+                <td class="p-4 hidden sm:table-cell align-middle">
+                    <button onclick="window.openPhoneNotes('${p.id}', '${p.telefono}', '${(p.notas || '').replace(/'/g, "\\\'")}')" class="text-slate-400 hover:text-indigo-500 transition-colors">
+                        <i class="fas fa-sticky-note"></i>
+                    </button>
                 </td>
             </tr>
         `).join('');
