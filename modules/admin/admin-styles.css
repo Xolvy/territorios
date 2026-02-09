@@ -1,7 +1,13 @@
 /* 2026 Admin Navigation Styles */
 
-.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
 
 .nav-item {
     display: flex;
@@ -48,9 +54,12 @@
     text-align: center;
     transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.3, 1.275);
 }
-.nav-item:hover .nav-icon { transform: scale(1.2) rotate(-5deg); }
 
-.nav-label { 
+.nav-item:hover .nav-icon {
+    transform: scale(1.2) rotate(-5deg);
+}
+
+.nav-label {
     font-family: 'Outfit', sans-serif;
     letter-spacing: -0.01em;
 }
@@ -61,6 +70,7 @@
     grid-template-columns: 1fr;
     gap: 2rem;
 }
+
 @media (min-width: 1024px) {
     .admin-grid {
         grid-template-columns: 240px 1fr;
@@ -83,15 +93,15 @@
         top: auto;
         z-index: 1000;
     }
-    
+
     .sticky-nav nav {
         background: rgba(15, 23, 42, 0.9) !important;
         backdrop-filter: blur(24px) saturate(180%);
         -webkit-backdrop-filter: blur(24px) saturate(180%);
         padding: 0.5rem 0.25rem calc(0.5rem + env(safe-area-inset-bottom)) !important;
         border-radius: 2rem 2rem 0 0;
-        border-top: 1px solid rgba(255,255,255,0.1);
-        box-shadow: 0 -10px 40px rgba(0,0,0,0.3);
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.3);
         justify-content: space-around;
         width: 100%;
     }
@@ -124,12 +134,12 @@
         display: block !important;
         opacity: 0.6;
     }
-    
+
     .nav-item.active .nav-label {
         opacity: 1;
         color: #ffffff;
     }
-    
+
     .nav-item.active .nav-icon {
         color: #3b82f6;
         transform: translateY(-2px);
@@ -172,38 +182,58 @@
 }
 
 /* Global High Contrast active state for all sub-navigation buttons */
-.conf-nav-btn.active, .sub-tab-casa.active, .cc-view-btn.active {
-    background: #0f172a !important; /* Slate 900 */
+.conf-nav-btn.active,
+.sub-tab-casa.active,
+.cc-view-btn.active {
+    background: #0f172a !important;
+    /* Slate 900 */
     color: #ffffff !important;
     box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.4) !important;
-    transform: scale(1.05);
+    transform: scale(1.02);
     z-index: 10;
     border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
 /* Fixed visibility for important confirm buttons in light mode */
-#modal-terr-confirm, #confirm-bulk-return, #confirm-asig, #confirm-ok, #prompt-ok, #save-rec-btn, #btn-force-update, #btn-run-diagnostics {
+#modal-terr-confirm,
+#confirm-bulk-return,
+#confirm-asig,
+#confirm-ok,
+#prompt-ok,
+#save-rec-btn,
+#btn-force-update,
+#btn-run-diagnostics {
     background: #0f172a !important;
     color: #ffffff !important;
     border: none !important;
 }
 
 /* Ensure secondary buttons are visible */
-#prompt-cancel, #confirm-cancel, #btn-cancel-rec {
+#prompt-cancel,
+#confirm-cancel,
+#btn-cancel-rec {
     background: #f1f5f9 !important;
     color: #475569 !important;
     border: 1px solid #e2e8f0 !important;
 }
 
-.dark #modal-terr-confirm, .dark #confirm-bulk-return, .dark #confirm-asig, .dark #confirm-ok, .dark #prompt-ok, .dark #save-rec-btn, 
-.dark #btn-force-update, .dark #btn-run-diagnostics {
+.dark #modal-terr-confirm,
+.dark #confirm-bulk-return,
+.dark #confirm-asig,
+.dark #confirm-ok,
+.dark #prompt-ok,
+.dark #save-rec-btn,
+.dark #btn-force-update,
+.dark #btn-run-diagnostics {
     background: hsl(var(--primary)) !important;
 }
 
-.dark #prompt-cancel, .dark #confirm-cancel, .dark #btn-cancel-rec {
-    background: rgba(255,255,255,0.05) !important;
+.dark #prompt-cancel,
+.dark #confirm-cancel,
+.dark #btn-cancel-rec {
+    background: rgba(255, 255, 255, 0.05) !important;
     color: #94a3b8 !important;
-    border: 1px solid rgba(255,255,255,0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
 /* Additional Mobile Improvements */
@@ -211,10 +241,12 @@
     .dashboard-main-header h1 {
         font-size: 1.25rem !important;
     }
+
     .dashboard-main-header .w-16 {
         width: 3.5rem !important;
         height: 3.5rem !important;
     }
+
     .nav-label {
         font-size: 7px !important;
     }
@@ -228,6 +260,7 @@
         bottom: 1rem !important;
         right: 1rem !important;
     }
+
     .card-inner-mobile {
         padding: 1.25rem !important;
         height: 180px !important;
@@ -235,8 +268,23 @@
 }
 
 @keyframes admin-pulse {
-    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.7); }
-    70% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(79, 70, 229, 0); }
-    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.7);
+    }
+
+    70% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 15px rgba(79, 70, 229, 0);
+    }
+
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(79, 70, 229, 0);
+    }
 }
-.admin-ai-glow { animation: admin-pulse 2s infinite alternate; filter: drop-shadow(0 0 10px rgba(0, 255, 200, 0.3)); }
+
+.admin-ai-glow {
+    animation: admin-pulse 2s infinite alternate;
+    filter: drop-shadow(0 0 10px rgba(0, 255, 200, 0.3));
+}

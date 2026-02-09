@@ -11,7 +11,7 @@ export const renderReportsTab = async (container, config, appVersion) => {
         container.innerHTML = `
             <div class="animate-fade-in space-y-8 max-w-7xl mx-auto p-4 md:p-6 overflow-x-hidden">
                 <!-- Main Nav: Historial vs Reportes -->
-                <nav class="flex items-center gap-3 p-1.5 bg-white/50 dark:bg-white/[0.03] backdrop-blur-xl rounded-[2.2rem] w-max border border-slate-200 dark:border-white/5 mx-auto transition-all shadow-sm">
+                <nav class="flex flex-wrap items-center gap-3 p-2 bg-white/50 dark:bg-white/[0.03] backdrop-blur-xl rounded-[2.2rem] w-max border border-slate-200 dark:border-white/5 mx-auto transition-all shadow-sm overflow-hidden">
                     <button id="main-btn-historial" class="px-10 py-4 rounded-[1.8rem] text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 border border-transparent">
                         <i class="fas fa-history"></i> Historial
                     </button>
