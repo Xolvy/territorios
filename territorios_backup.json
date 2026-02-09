@@ -1,0 +1,200 @@
+[
+  {
+    "id": "4n9rjsvz5xrQBfDzHMLO",
+    "numero": "21",
+    "manzanas": "Mz. 1, Mz. 2",
+    "localidad": "Cdla. San Jacinto",
+    "geojson": "{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 1 (T21)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.966874,-3.256463],[-79.966147,-3.255766],[-79.966161,-3.255676],[-79.967878,-3.25541],[-79.966874,-3.256463]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 2 (T21)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.966826,-3.25648],[-79.965738,-3.25755],[-79.965032,-3.256839],[-79.966079,-3.255794],[-79.966826,-3.25648]]]}}]}",
+    "mapa_url": null,
+    "puntos_interes": []
+  },
+  {
+    "id": "9qBtF2qiGnZQcPacM9xj",
+    "numero": "9",
+    "manzanas": "Mz. 1, Mz. 2",
+    "localidad": "Cdla. Abdón Calderón",
+    "geojson": "{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 1 (T9)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.972881,-3.257628],[-79.972649,-3.257675],[-79.972059,-3.258239],[-79.971586,-3.257619],[-79.971861,-3.257418],[-79.972824,-3.25695],[-79.972881,-3.257628]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 2 (T9)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.97293,-3.258713],[-79.972653,-3.259005],[-79.972085,-3.258282],[-79.972665,-3.257746],[-79.972865,-3.257692],[-79.97293,-3.258713]]]}}]}",
+    "mapa_url": null,
+    "puntos_interes": []
+  },
+  {
+    "id": "BpbXYWVudk9PMBbWT8E8",
+    "numero": "18",
+    "manzanas": "Mz. 1, Mz. 2",
+    "localidad": "Cdla. San Jacinto",
+    "geojson": "{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 1 (T18)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.968729,-3.260189],[-79.968015,-3.260844],[-79.967355,-3.260067],[-79.968003,-3.259465],[-79.968729,-3.260189]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 2 (T18)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.967996,-3.260885],[-79.967268,-3.261512],[-79.966611,-3.260724],[-79.967276,-3.260117],[-79.967996,-3.260885]]]}}]}",
+    "mapa_url": null,
+    "puntos_interes": []
+  },
+  {
+    "id": "DpXBbj4oZbHZEWQiQuns",
+    "numero": "4",
+    "manzanas": "Mz. 1, Mz. 2, Mz. 3",
+    "localidad": "Cdla. 27 de Febrero",
+    "geojson": "{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 1 (T4)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.974013,-3.256597],[-79.973603,-3.256681],[-79.973448,-3.25563],[-79.973862,-3.255575],[-79.974013,-3.256597]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 2 (T4)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.973518,-3.256173],[-79.972855,-3.256257],[-79.972826,-3.255712],[-79.973435,-3.255634],[-79.973518,-3.256173]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 3 (T4)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.973594,-3.256671],[-79.972905,-3.256771],[-79.972865,-3.256266],[-79.973515,-3.256188],[-79.973594,-3.256671]]]}}]}",
+    "mapa_url": null,
+    "puntos_interes": []
+  },
+  {
+    "id": "ESVsFJCbu6GjgP29z93J",
+    "numero": "22",
+    "manzanas": "Mz. 1, Mz. 2, Mz. 3",
+    "localidad": "Cdla. San Jacinto",
+    "geojson": "{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 1 (T22)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.964417,-3.256245],[-79.964943,-3.255975],[-79.965361,-3.25584],[-79.965848,-3.25575],[-79.965893,-3.255696],[-79.965978,-3.255777],[-79.964986,-3.256774],[-79.964417,-3.256245]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 2 (T22)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.964946,-3.256817],[-79.964068,-3.257709],[-79.963399,-3.256913],[-79.964364,-3.256272],[-79.964946,-3.256817]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 3 (T22)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.962971,-3.256351],[-79.962499,-3.255712],[-79.962917,-3.255358],[-79.963145,-3.2553],[-79.96376,-3.255178],[-79.964273,-3.255073],[-79.965019,-3.254904],[-79.965685,-3.254752],[-79.965854,-3.25562],[-79.965258,-3.255766],[-79.964727,-3.25594],[-79.964219,-3.256196],[-79.963718,-3.256545],[-79.963323,-3.256821],[-79.962971,-3.256351]]]}}]}",
+    "mapa_url": null,
+    "puntos_interes": []
+  },
+  {
+    "id": "EWXRm6bP0BnkYksqNmlO",
+    "numero": "14",
+    "manzanas": "Mz. 1, Mz. 2, Mz. 3",
+    "localidad": "Cdla. 25 de Diciembre",
+    "geojson": "{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 1 (T14)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.970351,-3.259161],[-79.969716,-3.259777],[-79.969525,-3.259557],[-79.970164,-3.258956],[-79.970351,-3.259161]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 2 (T14)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.970572,-3.259394],[-79.969944,-3.259993],[-79.969737,-3.259804],[-79.970369,-3.259185],[-79.970572,-3.259394]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 3 (T14)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.970695,-3.259539],[-79.970086,-3.260128],[-79.969949,-3.260007],[-79.970572,-3.259412],[-79.970695,-3.259539]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 4 (T14)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.969985,-3.260197],[-79.969398,-3.260781],[-79.968852,-3.260179],[-79.969457,-3.259639],[-79.969985,-3.260197]]]}}]}",
+    "mapa_url": null,
+    "puntos_interes": []
+  },
+  {
+    "id": "FpAo64AVpdK3jJkaJewu",
+    "numero": "20",
+    "manzanas": "Mz. 1",
+    "localidad": "Cdla. San Jacinto",
+    "geojson": "{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 1 (T20)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.965721,-3.257583],[-79.964762,-3.258517],[-79.964149,-3.257779],[-79.965004,-3.256916],[-79.965721,-3.257583]]]}}]}",
+    "mapa_url": null,
+    "puntos_interes": []
+  },
+  {
+    "id": "HRUb66TC7E6YHwp6kNee",
+    "numero": "16",
+    "manzanas": "Mz. 1, Mz. 2",
+    "localidad": "Cdla. San Jacinto",
+    "geojson": "{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 1 (T16)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.970132,-3.261696],[-79.969449,-3.262405],[-79.968788,-3.261682],[-79.969493,-3.261017],[-79.970132,-3.261696]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 2 (T16)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.96939,-3.262464],[-79.968678,-3.263163],[-79.968036,-3.262407],[-79.968733,-3.261744],[-79.96939,-3.262464]]]}}]}",
+    "mapa_url": null,
+    "puntos_interes": []
+  },
+  {
+    "id": "HgoPwNvyFJ8Lkq20M7wE",
+    "numero": "12",
+    "manzanas": "Mz. 1",
+    "localidad": "Cdla. 9 de Octubre",
+    "geojson": "{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 1 (T12)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.970934,-3.258103],[-79.970159,-3.258855],[-79.969491,-3.258084],[-79.970874,-3.256871],[-79.970934,-3.258103]]]}}]}",
+    "mapa_url": null,
+    "puntos_interes": []
+  },
+  {
+    "id": "I921zfzBsmg9oJ2itLJh",
+    "numero": "1",
+    "manzanas": "Mz. 1, Mz. 2, Mz. 3, Mz. 4",
+    "localidad": "Cdla. Aserrío",
+    "geojson": "{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 1 (T1)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.973656,-3.253879],[-79.972729,-3.253971],[-79.97269,-3.253417],[-79.973626,-3.253388],[-79.973656,-3.253879]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 2 (T1)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.972651,-3.253971],[-79.971648,-3.254064],[-79.971611,-3.253476],[-79.972622,-3.253436],[-79.972651,-3.253971]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 3 (T1)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.973683,-3.254539],[-79.972759,-3.254679],[-79.972724,-3.254022],[-79.973656,-3.253939],[-79.973683,-3.254539]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 4 (T1)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.972685,-3.254686],[-79.971675,-3.254811],[-79.971653,-3.254135],[-79.972654,-3.254029],[-79.972685,-3.254686]]]}}]}",
+    "mapa_url": null,
+    "puntos_interes": []
+  },
+  {
+    "id": "OyCISfrVIL0VtMEu4nqU",
+    "numero": "19",
+    "manzanas": "Mz. 1, Mz. 2, Mz. 3, Mz. 4",
+    "localidad": "Cdla. San Jacinto",
+    "geojson": "{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 1 (T19)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.965881,-3.257585],[-79.967821,-3.259443],[-79.967282,-3.260001],[-79.965488,-3.258009],[-79.965881,-3.257585]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 2 (T19)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.965995,-3.258728],[-79.965387,-3.259315],[-79.964831,-3.258629],[-79.965389,-3.258111],[-79.965995,-3.258728]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 3 (T19)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.966574,-3.259365],[-79.965936,-3.259984],[-79.965478,-3.259418],[-79.966105,-3.25885],[-79.966574,-3.259365]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 4 (T19)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.96722,-3.260035],[-79.966527,-3.260641],[-79.965977,-3.260038],[-79.966636,-3.259429],[-79.96722,-3.260035]]]}}]}",
+    "mapa_url": null,
+    "puntos_interes": []
+  },
+  {
+    "id": "RP2IwZx7a4GYXXXwIMsX",
+    "numero": "13",
+    "manzanas": "Mz. 1, Mz. 2",
+    "localidad": "Cdla. San Jacinto",
+    "geojson": "{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 1 (T13)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.970113,-3.258877],[-79.969459,-3.259514],[-79.968786,-3.258756],[-79.969457,-3.258169],[-79.970113,-3.258877]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 2 (T13)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.968716,-3.258815],[-79.969404,-3.25956],[-79.968767,-3.260142],[-79.968058,-3.259411],[-79.968716,-3.258815]]]}}]}",
+    "mapa_url": null,
+    "puntos_interes": []
+  },
+  {
+    "id": "SqHyGR9VtAR63wYXuFHB",
+    "numero": "5",
+    "manzanas": "Mz. 1, Mz. 2, Mz. 3, Mz. 4",
+    "localidad": "Cdla. 9 de Octubre",
+    "geojson": "{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 1 (T5)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.97281,-3.256568],[-79.972475,-3.256612],[-79.972438,-3.255776],[-79.972752,-3.255732],[-79.97281,-3.256568]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 2 (T5)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.972454,-3.256621],[-79.972158,-3.256657],[-79.972117,-3.255824],[-79.972425,-3.255781],[-79.972454,-3.256621]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 3 (T5)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.972825,-3.256879],[-79.972498,-3.257039],[-79.972468,-3.256644],[-79.972804,-3.256611],[-79.972825,-3.256879]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 4 (T5)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.972498,-3.257046],[-79.972194,-3.257159],[-79.972164,-3.256684],[-79.972454,-3.256649],[-79.972498,-3.257046]]]}}]}",
+    "mapa_url": null,
+    "puntos_interes": []
+  },
+  {
+    "id": "WBih8S5gXlMOFsXs1ull",
+    "numero": "15",
+    "manzanas": "Mz. 1, Mz. 2, Mz. 3",
+    "localidad": "Cdla. 25 de Diciembre",
+    "geojson": "{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 1 (T15)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.970961,-3.259842],[-79.970362,-3.260422],[-79.970118,-3.26019],[-79.970737,-3.259591],[-79.970961,-3.259842]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 2 (T15)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.971201,-3.26006],[-79.970587,-3.260674],[-79.970384,-3.260448],[-79.970991,-3.259858],[-79.971201,-3.26006]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 3 (T15)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.971426,-3.260342],[-79.970847,-3.260943],[-79.970606,-3.2607],[-79.971208,-3.260087],[-79.971426,-3.260342]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 4 (T15)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.97081,-3.260994],[-79.970205,-3.261617],[-79.969493,-3.260896],[-79.969503,-3.260803],[-79.970084,-3.260227],[-79.97081,-3.260994]]]}}]}",
+    "mapa_url": null,
+    "puntos_interes": []
+  },
+  {
+    "id": "YTbamx8dvqSmM1X0vv9N",
+    "numero": "3",
+    "manzanas": "Mz. 1, Mz. 2, Mz. 3, Mz. 4, Mz. 5, Mz. 6, Mz. 7",
+    "localidad": "Cdla. 27 de Febrero",
+    "geojson": "{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 1 (T3)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.973861,-3.25553],[-79.973449,-3.255599],[-79.973336,-3.25471],[-79.973727,-3.254658],[-79.973861,-3.25553]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 2 (T3)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.973373,-3.255149],[-79.972811,-3.255226],[-79.972783,-3.254787],[-79.973316,-3.254708],[-79.973373,-3.255149]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 3 (T3)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.972714,-3.255227],[-79.971679,-3.255368],[-79.971659,-3.254948],[-79.972694,-3.254824],[-79.972714,-3.255227]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 4 (T3)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.97164,-3.255377],[-79.970854,-3.255497],[-79.97085,-3.255064],[-79.971614,-3.254966],[-79.97164,-3.255377]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 5 (T3)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.973432,-3.255599],[-79.972844,-3.255677],[-79.972815,-3.255253],[-79.973377,-3.255179],[-79.973432,-3.255599]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 6 (T3)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.97276,-3.255688],[-79.971722,-3.255827],[-79.971679,-3.255388],[-79.972723,-3.255248],[-79.97276,-3.255688]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 7 (T3)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.971672,-3.255839],[-79.970899,-3.255944],[-79.970858,-3.255507],[-79.971631,-3.2554],[-79.971672,-3.255839]]]}}]}",
+    "mapa_url": null,
+    "puntos_interes": []
+  },
+  {
+    "id": "jo3ZHpuiugM6rEqVFC1c",
+    "numero": "17",
+    "manzanas": "Mz. 1, Mz. 2",
+    "localidad": "Cdla. San Jacinto",
+    "geojson": "{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 1 (T17)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.969411,-3.260934],[-79.968725,-3.261615],[-79.968067,-3.260919],[-79.968764,-3.260254],[-79.969411,-3.260934]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 2 (T17)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.968694,-3.261682],[-79.967972,-3.262363],[-79.967325,-3.261594],[-79.968014,-3.260962],[-79.968694,-3.261682]]]}}]}",
+    "mapa_url": null,
+    "puntos_interes": []
+  },
+  {
+    "id": "jyBWKI5xuBZlpR7FRSTk",
+    "numero": "11",
+    "manzanas": "Mz. 1, Mz. 2",
+    "localidad": "Cdla. 25 de Diciembre",
+    "geojson": "{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 1 (T11)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.971323,-3.258921],[-79.97073,-3.259511],[-79.970213,-3.258903],[-79.970807,-3.258358],[-79.971323,-3.258921]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 2 (T11)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.972026,-3.259676],[-79.971453,-3.260319],[-79.970775,-3.25956],[-79.971386,-3.258984],[-79.972026,-3.259676]]]}}]}",
+    "mapa_url": null,
+    "puntos_interes": []
+  },
+  {
+    "id": "oHsG5zpNWDkiUZ8IMCwl",
+    "numero": "6",
+    "manzanas": "Mz. 1, Mz. 2, Mz. 3, Mz. 4",
+    "localidad": "Cdla. 9 de Octubre",
+    "geojson": "{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 1 (T6)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.972149,-3.256652],[-79.971916,-3.256681],[-79.971878,-3.255861],[-79.972096,-3.255828],[-79.972149,-3.256652]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 2 (T6)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.9719,-3.256676],[-79.971594,-3.256715],[-79.971558,-3.255897],[-79.971846,-3.255867],[-79.9719,-3.256676]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 3 (T6)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.971594,-3.256717],[-79.971287,-3.256758],[-79.971237,-3.255965],[-79.971554,-3.25592],[-79.971594,-3.256717]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 4 (T6)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.97128,-3.256751],[-79.97095,-3.256788],[-79.970898,-3.256005],[-79.971237,-3.255972],[-79.97128,-3.256751]]]}}]}",
+    "mapa_url": null,
+    "puntos_interes": []
+  },
+  {
+    "id": "q224M6NJYxLgB4PI2m85",
+    "numero": "7",
+    "manzanas": "Mz. 1, Mz. 2, Mz. 3",
+    "localidad": "Cdla. 9 de Octubre",
+    "geojson": "{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 1 (T7)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.97219,-3.257186],[-79.971785,-3.257377],[-79.971734,-3.256736],[-79.972146,-3.256694],[-79.97219,-3.257186]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 2 (T7)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.971748,-3.257108],[-79.970955,-3.257197],[-79.970941,-3.256835],[-79.971711,-3.256742],[-79.971748,-3.257108]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 3 (T7)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.971748,-3.257125],[-79.971776,-3.257384],[-79.970993,-3.258022],[-79.970945,-3.257219],[-79.971748,-3.257125]]]}}]}",
+    "mapa_url": null,
+    "puntos_interes": []
+  },
+  {
+    "id": "qbZnJ83ZQLORyXOKfLsH",
+    "numero": "8",
+    "manzanas": "Mz. 1, Mz. 2, Mz. 3, Mz. 4",
+    "localidad": "Cdla. Abdón Calderón",
+    "geojson": "{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 1 (T8)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.974099,-3.257108],[-79.972938,-3.257298],[-79.972894,-3.256858],[-79.974037,-3.256686],[-79.974099,-3.257108]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 2 (T8)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.974208,-3.257828],[-79.973797,-3.257902],[-79.973681,-3.257202],[-79.974084,-3.257137],[-79.974208,-3.257828]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 3 (T8)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.973718,-3.257522],[-79.972944,-3.25766],[-79.972917,-3.257324],[-79.973658,-3.25721],[-79.973718,-3.257522]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 4 (T8)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.973782,-3.257901],[-79.973687,-3.257933],[-79.973587,-3.258012],[-79.973011,-3.258572],[-79.972945,-3.257678],[-79.973716,-3.257543],[-79.973782,-3.257901]]]}}]}",
+    "mapa_url": null,
+    "puntos_interes": []
+  },
+  {
+    "id": "xriZFlK1d0m9HYW8nfBB",
+    "numero": "2",
+    "manzanas": "Mz. 1, Mz. 2, Mz. 3",
+    "localidad": "Cdla. Aserrío",
+    "geojson": "{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 1 (T2)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.971583,-3.254079],[-79.970793,-3.25416],[-79.97078,-3.253521],[-79.971556,-3.253488],[-79.971583,-3.254079]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 2 (T2)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.970735,-3.254943],[-79.969208,-3.255161],[-79.969129,-3.254454],[-79.969889,-3.253885],[-79.970382,-3.253575],[-79.970647,-3.25353],[-79.970735,-3.254943]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 3 (T2)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.971623,-3.254828],[-79.970832,-3.254907],[-79.970796,-3.254211],[-79.971577,-3.25415],[-79.971623,-3.254828]]]}}]}",
+    "mapa_url": null,
+    "puntos_interes": []
+  },
+  {
+    "id": "yVIt13v6tRZZ2MD4KWDV",
+    "numero": "10",
+    "manzanas": "Mz. 1, Mz. 2",
+    "localidad": "Cdla. 25 de Diciembre",
+    "geojson": "{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 1 (T10)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.972018,-3.258263],[-79.97137,-3.258887],[-79.970982,-3.258435],[-79.970924,-3.258224],[-79.97156,-3.257645],[-79.972018,-3.258263]]]}},{\"type\":\"Feature\",\"properties\":{\"name\":\"Mz. 2 (T10)\"},\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[-79.972618,-3.259063],[-79.972083,-3.259635],[-79.971425,-3.258926],[-79.972044,-3.258342],[-79.972618,-3.259063]]]}}]}",
+    "mapa_url": null,
+    "puntos_interes": []
+  }
+]

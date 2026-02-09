@@ -10,31 +10,24 @@ import {
 // --- PERFORMANCE POWER UP: SERVICE CACHE ---
 const ServiceCache = {
     data: new Map(),
-    ttl: 2 * 60 * 1000, // 2 minutes (Premium Throttle)
+    ttl: 2 * 60 * 1000,
 
     get(key) {
         const item = this.data.get(key);
-        if (item && (Date.now() - item.time < this.ttl)) {
-            // console.log(`🚀 [Cache] Serving ${key} from memory`);
-            return item.value;
-        }
+        if (item && (Date.now() - item.time < this.ttl)) return item.value;
         return null;
     },
-
-    set(key, value) {
-        this.data.set(key, { value, time: Date.now() });
-    },
-
-    clear(key = null) {
-        if (key) this.data.delete(key);
-        else this.data.clear();
-    },
-
-    clearAll() {
-        this.data.clear();
-    }
+    set(key, value) { this.data.set(key, { value, time: Date.now() }); },
+    clear(key = null) { if (key) this.data.delete(key); else this.data.clear(); },
+    clearAll() { this.data.clear(); }
 };
 export const clearServiceCache = () => ServiceCache.clearAll();
+
+// Colecciones Unificadas (v2.4.9)
+const COL_TERRITORIOS = "territorios";
+const COL_BANCO_S13 = "banco_maestro_s13";
+const COL_VISOR = "visor_programacion";
+const COL_AUDITORIA = "bitacora_auditoria";
 
 // Internal wrapper for auto-cached calls
 const fetchCached = async (key, fetchFn) => {
@@ -138,7 +131,7 @@ export const getGlobalStats = async () => {
 
 // --- HISTORIAL & REPORTING ---
 
-const logAssignment = async (territorioData, conductorName, details = {}) => {
+const legacy_logAssignment = async (territorioData, conductorName, details = {}) => {
     try {
         // Prevent duplicates: Check if an open assignment for this territory, conductor and date already exists
         const dateKey = (details.fecha_asignacion || new Date().toISOString()).split('T')[0];
@@ -180,115 +173,60 @@ const logAssignment = async (territorioData, conductorName, details = {}) => {
     }
 };
 
-export const logReturn = async (territorioId, fechaEntrega, status = 'Completado', notas = null, fotos = null) => {
+export const logReturn = async (territorioId, fechaEntrega, status = 'Completado', notas = null) => {
     try {
-        // Find the open assignment for this territory
-        // We fetch all records for this ID to avoid composite index requirements.
+        const tSnap = await getDoc(doc(db, COL_TERRITORIOS, territorioId));
+        const num = tSnap.exists() ? String(tSnap.data().numero) : territorioId;
+
         const q = query(
-            collection(db, "historial_territorios"),
-            where("territorio_id", "==", territorioId)
+            collection(db, COL_BANCO_S13),
+            where("territorio_id", "==", num),
+            where("estado", "==", "Asignado")
         );
         const snapshot = await getDocs(q);
 
         if (!snapshot.empty) {
-            // Find ALL open assignments for this territory
-            const assignments = snapshot.docs
-                .map(d => ({ id: d.id, ...d.data() }))
-                .filter(rec => rec.estado === 'Asignado');
-
-            // Sort by timestamp desc (Newest first)
-            assignments.sort((a, b) => {
-                const timeA = a.timestamp?.toMillis ? a.timestamp.toMillis() : (new Date(a.fecha_asignacion || 0).getTime());
-                const timeB = b.timestamp?.toMillis ? b.timestamp.toMillis() : (new Date(b.fecha_asignacion || 0).getTime());
-                return timeB - timeA;
-            });
-
-            if (assignments.length > 0) {
-                const newest = assignments[0];
-                const dateStr = fechaEntrega || new Date().toISOString();
-
-                // 1. Success Record: The most recent assignment
-                await updateDoc(doc(db, "historial_territorios", newest.id), {
-                    fecha_entrega: dateStr,
-                    estado: status, // Normally 'Completado'
-                    observaciones: notas || newest.observaciones,
-                    timestamp: Timestamp.now() // Refresh timestamp for better sorting in logs
+            const batch = writeBatch(db);
+            snapshot.docs.forEach(d => {
+                batch.update(d.ref, {
+                    fecha_entrega: fechaEntrega || new Date().toISOString(),
+                    estado: status,
+                    observaciones: notas || d.data().observaciones,
+                    timestamp: Timestamp.now()
                 });
-
-                // 2. Absorption: If there were multiple assignments, "absorb" the older ones
-                if (assignments.length > 1) {
-                    const batch = writeBatch(db);
-                    for (let i = 1; i < assignments.length; i++) {
-                        batch.update(doc(db, "historial_territorios", assignments[i].id), {
-                            estado: 'Sobrepuesto', // Hidden from S-13 and stats
-                            fecha_entrega: dateStr,
-                            observaciones: `Absorbido por asignación posterior (${newest.conductor})`,
-                            timestamp: Timestamp.now()
-                        });
-                    }
-                    await batch.commit();
-                }
-                return;
-            }
-        }
-
-        // Fallback: If no open history found but we REALLY need to log this return (e.g. forced diagnostic return)
-        // We create a "detached" history record to ensure the audit trail is complete.
-        const tRef = doc(db, "territorios", territorioId);
-        const tSnap = await getDoc(tRef);
-        if (tSnap.exists()) {
-            const tData = tSnap.data();
-            await addDoc(collection(db, "historial_territorios"), {
-                territorio_id: territorioId,
-                numero: tData.numero,
-                fecha_entrega: fechaEntrega || new Date().toISOString(),
-                estado: status,
-                observaciones: notas || 'Cierre forzado de registro',
-                timestamp: Timestamp.now(),
-                conductor: tData.asignado_a || 'Sistema',
-                auxiliar: tData.auxiliar || ''
             });
+            await batch.commit();
+            await saveAuditLog('ENTREGA_TERRITORIO', { territorio: num });
         }
+        ServiceCache.clear('territorios_combined');
     } catch (e) {
-        console.error("Error logging return history:", e);
+        console.error("Error al registrar entrega:", e);
     }
 };
 
+
 export const getHistorialReport = async () => {
     return fetchCached('historial', async () => {
-        // Fetch all history to allow calculating "Last Completion Date" even before report range
-        const q = query(collection(db, "historial_territorios"), orderBy("timestamp", "desc"));
+        const q = query(collection(db, COL_BANCO_S13), orderBy("timestamp", "desc"));
         const snapshot = await getDocs(q);
-        return snapshot.docs.map(d => {
-            const data = d.data();
-            return {
-                ...data,
-                id: d.id,
-                // Xolvy Data Shield: Robust normalization for territory numbers in history
-                numero: String(data.numero || '').trim()
-            };
-        });
+        return snapshot.docs.map(d => ({
+            ...d.data(),
+            id: d.id,
+            numero: String(d.data().territorio_id || '').trim()
+        }));
     });
 };
 
 
 
-export const getTerritoryHistory = async (territoryId) => {
-    // We remove orderBy from the query to avoid requiring a composite index in Firestore.
-    // Index creation can take time and requires manual action. Sorting in memory is safe for territory history.
+export const getTerritoryHistory = async (territoryNum) => {
     const q = query(
-        collection(db, "historial_territorios"),
-        where("territorio_id", "==", territoryId)
+        collection(db, COL_BANCO_S13),
+        where("territorio_id", "==", String(territoryNum))
     );
     const snapshot = await getDocs(q);
-    const history = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-    // Sort by timestamp desc in memory
-    return history.sort((a, b) => {
-        const timeA = a.timestamp?.toMillis ? a.timestamp.toMillis() : (a.timestamp || 0);
-        const timeB = b.timestamp?.toMillis ? b.timestamp.toMillis() : (b.timestamp || 0);
-        return timeB - timeA;
-    });
+    return snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => b.timestamp - a.timestamp);
 };
 
 export const addHistoryRecord = async (data) => {
@@ -419,61 +357,54 @@ export const saveConfiguracion = async (config) => {
 };
 
 // --- TERRITORIOS (Xolvy Data Shield) ---
-const normalizeTerritorioData = (id, data) => {
-    // Xolvy Data Shield: Robust normalization of territory numbers (string or number support)
-    const numeroStr = String(data.numero || '').trim();
-
-    // Xolvy Data Shield: Terminology auto-fix (Salmo -> Mz. & Grupo stripping)
-    let manzanas = String(data.manzanas || '').trim();
-    if (manzanas) {
-        manzanas = manzanas.replace(/Salmo/gi, 'Mz.').trim();
-    }
-
-    let localidad = String(data.localidad || '').trim();
-    if (localidad) {
-        localidad = localidad.replace(/grupos?/gi, '').trim();
-    }
-
-    // Xolvy Data Shield: GeoJSON deserialization (Nested arrays fix)
+const normalizeTerritorioData = (id, data, latestAssignment = null) => {
+    // Xolvy Data Shield: GeoJSON deserialization
     let geojson = data.geojson;
     if (typeof geojson === 'string') {
-        try {
-            geojson = JSON.parse(geojson);
-        } catch (e) {
-            console.warn(`⚠️ [Shield] GeoJSON corruption in ${id}`);
-            geojson = null;
-        }
+        try { geojson = JSON.parse(geojson); } catch (e) { geojson = null; }
     }
 
+    const numeroStr = String(data.numero || '');
+    const estado = latestAssignment ? latestAssignment.estado : (data.estado || 'Disponible');
+    const asignado_a = latestAssignment ? latestAssignment.conductor : null;
+    const fecha_asignacion = latestAssignment ? latestAssignment.fecha_asignacion : null;
+
     return {
-        ...data,
         id,
         numero: numeroStr,
-        manzanas: manzanas,
-        localidad: localidad,
+        manzanas: data.manzanas || '',
+        localidad: data.localidad || '',
         geojson: geojson,
-        estado: data.estado || 'Disponible'
+        estado: estado,
+        asignado_a: asignado_a,
+        fecha_asignacion: fecha_asignacion,
+        last_assignment: latestAssignment
     };
 };
 
 export const getTerritorios = async () => {
-    // Xolvy Data Shield: Bypass cache for v2.4.1.7 stabilizer 
-    try {
-        const querySnapshot = await getDocs(collection(db, "territorios"));
-        const results = querySnapshot.docs
-            .map(doc => normalizeTerritorioData(doc.id, doc.data()))
-            .filter(t => {
-                const hasNum = t.numero && t.numero.trim().length > 0;
-                if (!hasNum) console.warn(`⚠️ [v2.4.1.7] Shield filtered ghost: ${t.id}`);
-                return hasNum;
+    return fetchCached('territorios_combined', async () => {
+        try {
+            const [terrSnap, bancoSnap] = await Promise.all([
+                getDocs(collection(db, COL_TERRITORIOS)),
+                getDocs(query(collection(db, COL_BANCO_S13), where("estado", "==", "Asignado")))
+            ]);
+
+            const activeAssignments = {};
+            bancoSnap.docs.forEach(d => {
+                const data = d.data();
+                activeAssignments[String(data.territorio_id)] = { ...data, id: d.id };
             });
 
-        console.log(`🛡️ [v2.4.6.9] Shield Sync: ${results.length} valid records ready.`);
-        return results;
-    } catch (e) {
-        console.error("Critical error fetching territories:", e);
-        return [];
-    }
+            return terrSnap.docs
+                .map(doc => normalizeTerritorioData(doc.id, doc.data(), activeAssignments[String(doc.data().numero)]))
+                .filter(t => t.numero && t.numero.trim().length > 0)
+                .sort((a, b) => parseInt(a.numero) - parseInt(b.numero));
+        } catch (e) {
+            console.error("Critical error fetching territories:", e);
+            return [];
+        }
+    });
 };
 
 export const addTerritorio = async (territorio) => {
@@ -627,65 +558,36 @@ export const deletePuntoInteres = async (id) => {
 
 export const assignTerritorio = async (id, conductorName, details = {}) => {
     try {
-        await runTransaction(db, async (transaction) => {
-            const tRef = doc(db, "territorios", id);
-            const tSnap = await transaction.get(tRef);
-            if (!tSnap.exists()) throw new Error("Territorio no encontrado");
-            const tData = tSnap.data();
+        const tRef = doc(db, COL_TERRITORIOS, id);
+        const tSnap = await getDoc(tRef);
+        if (!tSnap.exists()) throw new Error("Territorio no encontrado");
+        const tData = tSnap.data();
 
-            const updateData = {
-                asignado_a: details.estado === 'Asignado' ? conductorName : null,
-                fecha_asignacion: details.fecha_asignacion || new Date().toISOString(),
-                fecha_salida: details.fecha_salida || null,
-                estado: details.estado || 'Asignado',
-                auxiliar: details.auxiliar || null,
-                lugar: details.lugar || null,
-                hora: details.hora || null,
-                faceta: details.faceta || null,
-                turno: details.turno || null,
-                campana: details.campana || null,
-                manzanas_asignadas: details.manzanas || null,
-                prog_sync: details.prog_sync || details.sync || false
-            };
+        const assignmentData = {
+            territorio_id: String(tData.numero),
+            conductor: conductorName,
+            fecha_asignacion: details.fecha_asignacion || new Date().toISOString(),
+            fecha_entrega: null,
+            estado: 'Asignado',
+            turno: details.turno || 'Sin turno',
+            observaciones: details.observaciones || '',
+            faceta: details.faceta || 'Casa en casa',
+            weekId: details.weekId || null,
+            timestamp: Timestamp.now()
+        };
 
-            // 1. Update Territory (Optional for history sync)
-            if (!details.skipTerritoryUpdate) {
-                transaction.update(tRef, updateData);
-            }
+        const docRef = await addDoc(collection(db, COL_BANCO_S13), assignmentData);
+        await saveAuditLog('ASIGNACION_MANUAL', { territorio: tData.numero, conductor: conductorName });
 
-            // 2. Add to History
-            const histId = `asig_${id}_${new Date().getTime()}`;
-            transaction.set(doc(db, "historial_territorios", histId), {
-                territorio_id: id,
-                numero: tData.numero,
-                conductor: conductorName,
-                ...details,
-                estado: details.estado || 'Asignado',
-                timestamp: Timestamp.now(),
-                fecha_asignacion: updateData.fecha_asignacion
-            });
-
-            // 3. Update Global Stats
-            if (tData.estado !== 'Asignado') {
-                await updateGlobalStats(transaction, 'territorios_asignados', 1);
-                await updateGlobalStats(transaction, 'territorios_disponibles', -1);
-            }
-        });
-
-        ServiceCache.clear('territorios');
-        ServiceCache.clear('historial');
-        ServiceCache.clear('stats_globales');
-
-        // Program sync still handled as side-effect as it involves complex week-id calculation/logic
-        if (details.fecha_asignacion) {
-            const snap = await getDoc(doc(db, "territorios", id));
-            await syncAssignmentToWeeklyProgram({ id, ...snap.data() }, conductorName, details);
-        }
+        ServiceCache.clear('territorios_combined');
+        return docRef.id;
     } catch (e) {
-        console.error("Atomic transaction failed in assignTerritorio:", e);
+        console.error("Error al asignar:", e);
         throw e;
     }
 };
+
+
 
 export const assignTerritorioParcial = async (originalId, manzanasToAssign, conductorName, details = {}) => {
     try {
@@ -1698,9 +1600,9 @@ export const syncAssignmentToWeeklyProgram = async (territoryData, conductorName
         t.faceta = details.faceta || t.faceta || '';
         if (details.campana !== undefined) t.campana = details.campana;
 
-        // Save
-        await setDoc(doc(db, "programa_semanal", weekId), prog);
-        console.log(`Synced territory ${territoryData.numero} to Program ${weekId} [${dayNames[dayIdx]}]`);
+        // Save to UNIFIED VISOR
+        await setDoc(doc(db, COL_VISOR, weekId), prog);
+        console.log(`Synced territory ${territoryData.numero} to Unified Visor ${weekId} [${dayNames[dayIdx]}]`);
     } catch (e) {
         console.error("Error syncing to weekly program:", e);
     }
@@ -1714,151 +1616,63 @@ export const syncAssignmentToWeeklyProgram = async (territoryData, conductorName
  */
 export const syncSlotWithTerritories = async (weekId, dayIdx, turno, tData, dateISO, explicitAssignmentDate = null) => {
     try {
-        // 1. Parse territories in the UI slot
         const uiTerrs = tData.territorio ? String(tData.territorio).split(/[,;/]/).map(s => s.trim()).filter(Boolean) : [];
         const conductor = tData.conductor || '';
 
-        // 2. Query all territories currently assigned
-        const q = query(
-            collection(db, "territorios"),
+        // En el nuevo modelo, syncSlot formaliza directamente en el Banco Maestro.
+        // No toca la colección 'territorios' (es geográfica/stateless).
+
+        const batch = writeBatch(db);
+
+        // 1. Buscar asignaciones previas del mismo turno/semana en el banco
+        const qPrev = query(collection(db, COL_BANCO_S13),
+            where("weekId", "==", weekId),
+            where("turno", "==", turno),
             where("estado", "==", "Asignado")
         );
-        const snap = await getDocs(q);
+        const snapPrev = await getDocs(qPrev);
 
-        // Filter client-side: Find territories assigned to this SPECIFIC weekly slot
-        // Robust cleanup: include territories assigned within a 3-day window of the program day if no explicit match
-        const programDayISO = dateISO.split('T')[0];
-        const preachingDate = new Date(programDayISO + 'T12:00:00Z');
+        // 2. Eliminar las que ya no están en la UI para este turno
+        snapPrev.docs.forEach(d => {
+            const data = d.data();
+            if (!uiTerrs.includes(data.territorio_id)) {
+                batch.delete(d.ref);
+            }
+        });
 
-        const dbTerrs = snap.docs
-            .map(doc => ({ id: doc.id, ...doc.data() }))
-            .filter(t => {
-                if (t.turno !== turno) return false;
-                if (!t.fecha_asignacion) return false;
-
-                const dbDate = new Date(t.fecha_asignacion);
-                const dbDateKey = t.fecha_asignacion.split('T')[0];
-
-                // Case 1: Explicit match with the user's chosen date
-                if (explicitAssignmentDate && dbDateKey === explicitAssignmentDate.split('T')[0]) return true;
-
-                // Case 2: Belong to same week and same turn
-                // We use a +/- 4 day window from preaching date for safety
-                const diffDays = Math.abs((dbDate.getTime() - preachingDate.getTime()) / (1000 * 60 * 60 * 24));
-                return diffDays <= 7; // Any assignment roughly in this week's turn
-            });
-
-        // 3. REMOVALS:
-        // Territories in DB that are NOT in the UI list should be returned
-        for (const dbT of dbTerrs) {
-            const numStr = String(dbT.numero);
-            if (!uiTerrs.includes(numStr)) {
-                console.log(`Bilateral Sync: Returning Territory ${numStr} (Removed from Program)`);
-                // Clear DB territory WITHOUT triggering program cleanup (circular)
-                await updateDoc(doc(db, "territorios", dbT.id), {
-                    asignado_a: null,
-                    fecha_asignacion: null,
-                    turno: null,
-                    estado: 'Disponible'
+        // 3. Agregar las nuevas o actualizar conductor
+        for (const num of uiTerrs) {
+            const existingDoc = snapPrev.docs.find(d => d.data().territorio_id === num);
+            if (!existingDoc) {
+                const ref = doc(collection(db, COL_BANCO_S13));
+                batch.set(ref, {
+                    territorio_id: num,
+                    conductor: conductor,
+                    fecha_asignacion: explicitAssignmentDate || weekId,
+                    fecha_entrega: null,
+                    estado: 'Asignado',
+                    turno: turno,
+                    weekId: weekId,
+                    timestamp: Timestamp.now(),
+                    faceta: tData.faceta || 'Casa en casa',
+                    observaciones: tData.observaciones || ''
                 });
-                // Log return
-                await logReturn(dbT.id, new Date().toISOString(), 'Disponible', 'Removido del programa semanal');
+            } else if (existingDoc.data().conductor !== conductor) {
+                batch.update(existingDoc.ref, {
+                    conductor: conductor,
+                    timestamp: Timestamp.now()
+                });
             }
         }
 
-        // 4. ADDITIONS / UPDATES:
-        if (conductor.length > 0 && uiTerrs.length > 0) {
-            for (const num of uiTerrs) {
-                // Try to find by number (could be stored as string or number in DB)
-                let candidates = await getDocs(query(collection(db, "territorios"), where("numero", "==", num)));
-                if (candidates.empty) {
-                    candidates = await getDocs(query(collection(db, "territorios"), where("numero", "==", parseInt(num))));
-                }
+        await batch.commit();
+        await saveAuditLog('SYNC_PROGRAM_SLOT', { weekId, turno, total: uiTerrs.length });
 
-                if (!candidates.empty) {
-                    const tDoc = candidates.docs[0];
-                    const tDataDB = tDoc.data();
-
-                    const normalizedConductor = conductor.trim();
-                    const currentDetails = {
-                        asignado_a: String(tDataDB.asignado_a || '').trim(),
-                        fecha_asignacion: String(tDataDB.fecha_asignacion || '').split('T')[0],
-                        turno: tDataDB.turno,
-                        auxiliar: String(tDataDB.auxiliar || '').trim(),
-                        lugar: String(tDataDB.lugar || '').trim(),
-                        hora: String(tDataDB.hora || '').trim(),
-                        faceta: String(tDataDB.faceta || '').trim(),
-                        grupos: String(tDataDB.grupos || '').trim(),
-                        campana: tDataDB.campana || ''
-                    };
-
-                    const programDay = new Date(dateISO.split('T')[0] + 'T12:00:00Z');
-
-                    // DEFAULT Logic: The Sunday BEFORE the week starts
-                    // If Monday is Jan 19, Monday - 1 = Sunday Jan 18
-                    let assignmentDate;
-                    if (explicitAssignmentDate) {
-                        assignmentDate = new Date(explicitAssignmentDate.split('T')[0] + 'T12:00:00Z');
-                    } else {
-                        // Calculate MONDAY of this week starts (to keep S-13 reports within the week range)
-                        const d = new Date(programDay);
-                        const day = d.getUTCDay(); // 1 is Mon, 0 is Sun
-                        const diffToMonday = day === 0 ? 6 : day - 1;
-                        d.setUTCDate(d.getUTCDate() - diffToMonday);
-                        assignmentDate = d;
-                    }
-
-                    const now = new Date();
-                    const isPast = programDay < now;
-                    // Skip territory update if the program day is more than 5 days in the past (Safety Shield)
-                    const skipUpdate = isPast && (now - programDay > 1000 * 60 * 60 * 24 * 5);
-
-                    const newDetails = {
-                        asignado_a: normalizedConductor,
-                        fecha_asignacion: assignmentDate.toISOString(),
-                        fecha_preparado: programDay.toISOString(), // The actual program day
-                        estado: isPast ? 'Completado' : 'Asignado',
-                        skipTerritoryUpdate: skipUpdate,
-                        turno: turno,
-                        auxiliar: String(tData.auxiliar || '').trim(),
-                        lugar: String(tData.lugar || '').trim(),
-                        hora: String(tData.hora || '').trim(),
-                        faceta: String(tData.faceta || '').trim(),
-                        grupos: String(tData.grupos || '').trim(),
-                        campana: tData.campana || '',
-                        prog_sync: true
-                    };
-
-                    const hasChanges = Object.keys(newDetails).some(key => newDetails[key].toString().toLowerCase() !== currentDetails[key].toString().toLowerCase());
-
-                    if (hasChanges) {
-                        if (currentDetails.asignado_a === newDetails.asignado_a &&
-                            currentDetails.fecha_asignacion === newDetails.fecha_asignacion &&
-                            currentDetails.turno === newDetails.turno) {
-                            // Same assignment event, just update details
-                            console.log(`Bilateral Sync: Updating Assignment Details for Territory ${num}`);
-                            await updateAssignmentData(tDoc.id, {
-                                auxiliar: newDetails.auxiliar,
-                                lugar: newDetails.lugar,
-                                hora: newDetails.hora,
-                                faceta: newDetails.faceta,
-                                grupos: newDetails.grupos,
-                                campana: newDetails.campana
-                            });
-                        } else {
-                            // Different person or different time, new assignment
-                            console.log(`Bilateral Sync: Re-assigning Territory ${num} to ${conductor}`);
-                            await assignTerritorio(tDoc.id, conductor, newDetails);
-                        }
-                    }
-                }
-            }
-        }
-        ServiceCache.clear('territorios');
+        ServiceCache.clear('territorios_combined');
         ServiceCache.clear('historial');
-        ServiceCache.clear('stats_globales');
     } catch (e) {
         console.error("Error in syncSlotWithTerritories:", e);
+        throw e;
     }
 };
 
@@ -1958,251 +1772,28 @@ export const getAssignmentsByDate = async (startDate, endDate) => {
     }
 };
 
-export const getProgramaSemanal = async (weekId) => {
-    if (weekId) {
-        const docRef = doc(db, "programa_semanal", weekId);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            // Xolvy Data Shield: Robust normalization of territory numbers inside program turns
-            if (data.dias && Array.isArray(data.dias)) {
-                data.dias.forEach(dia => {
-                    ['manana', 'tarde', 'noche', 'zoom'].forEach(turno => {
-                        if (dia[turno] && dia[turno].territorio !== undefined) {
-                            dia[turno].territorio = String(dia[turno].territorio || '').trim();
-                        }
-                    });
-                });
-            }
-            return { id: docSnap.id, ...data };
-        }
-        return null; // Not found
-    }
-    return null;
-};
-
 /**
- * Iterates over all programs and all territories to ensure everything is in sync.
+ * Gets the weekly program from the Unified Visor.
  */
-export const syncAllProgramsToTerritories = async () => {
+export const getProgramaSemanal = async (weekId) => {
     try {
-        // 1. Fetch ALL current territories
-        const territoriesSnap = await getDocs(collection(db, "territorios"));
-        const allTerritories = territoriesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-        // index by number
-        const terrByNum = {};
-        allTerritories.forEach(t => terrByNum[t.numero] = t);
-
-        // 2. Fetch ALL weekly programs
-        const programsSnap = await getDocs(collection(db, "programa_semanal"));
-
-        const expectedAssignments = new Set(); // format: "num_dateISO_turno"
-
-        for (const progDoc of programsSnap.docs) {
-            let prog = progDoc.data();
-            const weekId = progDoc.id;
-            let wasProgModified = false;
-            const weekStart = new Date(weekId + 'T12:00:00Z');
-            if (isNaN(weekStart.getTime())) continue;
-
-            // FIX: Only sync if program is current (last 30 days or future) 
-            // This prevents old "zombie" assignments from resurrecting during repair
-            const cutoff = new Date();
-            cutoff.setDate(cutoff.getDate() - 30);
-            if (weekStart < cutoff) {
-                console.log(`Diagnostic: Skipping old program record ${weekId}`);
-                continue;
-            }
-
-            if (prog.dias && Array.isArray(prog.dias)) {
-                for (let dayIdx = 0; dayIdx < prog.dias.length; dayIdx++) {
-                    const dia = prog.dias[dayIdx];
-                    const dayDate = new Date(weekStart);
-                    dayDate.setDate(weekStart.getDate() + dayIdx);
-                    const dateKey = dayDate.toISOString().split('T')[0];
-
-                    for (const turno of ['manana', 'tarde', 'noche', 'zoom']) {
-                        const t = dia[turno];
-                        if (t && t.territorio && t.conductor) {
-                            // Xolvy Data Shield: Deduplicate and sanitize territory list
-                            const originalTerrs = String(t.territorio).split(/[,/]/).map(s => s.trim()).filter(Boolean);
-                            const uniqueTerrs = Array.from(new Set(originalTerrs));
-
-                            if (uniqueTerrs.length !== originalTerrs.length) {
-                                console.log(`🛡️ [Sanitize] Deduplicating slot: ${weekId} Day ${dayIdx} ${turno}`);
-                                t.territorio = uniqueTerrs.join(' / ');
-                                wasProgModified = true;
-                            }
-
-                            for (const num of uniqueTerrs) {
-                                expectedAssignments.add(`${num}_${dateKey}_${turno}`);
-                                const territory = terrByNum[num];
-                                if (territory) {
-                                    const asigDate = new Date(dayDate);
-                                    asigDate.setDate(asigDate.getDate() - 7);
-                                    const dbAsigKey = territory.fecha_asignacion ? territory.fecha_asignacion.split('T')[0] : null;
-                                    const expectedAsigKey = asigDate.toISOString().split('T')[0];
-
-                                    // FIX: Check if details match. 
-                                    // For 'Asignado' state, we want them to reflect the program's conductor and day.
-                                    if (territory.asignado_a !== t.conductor || dbAsigKey !== expectedAsigKey || territory.turno !== turno) {
-                                        console.log(`Diagnostic Fix: Syncing Territory ${num} status to Program (Asig: ${expectedAsigKey})`);
-
-                                        await updateDoc(doc(db, "territorios", territory.id), {
-                                            asignado_a: t.conductor,
-                                            fecha_asignacion: asigDate.toISOString(),
-                                            turno: turno,
-                                            auxiliar: t.auxiliar || '',
-                                            lugar: t.lugar || '',
-                                            hora: t.hora || '',
-                                            faceta: t.faceta || '',
-                                            estado: 'Asignado'
-                                        });
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (wasProgModified) {
-                await setDoc(doc(db, "programa_semanal", weekId), prog);
-            }
-        }
-
-        // 3. CLEANUP: Territories that think they are assigned to a program but are NOT in any
-        for (const t of allTerritories) {
-            // Only cleanup if it has a turno and fecha_asignacion (came from program)
-            if (t.estado === 'Asignado' && t.fecha_asignacion && t.turno) {
-                // S-13 Lead Time adjustment: Map Assignment Date back to Program Day for verification
-                const asigDate = new Date(t.fecha_asignacion);
-                const programDay = new Date(asigDate);
-                programDay.setDate(programDay.getDate() + 7);
-                const progDateKey = programDay.toISOString().split('T')[0];
-
-                const key = `${t.numero}_${progDateKey}_${t.turno}`;
-                if (!expectedAssignments.has(key)) {
-                    console.log(`Diagnostic Fix: Returning Orphaned Territory ${t.numero} (Key: ${key})`);
-                    await updateDoc(doc(db, "territorios", t.id), {
-                        asignado_a: null,
-                        fecha_asignacion: null,
-                        turno: null,
-                        estado: 'Disponible'
-                    });
-                    await logReturn(t.id, new Date().toISOString(), 'Disponible', 'Sincronización: Removido por desuso en programa');
-                }
-            }
-        }
+        const snap = await getDoc(doc(db, COL_VISOR, weekId));
+        return snap.exists() ? snap.data() : null;
     } catch (e) {
-        console.error("Error in syncAllProgramsToTerritories:", e);
+        console.error("Error fetching program from Visor:", e);
+        return null;
     }
 };
 
 export const deleteProgramaSemanal = async (weekId) => {
-    await deleteDoc(doc(db, "programa_semanal", weekId));
+    await deleteDoc(doc(db, COL_VISOR, weekId));
+    ServiceCache.clear('programas');
 };
 
-// --- HELPER: Sync Schedule to History (S-13) ---
-export const syncScheduleToHistory = async (weekId, scheduleData) => {
-    try {
-        const weekStart = new Date(weekId);
-        // Validate date
-        if (isNaN(weekStart.getTime())) return;
-
-        // Calculate end date (Sunday)
-        const weekEnd = new Date(weekStart);
-        weekEnd.setDate(weekStart.getDate() + 6);
-        weekEnd.setHours(23, 59, 59, 999);
-
-        // 1. Fetch existing history for this week to avoid duplicates/conflicts
-        // We query by date range
-        const q = query(
-            collection(db, "historial_territorios"),
-            where("fecha_asignacion", ">=", weekStart.toISOString()),
-            where("fecha_asignacion", "<=", weekEnd.toISOString())
-        );
-        const snapshot = await getDocs(q);
-
-        // Build map: Key(TerritoryNum_Date) -> DocID
-        // This helps us know if we need to update or create
-        const historyMap = new Map();
-        snapshot.docs.forEach(d => {
-            const data = d.data();
-            // Key: Num + YYYY-MM-DD
-            if (data.fecha_asignacion) {
-                const dateKey = data.fecha_asignacion.split('T')[0];
-                const key = `${data.numero}_${dateKey}`;
-                historyMap.set(key, { id: d.id, conductor: data.conductor });
-            }
-        });
-
-        const promises = [];
-
-        if (scheduleData.dias && Array.isArray(scheduleData.dias)) {
-            scheduleData.dias.forEach((dia, index) => {
-                const dayDate = new Date(weekStart);
-                dayDate.setDate(weekStart.getDate() + index);
-                const dateKey = dayDate.toISOString().split('T')[0];
-
-                ['manana', 'tarde', 'noche', 'zoom'].forEach(turno => {
-                    const assignment = dia[turno];
-                    if (assignment && assignment.territorio && assignment.conductor) {
-                        // Support multi-territory split (Xolvy Shield)
-                        const tNums = String(assignment.territorio).split(/[,/]/).map(s => s.trim()).filter(Boolean);
-
-                        tNums.forEach(num => {
-                            const key = `${num}_${dateKey}`;
-                            const existing = historyMap.get(key);
-
-                            // Align S-13 dates to be "within the week" per user preference
-                            // Assignment = Monday of the week, Return = Actual preaching day
-                            const asigDate = new Date(weekStart);
-                            asigDate.setHours(12, 0, 0, 0);
-
-                            const isPast = dayDate < new Date();
-
-                            if (existing) {
-                                if (existing.conductor !== assignment.conductor) {
-                                    promises.push(updateDoc(doc(db, "historial_territorios", existing.id), {
-                                        conductor: assignment.conductor,
-                                        auxiliar: assignment.auxiliar || '',
-                                        fecha_asignacion: asigDate.toISOString(),
-                                        fecha_entrega: isPast ? dayDate.toISOString() : null,
-                                        estado: isPast ? 'Completado' : 'Asignado',
-                                        timestamp: Timestamp.fromDate(dayDate)
-                                    }));
-                                }
-                            } else {
-                                promises.push(addDoc(collection(db, "historial_territorios"), {
-                                    territorio_id: 'sync_auto',
-                                    numero: num,
-                                    conductor: assignment.conductor,
-                                    auxiliar: assignment.auxiliar || '',
-                                    fecha_asignacion: asigDate.toISOString(),
-                                    fecha_entrega: isPast ? dayDate.toISOString() : null,
-                                    estado: isPast ? 'Completado' : 'Asignado',
-                                    timestamp: Timestamp.fromDate(dayDate),
-                                    turno: turno,
-                                    prog_sync: true
-                                }));
-                            }
-                        });
-                    }
-                });
-            });
-        }
-
-        if (promises.length > 0) {
-            await Promise.all(promises);
-            console.log(`✅ [Sync] S-13 History updated with ${promises.length} entries.`);
-            ServiceCache.clear('historial');
-        }
-
-    } catch (e) {
-        console.error("Error syncing schedule to history:", e);
-    }
+// --- RECOVERY TOOL: Retired ---
+export const rebuildHistoryFromSchedule = async () => {
+    console.warn("rebuildHistoryFromSchedule is retired. S-13 is now authoritative.");
+    return 0;
 };
 
 /**
@@ -2213,22 +1804,19 @@ export const runProgramDiagnostic = async (weekId) => {
         const prog = await getProgramaSemanal(weekId);
         if (!prog) return { hasData: false };
 
-        const territories = await getTerritorios();
-        const history = await getHistorialReport();
+        // Query Banco Maestro S-13 for this week
+        const qBanco = query(collection(db, COL_BANCO_S13),
+            where("weekId", "==", weekId),
+            orderBy("timestamp", "desc")
+        );
+        const snapBanco = await getDocs(qBanco);
+        const bancoRecords = snapBanco.docs.map(d => d.data());
 
         const anomalies = [];
         let totalSlots = 0;
         let pendingFormalization = 0;
-        let mismatchedHistory = 0;
-
-        const weekStart = new Date(weekId + 'T12:00:00Z');
 
         prog.dias.forEach((dia, dayIdx) => {
-            const dayDate = new Date(weekStart);
-            dayDate.setDate(weekStart.getDate() + dayIdx);
-            const dateISO = dayDate.toISOString();
-            const dateKey = dateISO.split('T')[0];
-
             ['manana', 'tarde', 'noche', 'zoom'].forEach(turno => {
                 const data = dia[turno];
                 if (data && data.territorio && data.conductor) {
@@ -2236,32 +1824,21 @@ export const runProgramDiagnostic = async (weekId) => {
                     const tNums = String(data.territorio).split(/[,;/]/).map(s => s.trim()).filter(Boolean);
 
                     tNums.forEach(num => {
-                        const cleanNum = String(num).trim();
-                        const t = territories.find(x => String(x.numero || '').trim() === cleanNum);
-                        const isAssignedInInventory = t && t.estado === 'Asignado' && t.asignado_a === data.conductor;
+                        const isInBanco = bancoRecords.some(r =>
+                            String(r.territorio_id) === String(num) &&
+                            r.turno === turno &&
+                            r.conductor === data.conductor
+                        );
 
-                        const hEntry = history.find(h => String(h.numero || '').trim() === cleanNum && h.fecha_asignacion && h.fecha_asignacion.startsWith(weekId));
-
-                        if (!isAssignedInInventory) {
+                        if (!isInBanco) {
                             pendingFormalization++;
                             anomalies.push({
-                                type: 'inventory_mismatch',
-                                territory: cleanNum,
+                                type: 'banco_mismatch',
+                                territory: num,
                                 day: dia.nombre,
                                 turno,
                                 programConductor: data.conductor,
-                                currentInventory: t ? (t.estado === 'Asignado' ? t.asignado_a : 'Disponible') : 'No existe'
-                            });
-                        }
-
-                        if (!hEntry) {
-                            mismatchedHistory++;
-                            anomalies.push({
-                                type: 'missing_history',
-                                territory: cleanNum,
-                                day: dia.nombre,
-                                turno,
-                                conductor: data.conductor
+                                status: 'Borrador (No Formalizado)'
                             });
                         }
                     });
@@ -2273,8 +1850,7 @@ export const runProgramDiagnostic = async (weekId) => {
             hasData: true,
             totalSlots,
             pendingFormalization,
-            mismatchedHistory,
-            anomalies: anomalies.slice(0, 50) // Cap to avoid UI flood
+            anomalies: anomalies.slice(0, 50)
         };
     } catch (e) {
         console.error("Error running diagnostic:", e);
@@ -2283,13 +1859,9 @@ export const runProgramDiagnostic = async (weekId) => {
 };
 
 export const saveProgramaSemanal = async (weekId, data) => {
-    if (!weekId) throw new Error("Week ID required for saving schedule");
-    // Force ID to be the Week Start Date (YYYY-MM-DD)
-    await setDoc(doc(db, "programa_semanal", weekId), data);
-
-    // Xolvy Shield: Auto-Sync disabled per user request to separate draft from formal S-13 history.
-    // Use 'Formalizar Asignaciones' button in the UI to commit these to the official record.
-    // await syncScheduleToHistory(weekId, data);
+    if (!weekId) throw new Error("Week ID required for saving Visor");
+    await setDoc(doc(db, COL_VISOR, weekId), data, { merge: true });
+    await saveAuditLog('SAVE_VISOR_DRAFT', { weekId });
 };
 
 // --- PERMISOS ---
@@ -2336,17 +1908,7 @@ export const getPermisosUsuario = async (email) => {
     }
 };
 
-export const rebuildHistoryFromSchedule = async () => {
-    console.log("Starting S-13 History Rebuild...");
-    const snapshot = await getDocs(collection(db, "programa_semanal"));
-    let count = 0;
-    for (const d of snapshot.docs) {
-        await syncScheduleToHistory(d.id, d.data());
-        count++;
-    }
-    console.log(`Rebuild complete. Processed ${count} weeks.`);
-    return count;
-};
+// --- End of Permissions ---
 
 // --- SYSTEM DIAGNOSTICS & REPAIR ---
 export const runSystemDiagnosticsAndRepair = async (onProgress) => {
@@ -2362,13 +1924,10 @@ export const runSystemDiagnosticsAndRepair = async (onProgress) => {
         if (onProgress) onProgress(msg, pc);
     };
 
-    // 1. Rebuild History from Weekly Program
-    reportProgress("Sincronizando Gestión y Reportes...", 10);
-    report.rebuiltHistory = await rebuildHistoryFromSchedule();
-
-    // 1b. Sync Programs to Territories status (Bilateral)
-    reportProgress("Sincronizando estados de territorios...", 20);
-    await syncAllProgramsToTerritories();
+    // 1. Rebuild History from Weekly Program (Retired)
+    reportProgress("Escaneando integridad del sistema...", 20);
+    // await rebuildHistoryFromSchedule();
+    // await syncAllProgramsToTerritories();
 
     // 2. Territory Integrity Check (Deep Scan)
     reportProgress("🔍 Escaneando integridad de territorios...", 30);
@@ -2754,3 +2313,83 @@ export const restoreSystemBackup = async (data, onProgress) => {
 
 
 
+// --- BANCO MAESTRO S-13 & AUDITORÍA ---
+
+export const saveAuditLog = async (accion, detalles) => {
+    try {
+        await addDoc(collection(db, COL_AUDITORIA), {
+            accion,
+            detalles,
+            timestamp: Timestamp.now(),
+            usuario: auth.currentUser?.email || 'Sistema'
+        });
+    } catch (e) {
+        console.error("Error al guardar bitácora:", e);
+    }
+};
+
+export const formalizeWeek = async (weekId, programaData) => {
+    try {
+        const batch = writeBatch(db);
+        const results = { count: 0 };
+
+        if (!programaData.dias) return;
+
+        // 1. Limpiar formalizaciones previas de esta semana (Evita duplicados)
+        const qPrev = query(collection(db, COL_BANCO_S13), where("weekId", "==", weekId));
+        const snapPrev = await getDocs(qPrev);
+        snapPrev.docs.forEach(d => batch.delete(d.ref));
+
+        // 2. Insertar nuevas asignaciones desde el visor
+        programaData.dias.forEach((dia, idx) => {
+            ['manana', 'tarde', 'noche', 'zoom'].forEach(turno => {
+                const asig = dia[turno];
+                if (asig && asig.territorio && asig.conductor) {
+                    const tNums = String(asig.territorio).split(/[,/]/).map(s => s.trim()).filter(Boolean);
+
+                    tNums.forEach(num => {
+                        const ref = doc(collection(db, COL_BANCO_S13));
+                        batch.set(ref, {
+                            territorio_id: num,
+                            conductor: asig.conductor,
+                            fecha_asignacion: asig.fecha_especifica || weekId,
+                            fecha_entrega: null,
+                            estado: 'Asignado',
+                            turno: turno,
+                            weekId: weekId,
+                            timestamp: Timestamp.now(),
+                            faceta: asig.faceta || 'Casa en casa',
+                            auxiliar: asig.auxiliar || ''
+                        });
+                        results.count++;
+                    });
+                }
+            });
+        });
+
+        if (results.count > 0) {
+            await batch.commit();
+            await saveAuditLog('FORMALIZACION_SEMANAL', { weekId, total: results.count });
+            ServiceCache.clear('territorios_combined');
+        }
+        return results;
+    } catch (e) {
+        console.error("Error en formalización:", e);
+        throw e;
+    }
+};
+
+export const deleteBancoRecord = async (id) => {
+    await deleteDoc(doc(db, COL_BANCO_S13, id));
+    await saveAuditLog('BORRADO_HISTORIAL', { id });
+    ServiceCache.clear('territorios_combined');
+};
+
+export const updateBancoRecord = async (id, data) => {
+    await updateDoc(doc(db, COL_BANCO_S13, id), {
+        ...data,
+        timestamp: Timestamp.now()
+    });
+    await saveAuditLog('EDICION_HISTORIAL', { id, campos: Object.keys(data) });
+    ServiceCache.clear('territorios_combined');
+};
