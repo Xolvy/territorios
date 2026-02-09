@@ -92,15 +92,15 @@ export const renderHistorialView = async (container) => {
 
     container.innerHTML = `
         <div class="relative animate-fade-in p-2 md:p-4 max-w-7xl mx-auto w-full overflow-x-hidden pb-20">
-            <!-- Floating Stats (Xolvy Radar) -->
-            <div class="absolute top-0 right-0 z-10 flex flex-col md:flex-row gap-2 pointer-events-none pr-2">
-                <div class="pointer-events-auto bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200 dark:border-white/10 px-4 py-2 rounded-2xl shadow-xl flex items-center gap-3">
+            <!-- Stats Bar (Xolvy Radar) -->
+            <div class="flex flex-wrap justify-end gap-2 mb-6 pointer-events-none">
+                <div class="pointer-events-auto bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200 dark:border-white/10 px-4 py-2.5 rounded-2xl shadow-sm flex items-center gap-3">
                     <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                    <span class="text-[9px] font-black uppercase text-slate-500">${coverage}% Cobertura</span>
+                    <span class="text-[9px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">${coverage}% Cobertura</span>
                 </div>
-                <div class="pointer-events-auto bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200 dark:border-white/10 px-4 py-2 rounded-2xl shadow-xl flex items-center gap-3">
+                <div class="pointer-events-auto bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200 dark:border-white/10 px-4 py-2.5 rounded-2xl shadow-sm flex items-center gap-3">
                     <div class="w-1.5 h-1.5 rounded-full bg-rose-500"></div>
-                    <span class="text-[9px] font-black uppercase text-slate-500">${assignedCount} Ocupados</span>
+                    <span class="text-[9px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">${assignedCount} Ocupados</span>
                 </div>
             </div>
 
