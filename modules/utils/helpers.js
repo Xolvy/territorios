@@ -24,7 +24,7 @@ export const getStatusColor = (status) => {
 
 
 
-export const showNotification = (message, type = 'success', duration = 5000, workflow = []) => {
+export const showNotification = (message, type = 'success', duration = 5000, workflow = [], onUndo = null) => {
     // 1. Text Optimization for glanceability
     let displayMessage = message;
     if (message.includes('Conexión Restablecida')) displayMessage = 'Sistema Sincronizado';
@@ -75,6 +75,18 @@ export const showNotification = (message, type = 'success', duration = 5000, wor
            </div>`
         : '';
 
+    // Undo Action HUD
+    const undoHTML = onUndo ? `
+        <div class="mt-4 flex items-center justify-between gap-4">
+             <div class="flex-1 h-1.5 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden">
+                 <div id="notif-progress-${id}" class="h-full ${s.text.replace('text-', 'bg-')} w-full transition-all ease-linear" style="transition-duration: ${duration}ms"></div>
+             </div>
+             <button id="notif-undo-${id}" class="px-5 py-2 rounded-xl bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 text-[9px] font-black uppercase tracking-widest ${s.text} shadow-sm hover:scale-105 active:scale-95 transition-all">
+                <i class="fas fa-undo-alt mr-1.5"></i> Deshacer
+             </button>
+        </div>
+    ` : '';
+
     card.className = `${s.bg} border backdrop-blur-xl px-5 py-3.5 rounded-2xl shadow-2xl flex flex-col gap-1 animate-slide-left pointer-events-auto transform transition-all duration-500 hover:scale-[1.02] group min-w-[280px] max-w-[340px]`;
     card.innerHTML = `
         <div class="flex items-center gap-4 w-full">
@@ -93,6 +105,7 @@ export const showNotification = (message, type = 'success', duration = 5000, wor
             </button>
         </div>
         ${workflowHTML}
+        ${undoHTML}
     `;
 
     // Manage Singleton Sync Cards
@@ -102,6 +115,21 @@ export const showNotification = (message, type = 'success', duration = 5000, wor
     }
 
     hud.appendChild(card);
+
+    // Bind Undo
+    if (onUndo) {
+        const btn = card.querySelector(`#notif-undo-${id}`);
+        btn.onclick = () => {
+            onUndo();
+            card.remove();
+        };
+
+        // Trigger progress bar animation in next frame
+        requestAnimationFrame(() => {
+            const bar = card.querySelector(`#notif-progress-${id}`);
+            if (bar) bar.style.width = '0%';
+        });
+    }
 
     // Auto-remove
     if (duration > 0) {

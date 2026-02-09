@@ -746,7 +746,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
                                     <div class="flex justify-center">
                                         <button onclick="window.returnPhoneToPool('${r.id}')" class="w-full py-3 bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-rose-500/5 flex items-center justify-center gap-2">
-                                            <i class="fas fa-undo-alt"></i> Devolver al Pozo
+                                            <i class="fas fa-undo-alt"></i> Devolver
                                         </button>
                                     </div>
                                 </div>
@@ -758,14 +758,25 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 `, null, 'max-w-2xl');
 
                 window.returnPhoneToPool = async (id) => {
-                    showCustomPrompt("Indica la razón de la devolución (esto se guardará en el historial):", async (reason) => {
+                    showCustomPrompt("Indica la razón de la devolución (esto se guardará en el historial):", "", async (reason) => {
                         if (!reason || reason.trim().length === 0) {
                             showNotification("Debes indicar una razón", "warning");
                             return;
                         }
                         await updateTelefonoStatus(id, 'Sin asignar', null, reason);
                         window.closeModal();
-                        showNotification("Número devuelto al pozo general");
+
+                        showNotification("Número devuelto correctamente.", "success", 5000, [], async () => {
+                            try {
+                                await updateTelefonoStatus(id, 'Revisita', null, 'Devolución deshecha por el usuario');
+                                showNotification("Acción deshecha.");
+                                window.refreshConductorView();
+                            } catch (err) {
+                                console.error("Undo error:", err);
+                                showNotification("No se pudo deshacer la acción", "error");
+                            }
+                        });
+
                         window.refreshConductorView();
                     });
                 };
