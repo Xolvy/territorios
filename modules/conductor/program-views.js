@@ -146,90 +146,93 @@ export const renderFullProgramaCards = (programa, container, territoryMap = {}, 
 
 export const generateLandscapePreviewHTML = (programa) => {
     if (!programa) return '';
+
+    // Get congregation name from storage if available
+    const congName = localStorage.getItem('cached_congregation_name') || 'CONGREGACIÓN "NUEVE DE OCTUBRE"';
+    const congId = '14282'; // Placeholder or get from config if exists
+
     const turnosArr = [
-        { id: 'manana', icon: 'fa-sun', label: 'MAÑANA', color: '#b45309', bg: '#fffbeb' },
-        { id: 'tarde', icon: 'fa-cloud-sun', label: 'TARDE', color: '#c2410c', bg: '#fff7ed' },
-        { id: 'noche', icon: 'fa-moon', label: 'NOCHE', color: '#3730a3', bg: '#f5f3ff' },
-        { id: 'zoom', icon: 'fa-video', label: 'ZOOM', color: '#065f46', bg: '#f0fdf4' }
+        { id: 'manana', icon: 'fa-cog', label: 'MAÑANA', color: '#b45309' },
+        { id: 'tarde', icon: 'fa-cloud-sun', label: 'TARDE', color: '#c2410c' },
+        { id: 'noche', icon: 'fa-moon', label: 'NOCHE', color: '#1e1b4b' },
+        { id: 'zoom', icon: 'fa-video', label: 'ZOOM', color: '#064e3b' }
     ];
 
-    const hasBusyDay = (programa.dias || []).some(dia => {
-        const active = turnosArr.filter(t => {
-            const data = dia[t.id];
-            return data && (data.conductor || data.lugar);
-        });
-        return active.length > 2;
-    });
+    const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
     let html = `
-            <div id="landscape-preview-content" class="bg-slate-50 text-slate-900 font-['Outfit'] relative overflow-hidden flex flex-col p-6 pt-0" style="width: 1920px; height: 1080px; box-sizing: border-box;">
-                <header class="relative z-10 flex flex-col items-center mb-3 px-10 pt-4 w-full">
-                    <h1 class="text-[54px] font-black uppercase tracking-[0.1em] leading-none mb-1 text-slate-900">Programa de Predicación</h1>
-                    <p class="text-lg font-black uppercase tracking-[0.15em] text-slate-600 mb-3">Cronograma Semanal de Salidas</p>
-                    <div class="w-full h-1.5 bg-slate-900 rounded-full"></div>
-                </header>
+    <div id="landscape-preview-content" class="bg-[#f8fafc] text-slate-900 font-['Outfit'] relative overflow-hidden flex flex-col" style="width: 1920px; height: 1080px; box-sizing: border-box; padding: 40px;">
+        <!-- Background decorative elements -->
+        <div class="absolute -top-40 -right-40 w-[600px] h-[600px] bg-slate-200/20 blur-[100px] rounded-full"></div>
+        <div class="absolute -bottom-40 -left-40 w-[600px] h-[600px] bg-slate-200/20 blur-[100px] rounded-full"></div>
 
-            <div class="relative z-10 grid grid-cols-7 gap-3 flex-1 overflow-hidden px-4 pb-7">
-                ${(programa.dias || []).map((dia, idx) => {
+        <header class="relative z-10 flex flex-col items-center mb-10 w-full">
+            <h1 class="text-[80px] font-black uppercase tracking-[0.1em] leading-none mb-2 text-[#1e293b]">Programa de Predicación</h1>
+            <p class="text-[20px] font-black uppercase tracking-[0.3em] text-[#64748b] mb-6">${congName.toUpperCase()} ${congId}</p>
+            <div class="w-full h-1 bg-[#1e293b] rounded-full opacity-100"></div>
+        </header>
+
+        <div class="relative z-10 grid grid-cols-7 gap-5 flex-1">
+            ${days.map(dayName => {
+        const dia = (programa.dias || []).find(d => d.nombre === dayName) || { nombre: dayName, fecha: '' };
         const activeTurns = turnosArr.filter(t => {
             const data = dia[t.id];
-            return data && (data.conductor || data.lugar);
+            return data && (data.conductor || data.lugar || data.hora);
         });
 
         return `
-                        <div class="bg-white rounded-[2rem] flex flex-col shadow-xl shadow-slate-200/40 border border-slate-100/50 overflow-hidden relative h-full">
-                            <div class="${hasBusyDay ? 'px-4 py-3 min-h-[100px]' : 'px-5 py-6 min-h-[140px]'} border-b border-slate-50 bg-slate-50/20 shrink-0 flex flex-col justify-center">
-                                <h2 class="${hasBusyDay ? 'text-2xl' : 'text-3xl'} font-black uppercase tracking-tighter text-slate-900 leading-none mb-1">${dia.nombre}</h2>
-                                <span class="text-[10px] font-bold uppercase tracking-widest text-slate-300 opacity-80">${dia.fecha ? dia.fecha.split('-').reverse().join('/') : ''}</span>
-                            </div>
-                            
-                            <div class="${hasBusyDay ? 'p-2.5 space-y-5' : 'p-4 space-y-10'} flex-1 overflow-visible">
-                                ${activeTurns.map(t => {
+                <div class="bg-white rounded-[40px] flex flex-col shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] border border-slate-100/50 overflow-hidden h-full">
+                    <!-- Day Header -->
+                    <div class="px-8 py-10 border-b border-slate-50 bg-[#f8fafc]/50 text-center shrink-0">
+                        <h2 class="text-[32px] font-black uppercase tracking-tight text-[#1e293b] leading-none mb-2">${dayName}</h2>
+                        <span class="text-[14px] font-black uppercase tracking-[0.2em] text-[#94a3b8]">${dia.fecha ? dia.fecha.split('-').reverse().join('/') : ''}</span>
+                    </div>
+                    
+                    <!-- Content -->
+                    <div class="p-8 space-y-12 flex-1">
+                        ${activeTurns.map(t => {
             const data = dia[t.id];
-            const isSunday = dia.nombre.toLowerCase() === 'domingo';
-            const hourInt = data.hora ? parseInt(data.hora) : (t.id === 'manana' ? 9 : t.id === 'tarde' ? 15 : 19);
-
-            let labelText = t.label; let displayIcon = t.icon; let displayColor = t.color;
-
-            if (isSunday && data.hora) {
-                if (hourInt < 11) { labelText = 'MAÑANA'; displayIcon = 'fa-sun'; displayColor = '#b45309'; }
-                else if (hourInt < 16) { labelText = 'MEDIODÍA'; displayIcon = 'fa-cloud-sun'; displayColor = '#c2410c'; }
-                else if (hourInt < 19) { labelText = 'TARDE'; displayIcon = 'fa-sun-haze'; displayColor = '#c2410c'; }
-                else { labelText = 'NOCHE'; displayIcon = 'fa-moon'; displayColor = '#3730a3'; }
-            }
+            const fields = [
+                { label: 'LUGAR', val: data.lugar },
+                { label: 'HORA', val: data.hora },
+                { label: 'CONDUCTOR', val: data.conductor },
+                { label: 'AUXILIAR', val: data.auxiliar },
+                { label: 'FACETA', val: data.faceta },
+                { label: 'TERRITORIO', val: data.territorio },
+                { label: 'GRUPOS', val: data.grupos }
+            ].filter(f => f.val && f.val !== '—');
 
             return `
-                                        <div class="${hasBusyDay ? 'space-y-1.5' : 'space-y-4'}">
-                                            <div class="flex items-center gap-2">
-                                                <i class="fas ${displayIcon} text-[18px]" style="color: ${displayColor}"></i>
-                                                <span class="text-[18px] font-black uppercase tracking-[0.35em]" style="color: ${displayColor}">${labelText}</span>
-                                            </div>
-                                            
-                                            <div class="${hasBusyDay ? 'space-y-1' : 'space-y-3'}">
-                                                ${['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', 'Grupos'].map(field => {
-                if (t.id === 'zoom' && field === 'Auxiliar') return '';
-                let val = data[field.toLowerCase()];
-                if (!val || val === '—' || val === '') return '';
-                if (field === 'Grupos') { val = formatGroups(val); }
-                const isKeyField = field === 'Lugar' || field === 'Hora';
-                const fontSize = isKeyField ? (hasBusyDay ? '17px' : '22px') : (hasBusyDay ? '13px' : '15px');
-                return `
-                                                        <div class="flex flex-col leading-tight">
-                                                             <span class="text-[6px] font-black uppercase tracking-widest text-slate-300 mb-0.5">${field}</span>
-                                                             <span class="text-[${fontSize}] font-black uppercase tracking-tight text-slate-900">${val}</span>
-                                                        </div>
-                                                    `;
-            }).join('')}
-                                            </div>
+                            <div class="space-y-6">
+                                <div class="flex items-center gap-3">
+                                    <i class="fas ${t.icon} text-[24px]" style="color: ${t.color}"></i>
+                                    <span class="text-[22px] font-black uppercase tracking-[0.2em]" style="color: ${t.color}">${t.label}</span>
+                                </div>
+                                
+                                <div class="space-y-4 ml-1">
+                                    ${fields.map(f => `
+                                        <div class="flex flex-col leading-tight">
+                                            <span class="text-[10px] font-black uppercase tracking-[0.2em] text-[#cbd5e1] mb-1">${f.label}</span>
+                                            <span class="text-[18px] font-black uppercase tracking-tight text-[#334155] whitespace-pre-line">${f.label === 'GRUPOS' ? formatGroups(f.val) : f.val}</span>
                                         </div>
-                                    `;
-        }).join('')}
+                                    `).join('')}
+                                </div>
                             </div>
-                        </div>
-                    `;
+                            `;
+        }).join('')}
+                    </div>
+                </div>
+                `;
     }).join('')}
-            </div>
         </div>
+    </div>
+    
+    <style>
+        #landscape-preview-content {
+            font-family: 'Outfit', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+    </style>
     `;
     return html;
 };
