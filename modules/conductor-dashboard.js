@@ -847,7 +847,9 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
             if (btn) {
                 btn.onclick = async () => {
                     const allPhones = await getTelefonos();
-                    const myPhones = allPhones.filter(t => t.solicitado_por === displayName);
+                    // Xolvy Shield: Use robust normalization for comparison to avoid 'No phones found' error
+                    const myPhones = allPhones.filter(t => (t.solicitado_por || '').trim() === (displayName || '').trim());
+
                     if (myPhones.length === 0) {
                         showNotification("No tienes números solicitados activos.", "info");
                         return;
@@ -932,7 +934,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                     (notes ? `📝 *Notas:* ${notes}\n\n` : '') +
                                     `_Enviado desde App Territorios_`;
 
-                                // Xolvy Adapt: Pre-action countdown for Finalize
+                                // Xolvy Adapt: Pre-action countdown for Finalize with RED bar ('bg-rose-500')
                                 showNotification("Finalizando sesión...", "info", 5000, ["Preparando reporte", "Cerrando registros"], null, async () => {
                                     try {
                                         await logSessionSummary({
@@ -956,7 +958,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                         console.error("Error finalizing session:", e);
                                         showNotification("Error al finalizar sesión", "error");
                                     }
-                                });
+                                }, "bg-rose-500");
                             };
                         }
                     });
