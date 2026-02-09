@@ -801,10 +801,10 @@ export const renderProgramaTab = async (container) => {
         const congId = '14282';
 
         const turns = [
-            { id: 'manana', label: 'MAÑANA', color: '#fffbeb', headerColor: '#fef3c7' }, // Amber-ish
-            { id: 'tarde', label: 'TARDE', color: '#fff7ed', headerColor: '#ffedd5' }, // Orange-ish
-            { id: 'noche', label: 'NOCHE', color: '#f5f3ff', headerColor: '#ede9fe' }, // Indigo-ish
-            { id: 'zoom', label: 'ZOOM', color: '#f0fdf4', headerColor: '#dcfce7' }  // Emerald-ish
+            { id: 'manana', label: 'MAÑANA', headerColor: '#A5F3FC', dataColor: '#FEF9C3' }, // Cyan header, Yellow data
+            { id: 'tarde', label: 'TARDE', headerColor: '#FFD9B3', dataColor: '#FFEDD5' },   // Orange light
+            { id: 'noche', label: 'NOCHE', headerColor: '#BFDBFE', dataColor: '#DBEAFE' },   // Blue light
+            { id: 'zoom', label: 'ZOOM', headerColor: '#BBF7D0', dataColor: '#DCFCE7' }     // Emerald light
         ];
 
         const fields = [
@@ -832,41 +832,52 @@ export const renderProgramaTab = async (container) => {
    <Font ss:Bold="1" ss:Size="12" ss:Color="#000000"/>
    <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
   </Style>
-  <Style ss:ID="sLabelMain">
-   <Font ss:Bold="1" ss:Size="10" ss:Color="#000000"/>
-   <Interior ss:Color="#cbd5e1" ss:Pattern="Solid"/>
-   <Alignment ss:Vertical="Center" ss:Horizontal="Left"/>
-   <Borders>
-    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#000000"/>
-    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#000000"/>
-   </Borders>
-  </Style>
   <Style ss:ID="sHeader">
    <Font ss:Bold="1" ss:Size="10" ss:Color="#000000"/>
    <Interior ss:Color="#94a3b8" ss:Pattern="Solid"/>
    <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
    <Borders>
     <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#000000"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#000000"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#000000"/>
     <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#000000"/>
    </Borders>
   </Style>
-  <Style ss:ID="sData">
-   <Font ss:Size="9"/>
+  ${turns.map(t => `
+  <Style ss:ID="sHeader_${t.id}">
+   <Font ss:Bold="1" ss:Size="10" ss:Color="#000000"/>
+   <Interior ss:Color="${t.headerColor}" ss:Pattern="Solid"/>
+   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#000000"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#000000"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#000000"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#000000"/>
+   </Borders>
+  </Style>
+  <Style ss:ID="sData_${t.id}">
+   <Font ss:Size="9" ss:Color="#000000"/>
+   <Interior ss:Color="${t.dataColor}" ss:Pattern="Solid"/>
    <Alignment ss:Vertical="Center" ss:Horizontal="Center" ss:WrapText="1"/>
    <Borders>
-    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#e2e8f0"/>
-    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#e2e8f0"/>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#94a3b8"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#94a3b8"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#94a3b8"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#94a3b8"/>
    </Borders>
   </Style>
-  <Style ss:ID="sLabelTurn">
+  <Style ss:ID="sLabel_${t.id}">
    <Font ss:Bold="1" ss:Size="9" ss:Color="#000000"/>
-   <Interior ss:Color="#f1f5f9" ss:Pattern="Solid"/>
+   <Interior ss:Color="${t.dataColor}" ss:Pattern="Solid"/>
    <Alignment ss:Vertical="Center" ss:Horizontal="Left"/>
    <Borders>
-    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#e2e8f0"/>
-    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#e2e8f0"/>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#94a3b8"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#94a3b8"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#94a3b8"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#94a3b8"/>
    </Borders>
   </Style>
+  `).join('')}
  </Styles>
  <Worksheet ss:Name="Programa Semanal">
   <Table ss:DefaultColumnWidth="110">
@@ -890,19 +901,19 @@ export const renderProgramaTab = async (container) => {
         programa.dias.forEach(dia => {
             const dayParts = dia.fecha ? dia.fecha.split('-').reverse() : [];
             const dayStr = `${dia.nombre.toUpperCase()} ${dayParts[0] || ''}`;
-            xml += `<Cell ss:StyleID="sHeader"><Data ss:Type="String">${dayStr}</Data></Cell>`;
+            xml += `<Cell ss:StyleID="sHeader_manana"><Data ss:Type="String">${dayStr}</Data></Cell>`;
         });
-        xml += `<Cell ss:StyleID="sHeader"><Data ss:Type="String">GRUPOS</Data></Cell>`;
+        xml += `<Cell ss:StyleID="sHeader_manana"><Data ss:Type="String">GRUPOS</Data></Cell>`;
         xml += '</Row>';
 
         turns.forEach(turno => {
             fields.forEach((field, fIdx) => {
                 xml += '<Row ss:Height="24" ss:AutoFitHeight="1">';
-                xml += `<Cell ss:StyleID="sLabelTurn"><Data ss:Type="String">${field.label}</Data></Cell>`;
+                xml += `<Cell ss:StyleID="sLabel_${turno.id}"><Data ss:Type="String">${field.label}</Data></Cell>`;
 
                 programa.dias.forEach(dia => {
                     const val = dia[turno.id]?.[field.key] || '';
-                    xml += `<Cell ss:StyleID="sData"><Data ss:Type="String">${val}</Data></Cell>`;
+                    xml += `<Cell ss:StyleID="sData_${turno.id}"><Data ss:Type="String">${val}</Data></Cell>`;
                 });
 
                 // Group Column (only on first row of turn, or as requested)
@@ -911,7 +922,7 @@ export const renderProgramaTab = async (container) => {
                     // Based on the mockup, we show the groups assigned to this turn block
                     const groups = programa.dias.map(d => d[turno.id]?.grupos).filter(Boolean).join(', ');
                     const uniqueGroups = Array.from(new Set(groups.split(/[,;/]/).map(g => g.trim()))).filter(Boolean).join(' Y ');
-                    xml += `<Cell ss:MergeDown="5" ss:StyleID="sData"><Data ss:Type="String">${uniqueGroups}</Data></Cell>`;
+                    xml += `<Cell ss:MergeDown="5" ss:StyleID="sData_${turno.id}"><Data ss:Type="String">${uniqueGroups}</Data></Cell>`;
                 }
 
                 xml += '</Row>';
@@ -933,7 +944,7 @@ export const renderProgramaTab = async (container) => {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        showNotification("Excel Profesional generado", "success");
+        showNotification("Excel Cromático generado", "success");
     };
 
     container.querySelector('#btn-export-img-prog').onclick = async () => {
