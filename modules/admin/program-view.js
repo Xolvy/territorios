@@ -435,6 +435,7 @@ export const renderProgramaTab = async (container) => {
                                 </div>
                             </label>
                             <button onclick="window.openTerritorySelector(${dayIndex}, '${turnoId}', this)" 
+                                    data-current="${val}"
                                     class="w-full text-left bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-3.5 rounded-2xl hover:border-primary transition-all flex items-center justify-between shadow-sm">
                                 <span id="val-territorio-${dayIndex}-${turnoId}" class="text-[11px] font-black truncate ${val ? 'text-primary' : 'text-slate-400 opacity-40'}">${val || '—'}</span>
                             </button>`;
@@ -525,6 +526,9 @@ export const renderProgramaTab = async (container) => {
         if (valEl) {
             valEl.innerText = val || '—';
             valEl.className = `text-[11px] font-black truncate ${val ? 'text-primary' : 'text-slate-400 opacity-40'}`;
+            if (fieldId === 'territorio') {
+                valEl.parentElement.dataset.current = val || '';
+            }
         }
 
         // Silent background save
@@ -765,11 +769,11 @@ export const renderProgramaTab = async (container) => {
                     const tStr = d[turn]?.territorio;
                     if (tStr) {
                         // Handle multiple territories like "1, 2(Mz 1), 3"
-                        const parts = tStr.split(/[,;/]+/).map(p => p.trim()).filter(Boolean);
-                        parts.forEach(p => {
-                            const num = p.replace(/\(.*\)/, '').trim(); // Remove apple notes
-                            if (num) weekAssignments.push(num);
-                        });
+                        // Robust extraction: find numbers followed by start of parentheses or separators
+                        const matches = tStr.matchAll(/(\d+)(?:\s*\(|$|[\s,;/])/g);
+                        for (const match of matches) {
+                            weekAssignments.push(match[1]);
+                        }
                     }
                 });
             });
