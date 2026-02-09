@@ -635,18 +635,13 @@ export const renderProgramaTab = async (container) => {
                 btn.disabled = true;
                 btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> PROCESANDO...';
 
-                const { assignTerritorio } = await import('../../data/firestore-services.js');
+                const assignmentDateISO = new Date(date + 'T12:00:00Z').toISOString();
+                const preachingDateISO = new Date(dia.fecha + 'T12:00:00Z').toISOString();
 
-                for (const t of foundTs) {
-                    await assignTerritorio(t.id, cond, {
-                        fecha_asignacion: new Date(date + 'T12:00:00Z').toISOString(),
-                        lugar: data.lugar || null,
-                        hora: data.hora || null,
-                        faceta: data.faceta || null,
-                        turnoId,
-                        prog_sync: true
-                    });
-                }
+                await syncSlotWithTerritories(programa.id, dayIdx, turnoId, {
+                    ...data,
+                    prog_sync: true
+                }, preachingDateISO, assignmentDateISO);
 
                 showNotification(`¡Asignación formalizada! (${foundTs.length} territorios)`, 'success');
                 modal.classList.add('hidden');
@@ -1137,8 +1132,8 @@ export const renderProgramaTab = async (container) => {
             ['manana', 'tarde', 'noche', 'zoom'].forEach(turnoId => {
                 const data = dia[turnoId];
                 if (data && data.territorio) {
-                    // Split by comma or semicolon and normalize
-                    const tNums = String(data.territorio).split(/[,;]/).map(n => n.trim()).filter(n => n);
+                    // Xolvy Robust Split: Handle all common separators
+                    const tNums = String(data.territorio).split(/[,;/]/).map(n => n.trim()).filter(n => n);
 
                     tNums.forEach(tNum => {
                         const tInfo = territoryMap[normalize(tNum)] || null;
@@ -1198,11 +1193,15 @@ export const renderProgramaTab = async (container) => {
                 <div class="space-y-3 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 shrink-0">
                     <div class="flex items-center justify-between">
                         <label class="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 block">¿Fecha general de asignación?</label>
-                        <span class="text-[8px] font-bold text-emerald-500 uppercase bg-emerald-500/5 px-2 py-0.5 rounded">Opcional</span>
+                        <span class="text-[8px] font-bold text-emerald-500 uppercase bg-emerald-500/5 px-2 py-0.5 rounded">Sugerencia S-13: Domingo anterior</span>
                     </div>
-                    <input type="date" id="sync-global-date" class="w-full bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-white/10 p-4 rounded-xl text-[12px] font-black text-emerald-500 outline-none focus:border-emerald-500 transition-all uppercase shadow-inner">
+                    <input type="date" id="sync-global-date" value="${(() => {
+                const d = new Date(currentWeekStart);
+                d.setDate(d.getDate() - 1);
+                return d.toISOString().split('T')[0];
+            })()}" class="w-full bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-white/10 p-4 rounded-xl text-[12px] font-black text-emerald-500 outline-none focus:border-emerald-500 transition-all uppercase shadow-inner">
                     <p class="text-[8px] text-slate-400 font-bold uppercase tracking-widest italic leading-normal px-1">
-                        Si se deja vacío, se usará la fecha de cada día del programa (Sincronización Bilateral).
+                        Si se deja vacío, se usará la fecha exacta del día de salida (Viernes, Sábado, etc.).
                     </p>
                 </div>
 
@@ -1293,8 +1292,9 @@ export const renderProgramaTab = async (container) => {
                         prog_sync: true
                     };
 
-                    console.log(`Bilateral Sync: Formalizing slot with resolved date ${slot.resolvedDateISO} and ${slot.tNums.length} territories`);
-                    await syncSlotWithTerritories(weekId, slot.dayIdx, slot.turnoId, syncData, slot.resolvedDateISO);
+                    console.log(`Bilateral Sync: Formalizing slot with resolved PREACHING date ${slot.resolvedDateISO} and ${slot.tNums.length} territories`);
+                    const chosenAssignmentDate = globalDate ? new Date(globalDate + 'T12:00:00Z').toISOString() : null;
+                    await syncSlotWithTerritories(weekId, slot.dayIdx, slot.turnoId, syncData, slot.resolvedDateISO, chosenAssignmentDate);
                 }
 
                 showNotification(`¡${checkedIdxs.length} asignaciones formalizadas con éxito!`, 'success');

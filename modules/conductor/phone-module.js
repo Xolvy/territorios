@@ -17,34 +17,53 @@ export const initializePhoneModule = (initialPhones, publicadores, displayName, 
         if (!tbody) return;
 
         tbody.innerHTML = myPhones.map(p => `
-            <tr class="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors group">
-                <td class="p-4">
+            <tr class="flex flex-col sm:table-row hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors group border-b border-black/5 dark:border-white/5 p-4 sm:p-0 gap-4 sm:gap-0">
+                <!-- Mobile: Header with Phone & Status -->
+                <td class="p-0 sm:p-4 block sm:table-cell">
                     <div class="flex flex-col">
-                        <span class="text-[13px] font-black text-slate-800 dark:text-white tabular-nums">${p.telefono}</span>
-                        ${p.ultimo_resultado ? `<span class="text-[8px] font-black uppercase text-slate-400 mt-0.5 tracking-widest">${p.ultimo_resultado}</span>` : ''}
+                        <div class="flex items-center justify-between sm:justify-start gap-4">
+                            <span class="text-[14px] sm:text-[13px] font-black text-slate-800 dark:text-white tabular-nums tracking-tight">${p.telefono}</span>
+                            <div class="sm:hidden px-2 py-0.5 bg-indigo-500/10 text-indigo-500 rounded-lg text-[8px] font-black uppercase tracking-widest border border-indigo-500/10">
+                                ${p.estado || 'SIN ASIGNAR'}
+                            </div>
+                        </div>
+                        <p class="font-black text-[11px] sm:text-[10px] text-slate-600 dark:text-slate-300 uppercase mt-1 sm:mt-0">${p.propietario || '---'}</p>
+                        ${p.ultimo_resultado ? `<span class="text-[8px] font-black uppercase text-slate-400 mt-1 tracking-widest hidden sm:block">${p.ultimo_resultado}</span>` : ''}
                     </div>
                 </td>
-                <td class="p-4">
+                
+                <!-- Desktop Propietario (Hidden on Mobile) -->
+                <td class="p-4 hidden sm:table-cell">
                     <p class="font-black text-[10px] text-slate-600 dark:text-slate-300 uppercase">${p.propietario || '---'}</p>
                 </td>
-                <td class="p-4 hidden sm:table-cell">
-                    <p class="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase truncate max-w-[150px]">${p.direccion || '---'}</p>
+
+                <!-- Address (Visible in both, slightly adjusted for mobile) -->
+                <td class="p-0 sm:p-4 block sm:table-cell">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-map-marker-alt text-primary/30 text-[9px] sm:hidden"></i>
+                        <p class="text-[10px] sm:text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase truncate max-w-full sm:max-w-[150px]">${p.direccion || '---'}</p>
+                    </div>
                 </td>
-                <td class="p-4">
-                    <select onchange="window.updatePhoneStaff('${p.id}', this.value)" class="bg-slate-100 dark:bg-white/5 border-none rounded-lg px-3 py-1.5 text-[10px] font-black uppercase tracking-widest outline-none focus:ring-1 focus:ring-primary transition-all">
-                        <option value="">SIN ASIGNAR</option>
-                        ${publicadores.map(pub => `<option value="${pub.nombre}" ${p.publicador_asignado === pub.nombre ? 'selected' : ''}>${pub.nombre}</option>`).join('')}
-                    </select>
-                </td>
-                <td class="p-4 text-center">
-                    <button onclick="window.openPhoneStatusSelector('${p.id}', '${p.telefono}')" class="px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-all">
-                        ${p.estado || 'SIN ASIGNAR'}
-                    </button>
-                </td>
-                <td class="p-4">
-                     <button onclick="window.openPhoneNotes('${p.id}', '${p.telefono}', '${(p.notas || '').replace(/'/g, "\\\'")}')" class="text-slate-400 hover:text-indigo-500 transition-colors">
-                        <i class="fas fa-sticky-note"></i>
-                     </button>
+
+                <!-- Actions: Publisher, Status, Notes -->
+                <td class="p-0 sm:p-4 block sm:table-cell">
+                    <div class="flex flex-row items-center gap-2 sm:gap-4">
+                        <div class="flex-1">
+                            <p class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 sm:hidden ml-1">Publicador</p>
+                            <select onchange="window.updatePhoneStaff('${p.id}', this.value)" class="w-full sm:w-auto bg-slate-100 dark:bg-white/5 border-none rounded-xl px-3 py-2.5 sm:py-1.5 text-[10px] font-black uppercase tracking-widest outline-none focus:ring-1 focus:ring-primary transition-all">
+                                <option value="">SIN ASIGNAR</option>
+                                ${publicadores.map(pub => `<option value="${pub.nombre}" ${p.publicador_asignado === pub.nombre ? 'selected' : ''}>${pub.nombre}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="window.openPhoneStatusSelector('${p.id}', '${p.telefono}')" class="hidden sm:block px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-all">
+                                ${p.estado || 'SIN ASIGNAR'}
+                            </button>
+                            <button onclick="window.openPhoneNotes('${p.id}', '${p.telefono}', '${(p.notas || '').replace(/'/g, "\\\'")}')" class="w-11 h-11 sm:w-8 sm:h-8 flex items-center justify-center text-slate-400 hover:text-primary transition-colors bg-slate-100 dark:bg-white/5 sm:bg-transparent rounded-xl border border-black/5 sm:border-none">
+                                <i class="fas fa-sticky-note sm:text-lg"></i>
+                            </button>
+                        </div>
+                    </div>
                 </td>
             </tr>
         `).join('');
@@ -81,7 +100,7 @@ export const initializePhoneModule = (initialPhones, publicadores, displayName, 
             // Corrected signature usage for firestore-services.js
             await updateTelefonoStatus(id, status, displayName);
             window.closeModal();
-            onRefresh();
+            onRefresh(id);
             showNotification(`Estado actualizado: ${status}`, 'success');
         } catch (e) {
             showNotification('Error al actualizar estado', 'error');

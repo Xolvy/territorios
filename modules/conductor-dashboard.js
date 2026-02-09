@@ -98,6 +98,10 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
             (c.telefono && cleanPhone(c.telefono) === cleanPhone(nameOrEmail))
         );
         if (conductorData) displayName = conductorData.nombre;
+
+        // Xolvy Session Tracking: Track phones handled in THIS specific session
+        // to avoid hiding them immediately (which is confusing)
+        const sessionHandledIds = new Set();
     } catch (err) {
         console.error("🛡️ [Data Shield] Error resolving name:", err);
     }
@@ -396,8 +400,8 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                         
                         <div class="table-container custom-scrollbar rounded-2xl border border-black/5 dark:border-white/5 bg-white/50 dark:bg-black/20 backdrop-blur-md shadow-inner">
                             <table class="w-full text-left text-xs" data-adaptive="true">
-                                <thead class="bg-gray-100/50 dark:bg-white/5 border-b border-black/5 dark:border-white/5 text-gray-500 dark:text-gray-400 font-black uppercase tracking-widest text-[9px] md:text-[10px]">
-                                    <tr>
+                                 <thead class="hidden sm:table-header-group bg-gray-100/50 dark:bg-white/5 border-b border-black/5 dark:border-white/5 text-gray-500 dark:text-gray-400 font-black uppercase tracking-widest text-[9px] md:text-[10px]">
+                                     <tr>
                                         <th class="p-2 md:p-4 text-teal-600 dark:text-teal-400">Teléfono</th>
                                         <th class="p-2 md:p-4">Propietario</th>
                                         <th class="p-2 md:p-4 hidden sm:table-cell">Dirección</th>
@@ -412,15 +416,17 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                             </table>
                         </div>
 
-                        <div id="phone-actions" class="flex flex-col md:flex-row justify-center items-center gap-4 pt-4">
-                             <button id="btn-finalizar-sesion" class="hidden w-full md:w-auto bg-red-600 hover:bg-red-500 text-white px-12 py-5 rounded-3xl font-black shadow-2xl shadow-red-500/30 transform hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 uppercase tracking-widest text-xs">
-                                🏁 FINALIZAR PREDICACIÓN
-                             </button>
-                             <button id="btn-solicitar-more" class="hidden w-full md:w-auto bg-teal-600 hover:bg-teal-500 text-white px-12 py-5 rounded-3xl font-black shadow-2xl shadow-teal-500/30 transform hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 border-2 border-white/10 uppercase tracking-widest text-xs">
-                                ➕ SOLICITAR MÁS
-                             </button>
-                        </div>
                     </div>
+                </div>
+
+                <!-- Xolvy Adapt: Floating Action Bar for Phones (Mockup Mode) -->
+                <div id="phone-floating-actions" class="fixed bottom-8 left-1/2 -translate-x-1/2 hidden items-center gap-4 z-[60] animate-bounce-in w-[90%] md:w-auto">
+                    <button id="btn-finalizar-float" class="flex-1 md:flex-none bg-[#E12E2E] hover:bg-red-500 text-white px-8 md:px-12 py-5 rounded-[2rem] font-black shadow-[0_20px_40px_rgba(225,46,46,0.3)] transform hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 uppercase tracking-widest text-[10px]">
+                        <i class="fas fa-check-double"></i> FINALIZAR PREDICACIÓN
+                    </button>
+                    <button id="btn-solicitar-more-float" class="flex-1 md:flex-none bg-[#00897B] hover:bg-teal-500 text-white px-8 md:px-12 py-5 rounded-[2rem] font-black shadow-[0_20px_40px_rgba(0,137,123,0.3)] transform hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 uppercase tracking-widest text-[10px] border border-white/10">
+                        <i class="fas fa-plus"></i> SOLICITAR MÁS
+                    </button>
                 </div>
 
                 <div class="lg:col-span-2 modern-card border-slate-200 dark:border-white/10 shadow-2xl transition-all overflow-hidden !p-0 ${mods.mapas !== false ? '' : 'hidden'} bg-white dark:bg-slate-900/40 mb-4" id="interactive-maps-module">
@@ -519,7 +525,9 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
     };
 
     // Robust Refresh for Table specifically
-    window.refreshPhoneTableOnly = async () => {
+    window.refreshPhoneTableOnly = async (idToMark = null) => {
+        if (idToMark) sessionHandledIds.add(idToMark);
+
         const searchPhone = container.querySelector('#search-phone');
         const filterStatus = container.querySelector('#filter-phone-status');
         const term = searchPhone?.value.toLowerCase() || '';
@@ -561,7 +569,8 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                             const oldText = btn.innerHTML;
                             btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Solicitando...';
 
-                            const count = await solicitarNumeros(35, displayName);
+                            // Xolvy Adapt: Changed batch size to 30 as requested for better performance/UX
+                            const count = await solicitarNumeros(30, displayName);
                             if (count > 0) {
                                 showNotification(`Se han asignado ${count} números nuevos.`, 'success');
                                 await window.refreshConductorView();
@@ -581,22 +590,27 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
             setupSolicitarBtn('btn-solicitar');
             setupSolicitarBtn('btn-solicitar-more');
+            setupSolicitarBtn('btn-solicitar-more-float');
 
             setupDashboardListeners();
 
             // Toggle View Visibility
             const compactView = container.querySelector('#phone-compact-view');
             const expandedView = container.querySelector('#phone-expanded-view');
+            const floatingActions = container.querySelector('#phone-floating-actions');
+
             if (myPhones.length > 0) {
                 compactView?.classList.add('hidden');
                 expandedView?.classList.remove('hidden');
-                container.querySelector('#phone-actions')?.classList.remove('hidden');
-                container.querySelector('#btn-solicitar-more')?.classList.remove('hidden');
-                container.querySelector('#btn-finalizar-sesion')?.classList.remove('hidden');
+
+                // Show floating bar
+                floatingActions?.classList.replace('hidden', 'flex');
             } else {
                 compactView?.classList.remove('hidden');
                 expandedView?.classList.add('hidden');
-                container.querySelector('#phone-actions')?.classList.add('hidden');
+
+                // Hide floating bar
+                floatingActions?.classList.replace('flex', 'hidden');
             }
 
             if (mPhone && mPhone.initializePhoneModule) {
@@ -937,6 +951,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
         bindFinalizar('btn-finalizar-sesion');
         bindFinalizar('btn-finalizar');
+        bindFinalizar('btn-finalizar-float');
 
         // Refrescar button
         const btnRefresh = container.querySelector('#btn-refresh');
@@ -952,7 +967,18 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 p.telefono?.toLowerCase().includes(term) ||
                 p.propietario?.toLowerCase().includes(term) ||
                 p.direccion?.toLowerCase().includes(term);
-            const matchesStatus = !status || p.estado === status;
+
+            // Xolvy Adapt: By default (no status filter), only show 'Sin asignar' or 'Revisitas'
+            // Handled ones (No contestan, Contestaron) stay hidden until session end/reset.
+            // UNLESS they were handled in the CURRENT session (sessionHandledIds).
+            let matchesStatus = false;
+            if (status) {
+                matchesStatus = p.estado === status;
+            } else {
+                // Default view: Show unhandled, revisitas, or what we just worked on
+                matchesStatus = (!p.estado || p.estado === 'Sin asignar' || p.estado === 'Revisita' || sessionHandledIds.has(p.id));
+            }
+
             return matchesTerm && matchesStatus;
         });
         const publicadores = await getPublicadores();

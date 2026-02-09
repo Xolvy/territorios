@@ -199,9 +199,14 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                             </button>
                         </div>
                         <div class="space-y-4">
-                            <h5 class="text-[10px] font-black uppercase text-slate-700 dark:text-gray-300">Diagnóstico de Sistema</h5>
                             <button id="btn-sync-master-reglas" class="w-full bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl transition-all flex items-center justify-center gap-3 leading-none">
-                                <i class="fas fa-sync-alt"></i> Reconstruir Base de Datos
+                                <i class="fas fa-sync-alt"></i> Reparar / Sincronizar
+                            </button>
+                        </div>
+                        <div class="space-y-4">
+                            <h5 class="text-[10px] font-black uppercase text-slate-700 dark:text-gray-300">Reinicio Maestro (¡Cuidado!)</h5>
+                            <button id="btn-purge-official" class="w-full bg-slate-100 dark:bg-white/5 hover:bg-rose-600 hover:text-white text-rose-500 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 leading-none group">
+                                <i class="fas fa-trash-alt group-hover:animate-bounce"></i> Borrar Historial y Comnezar de Cero
                             </button>
                         </div>
                     </div>
@@ -308,6 +313,46 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                     console.log(`[SyncMaster] ${msg} (${pc}%)`);
                 });
                 showNotification("Diagnóstico y reparación completados", "success");
+                reloadTabFn('config');
+            } catch (e) {
+                console.error(e);
+                showNotification("Error: " + e.message, "error");
+            } finally {
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+            }
+        };
+    }
+
+    const purgeOfficialBtn = container.querySelector('#btn-purge-official');
+    if (purgeOfficialBtn) {
+        purgeOfficialBtn.onclick = async () => {
+            const confirmed = await showCustomConfirm(
+                "¿BORRAR TODO EL HISTORIAL?",
+                "Esta acción eliminará permanentemente todos los registros del S-13 (historial de territorios) y reseteará los estados a 'Disponible'. Los borradores de 'Programa' NO se borrarán.",
+                "fas fa-trash-alt",
+                "BORRAR DEFINITIVAMENTE"
+            );
+            if (!confirmed) return;
+
+            const secondConfirm = await showCustomConfirm(
+                "¿Estás ABSOLUTAMENTE seguro?",
+                "Esta operación no se puede deshacer. Se recomienda hacer un backup primero.",
+                "fas fa-exclamation-triangle",
+                "SÍ, ESTOY SEGURO"
+            );
+            if (!secondConfirm) return;
+
+            const btn = purgeOfficialBtn;
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Purgando...';
+            btn.disabled = true;
+            try {
+                const { purgeOfficialRecordsAndResetTerritories } = await import('../../data/firestore-services.js');
+                await purgeOfficialRecordsAndResetTerritories((msg, pc) => {
+                    btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${msg} (${pc}%)`;
+                });
+                showNotification("Exito: Base de datos oficial reseteada a CERO", "success");
                 reloadTabFn('config');
             } catch (e) {
                 console.error(e);

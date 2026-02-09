@@ -1,7 +1,8 @@
 import Chart from 'chart.js/auto';
 import {
     getHistorialReport, getConductores, getTerritorios, getPublicadores, getConfiguracion,
-    assignTerritorio, returnTerritorio, transferTerritory, addHistoryRecord, updateHistoryRecord, deleteHistoryRecord, updateTerritorio
+    assignTerritorio, returnTerritorio, transferTerritory, addHistoryRecord, updateHistoryRecord, deleteHistoryRecord, updateTerritorio,
+    getProgramaSemanal
 } from '../../data/firestore-services.js';
 import { UIHelpers, showModal, showCustomConfirm, showCustomPrompt, showTerritorySelectionModal } from '../services/ui-helpers.js';
 import { formatPhoneNumber, getStatusColor, showNotification } from '../utils/helpers.js';
@@ -9,24 +10,43 @@ import { formatPhoneNumber, getStatusColor, showNotification } from '../utils/he
 const { formatDisplayDateRange } = UIHelpers;
 
 export const renderHistorialView = async (container) => {
-    const [history, tRaw, allPublicadores] = await Promise.all([
+    const monday = UIHelpers.getMonday(new Date());
+    const weekId = UIHelpers.formatDateId(monday);
+
+    const [history, tRaw, allPublicadores, currentProg] = await Promise.all([
         getHistorialReport(),
         getTerritorios(),
-        getPublicadores()
+        getPublicadores(),
+        getProgramaSemanal(weekId).catch(() => null)
     ]);
+
+    // Extract territory numbers from the current program to ensure they appear in Historial
+    const programTerritories = new Set();
+    if (currentProg && currentProg.dias) {
+        currentProg.dias.forEach(d => {
+            ['manana', 'tarde', 'noche', 'zoom'].forEach(turn => {
+                if (d[turn] && d[turn].territorio) {
+                    String(d[turn].territorio).split(/[,;/]/).forEach(n => {
+                        const clean = String(n || '').trim();
+                        if (clean) programTerritories.add(clean);
+                    });
+                }
+            });
+        });
+    }
 
     // Force re-import if needed for repair
     const { runSystemDiagnosticsAndRepair } = await import('../../data/firestore-services.js');
 
-    // Xolvy Data Shield: Unique 1-22 only
+    // Xolvy Data Shield: Unique numbers only (Removed 1-22 restriction to support all territories)
     const normalizeT = (val) => String(val || '').trim();
     const seen = new Set();
     const allTerritorios = tRaw
         .filter(rec => {
-            const num = parseInt(normalizeT(rec.numero));
-            if (!num || isNaN(num) || num < 1 || num > 22) return false;
-            if (seen.has(num)) return false;
-            seen.add(num);
+            const numStr = normalizeT(rec.numero);
+            if (!numStr) return false;
+            if (seen.has(numStr)) return false;
+            seen.add(numStr);
             return true;
         })
         .map(rec => ({
@@ -34,7 +54,7 @@ export const renderHistorialView = async (container) => {
             numero: normalizeT(rec.numero),
             manzanas: String(rec.manzanas || '').replace(/Salmo/gi, 'Mz.').trim()
         }))
-        .sort((a, b) => parseInt(a.numero) - parseInt(b.numero));
+        .sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true, sensitivity: 'base' }));
 
     // Build ID to Num mapping for robust history linking
     const idToNum = {};
@@ -155,8 +175,17 @@ export const renderHistorialView = async (container) => {
                 const matchesQuery = n.includes(query) ||
                     (t.asignado_a && t.asignado_a.toLowerCase().includes(query)) ||
                     (t.localidad && t.localidad.toLowerCase().includes(query));
+
+                // --- RELEVANCE FILTER ---
+                // Show if: Currently assigned, has completion history, is in current Program, or user is searching
+                const isAsignado = t.estado === 'Asignado' || (t.asignado_a && t.asignado_a.trim() !== '');
+                const hasHistory = (historyByNum[t.numero] || []).some(h => h.fecha_entrega);
+                const inProgram = programTerritories.has(t.numero);
+
+                const isRelevant = isAsignado || hasHistory || inProgram || query.length > 0;
+
                 const matchesStatus = !status || t.estado === status;
-                return matchesQuery && matchesStatus;
+                return matchesQuery && matchesStatus && isRelevant;
             })
             .sort((a, b) => (a.numero || '').localeCompare(b.numero || '', undefined, { numeric: true }));
 
@@ -205,9 +234,6 @@ export const renderHistorialView = async (container) => {
                             </button>
                             <button onclick="window.viewTimeline('${t.numero}', 'obs')" class="flex-1 h-14 flex items-center justify-center gap-3 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-indigo-500 transition-all shadow-xl shadow-indigo-600/20 active:scale-95">
                                 <i class="fas fa-comment-dots text-xs"></i> Notas
-                            </button>
-                            <button onclick="window.quickAssign('${t.id}', '${t.numero}')" class="w-14 h-14 flex items-center justify-center bg-slate-100 dark:bg-white/5 text-slate-500 hover:text-primary rounded-2xl transition-all border border-slate-200 dark:border-white/10 shrink-0">
-                                <i class="fas fa-plus"></i>
                             </button>
                         </div>
                     </div>

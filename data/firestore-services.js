@@ -1487,26 +1487,35 @@ export const releaseUnusedTelefonos = async (userId, globalCleanup = false) => {
         }
 
         if (userId) {
-            const userQ = query(phoneCol,
-                where("solicitado_por", "==", userId),
-                where("estado", "==", "Sin asignar")
-            );
+            // Xolvy Shield: More aggressive release. We release everything held by the user 
+            // EXCEPT 'Revisita' and 'Testigo' (which are special) to ensure the Conductor 
+            // starts with a fresh view every time.
+            const userQ = query(phoneCol, where("solicitado_por", "==", userId));
             const userSnap = await getDocs(userQ);
             const userBatchPromises = [];
             const twentyMinutesAgo = new Date(Date.now() - 20 * 60 * 1000);
 
             userSnap.docs.forEach(d => {
                 const data = d.data();
-                // Only release if it hasn't been specifically assigned to a publisher in the UI
-                // AND it's older than 20 minutes (Avoids clearing freshly requested numbers on reload)
-                if (!data.publicador_asignado && !data.asignado_a) {
+                const status = data.estado || 'Sin asignar';
+
+                // Release if:
+                // 1. It's 'Sin asignar' and older than 20 mins (unused)
+                // 2. It has a handled status (Contestaron, No contestan, etc.) and it's NOT a Revisita
+                const isUnused = (status === 'Sin asignar' && (!data.publicador_asignado && !data.asignado_a));
+                const isHandled = (status !== 'Sin asignar' && status !== 'Revisita' && status !== 'Testigo');
+
+                if (isHandled || isUnused) {
                     const reqDate = data.fecha_asignacion ? new Date(data.fecha_asignacion) : null;
-                    if (!reqDate || reqDate < twentyMinutesAgo) {
+                    // For unused, we keep a 20min buffer. For handled, we release immediately if this is called.
+                    if (isHandled || !reqDate || reqDate < twentyMinutesAgo) {
                         userBatchPromises.push(updateDoc(d.ref, {
                             solicitado_por: null,
                             fecha_asignacion: null,
-                            asignado_a: null,
-                            publicador_asignado: null
+                            // publicador_asignado: null, // Keep publisher for history/reset purposes? 
+                            // The user said "shouldn't load publisher records". Clearing it here might be good.
+                            publicador_asignado: isHandled ? data.publicador_asignado : null,
+                            asignado_a: isHandled ? data.asignado_a : null
                         }));
                     }
                 }
@@ -1700,27 +1709,43 @@ export const syncAssignmentToWeeklyProgram = async (territoryData, conductorName
 /**
  * Synchronizes a specific slot in the Weekly Program with the 'territorios' collection.
  * It will assign new territories and return removed ones.
+ * @param {string} dateISO - The intended PREACHING date (e.g. Friday Jan 23)
+ * @param {string} explicitAssignmentDate - (Optional) The date the user CHOSE in the modal (e.g. Sunday Jan 18)
  */
-export const syncSlotWithTerritories = async (weekId, dayIdx, turno, tData, dateISO) => {
+export const syncSlotWithTerritories = async (weekId, dayIdx, turno, tData, dateISO, explicitAssignmentDate = null) => {
     try {
         // 1. Parse territories in the UI slot
-        const uiTerrs = tData.territorio ? String(tData.territorio).split(/[,/]/).map(s => s.trim()).filter(Boolean) : [];
+        const uiTerrs = tData.territorio ? String(tData.territorio).split(/[,;/]/).map(s => s.trim()).filter(Boolean) : [];
         const conductor = tData.conductor || '';
 
-        // 2. Query all territories currently assigned to ANY slot (we will filter by date and turn client-side for robustness)
+        // 2. Query all territories currently assigned
         const q = query(
             collection(db, "territorios"),
             where("estado", "==", "Asignado")
         );
         const snap = await getDocs(q);
 
-        // Filter client-side by date key (YYYY-MM-DD) and turno to handle variations in ISO time
-        const targetDateKey = dateISO.split('T')[0];
+        // Filter client-side: Find territories assigned to this SPECIFIC weekly slot
+        // Robust cleanup: include territories assigned within a 3-day window of the program day if no explicit match
+        const programDayISO = dateISO.split('T')[0];
+        const preachingDate = new Date(programDayISO + 'T12:00:00Z');
+
         const dbTerrs = snap.docs
             .map(doc => ({ id: doc.id, ...doc.data() }))
             .filter(t => {
-                const dbDateKey = t.fecha_asignacion ? String(t.fecha_asignacion).split('T')[0] : null;
-                return dbDateKey === targetDateKey && t.turno === turno;
+                if (t.turno !== turno) return false;
+                if (!t.fecha_asignacion) return false;
+
+                const dbDate = new Date(t.fecha_asignacion);
+                const dbDateKey = t.fecha_asignacion.split('T')[0];
+
+                // Case 1: Explicit match with the user's chosen date
+                if (explicitAssignmentDate && dbDateKey === explicitAssignmentDate.split('T')[0]) return true;
+
+                // Case 2: Belong to same week and same turn
+                // We use a +/- 4 day window from preaching date for safety
+                const diffDays = Math.abs((dbDate.getTime() - preachingDate.getTime()) / (1000 * 60 * 60 * 24));
+                return diffDays <= 7; // Any assignment roughly in this week's turn
             });
 
         // 3. REMOVALS:
@@ -1767,19 +1792,31 @@ export const syncSlotWithTerritories = async (weekId, dayIdx, turno, tData, date
                         campana: tDataDB.campana || ''
                     };
 
-                    const programDay = new Date(dateISO);
-                    const assignmentDate = new Date(programDay);
-                    assignmentDate.setDate(assignmentDate.getDate() - 7);
+                    const programDay = new Date(dateISO.split('T')[0] + 'T12:00:00Z');
+
+                    // DEFAULT Logic: The Sunday BEFORE the week starts
+                    // If Monday is Jan 19, Monday - 1 = Sunday Jan 18
+                    let assignmentDate;
+                    if (explicitAssignmentDate) {
+                        assignmentDate = new Date(explicitAssignmentDate.split('T')[0] + 'T12:00:00Z');
+                    } else {
+                        // Calculate Sunday BEFORE this week starts
+                        const d = new Date(programDay);
+                        const day = d.getUTCDay(); // 0 is Sun, 1 is Mon...
+                        const diffToPrevSun = day === 0 ? 7 : day; // If Sun, go back 7. If Mon, go back 1.
+                        d.setUTCDate(d.getUTCDate() - diffToPrevSun);
+                        assignmentDate = d;
+                    }
 
                     const now = new Date();
                     const isPast = programDay < now;
-                    // Skip territory update if the program day is more than 3 days in the past (Safety Shield)
-                    const skipUpdate = isPast && (now - programDay > 1000 * 60 * 60 * 24 * 3);
+                    // Skip territory update if the program day is more than 5 days in the past (Safety Shield)
+                    const skipUpdate = isPast && (now - programDay > 1000 * 60 * 60 * 24 * 5);
 
                     const newDetails = {
                         asignado_a: normalizedConductor,
                         fecha_asignacion: assignmentDate.toISOString(),
-                        fecha_entrega: isPast ? programDay.toISOString() : null,
+                        fecha_preparado: programDay.toISOString(), // The actual program day
                         estado: isPast ? 'Completado' : 'Asignado',
                         skipTerritoryUpdate: skipUpdate,
                         turno: turno,
@@ -2169,8 +2206,9 @@ export const saveProgramaSemanal = async (weekId, data) => {
     // Force ID to be the Week Start Date (YYYY-MM-DD)
     await setDoc(doc(db, "programa_semanal", weekId), data);
 
-    // Auto-Sync to S-13 History
-    await syncScheduleToHistory(weekId, data);
+    // Xolvy Shield: Auto-Sync disabled per user request to separate draft from formal S-13 history.
+    // Use 'Formalizar Asignaciones' button in the UI to commit these to the official record.
+    // await syncScheduleToHistory(weekId, data);
 };
 
 // --- PERMISOS ---
@@ -2454,6 +2492,69 @@ export const updateRecurso = async (id, data) => {
 };
 
 // --- MASTER CLEANUP ---
+/**
+ * Purges all historical records and resets current territory statuses.
+ * This effectively starts the official record from zero while keeping program drafts.
+ */
+export const purgeOfficialRecordsAndResetTerritories = async (onProgress) => {
+    const reportProgress = (msg, pc) => { if (onProgress) onProgress(msg, pc); };
+
+    try {
+        // 1. Clear History (S-13)
+        reportProgress("Borrando historial oficial (S-13)...", 10);
+        const histSnap = await getDocs(collection(db, "historial_territorios"));
+        let hCount = 0;
+
+        const histDocs = histSnap.docs;
+        if (histDocs.length > 0) {
+            for (let i = 0; i < histDocs.length; i += 500) {
+                const batch = writeBatch(db);
+                const chunk = histDocs.slice(i, i + 500);
+                chunk.forEach(d => batch.delete(d.ref));
+                await batch.commit();
+                hCount += chunk.length;
+                reportProgress(`Borrados ${hCount} registros de historial...`, 10 + Math.floor((i / histDocs.length) * 40));
+            }
+        }
+
+        // 2. Reset Territories state
+        reportProgress("Reseteando estados de territorios...", 60);
+        const terrSnap = await getDocs(collection(db, "territorios"));
+        let tCount = 0;
+        const terrDocs = terrSnap.docs;
+        if (terrDocs.length > 0) {
+            for (let i = 0; i < terrDocs.length; i += 500) {
+                const batch = writeBatch(db);
+                const chunk = terrDocs.slice(i, i + 500);
+                chunk.forEach(d => {
+                    batch.update(d.ref, {
+                        estado: 'Disponible',
+                        asignado_a: null,
+                        fecha_asignacion: null,
+                        turno: null,
+                        auxiliar: '',
+                        lugar: '',
+                        hora: '',
+                        faceta: '',
+                        grupos: '',
+                        campana: ''
+                    });
+                });
+                await batch.commit();
+                tCount += chunk.length;
+                reportProgress(`Reseteados ${tCount} territorios...`, 60 + Math.floor((i / terrDocs.length) * 30));
+            }
+        }
+
+        if (ServiceCache && ServiceCache.clearAll) ServiceCache.clearAll();
+        reportProgress("✅ Limpieza oficial completada. Borradores de 'Programa' preservados.", 100);
+        return { historyDeleted: hCount, territoriesReset: tCount };
+    } catch (e) {
+        console.error("Error in purgeOfficialRecordsAndResetTerritories:", e);
+        throw e;
+    }
+};
+
 /**
  * Completely clears all current assignments from territories and the weekly program.
  * Does NOT touch S-13 history in 'historial_territorios'.
