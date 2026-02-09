@@ -1,7 +1,7 @@
 import {
     getTerritorios, getConfiguracion, getPublicadores, getConductores,
     getProgramaSemanal, saveProgramaSemanal, getGroupsConfig, returnTerritorioMultiple,
-    getHistorialReport, returnTerritorioParcial, runProgramDiagnostic, syncScheduleToHistory
+    getHistorialReport, returnTerritorioParcial, runProgramDiagnostic, formalizeWeek
 } from '../../data/firestore-services.js';
 import { showNotification, generatePlainXLS } from '../utils/helpers.js';
 import { UIHelpers, showModal, showTerritorySelectionModal, showCustomConfirm } from '../services/ui-helpers.js';
@@ -963,7 +963,7 @@ export const renderProgramaTab = async (container) => {
 
                     try {
                         // Correct history entries
-                        await syncScheduleToHistory(weekId, programa);
+                        await formalizeWeek(weekId, programa);
 
                         // Also sync individual territories if pending formalization
                         // This uses existing masiv synchronization logic
