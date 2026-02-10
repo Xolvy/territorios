@@ -391,7 +391,7 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
                                  </div>
                                  <h4 class="text-[10px] font-black uppercase text-slate-500 tracking-[0.3em]">Prioridades de Asignación</h4>
                              </div>
-                             <div class="flex gap-2 overflow-x-auto pb-4 px-2 snap-x">
+                             <div class="flex gap-2 overflow-x-auto pb-2 px-2 snap-x">
                                  ${incomplete.map(s => `
                                      <button onclick="window.modalToggleTerr('${s.numero}')" 
                                              class="snap-center shrink-0 flex flex-col items-start gap-0.5 p-2 bg-white dark:bg-white/5 border border-rose-500/30 rounded-xl min-w-[140px] hover:border-rose-500 transition-all shadow-sm active:scale-95 text-left group">
@@ -415,7 +415,7 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
                                      </button>
                                  `).join('')}
                              </div>
-                             <div class="h-px bg-slate-200 dark:bg-white/10 mx-2 !my-6"></div>
+                             <div class="h-px bg-slate-200 dark:bg-white/10 mx-2 !mt-2 !mb-6"></div>
                         `;
         })()}
                 </div>

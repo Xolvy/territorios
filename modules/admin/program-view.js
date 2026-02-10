@@ -569,6 +569,19 @@ export const renderProgramaTab = async (container) => {
         }
     };
 
+    window.toggleTurnEnabled = async (dayIdx, turnoId) => {
+        const dia = programa.dias[dayIdx];
+        if (!dia[turnoId]) dia[turnoId] = {};
+
+        dia[turnoId].enabled = !(dia[turnoId].enabled !== false);
+
+        renderTable();
+        saveProgramaSemanal(programa.id, programa).catch(e => console.error("Error toggling turn:", e));
+
+        const action = dia[turnoId].enabled ? 'activada' : 'desactivada';
+        showNotification(`Jornada ${action} con éxito`, 'info');
+    };
+
     window.clearTurnData = async (dayIdx, turnoId) => {
         showCustomConfirm('¿Limpiar todos los datos de este turno?', async () => {
             programa.dias[dayIdx][turnoId] = {};

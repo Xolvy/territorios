@@ -34,8 +34,8 @@ export const renderFullProgramaCards = (programa, container, territoryMap = {}, 
         // Check if day has any visible shift
         const hasVisibleData = shifts.some(s => {
             if (!activeTurns.has(s)) return false;
-            if (s === 'zoom' && dayName !== 'Martes') return false;
             const sData = d[s];
+            if (sData && sData.enabled === false) return false;
             return sData && (sData.conductor || sData.lugar || sData.hora);
         });
 
@@ -61,14 +61,12 @@ export const renderFullProgramaCards = (programa, container, territoryMap = {}, 
                                 <i class="fas fa-calendar-day"></i>
                             </div>
                         </div>
-
                         <div class="space-y-4">
                             ${shifts.map(shift => {
             if (!activeTurns.has(shift)) return '';
-            if (shift === 'zoom' && dayName !== 'Martes') return '';
-
             const sData = d ? d[shift] : null;
-            if (!sData || (!sData.conductor && !sData.lugar)) return '';
+            if (!sData || sData.enabled === false) return '';
+            if (!sData.conductor && !sData.lugar) return '';
 
             const isConductor = sData.conductor === currentConductorName;
             const isAuxiliar = sData.auxiliar === currentConductorName;
