@@ -3,7 +3,7 @@ import {
     getProgramaSemanal, saveProgramaSemanal, getGroupsConfig, returnTerritorioMultiple,
     getHistorialReport, returnTerritorioParcial, runProgramDiagnostic, formalizeWeek
 } from '../../data/firestore-services.js';
-import { showNotification, generatePlainXLS, formatGroups } from '../utils/helpers.js';
+import { showNotification, generatePlainXLS, formatGroups, getBaseTerritoryNumber } from '../utils/helpers.js';
 import { UIHelpers, showModal, showTerritorySelectionModal, showCustomConfirm } from '../services/ui-helpers.js';
 import { generateLandscapePreviewHTML } from '../conductor/program-views.js';
 
@@ -297,7 +297,8 @@ export const renderProgramaTab = async (container) => {
         const normalizeLower = (val) => normalizeT(val).toLowerCase();
 
         const getTStatus = (tNum, conductor, fechaISO, turno) => {
-            const t = freshTerritorios.find(x => normalizeLower(x.numero) === normalizeLower(tNum));
+            const baseT = getBaseTerritoryNumber(tNum);
+            const t = freshTerritorios.find(x => normalizeLower(x.numero) === normalizeLower(baseT));
             if (!t) return { isSync: false, isConflict: false, numero: tNum };
             if (t.estado !== 'Asignado') return { isSync: false, isConflict: false, numero: tNum };
 
@@ -1556,7 +1557,8 @@ export const renderProgramaTab = async (container) => {
                     const tNums = String(data.territorio).split(/[,;/]/).map(n => n.trim()).filter(n => n);
 
                     tNums.forEach(tNum => {
-                        const tInfo = territoryMap[normalize(tNum)] || null;
+                        const baseT = getBaseTerritoryNumber(tNum);
+                        const tInfo = territoryMap[normalize(baseT)] || null;
                         toSync.push({ dayIdx, turnoId, dia, data, tInfo, specificT: tNum });
                     });
                 }

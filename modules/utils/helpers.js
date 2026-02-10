@@ -330,6 +330,13 @@ export const formatGroups = (val) => {
     return parts.join(', ') + ' y ' + last;
 };
 
+export const getBaseTerritoryNumber = (val) => {
+    if (!val) return '';
+    // Extract base number before any parenthesis or extra text
+    const match = String(val).match(/^(\d+)/);
+    return match ? match[1] : val;
+};
+
 // Global click-outside to close modals
 if (typeof document !== 'undefined') {
     document.addEventListener('click', (e) => {

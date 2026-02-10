@@ -431,7 +431,9 @@ export const getTerritorios = async () => {
             const activeAssignments = {};
             bancoSnap.docs.forEach(d => {
                 const data = d.data();
-                activeAssignments[String(data.territorio_id)] = { ...data, id: d.id };
+                // Extract base number to link partial assignments to the main territory document
+                const baseNum = String(data.territorio_id || '').match(/^(\d+)/)?.[1] || data.territorio_id;
+                activeAssignments[String(baseNum)] = { ...data, id: d.id };
             });
 
             return terrSnap.docs
