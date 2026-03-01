@@ -1,14 +1,11 @@
-import Chart from 'chart.js/auto';
 // --- TERRITORIOS VIEW SHELL ---
 // This is a router module for Casa en Casa administration.
 // Refactored in 2026 for modularity.
 
 export const renderCasaEnCasaTab = async (container, config, appVersion) => {
-    let _activeSub = 'programa';
-
     container.innerHTML = `
         <div class="space-y-6 md:space-y-8 animate-fade-in px-1 md:px-6" data-adaptive-container="true">
-            <header class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6" data-mobile-order="1" data-desktop-order="1">
+            <header class="flex flex-row flex-wrap justify-start items-start lg:items-center gap-4 md:gap-6 w-full" data-mobile-order="1" data-desktop-order="1">
                 <div class="flex items-center gap-4 md:gap-6">
                     <div class="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center text-white text-2xl shadow-xl shadow-primary/30 border border-primary/20 shrink-0">
                         <i class="fas fa-home"></i>
@@ -19,14 +16,9 @@ export const renderCasaEnCasaTab = async (container, config, appVersion) => {
                     </div>
                 </div>
 
-                <nav data-adaptive-wrap="true" class="flex flex-row flex-wrap items-center gap-1.5 bg-slate-100 dark:bg-white/5 p-2 rounded-2xl border border-slate-200 dark:border-white/10 shadow-inner w-max max-w-full backdrop-blur-xl shrink-0 overflow-hidden">
+                <nav class="flex flex-row flex-wrap items-center justify-start gap-2 w-full lg:w-auto flex-1 min-w-0 mt-2 lg:mt-0">
                     ${renderSubTab('programa', 'fas fa-calendar-check', 'Programa')}
                     ${renderSubTab('mapas', 'fas fa-map-marked-alt', 'Mapas')}
-                    ${renderSubTab('reportes', 'fas fa-history', 'Historial')}
-                    ${renderSubTab('puntos', 'fas fa-map-marker-alt', 'Zonas')}
-                    <div class="w-px h-5 bg-slate-300 dark:bg-white/10 mx-2 shrink-0"></div>
-                    ${renderSubTab('recursos', 'fas fa-folder-open', 'Recursos')}
-                    ${renderSubTab('personal', 'fas fa-users', 'Publicadores')}
                 </nav>
             </header>
             
@@ -35,43 +27,28 @@ export const renderCasaEnCasaTab = async (container, config, appVersion) => {
     `;
 
     const loadCasaSub = async (sub) => {
-        _activeSub = sub;
         const subContainer = container.querySelector('#casa-content');
 
         container.querySelectorAll('.sub-tab-casa').forEach(btn => {
             const isActive = btn.dataset.sub === sub;
             btn.classList.toggle('active', isActive);
-            btn.className = `sub-tab-casa group px-4 md:px-6 py-2 md:py-3 rounded-xl transition-all flex items-center justify-center gap-2 md:gap-3 whitespace-nowrap font-black border ${isActive ? 'bg-slate-900 dark:bg-white/10 text-white border-slate-800 shadow-lg' : 'text-slate-600 dark:text-slate-400 border-transparent hover:bg-white dark:hover:bg-white/5 shadow-none'}`;
+            btn.className = `sub-tab-casa group px-5 md:px-6 py-2.5 md:py-3 rounded-2xl transition-all flex items-center justify-center gap-2.5 md:gap-3 whitespace-nowrap font-black border ${isActive ? 'bg-slate-900 text-white border-slate-800 shadow-xl shadow-slate-900/20' : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10 shadow-sm'}`;
         });
 
         subContainer.innerHTML = `<div class="p-20 text-center opacity-30"><i class="fas fa-circle-notch fa-spin text-3xl"></i></div>`;
 
         try {
             switch (sub) {
-                case 'programa':
+                case 'programa': {
                     const { renderProgramaTab } = await import('./program-view.js');
                     await renderProgramaTab(subContainer, config, appVersion);
                     break;
-                case 'mapas':
+                }
+                case 'mapas': {
                     const { renderMapsView } = await import('./maps-view.js');
                     await renderMapsView(subContainer, config, appVersion);
                     break;
-                case 'reportes':
-                    const { renderReportsTab } = await import('./reports-view.js');
-                    await renderReportsTab(subContainer, config, appVersion);
-                    break;
-                case 'puntos':
-                    const { renderPuntosInteresTab } = await import('./puntos-view.js');
-                    await renderPuntosInteresTab(subContainer, config, appVersion);
-                    break;
-                case 'recursos':
-                    const { renderRecursosTab } = await import('./resources-view.js');
-                    await renderRecursosTab(subContainer, config, appVersion);
-                    break;
-                case 'personal':
-                    const { renderPersonalTab } = await import('./personal-view.js');
-                    await renderPersonalTab(subContainer, config, appVersion);
-                    break;
+                }
             }
             // Trigger adaptive engine after sub-module load
             if (window.XolvyAdaptive) window.XolvyAdaptive.refresh();
@@ -93,8 +70,8 @@ export const renderCasaEnCasaTab = async (container, config, appVersion) => {
 };
 
 const renderSubTab = (id, icon, label) => `
-    <button class="sub-tab-casa group px-4 md:px-6 py-2 md:py-3 rounded-xl transition-all flex items-center justify-center gap-2 md:gap-3 whitespace-nowrap font-black flex-1 sm:flex-none" data-sub="${id}">
-        <i class="${icon} text-xs md:text-sm"></i>
+    <button class="sub-tab-casa group transition-all flex items-center justify-center whitespace-nowrap font-black" data-sub="${id}">
+        <i class="${icon} text-sm"></i>
         <span class="text-[9px] md:text-[10px] uppercase tracking-widest">${label}</span>
     </button>
 `;

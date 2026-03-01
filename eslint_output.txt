@@ -1,0 +1,304 @@
+
+D:\_CODE\app-territorios\data\services\backup-service.js
+  2:22  warning  'getDocs' is defined but never used    no-unused-vars
+  2:56  warning  'Timestamp' is defined but never used  no-unused-vars
+
+D:\_CODE\app-territorios\data\services\config-service.js
+  128:49  warning  'force' is assigned a value but never used  no-unused-vars
+
+D:\_CODE\app-territorios\data\services\diagnostic-service.js
+    2:22  warning  'query' is defined but never used                    no-unused-vars
+    2:29  warning  'where' is defined but never used                    no-unused-vars
+    2:45  warning  'doc' is defined but never used                      no-unused-vars
+    2:73  warning  'setDoc' is defined but never used                   no-unused-vars
+    2:81  warning  'Timestamp' is defined but never used                no-unused-vars
+    3:10  warning  'ServiceCache' is defined but never used             no-unused-vars
+   62:15  warning  'status' is assigned a value but never used          no-unused-vars
+  100:11  warning  'reportProgress' is assigned a value but never used  no-unused-vars
+
+D:\_CODE\app-territorios\data\services\history-service.js
+  107:11  error  'deleteDoc' is not defined  no-undef
+
+D:\_CODE\app-territorios\data\services\phone-service.js
+  7:39  warning  'conductorQuery' is defined but never used  no-unused-vars
+
+D:\_CODE\app-territorios\data\services\program-service.js
+    3:24  warning  'fetchCached' is defined but never used  no-unused-vars
+   20:15  error    'updateDoc' is not defined               no-undef
+  241:33  warning  'dayIdx' is defined but never used       no-unused-vars
+  287:41  warning  'idx' is defined but never used          no-unused-vars
+
+D:\_CODE\app-territorios\data\services\territory-service.js
+  358:135  error  'orderBy' is not defined  no-undef
+  358:165  error  'limit' is not defined    no-undef
+  379:135  error  'orderBy' is not defined  no-undef
+  379:165  error  'limit' is not defined    no-undef
+
+D:\_CODE\app-territorios\modules\admin-dashboard.js
+    1:8   warning  'Chart' is defined but never used               no-unused-vars
+    3:41  warning  'getHistorialReport' is defined but never used  no-unused-vars
+    7:10  warning  'GlassButton' is defined but never used         no-unused-vars
+   77:17  error    Unexpected lexical declaration in case block    no-case-declarations
+   78:17  error    Unexpected lexical declaration in case block    no-case-declarations
+   82:17  error    Unexpected lexical declaration in case block    no-case-declarations
+   83:17  error    Unexpected lexical declaration in case block    no-case-declarations
+   87:17  error    Unexpected lexical declaration in case block    no-case-declarations
+   91:17  error    Unexpected lexical declaration in case block    no-case-declarations
+   95:17  error    Unexpected lexical declaration in case block    no-case-declarations
+  100:17  error    Unexpected lexical declaration in case block    no-case-declarations
+
+D:\_CODE\app-territorios\modules\admin\assignments-view.js
+   3:41  warning  'getCampanas' is defined but never used                  no-unused-vars
+   6:32  warning  'showCustomConfirm' is defined but never used            no-unused-vars
+   6:51  warning  'showTerritorySelectionModal' is defined but never used  no-unused-vars
+   8:9   warning  'fmtDate' is assigned a value but never used             no-unused-vars
+  12:5   warning  '_globalConfig' is assigned a value but never used       no-unused-vars
+  13:5   warning  '_selectedIds' is assigned a value but never used        no-unused-vars
+  17:22  warning  'h' is assigned a value but never used                   no-unused-vars
+
+D:\_CODE\app-territorios\modules\admin\history-view.js
+    1:8    warning  'Chart' is defined but never used                            no-unused-vars
+    3:25   warning  'getConductores' is defined but never used                   no-unused-vars
+    3:74   warning  'getConfiguracion' is defined but never used                 no-unused-vars
+    4:41   warning  'transferTerritory' is defined but never used                no-unused-vars
+    4:99   warning  'deleteHistoryRecord' is defined but never used              no-unused-vars
+    4:120  warning  'updateTerritorio' is defined but never used                 no-unused-vars
+    7:51   warning  'showCustomPrompt' is defined but never used                 no-unused-vars
+    7:69   warning  'showTerritorySelectionModal' is defined but never used      no-unused-vars
+    8:10   warning  'formatPhoneNumber' is defined but never used                no-unused-vars
+    8:29   warning  'getStatusColor' is defined but never used                   no-unused-vars
+   10:9    warning  'formatDisplayDateRange' is assigned a value but never used  no-unused-vars
+  153:59   warning  'pc' is defined but never used                               no-unused-vars
+  200:19   warning  'tHistory' is assigned a value but never used                no-unused-vars
+  536:40   warning  'hId' is defined but never used                              no-unused-vars
+
+D:\_CODE\app-territorios\modules\admin\maintenance-view.js
+    7:40  warning  'showCustomPrompt' is defined but never used  no-unused-vars
+  267:40  warning  'btn' is defined but never used               no-unused-vars
+  285:36  warning  'btn' is defined but never used               no-unused-vars
+  344:36  warning  'btn' is defined but never used               no-unused-vars
+  356:37  warning  'btn' is defined but never used               no-unused-vars
+  377:43  warning  'btn' is defined but never used               no-unused-vars
+  387:37  warning  'btn' is defined but never used               no-unused-vars
+  421:40  warning  'btn' is defined but never used               no-unused-vars
+  450:33  warning  'btn' is defined but never used               no-unused-vars
+  483:35  warning  'btn' is defined but never used               no-unused-vars
+  505:37  warning  'btn' is defined but never used               no-unused-vars
+
+D:\_CODE\app-territorios\modules\admin\maps-admin.js
+  1:10  warning  'getTerritorios' is defined but never used  no-unused-vars
+  4:50  warning  'config' is defined but never used          no-unused-vars
+
+D:\_CODE\app-territorios\modules\admin\maps-view.js
+    1:10  warning  'getTerritorios' is defined but never used       no-unused-vars
+    7:57  warning  'appVersion' is defined but never used           no-unused-vars
+   46:19  warning  'isAssigned' is assigned a value but never used  no-unused-vars
+  242:27  error    'loadData' is not defined                        no-undef
+
+D:\_CODE\app-territorios\modules\admin\personal-view.js
+  1:10  warning  'getPublicadores' is defined but never used  no-unused-vars
+  2:28  warning  'ensureOnline' is defined but never used     no-unused-vars
+
+D:\_CODE\app-territorios\modules\admin\phones-view.js
+  2:40  warning  'savePredicacionPublica' is defined but never used  no-unused-vars
+  6:40  warning  'UIHelpers' is defined but never used               no-unused-vars
+  8:10  warning  'where' is defined but never used                   no-unused-vars
+
+D:\_CODE\app-territorios\modules\admin\program-view.js
+     2:56  warning  'getConductores' is defined but never used        no-unused-vars
+     6:28  warning  'generatePlainXLS' is defined but never used      no-unused-vars
+   403:31  warning  'allSync' is assigned a value but never used      no-unused-vars
+   404:31  warning  'anyConflict' is assigned a value but never used  no-unused-vars
+   548:48  error    'getTStatus' is not defined                       no-undef
+   615:40  error    'getTStatus' is not defined                       no-undef
+   696:23  error    'returnTerritorio' is not defined                 no-undef
+   758:23  error    'syncSlotWithTerritories' is not defined          no-undef
+   799:56  warning  'btn' is defined but never used                   no-unused-vars
+  1343:19  warning  'checks' is assigned a value but never used       no-unused-vars
+  1731:29  warning  'key' is assigned a value but never used          no-unused-vars
+
+D:\_CODE\app-territorios\modules\admin\public-view.js
+    2:7   warning  'L' is assigned a value but never used  no-unused-vars
+  212:46  warning  'idx' is defined but never used         no-unused-vars
+
+D:\_CODE\app-territorios\modules\admin\reports-view.js
+  287:9   error    'showModal' is not defined     no-undef
+  435:31  warning  '_' is defined but never used  no-unused-vars
+
+D:\_CODE\app-territorios\modules\admin\s12-view.js
+  276:17  warning  'showUnifiedTerritoryHistory' is assigned a value but never used  no-unused-vars
+
+D:\_CODE\app-territorios\modules\admin\territories-view.js
+   1:8   warning  'Chart' is defined but never used                no-unused-vars
+   7:9   warning  '_activeSub' is assigned a value but never used  no-unused-vars
+  52:21  error    Unexpected lexical declaration in case block     no-case-declarations
+  56:21  error    Unexpected lexical declaration in case block     no-case-declarations
+  60:21  error    Unexpected lexical declaration in case block     no-case-declarations
+  64:21  error    Unexpected lexical declaration in case block     no-case-declarations
+  68:21  error    Unexpected lexical declaration in case block     no-case-declarations
+  72:21  error    Unexpected lexical declaration in case block     no-case-declarations
+
+D:\_CODE\app-territorios\modules\analytics-view.js
+  439:13  error  'showNotification' is not defined  no-undef
+
+D:\_CODE\app-territorios\modules\conductor-dashboard.js
+     1:8   warning  'Chart' is defined but never used                                          no-unused-vars
+     3:17  warning  'limit' is defined but never used                                          no-unused-vars
+     5:68  warning  'updateTelefono' is defined but never used                                 no-unused-vars
+     6:5   warning  'getRecursos' is defined but never used                                    no-unused-vars
+     7:5   warning  'getPredicacionPublica' is defined but never used                          no-unused-vars
+     7:28  warning  'savePredicacionPublica' is defined but never used                         no-unused-vars
+     9:20  warning  'updatePublicador' is defined but never used                               no-unused-vars
+     9:38  warning  'deletePublicador' is defined but never used                               no-unused-vars
+    11:5   warning  'logReturn' is defined but never used                                      no-unused-vars
+    11:16  warning  'returnTerritorio' is defined but never used                               no-unused-vars
+    11:34  warning  'returnTerritorioParcial' is defined but never used                        no-unused-vars
+    12:23  warning  'assignTerritorio' is defined but never used                               no-unused-vars
+    12:41  warning  'addHistoryRecord' is defined but never used                               no-unused-vars
+    12:59  warning  'getHistorialReport' is defined but never used                             no-unused-vars
+    14:5   warning  'getWeeklyPrograms' is defined but never used                              no-unused-vars
+    15:5   warning  'updatePublicadorAvailability' is defined but never used                   no-unused-vars
+    16:5   warning  'setSystemVersion' is defined but never used                               no-unused-vars
+    17:5   warning  'getSystemVersion' is defined but never used                               no-unused-vars
+    18:5   warning  'updateWeeklyProgram' is defined but never used                            no-unused-vars
+    19:5   warning  'createHistoryRecord' is defined but never used                            no-unused-vars
+    21:28  warning  'getStatusColor' is defined but never used                                 no-unused-vars
+    21:79  warning  'normalize' is defined but never used                                      no-unused-vars
+    26:32  warning  'showCustomConfirm' is defined but never used                              no-unused-vars
+    26:69  warning  'showCustomAlert' is defined but never used                                no-unused-vars
+    29:10  warning  'VoiceDictationHelper' is defined but never used                           no-unused-vars
+    39:7   warning  'html2canvas' is assigned a value but never used                           no-unused-vars
+    66:48  warning  'mOnboard' is assigned a value but never used                              no-unused-vars
+    79:9   warning  'conductorData' is assigned a value but never used                         no-unused-vars
+    80:9   warning  'config' is assigned a value but never used                                no-unused-vars
+   114:34  warning  'forceRefresh' is assigned a value but never used                          no-unused-vars
+   324:15  warning  'badge' is assigned a value but never used                                 no-unused-vars
+   389:32  warning  'b' is defined but never used                                              no-unused-vars
+   528:17  error    'agendaContainer' is not defined                                           no-undef
+   528:34  error    'agendaContainer' is not defined                                           no-undef
+   846:19  warning  'territoriosContainer' is assigned a value but never used                  no-unused-vars
+   873:17  error    'stopActiveLivePools' is not defined                                       no-undef
+  1124:51  error    Do not access Object.prototype method 'hasOwnProperty' from target object  no-prototype-builtins
+  1145:47  warning  '_' is defined but never used                                              no-unused-vars
+  1171:55  warning  '_' is defined but never used                                              no-unused-vars
+  1175:47  warning  'message' is assigned a value but never used                               no-unused-vars
+  1269:66  error    Unnecessary escape character: \(                                           no-useless-escape
+  1269:68  error    Unnecessary escape character: \)                                           no-useless-escape
+  1501:21  warning  'suggestion' is assigned a value but never used                            no-unused-vars
+  1502:21  warning  'colorClass' is assigned a value but never used                            no-unused-vars
+  1546:27  warning  'isAssignedToOther' is assigned a value but never used                     no-unused-vars
+
+D:\_CODE\app-territorios\modules\conductor\phone-module.js
+   2:10   warning  'getTelefonos' is defined but never used            no-unused-vars
+   2:46   warning  'releaseUnusedTelefonos' is defined but never used  no-unused-vars
+   2:70   warning  'solicitarNumeros' is defined but never used        no-unused-vars
+   2:88   warning  'logSessionSummary' is defined but never used       no-unused-vars
+   3:21   warning  'showCustomConfirm' is defined but never used       no-unused-vars
+   4:10   warning  'AppConfig' is defined but never used               no-unused-vars
+   8:64   error    Unnecessary escape character: \(                    no-useless-escape
+   8:66   error    Unnecessary escape character: \)                    no-useless-escape
+  68:132  error    Unnecessary escape character: \'                    no-useless-escape
+  91:124  error    Unnecessary escape character: \'                    no-useless-escape
+
+D:\_CODE\app-territorios\modules\conductor\program-views.js
+  1:24  warning  'formatManzanas' is defined but never used         no-unused-vars
+  3:62  warning  'territoryMap' is assigned a value but never used  no-unused-vars
+
+D:\_CODE\app-territorios\modules\conductor\rescue.js
+   4:105  warning  'totalMissionCount' is defined but never used  no-unused-vars
+  96:148  error    Unnecessary escape character: \'               no-useless-escape
+  96:195  error    Unnecessary escape character: \'               no-useless-escape
+
+D:\_CODE\app-territorios\modules\conductor\weekly-program.js
+  4:30  warning  'saveProgramaSemanal' is defined but never used      no-unused-vars
+  4:51  warning  'syncSlotWithTerritories' is defined but never used  no-unused-vars
+  4:76  warning  'getTerritorios' is defined but never used           no-unused-vars
+
+D:\_CODE\app-territorios\modules\login.js
+  290:9  error  'list' is not defined  no-undef
+
+D:\_CODE\app-territorios\modules\map-viewer.js
+  121:21  error    'UIHelpers' is not defined                       no-undef
+  122:40  error    'UIHelpers' is not defined                       no-undef
+  173:29  error    'google' is not defined                          no-undef
+  198:42  error    'google' is not defined                          no-undef
+  202:39  error    'google' is not defined                          no-undef
+  239:23  warning  'hoverStyle' is assigned a value but never used  no-unused-vars
+  248:51  warning  'event' is defined but never used                no-unused-vars
+  256:25  error    'google' is not defined                          no-undef
+  263:36  error    'google' is not defined                          no-undef
+  277:21  error    'google' is not defined                          no-undef
+  319:33  error    'google' is not defined                          no-undef
+  323:44  error    'google' is not defined                          no-undef
+  335:13  error    'google' is not defined                          no-undef
+  353:47  warning  'options' is assigned a value but never used     no-unused-vars
+  400:29  error    'google' is not defined                          no-undef
+  409:32  error    'google' is not defined                          no-undef
+  439:29  error    'google' is not defined                          no-undef
+  444:39  error    'google' is not defined                          no-undef
+  462:42  error    'google' is not defined                          no-undef
+  466:39  error    'google' is not defined                          no-undef
+  505:13  error    'google' is not defined                          no-undef
+
+D:\_CODE\app-territorios\modules\report-s12.js
+  8:11  warning  'historial' is assigned a value but never used  no-unused-vars
+
+D:\_CODE\app-territorios\modules\report-s13.js
+    8:21  warning  'config' is assigned a value but never used     no-unused-vars
+  209:19  warning  'q' is assigned a value but never used          no-unused-vars
+  211:19  warning  'listItems' is assigned a value but never used  no-unused-vars
+  298:11  warning  'firstDay' is assigned a value but never used   no-unused-vars
+  299:11  warning  'lastDay' is assigned a value but never used    no-unused-vars
+
+D:\_CODE\app-territorios\modules\services\ui-helpers.js
+  241:5  error  'showNotification' is not defined  no-undef
+
+D:\_CODE\app-territorios\modules\utils\intelligence.js
+  1:10  warning  'updateTelefono' is defined but never used    no-unused-vars
+  1:26  warning  'updateTerritorio' is defined but never used  no-unused-vars
+
+D:\_CODE\app-territorios\modules\utils\modular-base.js
+  7:60  error  '__APP_VERSION__' is not defined  no-undef
+
+D:\_CODE\app-territorios\modules\utils\pwa-manager.js
+  54:46  warning  'e' is defined but never used  no-unused-vars
+
+D:\_CODE\app-territorios\modules\utils\update-manager.js
+    1:27  warning  'updateDoc' is defined but never used                          no-unused-vars
+   10:21  error    '__APP_VERSION__' is not defined                               no-undef
+  216:7   warning  'showPremiumUpdateOverlay' is assigned a value but never used  no-unused-vars
+  282:7   warning  'showUpdateSuggestion' is assigned a value but never used      no-unused-vars
+
+D:\_CODE\app-territorios\scripts\deploy_v2.4.6.4.js
+  2:37  warning  'updateDoc' is defined but never used  no-unused-vars
+
+D:\_CODE\app-territorios\scripts\deploy_version_3.3.2.js
+  26:95  error  Parsing error: Unexpected token firebase
+
+D:\_CODE\app-territorios\scripts\force_bump.js
+  2:7  warning  'APP_NAME' is assigned a value but never used  no-unused-vars
+
+D:\_CODE\app-territorios\scripts\nuclear-reset.js
+  3:45  warning  'deleteDoc' is defined but never used  no-unused-vars
+  3:61  warning  'setDoc' is defined but never used     no-unused-vars
+
+D:\_CODE\app-territorios\scripts\restore-territories-client.js
+  3:29  warning  'setDoc' is defined but never used  no-unused-vars
+
+D:\_CODE\app-territorios\scripts\set_version_v21.js
+  3:37  warning  'serverTimestamp' is defined but never used  no-unused-vars
+
+D:\_CODE\app-territorios\scripts\sync-version-auto.js
+  35:5  error  Parsing error: Cannot use keyword 'await' outside an async function
+
+D:\_CODE\app-territorios\scripts\update-version.js
+  1:10  warning  'initializeApp' is defined but never used            no-unused-vars
+  2:10  warning  'getFirestore' is defined but never used             no-unused-vars
+  2:24  warning  'doc' is defined but never used                      no-unused-vars
+  2:29  warning  'setDoc' is defined but never used                   no-unused-vars
+  2:37  warning  'Timestamp' is defined but never used                no-unused-vars
+  3:10  warning  'readFileSync' is defined but never used             no-unused-vars
+  5:7   warning  'firebaseConfig' is assigned a value but never used  no-unused-vars
+
+Ô£û 215 problems (63 errors, 152 warnings)
+

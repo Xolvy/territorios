@@ -1,11 +1,10 @@
 import { showNotification, formatPhoneNumber } from '../utils/helpers.js';
-import { getTelefonos, updateTelefonoStatus, releaseUnusedTelefonos, solicitarNumeros, logSessionSummary, updateTelefono } from '../../data/firestore-services.js';
-import { showModal, showCustomConfirm, showCustomPrompt } from '../services/ui-helpers.js';
-import { AppConfig } from '../utils/config.js';
+import { updateTelefonoStatus, updateTelefono, deleteTelefono } from '../../data/firestore-services.js';
+import { showModal, showCustomPrompt } from '../services/ui-helpers.js';
 
 export const initializePhoneModule = (initialPhones, publicadores, displayName, tbody, onRefresh) => {
     // Xolvy Data Shield: Clean and filter phone records
-    const normalize = (val) => String(val || '').replace(/[\s\-\(\)]/g, '').trim();
+    const normalize = (val) => String(val || '').replace(/[\s()-]/g, '').trim();
     const myPhones = (initialPhones || [])
         .filter(p => (p.telefono || p.phone || p.numero) && String(p.telefono || p.phone || p.numero).trim().length > 0)
         .map(p => ({
@@ -24,18 +23,18 @@ export const initializePhoneModule = (initialPhones, publicadores, displayName, 
                         <div class="flex items-center justify-between sm:justify-start gap-4">
                             <span class="text-[14px] sm:text-[13px] font-black text-slate-800 dark:text-white tabular-nums tracking-tight">${formatPhoneNumber(p.telefono)}</span>
                             <!-- Mobile Status Badge (Only Mobile) -->
-                            <div class="sm:hidden px-2 py-0.5 bg-indigo-500/10 text-indigo-500 rounded-lg text-[8px] font-black uppercase tracking-widest border border-indigo-500/10">
-                                ${p.estado || 'SIN ASIGNAR'}
+                            <div class="sm:hidden px-2 py-0.5 ${p.estado && !['Sin asignar', 'En Sesión'].includes(p.estado) ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/10' : 'hidden'} rounded-lg text-[8px] font-black uppercase tracking-widest border">
+                                ${p.estado}
                             </div>
                         </div>
                         <!-- Owner only visible in first col if on Mobile -->
-                        <p class="sm:hidden font-black text-[11px] text-slate-600 dark:text-slate-300 uppercase mt-1">${p.propietario || '---'}</p>
+                        <p class="sm:hidden font-black text-[11px] text-slate-600 dark:text-slate-300 uppercase mt-1">${p.propietario || p.nombre || ''}</p>
                     </div>
                 </td>
                 
-                <!-- Col 2: Propietario (Desktop Only) -->
+                <!-- Col 2: Nombre (Desktop Only) -->
                 <td class="p-4 hidden sm:table-cell align-middle">
-                    <p class="font-black text-[10px] text-slate-600 dark:text-slate-300 uppercase">${p.propietario || '---'}</p>
+                    <p class="font-black text-[10px] text-slate-600 dark:text-slate-300 uppercase">${p.propietario || p.nombre || ''}</p>
                 </td>
 
                 <!-- Col 3: Direccion (Desktop Only or merged below on Mobile) -->
@@ -52,17 +51,20 @@ export const initializePhoneModule = (initialPhones, publicadores, displayName, 
                         <div class="flex-1">
                             <p class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 sm:hidden ml-1">Asignar Publicador</p>
                             <select onchange="window.updatePhoneStaff('${p.id}', this.value)" class="w-full sm:w-auto bg-slate-100 dark:bg-white/5 border-none rounded-xl sm:rounded-lg px-3 py-2.5 sm:py-1.5 text-[10px] font-black uppercase tracking-widest outline-none focus:ring-1 focus:ring-primary transition-all">
-                                <option value="">SIN ASIGNAR</option>
-                                ${publicadores.map(pub => `<option value="${pub.nombre}" ${p.publicador_asignado === pub.nombre ? 'selected' : ''}>${pub.nombre}</option>`).join('')}
+                                <option value=""></option>
+                                ${publicadores.map(pub => {
+            const isSelected = p.publicador_asignado === pub.nombre || p.publicador_asignado === pub.id || p.asignado_a === pub.id;
+            return `<option value="${pub.nombre}" ${isSelected ? 'selected' : ''}>${pub.nombre}</option>`;
+        }).join('')}
                             </select>
                         </div>
                         
                         <!-- Side Actions: Notes (Desktop) / Notes (Mobile) -->
                         <div class="flex items-center gap-2 sm:hidden">
-                             <button onclick="window.openPhoneStatusSelector('${p.id}', '${p.telefono}')" class="px-3 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 border border-black/5 whitespace-nowrap">
-                                ESTADO
+                             <button onclick="window.openPhoneStatusSelector('${p.id}', '${p.telefono}')" class="px-5 py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest bg-primary/10 text-primary border border-primary/20 shadow-lg shadow-primary/5 whitespace-nowrap flex items-center gap-2 active:scale-95 transition-all">
+                                <i class="fas fa-tag"></i> ESTADO
                             </button>
-                            <button onclick="window.openPhoneNotes('${p.id}', '${p.telefono}', '${(p.notas || '').replace(/'/g, "\\\'")}')" class="w-11 h-11 flex items-center justify-center text-slate-400 hover:text-primary transition-colors bg-slate-100 dark:bg-white/5 rounded-xl border border-black/5">
+                            <button onclick="window.openPhoneNotes('${p.id}', '${p.telefono}', '${(p.notas || '').replace(/'/g, "\\'")}')" class="w-12 h-12 flex items-center justify-center text-slate-400 hover:text-primary transition-colors bg-slate-100 dark:bg-white/5 rounded-xl border border-black/5">
                                 <i class="fas fa-sticky-note"></i>
                             </button>
                         </div>
@@ -71,14 +73,21 @@ export const initializePhoneModule = (initialPhones, publicadores, displayName, 
 
                 <!-- Col 5: Estado (Desktop Only Button) -->
                 <td class="p-4 hidden sm:table-cell text-center align-middle">
-                    <button onclick="window.openPhoneStatusSelector('${p.id}', '${p.telefono}')" class="px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-all">
-                        ${p.estado || 'SIN ASIGNAR'}
+                    <button onclick="window.openPhoneStatusSelector('${p.id}', '${p.telefono}')" 
+                        class="min-w-[100px] px-4 py-2.5 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2 border-2 
+                        ${p.estado && !['Sin asignar', 'En Sesión'].includes(p.estado)
+                ? 'bg-emerald-500 text-white border-emerald-400 shadow-xl shadow-emerald-500/20'
+                : 'bg-indigo-50/50 dark:bg-indigo-500/5 text-indigo-500 border-indigo-500/20 hover:bg-indigo-500 hover:text-white dark:hover:bg-indigo-500 shadow-lg shadow-indigo-500/5'}">
+                        
+                        ${p.estado && !['Sin asignar', 'En Sesión'].includes(p.estado)
+                ? `<i class="fas fa-check-circle"></i> ${p.estado}`
+                : `<i class="fas fa-plus-circle opacity-50"></i>`}
                     </button>
                 </td>
 
                 <!-- Col 6: Notas (Desktop Only Icon) -->
                 <td class="p-4 hidden sm:table-cell align-middle">
-                    <button onclick="window.openPhoneNotes('${p.id}', '${p.telefono}', '${(p.notas || '').replace(/'/g, "\\\'")}')" class="text-slate-400 hover:text-indigo-500 transition-colors">
+                    <button onclick="window.openPhoneNotes('${p.id}', '${p.telefono}', '${(p.notas || '').replace(/'/g, "\\'")}')" class="text-slate-400 hover:text-indigo-500 transition-colors">
                         <i class="fas fa-sticky-note"></i>
                     </button>
                 </td>
@@ -97,7 +106,7 @@ export const initializePhoneModule = (initialPhones, publicadores, displayName, 
     };
 
     window.openPhoneStatusSelector = (id, phone) => {
-        const statuses = ['Sin asignar', 'Contestaron', 'No contestan', 'Colgaron', 'Revisita', 'No llamar', 'Suspendido', 'Testigo'];
+        const statuses = ['Contestaron', 'No contestan', 'Colgaron', 'Revisita', 'No llamar', 'Suspendido', 'Testigo'];
         showModal(`
             <div class="p-8 space-y-6">
                 <h3 class="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Estado: ${phone}</h3>
@@ -114,22 +123,25 @@ export const initializePhoneModule = (initialPhones, publicadores, displayName, 
 
     window.setPhoneStatus = async (id, status) => {
         try {
-            // Corrected signature usage for firestore-services.js
-            await updateTelefonoStatus(id, status, displayName);
+            if (status === 'Suspendido' || status === 'Testigo') {
+                await deleteTelefono(id);
+                showNotification(`Registro eliminado de la BD: ${status}`, 'success');
+            } else {
+                await updateTelefonoStatus(id, status, null);
+                showNotification(`Estado actualizado: ${status}`, 'success');
+            }
             window.closeModal();
             onRefresh(id);
-            showNotification(`Estado actualizado: ${status}`, 'success');
         } catch (e) {
             showNotification('Error al actualizar estado', 'error');
         }
     };
 
     window.openPhoneNotes = (id, phone, currentNotes) => {
-        showCustomPrompt(`Notas para ${phone}`, async (newNotes) => {
-            // Use updateTelefono for simple object updates like notes
+        showCustomPrompt(`Notas para ${phone}`, currentNotes, async (newNotes) => {
             await updateTelefono(id, { notas: newNotes });
             onRefresh();
-        }, currentNotes);
+        });
     };
 
     render();

@@ -14,7 +14,7 @@ class ModuleRegistry {
             core: "2.4.3.0",
             login: "2.4.2.5",
             admin: "2.4.3.0",
-            conductor: "2.4.7.0",
+            conductor: "2.4.9.9.1",
             territories_view: "2.4.6.5",
             public_view: "2.4.2.5",
             phones_view: "2.4.2.5",
@@ -26,14 +26,17 @@ class ModuleRegistry {
             phone_module: "2.4.3.7",
             onboarding: "2.4.2.5",
             analytics_view: "2.4.5.7",
+            reports_view: "2.4.2.5",
             weekly_program: "2.4.2.5",
             program_views: "2.4.2.5"
         };
         this.listeners = [];
+        this.cache = new Map();
     }
 
     init() {
         console.log("🧩 Module Registry: Initializing HMS...");
+        let isFirstSnapshot = true;
 
         // Listen to Firestore for module version changes
         onSnapshot(doc(db, "configuracion", "module_control"), (docSnap) => {
@@ -48,65 +51,91 @@ class ModuleRegistry {
                     this.registry[moduleName] = remoteRegistry[moduleName];
                     hasChanges = true;
 
-                    // Notify listeners (the UI shell) to pull the new code
-                    this.notifyListeners(moduleName, remoteRegistry[moduleName]);
-
-                    // Silent Pre-fetch: Download the code in background
-                    this.prefetchModule(moduleName, remoteRegistry[moduleName]);
+                    // Only notify listeners (trigger re-renders) AFTER the initial sync.
+                    // The first snapshot is just syncing versions; the page is still loading.
+                    if (!isFirstSnapshot) {
+                        this.notifyListeners(moduleName, remoteRegistry[moduleName]);
+                    }
                 }
             });
 
             if (hasChanges) {
                 localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(this.registry));
             }
+
+            // After the first snapshot, all subsequent changes are real HMS updates
+            isFirstSnapshot = false;
         });
     }
 
-    async prefetchModule(moduleName, version) {
-        const moduleMap = {
-            'admin': './modules/admin-dashboard.js',
-            'conductor': './modules/conductor-dashboard.js',
-            'login': './modules/login.js',
-            'territories_view': './modules/admin/territories-view.js',
-            'public_view': './modules/admin/public-view.js',
-            'phones_view': './modules/admin/phones-view.js',
-            'rules_view': './modules/admin/rules-view.js',
-            'availability': './modules/conductor/availability.js',
-            'recursos': './modules/conductor/recursos.js',
-            'maps_explorer': './modules/conductor/maps-explorer.js',
-            'rescue': './modules/conductor/rescue.js',
-            'phone_module': './modules/conductor/phone-module.js',
-            'onboarding': './modules/conductor/onboarding.js',
-            'weekly_program': './modules/conductor/weekly-program.js',
-            'program_views': './modules/conductor/program-views.js'
-        };
-
-        const path = moduleMap[moduleName];
-        if (path) {
-            console.log(`📡 [HMS] Pre-fetching Micro-Module [${moduleName}] v${version}...`);
-            try {
-                const link = document.createElement('link');
-                link.rel = 'modulepreload';
-                link.href = `${path}?v=${version}`;
-                document.head.appendChild(link);
-            } catch (e) {
-                console.warn("HMS Pre-fetch failed:", e);
-            }
-        }
-    }
-
-    getModuleVersion(moduleName) {
-        return this.registry[moduleName] || "latest";
-    }
 
     /**
-     * Appends a version segment to the import path to bypass cache
-     * only when a mismatch is detected, or for initial load.
+     * Centralized Hot Module Loading with Caching
+     * ALWAYS uses Vite's glob import as primary strategy.
+     * Dynamic import is only a fallback when no glob key matches.
      */
-    getModulePath(moduleName, basePath) {
-        const v = this.getModuleVersion(moduleName);
-        // Use relative paths that Vite can understand
-        return `${basePath}?v=${v}`;
+    async loadModule(name, path, globMap = {}) {
+        // Normalize path to absolute from root
+        let absolutePath = path;
+        if (path.startsWith('./')) {
+            if (path.startsWith('./modules/')) {
+                absolutePath = path.substring(1); // ./modules/ -> /modules/
+            } else {
+                absolutePath = `/modules/${path.substring(2)}`;
+            }
+        }
+
+        // Check if we already have a valid cached version
+        const cachedMod = this.cache.get(name);
+        if (cachedMod) {
+            return cachedMod;
+        }
+
+        console.log(`📡 [HMS] Loading Micro-Module: ${name}`);
+        let mod;
+
+        // Build all possible glob key variations for matching
+        // app.js glob keys:                ./modules/login.js
+        // conductor-dashboard.js glob keys: ./conductor/availability.js
+        const globPath1 = `.${absolutePath}`;  // -> ./modules/login.js or ./modules/conductor/availability.js
+        const globPath2 = absolutePath.startsWith('/modules/')
+            ? `.${absolutePath.substring(8)}`   // -> ./login.js or ./conductor/availability.js
+            : absolutePath;
+
+        // STRATEGY 1: ALWAYS use Vite glob map first (works in both dev and production)
+        // The glob map is compiled at build time by Vite and already resolves to the correct
+        // chunk files. It works reliably in ALL environments.
+        const globKey = globMap[path] ? path
+            : globMap[globPath1] ? globPath1
+                : globMap[globPath2] ? globPath2
+                    : null;
+
+        if (globKey) {
+            try {
+                mod = await globMap[globKey]();
+            } catch (e) {
+                console.warn(`⚠️ [HMS] Glob load failed for ${name} (key: ${globKey}):`, e);
+            }
+        }
+
+        // STRATEGY 2: Direct dynamic import (only if glob map had no matching key)
+        if (!mod) {
+            console.log(`📡 [HMS] No glob key for ${name}, using dynamic import`);
+            const isProduction = import.meta.env.PROD;
+            let finalPath = isProduction
+                ? `/assets/${absolutePath.split('/').pop()}`
+                : absolutePath;
+
+            try {
+                mod = await import(/* @vite-ignore */ finalPath);
+            } catch (error) {
+                console.error(`❌ [HMS] Failed to load module ${name} from ${finalPath}:`, error);
+                throw error;
+            }
+        }
+
+        this.cache.set(name, mod);
+        return mod;
     }
 
     subscribe(callback) {

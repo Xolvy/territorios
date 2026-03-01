@@ -3,16 +3,31 @@ const L = L_lib;
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import {
-    getPredicacionPublica, getPublicadores, getConfiguracion, savePredicacionPublica
+    getPublicadores, getConfiguracion, savePredicacionPublica, startLivePool
 } from '../../data/firestore-services.js';
 import { showNotification } from '../utils/helpers.js';
 import { showCustomConfirm, showModal } from '../services/ui-helpers.js';
+import { setAdminLivePool } from '../admin-dashboard.js';
 
 export const renderPredicacionTab = async (container) => {
-    let data = await getPredicacionPublica();
-    const publicadores = await getPublicadores();
+    let data = { asignaciones: [] };
+    const [publicadores, config] = await Promise.all([
+        getPublicadores(),
+        getConfiguracion()
+    ]);
     publicadores.sort((a, b) => a.nombre.localeCompare(b.nombre));
-    const config = await getConfiguracion();
+
+    // Xolvy Live Pool: Real-time synchronization
+    const unsub = startLivePool("predicacion_publica", [], (allData) => {
+        if (allData.length > 0) {
+            data = allData[0];
+            // Legacy migration check
+            if (data.dias && !data.asignaciones) data.asignaciones = data.dias;
+            console.log("🏙️ [Live Pool] Public Preaching Updated.");
+            renderCurrentView();
+        }
+    });
+    setAdminLivePool(unsub);
 
     let currentSearchQuery = '';
     let currentView = window.innerWidth < 1024 ? 'matrix' : 'table';
@@ -181,87 +196,106 @@ export const renderPredicacionTab = async (container) => {
         const filtered = filterData();
 
         viewCont.innerHTML = `
-            <div class="table-container custom-scrollbar overflow-x-auto lg:overflow-x-visible">
-                <table class="w-full text-left border-collapse table-auto md:table-fixed">
-                    <thead class="bg-slate-50/50 dark:bg-white/[0.02] text-slate-400 text-[9px] font-black uppercase tracking-[0.3em] border-b border-slate-100 dark:border-white/5">
+            <div class="table-container p-4 lg:p-0">
+                <table class="w-full text-left border-collapse block lg:table">
+                    <thead class="hidden lg:table-header-group bg-slate-50/50 dark:bg-white/[0.02] text-slate-400 text-[9px] font-black uppercase tracking-[0.3em] border-b border-slate-100 dark:border-white/5">
                         <tr>
-                            <th class="px-4 py-6 w-[120px]">Día</th>
-                            <th class="px-4 py-6 text-center w-[250px]">Horario Estipulado</th>
-                            <th class="px-4 py-6 w-[180px]">Punto de Predicación</th>
-                            <th class="px-4 py-6 text-center w-[160px]">Publicador Principal</th>
-                            <th class="px-4 py-6 text-center w-[160px]">Acompañante</th>
-                            <th class="px-4 py-6 text-right no-print w-[120px]">Opciones</th>
+                            <th class="px-6 py-8 w-[140px] rounded-tl-[2.5rem]">Día</th>
+                            <th class="px-4 py-8 text-center w-[250px]">Horario Estipulado</th>
+                            <th class="px-4 py-8 w-[220px]">Punto de Predicación</th>
+                            <th class="px-4 py-8 text-center w-[200px]">Publicador Principal</th>
+                            <th class="px-4 py-8 text-center w-[200px]">Acompañante</th>
+                            <th class="px-6 py-8 text-right no-print w-[120px] rounded-tr-[2.5rem]">Opciones</th>
                         </tr>
                     </thead>
-                    <tbody id="public-table-body" class="divide-y divide-slate-100 dark:divide-white/5">
-                        ${filtered.map((row, idx) => {
+                    <tbody id="public-table-body" class="block lg:table-row-group space-y-4 lg:space-y-0 lg:divide-y divide-slate-100 dark:divide-white/5">
+                        ${filtered.map((row) => {
             const originalIndex = data.asignaciones.indexOf(row);
             return `
-                            <tr class="hover:bg-slate-50/50 dark:hover:bg-white/[0.01] transition-all group">
-                                <td class="px-4 py-5">
-                                    <div class="relative min-w-[100px]">
-                                        <select class="w-full bg-slate-100/50 dark:bg-white/5 border border-transparent rounded-2xl px-3 py-3.5 text-[11px] font-black text-slate-700 dark:text-slate-200 outline-none focus:border-primary transition-all cursor-pointer shadow-sm uppercase tracking-tight appearance-none"
-                                            onchange="window.updatePublicRow(${originalIndex}, 'dia', this.value)">
-                                            <option value="" disabled ${!row.dia ? 'selected' : ''}>— Día —</option>
-                                            ${['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(d =>
+                            <tr class="block lg:table-row bg-white dark:bg-white/[0.02] lg:bg-transparent lg:dark:bg-transparent border lg:border-none border-slate-100 dark:border-white/5 rounded-[2rem] lg:rounded-none p-5 lg:p-0 shadow-xl lg:shadow-none hover:bg-slate-50/50 lg:hover:bg-slate-50/50 dark:hover:bg-white/[0.03] transition-all group relative">
+                                <td class="block lg:table-cell px-2 py-3 lg:px-6 lg:py-5 border-b lg:border-none border-slate-50 dark:border-white/5 last:border-none">
+                                    <div class="flex flex-col lg:block gap-2">
+                                        <span class="lg:hidden text-[9px] font-black uppercase tracking-widest text-slate-400">Día</span>
+                                        <div class="relative w-full">
+                                            <select class="w-full bg-slate-50 lg:bg-slate-100/50 dark:bg-black/20 lg:dark:bg-white/5 border border-slate-200/50 lg:border-transparent rounded-2xl px-4 lg:px-3 py-3 lg:py-3.5 text-[11px] font-black text-slate-700 dark:text-slate-200 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer uppercase tracking-tight appearance-none"
+                                                onchange="window.updatePublicRow(${originalIndex}, 'dia', this.value)">
+                                                <option value="" disabled ${!row.dia ? 'selected' : ''}>— Día —</option>
+                                                ${['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(d =>
                 `<option value="${d}" ${row.dia === d ? 'selected' : ''}>${d}</option>`
             ).join('')}
-                                        </select>
-                                        <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-[9px] opacity-20 pointer-events-none"></i>
-                                    </div>
-                                </td>
-                                <td class="px-4 py-5">
-                                    <div class="flex items-center gap-1 justify-center bg-slate-50 dark:bg-white/5 p-1 md:p-2 rounded-2xl border border-slate-200/50 dark:border-white/10 shadow-inner min-w-[200px] md:min-w-[250px]">
-                                        <div class="relative group/time">
-                                            <i class="far fa-clock absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 opacity-50"></i>
-                                            <input type="time" class="w-24 bg-transparent border-none pl-8 pr-2 py-2 text-[11px] font-black text-primary outline-none text-center"
-                                                value="${formatTimeDisplay(row.hora)}"
-                                                onchange="window.updatePublicRow(${originalIndex}, 'hora', this.value)">
-                                        </div>
-                                        <span class="text-slate-300 dark:text-white/10 font-bold">—</span>
-                                        <div class="relative group/time">
-                                            <i class="far fa-clock absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 opacity-50"></i>
-                                            <input type="time" class="w-24 bg-transparent border-none pl-8 pr-2 py-2 text-[11px] font-black text-primary outline-none text-center"
-                                                value="${formatTimeDisplay(row.hora_fin)}"
-                                                onchange="window.updatePublicRow(${originalIndex}, 'hora_fin', this.value)">
+                                            </select>
+                                            <i class="fas fa-chevron-down absolute right-4 lg:right-3 top-1/2 -translate-y-1/2 text-[10px] lg:text-[9px] opacity-40 lg:opacity-30 pointer-events-none"></i>
                                         </div>
                                     </div>
                                 </td>
-                                <td class="px-4 py-5">
-                                    <div class="relative min-w-[150px] md:min-w-[180px]">
-                                        <select class="w-full bg-slate-100/50 dark:bg-white/5 border border-transparent rounded-2xl px-4 py-3.5 text-[11px] font-black text-slate-700 dark:text-slate-200 outline-none focus:border-primary transition-all cursor-pointer shadow-sm appearance-none uppercase"
-                                            onchange="window.updatePublicRow(${originalIndex}, 'lugar', this.value)">
-                                            <option value="" disabled ${!row.lugar ? 'selected' : ''}>— Seleccionar Punto —</option>
-                                            ${(config.lugares || []).map(lugar =>
+                                <td class="block lg:table-cell px-2 py-3 lg:px-4 lg:py-5 border-b lg:border-none border-slate-50 dark:border-white/5 last:border-none">
+                                    <div class="flex flex-col lg:block gap-2">
+                                        <span class="lg:hidden text-[9px] font-black uppercase tracking-widest text-slate-400">Horario Estipulado</span>
+                                        <div class="flex items-center gap-1 justify-center w-full lg:w-auto">
+                                            <div class="relative group/time flex-1">
+                                                <input type="time" class="w-full bg-slate-50 lg:bg-slate-100/50 dark:bg-black/20 lg:dark:bg-white/5 border border-slate-200/50 lg:border-transparent rounded-2xl px-2 py-3 lg:py-3.5 text-[11px] font-black text-center text-primary outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer appearance-none"
+                                                    value="${formatTimeDisplay(row.hora)}"
+                                                    onchange="window.updatePublicRow(${originalIndex}, 'hora', this.value)">
+                                            </div>
+                                            <span class="text-slate-300 dark:text-white/10 font-bold px-1">—</span>
+                                            <div class="relative group/time flex-1">
+                                                <input type="time" class="w-full bg-slate-50 lg:bg-slate-100/50 dark:bg-black/20 lg:dark:bg-white/5 border border-slate-200/50 lg:border-transparent rounded-2xl px-2 py-3 lg:py-3.5 text-[11px] font-black text-center text-primary outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer appearance-none"
+                                                    value="${formatTimeDisplay(row.hora_fin)}"
+                                                    onchange="window.updatePublicRow(${originalIndex}, 'hora_fin', this.value)">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="block lg:table-cell px-2 py-3 lg:px-4 lg:py-5 border-b lg:border-none border-slate-50 dark:border-white/5 last:border-none">
+                                    <div class="flex flex-col lg:block gap-2">
+                                        <span class="lg:hidden text-[9px] font-black uppercase tracking-widest text-slate-400">Punto de Predicación</span>
+                                        <div class="relative w-full">
+                                            <select class="w-full bg-slate-50 lg:bg-slate-100/50 dark:bg-black/20 lg:dark:bg-white/5 border border-slate-200/50 lg:border-transparent rounded-2xl px-4 py-3.5 text-[11px] font-black text-slate-700 dark:text-slate-200 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer appearance-none uppercase"
+                                                onchange="window.updatePublicRow(${originalIndex}, 'lugar', this.value)">
+                                                <option value="" disabled ${!row.lugar ? 'selected' : ''}>— Seleccionar Punto —</option>
+                                                ${(config.lugares || []).map(lugar =>
                 `<option value="${lugar}" ${row.lugar === lugar ? 'selected' : ''}>${lugar}</option>`
             ).join('')}
-                                        </select>
-                                        <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-[9px] opacity-20 pointer-events-none"></i>
+                                            </select>
+                                            <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-[10px] lg:text-[9px] opacity-40 lg:opacity-30 pointer-events-none"></i>
+                                        </div>
                                     </div>
                                 </td>
-                                <td class="px-4 py-5">
-                                    <input list="list-publicadores" type="text"
-                                        class="w-full bg-slate-100/50 dark:bg-white/5 border border-transparent rounded-2xl px-4 py-3.5 text-[11px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all placeholder:text-slate-400 dark:placeholder:text-white/10 shadow-sm uppercase min-w-[120px] md:min-w-[160px]"
-                                        value="${row.publicador || ''}"
-                                        placeholder="Publicador..."
-                                        onchange="window.updatePublicRow(${originalIndex}, 'publicador', this.value)">
+                                <td class="block lg:table-cell px-2 py-3 lg:px-4 lg:py-5 border-b lg:border-none border-slate-50 dark:border-white/5 last:border-none">
+                                    <div class="flex flex-col lg:block gap-2">
+                                        <span class="lg:hidden text-[9px] font-black uppercase tracking-widest text-slate-400">Publicador Principal</span>
+                                        <div class="relative group/input flex justify-center w-full">
+                                            <input list="list-publicadores" type="text"
+                                                class="w-full bg-slate-50 lg:bg-slate-100/50 dark:bg-black/20 lg:dark:bg-white/5 border border-slate-200/50 lg:border-transparent rounded-2xl px-4 py-3.5 text-[11px] font-black text-center text-slate-700 dark:text-white outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-slate-400/70 dark:placeholder:text-white/20 uppercase"
+                                                value="${row.publicador || ''}"
+                                                placeholder="Nombre..."
+                                                onchange="window.updatePublicRow(${originalIndex}, 'publicador', this.value)">
+                                        </div>
+                                    </div>
                                 </td>
-                                <td class="px-4 py-5">
-                                    <input list="list-publicadores" type="text"
-                                        class="w-full bg-slate-100/50 dark:bg-white/5 border border-transparent rounded-2xl px-4 py-3.5 text-[11px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all placeholder:text-slate-400 dark:placeholder:text-white/10 shadow-sm uppercase min-w-[120px] md:min-w-[160px]"
-                                        value="${row.companero || ''}"
-                                        placeholder="Acompañante..."
-                                        onchange="window.updatePublicRow(${originalIndex}, 'companero', this.value)">
+                                <td class="block lg:table-cell px-2 py-3 lg:px-4 lg:py-5 border-b lg:border-none border-slate-50 dark:border-white/5 last:border-none">
+                                    <div class="flex flex-col lg:block gap-2">
+                                        <span class="lg:hidden text-[9px] font-black uppercase tracking-widest text-slate-400">Acompañante</span>
+                                        <div class="relative group/input flex justify-center w-full">
+                                            <input list="list-publicadores" type="text"
+                                                class="w-full bg-slate-50 lg:bg-slate-100/50 dark:bg-black/20 lg:dark:bg-white/5 border border-slate-200/50 lg:border-transparent rounded-2xl px-4 py-3.5 text-[11px] font-black text-center text-slate-700 dark:text-white outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-slate-400/70 dark:placeholder:text-white/20 uppercase"
+                                                value="${row.companero || ''}"
+                                                placeholder="Nombre..."
+                                                onchange="window.updatePublicRow(${originalIndex}, 'companero', this.value)">
+                                        </div>
+                                    </div>
                                 </td>
-                                <td class="px-4 py-5 text-right no-print opacity-20 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                                    <button class="w-10 h-10 inline-flex items-center justify-center text-primary-light hover:bg-primary/10 rounded-xl transition-all mr-1"
-                                        onclick="window.editPublicRowModal(${originalIndex})" title="Editar Detalle">
-                                        <i class="fas fa-edit text-xs"></i>
-                                    </button>
-                                    <button class="w-10 h-10 inline-flex items-center justify-center text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all"
-                                        onclick="window.deletePublicRow(${originalIndex})" title="Eliminar">
-                                        <i class="fas fa-trash-alt text-xs"></i>
-                                    </button>
+                                <td class="block lg:table-cell px-2 py-3 lg:px-6 lg:py-5 no-print relative">
+                                    <div class="flex items-center justify-end gap-2 lg:opacity-30 group-hover:opacity-100 transition-opacity">
+                                        <button class="w-12 h-12 lg:w-10 lg:h-10 inline-flex items-center justify-center text-primary-light bg-primary/5 hover:bg-primary/20 lg:bg-transparent lg:hover:bg-primary/10 rounded-2xl lg:rounded-xl transition-all"
+                                            onclick="window.editPublicRowModal(${originalIndex})" title="Editar Detalle">
+                                            <i class="fas fa-edit text-sm lg:text-xs"></i>
+                                        </button>
+                                        <button class="w-12 h-12 lg:w-10 lg:h-10 inline-flex items-center justify-center text-rose-500 bg-rose-500/5 hover:bg-rose-500/20 lg:bg-transparent lg:hover:bg-rose-500/10 rounded-2xl lg:rounded-xl transition-all"
+                                            onclick="window.deletePublicRow(${originalIndex})" title="Eliminar">
+                                            <i class="fas fa-trash-alt text-sm lg:text-xs"></i>
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                             `;

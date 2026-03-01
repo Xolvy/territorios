@@ -1,5 +1,6 @@
 // Xolvy Data Shield: Centrally defined normalization rule
-export const normalize = (val) => String(val || '').trim();
+export const normalize = (val) => String(val || '').trim().toLowerCase();
+export const normalizeRobust = (val) => String(val || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
 
 export const formatPhoneNumber = (numero) => {
     if (!numero) return '';
@@ -55,11 +56,11 @@ export const showNotification = (message, type = 'success', duration = 5000, wor
 
     // Type Styling
     const styles = {
-        success: { bg: 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-500/30', text: 'text-emerald-600 dark:text-emerald-400', icon: 'fa-check-circle', label: 'ÉXITO' },
-        error: { bg: 'bg-rose-50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-500/30', text: 'text-rose-600 dark:text-rose-400', icon: 'fa-triangle-exclamation', label: 'ERROR' },
-        warning: { bg: 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-500/30', text: 'text-amber-600 dark:text-amber-400', icon: 'fa-circle-exclamation', label: 'AVISO' },
-        info: { bg: 'bg-indigo-50 dark:bg-indigo-950/20 border-indigo-200 dark:border-indigo-500/30', text: 'text-indigo-600 dark:text-indigo-400', icon: 'fa-circle-info', label: 'INFO' },
-        sync: { bg: 'bg-indigo-50 dark:bg-slate-950 border-indigo-200 dark:border-indigo-500/40', text: 'text-indigo-600 dark:text-indigo-400', icon: 'fa-sync-alt fa-spin-slow', label: 'XOLVY WORKFLOW' }
+        success: { bg: 'bg-white/95 dark:bg-[#0f1a23]/95 border-emerald-200/50 dark:border-emerald-500/20', text: 'text-emerald-600 dark:text-emerald-400', icon: 'fa-check-circle', label: 'ÉXITO' },
+        error: { bg: 'bg-white/95 dark:bg-[#1a0f12]/95 border-rose-200/50 dark:border-rose-500/20', text: 'text-rose-600 dark:text-rose-400', icon: 'fa-triangle-exclamation', label: 'ERROR' },
+        warning: { bg: 'bg-white/95 dark:bg-[#1a150f]/95 border-amber-200/50 dark:border-amber-500/20', text: 'text-amber-600 dark:text-amber-400', icon: 'fa-circle-exclamation', label: 'AVISO' },
+        info: { bg: 'bg-white/95 dark:bg-[#0f111a]/95 border-indigo-200/50 dark:border-indigo-500/20', text: 'text-indigo-600 dark:text-indigo-400', icon: 'fa-circle-info', label: 'INFO' },
+        sync: { bg: 'bg-white/95 dark:bg-[#0b0f1a] border-indigo-200/50 dark:border-indigo-500/30', text: 'text-indigo-600 dark:text-indigo-400', icon: 'fa-sync-alt fa-spin-slow', label: 'WORKFLOW' }
     };
 
     const isSync = type === 'sync' || message.includes('Sincronizando');
@@ -201,7 +202,7 @@ export const completeSyncNotification = (moduleName) => {
     const card = cards.find(c => c.innerText.includes(moduleName) || c.innerText.includes('XOLVY WORKFLOW'));
 
     if (card) {
-        card.className = 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-500/20 dark:border-emerald-500/30 border backdrop-blur-3xl px-5 py-3.5 rounded-2xl shadow-[0_20px_50px_rgba(16,185,129,0.1)] dark:shadow-[0_20px_50px_rgba(16,185,129,0.3)] flex flex-col gap-1 animate-slide-left pointer-events-auto transform transition-all duration-700';
+        card.className = 'bg-white/95 dark:bg-[#0f231e]/95 border-emerald-500/20 dark:border-emerald-500/30 border backdrop-blur-3xl px-5 py-3.5 rounded-2xl shadow-2xl dark:shadow-[0_20px_50px_rgba(16,185,129,0.3)] flex flex-col gap-1 animate-slide-left pointer-events-auto transform transition-all duration-700';
 
         // Cleanup workflow logs
         const workflowDiv = card.querySelector('.border-t');
@@ -335,6 +336,27 @@ export const getBaseTerritoryNumber = (val) => {
     // Extract base number before any parenthesis or extra text
     const match = String(val).match(/^(\d+)/);
     return match ? match[1] : val;
+};
+
+export const splitTerritories = (str) => {
+    if (!str) return [];
+    const res = [];
+    let current = '';
+    let depth = 0;
+    for (let i = 0; i < str.length; i++) {
+        const char = str[i];
+        if (char === '(') depth++;
+        else if (char === ')') depth--;
+
+        if (depth === 0 && (char === ',' || char === ';' || char === '/')) {
+            res.push(current.trim());
+            current = '';
+        } else {
+            current += char;
+        }
+    }
+    res.push(current.trim());
+    return res.filter(Boolean);
 };
 
 // Global click-outside to close modals

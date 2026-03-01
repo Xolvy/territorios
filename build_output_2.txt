@@ -1,0 +1,187 @@
+
+> app-territorios@2.5 build
+> vite build
+
+[36mvite v7.3.1 [32mbuilding client environment for production...[36m[39m
+transforming...
+[32mÔ£ô[39m 1526 modules transformed.
+rendering chunks...
+[plugin vite:reporter] 
+(!) D:/_CODE/app-territorios/firebase-config.js is dynamically imported by D:/_CODE/app-territorios/modules/utils/update-manager.js but also statically imported by D:/_CODE/app-territorios/app.js, D:/_CODE/app-territorios/data/services/audit-service.js, D:/_CODE/app-territorios/data/services/auth-service.js, D:/_CODE/app-territorios/data/services/backup-service.js, D:/_CODE/app-territorios/data/services/base-service.js, D:/_CODE/app-territorios/data/services/config-service.js, D:/_CODE/app-territorios/data/services/diagnostic-service.js, D:/_CODE/app-territorios/data/services/history-service.js, D:/_CODE/app-territorios/data/services/personnel-service.js, D:/_CODE/app-territorios/data/services/phone-service.js, D:/_CODE/app-territorios/data/services/program-service.js, D:/_CODE/app-territorios/data/services/resource-service.js, D:/_CODE/app-territorios/data/services/territory-service.js, D:/_CODE/app-territorios/modules/admin-dashboard.js, D:/_CODE/app-territorios/modules/conductor-dashboard.js, D:/_CODE/app-territorios/modules/login.js, D:/_CODE/app-territorios/modules/utils/module-registry.js, D:/_CODE/app-territorios/modules/utils/update-manager.js, dynamic import will not move module into another chunk.
+
+[plugin vite:reporter] 
+(!) D:/_CODE/app-territorios/modules/utils/theme-manager.js is dynamically imported by D:/_CODE/app-territorios/app.js, D:/_CODE/app-territorios/modules/admin-dashboard.js, D:/_CODE/app-territorios/modules/conductor-dashboard.js but also statically imported by D:/_CODE/app-territorios/app.js, dynamic import will not move module into another chunk.
+
+[plugin vite:reporter] 
+(!) D:/_CODE/app-territorios/modules/utils/helpers.js is dynamically imported by D:/_CODE/app-territorios/app.js, D:/_CODE/app-territorios/modules/admin-dashboard.js, D:/_CODE/app-territorios/modules/conductor-dashboard.js but also statically imported by D:/_CODE/app-territorios/modules/admin-dashboard.js, D:/_CODE/app-territorios/modules/admin/assignments-view.js, D:/_CODE/app-territorios/modules/admin/diffusion-view.js, D:/_CODE/app-territorios/modules/admin/grupos-view.js, D:/_CODE/app-territorios/modules/admin/history-view.js, D:/_CODE/app-territorios/modules/admin/maps-admin.js, D:/_CODE/app-territorios/modules/admin/maps-view.js, D:/_CODE/app-territorios/modules/admin/personal-view.js, D:/_CODE/app-territorios/modules/admin/phones-view.js, D:/_CODE/app-territorios/modules/admin/program-generator.js, D:/_CODE/app-territorios/modules/admin/program-view.js, D:/_CODE/app-territorios/modules/admin/public-view.js, D:/_CODE/app-territorios/modules/admin/puntos-view.js, D:/_CODE/app-territorios/modules/admin/reports-generator.js, D:/_CODE/app-territorios/modules/admin/reports-view.js, D:/_CODE/app-territorios/modules/admin/resources-view.js, D:/_CODE/app-territorios/modules/admin/rules-view.js, D:/_CODE/app-territorios/modules/admin/s12-view.js, D:/_CODE/app-territorios/modules/analytics-view.js, D:/_CODE/app-territorios/modules/conductor-dashboard.js, D:/_CODE/app-territorios/modules/conductor/availability.js, D:/_CODE/app-territorios/modules/conductor/onboarding.js, D:/_CODE/app-territorios/modules/conductor/phone-module.js, D:/_CODE/app-territorios/modules/conductor/program-views.js, D:/_CODE/app-territorios/modules/conductor/rescue.js, D:/_CODE/app-territorios/modules/conductor/voice-helper.js, D:/_CODE/app-territorios/modules/conductor/weekly-program.js, D:/_CODE/app-territorios/modules/map-viewer.js, D:/_CODE/app-territorios/modules/report-s12.js, D:/_CODE/app-territorios/modules/report-s13.js, D:/_CODE/app-territorios/modules/services/ui-helpers.js, D:/_CODE/app-territorios/modules/utils/pwa-manager.js, D:/_CODE/app-territorios/modules/utils/update-manager.js, dynamic import will not move module into another chunk.
+
+[plugin vite:reporter] 
+(!) D:/_CODE/app-territorios/modules/utils/update-manager.js is dynamically imported by D:/_CODE/app-territorios/app.js, D:/_CODE/app-territorios/app.js, D:/_CODE/app-territorios/modules/admin-dashboard.js, D:/_CODE/app-territorios/modules/conductor-dashboard.js but also statically imported by D:/_CODE/app-territorios/app.js, dynamic import will not move module into another chunk.
+
+[plugin vite:reporter] 
+(!) D:/_CODE/app-territorios/modules/utils/module-registry.js is dynamically imported by D:/_CODE/app-territorios/app.js, D:/_CODE/app-territorios/modules/admin-dashboard.js, D:/_CODE/app-territorios/modules/conductor-dashboard.js but also statically imported by D:/_CODE/app-territorios/app.js, D:/_CODE/app-territorios/modules/admin-dashboard.js, D:/_CODE/app-territorios/modules/conductor-dashboard.js, dynamic import will not move module into another chunk.
+
+[plugin vite:reporter] 
+(!) D:/_CODE/app-territorios/modules/utils/adaptive.js is dynamically imported by D:/_CODE/app-territorios/app.js, D:/_CODE/app-territorios/modules/admin-dashboard.js, D:/_CODE/app-territorios/modules/conductor-dashboard.js but also statically imported by D:/_CODE/app-territorios/app.js, D:/_CODE/app-territorios/modules/admin-dashboard.js, dynamic import will not move module into another chunk.
+
+[plugin vite:reporter] 
+(!) D:/_CODE/app-territorios/modules/utils/visual-engine.js is dynamically imported by D:/_CODE/app-territorios/app.js, D:/_CODE/app-territorios/modules/admin-dashboard.js, D:/_CODE/app-territorios/modules/conductor-dashboard.js but also statically imported by D:/_CODE/app-territorios/app.js, D:/_CODE/app-territorios/modules/admin-dashboard.js, D:/_CODE/app-territorios/modules/conductor-dashboard.js, D:/_CODE/app-territorios/modules/login.js, dynamic import will not move module into another chunk.
+
+computing gzip size...
+[2mdist/[22m[32mregisterSW.js                           [39m[1m[2m    0.13 kB[22m[1m[22m
+[2mdist/[22m[32mmanifest.webmanifest                    [39m[1m[2m    0.38 kB[22m[1m[22m
+[2mdist/[22m[32mindex.html                              [39m[1m[2m    5.12 kB[22m[1m[22m[2m Ôöé gzip:   2.02 kB[22m
+[2mdist/[22m[32massets/fa-regular-400-BVHPE7da.woff2    [39m[1m[2m   18.99 kB[22m[1m[22m
+[2mdist/[22m[32massets/fa-brands-400-BfBXV7Mm.woff2     [39m[1m[2m  101.22 kB[22m[1m[22m
+[2mdist/[22m[32massets/fa-solid-900-8GirhLYJ.woff2      [39m[1m[2m  113.15 kB[22m[1m[22m
+[2mdist/[22m[35massets/main-CR7TqnQL.css                [39m[1m[2m  220.58 kB[22m[1m[22m[2m Ôöé gzip:  53.42 kB[22m
+[2mdist/[22m[36massets/config-Ci9my2g2.js               [39m[1m[2m    0.20 kB[22m[1m[22m[2m Ôöé gzip:   0.21 kB[22m
+[2mdist/[22m[36massets/resource-service-DZZWhMBF.js     [39m[1m[2m    0.36 kB[22m[1m[22m[2m Ôöé gzip:   0.23 kB[22m
+[2mdist/[22m[36massets/animations-zYVpXw3e.js           [39m[1m[2m    0.48 kB[22m[1m[22m[2m Ôöé gzip:   0.30 kB[22m
+[2mdist/[22m[36massets/voice-helper-BAJkmOj6.js         [39m[1m[2m    0.95 kB[22m[1m[22m[2m Ôöé gzip:   0.46 kB[22m
+[2mdist/[22m[36massets/modular-base-BJM4NR2J.js         [39m[1m[2m    0.98 kB[22m[1m[22m[2m Ôöé gzip:   0.53 kB[22m
+[2mdist/[22m[36massets/config-service-CvpAib_o.js       [39m[1m[2m    2.02 kB[22m[1m[22m[2m Ôöé gzip:   0.69 kB[22m
+[2mdist/[22m[36massets/diagnostic-service-j9hmakBN.js   [39m[1m[2m    2.15 kB[22m[1m[22m[2m Ôöé gzip:   0.98 kB[22m
+[2mdist/[22m[36massets/ui-components-W9wMoeAB.js        [39m[1m[2m    2.16 kB[22m[1m[22m[2m Ôöé gzip:   0.96 kB[22m
+[2mdist/[22m[36massets/firestore-services-Cyjv1wIG.js   [39m[1m[2m    2.39 kB[22m[1m[22m[2m Ôöé gzip:   0.94 kB[22m
+[2mdist/[22m[36massets/maps-explorer-t94y_e4q.js        [39m[1m[2m    2.54 kB[22m[1m[22m[2m Ôöé gzip:   1.04 kB[22m
+[2mdist/[22m[36massets/campaigns-view-CPHy4mvg.js       [39m[1m[2m    3.58 kB[22m[1m[22m[2m Ôöé gzip:   1.37 kB[22m
+[2mdist/[22m[36massets/onboarding-C0v5IcJ6.js           [39m[1m[2m    3.80 kB[22m[1m[22m[2m Ôöé gzip:   1.75 kB[22m
+[2mdist/[22m[36massets/program-service-CVOo2CDs.js      [39m[1m[2m    3.99 kB[22m[1m[22m[2m Ôöé gzip:   1.80 kB[22m
+[2mdist/[22m[36massets/availability-C9GlUH6Z.js         [39m[1m[2m    4.00 kB[22m[1m[22m[2m Ôöé gzip:   1.50 kB[22m
+[2mdist/[22m[36massets/territories-view-DFO9J9q0.js     [39m[1m[2m    4.05 kB[22m[1m[22m[2m Ôöé gzip:   1.62 kB[22m
+[2mdist/[22m[36massets/reports-generator-CZBxM9uS.js    [39m[1m[2m    4.08 kB[22m[1m[22m[2m Ôöé gzip:   1.77 kB[22m
+[2mdist/[22m[36massets/report-s12-BRSn5eSY.js           [39m[1m[2m    5.20 kB[22m[1m[22m[2m Ôöé gzip:   1.71 kB[22m
+[2mdist/[22m[36massets/weekly-program-C2C1Gv0Q.js       [39m[1m[2m    5.35 kB[22m[1m[22m[2m Ôöé gzip:   2.26 kB[22m
+[2mdist/[22m[36massets/diffusion-view-Be-fgcdc.js       [39m[1m[2m    5.97 kB[22m[1m[22m[2m Ôöé gzip:   1.91 kB[22m
+[2mdist/[22m[36massets/s13-exporter-B5_QCZRU.js         [39m[1m[2m    6.27 kB[22m[1m[22m[2m Ôöé gzip:   1.64 kB[22m
+[2mdist/[22m[36massets/grupos-view-efAyU1gE.js          [39m[1m[2m    6.76 kB[22m[1m[22m[2m Ôöé gzip:   1.83 kB[22m
+[2mdist/[22m[36massets/maps-admin-Bsgm9UGm.js           [39m[1m[2m    6.96 kB[22m[1m[22m[2m Ôöé gzip:   2.56 kB[22m
+[2mdist/[22m[36massets/assignments-view-DuXYMgHY.js     [39m[1m[2m    7.53 kB[22m[1m[22m[2m Ôöé gzip:   2.20 kB[22m
+[2mdist/[22m[36massets/program-generator-BH0W4EDw.js    [39m[1m[2m    7.53 kB[22m[1m[22m[2m Ôöé gzip:   2.65 kB[22m
+[2mdist/[22m[36massets/ai-view-7bKiY_uh.js              [39m[1m[2m    7.75 kB[22m[1m[22m[2m Ôöé gzip:   2.54 kB[22m
+[2mdist/[22m[36massets/phone-module-BHRc3vqx.js         [39m[1m[2m    7.90 kB[22m[1m[22m[2m Ôöé gzip:   2.31 kB[22m
+[2mdist/[22m[36massets/pwa-manager-n8w52Vrv.js          [39m[1m[2m    8.09 kB[22m[1m[22m[2m Ôöé gzip:   2.77 kB[22m
+[2mdist/[22m[36massets/rescue-Bbt7z8pB.js               [39m[1m[2m    8.27 kB[22m[1m[22m[2m Ôöé gzip:   2.10 kB[22m
+[2mdist/[22m[36massets/intelligence-B6B4bx8A.js         [39m[1m[2m   10.40 kB[22m[1m[22m[2m Ôöé gzip:   4.56 kB[22m
+[2mdist/[22m[36massets/resources-view-hffsPvoA.js       [39m[1m[2m   10.48 kB[22m[1m[22m[2m Ôöé gzip:   2.74 kB[22m
+[2mdist/[22m[36massets/territory-service-Co3Uoywp.js    [39m[1m[2m   10.91 kB[22m[1m[22m[2m Ôöé gzip:   3.57 kB[22m
+[2mdist/[22m[36massets/puntos-view-DfPAAwC7.js          [39m[1m[2m   11.35 kB[22m[1m[22m[2m Ôöé gzip:   3.01 kB[22m
+[2mdist/[22m[36massets/recursos-DBrq6wu4.js             [39m[1m[2m   12.27 kB[22m[1m[22m[2m Ôöé gzip:   3.05 kB[22m
+[2mdist/[22m[36massets/program-views-Crrb6Ed9.js        [39m[1m[2m   13.34 kB[22m[1m[22m[2m Ôöé gzip:   3.46 kB[22m
+[2mdist/[22m[36massets/s12-view-BFnMe5ME.js             [39m[1m[2m   15.21 kB[22m[1m[22m[2m Ôöé gzip:   4.20 kB[22m
+[2mdist/[22m[36massets/login-C-LelxZG.js                [39m[1m[2m   17.19 kB[22m[1m[22m[2m Ôöé gzip:   4.53 kB[22m
+[2mdist/[22m[36massets/phones-view-uWlSuprZ.js          [39m[1m[2m   18.84 kB[22m[1m[22m[2m Ôöé gzip:   4.48 kB[22m
+[2mdist/[22m[36massets/map-viewer-DSHwo-u7.js           [39m[1m[2m   19.05 kB[22m[1m[22m[2m Ôöé gzip:   5.05 kB[22m
+[2mdist/[22m[36massets/analytics-view-C9rqtD0Y.js       [39m[1m[2m   20.12 kB[22m[1m[22m[2m Ôöé gzip:   5.52 kB[22m
+[2mdist/[22m[36massets/maps-view-BNRis2b8.js            [39m[1m[2m   20.48 kB[22m[1m[22m[2m Ôöé gzip:   5.18 kB[22m
+[2mdist/[22m[36massets/admin-dashboard-6DY58Z5m.js      [39m[1m[2m   20.71 kB[22m[1m[22m[2m Ôöé gzip:   5.47 kB[22m
+[2mdist/[22m[36massets/report-s13-Bn5zRoHM.js           [39m[1m[2m   21.30 kB[22m[1m[22m[2m Ôöé gzip:   5.89 kB[22m
+[2mdist/[22m[36massets/purify.es-B1AVwBo1.js            [39m[1m[2m   22.86 kB[22m[1m[22m[2m Ôöé gzip:   8.67 kB[22m
+[2mdist/[22m[36massets/ui-helpers-BRTa-GM6.js           [39m[1m[2m   23.64 kB[22m[1m[22m[2m Ôöé gzip:   5.83 kB[22m
+[2mdist/[22m[36massets/reports-view-B_ugHkht.js         [39m[1m[2m   27.64 kB[22m[1m[22m[2m Ôöé gzip:   5.79 kB[22m
+[2mdist/[22m[36massets/public-view-CEY7NDvp.js          [39m[1m[2m   32.95 kB[22m[1m[22m[2m Ôöé gzip:   6.26 kB[22m
+[2mdist/[22m[36massets/rules-view-BXx9vXY3.js           [39m[1m[2m   32.96 kB[22m[1m[22m[2m Ôöé gzip:   6.22 kB[22m
+[2mdist/[22m[36massets/personal-view-DqepPuUC.js        [39m[1m[2m   34.58 kB[22m[1m[22m[2m Ôöé gzip:   7.07 kB[22m
+[2mdist/[22m[36massets/history-view-gIKFMvJd.js         [39m[1m[2m   36.43 kB[22m[1m[22m[2m Ôöé gzip:   7.19 kB[22m
+[2mdist/[22m[36massets/main-BpeWKqt1.js                 [39m[1m[2m   63.48 kB[22m[1m[22m[2m Ôöé gzip:  20.37 kB[22m
+[2mdist/[22m[36massets/schemas-D1cwgrgY.js              [39m[1m[2m   63.84 kB[22m[1m[22m[2m Ôöé gzip:  16.94 kB[22m
+[2mdist/[22m[36massets/program-view-BjIyGhES.js         [39m[1m[2m   77.52 kB[22m[1m[22m[2m Ôöé gzip:  16.38 kB[22m
+[2mdist/[22m[36massets/conductor-dashboard-rSOoG4SQ.js  [39m[1m[2m   97.04 kB[22m[1m[22m[2m Ôöé gzip:  21.67 kB[22m
+[2mdist/[22m[36massets/leaflet-vendor-8bz9JmG5.js       [39m[1m[2m  149.45 kB[22m[1m[22m[2m Ôöé gzip:  43.15 kB[22m
+[2mdist/[22m[36massets/index.es-B3EIInv6.js             [39m[1m[2m  158.69 kB[22m[1m[22m[2m Ôöé gzip:  52.51 kB[22m
+[2mdist/[22m[36massets/ui-vendor-DwqWZkQ9.js            [39m[1m[2m  314.49 kB[22m[1m[22m[2m Ôöé gzip: 100.57 kB[22m
+[2mdist/[22m[36massets/PDFButton-DZ_o7UXv.js            [39m[1m[33m  514.65 kB[39m[22m[2m Ôöé gzip: 204.32 kB[22m
+[2mdist/[22m[36massets/firebase-vendor-DJLwMWpW.js      [39m[1m[33m  605.21 kB[39m[22m[2m Ôöé gzip: 141.39 kB[22m
+[2mdist/[22m[36massets/utils-vendor-B0p-9tVa.js         [39m[1m[33m1,077.95 kB[39m[22m[2m Ôöé gzip: 328.03 kB[22m
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+[32mÔ£ô built in 12.08s[39m
+
+Ô£¿ [vite-plugin-compression]:algorithm=gzip - compressed file successfully: 
+dist/D:/_CODE/app-territorios/assets/campaigns-view-CPHy4mvg.js.gz        3.50kb / gzip: 1.33kb
+dist/D:/_CODE/app-territorios/assets/ai-view-7bKiY_uh.js.gz               7.56kb / gzip: 2.46kb
+dist/D:/_CODE/app-territorios/assets/assignments-view-DuXYMgHY.js.gz      7.35kb / gzip: 2.14kb
+dist/D:/_CODE/app-territorios/assets/availability-C9GlUH6Z.js.gz          3.90kb / gzip: 1.46kb
+dist/D:/_CODE/app-territorios/assets/diagnostic-service-j9hmakBN.js.gz    2.10kb / gzip: 0.96kb
+dist/D:/_CODE/app-territorios/assets/config-service-CvpAib_o.js.gz        1.98kb / gzip: 0.67kb
+dist/D:/_CODE/app-territorios/assets/admin-dashboard-6DY58Z5m.js.gz       20.22kb / gzip: 5.32kb
+dist/D:/_CODE/app-territorios/assets/firestore-services-Cyjv1wIG.js.gz    2.33kb / gzip: 0.92kb
+dist/D:/_CODE/app-territorios/assets/diffusion-view-Be-fgcdc.js.gz        5.83kb / gzip: 1.86kb
+dist/D:/_CODE/app-territorios/assets/grupos-view-efAyU1gE.js.gz           6.60kb / gzip: 1.79kb
+dist/D:/_CODE/app-territorios/assets/analytics-view-C9rqtD0Y.js.gz        19.64kb / gzip: 5.36kb
+dist/D:/_CODE/app-territorios/assets/intelligence-B6B4bx8A.js.gz          10.15kb / gzip: 4.45kb
+dist/D:/_CODE/app-territorios/assets/login-C-LelxZG.js.gz                 16.79kb / gzip: 4.41kb
+dist/D:/_CODE/app-territorios/assets/history-view-gIKFMvJd.js.gz          35.58kb / gzip: 6.96kb
+dist/D:/_CODE/app-territorios/assets/maps-explorer-t94y_e4q.js.gz         2.48kb / gzip: 1.01kb
+dist/D:/_CODE/app-territorios/assets/maps-admin-Bsgm9UGm.js.gz            6.80kb / gzip: 2.50kb
+dist/D:/_CODE/app-territorios/assets/map-viewer-DSHwo-u7.js.gz            18.61kb / gzip: 4.92kb
+dist/D:/_CODE/app-territorios/assets/onboarding-C0v5IcJ6.js.gz            3.71kb / gzip: 1.71kb
+dist/D:/_CODE/app-territorios/assets/maps-view-BNRis2b8.js.gz             20.00kb / gzip: 5.03kb
+dist/D:/_CODE/app-territorios/assets/phone-module-BHRc3vqx.js.gz          7.72kb / gzip: 2.26kb
+dist/D:/_CODE/app-territorios/assets/phones-view-uWlSuprZ.js.gz           18.40kb / gzip: 4.35kb
+dist/D:/_CODE/app-territorios/assets/program-generator-BH0W4EDw.js.gz     7.35kb / gzip: 2.58kb
+dist/D:/_CODE/app-territorios/assets/program-service-CVOo2CDs.js.gz       3.90kb / gzip: 1.76kb
+dist/D:/_CODE/app-territorios/assets/personal-view-DqepPuUC.js.gz         33.77kb / gzip: 6.85kb
+dist/D:/_CODE/app-territorios/assets/puntos-view-DfPAAwC7.js.gz           11.08kb / gzip: 2.92kb
+dist/D:/_CODE/app-territorios/assets/program-views-Crrb6Ed9.js.gz         13.02kb / gzip: 3.34kb
+dist/D:/_CODE/app-territorios/assets/pwa-manager-n8w52Vrv.js.gz           7.90kb / gzip: 2.69kb
+dist/D:/_CODE/app-territorios/assets/purify.es-B1AVwBo1.js.gz             22.32kb / gzip: 8.46kb
+dist/D:/_CODE/app-territorios/assets/public-view-CEY7NDvp.js.gz           32.17kb / gzip: 6.05kb
+dist/D:/_CODE/app-territorios/assets/recursos-DBrq6wu4.js.gz              11.98kb / gzip: 2.95kb
+dist/D:/_CODE/app-territorios/assets/report-s12-BRSn5eSY.js.gz            5.08kb / gzip: 1.67kb
+dist/D:/_CODE/app-territorios/assets/reports-generator-CZBxM9uS.js.gz     3.99kb / gzip: 1.73kb
+dist/D:/_CODE/app-territorios/assets/rescue-Bbt7z8pB.js.gz                8.08kb / gzip: 2.03kb
+dist/D:/_CODE/app-territorios/assets/resources-view-hffsPvoA.js.gz        10.23kb / gzip: 2.66kb
+dist/D:/_CODE/app-territorios/assets/report-s13-Bn5zRoHM.js.gz            20.80kb / gzip: 5.73kb
+dist/D:/_CODE/app-territorios/assets/s13-exporter-B5_QCZRU.js.gz          6.12kb / gzip: 1.60kb
+dist/D:/_CODE/app-territorios/assets/s12-view-BFnMe5ME.js.gz              14.86kb / gzip: 4.08kb
+dist/D:/_CODE/app-territorios/assets/rules-view-BXx9vXY3.js.gz            32.19kb / gzip: 6.01kb
+dist/D:/_CODE/app-territorios/assets/territories-view-DFO9J9q0.js.gz      3.95kb / gzip: 1.58kb
+dist/D:/_CODE/app-territorios/assets/ui-components-W9wMoeAB.js.gz         2.11kb / gzip: 0.94kb
+dist/D:/_CODE/app-territorios/assets/territory-service-Co3Uoywp.js.gz     10.65kb / gzip: 3.48kb
+dist/D:/_CODE/app-territorios/assets/program-view-BjIyGhES.js.gz          75.70kb / gzip: 15.86kb
+dist/D:/_CODE/app-territorios/assets/reports-view-B_ugHkht.js.gz          26.99kb / gzip: 5.60kb
+dist/D:/_CODE/app-territorios/assets/weekly-program-C2C1Gv0Q.js.gz        5.23kb / gzip: 2.20kb
+dist/D:/_CODE/app-territorios/manifest.json.gz                            1.80kb / gzip: 0.61kb
+dist/D:/_CODE/app-territorios/index.html.gz                               5.00kb / gzip: 1.96kb
+dist/D:/_CODE/app-territorios/service-worker.js.gz                        4.11kb / gzip: 1.23kb
+dist/D:/_CODE/app-territorios/assets/ui-helpers-BRTa-GM6.js.gz            23.09kb / gzip: 5.64kb
+dist/D:/_CODE/app-territorios/assets/main-BpeWKqt1.js.gz                  62.00kb / gzip: 19.84kb
+dist/D:/_CODE/app-territorios/assets/conductor-dashboard-rSOoG4SQ.js.gz   94.76kb / gzip: 20.98kb
+dist/D:/_CODE/app-territorios/assets/schemas-D1cwgrgY.js.gz               62.34kb / gzip: 16.51kb
+dist/D:/_CODE/app-territorios/assets/leaflet-vendor-8bz9JmG5.js.gz        145.95kb / gzip: 41.92kb
+dist/D:/_CODE/app-territorios/assets/index.es-B3EIInv6.js.gz              154.97kb / gzip: 51.11kb
+dist/D:/_CODE/app-territorios/assets/main-CR7TqnQL.css.gz                 215.41kb / gzip: 51.63kb
+dist/D:/_CODE/app-territorios/assets/ui-vendor-DwqWZkQ9.js.gz             307.12kb / gzip: 97.98kb
+dist/D:/_CODE/app-territorios/assets/firebase-vendor-DJLwMWpW.js.gz       591.03kb / gzip: 137.76kb
+dist/D:/_CODE/app-territorios/assets/PDFButton-DZ_o7UXv.js.gz             502.58kb / gzip: 199.25kb
+dist/D:/_CODE/app-territorios/pdf-lib.js.gz                               512.79kb / gzip: 201.53kb
+dist/D:/_CODE/app-territorios/assets/utils-vendor-B0p-9tVa.js.gz          1052.68kb / gzip: 319.48kb
+
+
+
+PWA v1.2.0
+mode      generateSW
+precache  71 entries (4990.98 KiB)
+files generated
+  dist/sw.js
+  dist/workbox-aaf7b92d.js
+
+Ô£¿ [36m[vite-plugin-image-optimizer][39m - optimized images successfully: 
+[2mdist[22m/[94mfavicon.svg[39m   [90m[32m-28%[39m[90m   [39m [2m1.24 kB Ô¡ó  0.90 kB[22m
+[2mdist[22m/[94micon-192.svg[39m  [90m[32m-28%[39m[90m   [39m [2m1.24 kB Ô¡ó  0.90 kB[22m
+[2mdist[22m/[94micon-512.svg[39m  [90m[32m-28%[39m[90m   [39m [2m1.24 kB Ô¡ó  0.90 kB[22m
+
+­ƒÆ░ total savings = [32m1.03kB[39m/[32m3.72kB[39m Ôëê [32m28%[39m
+
+
+
+­ƒÜ¿ [31m[vite-plugin-image-optimizer][39m - errors during optimization: 
+dist/assets/mapa-general.jpg      Input buffer contains unsupported image format
+dist/assets/mapa_territorio.png   Input buffer contains unsupported image format
+
+

@@ -17,59 +17,56 @@
 
 @layer base {
     :root {
-        /* Ultra PRO 2026 - Digital Horizon Theme */
-        --bg-main: 210 33% 98%;
-        --bg-card: 0 0% 100%;
-        --primary: 200 85% 25%;
-        /* Darker Blue for Light Mode */
-        --primary-glow: 200 85% 25% / 0.12;
-        --secondary: 235 60% 35%;
-        /* Darker Indigo */
-        --accent: 172 66% 30%;
-        /* Darker Teal */
+        /* XOLVY CORE 2027 - Evolutionary Visual Framework */
 
-        --text-main: 222 47% 8%;
-        /* Very Deep Blue */
-        --text-muted: 215 25% 35%;
-        /* High Contrast Gray (Slate 600 equivalent) */
+        /* Typography: Fluid Scales */
+        --font-main: 'Outfit', 'Inter', system-ui, sans-serif;
+
+        /* 2027 Light Palette: High Fidelity */
+        --bg-main: 210 50% 98%;
+        --bg-card: 0 0% 100%;
+        --primary: 172 66% 35%;
+        --primary-glow: 172 66% 35% / 0.1;
+        --secondary: 235 60% 45%;
+        --accent: 199 89% 48%;
+
+        --text-main: 222 47% 12%;
+        --text-muted: 215 25% 45%;
 
         --glass-bg: hsla(0, 0%, 100%, 0.7);
-        --glass-border: hsla(0, 0%, 100%, 0.9);
-        --glass-shadow: 222 47% 11% / 0.05;
+        --glass-border: hsla(0, 0%, 100%, 0.8);
+        --glass-shadow: 222 47% 11% / 0.08;
 
-        --input-bg: rgba(255, 255, 255, 0.8);
-        --radius-lg: 2rem;
-        --radius-md: 1.25rem;
+        /* System Variables (Injected by VisualEngine) */
+        --radius-lg: 2.5rem;
+        --radius-md: 1.5rem;
+        --border-thin: 1px solid var(--glass-border);
     }
 
     .dark {
-        --bg-main: 222 47% 2%;
-        --bg-card: 222 47% 4%;
-        --primary: 172 66% 50%;
-        /* Brighter Teal */
-        --primary-glow: 172 66% 50% / 0.25;
+        /* XOLVY DARK 2027 - Midnight Obsidian */
+        --bg-main: 224 71% 2%;
+        --bg-card: 224 71% 4%;
+        --primary: 172 100% 45%;
+        --primary-glow: 172 100% 45% / 0.2;
+        --secondary: 235 85% 65%;
 
         --text-main: 210 40% 98%;
-        --text-muted: 215 15% 75%;
-        /* Brighter Gray for readability */
+        --text-muted: 215 20% 65%;
 
-        --glass-bg: rgba(13, 17, 23, 0.85);
-        --glass-border: rgba(255, 255, 255, 0.08);
-        --glass-shadow: 0 0% 0% / 0.6;
+        --glass-bg: rgba(8, 12, 20, 0.8);
+        --glass-border: rgba(255, 255, 255, 0.04);
+        --glass-shadow: 0 0% 0% / 0.8;
 
-        --input-bg: rgba(15, 23, 42, 0.4);
+        --input-bg: rgba(6, 9, 15, 0.6);
 
         color-scheme: dark;
-    }
-
-    .dark select option {
-        background-color: #1e293b;
-        color: white;
     }
 
     html {
         scroll-behavior: smooth;
         -webkit-tap-highlight-color: transparent;
+        font-family: var(--font-main);
     }
 
     body {
@@ -77,35 +74,38 @@
         padding: 0;
         min-height: 100vh;
         background-color: hsl(var(--bg-main));
+        /* 2027 Mesh Gradient Engine */
         background-image:
-            radial-gradient(at 0% 0%, hsla(172, 66%, 35%, 0.05) 0px, transparent 50%),
-            radial-gradient(at 100% 0%, hsla(262, 83%, 58%, 0.05) 0px, transparent 50%),
-            radial-gradient(at 50% 100%, hsla(199, 89%, 48%, 0.05) 0px, transparent 50%);
+            radial-gradient(at 0% 0%, hsla(172, 66%, 45%, 0.08) 0px, transparent 50%),
+            radial-gradient(at 100% 0%, hsla(235, 85%, 65%, 0.08) 0px, transparent 50%),
+            radial-gradient(at 50% 100%, hsla(199, 89%, 48%, 0.08) 0px, transparent 50%),
+            url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        background-blend-mode: normal, normal, normal, overlay;
         background-attachment: fixed;
         color: hsl(var(--text-main));
-        font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
-        transition: background 0.5s ease;
+        transition: background 0.8s cubic-bezier(0.4, 0, 0.2, 1);
         overflow-x: hidden;
     }
 
+    /* Hyper-Glass 2027 */
     .glass-morphism {
         background: var(--glass-bg);
-        backdrop-filter: blur(24px) saturate(180%);
-        -webkit-backdrop-filter: blur(24px) saturate(180%);
+        backdrop-filter: blur(40px) saturate(200%);
+        -webkit-backdrop-filter: blur(40px) saturate(200%);
         border: 1px solid var(--glass-border);
         box-shadow:
-            0 25px 50px -12px hsla(var(--glass-shadow)),
-            inset 0 0 80px hsla(0, 0%, 100%, 0.05);
+            0 30px 60px -12px hsla(var(--glass-shadow)),
+            inset 0 0 0 1px hsla(0, 0%, 100%, 0.05);
         position: relative;
-        overflow: hidden;
     }
 
-    .glass-morphism::before {
+    .glass-morphism::after {
         content: '';
         position: absolute;
         inset: 0;
-        background: radial-gradient(circle at 50% 0%, hsla(0, 0%, 100%, 0.1), transparent);
+        background: linear-gradient(135deg, hsla(0, 0%, 100%, 0.1), transparent);
         pointer-events: none;
+        opacity: 0.5;
     }
 }
 
@@ -149,23 +149,36 @@ textarea:focus {
     box-shadow: 0 0 0 4px hsla(var(--primary) / 0.1) !important;
 }
 
+/* Component: Modern Card 2027 */
 .modern-card {
-    @apply bg-white dark:bg-white/[0.03] backdrop-blur-xl border border-slate-200/60 dark:border-white/10 rounded-[2rem] p-6 md:p-8 shadow-xl shadow-slate-200/40 dark:shadow-none transition-all duration-300;
-}
-
-.input-premium {
-    @apply w-full bg-gray-50 dark:bg-black/40 border-2 border-transparent focus:border-teal-500/30 rounded-3xl p-5 text-gray-900 dark:text-white outline-none shadow-inner font-bold transition-all;
-}
-
-.label-premium {
-    @apply block text-[10px] font-black uppercase text-teal-600 mb-2 ml-2 tracking-widest;
-}
-
-/* Interactive Buttons */
-.btn-pro {
+    background-color: var(--glass-bg);
+    backdrop-filter: blur(32px) saturate(180%);
+    -webkit-backdrop-filter: blur(32px) saturate(180%);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-xolvy-lg, 2.5rem);
+    padding: 2rem;
+    box-shadow: var(--shadow-xolvy-premium);
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
-    transition: all 0.3s ease;
+}
+
+.modern-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at top left, hsla(0, 0%, 100%, 0.05), transparent);
+    pointer-events: none;
+}
+
+.dark .modern-card {
+    background-color: rgba(15, 20, 32, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.8);
+}
+
+/* Premium Button 2027 */
+.btn-pro {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -189,6 +202,36 @@ textarea:focus {
 
 .btn-pro:active {
     transform: scale(0.96);
+}
+
+/* Forms 2027 */
+.input-premium {
+    width: 100%;
+    background-color: var(--input-bg, rgba(255, 255, 255, 0.8));
+    border: 1px solid var(--glass-border);
+    border-radius: 1.25rem;
+    padding: 1.25rem 1.5rem;
+    font-weight: 700;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    color: hsl(var(--text-main));
+}
+
+.input-premium:focus {
+    background-color: var(--bg-card);
+    border-color: hsl(var(--primary));
+    box-shadow: 0 0 0 4px hsla(var(--primary) / 0.1);
+}
+
+.label-premium {
+    display: block;
+    font-size: 0.65rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: hsl(var(--text-muted));
+    margin-bottom: 0.5rem;
+    margin-left: 0.5rem;
+    opacity: 0.8;
 }
 
 /* Custom Scrollbar 2.0 */

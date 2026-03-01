@@ -6,11 +6,20 @@ export const renderAvailabilitySection = async (container, currentUserName) => {
 
     // Xolvy Data Shield: Robust normalization for user lookup
     const normalize = (val) => String(val || '').trim().toLowerCase();
+    const normalizePhone = (val) => String(val || '').replace(/\D/g, '');
+
     const publicadores = await getPublicadores();
-    const me = publicadores.find(p => normalize(p.nombre) === normalize(currentUserName));
+    const me = publicadores.find(p => {
+        const u = normalize(currentUserName);
+        const up = normalizePhone(currentUserName);
+        return normalize(p.nombre) === u ||
+            normalize(p.email) === u ||
+            normalizePhone(p.telefono) === up ||
+            normalizePhone(p.email) === up; // Fallback for email as id
+    });
 
     if (!me) {
-        console.warn(`🛡️ [Data Shield] User session mismatch for availability: ${currentUserName}`);
+        console.warn(`🛡️ [Data Shield] User session mismatch for availability: "${currentUserName}"`);
         return;
     }
 

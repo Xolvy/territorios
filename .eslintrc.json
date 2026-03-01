@@ -1,0 +1,25 @@
+{
+    "env": {
+        "browser": true,
+        "es2021": true,
+        "node": true
+    },
+    "extends": "eslint:recommended",
+    "parserOptions": {
+        "ecmaVersion": 12,
+        "sourceType": "module"
+    },
+    "rules": {
+        "no-undef": "error",
+        "no-unused-vars": "warn"
+    },
+    "globals": {
+        "__APP_VERSION__": "readonly",
+        "google": "readonly",
+        "L": "readonly",
+        "Chart": "readonly",
+        "VoiceDictationHelper": "readonly",
+        "html2canvas": "readonly",
+        "UIHelpers": "readonly"
+    }
+}

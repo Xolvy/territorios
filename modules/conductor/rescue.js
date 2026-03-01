@@ -93,7 +93,7 @@ export const renderRescueMissions = (allTerritorios, normalizedName, myExtraMiss
                                             </p>
                                         </div>
 
-                                        <button onclick="window.handleRescueTerritory('${t.id}', '${t.numero}', '${normalizedName.replace(/'/g, "\\\'")}', '${(t.manzanas || '').replace(/'/g, "\\\'")}', true)"
+                                        <button onclick="window.handleRescueTerritory('${t.id}', '${t.numero}', '${normalizedName.replace(/'/g, "\\'")}', '${(t.manzanas || '').replace(/'/g, "\\'")}', true)"
                                                 class="w-full py-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] shadow-lg shadow-indigo-600/20 transition-all active:scale-95 flex items-center justify-center gap-3">
                                             <i class="fas fa-plus"></i> 
                                             ${isIncomplete ? 'CONTINUAR PREDICACIÓN' : 'TOMAR TERRITORIO'}

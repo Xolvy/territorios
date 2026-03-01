@@ -27,11 +27,11 @@ export const renderRecursosSection = (container) => {
             action: () => window.showPreguntasFrecuentes()
         },
         {
-            title: 'Contacto Soporte',
-            icon: 'fa-headset',
+            title: 'Cerebro Territorial',
+            icon: 'fa-brain',
             color: 'text-emerald-500',
             bg: 'bg-emerald-500/10',
-            action: () => window.open('https://wa.me/593994749286', '_blank')
+            action: (e) => window.toggleAIPanel ? window.toggleAIPanel(e) : window.open('https://wa.me/593994749286', '_blank')
         }
     ];
 

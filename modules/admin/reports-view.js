@@ -1,7 +1,7 @@
 import { getTerritorios, getHistorialReport, getSessionSummaries } from '../../data/firestore-services.js';
 import { showNotification } from '../utils/helpers.js';
 import { renderHistorialView } from './history-view.js';
-import { UIHelpers } from '../services/ui-helpers.js';
+import { UIHelpers, showModal } from '../services/ui-helpers.js';
 
 export const renderReportsTab = async (container, config, appVersion) => {
     let _activeMainTab = 'historial'; // New main navigation
@@ -16,7 +16,7 @@ export const renderReportsTab = async (container, config, appVersion) => {
                         <i class="fas fa-history"></i> Historial
                     </button>
                     <button id="main-btn-reportes" class="px-10 py-4 rounded-[1.8rem] text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 border border-transparent">
-                        <i class="fas fa-print"></i> Reportes (S-12/S-13)
+                        <i class="fas fa-print"></i> S-12/S-13
                     </button>
                     <button id="main-btn-telefonia" class="px-10 py-4 rounded-[1.8rem] text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 border border-transparent">
                         <i class="fas fa-phone-alt"></i> Telefonía
@@ -432,7 +432,7 @@ export const renderReportsTab = async (container, config, appVersion) => {
                 if (!s) return;
 
                 const statsHTML = Object.entries(s.stats || {})
-                    .filter(([_, val]) => val > 0)
+                    .filter(([key, val]) => val > 0 && key)
                     .map(([key, val]) => `
                         <div class="p-5 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/5 flex flex-col items-center text-center">
                             <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">${key}</p>

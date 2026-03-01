@@ -2,11 +2,15 @@ import './modules/extensions.mjs';
 import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
-import { getPermisosUsuario, migrateConductoresToPublicadores } from './data/firestore-services.js';
+import { getPermisosUsuario, migrateConductoresToPublicadores, autoCleanTelefonosData } from './data/firestore-services.js';
 import { initTheme, createThemeToggle } from './modules/utils/theme-manager.js';
 import { initUpdateManager } from './modules/utils/update-manager.js';
 import { moduleRegistry } from './modules/utils/module-registry.js';
 import { XolvyAdaptive } from './modules/utils/adaptive.js';
+import { VisualEngine } from './modules/utils/visual-engine.js';
+
+// Initialize Visual Ecosystem
+VisualEngine.applyGlobalEcosystem();
 
 // Initialize Module Registry
 moduleRegistry.init();
@@ -15,35 +19,10 @@ moduleRegistry.init();
 const APP_VERSION = __APP_VERSION__;
 
 // --- XOLVY MODULAR: MICRO-MODULE ENGINE ---
-const ModuleCache = new Map();
-// Recursive glob to find all modules in subdirectories
 const dynamicModules = import.meta.glob('./modules/**/*.js');
 
 async function loadModule(moduleName, basePath) {
-    const path = moduleRegistry.getModulePath(moduleName, basePath);
-    const cacheKey = moduleName;
-    const isNewVersion = ModuleCache.get(`${cacheKey}_path`) !== path;
-
-    if (!ModuleCache.has(cacheKey) || isNewVersion) {
-        console.log(`📦 [Xolvy Modular] Loading ${moduleName} (v${moduleRegistry.getModuleVersion(moduleName)})`);
-
-        let mod;
-        // Normalize path for glob lookup
-        const globPath = basePath.startsWith('./') ? basePath : `./${basePath.startsWith('/') ? basePath.substring(1) : basePath}`;
-
-        if (dynamicModules[globPath]) {
-            mod = await dynamicModules[globPath]();
-        } else {
-            // Fallback for extreme cases (cache busting)
-            const finalPath = isNewVersion ? `${path}&ts=${Date.now()}` : path;
-            mod = await import(/* @vite-ignore */ finalPath);
-        }
-
-        ModuleCache.set(cacheKey, mod);
-        ModuleCache.set(`${cacheKey}_path`, path);
-    }
-
-    return ModuleCache.get(cacheKey);
+    return moduleRegistry.loadModule(moduleName, basePath, dynamicModules);
 }
 
 // Shell View Accessors
@@ -77,7 +56,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const appContainer = document.getElementById('app-container');
 
     initTheme();
-    document.body.appendChild(createThemeToggle());
     initUpdateManager();
     initDiffusionListener();
     XolvyAdaptive.init();
@@ -158,7 +136,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Define which sub-modules belong to which main view
         const conductorSubModules = ['availability', 'recursos', 'maps_explorer', 'rescue', 'phone_module', 'onboarding', 'weekly_program', 'program_views'];
-        const adminSubModules = ['territories_view', 'public_view', 'phones_view', 'rules_view', 'analytics_view'];
+        const adminSubModules = ['territories_view', 'public_view', 'phones_view', 'rules_view', 'analytics_view', 'reports_view'];
 
         // Determine if we should re-render
         const isConductorView = path.startsWith('/conductores');
@@ -218,7 +196,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         localStorage.setItem('last_app_version', APP_VERSION);
     }
 
+    // Xolvy Automation: System Maintenance Hooks
     migrateConductoresToPublicadores();
+
+    // AutoClean runs in background without freezing the UI. 
+    // Triggers daily unconditionally to guarantee phone database health 
+    // even if Admin never logs in.
+    autoCleanTelefonosData();
 
     onAuthStateChanged(auth, handleAuthChange);
 

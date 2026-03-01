@@ -1,11 +1,13 @@
 import {
-    getTerritorios, getConfiguracion, getPublicadores, getConductores,
+    getTerritorios, getConfiguracion, getPublicadores,
     getProgramaSemanal, saveProgramaSemanal, getGroupsConfig, returnTerritorioMultiple,
-    getHistorialReport, returnTerritorioParcial, runProgramDiagnostic, formalizeWeek
+    getHistorialReport, returnTerritorioParcial, startLivePool,
+    returnTerritorio, syncSlotWithTerritories
 } from '../../data/firestore-services.js';
-import { showNotification, generatePlainXLS, formatGroups, getBaseTerritoryNumber } from '../utils/helpers.js';
+import { showNotification, formatGroups, getBaseTerritoryNumber, normalize } from '../utils/helpers.js';
 import { UIHelpers, showModal, showTerritorySelectionModal, showCustomConfirm } from '../services/ui-helpers.js';
-import { generateLandscapePreviewHTML } from '../conductor/program-views.js';
+import { generateProgramPNG } from './program-generator.js';
+import { where } from "firebase/firestore";
 
 const { getMonday, formatDateId } = UIHelpers;
 
@@ -61,6 +63,7 @@ export const renderProgramaTab = async (container) => {
     let programa = { dias: [] };
     let activeDayIndex = today.getDay() === 0 ? 6 : today.getDay() - 1;
     let activeTurns = new Set(['manana', 'tarde', 'noche', 'zoom']);
+    let programUnsub = null;
 
     const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
@@ -69,7 +72,6 @@ export const renderProgramaTab = async (container) => {
     ]);
 
     // Xolvy Data Shield: Aggressive normalization & Ghost filtering
-    const normalize = (val) => String(val || '').trim();
     const territorios = rawTerritorios
         .filter(t => {
             const hasNum = t.numero && normalize(t.numero).length > 0;
@@ -90,6 +92,39 @@ export const renderProgramaTab = async (container) => {
         })
         .map(p => ({ ...p, nombre: normalize(p.nombre) }))
         .sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+    // Shared Robust Helpers
+    const normalizeT = (val) => String(val || '').trim();
+    const normalizeLower = (val) => normalizeT(val).toLowerCase();
+
+    const getTStatus = (tNum, conductor, fechaISO, turno) => {
+        const baseT = getBaseTerritoryNumber(tNum);
+        const t = territorios.find(x => normalizeLower(x.numero) === normalizeLower(baseT));
+        if (!t) return { isSync: false, isConflict: false, numero: tNum };
+        if (t.estado !== 'Asignado') return { isSync: false, isConflict: false, numero: tNum };
+
+        const dbDateKey = t.fecha_asignacion ? String(t.fecha_asignacion).split('T')[0] : null;
+        const targetDateKey = fechaISO ? fechaISO.split('T')[0] : null;
+
+        const nameMatch = normalizeLower(t.asignado_a) === normalizeLower(conductor);
+        const dateMatch = dbDateKey === targetDateKey;
+        const turnMatch = String(t.turno || '').toLowerCase() === String(turno || '').toLowerCase();
+
+        const isSync = nameMatch && dateMatch && turnMatch;
+        const isConflict = !isSync;
+
+        return {
+            isSync,
+            isConflict,
+            numero: tNum,
+            details: {
+                id: t.id,
+                conductor: t.asignado_a,
+                fecha: dbDateKey,
+                turno: t.turno
+            }
+        };
+    };
 
     const options = {
         Lugar: config.lugares || ['Salón del Reino'],
@@ -127,31 +162,44 @@ export const renderProgramaTab = async (container) => {
                          </button>
                     </div>
 
-                    <nav data-adaptive-wrap="true" class="flex items-center gap-2 bg-slate-100/50 dark:bg-white/5 p-1 rounded-2xl border border-slate-200/50 dark:border-white/5 shadow-sm w-full lg:w-max max-w-full shrink-0">
+                    <nav data-adaptive-wrap="true" class="flex flex-wrap items-center justify-center lg:justify-start gap-2 bg-slate-100/50 dark:bg-white/5 p-1.5 rounded-2xl border border-slate-200/50 dark:border-white/5 shadow-sm w-full lg:w-max max-w-full">
                         <button id="btn-sync-all-prog" class="btn-pro flex items-center gap-2 px-6 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-emerald-500/20 active:scale-95 group shrink-0" title="Formalizar todas las asignaciones programadas">
                             <i class="fas fa-project-diagram group-hover:rotate-12 transition-transform"></i>
                             Formalizar
                         </button>
 
                         <button id="btn-reset-today" class="btn-pro bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 px-6 py-4 rounded-xl font-black hover:bg-slate-50 transition-all text-[10px] uppercase tracking-widest shrink-0">Hoy</button>
-                        <button id="btn-resync-prog" class="btn-pro p-4 bg-primary/10 border border-primary/20 text-primary hover:bg-primary hover:text-white rounded-xl transition-all shadow-lg shadow-primary/5 active:scale-95 shrink-0" title="Sincronizar Datos">
-                            <i class="fas fa-sync-alt"></i>
-                        </button>
+                        
                         <button id="btn-reception-prog" class="btn-pro flex items-center gap-2 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-rose-500 px-6 py-4 rounded-xl font-black hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all text-[10px] uppercase tracking-widest group shrink-0" title="Recibir territorios finalizados">
                             <i class="fas fa-file-import group-hover:-translate-x-1 transition-transform"></i>
                             Recepción
                         </button>
+                        
+                        <div class="h-4 w-px bg-slate-200 dark:bg-white/10 mx-2 hidden lg:block"></div>
+
                         <button id="btn-copy-prev-week" class="btn-pro flex items-center gap-2 px-6 py-4 bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 hover:bg-indigo-500 hover:text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-indigo-500/5 group shrink-0" title="Replicar estructura de la semana pasada">
                             <i class="fas fa-copy group-hover:scale-110 transition-transform"></i>
                             Replicar
                         </button>
                         
-                        <div class="w-px h-6 bg-slate-200 dark:bg-white/10 mx-1"></div>
+                        <div class="dropdown-container">
+                            <button id="btn-png-dropdown" class="btn-pro flex items-center gap-2 bg-indigo-500 text-white px-6 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-indigo-500/20 active:scale-95 group shrink-0" title="Exportar Programa en PNG">
+                                <i class="fas fa-image"></i>
+                                PNG
+                                <i class="fas fa-chevron-down ml-1 text-[8px] opacity-50 group-hover:translate-y-0.5 transition-transform"></i>
+                            </button>
+                            <div id="export-png-menu" class="dropdown-content">
+                                <button id="btn-export-png-cond-new">
+                                    <i class="fas fa-user-tie text-indigo-500"></i>
+                                    Formato Conductor
+                                </button>
+                                <button id="btn-export-png-pub-new">
+                                    <i class="fas fa-users text-emerald-500"></i>
+                                    Formato Publicador
+                                </button>
+                            </div>
+                        </div>
 
-                        <button id="btn-export-img-prog" class="btn-pro flex items-center gap-2 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 px-6 py-4 rounded-xl font-black hover:bg-slate-50 transition-all text-[10px] uppercase tracking-widest shrink-0" title="Exportar como Imagen">
-                            <i class="fas fa-image text-indigo-500"></i>
-                            Imagen
-                        </button>
                         <button id="btn-export-xls-prog" class="btn-pro flex items-center gap-2 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 px-6 py-4 rounded-xl font-black hover:bg-slate-50 transition-all text-[10px] uppercase tracking-widest shrink-0" title="Exportar a Excel">
                             <i class="fas fa-file-excel text-emerald-500"></i>
                             Excel
@@ -192,44 +240,51 @@ export const renderProgramaTab = async (container) => {
 
         try {
             const weekId = formatDateId(currentWeekStart);
-            const data = await getProgramaSemanal(weekId);
 
-            if (data && data.dias && data.dias.length > 0) {
-                programa = data;
-                // Sincronizar fechas por si acaso el documento tiene fechas desactualizadas
-                programa.dias.forEach((dia, idx) => {
-                    const expectedDate = new Date(currentWeekStart);
-                    expectedDate.setDate(expectedDate.getDate() + idx);
-                    dia.fecha = formatDateId(expectedDate);
-                });
-            } else {
-                programa = {
-                    id: weekId,
-                    dias: dayNames.map((name, idx) => {
-                        const dayDate = new Date(currentWeekStart);
-                        dayDate.setDate(dayDate.getDate() + idx);
-                        const turns = { manana: {}, tarde: {}, noche: {} };
-                        if (name === 'Martes') turns.zoom = {};
-                        return { nombre: name, fecha: formatDateId(dayDate), ...turns };
-                    })
-                };
-            }
+            // Xolvy Live Pool: Dynamic week synchronization
+            if (programUnsub) { programUnsub(); programUnsub = null; }
+            programUnsub = startLivePool("programa_semanal", [where("__name__", "==", weekId)], (data) => {
+                if (data.length > 0) {
+                    programa = data[0];
+                    // Sync dates
+                    programa.dias.forEach((dia, idx) => {
+                        const expectedDate = new Date(currentWeekStart);
+                        expectedDate.setDate(expectedDate.getDate() + idx);
+                        dia.fecha = formatDateId(expectedDate);
+                    });
+                    console.log(`📅 [Live Pool] Week ${weekId} Updated.`);
+                } else {
+                    // Create dummy if doesn't exist to allow editing
+                    programa = {
+                        id: weekId,
+                        dias: dayNames.map((name, idx) => {
+                            const dayDate = new Date(currentWeekStart);
+                            dayDate.setDate(dayDate.getDate() + idx);
+                            const turns = { manana: {}, tarde: {}, noche: {} };
+                            if (name === 'Martes') turns.zoom = {};
+                            return { nombre: name, fecha: formatDateId(dayDate), ...turns };
+                        })
+                    };
+                }
 
-            const lblRange = container.querySelector('#week-range-label');
-            if (lblRange) {
-                const monday = currentWeekStart;
-                const sunday = new Date(monday);
-                sunday.setDate(monday.getDate() + 6);
-                lblRange.innerText = `${monday.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })} — ${sunday.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}`.toUpperCase();
-            }
+                const lblRange = container.querySelector('#week-range-label');
+                if (lblRange) {
+                    const monday = currentWeekStart;
+                    const sunday = new Date(monday);
+                    sunday.setDate(monday.getDate() + 6);
+                    lblRange.innerText = `${monday.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })} — ${sunday.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}`.toUpperCase();
+                }
 
-            renderDaySelector();
-            renderFilters();
-            renderTable();
+                renderDaySelector();
+                renderFilters();
+                renderTable();
+                overlay?.classList.add('hidden');
+            });
+            // setAdminLivePool(programUnsub); // This line was removed as per the instruction's implied change.
+
         } catch (error) {
             console.error(error);
             showNotification("Error cargando programa", "error");
-        } finally {
             overlay?.classList.add('hidden');
         }
     };
@@ -292,38 +347,7 @@ export const renderProgramaTab = async (container) => {
 
         const activeConductors = freshPersonnel.filter(p => p.es_conductor).sort((a, b) => a.nombre.localeCompare(b.nombre));
 
-        // Shared Robust Helpers
-        const normalizeT = (val) => String(val || '').trim();
-        const normalizeLower = (val) => normalizeT(val).toLowerCase();
 
-        const getTStatus = (tNum, conductor, fechaISO, turno) => {
-            const baseT = getBaseTerritoryNumber(tNum);
-            const t = freshTerritorios.find(x => normalizeLower(x.numero) === normalizeLower(baseT));
-            if (!t) return { isSync: false, isConflict: false, numero: tNum };
-            if (t.estado !== 'Asignado') return { isSync: false, isConflict: false, numero: tNum };
-
-            const dbDateKey = t.fecha_asignacion ? String(t.fecha_asignacion).split('T')[0] : null;
-            const targetDateKey = fechaISO ? fechaISO.split('T')[0] : null;
-
-            const nameMatch = normalizeLower(t.asignado_a) === normalizeLower(conductor);
-            const dateMatch = dbDateKey === targetDateKey;
-            const turnMatch = String(t.turno || '').toLowerCase() === String(turno || '').toLowerCase();
-
-            const isSync = nameMatch && dateMatch && turnMatch;
-            const isConflict = !isSync;
-
-            return {
-                isSync,
-                isConflict,
-                numero: tNum,
-                details: {
-                    id: t.id,
-                    conductor: t.asignado_a,
-                    fecha: dbDateKey,
-                    turno: t.turno
-                }
-            };
-        };
 
         const tableContainer = container.querySelector('#admin-prog-table');
         let html = `<div class="space-y-12 pb-20">`;
@@ -387,13 +411,7 @@ export const renderProgramaTab = async (container) => {
                     html += `<div class="space-y-1.5">`;
 
                     if (field === 'Territorio') {
-                        const tNums = Array.from(new Set(String(val).split(/[,;/]/).map(n => n.trim()).filter(Boolean)));
                         const conductor = dia[turnoId].conductor;
-                        const stats = tNums.map(n => getTStatus(n, conductor));
-
-                        const allSync = stats.length > 0 && stats.every(s => s.isSync);
-                        const anyConflict = stats.some(s => s.isConflict);
-
                         html += `
                             <label class="text-[9px] font-black text-slate-400 tracking-[0.2em] uppercase ml-1 flex items-center justify-between">
                                 <span><i class="fas fa-map-marked-alt opacity-30"></i> ${field}</span>
@@ -787,7 +805,101 @@ export const renderProgramaTab = async (container) => {
         }, 'modal-container-nested', historial, weekAssignments);
     };
 
-    window.openGroupSelector = async (dayIdx, turnoId, btn) => {
+    // Attach PNG & Share events (deferred until DOM binds)
+    setTimeout(() => {
+        const btnPngDropdown = container.querySelector('#btn-png-dropdown');
+        const pngMenu = container.querySelector('#export-png-menu');
+
+        const showProgramPreview = async (isConductores) => {
+            const dataUrl = await generateProgramPNG(programa, isConductores);
+            if (!dataUrl) return;
+
+            showModal(`
+                <div class="flex flex-col bg-white dark:bg-[#0a0f18] rounded-[2rem] overflow-hidden max-w-4xl w-full mx-auto shadow-2xl animate-scale-in">
+                    <header class="p-8 border-b border-slate-100 dark:border-white/5 flex items-center justify-between shrink-0">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-indigo-500 text-white rounded-2xl flex items-center justify-center text-xl">
+                                <i class="fas fa-image"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-white">Vista Previa</h3>
+                                <p class="text-[9px] text-indigo-500 font-bold uppercase tracking-tighter">Programa de Predicación</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <button id="preview-share" class="w-10 h-10 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition-all flex items-center justify-center shadow-lg shadow-emerald-500/20" title="Compartir">
+                                <i class="fas fa-share-nodes"></i>
+                            </button>
+                            <button id="preview-download" class="w-10 h-10 rounded-xl bg-primary text-white hover:bg-primary/90 transition-all flex items-center justify-center shadow-lg shadow-primary/20" title="Descargar">
+                                <i class="fas fa-download"></i>
+                            </button>
+                            <button id="preview-print" class="w-10 h-10 rounded-xl bg-slate-800 text-white hover:bg-slate-900 transition-all flex items-center justify-center shadow-lg shadow-slate-900/20" title="Imprimir">
+                                <i class="fas fa-print"></i>
+                            </button>
+                            <div class="w-px h-6 bg-slate-200 dark:bg-white/10 mx-2"></div>
+                            <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-slate-600 transition-all flex items-center justify-center">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </header>
+
+                    <div class="p-8 overflow-y-auto flex justify-center bg-slate-50 dark:bg-black/20">
+                        <img src="${dataUrl}" class="max-w-full h-auto rounded-xl shadow-2xl border border-slate-200 dark:border-white/10">
+                    </div>
+                </div>
+            `, async (modal) => {
+                const startDay = programa.dias[0]?.fecha || '—';
+
+                modal.querySelector('#preview-share').onclick = async () => {
+                    const blob = await (await fetch(dataUrl)).blob();
+                    const file = new File([blob], `Programa_${startDay}.png`, { type: 'image/png' });
+                    if (navigator.share) {
+                        await navigator.share({ files: [file], title: `Programa Semanal`, text: `Programa de la semana ${startDay}` });
+                    }
+                };
+
+                modal.querySelector('#preview-download').onclick = async () => {
+                    const { downloadImage } = await import('./program-generator.js');
+                    downloadImage(dataUrl, isConductores, startDay);
+                };
+
+                modal.querySelector('#preview-print').onclick = () => {
+                    const win = window.open("");
+                    win.document.write(`<img src="${dataUrl}" style="width:100%" onload="window.print();window.close()">`);
+                    win.document.close();
+                };
+            });
+        };
+
+        if (btnPngDropdown && pngMenu) {
+            btnPngDropdown.onclick = (e) => {
+                e.stopPropagation();
+                pngMenu.classList.toggle('show');
+            };
+
+            document.addEventListener('click', () => {
+                pngMenu.classList.remove('show');
+            });
+
+            const btnPngCond = container.querySelector('#btn-export-png-cond-new');
+            if (btnPngCond) {
+                btnPngCond.onclick = () => {
+                    showProgramPreview(true);
+                    pngMenu.classList.remove('show');
+                };
+            }
+
+            const btnPngPub = container.querySelector('#btn-export-png-pub-new');
+            if (btnPngPub) {
+                btnPngPub.onclick = () => {
+                    showProgramPreview(false);
+                    pngMenu.classList.remove('show');
+                };
+            }
+        }
+    }, 100);
+
+    window.openGroupSelector = async (dayIdx, turnoId) => {
         console.log("🛡️ [v2.4.1.9] Opening Multi-Group Selector...");
         const groups = await getGroupsConfig();
         const currentVal = programa.dias[dayIdx][turnoId].grupos || '';
@@ -881,125 +993,7 @@ export const renderProgramaTab = async (container) => {
         window.updateWeekData(dayIdx, turnoId, 'grupos', val);
     };
 
-    window.openS13Diagnostic = async () => {
-        const overlay = container.querySelector('#prog-loading-overlay');
-        overlay?.classList.remove('hidden');
 
-        try {
-            const weekId = formatDateId(currentWeekStart);
-            const results = await runProgramDiagnostic(weekId);
-
-            if (!results.hasData) {
-                showNotification("No hay datos para diagnosticar en esta semana", "warning");
-                return;
-            }
-
-            showModal(`
-                <div class="p-8 space-y-8 bg-white dark:bg-[#0a0f18] rounded-[2.5rem] max-w-2xl border border-primary/20 animate-scale-in">
-                    <header class="flex items-center gap-6">
-                        <div class="w-16 h-16 bg-primary/10 rounded-3xl flex items-center justify-center text-3xl text-primary shadow-inner">
-                            <i class="fas fa-stethoscope"></i>
-                        </div>
-                        <div>
-                            <h3 class="text-2xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">Diagnóstico de Cronología</h3>
-                            <p class="text-[10px] text-primary font-bold uppercase tracking-[0.3em] mt-1">Sincronización Inteligente S-13</p>
-                        </div>
-                    </header>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div class="p-6 bg-slate-50 dark:bg-white/5 rounded-3xl border border-slate-200 dark:border-white/10 shadow-sm">
-                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Inventario Real</p>
-                            <div class="flex items-baseline gap-2">
-                                <span class="text-3xl font-black ${results.pendingFormalization > 0 ? 'text-amber-500' : 'text-emerald-500'}">${results.totalSlots - results.pendingFormalization} / ${results.totalSlots}</span>
-                                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Sincronizados</span>
-                            </div>
-                            <div class="mt-4 h-1.5 w-full bg-slate-200 dark:bg-white/5 rounded-full overflow-hidden">
-                                <div class="h-full bg-primary transition-all duration-1000" style="width: ${((results.totalSlots - results.pendingFormalization) / results.totalSlots * 100)}%"></div>
-                            </div>
-                        </div>
-                        <div class="p-6 bg-slate-50 dark:bg-white/5 rounded-3xl border border-slate-200 dark:border-white/10 shadow-sm">
-                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Cronología S-13</p>
-                            <div class="flex items-baseline gap-2">
-                                <span class="text-3xl font-black ${results.mismatchedHistory > 0 ? 'text-rose-500' : 'text-emerald-500'}">${results.totalSlots - results.mismatchedHistory} / ${results.totalSlots}</span>
-                                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Registrados</span>
-                            </div>
-                            <div class="mt-4 h-1.5 w-full bg-slate-200 dark:bg-white/5 rounded-full overflow-hidden">
-                                <div class="h-full bg-rose-500 transition-all duration-1000" style="width: ${((results.totalSlots - results.mismatchedHistory) / results.totalSlots * 100)}%"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    ${results.mismatchedHistory > 0 || results.pendingFormalization > 0 ? `
-                        <div class="p-6 bg-amber-500/5 rounded-[2rem] border border-amber-500/10 space-y-4 relative overflow-hidden">
-                            <div class="absolute -right-4 -top-4 w-20 h-20 bg-amber-500/5 rotate-12 rounded-3xl"></div>
-                            <p class="text-[11px] font-black text-amber-600 uppercase tracking-tight flex items-center gap-3">
-                                <i class="fas fa-exclamation-triangle text-lg"></i> Inconsistencias Detectadas
-                            </p>
-                            <p class="text-[10px] text-slate-600 dark:text-slate-400 leading-relaxed font-bold uppercase tracking-wide">
-                                Se han detectado asignaciones en el programa que NO tienen un respaldo oficial en la base de datos (S-13). 
-                                <br><br>Esto causa que la cronología aparezca vacía. La herramienta de reparación reconstruirá estos vínculos automáticamente.
-                            </p>
-                        </div>
-                    ` : `
-                        <div class="p-8 bg-emerald-500/5 rounded-[2.5rem] border border-emerald-500/10 flex items-center gap-6">
-                            <div class="w-14 h-14 bg-emerald-500/20 text-emerald-500 rounded-2xl flex items-center justify-center text-2xl shadow-inner">
-                                <i class="fas fa-shield-check"></i>
-                            </div>
-                            <div>
-                                <p class="text-sm font-black text-emerald-600 uppercase tracking-tight">Cronología Saludable</p>
-                                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-1">Todos los datos del programa están respaldados.</p>
-                            </div>
-                        </div>
-                    `}
-
-                    <div class="flex flex-col sm:flex-row gap-4 pt-4 shrink-0">
-                        <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all">Solo Refrescar</button>
-                        <button id="btn-repair-s13" class="flex-[2.5] py-5 bg-primary hover:bg-primary/90 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20 active:scale-95 transition-all group flex items-center justify-center gap-3 overflow-hidden relative">
-                            <div id="repair-shimmer" class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer"></div>
-                            <i class="fas fa-tools group-hover:rotate-12 transition-transform"></i>
-                            Reconstruir Cronología S-13
-                        </button>
-                    </div>
-                </div>
-            `, (modal) => {
-                modal.querySelector('#btn-repair-s13').onclick = async (e) => {
-                    const btn = e.currentTarget;
-                    btn.disabled = true;
-                    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> REPARANDO CRONOLOGÍA...';
-
-                    showNotification("Iniciando reconstrucción profunda...", "info");
-
-                    try {
-                        // Correct history entries
-                        await formalizeWeek(weekId, programa);
-
-                        // Also sync individual territories if pending formalization
-                        // This uses existing masiv synchronization logic
-                        if (results.pendingFormalization > 0) {
-                            showNotification("Sincronizando inventario...", "info");
-                            // For simplicity, we could trigger a hidden masiv sync or just the history fix
-                            // Usually history fix is what "populates" S-13 records, which is the user's focus.
-                        }
-
-                        showNotification("¡Cronología S-13 reconstruida correctamente!", "success");
-                        modal.classList.add('hidden');
-                        loadWeekData();
-                    } catch (err) {
-                        console.error(err);
-                        showNotification("Error durante la reparación", "error");
-                        btn.disabled = false;
-                        btn.innerHTML = 'REINTENTAR REPARACIÓN';
-                    }
-                };
-            });
-
-        } catch (e) {
-            console.error(e);
-            showNotification("Error en diagnóstico", "error");
-        } finally {
-            overlay?.classList.add('hidden');
-        }
-    };
 
     container.querySelector('#prev-week').onclick = () => {
         currentWeekStart.setDate(currentWeekStart.getDate() - 7);
@@ -1011,7 +1005,7 @@ export const renderProgramaTab = async (container) => {
         loadWeekData();
     };
 
-    container.querySelector('#btn-resync-prog').onclick = window.openS13Diagnostic;
+
 
     container.querySelector('#btn-export-xls-prog').onclick = () => {
         const congName = localStorage.getItem('cached_congregation_name') || 'CONGREGACIÓN "NUEVE DE OCTUBRE"';
@@ -1164,43 +1158,6 @@ export const renderProgramaTab = async (container) => {
         showNotification("Excel Definitivo generado", "success");
     };
 
-    container.querySelector('#btn-export-img-prog').onclick = async () => {
-        const { default: html2canvas } = await import('html2canvas');
-        showNotification("Preparando captura profesional...", "info");
-
-        // Create Territory Map for the engine
-        const territoryMap = {};
-        territorios.forEach(t => territoryMap[t.numero] = t);
-
-        const previewHTML = generateLandscapePreviewHTML(programa, territoryMap);
-
-        const captureContainer = document.createElement('div');
-        captureContainer.style.position = 'fixed';
-        captureContainer.style.left = '-9999px';
-        captureContainer.style.top = '0';
-        captureContainer.innerHTML = previewHTML;
-        document.body.appendChild(captureContainer);
-
-        try {
-            const canvas = await html2canvas(captureContainer.querySelector('#landscape-preview-content'), {
-                scale: 1,
-                useCORS: true,
-                allowTaint: true,
-                backgroundColor: '#f8fafc'
-            });
-
-            const link = document.createElement('a');
-            link.download = `Programa_${programa.id}.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-            showNotification("Imagen descargada con éxito", "success");
-        } catch (err) {
-            console.error(err);
-            showNotification("Error al generar imagen", "error");
-        } finally {
-            document.body.removeChild(captureContainer);
-        }
-    };
 
     container.querySelector('#btn-copy-prev-week').onclick = async () => {
         const { showCustomConfirm } = await import('../services/ui-helpers.js');
@@ -1331,7 +1288,7 @@ export const renderProgramaTab = async (container) => {
             </div>
         `, (modal) => {
             const listContainer = modal.querySelector('#bulk-reception-list');
-            const checks = () => modal.querySelectorAll('.reception-check');
+
 
             const renderList = () => {
                 const now = new Date();
@@ -1719,7 +1676,7 @@ export const renderProgramaTab = async (container) => {
                 }
 
                 // 2. Synchronize each effective slot
-                for (const [key, slot] of effectiveSlots) {
+                for (const [, slot] of effectiveSlots) {
                     const syncData = {
                         ...slot.fullData,
                         // Override territory list with ONLY the ones selected in the modal for this slot

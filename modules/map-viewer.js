@@ -174,11 +174,11 @@ export const MapViewer = {
                 center,
                 zoom: 18,
                 styles: mapStyle,
-                mapTypeId: 'satellite',
+                mapTypeId: 'roadmap',
                 tilt: 45,
                 heading: 0,
                 disableDefaultUI: true,
-                zoomControl: false,
+                zoomControl: true,
                 gestureHandling: 'greedy',
                 backgroundColor: '#0f172a'
             });
@@ -243,7 +243,16 @@ export const MapViewer = {
                     fillOpacity: 0.4
                 };
 
-                map.data.setStyle(normalStyle);
+                map.data.setStyle((feature) => {
+                    if (feature.getGeometry().getType() === 'LineString') {
+                        return {
+                            strokeWeight: 4,
+                            strokeColor: '#f43f5e', // Trace red color
+                            cursor: 'pointer'
+                        };
+                    }
+                    return normalStyle;
+                });
 
                 map.data.addListener('mouseout', (event) => {
                     map.data.revertStyle();
@@ -481,12 +490,21 @@ export const MapViewer = {
                 });
             }
 
-            map.data.setStyle({
-                fillColor: '#6366f1',
-                strokeWeight: 2,
-                strokeColor: '#ffffff',
-                fillOpacity: 0.1,
-                cursor: 'pointer'
+            map.data.setStyle((feature) => {
+                if (feature.getGeometry().getType() === 'LineString') {
+                    return {
+                        strokeWeight: 4,
+                        strokeColor: '#f43f5e',
+                        cursor: 'pointer'
+                    };
+                }
+                return {
+                    fillColor: '#6366f1',
+                    strokeWeight: 2,
+                    strokeColor: '#ffffff',
+                    fillOpacity: 0.1,
+                    cursor: 'pointer'
+                };
             });
 
             map.data.addListener('click', (event) => {

@@ -23,16 +23,18 @@ export default defineConfig({
         minify: 'terser',
         cssMinify: true,
         rollupOptions: {
+            input: {
+                main: './index.html'
+            },
             output: {
+                entryFileNames: 'assets/[name]-[hash].js',
+                chunkFileNames: 'assets/[name]-[hash].js',
+                assetFileNames: 'assets/[name]-[hash][extname]',
                 manualChunks: {
                     'firebase-vendor': ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage'],
                     'leaflet-vendor': ['leaflet'],
                     'ui-vendor': ['sweetalert2', 'animejs', 'chart.js'],
-                    'utils-vendor': ['xlsx', 'jspdf', 'html2canvas', 'date-fns'],
-                    // Separate modules for HMS
-                    'mod-admin': ['./modules/admin-dashboard.js'],
-                    'mod-conductor': ['./modules/conductor-dashboard.js'],
-                    'mod-login': ['./modules/login.js']
+                    'utils-vendor': ['xlsx', 'jspdf', 'html2canvas', 'date-fns']
                 }
             }
         }

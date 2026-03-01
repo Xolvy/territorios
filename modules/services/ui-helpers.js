@@ -1,5 +1,5 @@
 import * as dateFns from 'date-fns';
-
+import { showNotification } from '../utils/helpers.js';
 export const UIHelpers = {
     fmtDate: (d) => {
         if (!d) return '';
@@ -144,8 +144,8 @@ export const showModal = (html, onRender, maxWidth = 'max-w-2xl', containerId = 
     if (!modal) return;
 
     modal.innerHTML = `
-        <div class="modal-backdrop-area absolute inset-0 cursor-default"></div>
-        <div class="relative w-full ${maxWidth} max-h-[90vh] md:max-h-[85vh] flex flex-col bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border border-black/5 dark:border-white/10 animate-scale-in overflow-hidden z-10">
+        <div class="modal-backdrop-area absolute inset-0 cursor-default bg-slate-950/40 dark:bg-black/60 backdrop-blur-sm"></div>
+        <div class="relative w-full ${maxWidth} max-h-[90vh] md:max-h-[85vh] flex flex-col bg-white dark:bg-[#0b0f1a]/95 backdrop-blur-2xl rounded-[3rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] border border-slate-200 dark:border-white/10 animate-scale-in overflow-hidden z-10 ring-1 ring-black/5 dark:ring-white/5">
             ${html}
         </div>
     `;
@@ -171,17 +171,17 @@ export const showModal = (html, onRender, maxWidth = 'max-w-2xl', containerId = 
 
 export const showCustomConfirm = (message, onConfirm) => {
     showModal(`
-        <div class="p-8 text-center space-y-6 flex flex-col items-center">
-            <div class="w-16 h-16 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500 text-2xl">
+        <div class="p-10 text-center space-y-8 flex flex-col items-center">
+            <div class="w-16 h-16 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500 text-3xl shadow-inner border border-amber-500/10 animate-bounce-subtle">
                 <i class="fas fa-question-circle"></i>
             </div>
             <div>
-                <h3 class="text-h3 text-slate-900 dark:text-white">${message}</h3>
-                <p class="text-[10px] text-slate-600 dark:text-slate-400 mt-2 font-black uppercase tracking-widest">Confirmación de Administrador</p>
+                <h3 class="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">${message}</h3>
+                <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-2 font-black uppercase tracking-[0.3em] opacity-60">Confirmación de Sistema</p>
             </div>
-            <div class="flex gap-3 w-full mt-4">
-                <button id="confirm-cancel" class="flex-1 py-4 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-500 font-bold hover:bg-slate-200 transition-all text-xs uppercase">Cancelar</button>
-                <button id="confirm-ok" class="flex-[1.5] py-4 rounded-xl bg-primary text-white font-bold hover:bg-primary-light shadow-lg shadow-primary/20 transition-all text-xs uppercase">Confirmar</button>
+            <div class="flex gap-4 w-full mt-4">
+                <button id="confirm-cancel" class="flex-1 py-5 rounded-2xl bg-slate-100 dark:bg-white/5 text-slate-500 font-black hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-[10px] uppercase tracking-widest">Cancelar</button>
+                <button id="confirm-ok" class="flex-[1.5] py-5 rounded-2xl bg-primary text-white font-black hover:bg-primary-dark shadow-xl shadow-primary/20 transition-all text-[10px] uppercase tracking-widest">Confirmar</button>
             </div>
         </div>
     `, (modal) => {
@@ -195,18 +195,21 @@ export const showCustomConfirm = (message, onConfirm) => {
 
 export const showCustomPrompt = (message, defaultValue, onConfirm) => {
     showModal(`
-        <div class="p-8 space-y-6">
+        <div class="p-10 space-y-8">
             <div class="text-center">
-                <h3 class="text-h3 text-slate-900 dark:text-white">${message}</h3>
-                <p class="text-[10px] text-primary font-bold uppercase tracking-widest mt-1 italic">Entrada de Sistema</p>
+                <div class="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary text-2xl mx-auto mb-6 shadow-inner border border-primary/10">
+                    <i class="fas fa-edit"></i>
+                </div>
+                <h3 class="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">${message}</h3>
+                <p class="text-[9px] text-primary font-black uppercase tracking-[0.3em] mt-1 opacity-60">Entrada Requerida</p>
             </div>
             <div class="relative">
                 <input type="text" id="prompt-input" value="${defaultValue || ''}" 
-                    class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 focus:border-primary/50 rounded-2xl p-4 text-slate-900 dark:text-white outline-none font-bold text-center text-base transition-all">
+                    class="input-premium text-center">
             </div>
-            <div class="flex gap-3 mt-4">
-                <button id="prompt-cancel" class="flex-1 py-4 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-500 font-bold hover:bg-slate-200 transition-all text-xs uppercase">Omitir</button>
-                <button id="prompt-ok" class="flex-[1.5] py-4 rounded-xl bg-primary text-white font-bold hover:bg-primary-light shadow-lg shadow-primary/20 transition-all text-xs uppercase">Guardar</button>
+            <div class="flex gap-4 mt-6">
+                <button id="prompt-cancel" class="flex-1 py-5 rounded-2xl bg-slate-100 dark:bg-white/5 text-slate-500 font-black hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-[10px] uppercase tracking-widest">Omitir</button>
+                <button id="prompt-ok" class="flex-[1.5] py-5 rounded-2xl bg-primary text-white font-black hover:bg-primary-dark shadow-xl shadow-primary/20 transition-all text-[10px] uppercase tracking-widest">Guardar</button>
             </div>
         </div>
     `, (modal) => {
@@ -307,17 +310,17 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
 
     showModal(`
         <div class="flex flex-col h-[85vh] sm:h-[750px] overflow-hidden">
-            <header class="shrink-0 bg-white dark:bg-slate-900 p-8 relative overflow-hidden border-b border-slate-100 dark:border-white/5">
-                <div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-indigo-500/5 dark:from-primary/20 dark:to-indigo-900/40 backdrop-blur-3xl"></div>
+            <header class="shrink-0 bg-white dark:bg-[#0b0f1a] p-8 relative overflow-hidden border-b border-slate-100 dark:border-white/5">
+                <div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-indigo-500/5 dark:from-primary/10 dark:to-indigo-500/5 backdrop-blur-3xl"></div>
                 <div class="relative z-10 flex justify-between items-center">
                     <div>
                         <h3 class="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none mb-1">Selector Inteligente</h3>
-                        <p class="text-[10px] text-slate-500 dark:text-white/70 font-bold uppercase tracking-[0.2em] flex items-center gap-2">
+                        <p class="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-[0.2em] flex items-center gap-2">
                            <i class="fas fa-microchip animate-pulse text-primary"></i> 
                            Gestión avanzada de saturación
                         </p>
                     </div>
-                    <div class="w-14 h-14 bg-primary/10 dark:bg-white/10 rounded-2xl flex items-center justify-center text-2xl shadow-2xl border border-primary/20 dark:border-white/20">
+                    <div class="w-14 h-14 bg-primary/10 dark:bg-primary/20 rounded-2xl flex items-center justify-center text-2xl shadow-2xl border border-primary/20 dark:border-primary/20 transition-transform hover:rotate-6">
                         <i class="fas fa-map-marked-alt text-primary"></i>
                     </div>
                 </div>

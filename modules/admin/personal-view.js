@@ -1,36 +1,144 @@
-import {
-    getPublicadores, addPublicador, updatePublicador, deletePublicador,
-    getGroupsConfig
-} from '../../data/firestore-services.js';
-import { showNotification, ensureOnline } from '../utils/helpers.js';
+import { getPublicadores, addPublicador, updatePublicador, deletePublicador, getGroupsConfig, startLivePool } from '../../data/firestore-services.js';
+import { showNotification, ensureOnline, normalize } from '../utils/helpers.js';
 import { showModal, showCustomConfirm } from '../services/ui-helpers.js';
+import { setAdminLivePool } from '../admin-dashboard.js';
 
 export const renderPersonalTab = async (container) => {
     // Xolvy Data Shield: Robust normalization & ghost filtering for Personnel
-    const normalize = (val) => String(val || '').trim();
-    const rawPublicadores = await getPublicadores();
+    // Xolvy Data Shield: Robust normalization & ghost filtering for Personnel
     const groups = await getGroupsConfig();
+    let publicadores = [];
 
-    const publicadores = rawPublicadores
-        .filter(p => {
-            const hasName = p.nombre && normalize(p.nombre).length > 0;
-            if (!hasName) console.warn(`🛡️ [Data Shield] Personnel Ghost Record Filtered: ${p.id}`);
-            return hasName;
-        })
-        .map(p => ({
-            ...p,
-            nombre: normalize(p.nombre),
-            telefono: normalize(p.telefono),
-            email: normalize(p.email).toLowerCase()
-        }))
-        .sort((a, b) => a.nombre.localeCompare(b.nombre));
+    const renderMainLayout = () => {
+        container.innerHTML = `
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-6 px-4">
+                <div class="space-y-1">
+                    <h3 class="text-2xl md:text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Directorio de Personal</h3>
+                    <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] ml-1">Gestión centralizada de publicadores</p>
+                </div>
+                
+                <div class="flex gap-4 w-full sm:w-auto">
+                    <button id="btn-manage-groups" class="flex-1 sm:flex-none bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 hover:bg-indigo-500 hover:text-white px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] transition-all active:scale-95 flex items-center justify-center gap-3">
+                        <i class="fas fa-users"></i> Grupos
+                    </button>
+                    <button id="btn-add-person" class="flex-[1.5] sm:flex-none bg-primary hover:bg-primary-light text-white px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 transition-all active:scale-95 flex items-center justify-center gap-3">
+                        <i class="fas fa-plus"></i> Nuevo Registro
+                    </button>
+                </div>
+            </div>
 
-    const renderAvailPreview = (p) => {
-        const disp = p.disponibilidad || [];
-        if (!p.es_conductor) return '';
-        if (disp.length === 0) return '<span class="text-[9px] text-gray-500 italic">Precedencia sin turnos</span>';
-        return `<button onclick = "event.stopPropagation(); window.showPublicadorAvailability('${p.id}')" class="text-[9px] text-teal-600 dark:text-teal-300 bg-teal-500/10 hover:bg-teal-500/20 px-2 py-0.5 rounded border border-teal-500/20 underline decoration-teal-500/30 cursor-pointer transition-colors font-medium"> Conductor: ${disp.length} turnos</button> `;
+            <div class="hidden md:block modern-card !p-0 overflow-hidden border-slate-200 dark:border-white/5 shadow-2xl">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 dark:bg-black/20 text-slate-400 text-[9px] font-black uppercase tracking-[0.2em] border-b border-slate-100 dark:border-white/5">
+                                <th class="p-6">Nombre y Apellido</th>
+                                <th class="p-6 text-center">Grupo</th>
+                                <th class="p-6 text-center">Rol / Estado</th>
+                                <th class="p-6 text-right">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 dark:divide-white/5">
+                            ${publicadores.map(p => `
+                                <tr class="group hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
+                                    <td class="p-6">
+                                        <div class="flex items-center gap-4">
+                                            <div class="w-10 h-10 rounded-xl bg-gradient-to-br ${p.genero === 'Mujer' ? 'from-rose-500 to-pink-500' : 'from-primary to-blue-600'} flex items-center justify-center text-white font-black text-sm shadow-lg group-hover:scale-110 transition-transform">
+                                                ${p.nombre.charAt(0)}
+                                            </div>
+                                            <div>
+                                                <p class="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-tight">${p.nombre}</p>
+                                                <p class="text-[9px] text-slate-400 font-mono">${p.telefono || 'SIN TELÉFONO'}</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="p-6 text-center">
+                                        <span class="text-[10px] font-black uppercase text-slate-400 bg-slate-100 dark:bg-white/5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 shadow-inner">
+                                            ${p.grupo || '?'}
+                                        </span>
+                                    </td>
+                                    <td class="p-6">
+                                        <div class="flex flex-wrap items-center justify-center gap-2">
+                                            ${p.privilegios?.includes('Superintendente de Circuito') ? `
+                                                <span class="text-[8px] font-black uppercase tracking-widest bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 px-3 py-1 rounded-full">Sup. Circuito</span>
+                                            ` : ''}
+                                            ${p.es_conductor ? `
+                                                <button onclick="event.stopPropagation(); window.showPublicadorAvailability('${p.id}')" class="text-[8px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full hover:bg-emerald-500 hover:text-white transition-all">
+                                                    <i class="fas fa-check-circle mr-1"></i> Conductor
+                                                </button>
+                                            ` : `
+                                                ${!p.privilegios?.includes('Superintendente de Circuito') ? `<span class="text-[8px] font-black uppercase tracking-widest text-slate-400 opacity-40">Publicador</span>` : ''}
+                                            `}
+                                            ${p.privilegios?.includes('Administrador') ? `
+                                                <span class="text-[8px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-600 border border-amber-500/20 px-3 py-1 rounded-full">Admin</span>
+                                            ` : ''}
+                                        </div>
+                                    </td>
+                                    <td class="p-6">
+                                        <div class="flex items-center justify-end gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
+                                            <button onclick="window.editPerson('${p.id}')" class="w-9 h-9 flex items-center justify-center bg-white dark:bg-slate-800 text-slate-500 hover:text-primary rounded-xl border border-slate-200 dark:border-white/10 hover:border-primary/40 transition-all shadow-sm">
+                                                <i class="fas fa-edit text-[10px]"></i>
+                                            </button>
+                                            <button onclick="window.deletePerson('${p.id}')" class="w-9 h-9 flex items-center justify-center bg-white dark:bg-slate-800 text-slate-500 hover:text-rose-500 rounded-xl border border-slate-200 dark:border-white/10 hover:border-rose-500/40 transition-all shadow-sm">
+                                                <i class="fas fa-trash-alt text-[10px]"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="md:hidden space-y-4 px-2">
+                ${publicadores.map(p => `
+                    <div class="modern-card p-5 border-slate-200 dark:border-white/5 shadow-xl space-y-4 relative overflow-hidden active:scale-[0.98] transition-all">
+                        <div class="flex items-center justify-between gap-4">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br ${p.genero === 'Mujer' ? 'from-rose-500 to-pink-500' : 'from-primary to-blue-600'} flex items-center justify-center text-white font-black text-lg shadow-lg">
+                                    ${p.nombre.charAt(0)}
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight truncate">${p.nombre}</p>
+                                    <p class="text-[10px] text-slate-400 font-mono font-bold">${p.telefono || 'SIN TELÉFONO'}</p>
+                                </div>
+                            </div>
+                            <div class="flex-shrink-0">
+                                <span class="bg-slate-100 dark:bg-white/5 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 text-[9px] font-black text-slate-500">
+                                    G ${p.grupo || '?'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+
+        container.querySelector('#btn-add-person').onclick = () => openPersonModal();
+        container.querySelector('#btn-manage-groups').onclick = () => openGroupsConfigModal();
     };
+
+    // Xolvy Live Pool: Real-time synchronization for Personnel
+    const unsub = startLivePool("publicadores", [], (data) => {
+        publicadores = data
+            .filter(p => {
+                const hasName = p.nombre && normalize(p.nombre).length > 0;
+                if (!hasName) console.warn(`🛡️ [Data Shield] Personnel Ghost Record Filtered: ${p.id}`);
+                return hasName;
+            })
+            .map(p => ({
+                ...p,
+                nombre: normalize(p.nombre),
+                telefono: normalize(p.telefono),
+                email: normalize(p.email).toLowerCase()
+            }))
+            .sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+        console.log("👥 [Live Pool] Personnel Directory Updated.");
+        renderMainLayout();
+    });
+    setAdminLivePool(unsub);
 
     window.showPublicadorAvailability = (id) => {
         const p = publicadores.find(x => x.id === id);
@@ -72,111 +180,6 @@ export const renderPersonalTab = async (container) => {
         `);
     };
 
-    container.innerHTML = `
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-6 px-4">
-            <div class="space-y-1">
-                <h3 class="text-2xl md:text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Directorio de Personal</h3>
-                <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] ml-1">Gestión centralizada de publicadores</p>
-            </div>
-            
-            <div class="flex gap-4 w-full sm:w-auto">
-                <button id="btn-manage-groups" class="flex-1 sm:flex-none bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 hover:bg-indigo-500 hover:text-white px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] transition-all active:scale-95 flex items-center justify-center gap-3">
-                    <i class="fas fa-users"></i> Grupos
-                </button>
-                <button id="btn-add-person" class="flex-[1.5] sm:flex-none bg-primary hover:bg-primary-light text-white px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 transition-all active:scale-95 flex items-center justify-center gap-3">
-                    <i class="fas fa-plus"></i> Nuevo Registro
-                </button>
-            </div>
-        </div>
-
-        <div class="hidden md:block modern-card !p-0 overflow-hidden border-slate-200 dark:border-white/5 shadow-2xl">
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-slate-50 dark:bg-black/20 text-slate-400 text-[9px] font-black uppercase tracking-[0.2em] border-b border-slate-100 dark:border-white/5">
-                            <th class="p-6">Nombre y Apellido</th>
-                            <th class="p-6 text-center">Grupo</th>
-                            <th class="p-6 text-center">Rol / Estado</th>
-                            <th class="p-6 text-right">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100 dark:divide-white/5">
-                        ${publicadores.map(p => `
-                            <tr class="group hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
-                                <td class="p-6">
-                                    <div class="flex items-center gap-4">
-                                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br ${p.genero === 'Mujer' ? 'from-rose-500 to-pink-500' : 'from-primary to-blue-600'} flex items-center justify-center text-white font-black text-sm shadow-lg group-hover:scale-110 transition-transform">
-                                            ${p.nombre.charAt(0)}
-                                        </div>
-                                        <div>
-                                            <p class="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-tight">${p.nombre}</p>
-                                            <p class="text-[9px] text-slate-400 font-mono">${p.telefono || 'SIN TELÉFONO'}</p>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="p-6 text-center">
-                                    <span class="text-[10px] font-black uppercase text-slate-400 bg-slate-100 dark:bg-white/5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 shadow-inner">
-                                        ${p.grupo || '?'}
-                                    </span>
-                                </td>
-                                <td class="p-6">
-                                    <div class="flex flex-wrap items-center justify-center gap-2">
-                                        ${p.privilegios?.includes('Superintendente de Circuito') ? `
-                                            <span class="text-[8px] font-black uppercase tracking-widest bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 px-3 py-1 rounded-full">Sup. Circuito</span>
-                                        ` : ''}
-                                        ${p.es_conductor ? `
-                                            <button onclick="event.stopPropagation(); window.showPublicadorAvailability('${p.id}')" class="text-[8px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full hover:bg-emerald-500 hover:text-white transition-all">
-                                                <i class="fas fa-check-circle mr-1"></i> Conductor
-                                            </button>
-                                        ` : `
-                                            ${!p.privilegios?.includes('Superintendente de Circuito') ? `<span class="text-[8px] font-black uppercase tracking-widest text-slate-400 opacity-40">Publicador</span>` : ''}
-                                        `}
-                                        ${p.privilegios?.includes('Administrador') ? `
-                                            <span class="text-[8px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-600 border border-amber-500/20 px-3 py-1 rounded-full">Admin</span>
-                                        ` : ''}
-                                    </div>
-                                </td>
-                                <td class="p-6">
-                                    <div class="flex items-center justify-end gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
-                                        <button onclick="window.editPerson('${p.id}')" class="w-9 h-9 flex items-center justify-center bg-white dark:bg-slate-800 text-slate-500 hover:text-primary rounded-xl border border-slate-200 dark:border-white/10 hover:border-primary/40 transition-all shadow-sm">
-                                            <i class="fas fa-edit text-[10px]"></i>
-                                        </button>
-                                        <button onclick="window.deletePerson('${p.id}')" class="w-9 h-9 flex items-center justify-center bg-white dark:bg-slate-800 text-slate-500 hover:text-rose-500 rounded-xl border border-slate-200 dark:border-white/10 hover:border-rose-500/40 transition-all shadow-sm">
-                                            <i class="fas fa-trash-alt text-[10px]"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <div class="md:hidden space-y-4 px-2">
-            ${publicadores.map(p => `
-                <div class="modern-card p-5 border-slate-200 dark:border-white/5 shadow-xl space-y-4 relative overflow-hidden active:scale-[0.98] transition-all">
-                    <div class="flex items-center justify-between gap-4">
-                        <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br ${p.genero === 'Mujer' ? 'from-rose-500 to-pink-500' : 'from-primary to-blue-600'} flex items-center justify-center text-white font-black text-lg shadow-lg">
-                                ${p.nombre.charAt(0)}
-                            </div>
-                            <div class="min-w-0">
-                                <p class="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight truncate">${p.nombre}</p>
-                                <p class="text-[10px] text-slate-400 font-mono font-bold">${p.telefono || 'SIN TELÉFONO'}</p>
-                            </div>
-                        </div>
-                        <div class="flex-shrink-0">
-                            <span class="bg-slate-100 dark:bg-white/5 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 text-[9px] font-black text-slate-500">
-                                G ${p.grupo || '?'}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            `).join('')}
-        </div>
-    `;
-
     const openPersonModal = (person = null) => {
         const isEdit = !!person;
         const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
@@ -199,7 +202,6 @@ export const renderPersonalTab = async (container) => {
 
                 <div class="flex-1 p-5 md:p-8 space-y-6 md:space-y-8 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-black/20">
                     <div class="space-y-6 md:space-y-8">
-                        <!-- Datos Básicos -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                             <div class="space-y-3">
                                 <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nombre Completo</label>
@@ -236,12 +238,9 @@ export const renderPersonalTab = async (container) => {
 
                         <div class="space-y-4">
                             <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Privilegios y Roles</label>
-                            <div id="privs-container" class="flex flex-wrap gap-3">
-                                <!-- Dynamic Privs List -->
-                            </div>
+                            <div id="privs-container" class="flex flex-wrap gap-3"></div>
                         </div>
 
-                        <!-- Disponibilidad (Conductor Only) -->
                         <div class="bg-primary/5 rounded-[2rem] border border-primary/10 overflow-hidden">
                             <div class="p-6 border-b border-primary/10 flex items-center justify-between cursor-pointer hover:bg-primary/10 transition-colors group/avail-header" id="header-toggle-avail">
                                 <div class="flex items-center gap-3">
@@ -268,7 +267,6 @@ export const renderPersonalTab = async (container) => {
                             </div>
                         </div>
 
-                        <!-- Módulos Habilitados -->
                         <div id="p-modules-section" class="bg-indigo-500/5 rounded-[2rem] border border-indigo-500/10 overflow-hidden transition-all duration-500">
                             <div class="p-6 border-b border-indigo-500/10 flex items-center justify-between">
                                 <div class="flex items-center gap-3">
@@ -428,7 +426,6 @@ export const renderPersonalTab = async (container) => {
                     else await addPublicador(data);
                     showNotification("Personal actualizado");
                     modal.classList.add('hidden');
-                    renderPersonalTab(container);
                 } catch (e) {
                     showNotification("Error: " + e.message, "error");
                     saveBtn.innerHTML = original; saveBtn.disabled = false;
@@ -437,18 +434,14 @@ export const renderPersonalTab = async (container) => {
         }, 'max-w-2xl');
     };
 
-    container.querySelector('#btn-add-person').onclick = () => openPersonModal();
-    container.querySelector('#btn-manage-groups').onclick = () => openGroupsConfigModal();
-
     const openGroupsConfigModal = async () => {
         const { saveGroupsConfig } = await import('../../data/firestore-services.js');
-        let groups = await getGroupsConfig();
-        const personnel = await getPublicadores();
-        personnel.sort((a, b) => a.nombre.localeCompare(b.nombre));
+        let localGroups = JSON.parse(JSON.stringify(groups));
+        const personnel = publicadores;
 
         const renderGroupsList = (modal) => {
             const list = modal.querySelector('#groups-config-list');
-            list.innerHTML = groups.map((g, idx) => `
+            list.innerHTML = localGroups.map((g, idx) => `
                 <div class="p-6 modern-card border-slate-100 dark:border-white/5 space-y-4 group/group-card relative">
                     <div class="flex justify-between items-center">
                         <div class="flex items-center gap-3">
@@ -484,14 +477,8 @@ export const renderPersonalTab = async (container) => {
             `).join('');
         };
 
-        window.updateGroupField = (idx, field, val) => {
-            groups[idx][field] = val;
-        };
-
-        window.removeGroup = (idx) => {
-            groups.splice(idx, 1);
-            renderGroupsList(document.getElementById('modal-container'));
-        };
+        window.updateGroupField = (idx, field, val) => { localGroups[idx][field] = val; };
+        window.removeGroup = (idx) => { localGroups.splice(idx, 1); renderGroupsList(document.getElementById('modal-container')); };
 
         showModal(`
             <div class="flex flex-col h-[85vh] bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden">
@@ -507,15 +494,12 @@ export const renderPersonalTab = async (container) => {
                         </div>
                     </div>
                 </header>
-
                 <div class="flex-1 p-6 space-y-6 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-black/20">
                     <div id="groups-config-list" class="space-y-4"></div>
-                    
                     <button id="add-new-group-btn" class="w-full py-4 border-2 border-dashed border-slate-200 dark:border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-500 hover:border-indigo-500/50 transition-all flex items-center justify-center gap-3">
                         <i class="fas fa-plus-circle"></i> Añadir Nuevo Grupo
                     </button>
                 </div>
-
                 <div class="shrink-0 p-6 bg-white dark:bg-black/40 border-t border-slate-100 dark:border-white/5 flex gap-4">
                     <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest">Cancelar</button>
                     <button id="save-groups-btn" class="flex-[2] bg-indigo-600 hover:bg-indigo-500 text-white py-5 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-indigo-600/20 transition-all active:scale-[0.99]">
@@ -525,22 +509,18 @@ export const renderPersonalTab = async (container) => {
             </div>
         `, (modal) => {
             renderGroupsList(modal);
-
             modal.querySelector('#add-new-group-btn').onclick = () => {
-                const nextId = groups.length > 0 ? Math.max(...groups.map(g => g.id)) + 1 : 1;
-                groups.push({ id: nextId, nombre: `Grupo ${nextId}`, lider: "", asistente: "", casa_salida: "" });
+                const nextId = localGroups.length > 0 ? Math.max(...localGroups.map(g => g.id)) + 1 : 1;
+                localGroups.push({ id: nextId, nombre: `Grupo ${nextId}`, lider: "", asistente: "", casa_salida: "" });
                 renderGroupsList(modal);
             };
-
             modal.querySelector('#save-groups-btn').onclick = async () => {
                 const btn = modal.querySelector('#save-groups-btn');
                 btn.disabled = true;
                 btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
-
-                await saveGroupsConfig(groups);
+                await saveGroupsConfig(localGroups);
                 showNotification("Configuración de grupos guardada");
                 modal.classList.add('hidden');
-                renderPersonalTab(container);
             };
         }, 'max-w-3xl');
     };
@@ -548,7 +528,5 @@ export const renderPersonalTab = async (container) => {
     window.editPerson = (id) => openPersonModal(publicadores.find(x => x.id === id));
     window.deletePerson = (id) => showCustomConfirm("¿Eliminar este registro permanentemente?", async () => {
         await deletePublicador(id);
-        renderPersonalTab(container);
     });
 };
-

@@ -2,8 +2,8 @@ import { updateTelefono, updateTerritorio } from '../../data/firestore-services.
 
 export class TerritoryIntelligence {
     constructor(telefonos, publicadores, territorios, programa, conductores, puntosInteres) {
-        this.telefonos = telefonos;
-        this.publicadores = publicadores;
+        this.telefonos = telefonos || [];
+        this.publicadores = publicadores || [];
         this.territorios = territorios || [];
         this.programa = programa || {};
         this.conductores = conductores || [];
@@ -76,10 +76,21 @@ export class TerritoryIntelligence {
             });
 
             const data = await response.json();
-            if (!response.ok || data.error) throw new Error(data.error?.message || "Error en IA");
+
+            if (!response.ok || data.error) {
+                const msg = data.error?.message || "";
+                if (msg.includes("blocked") || msg.includes("API key")) {
+                    console.error("🚫 Gemini API Error:", msg);
+                    return `⚠️ **Error de Conexión IA:** Google ha bloqueado la solicitud. \n\n**Causa probable:** La API Key no tiene permisos para el servicio 'Generative Language API'. \n\n**Solución:** Contacta al administrador para habilitar el servicio en Google AI Studio o revisar las restricciones de la API Key.`;
+                }
+                throw new Error(msg || "Error en IA");
+            }
             return data.candidates?.[0]?.content?.parts?.[0]?.text || "No pude procesar la respuesta.";
         } catch (err) {
             console.error("Gemini Error:", err);
+            if (err.message.includes("blocked")) {
+                return "⚠️ **Cerebro Territorial bloqueado:** Los servicios de IA de Google están restringidos para este sitio o esta API Key. Verifica la configuración en el Panel de Administrador.";
+            }
             return "Error: " + err.message;
         }
     }

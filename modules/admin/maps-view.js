@@ -1,28 +1,31 @@
-import { getTerritorios, deleteTerritorio, updateTerritorio, updateTerritoryGeoJSON } from '../../data/firestore-services.js';
+import { getTerritorios, deleteTerritorio, updateTerritorio, updateTerritoryGeoJSON, startLivePool, uploadMapPNG } from '../../data/firestore-services.js';
 import { showNotification } from '../utils/helpers.js';
 import { showModal, showCustomConfirm } from '../services/ui-helpers.js';
 import { MapViewer } from '../map-viewer.js';
+import { setAdminLivePool } from '../admin-dashboard.js';
 
 export const renderMapsView = async (container, config, appVersion) => {
     let terrs = [];
 
-    const loadData = async () => {
-        try {
-            const tRaw = await getTerritorios();
-            const normalizeT = (val) => String(val || '').trim();
-            terrs = tRaw
-                .filter(rec => rec.numero && String(rec.numero).trim().length > 0)
-                .map(rec => ({
-                    ...rec,
-                    numero: normalizeT(rec.numero),
-                    manzanas: String(rec.manzanas || '').replace(/Salmo/gi, 'Mz.').trim(),
-                    localidad: String(rec.localidad || '').replace(/grupos?/gi, '').trim()
-                }))
-                .sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true }));
-        } catch (e) {
-            console.error("Error loading maps data:", e);
-        }
-    };
+    const normalizeT = (val) => String(val || '').trim();
+
+    // Xolvy Live Pool: Real-time synchronization for Territories
+    const unsub = startLivePool("territorios", [], (data) => {
+        terrs = data
+            .filter(rec => rec.numero && String(rec.numero).trim().length > 0)
+            .map(rec => ({
+                ...rec,
+                numero: normalizeT(rec.numero),
+                manzanas: String(rec.manzanas || '').replace(/Salmo/gi, 'Mz.').trim(),
+                localidad: String(rec.localidad || '').replace(/grupos?/gi, '').trim()
+            }))
+            .sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true }));
+
+        console.log("🗺️ [Live Pool] Territories Updated.");
+        const currentSearch = container.querySelector('#maps-search')?.value.trim().toLowerCase();
+        renderGrid(currentSearch);
+    });
+    setAdminLivePool(unsub);
 
     const renderGrid = (query = '') => {
         const filtered = query ? terrs.filter(t =>
@@ -101,8 +104,7 @@ export const renderMapsView = async (container, config, appVersion) => {
         </div>
     `;
 
-    await loadData();
-    renderGrid();
+
 
     // Search Logic
     container.querySelector('#maps-search').oninput = (e) => renderGrid(e.target.value.trim().toLowerCase());
@@ -176,7 +178,8 @@ export const renderMapsView = async (container, config, appVersion) => {
                     const poisData = [];
                     placemarks.forEach(pm => {
                         const name = pm.querySelector('name')?.textContent || '';
-                        const match = name.match(/\(T(\d+)\)/i);
+                        // Support both (T1) and T1 or Territorio 1 format strictly matching numbers
+                        const match = name.match(/\(?T-?\s*(\d+)\)?/i) || name.match(/Territorio\s*(\d+)/i);
                         if (match) {
                             const tNum = match[1];
                             if (!groups[tNum]) groups[tNum] = [];
@@ -193,6 +196,21 @@ export const renderMapsView = async (container, config, appVersion) => {
                                     type: "Feature", properties: { name },
                                     geometry: { type: "Polygon", coordinates: [coords] }
                                 });
+                            }
+
+                            // Lines (Traces)
+                            const line = pm.querySelector('LineString');
+                            if (line) {
+                                const coordsText = line.querySelector('coordinates')?.textContent || '';
+                                const coordsStr = coordsText.trim().split(/\s+/);
+                                const coords = coordsStr.map(row => row.split(',').map(Number).slice(0, 2)).filter(pair => pair.length === 2 && !isNaN(pair[0]));
+                                if (coords.length > 0) {
+                                    if (!groups[tNum]) groups[tNum] = [];
+                                    groups[tNum].push({
+                                        type: "Feature", properties: { name, type: "Trace" },
+                                        geometry: { type: "LineString", coordinates: coords }
+                                    });
+                                }
                             }
 
                             // Points (POIs) - Link to Special Zones
@@ -237,7 +255,6 @@ export const renderMapsView = async (container, config, appVersion) => {
 
                     status.innerText = "IMPORTACIÓN FINALIZADA";
                     showNotification("Polígonos actualizados correctamente", "success");
-                    await loadData();
                     renderGrid();
                 } catch (err) {
                     showNotification(err.message, "error");
@@ -300,6 +317,16 @@ export const renderMapsView = async (container, config, appVersion) => {
                             <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Manzanas (Separadas por coma)</label>
                             <textarea id="edit-t-mzs" rows="3" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-bold text-slate-700 dark:text-white outline-none focus:border-primary resize-none shadow-inner">${t.manzanas || ''}</textarea>
                         </div>
+                        <div class="space-y-3 mt-2">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block flex justify-between items-center">
+                                <span>Subir Mapa (PNG/JPG)</span>
+                                ${t.imagen ? `<a href="${t.imagen}" target="_blank" class="text-[8px] text-indigo-500 hover:underline">Ver actual</a>` : `<span class="text-[8px] opacity-70">Opcional</span>`}
+                            </label>
+                            <div class="relative">
+                                <i class="fas fa-upload absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
+                                <input type="file" id="edit-t-imagen-file" accept="image/png, image/jpeg" class="pl-12 w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-2.5 rounded-2xl text-[11px] font-bold text-slate-700 dark:text-white outline-none focus:border-primary transition-all shadow-inner file:mr-4 file:py-1.5 file:px-4 file:rounded-xl file:border-0 file:text-[9px] file:uppercase file:tracking-widest file:font-black file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100 dark:file:bg-indigo-900/30 dark:file:text-indigo-300 cursor-pointer">
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -319,17 +346,25 @@ export const renderMapsView = async (container, config, appVersion) => {
                 btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Guardando...';
 
                 try {
+                    const fileInput = modal.querySelector('#edit-t-imagen-file');
+                    let finalImageURL = t.imagen || ''; // Mantener la anterior por defecto
+                    const tNum = modal.querySelector('#edit-t-numero').value.trim();
+
+                    if (fileInput.files.length > 0) {
+                        btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Subiendo imagen...';
+                        finalImageURL = await uploadMapPNG(fileInput.files[0], tNum);
+                    }
+
                     await updateTerritorio(id, {
                         localidad: modal.querySelector('#edit-t-localidad').value.trim(),
                         nombre: modal.querySelector('#edit-t-localidad').value.trim(),
-                        numero: modal.querySelector('#edit-t-numero').value.trim(),
+                        numero: tNum,
                         tipo: modal.querySelector('#edit-t-tipo').value,
-                        manzanas: modal.querySelector('#edit-t-mzs').value.trim()
+                        manzanas: modal.querySelector('#edit-t-mzs').value.trim(),
+                        imagen: finalImageURL
                     });
                     showNotification("Registro actualizado");
                     modal.classList.add('hidden');
-                    await loadData();
-                    renderGrid();
                 } catch (e) {
                     showNotification(e.message, "error");
                 } finally {
@@ -348,8 +383,6 @@ export const renderMapsView = async (container, config, appVersion) => {
             try {
                 await deleteTerritorio(id);
                 showNotification("Territorio eliminado correctamente", "success");
-                await loadData();
-                renderGrid();
             } catch (e) {
                 showNotification("Error al eliminar: " + e.message, "error");
             }

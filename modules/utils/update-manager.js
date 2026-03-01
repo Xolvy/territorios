@@ -1,6 +1,6 @@
 import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 import { db } from "../../firebase-config.js";
-import { showNotification, updateNotificationWorkflow } from "./helpers.js";
+import { showNotification, updateNotificationWorkflow, completeSyncNotification } from "./helpers.js";
 
 /**
  * UPDATE MANAGER - SUPER POWER UP
@@ -329,7 +329,7 @@ const showXolvyUpdateHUD = (moduleName, version) => {
     return showNotification(`Sincronizando ${moduleName} v${version}`, 'sync', 0, ['Iniciando Handshake...']);
 };
 
-import { completeSyncNotification } from "./helpers.js";
+
 
 export const completeXolvyUpdate = (moduleName, version) => {
     const finalName = version ? `${moduleName} v${version}` : moduleName;

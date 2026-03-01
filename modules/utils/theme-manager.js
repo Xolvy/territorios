@@ -12,6 +12,20 @@ export const initTheme = () => {
     }
 };
 
+window.initTheme = initTheme;
+window.toggleTheme = () => {
+    const isDark = document.documentElement.classList.contains('dark');
+    if (isDark) {
+        document.documentElement.classList.remove('dark');
+        localStorage.theme = 'light';
+        return 'light';
+    } else {
+        document.documentElement.classList.add('dark');
+        localStorage.theme = 'dark';
+        return 'dark';
+    }
+};
+
 export const toggleTheme = () => {
     const isDark = document.documentElement.classList.contains('dark');
 

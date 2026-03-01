@@ -27,7 +27,7 @@
     <!-- Emergency Power-Up: Hard Sync if stuck -->
     <script>
         (function () {
-            const CURRENT_BUILD = "2.4.3.7";
+            const CURRENT_BUILD = "2.5";
             try {
                 const lastForce = localStorage.getItem('last_force_sync');
                 const now = Date.now();
@@ -38,46 +38,6 @@
             } catch (e) {
                 console.warn("⚠️ Storage Access Denied at boot. Running in restricted mode.", e);
             }
-
-            window.repairSystem = async function () {
-                console.warn("🚨 Emergency Repair Triggered");
-                try {
-                    localStorage.setItem('xolvy_purge_executed', Date.now().toString());
-                    localStorage.setItem('xolvy_disable_persistence', 'true');
-
-                    if ('serviceWorker' in navigator) {
-                        const regs = await navigator.serviceWorker.getRegistrations();
-                        for (let r of regs) await r.unregister();
-                    }
-                    if ('caches' in window) {
-                        const keys = await caches.keys();
-                        await Promise.all(keys.map(k => caches.delete(k)));
-                    }
-                    sessionStorage.clear();
-                    // Keep selective localStorage but clear potentially corrupt keys
-                    localStorage.removeItem('firestore_clients');
-
-                    if (window.indexedDB) {
-                        window.indexedDB.deleteDatabase("firestore/[DEFAULT]/territorios-jw/main");
-                        window.indexedDB.deleteDatabase("firebase-heartbeat-database");
-                        window.indexedDB.deleteDatabase("firebase-installations-database");
-                    }
-                } catch (e) { console.error("Repair failed", e); }
-                window.location.href = window.location.pathname + '?repair=done&v=' + Date.now();
-            };
-
-            // Detect corruption loop from console
-            const originalError = console.error;
-            console.error = function (...args) {
-                try {
-                    if (args[0] && typeof args[0] === 'string' && args[0].includes('IndexedDB') && args[0].includes('corruption')) {
-                        originalError.apply(console, ["🚀 Auto-repairing corrupted DB..."]);
-                        window.indexedDB.deleteDatabase("firestore/[DEFAULT]/territorios-jw/main");
-                        setTimeout(() => location.reload(), 1000);
-                    }
-                } catch (e) { }
-                originalError.apply(console, args);
-            };
         })();
     </script>
 
@@ -91,14 +51,18 @@
             window.dispatchEvent(new CustomEvent('pwa-prompt-ready'));
         });
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 </head>
 
 <body
     class="h-full font-['Outfit',sans-serif] antialiased selection:bg-teal-500/30 selection:text-teal-900 overflow-x-hidden">
     <div class="bg-accents">
-        <div class="accent-blob bg-indigo-500/20 top-[-10%] left-[-10%] animation-delay-0"></div>
-        <div class="accent-blob bg-teal-500/10 bottom-[-10%] right-[-10%] animation-delay-2000"></div>
-        <div class="accent-blob bg-purple-500/10 top-[40%] right-[20%] animation-delay-4000"></div>
+        <div class="accent-blob bg-indigo-500/20 dark:bg-indigo-600/30 top-[-20%] left-[-10%] animation-delay-0"></div>
+        <div class="accent-blob bg-teal-500/20 dark:bg-teal-600/20 bottom-[-20%] right-[-10%] animation-delay-2000">
+        </div>
+        <div class="accent-blob bg-purple-500/10 dark:bg-purple-600/20 top-[30%] right-[10%] animation-delay-4000">
+        </div>
+        <div class="accent-blob bg-blue-500/10 dark:bg-blue-600/10 bottom-[20%] left-[20%] animation-delay-6000"></div>
     </div>
 
     <main id="app-container" class="min-h-full">
@@ -126,21 +90,22 @@
 
         .accent-blob {
             position: absolute;
-            width: 60vw;
-            height: 60vw;
+            width: 80vw;
+            height: 80vw;
             border-radius: 50%;
-            filter: blur(120px);
-            opacity: 0.2;
-            animation: drift 25s infinite alternate ease-in-out;
+            filter: blur(150px);
+            opacity: 0.3;
+            animation: drift 30s infinite alternate ease-in-out;
+            will-change: transform;
         }
 
         @keyframes drift {
             from {
-                transform: translate(-15%, -15%) rotate(0deg);
+                transform: translate(-20%, -20%) rotate(0deg) scale(1);
             }
 
             to {
-                transform: translate(15%, 15%) rotate(30deg);
+                transform: translate(20%, 20%) rotate(45deg) scale(1.1);
             }
         }
 
@@ -152,8 +117,13 @@
             animation-delay: 4s;
         }
 
+        .animation-delay-6000 {
+            animation-delay: 6s;
+        }
+
         .dark .accent-blob {
-            opacity: 0.1;
+            opacity: 0.15;
+            filter: blur(180px);
         }
     </style>
 </body>

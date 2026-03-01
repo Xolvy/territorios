@@ -1,0 +1,422 @@
+[
+  {
+    "text": "DETALLE",
+    "x": 0.972,
+    "y": 2.678
+  },
+  {
+    "text": "lunes 23",
+    "x": 6.02,
+    "y": 2.678
+  },
+  {
+    "text": "martes 24",
+    "x": 12.254,
+    "y": 2.678
+  },
+  {
+    "text": "miércoles 25",
+    "x": 18.309,
+    "y": 2.678
+  },
+  {
+    "text": "jueves 26",
+    "x": 25.285,
+    "y": 2.678
+  },
+  {
+    "text": "viernes 27",
+    "x": 31.587,
+    "y": 2.678
+  },
+  {
+    "text": "sábado 28",
+    "x": 38.091,
+    "y": 2.678
+  },
+  {
+    "text": "domingo 1",
+    "x": 44.563,
+    "y": 2.678
+  },
+  {
+    "text": "GRUPOS",
+    "x": 49.76,
+    "y": 2.73
+  },
+  {
+    "text": "LUGAR",
+    "x": 0.238,
+    "y": 3.6529999999999996
+  },
+  {
+    "text": "Familia Constante",
+    "x": 18.057,
+    "y": 3.638
+  },
+  {
+    "text": "Familia Márquez",
+    "x": 24.686,
+    "y": 3.638
+  },
+  {
+    "text": "Familia Armijos",
+    "x": 31.301,
+    "y": 3.638
+  },
+  {
+    "text": "Salón del Reino",
+    "x": 37.791,
+    "y": 3.638
+  },
+  {
+    "text": "Familia Jiménez",
+    "x": 44.221,
+    "y": 3.638
+  },
+  {
+    "text": "TODOS",
+    "x": 49.805,
+    "y": 3.6449999999999996
+  },
+  {
+    "text": "HORA",
+    "x": 0.238,
+    "y": 4.493
+  },
+  {
+    "text": "8:45AM",
+    "x": 19.265,
+    "y": 4.478
+  },
+  {
+    "text": "8:45AM",
+    "x": 25.737,
+    "y": 4.478
+  },
+  {
+    "text": "8:45AM",
+    "x": 32.21,
+    "y": 4.478
+  },
+  {
+    "text": "9:15AM",
+    "x": 38.682,
+    "y": 4.478
+  },
+  {
+    "text": "9:15AM",
+    "x": 45.154,
+    "y": 4.478
+  },
+  {
+    "text": "CONDUCTOR",
+    "x": 0.238,
+    "y": 5.332
+  },
+  {
+    "text": "Juan Constante",
+    "x": 18.417,
+    "y": 5.318
+  },
+  {
+    "text": "Hugo Márquez",
+    "x": 24.961,
+    "y": 5.318
+  },
+  {
+    "text": "Fernando Armijos",
+    "x": 31.082,
+    "y": 5.318
+  },
+  {
+    "text": "José Loayza",
+    "x": 38.283,
+    "y": 5.318
+  },
+  {
+    "text": "Jaime Barrera",
+    "x": 44.492,
+    "y": 5.318
+  },
+  {
+    "text": "AUXILIAR",
+    "x": 0.238,
+    "y": 6.172
+  },
+  {
+    "text": "Eduardo Rodas",
+    "x": 18.448,
+    "y": 6.158
+  },
+  {
+    "text": "José Loayza",
+    "x": 25.329,
+    "y": 6.158
+  },
+  {
+    "text": "Eduardo Rodas",
+    "x": 31.393,
+    "y": 6.158
+  },
+  {
+    "text": "Estéfano Feijóo",
+    "x": 37.824,
+    "y": 6.158
+  },
+  {
+    "text": "José Loayza",
+    "x": 44.744,
+    "y": 6.158
+  },
+  {
+    "text": "FACETA",
+    "x": 0.238,
+    "y": 7.327999999999999
+  },
+  {
+    "text": "Casa en casa, negocios y ",
+    "x": 17.345,
+    "y": 6.945
+  },
+  {
+    "text": "calles",
+    "x": 19.542,
+    "y": 7.695
+  },
+  {
+    "text": "Casa en casa, negocios y ",
+    "x": 23.818,
+    "y": 6.945
+  },
+  {
+    "text": "calles",
+    "x": 26.015,
+    "y": 7.695
+  },
+  {
+    "text": "Casa en casa, negocios y ",
+    "x": 30.29,
+    "y": 6.945
+  },
+  {
+    "text": "calles",
+    "x": 32.488,
+    "y": 7.695
+  },
+  {
+    "text": "Casa en Casa",
+    "x": 38.098,
+    "y": 7.32
+  },
+  {
+    "text": "Casa en Casa",
+    "x": 44.576,
+    "y": 7.32
+  },
+  {
+    "text": "LUGAR",
+    "x": 0.238,
+    "y": 8.85
+  },
+  {
+    "text": "HORA",
+    "x": 0.238,
+    "y": 9.69
+  },
+  {
+    "text": "CONDUCTOR",
+    "x": 0.238,
+    "y": 10.53
+  },
+  {
+    "text": "AUXILIAR",
+    "x": 0.238,
+    "y": 11.37
+  },
+  {
+    "text": "FACETA",
+    "x": 0.238,
+    "y": 12.525
+  },
+  {
+    "text": "LUGAR",
+    "x": 0.238,
+    "y": 14.01
+  },
+  {
+    "text": "Familia Jiménez",
+    "x": 11.847,
+    "y": 13.995
+  },
+  {
+    "text": "Familia Constante",
+    "x": 18.055,
+    "y": 13.995
+  },
+  {
+    "text": "SALÓN DEL REINO",
+    "x": 24.51,
+    "y": 13.995
+  },
+  {
+    "text": "Familia Barrera",
+    "x": 31.306,
+    "y": 13.995
+  },
+  {
+    "text": "SALÓN DEL REINO",
+    "x": 37.438,
+    "y": 13.995
+  },
+  {
+    "text": "HORA",
+    "x": 0.238,
+    "y": 14.85
+  },
+  {
+    "text": "7:15PM",
+    "x": 12.815,
+    "y": 14.835
+  },
+  {
+    "text": "7:15PM",
+    "x": 19.291,
+    "y": 14.835
+  },
+  {
+    "text": "7:30PM",
+    "x": 25.762,
+    "y": 14.835
+  },
+  {
+    "text": "7:15PM",
+    "x": 32.238,
+    "y": 14.835
+  },
+  {
+    "text": "7:00PM",
+    "x": 38.709,
+    "y": 14.835
+  },
+  {
+    "text": "CONDUCTOR",
+    "x": 0.238,
+    "y": 15.690000000000001
+  },
+  {
+    "text": "Juan Ruíz",
+    "x": 12.628,
+    "y": 15.675
+  },
+  {
+    "text": "Roberto Pesantez",
+    "x": 18.148,
+    "y": 15.675
+  },
+  {
+    "text": "José Loayza",
+    "x": 31.796,
+    "y": 15.675
+  },
+  {
+    "text": "AUXILIAR",
+    "x": 0.238,
+    "y": 16.53
+  },
+  {
+    "text": "Paúl A. Quimís",
+    "x": 11.99,
+    "y": 16.515
+  },
+  {
+    "text": "Italo Feijóo",
+    "x": 18.905,
+    "y": 16.515
+  },
+  {
+    "text": "Paúl Andree Quimís",
+    "x": 30.845,
+    "y": 16.515
+  },
+  {
+    "text": "FACETA",
+    "x": 0.238,
+    "y": 17.685
+  },
+  {
+    "text": "Telefónica/Cartas",
+    "x": 11.622,
+    "y": 17.67
+  },
+  {
+    "text": "Casa en casa",
+    "x": 18.71,
+    "y": 17.677
+  },
+  {
+    "text": "REUNIÓN ENTRE SEMANA",
+    "x": 23.594,
+    "y": 17.677
+  },
+  {
+    "text": "Casa en casa",
+    "x": 31.633,
+    "y": 17.677
+  },
+  {
+    "text": "REUNIÓN FIN DE SEMANA",
+    "x": 36.523,
+    "y": 17.677
+  },
+  {
+    "text": "LUGAR",
+    "x": 0.238,
+    "y": 19.208
+  },
+  {
+    "text": "ZOOM",
+    "x": 12.958,
+    "y": 19.193
+  },
+  {
+    "text": "HORA",
+    "x": 0.238,
+    "y": 20.047
+  },
+  {
+    "text": "9:00AM",
+    "x": 12.792,
+    "y": 20.032
+  },
+  {
+    "text": "CONDUCTOR",
+    "x": 0.238,
+    "y": 20.888
+  },
+  {
+    "text": "Hugo Márquez",
+    "x": 12.013,
+    "y": 20.873
+  },
+  {
+    "text": "FACETA",
+    "x": 0.238,
+    "y": 21.727
+  },
+  {
+    "text": "Telefónica",
+    "x": 12.5,
+    "y": 21.72
+  },
+  {
+    "text": "PROGRAMA DE PREDICACIÓN",
+    "x": 20.345,
+    "y": 0.128
+  },
+  {
+    "text": "CONGREGACIÓN \"NUEVE DE OCTUBRE\" 14282",
+    "x": 16.153,
+    "y": 1.193
+  }
+]

@@ -1,16 +1,17 @@
 import { auth } from '../firebase-config.js';
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { getPublicadores, getConfiguracion } from '../data/firestore-services.js';
+import { VisualEngine } from './utils/visual-engine.js';
 
 export const renderLogin = (container, appVersion) => {
     const cachedName = localStorage.getItem('cached_congregation_name') || "Sincronizando Portal...";
 
     container.innerHTML = `
-        <div class="min-h-[100dvh] flex flex-col items-center justify-center p-6 bg-slate-50 dark:bg-slate-950 transition-colors duration-500">
+        <div class="${VisualEngine.get('shell.container')} flex flex-col items-center justify-center p-6 relative">
             <!-- Background Decorative Elements -->
-            <div class="fixed inset-0 overflow-hidden pointer-events-none opacity-50 dark:opacity-20">
-                <div class="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-primary-glow blur-[120px] rounded-full"></div>
-                <div class="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-indigo-500/5 blur-[120px] rounded-full"></div>
+            <div class="fixed inset-0 overflow-hidden pointer-events-none opacity-50 dark:opacity-20 animate-fade-in">
+                <div class="absolute -top-[10%] -left-[10%] w-[60%] h-[60%] bg-primary/20 blur-[150px] rounded-full animate-pulse"></div>
+                <div class="absolute -bottom-[10%] -right-[10%] w-[60%] h-[60%] bg-indigo-500/10 blur-[150px] rounded-full animate-float"></div>
             </div>
 
             <div id="login-card-container" class="w-full max-w-sm sm:max-w-md space-y-8 text-center relative z-10 animate-fade-in px-2">
@@ -18,10 +19,10 @@ export const renderLogin = (container, appVersion) => {
                 <div class="space-y-4 sm:space-y-6">
                     <div class="relative w-24 h-24 sm:w-32 sm:h-32 mx-auto mb-8 group">
                         <!-- Soft Ambient Glow -->
-                        <div class="absolute inset-0 bg-teal-500/20 dark:bg-teal-400/10 blur-[40px] rounded-full scale-125 group-hover:scale-150 transition-all duration-1000 opacity-70"></div>
+                        <div class="absolute inset-0 bg-primary/20 dark:bg-primary/10 blur-[50px] rounded-full scale-125 group-hover:scale-150 transition-all duration-1000 opacity-70"></div>
                         
                         <!-- Main Logo Container (Glass) -->
-                        <div class="relative w-full h-full bg-white/40 dark:bg-white/[0.03] backdrop-blur-2xl rounded-[2.5rem] sm:rounded-[3rem] border border-white/40 dark:border-white/10 flex items-center justify-center shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] dark:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.4)] transform transition-all duration-700 group-hover:scale-105 group-hover:-rotate-3 overflow-hidden">
+                        <div class="relative w-full h-full bg-white/60 dark:bg-[#0f1420]/80 backdrop-blur-3xl rounded-[2.5rem] sm:rounded-[3rem] border border-white/40 dark:border-white/10 flex items-center justify-center shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] dark:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.6)] transform transition-all duration-700 group-hover:scale-105 group-hover:-rotate-3 overflow-hidden">
                             <!-- Subtle Internal Gradient Overlay -->
                             <div class="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent pointer-events-none"></div>
                             
@@ -50,27 +51,56 @@ export const renderLogin = (container, appVersion) => {
                 </div>
 
                 <!-- Role Selection -->
-                <div class="grid grid-cols-1 gap-4 mt-6 sm:mt-8">
-                    <button id="btn-admin" class="group modern-card text-left flex items-center gap-4 sm:gap-5 !p-4 sm:!p-5 hover:border-teal-500/30">
-                        <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-teal-500/10 flex items-center justify-center text-teal-600 group-hover:bg-teal-600 group-hover:text-white transition-all duration-300">
-                             <i class="fas fa-user-shield text-xl sm:text-2xl"></i>
+                <div id="selection-area" class="grid grid-cols-1 gap-4 mt-6 sm:mt-8">
+                    <!-- Administrador State Wrapper -->
+                    <div id="admin-wrapper" class="group ${VisualEngine.get('card.premium')} !p-0 transition-all duration-500 overflow-hidden relative">
+                        <!-- Preview State -->
+                        <div id="admin-preview" class="flex items-center gap-4 sm:gap-6 p-4 sm:p-6 w-full cursor-pointer hover:bg-primary/5 transition-colors">
+                            <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all duration-300">
+                                 <i class="fas fa-user-shield text-xl sm:text-2xl"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="text-sm sm:text-lg font-bold text-slate-800 dark:text-white mb-0.5">Administrador</h3>
+                                <p class="text-[11px] sm:text-[13px] text-slate-500 dark:text-slate-400 font-medium line-clamp-1">Gestión avanzada del sistema</p>
+                            </div>
+                            <i class="fas fa-chevron-right text-slate-300 group-hover:text-primary transition-colors text-[10px] sm:text-xs"></i>
                         </div>
-                        <div class="flex-1">
-                            <h3 class="text-sm sm:text-base font-bold text-slate-800 dark:text-white mb-0.5">Administrador</h3>
-                            <p class="text-[11px] sm:text-[13px] text-slate-600 dark:text-slate-400 font-medium line-clamp-1">Gestión avanzada del sistema</p>
-                        </div>
-                        <i class="fas fa-chevron-right text-slate-300 group-hover:text-teal-500 transition-colors text-[10px] sm:text-xs"></i>
-                    </button>
 
-                    <button id="btn-conductor" class="group modern-card text-left flex items-center gap-4 sm:gap-5 !p-4 sm:!p-5 hover:border-indigo-500/30">
-                        <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300">
+                        <!-- Login State -->
+                        <div id="admin-login-state" class="hidden flex flex-col items-center text-center p-8 sm:p-12 w-full animate-slide-up gap-8 relative">
+                            <!-- Close Button (X) -->
+                            <button id="btn-close-admin" class="absolute top-6 right-6 w-10 h-10 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-all active:scale-95 z-30">
+                                <i class="fas fa-times text-base"></i>
+                            </button>
+                            
+                            <div class="w-20 h-20 rounded-[2rem] bg-primary/10 flex items-center justify-center text-primary shadow-inner animate-bounce-in">
+                                <i class="fas fa-shield-alt text-3xl"></i>
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <h3 class="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Acceso Seguro</h3>
+                                <p class="text-[10px] font-black text-primary uppercase tracking-[0.2em] opacity-80">Identidad Digital Xolvy</p>
+                            </div>
+
+                            <button id="btn-google-login-action" class="w-full flex items-center justify-center gap-4 py-5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-[1.5rem] font-black text-sm text-slate-700 dark:text-white hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-white/10 transition-all shadow-premium active:scale-95 group/google">
+                                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-6 h-6 group-hover/google:scale-110 transition-all duration-300" alt="Google">
+                                Entrar con Google
+                            </button>
+                            
+                            <p id="auth-error" class="text-rose-500 text-[10px] font-black uppercase tracking-widest hidden animate-pulse"></p>
+                        </div>
+                    </div>
+
+                    <!-- Conductor Button -->
+                    <button id="btn-conductor" class="group ${VisualEngine.get('card.premium')} !p-4 sm:!p-6 flex items-center gap-4 sm:gap-6 hover:border-secondary/40 text-left transition-all duration-500">
+                        <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-secondary/10 flex items-center justify-center text-secondary group-hover:bg-secondary group-hover:text-white transition-all duration-300">
                              <i class="fas fa-user-friends text-xl sm:text-2xl"></i>
                         </div>
                         <div class="flex-1">
-                            <h3 class="text-sm sm:text-base font-bold text-slate-800 dark:text-white mb-0.5">Conductor</h3>
-                            <p class="text-[11px] sm:text-[13px] text-slate-600 dark:text-slate-400 font-medium line-clamp-1">Asignaciones y registros locales</p>
+                            <h3 class="text-sm sm:text-lg font-bold text-slate-800 dark:text-white mb-0.5">Conductor</h3>
+                            <p class="text-[11px] sm:text-[13px] text-slate-500 dark:text-slate-400 font-medium line-clamp-1">Asignaciones y registros locales</p>
                         </div>
-                        <i class="fas fa-chevron-right text-slate-300 group-hover:text-indigo-500 transition-colors text-[10px] sm:text-xs"></i>
+                        <i class="fas fa-chevron-right text-slate-300 group-hover:text-secondary transition-colors text-[10px] sm:text-xs"></i>
                     </button>
                 </div>
 
@@ -98,46 +128,32 @@ export const renderLogin = (container, appVersion) => {
         }
     });
 
-    document.getElementById('btn-admin').addEventListener('click', () => renderAdminLogin(container, appVersion));
-    document.getElementById('btn-conductor').addEventListener('click', () => renderConductorSelection(container, appVersion));
-};
+    const adminWrapper = document.getElementById('admin-wrapper');
+    const adminPreview = document.getElementById('admin-preview');
+    const adminLogin = document.getElementById('admin-login-state');
+    const closeBtn = document.getElementById('btn-close-admin');
+    const conductorBtn = document.getElementById('btn-conductor');
 
-const renderAdminLogin = (container, appVersion) => {
-    container.innerHTML = `
-        <div class="min-h-[100dvh] flex items-center justify-center p-6 bg-slate-50 dark:bg-slate-950">
-            <div class="w-full max-w-sm glass-morphism p-10 rounded-[2.5rem] space-y-10 animate-slide-up">
-                <button id="btn-back" class="group flex items-center gap-2 text-slate-500 hover:text-primary transition-colors font-bold text-sm">
-                    <i class="fas fa-arrow-left transition-transform group-hover:-translate-x-1 text-xs"></i>
-                    Volver
-                </button>
+    adminPreview.addEventListener('click', () => {
+        adminPreview.classList.add('hidden');
+        adminLogin.classList.remove('hidden');
+        conductorBtn.classList.add('opacity-30', 'pointer-events-none', 'grayscale', 'scale-95');
+        adminWrapper.classList.add('shadow-2xl', 'ring-2', 'ring-primary/20');
+    });
 
-                <div class="text-center space-y-4">
-                    <div class="w-14 h-14 bg-primary/10 rounded-2xl mx-auto flex items-center justify-center text-primary shadow-inner">
-                        <i class="fas fa-shield-alt text-xl"></i>
-                    </div>
-                    <div>
-                        <h2 class="text-h2 text-slate-900 dark:text-white">Acceso Seguro</h2>
-                        <p class="text-sm text-slate-500 mt-2">Identifícate para gestionar tu congregación.</p>
-                    </div>
-                </div>
+    closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        adminLogin.classList.add('hidden');
+        adminPreview.classList.remove('hidden');
+        conductorBtn.classList.remove('opacity-30', 'pointer-events-none', 'grayscale', 'scale-95');
+        adminWrapper.classList.remove('shadow-2xl', 'ring-2', 'ring-primary/20');
+    });
 
-                <button id="btn-google-login" class="w-full flex items-center justify-center gap-4 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[1.25rem] font-bold text-slate-700 dark:text-white hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm active:scale-95 group">
-                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5 group-hover:scale-110 transition-transform" alt="Google">
-                    Entrar con Google
-                </button>
-
-                <div id="auth-status" class="text-center">
-                    <p id="error-message" class="text-red-500 text-xs font-semibold"></p>
-                </div>
-            </div>
-        </div>
-    `;
-
-    document.getElementById('btn-back').addEventListener('click', () => renderLogin(container, appVersion));
-
-    document.getElementById('btn-google-login').addEventListener('click', async () => {
-        const errorEl = document.getElementById('error-message');
-        errorEl.textContent = 'Verificando credenciales...';
+    document.getElementById('btn-google-login-action').addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const errorEl = document.getElementById('auth-error');
+        errorEl.classList.remove('hidden');
+        errorEl.textContent = 'AUTENTICANDO...';
 
         try {
             const provider = new GoogleAuthProvider();
@@ -146,16 +162,20 @@ const renderAdminLogin = (container, appVersion) => {
             await signInWithPopup(auth, provider);
         } catch (error) {
             console.warn("Auth error:", error);
-            errorEl.textContent = `Error: ${error.message}`;
+            errorEl.textContent = `ERROR: ${error.message}`;
         }
     });
+
+    conductorBtn.addEventListener('click', () => renderConductorSelection(container, appVersion));
 };
+
+// Redundant renderAdminLogin removed for unified experience
 
 const renderConductorSelection = async (container, appVersion) => {
     container.innerHTML = `
-        <div class="min-h-[100dvh] bg-slate-50 dark:bg-slate-950 flex flex-col animate-fade-in relative transition-colors duration-500">
+        <div class="${VisualEngine.get('shell.container')} flex flex-col animate-fade-in relative">
             <!-- Header Header -->
-            <div class="sticky top-0 z-30 bg-slate-50/80 dark:bg-slate-950/80 backdrop-blur-xl p-6">
+            <div class="sticky top-0 z-30 bg-slate-50/80 dark:bg-[#0b0f1a]/80 backdrop-blur-3xl p-6 border-b border-slate-100 dark:border-white/5">
                 <div class="max-w-xl mx-auto space-y-6">
                     <div class="flex items-center justify-between">
                         <div>
@@ -230,7 +250,7 @@ const renderConductorSelection = async (container, appVersion) => {
 
                 return `
                     <button data-id="${c.id}" data-name="${c.nombre}" data-phone="${c.telefono || ''}"
-                        class="conductor-btn group w-full p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-white/5 flex items-center justify-between transition-all hover:border-primary/30 hover:shadow-lg active:scale-[0.98]">
+                        class="conductor-btn group w-full p-4 ${VisualEngine.get('card.premium')} rounded-2xl flex items-center justify-between transition-all hover:border-primary/40 hover:shadow-xl active:scale-[0.98] text-left">
                         <div class="flex items-center gap-4">
                             <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center text-primary font-extrabold text-base shadow-inner group-hover:from-primary group-hover:to-primary-light group-hover:text-white transition-all duration-300">
                                 ${c.nombre.charAt(0)}
@@ -267,7 +287,8 @@ const renderConductorSelection = async (container, appVersion) => {
 
     } catch (error) {
         console.error('Error fetching conductors:', error);
-        list.innerHTML = `
+        const listEl = document.getElementById('conductores-list');
+        if (listEl) listEl.innerHTML = `
             <div class="p-8 modern-card !border-red-500/20 text-center space-y-5">
                 <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
                 <p class="text-red-500 font-bold text-sm">Error de sincronización con la base de datos</p>
