@@ -1,7 +1,6 @@
-// Extensions & Premium Libraries Shim V9
+// Extensions & Premium Libraries Shim V10
+// PURGED: jsPDF y html2canvas (WSoD triggers - reemplazados por pdf-lib y ExcelJS)
 import Chart from 'chart.js/auto';
-import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
 
 import { animate } from 'animejs';
 window.anime = animate;
@@ -12,8 +11,6 @@ import Swal from 'sweetalert2';
 import * as XLSX from 'xlsx';
 
 window.Chart = Chart;
-window.jspdf = { jsPDF };
-window.html2canvas = html2canvas;
 window.XLSX = XLSX;
 
 window.dateFns = {
@@ -35,4 +32,4 @@ window.showPremiumAlert = (title, text, icon = 'info') => {
     });
 };
 
-console.log('✨ Premium Extensions Loaded');
+console.log('✨ Premium Extensions Loaded V10 (pdf-lib + ExcelJS engine)');

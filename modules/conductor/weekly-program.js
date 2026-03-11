@@ -148,17 +148,7 @@ export const initializeWeeklyProgram = (container, userMods, allTerritorios, ter
     };
 
     if (btnExport) btnExport.onclick = async () => {
-        const { default: html2canvas } = await import('html2canvas');
-        const element = container.querySelector('.group/prog');
-        if (!element) return;
-        showNotification("Generando imagen...", "info");
-        html2canvas(element, { scale: 2, useCORS: true }).then(canvas => {
-            const link = document.createElement('a');
-            link.download = `Programa_Semanal_${getSafeDateId(_currentWeek)}.png`;
-            link.href = canvas.toDataURL();
-            link.click();
-            showNotification("Imagen descargada", "success");
-        });
+         showNotification("La exportación a imagen fue descontinuada. Por favor solicite a su administrador el archivo Excel.", "info", 5000);
     };
 
     // Navigation and Logic

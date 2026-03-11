@@ -1,11 +1,7 @@
-import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
-import { getTerritorios, getHistorialReport } from '../data/firestore-services.js';
+import { getTerritorios } from '../data/firestore-services.js';
 import { showNotification } from './utils/helpers.js';
-
 export const renderS12CommandCenter = async (container) => {
     const territorios = await getTerritorios();
-    const historial = await getHistorialReport();
 
     territorios.sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true }));
 
@@ -72,38 +68,6 @@ export const renderS12CommandCenter = async (container) => {
     `;
 
     container.querySelector('#btn-generate-s12-pdf').onclick = () => {
-        const element = document.getElementById('s12-pdf-body');
-        
-        showNotification("Generando PDF S-12...", "info");
-
-        html2canvas(element, {
-            scale: 2,
-            backgroundColor: '#ffffff',
-            logging: false,
-            useCORS: true
-        }).then(canvas => {
-            const doc = new jsPDF('p', 'mm', 'a4');
-            const imgData = canvas.toDataURL('image/png');
-            const pdfWidth = doc.internal.pageSize.getWidth();
-            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-
-            // Handle pagination if needed
-            let heightLeft = pdfHeight;
-            let position = 0;
-            const pageHeight = 295;
-
-            doc.addImage(imgData, 'PNG', 5, position + 5, pdfWidth - 10, pdfHeight);
-            heightLeft -= pageHeight;
-
-            while (heightLeft >= 0) {
-                position = heightLeft - pdfHeight;
-                doc.addPage();
-                doc.addImage(imgData, 'PNG', 5, position + 5, pdfWidth - 10, pdfHeight);
-                heightLeft -= pageHeight;
-            }
-
-            doc.save(`S12_Registro_Territorios_${new Date().toISOString().split('T')[0]}.pdf`);
-            showNotification("Reporte S-12 generado", "success");
-        });
+         showNotification("Para el Catálogo Oficial, usa el Reporte S-13 en esta misma pestaña o en 'Datos'.", "info", 5000);
     };
 };

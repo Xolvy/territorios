@@ -44,7 +44,7 @@ export const initPWA = () => {
         let refreshing = false;
         navigator.serviceWorker.addEventListener('controllerchange', () => {
             if (!refreshing) {
-                Location.reload();
+                window.location.reload();
                 refreshing = true;
             }
         });

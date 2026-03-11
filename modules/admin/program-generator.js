@@ -1,106 +1,32 @@
-import html2canvas from 'html2canvas';
 import { showNotification } from '../utils/helpers.js';
 import { PDFDocument, StandardFonts } from 'pdf-lib';
 
 /**
- * Generates an image (PNG) of the weekly program.
+ * DEPRECADO: La exportación PNG por captura de DOM fue eliminada
+ * porque causaba WSoD y dependía de html2canvas.
+ * El usuario debe usar exportarProgramaExcel() para mantener la calidad institucional.
  */
-export const generateProgramPNG = async (programa, isConductores = true) => {
-    try {
-        showNotification(`Generando vista previa...`, 'info', 1000);
-
-        // 1. Create a hidden rendering container
-        const renderDiv = document.createElement('div');
-        renderDiv.style.position = 'fixed';
-        renderDiv.style.left = '-9999px';
-        renderDiv.style.top = '0';
-        renderDiv.style.width = '1200px';
-        renderDiv.style.background = '#fff';
-        renderDiv.style.padding = '40px';
-        renderDiv.style.fontFamily = "'Outfit', sans-serif";
-        document.body.appendChild(renderDiv);
-
-        const startDay = programa.dias[0]?.fecha || '—';
-        const endDay = programa.dias[6]?.fecha || '—';
-        const dateStr = `${startDay.split('-').reverse().join('/')} AL ${endDay.split('-').reverse().join('/')}`;
-
-        // Build HTML
-        renderDiv.innerHTML = `
-            <div style="border: 4px solid #000; padding: 20px; background: #fff;">
-                <div style="text-align: center; margin-bottom: 20px;">
-                    <h1 style="margin: 0; font-size: 28px; font-weight: 900; text-transform: uppercase; color: #1e293b;">Programa de Predicación Semanal</h1>
-                    <p style="margin: 5px 0 0; font-size: 14px; font-weight: 700; color: #64748b; letter-spacing: 2px;">SEMANA DEL ${dateStr}</p>
-                    <p style="margin: 2px 0 0; font-size: 10px; font-weight: 900; color: #0d9488; text-transform: uppercase; letter-spacing: 1px;">MODO ${isConductores ? 'CONDUCTORES' : 'PUBLICADORES'}</p>
-                </div>
-
-                <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; border-top: 2px solid #e2e8f0; pt: 20px;">
-                    ${['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(dayName => {
-            const diaData = (programa.dias || []).find(d => d.nombre === dayName);
-            const dOnly = diaData?.fecha ? diaData.fecha.split('-')[2] : '—';
-            return `
-                            <div style="display: flex; flex-direction: column; gap: 10px;">
-                                <div style="background: #1e293b; color: #fff; padding: 8px; text-align: center; border-radius: 8px;">
-                                    <div style="font-size: 10px; font-weight: 400; text-transform: uppercase; opacity: 0.8;">${dayName}</div>
-                                    <div style="font-size: 18px; font-weight: 900;">${dOnly}</div>
-                                </div>
-
-                                ${['manana', 'tarde', 'noche'].map(turno => {
-                const tData = diaData ? diaData[turno] || {} : {};
-                if (!tData.lugar && !tData.hora && !tData.conductor) return '<div style="height: 120px; border: 1px dashed #e2e8f0; border-radius: 8px;"></div>';
-                return `
-                                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; border-radius: 8px; height: 140px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;">
-                                            <div>
-                                                <div style="font-size: 8px; font-weight: 800; color: #94a3b8; text-transform: uppercase;">${turno === 'manana' ? 'Mañana' : turno === 'tarde' ? 'Tarde' : 'Noche'}</div>
-                                                <div style="font-size: 9px; font-weight: 900; color: #0d9488; margin-top: 2px; line-height: 1;">${String(tData.lugar || '—').toUpperCase()}</div>
-                                                <div style="font-size: 11px; font-weight: 900; color: #000; margin-top: 2px;">${tData.hora || '—'}</div>
-                                            </div>
-                                            <div style="margin-top: 5px;">
-                                                <div style="font-size: 10px; font-weight: 900; color: #1e293b; border-top: 1px solid #cbd5e1; pt: 4px; line-height: 1.1;">${String(tData.conductor || '—').toUpperCase()}</div>
-                                                ${isConductores && tData.auxiliar ? `<div style="font-size: 8px; font-weight: 700; color: #64748b;">${String(tData.auxiliar).toUpperCase()}</div>` : ''}
-                                                <div style="font-size: 8px; font-weight: 700; color: #334155; margin-top: 2px; font-style: italic;">${tData.faceta || '—'}</div>
-                                            </div>
-                                            <div style="font-size: 9px; font-weight: 900; color: #2563eb; margin-top: auto; border-top: 1px solid #e2e8f0; pt: 2px; text-align: right;">
-                                                ${tData.territorio || tData.grupos || '—'}
-                                            </div>
-                                        </div>
-                                    `;
-            }).join('')}
-                            </div>
-                        `;
-        }).join('')}
-                </div>
-                
-                <div style="margin-top: 20px; border-top: 2px solid #1e293b; padding-top: 10px; display: flex; justify-content: space-between; align-items: center;">
-                    <div style="font-size: 9px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 2px;">Generado por Xolvy Conductores</div>
-                    <div style="font-size: 9px; font-weight: 800; color: #0d9488; text-transform: uppercase;">${new Date().toLocaleString('es-ES')}</div>
-                </div>
-            </div>
-        `;
-
-        const canvas = await html2canvas(renderDiv, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
-        document.body.removeChild(renderDiv);
-
-        const dataUrl = canvas.toDataURL('image/png');
-        return dataUrl;
-
-    } catch (err) {
-        console.error(err);
-        showNotification("Error al generar imagen", "error");
-        return null;
-    }
+export const generateProgramPNG = async (_programa, _isConductores = true) => {
+    showNotification(
+        '📊 La exportación PNG ha sido reemplazada. Usa el botón "Exportar Excel" para obtener el reporte de alta calidad.',
+        'info',
+        5000
+    );
+    return null;
 };
 
-export const downloadImage = (dataUrl, isConductores, startDay) => {
-    const link = document.createElement('a');
-    link.href = dataUrl;
-    link.download = `Programa_${isConductores ? 'Conductores' : 'Publicadores'}_${startDay}.png`;
-    link.click();
-    showNotification("Imagen descargada", "success");
+export const downloadImage = (_dataUrl, _isConductores, _startDay) => {
+    showNotification(
+        '📊 Usa la exportación Excel para descargar el programa.',
+        'info',
+        4000
+    );
 };
 
 export const shareProgram = async (programa) => {
-    await generateProgramPNG(programa, true, true);
+    await generateProgramPNG(programa, true);
 };
+
 
 export const generateProgramPDF = async (programa, isConductores = true) => {
     showNotification("Generando PDF oficial...", "info");

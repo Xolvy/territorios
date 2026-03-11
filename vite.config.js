@@ -34,7 +34,7 @@ export default defineConfig({
                     'firebase-vendor': ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage'],
                     'leaflet-vendor': ['leaflet'],
                     'ui-vendor': ['sweetalert2', 'animejs', 'chart.js'],
-                    'utils-vendor': ['xlsx', 'jspdf', 'html2canvas', 'date-fns']
+                    'utils-vendor': ['xlsx', 'date-fns']
                 }
             }
         }
@@ -45,13 +45,28 @@ export default defineConfig({
             ext: '.gz',
         }),
         VitePWA({
-            registerType: 'autoUpdate',
+            // FASE 1: Prompt mode — el usuario decide cuándo actualizar
+            registerType: 'prompt',
             injectRegister: 'auto',
             workbox: {
                 globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}'],
                 cleanupOutdatedCaches: true,
-                maximumFileSizeToCacheInBytes: 10000000, // Increased for modular assets
-                cacheId: `territorios-shell-${pkg.version.replace(/\./g, '-')}`
+                maximumFileSizeToCacheInBytes: 10000000,
+                cacheId: `territorios-shell-${pkg.version.replace(/\./g, '-')}`,
+                // Cache de plantillas Excel/PDF para uso offline
+                runtimeCaching: [
+                    {
+                        urlPattern: /\/templates\/.+\.(xlsx|pdf)$/i,
+                        handler: 'CacheFirst',
+                        options: {
+                            cacheName: 'templates-cache',
+                            expiration: {
+                                maxEntries: 20,
+                                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 días
+                            },
+                        },
+                    },
+                ],
             },
             manifest: {
                 name: 'Gestión de Territorios',

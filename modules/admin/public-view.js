@@ -1,7 +1,4 @@
-import L_lib from 'leaflet';
-const L = L_lib;
-import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
+
 import {
     getPublicadores, getConfiguracion, savePredicacionPublica, startLivePool
 } from '../../data/firestore-services.js';
@@ -128,24 +125,7 @@ export const renderPredicacionTab = async (container) => {
 
         // Bind PDF
         container.querySelector('#export-pdf').onclick = () => {
-
-            const target = container.querySelector('#pdf-content');
-            showNotification("Generando reporte ejecutivo...", "info");
-
-            html2canvas(target, {
-                scale: 2,
-                backgroundColor: (document.documentElement.classList.contains('dark') ? '#0d1117' : '#ffffff'),
-                logging: false,
-                ignoreElements: (el) => el.classList.contains('no-print')
-            }).then(canvas => {
-                const doc = new jsPDF('l', 'mm', 'a4');
-                const imgData = canvas.toDataURL('image/png');
-                const pdfWidth = doc.internal.pageSize.getWidth();
-                const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-                doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-                doc.save(`S13_Public_Witnessing_${new Date().toISOString().split('T')[0]}.pdf`);
-                showNotification("Reporte generado", "success");
-            });
+             showNotification("Para exportar, ve abajo el botón generador o usa el Centro Operativo S-13.", "info", 5000);
         };
     };
 
@@ -167,24 +147,7 @@ export const renderPredicacionTab = async (container) => {
         const exportBtn = container.querySelector('#export-pdf');
         if (exportBtn) {
             exportBtn.onclick = () => {
-                const element = container.querySelector('#pdf-content');
-
-                showNotification("Generando PDF S-13...", "info");
-
-                html2canvas(element, {
-                    scale: 2,
-                    backgroundColor: (document.documentElement.classList.contains('dark') ? '#0d1117' : '#ffffff'),
-                    logging: false,
-                    useCORS: true
-                }).then(canvas => {
-                    const doc = new jsPDF('l', 'mm', 'a4');
-                    const imgData = canvas.toDataURL('image/png');
-                    const pdfWidth = doc.internal.pageSize.getWidth();
-                    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-                    doc.addImage(imgData, 'PNG', 5, 5, pdfWidth - 10, Math.min(pdfHeight, 190));
-                    doc.save(`S13_Publica_${new Date().toISOString().split('T')[0]}.pdf`);
-                    showNotification("PDF generado con éxito", "success");
-                });
+                 showNotification("Para exportar, ve abajo el botón generador o usa el Centro Operativo S-13.", "info", 5000);
             };
         }
     };

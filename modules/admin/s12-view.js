@@ -1,5 +1,4 @@
-import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
+
 import {
     getTerritorios, deleteTerritorio, updateTerritorio
 } from '../../data/firestore-services.js';
@@ -130,27 +129,8 @@ export const renderS12View = async (container, config, appVersion) => {
     const exportBtn = container.querySelector('#btn-export-s12');
     if (exportBtn) {
         exportBtn.onclick = () => {
-            const grid = container.querySelector('#s12-grid');
-
-            showNotification("Generando catálogo S-12...", "info");
-
-            html2canvas(grid, {
-                scale: 2,
-                backgroundColor: (document.documentElement.classList.contains('dark') ? '#0d1117' : '#ffffff'),
-                logging: false,
-                useCORS: true
-            }).then(canvas => {
-                const doc = new jsPDF('p', 'mm', 'a4');
-                const imgData = canvas.toDataURL('image/png');
-                const pdfWidth = doc.internal.pageSize.getWidth();
-                const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-
-                // If larger than one page, we might need to split or just rescale
-                // For a directory, usually people prefer as list, but let's keep it as is for now
-                doc.addImage(imgData, 'PNG', 5, 5, pdfWidth - 10, Math.min(pdfHeight, 280));
-                doc.save(`S12_Catalogo_Territorios_${new Date().toISOString().split('T')[0]}.pdf`);
-                showNotification("Catálogo generado", "success");
-            });
+             // 📝 FASE 5: Redirigir al modulo oficial
+             showNotification("Para generar el catálogo S-12 Oficial, ve a la pestaña de Reportes y Genera el S-13 (Registro Maestro).", "info", 5000);
         };
     }
 

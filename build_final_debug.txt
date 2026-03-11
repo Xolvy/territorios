@@ -1,0 +1,28 @@
+
+> app-territorios@2.5 build
+> vite build
+
+vite v6.4.1 building for production...
+transforming...
+Ô£ô 1750 modules transformed.
+Ô£ù Build failed in 4.19s
+error during build:
+modules/admin-dashboard.js (2:4): "getSystemVersion" is not exported by "data/firestore-services.js", imported by "modules/admin-dashboard.js".
+file: D:/_CODE/app-territorios/modules/admin-dashboard.js:2:4
+
+1: import {
+2:     getSystemVersion, setSystemVersion, getConfiguracion
+       ^
+3: } from '../data/firestore-services.js';
+4: import { auth } from '../firebase-config.js';
+
+    at getRollupError (file:///D:/_CODE/app-territorios/node_modules/rollup/dist/es/shared/parseAst.js:400:41)
+    at error (file:///D:/_CODE/app-territorios/node_modules/rollup/dist/es/shared/parseAst.js:396:42)
+    at Module.error (file:///D:/_CODE/app-territorios/node_modules/rollup/dist/es/shared/node-entry.js:17036:16)
+    at Module.traceVariable (file:///D:/_CODE/app-territorios/node_modules/rollup/dist/es/shared/node-entry.js:17448:29)
+    at ModuleScope.findVariable (file:///D:/_CODE/app-territorios/node_modules/rollup/dist/es/shared/node-entry.js:15066:39)
+    at ReturnValueScope.findVariable (file:///D:/_CODE/app-territorios/node_modules/rollup/dist/es/shared/node-entry.js:5673:38)
+    at FunctionBodyScope.findVariable (file:///D:/_CODE/app-territorios/node_modules/rollup/dist/es/shared/node-entry.js:5673:38)
+    at BlockScope.findVariable (file:///D:/_CODE/app-territorios/node_modules/rollup/dist/es/shared/node-entry.js:5673:38)
+    at TrackingScope.findVariable (file:///D:/_CODE/app-territorios/node_modules/rollup/dist/es/shared/node-entry.js:5673:38)
+    at BlockScope.findVariable (file:///D:/_CODE/app-territorios/node_modules/rollup/dist/es/shared/node-entry.js:5673:38)

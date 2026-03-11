@@ -1,0 +1,93 @@
+
+> app-territorios@2.5 build
+> vite build
+
+vite v6.4.1 building for production...
+transforming...
+Ô£ô 1525 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/registerSW.js                               0.13 kB
+dist/manifest.webmanifest                        0.37 kB
+dist/index.html                                  5.03 kB Ôöé gzip:   2.00 kB
+dist/assets/fa-regular-400-BVHPE7da.woff2       18.99 kB
+dist/assets/fa-brands-400-BfBXV7Mm.woff2       101.22 kB
+dist/assets/fa-solid-900-8GirhLYJ.woff2        113.15 kB
+dist/assets/index-pVSs1auY.css                 222.55 kB Ôöé gzip:  53.50 kB
+dist/assets/config-Ci9my2g2.js                   0.20 kB Ôöé gzip:   0.21 kB
+dist/assets/exceljs.min-Bghcu4ez.js              0.47 kB Ôöé gzip:   0.33 kB
+dist/assets/animations-CoIKooot.js               0.48 kB Ôöé gzip:   0.30 kB
+dist/assets/leaflet-src-DU7V3oDY.js              0.51 kB Ôöé gzip:   0.36 kB
+dist/assets/base-service-D5yL-YLe.js             0.58 kB Ôöé gzip:   0.35 kB
+dist/assets/personnel-service-BirFSpi7.js        0.75 kB Ôöé gzip:   0.33 kB
+dist/assets/voice-helper-hLdL9ITL.js             0.79 kB Ôöé gzip:   0.40 kB
+dist/assets/modular-base-B2qszj4c.js             0.87 kB Ôöé gzip:   0.45 kB
+dist/assets/config-service-DM2k0W-d.js           0.96 kB Ôöé gzip:   0.46 kB
+dist/assets/store-C8WX_ciR.js                    1.00 kB Ôöé gzip:   0.47 kB
+dist/assets/pdf-report-service-DyEVLuyy.js       1.19 kB Ôöé gzip:   0.66 kB
+dist/assets/motion-helpers-d02PNQ6G.js           1.44 kB Ôöé gzip:   0.71 kB
+dist/assets/adaptive-D2JlKt_7.js                 1.61 kB Ôöé gzip:   0.66 kB
+dist/assets/background-sync-CAUfQARM.js          2.04 kB Ôöé gzip:   1.04 kB
+dist/assets/ui-components-BaaxRQbZ.js            2.13 kB Ôöé gzip:   0.94 kB
+dist/assets/maps-explorer-DNLmCuEP.js            2.62 kB Ôöé gzip:   1.07 kB
+dist/assets/kml-parser-BPgryxDE.js               2.93 kB Ôöé gzip:   1.07 kB
+dist/assets/program-service-BtCI3lpS.js          3.42 kB Ôöé gzip:   1.58 kB
+dist/assets/onboarding-C7bAPoiR.js               3.76 kB Ôöé gzip:   1.74 kB
+dist/assets/campaigns-view-CJ5lSQJO.js           3.77 kB Ôöé gzip:   1.43 kB
+dist/assets/availability-CdcmlxhZ.js             3.95 kB Ôöé gzip:   1.44 kB
+dist/assets/cluster-map-rccubKRJ.js              4.13 kB Ôöé gzip:   1.79 kB
+dist/assets/territories-view-CUdP083B.js         4.25 kB Ôöé gzip:   1.68 kB
+dist/assets/firestore-services-DDhC47fh.js       4.64 kB Ôöé gzip:   1.88 kB
+dist/assets/alerts-WHR91X-x.js                   4.68 kB Ôöé gzip:   1.87 kB
+dist/assets/reports-view-O9__YbTT.js             4.86 kB Ôöé gzip:   1.37 kB
+dist/assets/weekly-program-B5ugSFwB.js           5.24 kB Ôöé gzip:   2.22 kB
+dist/assets/ai-voice-assistant-gEjxjC0w.js       5.30 kB Ôöé gzip:   2.39 kB
+dist/assets/s13-exporter-lkuVUQgU.js             6.06 kB Ôöé gzip:   1.65 kB
+dist/assets/diffusion-view-Bn5nM0m1.js           6.25 kB Ôöé gzip:   2.00 kB
+dist/assets/grupos-view-DlGQnn2n.js              6.95 kB Ôöé gzip:   1.91 kB
+dist/assets/maps-admin-3R6Ux7Qs.js               6.99 kB Ôöé gzip:   2.58 kB
+dist/assets/program-generator-CCFwHHag.js        7.20 kB Ôöé gzip:   2.50 kB
+dist/assets/assignments-view-CRdiL2ke.js         7.49 kB Ôöé gzip:   2.15 kB
+dist/assets/ai-view-BijIm6in.js                  7.75 kB Ôöé gzip:   2.52 kB
+dist/assets/rescue-C6D1soe0.js                   8.24 kB Ôöé gzip:   2.08 kB
+dist/assets/phone-module-CPXiQSwc.js             9.19 kB Ôöé gzip:   2.86 kB
+dist/assets/territory-service-DHm7VhsX.js       10.42 kB Ôöé gzip:   3.27 kB
+dist/assets/resources-view-DFkuk0XS.js          10.74 kB Ôöé gzip:   2.81 kB
+dist/assets/puntos-view-Cc8KklYe.js             11.48 kB Ôöé gzip:   3.03 kB
+dist/assets/intelligence-Chy7oBWD.js            11.98 kB Ôöé gzip:   5.16 kB
+dist/assets/recursos-D6ygLRWj.js                12.43 kB Ôöé gzip:   3.11 kB
+dist/assets/export-service-BC7v_acX.js          12.95 kB Ôöé gzip:   4.43 kB
+dist/assets/program-views-DNbpl2Hq.js           13.32 kB Ôöé gzip:   3.46 kB
+dist/assets/s12-view-CIID-CDH.js                14.70 kB Ôöé gzip:   3.91 kB
+dist/assets/login-5ubbq9HY.js                   17.24 kB Ôöé gzip:   4.54 kB
+dist/assets/phones-view-BTpmmz8h.js             19.06 kB Ôöé gzip:   4.51 kB
+dist/assets/analytics-view-CHQORJhU.js          20.19 kB Ôöé gzip:   5.54 kB
+dist/assets/maps-view-Cvaw9gol.js               20.58 kB Ôöé gzip:   5.21 kB
+dist/assets/admin-dashboard-CcP8XF2z.js         21.46 kB Ôöé gzip:   5.63 kB
+dist/assets/map-viewer-gqLaHrYi.js              27.19 kB Ôöé gzip:   7.29 kB
+dist/assets/public-view-CwpP2xB6.js             30.57 kB Ôöé gzip:   5.72 kB
+dist/assets/rules-view-C1rHjxuW.js              32.84 kB Ôöé gzip:   6.24 kB
+dist/assets/personal-view-DX3AT9rm.js           35.21 kB Ôöé gzip:   7.10 kB
+dist/assets/history-view-DrlVZx5x.js            36.42 kB Ôöé gzip:   7.18 kB
+dist/assets/conductor-dashboard-oMAREhJT.js     58.57 kB Ôöé gzip:  15.64 kB
+dist/assets/schemas-CXK5v8PO.js                 65.56 kB Ôöé gzip:  17.49 kB
+dist/assets/ui-helpers-fekfaVA7.js              78.57 kB Ôöé gzip:  18.46 kB
+dist/assets/program-view-nb0JvT18.js            88.02 kB Ôöé gzip:  17.75 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+dist/assets/vendor-maps-CqHN-A3_.js            157.08 kB Ôöé gzip:  46.17 kB
+dist/assets/vendor-ui-SADWN7Xb.js              169.23 kB Ôöé gzip:  52.50 kB
+dist/assets/firebase-core-DS9vTp89.js          563.89 kB Ôöé gzip: 133.20 kB
+dist/assets/index-bntylShY.js                  726.84 kB Ôöé gzip: 237.55 kB
+dist/assets/vendor-reports-mv7Rs3qP.js       1,357.51 kB Ôöé gzip: 432.43 kB
+Ô£ô built in 23.79s
+
+PWA v1.2.0
+mode      generateSW
+precache  94 entries (10658.13 KiB)
+files generated
+  dist/sw.js
+  dist/workbox-1d305bb8.js

@@ -1,5 +1,4 @@
-import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
+
 import { getHistorialReport, rebuildHistoryFromSchedule, getConfiguracion, getTerritorios, runSystemDiagnosticsAndRepair } from '../data/firestore-services.js';
 import { showNotification, generatePlainXLS } from './utils/helpers.js';
 import { S13Exporter } from './services/s13-exporter.js';
@@ -400,47 +399,35 @@ export const renderHistoryTab = (container, options = {}) => {
     const pdfBtn = document.getElementById('btn-export-s13-pdf');
     if (pdfBtn) {
         pdfBtn.onclick = async () => {
-            const pages = document.querySelectorAll('.s13-page');
-            if (pages.length === 0) return;
-
             const btn = pdfBtn;
-            const isOffline = !navigator.onLine;
-
-            if (isOffline) {
-                showNotification("📡 Generando PDF en modo offline. Los estilos tipográficos podrían variar.", "warning");
-            }
-
             const oldText = btn.innerHTML;
             btn.innerHTML = '⏳ Generando PDF...';
             btn.disabled = true;
 
             try {
+                // Delegar al nuevo motor PDF oficial (S-13_S.pdf) con AcroForm
+                const { generarS13 } = await import('./services/pdf-report-service.js');
+                
+                // Fetch the original territories directly or from sorted view.
+                // We'll use getTerritorios directly to ensure we have pure fresh data for the template.
+                const { getTerritorios } = await import('../data/firestore-services.js');
+                const tRaw = await getTerritorios();
+                
+                // Formateamos para el generador S-13 AcroForm (requiere: numero, nombre/localidad, conductor, fechas)
+                const formattedList = tRaw
+                     .filter(t => t.numero && String(t.numero).trim())
+                     .sort((a,b) => String(a.numero).localeCompare(String(b.numero), undefined, { numeric: true }))
+                     .map(t => ({
+                          numero: t.numero,
+                          nombre: t.localidad || t.nombre || '',
+                          conductor: t.asignado_a || '',
+                          // Extrayendo info de data actual del front (si _currentS13Data está disponible)
+                          fechaSalida: t.ultima_fecha || '',
+                          fechaRetorno: '' // The original HTML generator was pulling from history logic. We'll simplify to latest data.
+                     }));
 
-                const doc = new jsPDF('p', 'mm', 'a4');
-
-                const pdfWidth = 210;
-                const pdfHeight = 297;
-
-                for (let i = 0; i < pages.length; i++) {
-                    if (i > 0) doc.addPage();
-                    const canvas = await html2canvas(pages[i], {
-                        scale: 2.5,
-                        backgroundColor: '#ffffff',
-                        logging: false,
-                        useCORS: true,
-                        allowTaint: true
-                    });
-                    const imgData = canvas.toDataURL('image/jpeg', 0.98);
-                    const imgProps = doc.getImageProperties(imgData);
-                    const printHeight = (imgProps.height * pdfWidth) / imgProps.width;
-                    doc.addImage(imgData, 'JPEG', 0, 0, pdfWidth, Math.min(printHeight, pdfHeight));
-                }
-
-                const config = await getConfiguracion();
-                const congName = config?.congregacion?.nombre || 'Mi_Congregacion';
-                const fileName = `S13_Reporte_${congName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
-                doc.save(fileName);
-                showNotification("✅ PDF generado correctamente.", "success");
+                await generarS13(formattedList);
+                showNotification("✅ S-13 generado correctamente.", "success");
             } catch (e) {
                 console.error(e);
                 showNotification("Error exportando PDF: " + e.message, "error");
