@@ -1,19 +1,15 @@
+import { XolvyAlert } from './alerts.js';
+
 /**
  * @file modules/utils/kml-parser.js
- * @description Xolvy KML Parser — Visor Nativo Leaflet
- *
- * CRÍTICO: El KML almacena coordenadas en formato [Lng, Lat, Alt].
- * Leaflet requiere [Lat, Lng]. Este parser invierte el orden y descarta la altitud.
- *
- * Flujo:
- *   parseKmlToLeaflet(kmlString) → Array<[lat, lng]>
- *   showKmlMapModal(territorio)  → Lanza SweetAlert2 con mapa Leaflet incrustado
+ * @description Xolvy KML Parser — Visor Nativo Leaflet con Inversión de Coordenadas
  */
 
 /**
- * Parsea un string KML y retorna coordenadas en formato Leaflet [Lat, Lng].
+ * Parsea un string KML crudo y retorna coordenadas invertidas [Lat, Lng] para Leaflet.
+ * IGNORA la altitud.
  * @param {string} kmlString - Contenido XML del KML
- * @returns {Array<[number, number]>} - Array de [Lat, Lng] para Leaflet
+ * @returns {Array<[number, number]>} - Array compatible con Leaflet
  */
 export const parseKmlToLeaflet = (kmlString) => {
     if (!kmlString || typeof kmlString !== 'string') return [];
@@ -21,139 +17,120 @@ export const parseKmlToLeaflet = (kmlString) => {
     try {
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(kmlString, 'text/xml');
-
-        // Buscar el primer elemento <coordinates> en el KML
         const coordsEl = xmlDoc.querySelector('coordinates');
+
         if (!coordsEl) {
-            console.warn('[KMLParser] No se encontró elemento <coordinates> en el KML.');
+            console.warn('[KMLParser] Elemento <coordinates> no encontrado.');
             return [];
         }
 
         const rawText = coordsEl.textContent.trim();
 
-        // Cada punto viene como "Lng,Lat,Alt" separado por espacios o saltos de línea
-        const leafletCoords = rawText
-            .split(/\s+/)
-            .filter(point => point.includes(','))
-            .map(point => {
-                const parts = point.split(',');
-                const lng = parseFloat(parts[0]); // KML: primer valor es Longitud
-                const lat = parseFloat(parts[1]); // KML: segundo valor es Latitud
-                // parts[2] = Altitud → IGNORADA
+        // El KML viene en Lng,Lat,Alt
+        return rawText.split(/\s+/)
+            .filter(pt => pt.includes(','))
+            .map(pt => {
+                const parts = pt.split(',');
+                const lng = parseFloat(parts[0]);
+                const lat = parseFloat(parts[1]);
+                // Se descarta parts[2] (altitud)
 
                 if (isNaN(lat) || isNaN(lng)) return null;
 
-                // INVERTIR para Leaflet: [Lat, Lng]
+                // INVERSIÓN MATEMÁTICA para Leaflet -> [Lat, Lng]
                 return [lat, lng];
             })
             .filter(Boolean);
-
-        console.log(`[KMLParser] ✅ Parseadas ${leafletCoords.length} coordenadas.`);
-        return leafletCoords;
-
     } catch (err) {
-        console.error('[KMLParser] Error parseando KML:', err);
+        console.error('[KMLParser] Falló el parseo:', err);
         return [];
     }
 };
 
 /**
- * Muestra un modal SweetAlert2 de ancho 92% con el mapa Leaflet del territorio.
- * @param {object} territorio - Objeto con { nombre, numero, kml }
+ * Función unificada para extraer coordenadas [Lat, Lng] desde la entidad territorio,
+ * manejando tanto KML antiguo como posible GeoJSON a futuro.
  */
-export const showKmlMapModal = async (territorio) => {
-    if (!window.Swal) {
-        console.error('[KMLParser] SweetAlert2 (Swal) no disponible en window.');
-        return;
+export const extractLeafletCoordsFromTerritory = (territory) => {
+    if (!territory) return [];
+    
+    // Si ya viene como KML string
+    if (typeof territory.kml === 'string' && territory.kml.includes('<coordinates>')) {
+        return parseKmlToLeaflet(territory.kml);
     }
 
-    const coords = parseKmlToLeaflet(territorio?.kml || '');
-
-    if (coords.length === 0) {
-        window.Swal.fire({
-            icon: 'warning',
-            title: 'Sin datos de mapa',
-            text: 'Este territorio no tiene un KML válido asignado.',
-            confirmButtonColor: '#0d9488',
-        });
-        return;
+    // Adaptador futuro GeoJSON (por si acaso Xolvy Hub evoluciona el modelo de datos)
+    if (territory.geojson && territory.geojson.coordinates) {
+        // En GeoJSON también es Lng,Lat, necesita inversión si devolvemos para Leaflet puro o no,
+        // pero por ahora priorizamos KML.
+        console.warn('[KMLParser] Extraer desde GeoJSON no implementado completamente aquí.');
     }
 
-    const mapContainerId = `kml-map-${Date.now()}`;
-
-    await window.Swal.fire({
-        title: `🗺️ Territorio ${territorio.numero || ''} — ${territorio.nombre || ''}`,
-        html: `
-            <div id="${mapContainerId}"
-                 style="width:100%; height:65vh; border-radius:12px; overflow:hidden; background:#f0f4f8;">
-            </div>
-        `,
-        width: '92%',
-        showConfirmButton: false,
-        showCloseButton: true,
-        padding: '1rem',
-        background: document.documentElement.classList.contains('dark') ? '#1e293b' : '#ffffff',
-        color: document.documentElement.classList.contains('dark') ? '#f1f5f9' : '#1e293b',
-        didOpen: () => {
-            _initLeafletInModal(mapContainerId, coords, territorio);
-        }
-    });
+    return [];
 };
 
+
 /**
- * Instancia Leaflet dentro del contenedor del modal.
- * @private
+ * Muestra un XolvyAlert con el mapa interactivo nativo usando Leaflet y CartoDB Positron.
+ * Aplica invalidateSize() para esquivar el bug visual de renderizado de Leaflet dentro de Modales.
  */
-const _initLeafletInModal = (containerId, coords, territorio) => {
+export const showKmlMapModal = async (territorio) => {
     if (typeof L === 'undefined') {
-        console.error('[KMLParser] Leaflet (L) no está disponible globalmente.');
-        document.getElementById(containerId).innerHTML =
-            '<p style="text-align:center;padding:2rem;color:#ef4444;">Error: Leaflet no cargado</p>';
+        XolvyAlert.fire({ icon: 'error', title: 'Leaflet (L) no detectado en ventana' });
         return;
     }
 
-    try {
-        // Instanciar mapa en el contenedor del modal
-        const map = L.map(containerId, {
-            zoomControl: true,
-            scrollWheelZoom: true,
+    const coords = extractLeafletCoordsFromTerritory(territorio);
+
+    if (coords.length === 0) {
+        XolvyAlert.fire({
+            icon: 'warning',
+            title: 'Sin datos espaciales',
+            text: 'Este territorio no posee coordenadas KML válidas para renderizar el mapa interactivo.'
         });
-
-        // Capa base: CartoDB Positron (limpia, sin distracción)
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
-            subdomains: 'abcd',
-            maxZoom: 20,
-        }).addTo(map);
-
-        // Polígono KML con color institucional
-        const polygon = L.polygon(coords, {
-            color: '#00D5FF',
-            weight: 2.5,
-            opacity: 0.9,
-            fillColor: '#00D5FF',
-            fillOpacity: 0.15,
-        }).addTo(map);
-
-        // Popup con nombre del territorio
-        if (territorio.nombre) {
-            polygon.bindPopup(
-                `<strong>Territorio ${territorio.numero || ''}</strong><br>${territorio.nombre}`,
-                { closeOnClick: false }
-            ).openPopup();
-        }
-
-        // Centrar y ajustar bounds para ver todo el polígono
-        map.fitBounds(polygon.getBounds(), { padding: [20, 20] });
-
-        // Corregir bug del mapa gris por renderizado en modal oculto
-        setTimeout(() => {
-            map.invalidateSize();
-        }, 150);
-
-    } catch (err) {
-        console.error('[KMLParser] Error iniciando mapa Leaflet:', err);
-        document.getElementById(containerId).innerHTML =
-            `<p style="text-align:center;padding:2rem;color:#ef4444;">Error al renderizar el mapa: ${err.message}</p>`;
+        return;
     }
+
+    const mapId = 'xolvy-leaflet-map';
+
+    XolvyAlert.fire({
+        title: `Territorio ${territorio.numero || ''} ${territorio.nombre ? '— ' + territorio.nombre : ''}`,
+        html: `<div id="${mapId}" style="width: 100%; height: 65vh; border-radius: 12px; z-index: 10; border: 1px solid rgba(0,0,0,0.1);"></div>`,
+        width: '92%',
+        padding: '1.5rem',
+        showCloseButton: true,
+        showConfirmButton: false,
+        didOpen: () => {
+             // 1. Instanciar Leaflet
+             const map = L.map(mapId, { zoomControl: true, scrollWheelZoom: true });
+
+             // 2. TileLayer CartoDB Positron
+             const isDark = document.documentElement.classList.contains('dark');
+             const tileUrl = isDark ? 
+                'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 
+                'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+
+             L.tileLayer(tileUrl, {
+                 attribution: '&copy; <a href="https://carto.com/">CARTO</a> Xolvy Maps',
+                 subdomains: 'abcd',
+                 maxZoom: 20
+             }).addTo(map);
+
+             // 3. Dibujar Polígono
+             const polygon = L.polygon(coords, {
+                 color: '#00D5FF',
+                 weight: 3,
+                 fillColor: '#00D5FF',
+                 fillOpacity: 0.2
+             }).addTo(map);
+
+             // 4. Zoom Automático
+             map.fitBounds(polygon.getBounds(), { padding: [30, 30] });
+
+             // 5. CRÍTICO: Fix renderizado gris de Leaflet en Modales de SweetAlert/Animados
+             setTimeout(() => {
+                 map.invalidateSize();
+             }, 150);
+        }
+    });
 };

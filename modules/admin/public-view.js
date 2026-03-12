@@ -274,62 +274,131 @@ export const renderPredicacionTab = async (container) => {
         if (!viewCont) return;
 
         const dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+        const formatTimeDisplay = (time) => {
+            if (!time) return '—';
+            let parts = time.split(':');
+            let h = parts[0] || '00';
+            let m = parts[1] || '00';
+            return `${h.padStart(2, '0')}:${m.padEnd(2, '0')}`;
+        };
         const filteredAsignaciones = filterData();
-        const byDay = {};
-        dias.forEach(d => byDay[d] = filteredAsignaciones.filter(a => a.dia === d).sort((a, b) => (a.hora || '').localeCompare(b.hora || '')));
 
-        container.querySelector('#matrix-bg').classList.add('opacity-100');
+        const rowKeysMap = new Map();
+        filteredAsignaciones.forEach(row => {
+            const timeStr = `${formatTimeDisplay(row.hora)} - ${formatTimeDisplay(row.hora_fin)}`;
+            const lugarStr = row.lugar || 'Ubicación General';
+            const key = `${lugarStr}|${timeStr}`;
+            if (!rowKeysMap.has(key)) rowKeysMap.set(key, { lugar: lugarStr, time: timeStr, hora: row.hora, hora_fin: row.hora_fin });
+        });
+        
+        // Add predefined row slots from options or configuration if requested, but for now we follow data strictly plus standard slots if none
+        if (rowKeysMap.size === 0) {
+            viewCont.innerHTML = `<div class="text-center p-20 text-slate-500 font-bold uppercase tracking-widest text-xs flex flex-col items-center justify-center gap-4 border border-dashed border-white/10 rounded-2xl mx-8 min-h-[50vh]"><i class="fas fa-boxes text-4xl opacity-50 mb-4"></i> No hay turnos planificados. Agregue eventos desde la lista.</div>`;
+            return;
+        }
+
+        let rowKeysList = Array.from(rowKeysMap.values());
+        rowKeysList.sort((a, b) => {
+            const tCmp = a.time.localeCompare(b.time);
+            return tCmp !== 0 ? tCmp : a.lugar.localeCompare(b.lugar);
+        });
+
+        container.querySelector('#matrix-bg')?.classList.add('opacity-100');
         const emptyState = container.querySelector('#empty-state');
         if (emptyState) emptyState.classList.add('hidden');
 
         viewCont.innerHTML = `
-            <div class="p-8 lg:p-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-6 min-h-[600px] relative z-10 transition-all duration-700">
-                ${dias.map(dia => `
-                    <div class="flex flex-col gap-6">
-                        <div class="p-5 bg-slate-900 dark:bg-white/5 text-white lg:text-slate-200 text-center font-black rounded-3xl shadow-2xl text-[10px] uppercase tracking-[0.4em] border border-white/5">${dia}</div>
-                        <div class="flex flex-col gap-5">
-                            ${byDay[dia].length > 0 ? byDay[dia].map(row => {
-            const originalIdx = data.asignaciones.indexOf(row);
-            const timeStr = `${formatTimeDisplay(row.hora)} - ${formatTimeDisplay(row.hora_fin)}`;
-            return `
-                                    <div class="p-6 bg-white dark:bg-white/[0.03] border border-slate-100 dark:border-white/5 rounded-[2.5rem] shadow-lg group relative hover:border-primary/50 transition-all duration-500 hover:-translate-y-1">
-                                        <div class="text-[10px] font-black text-primary mb-3.5 flex items-center gap-2">
-                                            <i class="far fa-clock"></i>
-                                            ${timeStr}
-                                        </div>
-                                        <div class="text-[13px] font-black text-slate-800 dark:text-white mb-5 uppercase tracking-tighter leading-tight break-words">${row.lugar || 'Ubicación General'}</div>
-                                        <div class="space-y-4 border-t border-slate-50 dark:border-white/5 pt-5">
-                                             <div class="text-[11px] font-black text-slate-700 dark:text-slate-200 flex items-center gap-3 uppercase">
-                                                <div class="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-[10px] text-primary shrink-0"><i class="fas fa-user-tie"></i></div>
-                                                <span class="break-words">${row.publicador || '—'}</span>
-                                             </div>
-                                             <div class="text-[10px] font-bold text-slate-400 dark:text-slate-400 flex items-center gap-3 uppercase">
-                                                <div class="w-8 h-8 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center text-[10px] text-slate-400 shrink-0"><i class="fas fa-id-card-clip"></i></div>
-                                                <span class="break-words">${row.companero || '—'}</span>
-                                             </div>
-                                        </div>
-                                        <div class="absolute -top-3 -right-3 flex gap-2 no-print opacity-0 group-hover:opacity-100 transition-all">
-                                            <button onclick="window.editPublicRowModal(${originalIdx})" class="bg-indigo-600 text-white rounded-2xl w-10 h-10 flex items-center justify-center text-xs shadow-xl shadow-indigo-500/20 hover:scale-110 active:scale-95">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                            <button onclick="window.deletePublicRow(${originalIdx})" class="bg-rose-500 text-white rounded-2xl w-10 h-10 flex items-center justify-center text-xs shadow-xl shadow-rose-500/20 hover:scale-110 active:scale-95"> 
-                                                <i class="fas fa-times"></i>
-                                            </button>
-                                        </div>
-                                    </div>
+            <div class="px-2 md:px-8 py-6 max-w-full">
+                <div class="overflow-x-auto overflow-y-auto max-h-[70vh] rounded-2xl border border-white/10 shadow-2xl custom-scrollbar-thin w-full bg-[#0d1522]">
+                    <table class="w-full min-w-max border-collapse">
+                        <thead class="sticky top-0 z-30 bg-slate-900/90 backdrop-blur-md border-b border-white/10 shadow-lg">
+                            <tr>
+                                <th class="sticky left-0 z-40 bg-[linear-gradient(to_right,rgba(15,23,42,1)_95%,transparent)] md:bg-slate-900/90 backdrop-blur-md border-r border-b border-white/10 p-5 text-left min-w-[220px]">
+                                    <span class="text-[10px] font-black uppercase text-slate-400 tracking-[0.3em]"><i class="fas fa-map-marker-alt"></i> Lugar y Horario</span>
+                                </th>
+                                ${dias.map(d => `<th class="p-5 text-center min-w-[200px] border-b border-white/10 bg-slate-900/90 backdrop-blur-md">
+                                    <span class="text-[11px] font-black uppercase text-cyan-400 tracking-[0.2em] shadow-cyan-500/50 drop-shadow-md">${d}</span>
+                                </th>`).join('')}
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-white/5 relative z-10">
+                            ${rowKeysList.map(rk => {
+                                return `
+                                    <tr class="even:bg-white/[0.02] hover:bg-white/[0.04] transition-colors group/row">
+                                        <td class="sticky left-0 z-20 bg-slate-900/95 group-hover/row:bg-slate-800/95 backdrop-blur-md border-r border-white/10 p-5 align-top transition-colors">
+                                            <div class="flex flex-col gap-1.5">
+                                                <span class="text-[13px] font-black text-white uppercase tracking-tighter leading-tight drop-shadow-md">${rk.lugar}</span>
+                                                <span class="text-[11px] text-cyan-500 font-black tracking-widest flex items-center gap-2 drop-shadow-sm"><i class="far fa-clock"></i> ${rk.time}</span>
+                                            </div>
+                                        </td>
+                                        ${dias.map(d => {
+                                            const foundMatches = filteredAsignaciones.filter(a => 
+                                                a.dia === d && 
+                                                (a.lugar || 'Ubicación General') === rk.lugar && 
+                                                `${formatTimeDisplay(a.hora)} - ${formatTimeDisplay(a.hora_fin)}` === rk.time
+                                            );
+                                            
+                                            if (foundMatches.length > 0) {
+                                                return `
+                                                    <td class="p-3 align-top border-x border-dashed border-white/5 relative group-hover/row:bg-white/[0.02]">
+                                                        <div class="flex flex-col gap-2 w-full h-full justify-start items-center">
+                                                            ${foundMatches.map(a => {
+                                                                const originalIdx = data.asignaciones.indexOf(a);
+                                                                return `
+                                                                    <div class="relative group/chip w-full animate-fade-in shadow-xl hover:z-30">
+                                                                        <div class="inline-flex items-center px-4 py-2.5 rounded-xl text-xs font-black bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 text-cyan-50 border border-cyan-500/30 w-full justify-center transition-all shadow-md group-hover/chip:shadow-cyan-500/20 group-hover/chip:border-cyan-400/60 uppercase tracking-wider relative overflow-hidden backdrop-blur-md">
+                                                                            <div class="absolute inset-0 bg-white/5 opacity-0 group-hover/chip:opacity-100 transition-opacity"></div>
+                                                                            <div class="flex flex-col w-full text-center relative z-10">
+                                                                                <span class="block w-full truncate font-black tracking-tight" title="${a.publicador}">${a.publicador || '—'}</span>
+                                                                                ${a.companero ? `<span class="text-[9px] text-cyan-200 uppercase truncate block w-full mt-1 font-bold opacity-80" title="Apoyo: ${a.companero}">+ ${a.companero}</span>` : ''}
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="absolute -top-3 -right-2 flex gap-1 z-50 opacity-0 group-hover/chip:opacity-100 transition-all group-hover/chip:translate-y-1">
+                                                                           <button onclick="window.editPublicRowModal(${originalIdx})" class="w-7 h-7 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full flex items-center justify-center shadow-2xl transform active:scale-95 border border-white/10"><i class="fas fa-pen text-[10px]"></i></button>
+                                                                           <button onclick="window.deletePublicRow(${originalIdx})" class="w-7 h-7 bg-rose-600 hover:bg-rose-500 text-white rounded-full flex items-center justify-center shadow-2xl transform active:scale-95 border border-white/10"><i class="fas fa-trash text-[10px]"></i></button>
+                                                                        </div>
+                                                                    </div>
+                                                                `;
+                                                            }).join('')}
+                                                        </div>
+                                                    </td>
+                                                `;
+                                            } else {
+                                                return `
+                                                    <td class="p-2 align-middle border-x border-dashed border-white/5 h-full">
+                                                        <div onclick="window.quickAddPublicRow('${d}', '${rk.lugar}', '${rk.hora}', '${rk.hora_fin}')" class="border border-dashed border-slate-600/40 hover:border-cyan-500/50 hover:bg-cyan-500/5 transition-all duration-300 cursor-pointer rounded-xl m-1 min-h-[50px] h-full flex items-center justify-center group/add shadow-inner backdrop-blur-sm">
+                                                            <i class="fas fa-plus text-slate-500/30 group-hover/add:text-cyan-400/80 group-hover/add:scale-[1.3] group-hover/add:rotate-90 transition-all duration-300 text-sm drop-shadow-xl"></i>
+                                                        </div>
+                                                    </td>
+                                                `;
+                                            }
+                                        }).join('')}
+                                    </tr>
                                 `;
-        }).join('') : `
-                                <div class="text-[9px] text-slate-400 text-center py-20 italic border-2 border-dashed border-slate-100 dark:border-white/5 rounded-[2.5rem] flex flex-col items-center gap-4 group hover:border-primary/20 transition-all opacity-40">
-                                    <div class="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-white/5 flex items-center justify-center text-xl">
-                                        <i class="fas fa-couch"></i>
-                                    </div>
-                                    <span class="font-black uppercase tracking-widest">Disponible</span>
-                                </div>`}
-                        </div>
-                    </div>
-                `).join('')}
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
             </div>
+            
+            <style>
+            .custom-scrollbar-thin::-webkit-scrollbar { width: 5px; height: 5px; }
+            .custom-scrollbar-thin::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 10px; }
+            .custom-scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(6, 182, 212, 0.4); border-radius: 10px; }
+            .custom-scrollbar-thin::-webkit-scrollbar-thumb:hover { background: rgba(6, 182, 212, 0.8); }
+            </style>
         `;
+    };
+
+    window.quickAddPublicRow = async (dia, lugar, hora, hora_fin) => {
+        data.asignaciones = data.asignaciones || [];
+        data.asignaciones.push({ dia, hora: hora || '', hora_fin: hora_fin || '', lugar: lugar || '', publicador: '', companero: '' });
+        await savePredicacionPublica(data);
+        renderCurrentView();
+        
+        // Open edit modal directly for the newly created slot!
+        const newIdx = data.asignaciones.length - 1;
+        setTimeout(() => window.editPublicRowModal(newIdx), 100);
     };
 
     window.editPublicRowModal = (idx) => {

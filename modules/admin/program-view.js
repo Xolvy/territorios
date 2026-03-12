@@ -182,13 +182,18 @@ export const renderProgramaTab = async (container) => {
                             Replicar
                         </button>
                         
-                        <div class="dropdown-container">
-                            <button id="btn-png-dropdown" class="btn-pro flex items-center gap-2 bg-indigo-500 text-white px-6 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-indigo-500/20 active:scale-95 group shrink-0" title="Exportar Programa en PNG">
-                                <i class="fas fa-image"></i>
-                                PNG
-                                <i class="fas fa-chevron-down ml-1 text-[8px] opacity-50 group-hover:translate-y-0.5 transition-transform"></i>
+                        <div class="dropdown-container relative z-50">
+                            <button id="btn-export-dropdown" class="btn-pro flex items-center gap-2 bg-emerald-500 text-white px-6 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-emerald-500/20 active:scale-95 group shrink-0" title="Opciones de Exportación">
+                                <i class="fas fa-file-export"></i>
+                                Exportar
+                                <i class="fas fa-chevron-down ml-1 text-[8px] opacity-70 group-hover:translate-y-0.5 transition-transform"></i>
                             </button>
-                            <div id="export-png-menu" class="dropdown-content">
+                            <div id="export-menu-options" class="dropdown-content absolute right-0 min-w-[220px]">
+                                <button id="btn-export-xls-prog">
+                                    <i class="fas fa-file-excel text-emerald-500"></i>
+                                    Programa Excel
+                                </button>
+                                <div class="h-px bg-slate-100 dark:bg-white/5 my-1"></div>
                                 <button id="btn-export-png-cond-new">
                                     <i class="fas fa-user-tie text-indigo-500"></i>
                                     Formato Conductor
@@ -199,11 +204,6 @@ export const renderProgramaTab = async (container) => {
                                 </button>
                             </div>
                         </div>
-
-                        <button id="btn-export-xls-prog" class="btn-pro flex items-center gap-2 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 px-6 py-4 rounded-xl font-black hover:bg-slate-50 transition-all text-[10px] uppercase tracking-widest shrink-0" title="Exportar a Excel">
-                            <i class="fas fa-file-excel text-emerald-500"></i>
-                            Excel
-                        </button>
                     </nav>
 
 
@@ -1772,6 +1772,81 @@ export const renderProgramaTab = async (container) => {
             };
         }, 'max-w-lg', 'modal-container-nested');
     };
+
+    container.querySelector('#prev-week').onclick = () => { currentWeekStart.setDate(currentWeekStart.getDate() - 7); loadWeekData(); };
+    container.querySelector('#next-week').onclick = () => { currentWeekStart.setDate(currentWeekStart.getDate() + 7); loadWeekData(); };
+    container.querySelector('#btn-reset-today').onclick = () => { currentWeekStart = getMonday(new Date()); loadWeekData(); };
+
+    container.querySelector('#btn-copy-prev-week').onclick = async () => {
+        showCustomConfirm("¿Seguro que deseas sobrescribir esta semana con los datos de la semana pasada? Se conservarán los turnos y conductores, pero se limpiarán los territorios.", async () => {
+            try {
+                const prev = new Date(currentWeekStart);
+                prev.setDate(prev.getDate() - 7);
+                const prevProgName = formatDateId(prev);
+                const oldProg = await getProgramaSemanal(prevProgName);
+
+                if (!oldProg.id || oldProg.id === 'default') return showNotification("No hay datos en la semana anterior para copiar", "warning");
+
+                // Duplicate keeping conductors and places, clearing territories
+                const newDias = oldProg.dias.map((d, i) => {
+                    const nd = new Date(currentWeekStart);
+                    nd.setDate(nd.getDate() + i);
+
+                    const cloneTurn = (turn) => {
+                        if (!turn) return {};
+                        return { hora: turn.hora || '', lugar: turn.lugar || '', conductor: turn.conductor || '', auxiliar: turn.auxiliar || '', faceta: turn.faceta || '', grupos: turn.grupos || '', enabled: turn.enabled };
+                    };
+
+                    return {
+                        nombre: d.nombre,
+                        fecha: formatDateId(nd),
+                        manana: cloneTurn(d.manana),
+                        tarde: cloneTurn(d.tarde),
+                        noche: cloneTurn(d.noche),
+                        zoom: cloneTurn(d.zoom)
+                    };
+                });
+
+                programa.dias = newDias;
+                await saveProgramaSemanal(programa.id, programa);
+                renderTable();
+                showNotification("Plantilla de semana pasada replicada con éxito", "success");
+            } catch (e) {
+                console.error(e);
+                showNotification("Error al copiar semana", "error");
+            }
+        });
+    };
+
+    container.querySelector('#btn-export-xls-prog').onclick = async () => {
+        const { exportarProgramaExcel } = await import('../services/export-service.js');
+        await exportarProgramaExcel(programa);
+    };
+
+    const dDown = container.querySelector('#btn-export-dropdown');
+    const menuEl = container.querySelector('#export-menu-options');
+    if (dDown && menuEl) {
+        // Dropdown toggle logic
+        dDown.onclick = (e) => {
+            e.stopPropagation();
+            menuEl.classList.toggle('show');
+        };
+        document.addEventListener('click', () => {
+            if (menuEl.classList.contains('show')) menuEl.classList.remove('show');
+        });
+
+        // The button logic for export
+        container.querySelector('#btn-export-png-cond-new').onclick = async () => {
+             showNotification("El formato PNG para PDF ha sido delegado. Redirigiendo a Excel...", "info");
+             const { exportarProgramaExcel } = await import('../services/export-service.js');
+             await exportarProgramaExcel(programa, true);
+        };
+        container.querySelector('#btn-export-png-pub-new').onclick = async () => {
+             showNotification("El formato PNG para PDF ha sido delegado. Redirigiendo a Excel...", "info");
+             const { exportarProgramaExcel } = await import('../services/export-service.js');
+             await exportarProgramaExcel(programa, false);
+        };
+    }
 
     await loadWeekData();
 };
