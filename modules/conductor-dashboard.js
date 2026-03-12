@@ -323,7 +323,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
         nexo.registerAction('mostrar_mapa_territorio', async (params) => {
             try {
                 if (window.XolvyAlert) {
-                    window.XolvyAlert.fire({ toast: true, position: 'bottom-end', title: `Buscando mapa del Territorio ${params.numero_territorio}...`, icon: 'info' });
+                    window.XolvyAlert.fire({ toast: true, position: 'bottom-end', title: `Buscando mapa del Territorio ${params.numero_territorio}...`, icon: 'info', backdrop: false, allowOutsideClick: false });
                 }
                 const allT = await getTerritorios();
                 const target = allT.find(t => String(t.numero) === String(params.numero_territorio));
@@ -388,7 +388,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
         // Configurar trigger del FAB (Micrófono)
         fab.onclick = () => {
             if (window.XolvyAlert && !nexo.isListening) {
-                window.XolvyAlert.fire({ toast: true, position: 'bottom-end', title: 'Nexo escuchando...', showConfirmButton: false, timer: 2000 });
+                window.XolvyAlert.fire({ toast: true, position: 'bottom-end', title: 'Nexo escuchando...', showConfirmButton: false, timer: 2000, backdrop: false, allowOutsideClick: false });
             }
             nexo.listen();
             if (nexo.recognition) {
