@@ -14,7 +14,6 @@ const ASSETS_CORE = [
     '/modules/report-s13.js',
     '/modules/analytics-view.js',
     '/modules/utils/helpers.js',
-    '/modules/utils/intelligence.js',
     '/modules/map-viewer.js',
     '/modules/utils/theme-manager.js',
     '/modules/utils/pwa-manager.js',

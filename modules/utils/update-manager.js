@@ -1,4 +1,4 @@
-import { doc, onSnapshot, updateDoc } from "firebase/firestore";
+import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "../../firebase-config.js";
 import { showNotification, updateNotificationWorkflow, completeSyncNotification } from "./helpers.js";
 
@@ -178,15 +178,8 @@ const startBackgroundUpdate = async (newVersion, forceTimestamp = 0) => {
     sessionStorage.setItem('xolvy_pre_update_state', JSON.stringify(currentState));
 
     try {
-        // AI Announcement (Background)
-        const apiKey = localStorage.getItem('gemini_api_key');
-        if (apiKey) {
-            import("./intelligence.js").then(async ({ TerritoryIntelligence }) => {
-                const intelligence = new TerritoryIntelligence([], [], [], {}, [], []);
-                const message = await intelligence.getUpdateInsight('core', newVersion, apiKey);
-                showIANotification(message);
-            }).catch(() => { });
-        }
+        // AI Announcement (Background) handled by Nexo now
+
 
         // Register attempt in the shield
         UpdateShield.registerAttempt(newVersion);
@@ -213,9 +206,7 @@ const startBackgroundUpdate = async (newVersion, forceTimestamp = 0) => {
     }
 };
 
-const showPremiumUpdateOverlay = () => {
-    console.warn("Legacy Full-Screen Overlay bypassed in favor of Background Sync.");
-};
+
 
 /**
  * PERISTENCE KILLER: Ensures NO old assets (especially Service Workers) survive a version jump
@@ -279,9 +270,7 @@ export const performRadicalCachePurge = async (full = true) => {
     }
 };
 
-const showUpdateSuggestion = () => {
-    console.warn("Legacy showUpdateSuggestion removed.");
-};
+
 
 /**
  * XOLVY UPDATES - DISCRETE HUD & IA NOTIFICATIONS
@@ -295,34 +284,9 @@ export const notifyModuleUpdate = async (moduleName, version) => {
     setTimeout(() => updateNotificationWorkflow(notifId, 'Validando Módulos...'), 500);
     setTimeout(() => updateNotificationWorkflow(notifId, 'Buscando Assets HMS...'), 1200);
 
-    // 3. IA Integration (Optional speaker)
-    try {
-        const apiKey = localStorage.getItem('gemini_api_key');
-        const significantModules = ['conductor', 'admin', 'territories_view', 'phones_view', 'weekly_program', 'program_views', 'core'];
+    // 3. IA Integration (Handled by Nexo now)
+    setTimeout(() => updateNotificationWorkflow(notifId, 'Compilando Delta de Parche...'), 1800);
 
-        const isSignificant = significantModules.includes(moduleName) || moduleName.toLowerCase().includes('núcleo');
-
-        if (apiKey && isSignificant) {
-            const { TerritoryIntelligence } = await import("./intelligence.js");
-            const intelligence = new TerritoryIntelligence([], [], [], {}, [], []);
-            const cleanModuleName = moduleName.includes('Núcleo') ? 'core' : moduleName;
-            const message = await intelligence.getUpdateInsight(cleanModuleName, version, apiKey);
-
-            if (message) {
-                // Log IA Status in the HUD
-                updateNotificationWorkflow(notifId, 'IA Analizando Cambios...');
-                setTimeout(() => {
-                    updateNotificationWorkflow(notifId, 'Insight IA Recibido');
-                    showIANotification(message);
-                }, 1000);
-            }
-        } else {
-            setTimeout(() => updateNotificationWorkflow(notifId, 'Compilando Delta de Parche...'), 1800);
-        }
-    } catch (e) {
-        console.warn("Xolvy Updates: AI Insight failed", e);
-        updateNotificationWorkflow(notifId, 'Tráfico IA Limitado');
-    }
 };
 
 const showXolvyUpdateHUD = (moduleName, version) => {
@@ -336,50 +300,6 @@ export const completeXolvyUpdate = (moduleName, version) => {
     completeSyncNotification(finalName);
 };
 
-const showIANotification = (message) => {
-    const banner = document.createElement('div');
-    banner.className = 'fixed bottom-24 right-6 left-6 md:left-auto md:w-[380px] z-[10001] animate-slide-up';
-    banner.innerHTML = `
-        <div class="ia-banner-glow bg-white/80 dark:bg-indigo-600/90 backdrop-blur-2xl p-6 rounded-[2.5rem] shadow-[0_30px_90px_-20px_rgba(79,70,229,0.2)] dark:shadow-[0_30px_90px_-20px_rgba(79,70,229,0.5)] border border-indigo-200 dark:border-white/20 relative overflow-hidden group">
-            <div class="absolute inset-0 ia-scanline opacity-5 dark:opacity-10 pointer-events-none"></div>
-            <div class="absolute -top-20 -right-20 w-48 h-48 bg-indigo-500/10 dark:bg-white/10 rounded-full blur-3xl group-hover:bg-white/20 transition-all duration-1000"></div>
-            
-            <div class="flex items-start gap-5 relative z-10">
-                <div class="relative shrink-0">
-                    <div class="w-14 h-14 bg-indigo-500/10 dark:bg-white/20 rounded-[1.25rem] flex items-center justify-center text-3xl shadow-xl rotate-3 group-hover:rotate-12 transition-transform duration-500">
-                        🤖
-                    </div>
-                    <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 border-4 border-white dark:border-indigo-600 rounded-full"></div>
-                </div>
-                
-                <div class="flex-1 space-y-2 pt-1">
-                    <div class="flex justify-between items-center">
-                        <h4 class="text-[10px] font-black text-indigo-600/70 dark:text-white/70 uppercase tracking-[0.3em]">Cerebro Territorial</h4>
-                        <span class="text-[8px] font-bold bg-indigo-500/10 dark:bg-white/10 text-indigo-600/50 dark:text-white/50 px-2 py-0.5 rounded-full uppercase">AI Intel</span>
-                    </div>
-                    <p class="text-[13px] font-bold text-slate-800 dark:text-white leading-[1.6] italic tracking-tight">
-                        "${message}"
-                    </p>
-                </div>
-            </div>
-            
-            <!-- Progress line -->
-            <div class="absolute bottom-0 left-0 h-1 bg-white/20 w-full">
-                <div class="h-full bg-indigo-400 group-hover:bg-white transition-colors" style="animation: progress-shrink 12s linear forwards;"></div>
-            </div>
-        </div>
-        <style>
-            @keyframes progress-shrink { from { width: 100%; } to { width: 0%; } }
-        </style>
-    `;
-    document.body.appendChild(banner);
-
-    // Auto-remove
-    setTimeout(() => {
-        banner.classList.add('opacity-0', 'translate-y-10', 'scale-95');
-        setTimeout(() => banner.remove(), 600);
-    }, 12000);
-};
 
 /**
  * ADMIN ONLY: Utility to broadcast the current version as the latest
