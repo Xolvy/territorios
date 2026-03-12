@@ -9,10 +9,11 @@ import {
     releaseUnusedTelefonos, solicitarNumeros, updateTelefonoStatus, logSessionSummary, releaseTelefonosById,
     transferTerritory, takeTerritoryPartial, assignFreeTerritory,
     getPuntosInteres,
-    startLivePool
+    startLivePool, returnTerritorio, updateTelefono
 } from '../data/firestore-services.js';
 import { showNotification, formatPhoneNumber, formatManzanas, normalizeRobust } from './utils/helpers.js';
-import { TerritoryIntelligence } from './utils/intelligence.js';
+import { NexoAgent } from './nexo-ai/nexo-core.js';
+import { NexoManifest } from './nexo-ai/territorios-manifest.js';
 import { MapViewer } from './map-viewer.js';
 import { AppConfig } from './utils/config.js';
 
@@ -249,143 +250,82 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
         });
     }
 
-    async function renderAISection(name) {
+    async function initNexoSystem() {
         const config = await getConfiguracion();
-        if (!config.gemini_key) return;
+        if (!config.gemini_key) return; // Si no hay key, no mostramos el Nexo Agent.
 
-        const weekId = UIHelpers.formatDateId(UIHelpers.getMonday(new Date()));
-        const [telefonos, publicadores, territorios, programa, pois, conductors] = await Promise.all([
-            getTelefonos(), getPublicadores(), getTerritorios(), getProgramaSemanal(weekId), getPuntosInteres(), getConductores()
-        ]);
+        // Inyecta el botón (FAB)
+        const fab = document.createElement('div');
+        fab.id = 'nexo-fab';
+        fab.className = 'fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full shadow-lg shadow-cyan-500/50 flex items-center justify-center cursor-pointer z-50 hover:scale-110 transition-transform';
+        fab.innerHTML = '<i class="fas fa-microphone text-white text-xl"></i>';
+        
+        // Remover instancia previa si existe
+        if (document.getElementById('nexo-fab')) document.getElementById('nexo-fab').remove();
+        document.body.appendChild(fab);
 
-        const brain = new TerritoryIntelligence(telefonos, publicadores, territorios, programa, conductors, pois);
-
-        if (!document.getElementById('ai-pulse-styles')) {
-            const style = document.createElement('style');
-            style.id = 'ai-pulse-styles';
-            style.innerHTML = `
-                @keyframes ai-pulse {
-                    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.7); }
-                    70% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(139, 92, 246, 0); }
-                    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
-                }
-                @keyframes ai-glow {
-                    from { filter: drop-shadow(0 0 5px #8b5cf6); }
-                    to { filter: drop-shadow(0 0 20px #c084fc); }
-                }
-                .ai-thinking { animation: ai-pulse 2s infinite !important; background: linear-gradient(135deg, #8b5cf6, #3b82f6) !important; }
-                .ai-badge { position: absolute; top: -5px; right: -5px; width: 18px; height: 18px; background: #ef4444; border-radius: 50%; border: 2px solid white; font-size: 10px; font-weight: 900; color: white; display: flex; align-items: center; justify-content: center; animation: bounce 1s infinite; }
-            `;
-            document.head.appendChild(style);
-        }
-
-        const aiUI = document.createElement('div');
-        aiUI.id = 'ai-assistant-overlay';
-        aiUI.className = 'fixed inset-0 pointer-events-none z-[60]';
-        aiUI.innerHTML = `
-            <div id="ai-speech-bubble" class="fixed bottom-28 right-6 md:right-10 left-auto z-[100000] max-w-[220px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl text-slate-800 dark:text-white p-5 rounded-[2rem] rounded-br-none shadow-2xl border border-primary/20 opacity-0 pointer-events-none translate-y-4 transition-all duration-500">
-                <p class="text-[10px] font-black uppercase tracking-widest leading-none mb-1 opacity-50">Sugerencia IA</p>
-                <p class="text-[13px] font-black leading-tight" id="ai-bubble-text">¿Te digo por donde empezar?</p>
-                <div class="absolute bottom-[-10px] right-2 w-0 h-0 border-l-[12px] border-l-transparent border-t-[12px] border-t-white/95 dark:border-t-slate-900/95 transition-all"></div>
-            </div>
-            <button id="ai-fab" title="Asistente Inteligente" class="fixed bottom-8 right-6 md:right-10 z-[100000] bg-slate-900 dark:bg-primary text-white rounded-full p-4 md:p-5 shadow-2xl border-2 border-white/20 transition-all hover:scale-110 active:scale-95 group overflow-hidden pointer-events-auto">
-                <div class="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent transition-opacity group-hover:opacity-0"></div>
-                <i class="fas fa-brain text-3xl md:text-4xl relative z-10 group-hover:rotate-12 transition-transform" style="animation: ai-glow 2s ease-in-out infinite alternate"></i>
-                <div id="ai-suggestion-badge" class="hidden ai-badge">1</div>
-            </button>
-            <div id="ai-panel" class="fixed bottom-[110px] right-6 md:right-10 left-auto w-[min(90vw,400px)] modern-card border-primary/20 shadow-[0_40px_80px_-20px_rgba(0,0,0,0.6)] z-[100001] transform translate-y-12 opacity-0 pointer-events-none transition-all duration-500 ease-out flex flex-col max-h-[75vh] overflow-hidden !p-0 !bg-white/80 dark:!bg-slate-900/80 backdrop-blur-3xl ring-1 ring-white/20 origin-bottom-right">
-                <div class="flex justify-between items-center p-8 bg-gradient-to-r from-primary/20 to-blue-500/20 border-b border-primary/10 backdrop-blur-xl">
-                    <div class="flex items-center gap-4">
-                        <div class="w-14 h-14 rounded-2xl bg-primary/20 flex items-center justify-center text-2xl text-primary shadow-inner">
-                            <i class="fas fa-brain"></i>
-                        </div>
-                        <div>
-                            <h3 class="font-black text-slate-800 dark:text-white text-base uppercase tracking-tighter">Cerebro Territorial</h3>
-                            <p class="text-[9px] text-primary font-black uppercase tracking-[0.3em] animate-pulse">Red Neuronal Activa</p>
-                        </div>
-                    </div>
-                    <button id="ai-close" class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-white/10 text-slate-400 hover:text-primary transition-all text-xl">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                <div id="conductor-chat-log" class="flex-1 overflow-y-auto p-8 space-y-6 text-xs custom-scrollbar min-h-[350px] bg-slate-50/50 dark:bg-black/20">
-                    <div class="bg-white dark:bg-slate-800 p-6 rounded-[2rem] rounded-tl-none border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 leading-relaxed shadow-sm font-bold text-[13px]">
-                        <p class="text-[9px] font-black text-primary uppercase tracking-[0.2em] mb-2 opacity-50">Hoy es ${new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
-                        Hola <b>${name.split(' ')[0]}</b>. He analizado el estado del territorio. ✨<br><br>
-                        ¿Necesitas que te recomiende un territorio estratégico o tienes alguna consulta sobre la App?
-                    </div>
-                </div>
-                <div class="p-6 bg-white dark:bg-black/40 flex gap-3 border-t border-slate-100 dark:border-white/10">
-                    <input type="text" id="conductor-chat-input" placeholder="Escribe tu consulta aquí..." class="flex-1 bg-slate-100 dark:bg-white/5 border border-transparent focus:border-primary/40 rounded-2xl px-6 py-4 text-sm font-bold shadow-inner outline-none transition-all focus:bg-white">
-                    <button id="conductor-chat-send" class="bg-primary hover:bg-primary-dark text-white w-14 h-14 rounded-2xl flex items-center justify-center shadow-xl shadow-primary/30 active:scale-90 transition-all"><i class="fas fa-paper-plane text-xl"></i></button>
-                </div>
-            </div>
-        `;
-
-        if (document.getElementById('ai-assistant-overlay')) document.getElementById('ai-assistant-overlay').remove();
-        document.body.appendChild(aiUI);
-
+        // Limpiar en unmount
         const observer = new MutationObserver(() => {
             if (!document.body.contains(container)) {
-                aiUI.remove();
+                fab.remove(); // Corregido: Limpieza final cuando el componente muere
                 observer.disconnect();
             }
         });
         observer.observe(document.body, { childList: true, subtree: true });
 
-        const fab = document.getElementById('ai-fab');
-        const panel = document.getElementById('ai-panel');
-        const closeBtn = document.getElementById('ai-close');
-        const input = document.getElementById('conductor-chat-input');
-        const sendBtn = document.getElementById('conductor-chat-send');
-        const log = document.getElementById('conductor-chat-log');
+        const nexo = new NexoAgent(config.gemini_key, NexoManifest);
 
-
-        const togglePanel = (e) => {
-            if (e) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-            panel.classList.toggle('opacity-0');
-            panel.classList.toggle('pointer-events-none');
-            panel.classList.toggle('translate-y-12');
-
-            if (!panel.classList.contains('opacity-0')) {
-                panel.classList.add('pointer-events-auto');
-                setTimeout(() => input.focus(), 300);
-            } else {
-                panel.classList.remove('pointer-events-auto');
-            }
-        };
-
-        window.toggleAIPanel = togglePanel;
-
-        fab.onclick = togglePanel;
-        closeBtn.onclick = togglePanel;
-
-        const handleSend = async () => {
-            const prompt = input.value.trim();
-            if (!prompt) return;
-            log.innerHTML += `<div class="flex justify-end"><div class="bg-primary text-white px-5 py-3 rounded-2xl rounded-tr-none text-xs max-w-[85%] shadow-lg">${prompt}</div></div>`;
-            log.scrollTop = log.scrollHeight;
-            input.value = '';
-            input.disabled = true;
-
+        // Enlazar Firebase con Nexo
+        nexo.registerAction('marcar_territorio_completado', async (params) => {
             try {
-                const response = await brain.askGemini(config.gemini_key, `Soy el conductor ${name}. Consulta: ${prompt}`);
-                const htmlResponse = response.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
-                log.innerHTML += `<div class="flex justify-start"><div class="bg-white dark:bg-slate-800 text-slate-700 dark:text-gray-200 px-5 py-4 rounded-2xl rounded-tl-none text-[13px] border border-slate-100 dark:border-white/10 max-w-[90%] leading-relaxed shadow-md">${htmlResponse}</div></div>`;
+                const territorios = await getTerritorios();
+                const target = territorios.find(t => String(t.numero) === String(params.numero_territorio));
+                if (target) {
+                    await returnTerritorio(target.id, "Nexo Agent completó este territorio", true, "Completado");
+                    if (window.XolvyAlert) {
+                        window.XolvyAlert.fire({ icon: 'success', title: `Territorio ${params.numero_territorio} completado.` });
+                    }
+                } else {
+                    nexo.speak(`No pudimos encontrar el territorio ${params.numero_territorio} asignado.`);
+                }
             } catch (err) {
-                log.innerHTML += `<div class="bg-red-500/10 text-red-400 text-[10px] p-4 rounded-xl border border-red-500/20">Error: ${err.message}</div>`;
-            } finally {
-                input.disabled = false;
-                input.focus();
-                log.scrollTop = log.scrollHeight;
+                console.error("Nexo Error en territorio:", err);
+            }
+        });
+
+        nexo.registerAction('actualizar_estado_telefono', async (params) => {
+            try {
+                const telefonos = await getTelefonosParaSesion(displayName); 
+                let target = telefonos.find(t => String(t.telefono || t.numero).endsWith(String(params.ultimos_digitos).padStart(4, '0')));
+                
+                if (!target) {
+                    target = (await getTelefonos()).find(t => String(t.telefono || t.numero).endsWith(params.ultimos_digitos));
+                }
+                
+                if (target) {
+                    await updateTelefonoStatus(target.id, params.nuevo_estado, displayName, "Nexo AI modificado.");
+                    if (window.XolvyAlert) {
+                        window.XolvyAlert.fire({ icon: 'success', title: `Teléfono terminado en ${params.ultimos_digitos} se actualizó a: ${params.nuevo_estado}` });
+                    }
+                } else {
+                    nexo.speak(`No he podido ubicar un teléfono terminando en ${params.ultimos_digitos} en tu libreta activa.`);
+                }
+            } catch(e) {
+                 console.error("Nexo Error en telefono:", e);
+            }
+        });
+
+        // Configurar trigger del FAB (Micrófono)
+        fab.onclick = () => {
+            if (window.XolvyAlert && !nexo.isListening) {
+                window.XolvyAlert.fire({ toast: true, position: 'bottom-end', title: 'Nexo escuchando...', showConfirmButton: false, timer: 2000 });
+            }
+            nexo.listen();
+            if (nexo.recognition) {
+                nexo.recognition.addEventListener('start', () => { fab.classList.add('animate-pulse'); });
+                nexo.recognition.addEventListener('end', () => { fab.classList.remove('animate-pulse'); });
             }
         };
-
-        sendBtn.onclick = handleSend;
-        input.onkeypress = (e) => { if (e.key === 'Enter') handleSend(); };
     }
 
     async function openProgressModal(initialId, filterIds = null) {
@@ -1410,7 +1350,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 // refreshConductorView is called once at the start and then via LivePool triggers.
 
                 // Initialize AI Assistant
-                renderAISection(displayName);
+                initNexoSystem();
 
                 console.log("🚀 [Conductor] Dashboard sequence continuing...");
 
@@ -1884,7 +1824,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 mAvail.renderAvailabilitySection(document.getElementById('availability-container'), name);
             }
             if (userMods.cerebro !== false) {
-                renderAISection(name);
+                initNexoSystem();
             }
             if (userMods.ayudas !== false) {
                 mRec.renderRecursosSection(document.getElementById('recursos-container'));
