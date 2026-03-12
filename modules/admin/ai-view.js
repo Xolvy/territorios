@@ -1,8 +1,5 @@
-import { TerritoryIntelligence } from '../utils/intelligence.js';
-import { getTelefonos, getTerritorios, getProgramaSemanal, getConductores, getPuntosInteres } from '../../data/firestore-services.js';
-import { UIHelpers } from '../services/ui-helpers.js';
+// Cerebro IA (intelligence.js) ha sido purgado. Las funciones pasan a Nexo.
 
-const { formatDateId } = UIHelpers;
 
 export const renderAdminAI = async (container, appVersion) => {
     container.innerHTML = `
@@ -86,7 +83,7 @@ export const renderAdminAI = async (container, appVersion) => {
         stream.scrollTop = stream.scrollHeight;
     };
 
-    const runAction = async (action) => {
+    const runAction = async () => {
         const { getConfiguracion } = await import('../../data/firestore-services.js');
         const config = await getConfiguracion();
         if (!config.gemini_key) {
@@ -98,29 +95,19 @@ export const renderAdminAI = async (container, appVersion) => {
         status.className = 'text-emerald-500 animate-pulse';
         logAI("Iniciando motor de inteligencia... Escaneando base de datos global.");
 
-        try {
-            const [phones, terrs, conds, pois] = await Promise.all([
-                getTelefonos(), getTerritorios(), getConductores(), getPuntosInteres()
-            ]);
-            const prog = await getProgramaSemanal(formatDateId(new Date()));
-            const intellect = new TerritoryIntelligence(phones, [], terrs, prog, conds, pois);
+        setTimeout(() => {
+            stream.innerHTML = `<div class="p-6 bg-emerald-500/10 text-emerald-400 rounded-2xl border border-emerald-500/20 leading-relaxed whitespace-pre-wrap">
+<i class="fas fa-satellite-dish mb-4 text-2xl"></i>
+<strong>SISTEMA EVOLUCIONADO</strong>
 
-            let result = '';
-            if (action === 'audit') {
-                logAI("Ejecutando auditoría heurística de integridad de datos (S-13)...");
-                result = await intellect.performFullAudit(config.gemini_key);
-            } else {
-                logAI("Calculando proyecciones de asignación basadas en historial de rotación...");
-                result = await intellect.predictAssignments(config.gemini_key);
-            }
+Colega, este panel ha sido deprecado en la versión 2.6.
+Toda la inteligencia artificial, análisis y control ahora es gestionado por <strong>Nexo</strong>, el Orbe Multimodal que flota en la esquina inferior derecha.
 
-            stream.innerHTML = `<div class="p-6 bg-white/5 rounded-2xl border border-white/5 leading-relaxed whitespace-pre-wrap">${result}</div>`;
-        } catch (e) {
-            logAI(`ERROR CRÍTICO: ${e.message}`, 'error');
-        } finally {
+Por favor, presiona el orbe y usa tu voz o escribe para solicitar auditorías, predicciones o cualquier otra acción.
+</div>`;
             status.innerText = 'Ready';
             status.className = '';
-        }
+        }, 1500);
     };
 
     container.querySelector('#ai-btn-audit').onclick = () => runAction('audit');
