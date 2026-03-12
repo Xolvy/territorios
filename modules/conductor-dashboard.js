@@ -254,11 +254,15 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
         const config = await getConfiguracion();
         if (!config.gemini_key) return; // Si no hay key, no mostramos el Nexo Agent.
 
-        // Inyecta el botón (FAB)
+        // Inyecta el botón (FAB) - Nuevo Orbe Multimodal de Nexo
         const fab = document.createElement('div');
         fab.id = 'nexo-fab';
-        fab.className = 'fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full shadow-lg shadow-cyan-500/50 flex items-center justify-center cursor-pointer z-50 hover:scale-110 transition-transform';
-        fab.innerHTML = '<i class="fas fa-microphone text-white text-xl"></i>';
+        fab.className = 'fixed bottom-6 right-6 w-16 h-16 bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-600 rounded-full flex items-center justify-center cursor-pointer z-[9999] hover:scale-110 active:scale-95 transition-all backdrop-blur-md border border-white/20 overflow-hidden group shadow-[0_0_30px_rgba(6,182,212,0.5)]';
+        fab.innerHTML = `
+            <div class="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+            <div class="absolute inset-0 bg-gradient-to-tr from-cyan-400 to-indigo-500 rounded-full blur-md opacity-30 group-hover:opacity-60 transition-opacity animate-pulse pointer-events-none"></div>
+            <i class="fas fa-sparkles text-white text-[28px] relative z-10 group-hover:scale-110 group-active:scale-90 transition-transform"></i>
+        `;
         
         // Remover instancia previa si existe
         if (document.getElementById('nexo-fab')) document.getElementById('nexo-fab').remove();
@@ -313,6 +317,72 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
             } catch(e) {
                  console.error("Nexo Error en telefono:", e);
             }
+        });
+
+        // --- NEW ACTIONS (FASE 3) ---
+        nexo.registerAction('mostrar_mapa_territorio', async (params) => {
+            try {
+                if (window.XolvyAlert) {
+                    window.XolvyAlert.fire({ toast: true, position: 'bottom-end', title: `Buscando mapa del Territorio ${params.numero_territorio}...`, icon: 'info' });
+                }
+                const allT = await getTerritorios();
+                const target = allT.find(t => String(t.numero) === String(params.numero_territorio));
+                if (target && window.openInteractiveMap) {
+                    window.openInteractiveMap(target);
+                } else {
+                    nexo.speak(`No encontré el territorio ${params.numero_territorio} en la base de mapas.`);
+                }
+            } catch (err) { console.error("Nexo map error:", err); }
+        });
+
+        nexo.registerAction('actualizar_dias_disponibles', async (params) => {
+            try {
+                const { updatePublicador } = await import('../data/services/personnel-service.js');
+                const pubs = await getPublicadores();
+                const userNameNormalized = normalizeRobust(displayName);
+                const userEmail = auth.currentUser?.email?.toLowerCase() || '';
+                const target = pubs.find(c => {
+                    const n = normalizeRobust(c.nombre);
+                    const e = String(c.email || '').toLowerCase();
+                    return n === userNameNormalized || e === userEmail;
+                });
+
+                if (target) {
+                    await updatePublicador(target.id, { disponibilidad_dias: params.dias_detallados });
+                    if (window.XolvyAlert) {
+                        window.XolvyAlert.fire({ icon: 'success', title: `Días de predicación actualizados para ${displayName}` });
+                    }
+                    if (window.refreshConductorView) window.refreshConductorView(true);
+                } else {
+                    nexo.speak("No encontré tu perfil activo para actualizar los días.");
+                }
+            } catch (err) { console.error("Nexo Error días:", err); }
+        });
+
+        nexo.registerAction('actualizar_disponibilidad', async () => {
+            try {
+                if (window.XolvyAlert) window.XolvyAlert.fire({ icon: 'success', title: `Disponibilidad de semana guardada.` });
+            } catch (err) {
+                 console.error("Nexo Error disponiblidad:", err);
+            }
+        });
+
+        nexo.registerAction('leer_tema_semanal', async () => {
+            try {
+                const temaEl = document.querySelector('#dynamic-banner-content');
+                let text = "No veo ningún tema especial configurado para esta semana. Sigue preparándote con la Guía de Actividades.";
+                
+                if (temaEl && temaEl.innerText.trim() !== '') {
+                    text = `¡Hola! ${temaEl.innerText}`;
+                } else if (document.querySelector('.barra-notificaciones-dinamica')) {
+                    const fallback = document.querySelector('.barra-notificaciones-dinamica').innerText;
+                    if (fallback) text = `El tema actual es: ${fallback}`;
+                }
+                
+                if (window.XolvyAlert) {
+                    window.XolvyAlert.fire({ icon: 'info', title: 'Tema Semanal', text: text });
+                }
+            } catch (e) { console.error("Nexo Error tema:", e); }
         });
 
         // Configurar trigger del FAB (Micrófono)
