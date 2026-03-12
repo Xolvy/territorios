@@ -61,10 +61,10 @@ export class NexoAgent {
 
         const systemPrompt = `
             Eres "Nexo", un Agente Universal Multimodal. Estás conectado a la siguiente aplicación:
-            \${JSON.stringify(this.manifest, null, 2)}
+            ${JSON.stringify(this.manifest, null, 2)}
             
             Contexto Dinámico adicional:
-            \${JSON.stringify(contextoDinamico, null, 2)}
+            ${JSON.stringify(contextoDinamico, null, 2)}
             
             Tu objetivo es procesar el comando del usuario y mapearlo a una de las funciones descritas si corresponde.
             
@@ -82,8 +82,8 @@ export class NexoAgent {
             }
             3. Si el comando no parece invocar ninguna de las herramientas, "nombre" debe ser null.
             
-            Comando del usuario: "\${textoUsuario}"
-        \`;
+            Comando del usuario: "${textoUsuario}"
+        `;
 
         try {
             const bodyPayload = {
@@ -94,7 +94,7 @@ export class NexoAgent {
                 }
             };
 
-            const response = await fetch(\`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=\${this.apiKey}\`, {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=${this.apiKey}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(bodyPayload)
@@ -108,8 +108,8 @@ export class NexoAgent {
             }
 
             let rawJson = data.candidates[0].content.parts[0].text.trim();
-            if (rawJson.startsWith('\`\`\`json')) {
-                rawJson = rawJson.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
+            if (rawJson.startsWith('```json')) {
+                rawJson = rawJson.replace(/```json/g, '').replace(/```/g, '').trim();
             }
 
             const decision = JSON.parse(rawJson);
@@ -142,11 +142,11 @@ export class NexoAgent {
                     try {
                         await this.actions[funcName](params);
                     } catch (e) {
-                         console.error(\`Error ejecutando \${funcName}:\`, e);
+                         console.error(`Error ejecutando ${funcName}:`, e);
                          this.speak("Ocurrió un error al intentar completar tu comando.");
                     }
                 } else {
-                    console.warn(\`Nexo: Función '\${funcName}' pedida por la IA no está registrada.\`);
+                    console.warn(`Nexo: Función '${funcName}' pedida por la IA no está registrada.`);
                     this.speak("Mi núcleo sabe qué debe hacer, pero esa función aún no está enlazada en el sistema.");
                 }
             }
