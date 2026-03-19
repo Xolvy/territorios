@@ -216,59 +216,60 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
         container.innerHTML = `
     <div class=" ${VisualEngine.get('shell.container')}" data-adaptive-container="true">
               <div class="${VisualEngine.get('shell.mainOrder')}">
-                <header class="${VisualEngine.get('header.wrapper')} sticky top-0 z-50 backdrop-blur-xl border-b border-slate-200/50 dark:border-white/5" data-mobile-order="1">
+                <header class="${VisualEngine.get('header.wrapper')} sticky top-0 z-50 backdrop-blur-xl border-b border-slate-200/50 dark:border-white/5 !mb-6" data-mobile-order="1">
                     <div class="${VisualEngine.get('header.glow')} !opacity-20"></div>
-                    <div class="flex items-center gap-4 md:gap-6 relative z-10">
-                        <div class="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-primary to-slate-900 rounded-2xl flex items-center justify-center text-2xl md:text-3xl shadow-xl shadow-primary/20 border border-primary/20 transition-transform hover:scale-105 duration-500 shrink-0">
+                    <div class="flex items-center gap-4 md:gap-5 relative z-10">
+                        <div class="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-primary to-slate-900 rounded-xl flex items-center justify-center text-lg md:text-xl shadow-lg border border-primary/20 transition-transform hover:scale-105 duration-500 shrink-0">
                             <i class="fas fa-university text-white"></i>
                         </div>
                         <div>
-                            <h1 class="text-xl md:text-3xl font-black text-slate-900 dark:text-white leading-tight uppercase tracking-tighter">Panel de Gestión</h1>
-                            <div class="flex items-center gap-2 mt-1">
-                                 <div class="${VisualEngine.get('status.badge')} ${VisualEngine.get('status.online')} hidden">
-                                    <span class="relative flex h-2 w-2">
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] font-black tracking-[0.3em] text-primary uppercase">SISTEMA</span>
+                                <div class="w-1 h-1 rounded-full bg-slate-300 dark:bg-white/20"></div>
+                                <h1 class="text-sm md:text-base font-black text-slate-900 dark:text-white leading-tight uppercase tracking-tighter">Panel de Gestión</h1>
+                            </div>
+                            <div class="flex items-center gap-2 mt-0.5">
+                                 <div class="${VisualEngine.get('status.badge')} ${VisualEngine.get('status.online')} !py-0.5 !px-2">
+                                    <span class="relative flex h-1.5 w-1.5">
                                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                       <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                       <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
                                     </span>
-                                    Sincronizado
+                                    <span class="text-[8px]">Sincronizado</span>
                                  </div>
                             </div>
                         </div>
                     </div>
                     
                     <div class="flex flex-wrap items-center justify-end gap-2 md:gap-3 w-full lg:w-auto relative">
-                        <!-- Version Badge (Visible & Professional) -->
-                        <div class="hidden md:flex flex-col items-center bg-slate-50 dark:bg-white/5 px-4 lg:px-6 py-2 rounded-2xl border border-slate-100 dark:border-white/10 shadow-sm shrink-0 pointer-events-none cursor-default">
-                            <span class="text-[7px] font-black text-slate-400 uppercase tracking-[0.2em] mb-0.5">Versión</span>
-                            <span class="text-[9px] font-black text-slate-800 dark:text-white tracking-widest uppercase tabular-nums">${appVersion}</span>
+                        <!-- Version Badge (High Density) -->
+                        <div class="hidden md:flex flex-col items-center bg-slate-50 dark:bg-white/5 px-3 py-1.5 rounded-xl border border-slate-100 dark:border-white/10 shadow-sm shrink-0 pointer-events-none cursor-default">
+                            <span class="text-[6px] font-black text-slate-400 uppercase tracking-[0.2em]">Versión</span>
+                            <span class="text-[8px] font-black text-slate-800 dark:text-white tracking-widest uppercase tabular-nums">${appVersion}</span>
                         </div>
 
-                        <!-- Unified Pill Container (High Contrast & Z-Target) -->
-                        <div class="flex-none flex items-center justify-center gap-4 bg-slate-100 dark:bg-white/5 px-4 md:px-5 py-2.5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-inner relative z-[60]">
-                             <!-- Theme Toggle Button -->
-                             <button onclick="window.toggleTheme(); window.refreshAdminView();" class="text-slate-500 hover:text-indigo-600 transition-all active:scale-75 group/theme outline-none relative z-[70] pointer-events-auto">
+                        <!-- Unified Pill Container -->
+                        <div class="flex-none flex items-center justify-center gap-3 bg-slate-100 dark:bg-white/5 px-3 py-2 rounded-xl border border-slate-200 dark:border-white/10 shadow-inner relative z-[60]">
+                             <button onclick="window.toggleTheme(); window.refreshAdminView();" class="text-slate-500 hover:text-indigo-600 transition-all active:scale-75 group/theme outline-none relative z-[70] pointer-events-auto text-xs">
                                  <i class="fas fa-moon dark:hidden"></i>
-                                 <i class="fas fa-sun hidden dark:block text-yellow-500 animate-pulse"></i>
+                                 <i class="fas fa-sun hidden dark:block text-yellow-500"></i>
                              </button>
 
                              <div class="w-px h-3 bg-slate-200 dark:bg-white/10 mx-0.5 pointer-events-none"></div>
 
-                             <!-- Current View Status -->
                              <div class="flex items-center gap-2 pointer-events-none">
-                                 <div class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></div>
-                                 <span class="text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest whitespace-nowrap">Administrador</span>
+                                 <div class="w-1 h-1 rounded-full bg-primary animate-pulse"></div>
+                                 <span class="text-[7px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest whitespace-nowrap">Admin</span>
                              </div>
 
                              <div class="w-px h-3 bg-slate-200 dark:bg-white/10 mx-0.5 pointer-events-none"></div>
 
-                             <!-- Switch Link -->
-                             <button onclick="window.history.pushState({}, '', '/conductores'); location.reload();" class="text-[8px] font-black text-primary hover:text-indigo-600 uppercase tracking-widest transition-all active:scale-95 flex items-center gap-2 whitespace-nowrap outline-none px-1 relative z-[70] pointer-events-auto">
-                                 <i class="fas fa-random text-[10px]"></i> Conductor
+                             <button onclick="window.history.pushState({}, '', '/conductores'); location.reload();" class="text-[7px] font-black text-primary hover:text-indigo-600 uppercase tracking-widest transition-all active:scale-95 flex items-center gap-1.5 whitespace-nowrap outline-none px-1 relative z-[70] pointer-events-auto">
+                                 <i class="fas fa-random text-[9px]"></i> Salidas
                              </button>
                         </div>
                         
-                        <button id="logout-btn" class="${VisualEngine.get('button.base')} ${VisualEngine.get('button.danger')} !px-6 !py-2.5 lg:flex-none tabular-nums shrink-0">
-                            <i class="fas fa-power-off"></i> Salir
+                        <button id="logout-btn" class="${VisualEngine.get('button.base')} ${VisualEngine.get('button.danger')} !px-4 !py-2 !text-[9px] lg:flex-none tabular-nums shrink-0">
+                            <i class="fas fa-power-off text-[10px]"></i> Salir
                         </button>
                     </div>
                 </header>

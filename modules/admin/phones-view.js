@@ -10,7 +10,7 @@ export const renderTelefonosTab = async (container) => {
     let telefonos = [];
     const publicadores = await getPublicadores();
 
-    publicadores.sort((a, b) => a.nombre.localeCompare(b.nombre));
+    publicadores.sort((a, b) => String(a.nombre || '').localeCompare(String(b.nombre || '')));
 
     // Ejecuta limpieza automática en segundo plano cuando el Admin entra a la vista
     autoCleanTelefonosData();

@@ -55,26 +55,26 @@ export const VisualEngine = {
         // Main App Shell
         shell: {
             container: "min-h-screen bg-hsl(var(--bg-main)) transition-all duration-700 ease-out",
-            mainOrder: "max-w-[1600px] mx-auto p-2 md:p-8 animate-fade-in"
+            mainOrder: "max-w-[1440px] mx-auto p-6 md:p-14 animate-fade-in"
         },
 
         // Header System
         header: {
-            wrapper: "flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 lg:mb-10 p-5 md:p-8 glass-morphism rounded-[3rem] gap-6 relative overflow-hidden group",
+            wrapper: "flex flex-col lg:flex-row justify-between items-start lg:items-center mb-10 p-6 md:p-10 glass-morphism rounded-[2.5rem] gap-8 relative overflow-hidden group",
             glow: "absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none group-hover:from-primary/10 transition-all duration-1000"
         },
 
         // Card System (The core of 2027 layout)
         card: {
             base: "modern-card transition-all duration-500",
-            premium: "modern-card bg-white dark:bg-[#0f1420]/75 backdrop-blur-3xl border border-white/20 dark:border-white/[0.05] rounded-[2.5rem] shadow-premium transition-transform",
-            flat: "bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/[0.05] rounded-3xl p-6",
+            premium: "modern-card bg-white dark:bg-[#0f1420]/75 backdrop-blur-3xl border border-white/20 dark:border-white/[0.05] rounded-[2rem] shadow-premium transition-transform",
+            flat: "bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/[0.05] rounded-2xl p-5",
             interactive: "cursor-pointer group hover:border-primary/40 active:scale-[0.98] transition-all"
         },
 
         // Button System
         button: {
-            base: "btn-pro inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] transition-all active:scale-95 whitespace-nowrap",
+            base: "btn-pro inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] transition-all active:scale-95 whitespace-nowrap",
             primary: "bg-primary text-white shadow-xl shadow-primary/20 hover:bg-primary-dark hover:shadow-primary/30",
             secondary: "bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10",
             danger: "bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white border border-rose-500/20",

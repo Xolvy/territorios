@@ -26,7 +26,7 @@ export const renderS12View = async (container, config, appVersion) => {
                 manzanas: String(rec.manzanas || '').replace(/Salmo/gi, 'Mz.').trim(),
                 localidad: String(rec.localidad || '').replace(/grupos?/gi, '').trim()
             }))
-            .sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true }));
+            .sort((a, b) => String(a.numero || '').localeCompare(String(b.numero || ''), undefined, { numeric: true }));
 
         console.log(`📊 [Data Shield] S12 View: ${terrs.length} valid records ready.`);
     } catch (e) {

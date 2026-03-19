@@ -6,7 +6,7 @@ import { showNotification } from '../utils/helpers.js';
 export const renderGruposTab = async (container) => {
     const groups = await getGroupsConfig();
     const publicadores = await getPublicadores();
-    publicadores.sort((a, b) => a.nombre.localeCompare(b.nombre));
+    publicadores.sort((a, b) => String(a.nombre || '').localeCompare(String(b.nombre || '')));
 
     container.innerHTML = `
         <div class="mb-8 px-4">

@@ -54,7 +54,7 @@ export const renderHistorialView = async (container) => {
             numero: normalizeT(rec.numero),
             manzanas: String(rec.manzanas || '').replace(/Salmo/gi, 'Mz.').trim()
         }))
-        .sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true, sensitivity: 'base' }));
+        .sort((a, b) => String(a.numero || '').localeCompare(String(b.numero || ''), undefined, { numeric: true, sensitivity: 'base' }));
 
     // Build ID to Num mapping for robust history linking
     const idToNum = {};

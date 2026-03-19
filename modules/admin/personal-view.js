@@ -133,7 +133,7 @@ export const renderPersonalTab = async (container) => {
                 telefono: normalize(p.telefono),
                 email: normalize(p.email).toLowerCase()
             }))
-            .sort((a, b) => a.nombre.localeCompare(b.nombre));
+            .sort((a, b) => String(a.nombre || '').localeCompare(String(b.nombre || '')));
 
         console.log("👥 [Live Pool] Personnel Directory Updated.");
         renderMainLayout();
@@ -142,7 +142,7 @@ export const renderPersonalTab = async (container) => {
 
     window.showPublicadorAvailability = (id) => {
         const p = publicadores.find(x => x.id === id);
-        if (!p || !p.disponibilidad || p.disponibilidad.length === 0) return;
+        if (!p || !Array.isArray(p.disponibilidad) || p.disponibilidad.length === 0) return;
         const shiftLabels = { 'manana': 'Mañana', 'tarde': 'Tarde', 'noche': 'Noche' };
         const daysOrder = { 'Lunes': 0, 'Martes': 1, 'Miércoles': 2, 'Jueves': 3, 'Viernes': 4, 'Sábado': 5, 'Domingo': 6 };
         const sorted = [...p.disponibilidad].sort((a, b) => {
@@ -260,7 +260,7 @@ export const renderPersonalTab = async (container) => {
                                      ${days.map(day => `
                                          <div class="grid grid-cols-4 gap-2 items-center modern-card !p-3">
                                              <div class="text-[10px] font-black text-slate-600 dark:text-slate-300 pl-2 uppercase">${day.slice(0, 3)}</div>
-                                             ${shifts.map(sh => `<div class="flex justify-center"><input type="checkbox" class="p-avail-check w-5 h-5 accent-primary cursor-pointer" value="${day}_${sh.id}" ${person?.disponibilidad?.includes(`${day}_${sh.id}`) ? 'checked' : ''}></div>`).join('')}
+                                             ${shifts.map(sh => `<div class="flex justify-center"><input type="checkbox" class="p-avail-check w-5 h-5 accent-primary cursor-pointer" value="${day}_${sh.id}" ${(Array.isArray(person?.disponibilidad) ? person.disponibilidad : []).includes(`${day}_${sh.id}`) ? 'checked' : ''}></div>`).join('')}
                                          </div>
                                      `).join('')}
                                  </div>

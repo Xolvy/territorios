@@ -7,26 +7,35 @@ export const renderLogin = (container, appVersion) => {
     const cachedName = localStorage.getItem('cached_congregation_name') || "Sincronizando Portal...";
 
     container.innerHTML = `
-        <div class="${VisualEngine.get('shell.container')} flex flex-col items-center justify-center p-6 relative">
+        <div class="${VisualEngine.get('shell.container')} flex flex-col items-center justify-between min-h-screen p-8 md:p-12 relative overflow-hidden">
             <!-- Background Decorative Elements -->
-            <div class="fixed inset-0 overflow-hidden pointer-events-none opacity-50 dark:opacity-20 animate-fade-in">
-                <div class="absolute -top-[10%] -left-[10%] w-[60%] h-[60%] bg-primary/20 blur-[150px] rounded-full animate-pulse"></div>
-                <div class="absolute -bottom-[10%] -right-[10%] w-[60%] h-[60%] bg-indigo-500/10 blur-[150px] rounded-full animate-float"></div>
+            <div class="fixed inset-0 overflow-hidden pointer-events-none opacity-40 dark:opacity-20 animate-fade-in">
+                <div class="absolute -top-[15%] -left-[15%] w-[70%] h-[70%] bg-primary/20 blur-[180px] rounded-full animate-pulse"></div>
+                <div class="absolute -bottom-[15%] -right-[15%] w-[70%] h-[70%] bg-indigo-500/10 blur-[180px] rounded-full animate-float"></div>
             </div>
 
-            <div id="login-card-container" class="w-full max-w-sm sm:max-w-md space-y-8 text-center relative z-10 animate-fade-in px-2">
+            <!-- Header: Subtle & High Density -->
+            <header class="relative z-10 text-center space-y-2 mt-4 animate-slide-down">
+                <div class="flex items-center justify-center gap-3">
+                    <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white text-xs shadow-lg">
+                        <i class="fas fa-cube"></i>
+                    </div>
+                    <span class="text-[14px] font-black tracking-[0.5em] text-slate-800 dark:text-white uppercase">SISTEMA</span>
+                </div>
+                <p class="text-[9px] font-black text-slate-400 dark:text-slate-500 tracking-[0.3em] uppercase opacity-70">Plataforma Integral de Gestión · 2026</p>
+            </header>
+
+            <div id="login-card-container" class="w-full max-w-[320px] space-y-6 text-center relative z-10 animate-fade-in py-10">
                 <!-- Brand Header -->
-                <div class="space-y-4 sm:space-y-6">
-                    <div class="relative w-24 h-24 sm:w-32 sm:h-32 mx-auto mb-8 group">
+                <div class="space-y-4">
+                    <div class="relative w-20 h-20 mx-auto mb-6 group">
                         <!-- Soft Ambient Glow -->
-                        <div class="absolute inset-0 bg-primary/20 dark:bg-primary/10 blur-[50px] rounded-full scale-125 group-hover:scale-150 transition-all duration-1000 opacity-70"></div>
+                        <div class="absolute inset-0 bg-primary/20 dark:bg-primary/10 blur-[40px] rounded-full scale-125 group-hover:scale-150 transition-all duration-1000 opacity-70"></div>
                         
                         <!-- Main Logo Container (Glass) -->
-                        <div class="relative w-full h-full bg-white/60 dark:bg-[#0f1420]/80 backdrop-blur-3xl rounded-[2.5rem] sm:rounded-[3rem] border border-white/40 dark:border-white/10 flex items-center justify-center shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] dark:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.6)] transform transition-all duration-700 group-hover:scale-105 group-hover:-rotate-3 overflow-hidden">
-                            <!-- Subtle Internal Gradient Overlay -->
+                        <div class="relative w-full h-full bg-white/60 dark:bg-[#0f1420]/80 backdrop-blur-3xl rounded-[2rem] border border-white/40 dark:border-white/10 flex items-center justify-center shadow-xl transform transition-all duration-700 group-hover:scale-105 overflow-hidden">
                             <div class="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent pointer-events-none"></div>
-                            
-                            <svg viewBox="0 0 512 512" class="w-14 h-14 sm:w-20 sm:h-20 drop-shadow-[0_12px_24px_rgba(13,148,136,0.25)]">
+                            <svg viewBox="0 0 512 512" class="w-10 h-10 drop-shadow-md">
                                 <defs>
                                     <linearGradient id="mapGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                                         <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
@@ -42,76 +51,92 @@ export const renderLogin = (container, appVersion) => {
                             </svg>
                         </div>
                     </div>
-                    <div class="space-y-1 sm:space-y-2">
-                        <h1 class="text-h1 sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
-                            Gestión de <span class="bg-clip-text text-transparent bg-gradient-to-r from-teal-600 to-teal-400">Territorios</span>
+                    <div class="space-y-1">
+                        <h1 class="text-lg font-black tracking-tight text-slate-900 dark:text-white uppercase">
+                            Gestión de <span class="text-primary">Territorios</span>
                         </h1>
-                        <p id="cong-label" class="text-[10px] sm:text-xs font-black text-slate-400 dark:text-slate-500 tracking-widest uppercase animate-pulse-slow">${cachedName}</p>
+                        <p id="cong-label" class="text-[9px] font-black text-slate-400 dark:text-slate-500 tracking-[0.2em] uppercase transition-all duration-1000">${cachedName}</p>
                     </div>
                 </div>
 
                 <!-- Role Selection -->
-                <div id="selection-area" class="grid grid-cols-1 gap-4 mt-6 sm:mt-8">
+                <div id="selection-area" class="grid grid-cols-1 gap-3 mt-8">
                     <!-- Administrador State Wrapper -->
                     <div id="admin-wrapper" class="group ${VisualEngine.get('card.premium')} !p-0 transition-all duration-500 overflow-hidden relative">
                         <!-- Preview State -->
-                        <div id="admin-preview" class="flex items-center gap-4 sm:gap-6 p-4 sm:p-6 w-full cursor-pointer hover:bg-primary/5 transition-colors">
-                            <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all duration-300">
-                                 <i class="fas fa-user-shield text-xl sm:text-2xl"></i>
+                        <div id="admin-preview" class="flex items-center gap-4 p-4 w-full cursor-pointer hover:bg-primary/5 transition-colors">
+                            <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all duration-300">
+                                 <i class="fas fa-user-shield text-base"></i>
                             </div>
-                            <div class="flex-1">
-                                <h3 class="text-sm sm:text-lg font-bold text-slate-800 dark:text-white mb-0.5">Administrador</h3>
-                                <p class="text-[11px] sm:text-[13px] text-slate-500 dark:text-slate-400 font-medium line-clamp-1">Gestión avanzada del sistema</p>
+                            <div class="flex-1 text-left">
+                                <h3 class="text-xs font-bold text-slate-800 dark:text-white mb-0.5">Administrador</h3>
+                                <p class="text-[10px] text-slate-500 dark:text-slate-400 font-medium line-clamp-1">Gestión avanzada</p>
                             </div>
-                            <i class="fas fa-chevron-right text-slate-300 group-hover:text-primary transition-colors text-[10px] sm:text-xs"></i>
+                            <i class="fas fa-chevron-right text-slate-300 group-hover:text-primary transition-colors text-[10px]"></i>
                         </div>
 
                         <!-- Login State -->
-                        <div id="admin-login-state" class="hidden flex flex-col items-center text-center p-8 sm:p-12 w-full animate-slide-up gap-8 relative">
-                            <!-- Close Button (X) -->
-                            <button id="btn-close-admin" class="absolute top-6 right-6 w-10 h-10 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-all active:scale-95 z-30">
-                                <i class="fas fa-times text-base"></i>
+                        <div id="admin-login-state" class="hidden flex flex-col items-center text-center p-6 w-full animate-slide-up gap-6 relative">
+                            <button id="btn-close-admin" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all z-30">
+                                <i class="fas fa-times text-xs"></i>
                             </button>
                             
-                            <div class="w-20 h-20 rounded-[2rem] bg-primary/10 flex items-center justify-center text-primary shadow-inner animate-bounce-in">
-                                <i class="fas fa-shield-alt text-3xl"></i>
+                            <div class="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
+                                <i class="fas fa-shield-alt text-2xl"></i>
                             </div>
                             
-                            <div class="space-y-2">
-                                <h3 class="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Acceso Seguro</h3>
-                                <p class="text-[10px] font-black text-primary uppercase tracking-[0.2em] opacity-80">Identidad Digital Xolvy</p>
+                            <div class="space-y-1">
+                                <h3 class="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tighter">Acceso Seguro</h3>
+                                <p class="text-[9px] font-black text-primary uppercase tracking-[0.2em] opacity-80">Xolvy Digital ID</p>
                             </div>
 
-                            <button id="btn-google-login-action" class="w-full flex items-center justify-center gap-4 py-5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-[1.5rem] font-black text-sm text-slate-700 dark:text-white hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-white/10 transition-all shadow-premium active:scale-95 group/google">
-                                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-6 h-6 group-hover/google:scale-110 transition-all duration-300" alt="Google">
+                            <button id="btn-google-login-action" class="w-full flex items-center justify-center gap-3 py-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl font-black text-[11px] text-slate-700 dark:text-white hover:border-primary/50 transition-all shadow-sm active:scale-95">
+                                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5" alt="Google">
                                 Entrar con Google
                             </button>
                             
-                            <p id="auth-error" class="text-rose-500 text-[10px] font-black uppercase tracking-widest hidden animate-pulse"></p>
+                            <p id="auth-error" class="text-rose-500 text-[9px] font-black uppercase tracking-widest hidden"></p>
                         </div>
                     </div>
 
                     <!-- Conductor Button -->
-                    <button id="btn-conductor" class="group ${VisualEngine.get('card.premium')} !p-4 sm:!p-6 flex items-center gap-4 sm:gap-6 hover:border-secondary/40 text-left transition-all duration-500">
-                        <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-secondary/10 flex items-center justify-center text-secondary group-hover:bg-secondary group-hover:text-white transition-all duration-300">
-                             <i class="fas fa-user-friends text-xl sm:text-2xl"></i>
+                    <button id="btn-conductor" class="group ${VisualEngine.get('card.premium')} !p-4 flex items-center gap-4 hover:border-secondary/40 text-left transition-all duration-500">
+                        <div class="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary group-hover:bg-secondary group-hover:text-white transition-all duration-300">
+                             <i class="fas fa-user-friends text-base"></i>
                         </div>
                         <div class="flex-1">
-                            <h3 class="text-sm sm:text-lg font-bold text-slate-800 dark:text-white mb-0.5">Conductor</h3>
-                            <p class="text-[11px] sm:text-[13px] text-slate-500 dark:text-slate-400 font-medium line-clamp-1">Asignaciones y registros locales</p>
+                            <h3 class="text-xs font-bold text-slate-800 dark:text-white mb-0.5">Conductor</h3>
+                            <p class="text-[10px] text-slate-500 dark:text-slate-400 font-medium line-clamp-1">Salidas de Hoy</p>
                         </div>
-                        <i class="fas fa-chevron-right text-slate-300 group-hover:text-secondary transition-colors text-[10px] sm:text-xs"></i>
+                        <i class="fas fa-chevron-right text-slate-300 group-hover:text-secondary transition-colors text-[10px]"></i>
                     </button>
                 </div>
-
-                <!-- Footer Info -->
-                <div class="pt-6 sm:pt-10 space-y-2 opacity-60">
-                    <p id="app-version-label" class="text-[11px] text-slate-600 dark:text-slate-400 font-black tracking-tighter uppercase">
-                        Plataforma v${appVersion || '2.4.0.7'} · Modern 2026
-                    </p>
-                    <p class="text-[10px] text-slate-500 dark:text-slate-400 font-bold tracking-tight">© Congregation Software Solutions · Ecuador</p>
-                </div>
             </div>
+
+            <!-- Footer: Compact & Extreme Bottom -->
+            <footer class="relative z-10 w-full mb-4 animate-slide-up">
+                <div class="flex flex-col items-center justify-center gap-3 opacity-40 hover:opacity-100 transition-opacity duration-700">
+                    <div class="flex items-center gap-6">
+                        <i class="fas fa-shield-halved text-[10px] text-slate-400"></i>
+                        <p class="text-[9px] text-slate-600 dark:text-slate-400 font-black tracking-[0.2em] uppercase">
+                            SISTEMA XOLVY · v${appVersion || '2.6'}
+                        </p>
+                        <i class="fas fa-fingerprint text-[10px] text-slate-400"></i>
+                    </div>
+                    <div class="space-y-1 text-center">
+                        <p class="text-[8px] text-slate-500 dark:text-slate-500 font-bold tracking-widest uppercase">© Congregation Software Solutions · Ecuador</p>
+                        <p class="text-[7px] text-slate-400 dark:text-slate-600 font-medium uppercase tracking-[0.1em]">Advanced Management Interface Architecture</p>
+                    </div>
+                </div>
+                
+                <!-- Symmetric Corner Icons -->
+                <div class="absolute bottom-0 left-0 p-2 opacity-20 pointer-events-none">
+                    <div class="w-4 h-4 border-l-2 border-b-2 border-slate-400 rounded-bl-sm"></div>
+                </div>
+                <div class="absolute bottom-0 right-0 p-2 opacity-20 pointer-events-none">
+                    <div class="w-4 h-4 border-r-2 border-b-2 border-slate-400 rounded-br-sm"></div>
+                </div>
+            </footer>
         </div>
     `;
 
@@ -221,7 +246,7 @@ const renderConductorSelection = async (container, appVersion) => {
             const isSup = p.privilegios?.includes('Superintendente de Circuito');
             if (isSup) return p.es_conductor;
             return p.es_conductor || p.modulos?.habilitado;
-        }).sort((a, b) => a.nombre.localeCompare(b.nombre));
+        }).sort((a, b) => String(a.nombre || '').localeCompare(String(b.nombre || '')));
 
         const list = document.getElementById('conductores-list');
         const searchInput = document.getElementById('conductor-search');

@@ -1,16 +1,6 @@
 /**
  * @file modules/services/export-service.js
  * @description Xolvy Export Service — Arquitectura de Doble Plantilla
- *
- * 1. `exportarProgramaExcel(datosSemana, tipoExportacion)`
- *    — Lazy-loads ExcelJS (no penaliza el bundle inicial)
- *    — Intenta cargar plantilla .xlsx desde /public/templates/
- *    — Si falla, construye workbook ARGB desde cero (fallback institucional)
- *    — La columna "Territorio" SOLO se inyecta para 'conductor'
- *
- * 2. `exportarProgramaPNG(datosSemana, tipo)` — DEPRECADO
- *    — Captura con DOM Phantom/html2canvas ELIMINADA (WSoD trigger)
- *    — Redirige al usuario a usar Excel
  */
 
 // ─── CONSTANTES ────────────────────────────────────────────────────────────────
@@ -46,10 +36,6 @@ const getWeekLabel = (datosSemana) => {
     return `${fmt(start)}_al_${fmt(end)}`;
 };
 
-// ─── HELPER: Nombre de congregación ───────────────────────────────────────────
-const getCongName = () =>
-    localStorage.getItem('cached_congregation_name') || 'CONGREGACIÓN LOCAL';
-
 // ─── HELPER: Notificación simple ──────────────────────────────────────────────
 const notify = (msg, type = 'info', duration = 3000) => {
     try {
@@ -68,11 +54,6 @@ const notify = (msg, type = 'info', duration = 3000) => {
 // 1. EXPORTADOR EXCEL (ExcelJS + Template Injection)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Exporta el programa semanal a Excel.
- * @param {object} datosSemana
- * @param {'conductor'|'publicador'} tipoExportacion
- */
 export const exportarProgramaExcel = async (datosSemana, tipoExportacion = 'conductor') => {
     const esConductor = tipoExportacion === 'conductor';
     const templatePath = esConductor
@@ -82,10 +63,7 @@ export const exportarProgramaExcel = async (datosSemana, tipoExportacion = 'cond
     notify(`⏳ Generando Excel ${esConductor ? 'Conductores' : 'Publicadores'}...`, 'info', 2500);
 
     try {
-        // ── Lazy Loading: no penaliza el bundle inicial ───────────────────────
         const ExcelJS = (await import('exceljs')).default;
-
-        // ── Intento de plantilla institucional ────────────────────────────────
         let workbook;
         let usingTemplate = false;
 
@@ -102,14 +80,12 @@ export const exportarProgramaExcel = async (datosSemana, tipoExportacion = 'cond
             console.warn(`[ExportService] ⚠️ Plantilla no disponible, usando fallback:`, templateErr);
         }
 
-        // ── Fallback: Workbook ARGB desde cero ───────────────────────────────
         if (!usingTemplate) {
             workbook = _buildFallbackWorkbook(ExcelJS, datosSemana, esConductor);
         } else {
-            _injectDataIntoTemplate(workbook.worksheets[0], datosSemana, tipoExportacion);
+            _injectDataIntoTemplate(workbook.worksheets[0], datosSemana, esConductor);
         }
 
-        // ── Serializar y descargar ────────────────────────────────────────────
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], {
             type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -126,191 +102,78 @@ export const exportarProgramaExcel = async (datosSemana, tipoExportacion = 'cond
     }
 };
 
-/**
- * Inyecta datos en la primera hoja de la plantilla Excel.
- *
- * MAPA DE CELDAS:
- *   Columnas:  B=Lunes | C=Martes | D=Miércoles | E=Jueves | F=Viernes | G=Sábado | H=Domingo
- *   Fila 3:  Fecha del día
- *   Fila 4:  Lugar
- *   Fila 5:  Hora
- *   Fila 6:  Conductor
- *   Fila 7:  Auxiliar
- *   Fila 8:  Faceta
- *   Fila 9:  Territorio → SOLO si tipoExportacion === 'conductor'
- */
-const _injectDataIntoTemplate = (sheet, datosSemana, tipoExportacion) => {
+const _injectDataIntoTemplate = (sheet, datosSemana, esConductor) => {
     if (!sheet) return;
-
-    const esConductor = tipoExportacion === 'conductor';
-
-    // Encabezado global
-    const congName  = getCongName();
-    const weekLabel = getWeekLabel(datosSemana).replace(/_al_/g, ' AL ');
-    _safeSetCell(sheet, 'A1', congName.toUpperCase());
-    _safeSetCell(sheet, 'A2', `SEMANA DEL ${weekLabel}`);
 
     const columnas = {
         'Lunes': 'B', 'Martes': 'C', 'Miércoles': 'D',
         'Jueves': 'E', 'Viernes': 'F', 'Sábado': 'G', 'Domingo': 'H',
     };
 
-    const diaKeyAliases = {
-        'Lunes': 'lunes', 'Martes': 'martes', 'Miércoles': 'miercoles',
-        'Jueves': 'jueves', 'Viernes': 'viernes', 'Sábado': 'sabado', 'Domingo': 'domingo',
+    const configFilas = {
+        manana: { base: 3, fecha: 3, lugar: 4, hora: 5, conductor: 6, auxiliar: 7, faceta: 8, territorio: 9 },
+        tarde:  { base: 11, fecha: 11, lugar: 12, hora: 13, conductor: 14, auxiliar: 15, faceta: 16, territorio: 17 },
+        zoom:   { base: 19, fecha: 19, lugar: 20, hora: 21, conductor: 22, auxiliar: 23, faceta: 24, territorio: 25 }
     };
-
-    // Bloque 1 — Turno Mañana (fila base configurable)
-    const filasBloque = { fecha: 3, lugar: 4, hora: 5, conductor: 6, auxiliar: 7, faceta: 8, territorio: 9 };
 
     DAYS.forEach(dayName => {
         const col = columnas[dayName];
         if (!col) return;
 
-        let datosDia = null;
+        ['manana', 'tarde', 'zoom'].forEach(shift => {
+            const filas = configFilas[shift];
+            let datosDia = null;
 
-        if (datosSemana?.dias?.length > 0) {
-            const diaDoc = datosSemana.dias.find(d => d.nombre === dayName);
-            if (diaDoc) {
-                datosDia = diaDoc.manana || {};
-                const dayDate = diaDoc.fecha ? diaDoc.fecha.split('-')[2] : '';
-                if (dayDate) _safeSetCell(sheet, `${col}${filasBloque.fecha}`, dayDate);
+            if (datosSemana?.dias?.length > 0) {
+                const diaDoc = datosSemana.dias.find(d => d.nombre === dayName);
+                if (diaDoc) {
+                    datosDia = diaDoc[shift] || {};
+                    if (shift === 'manana') {
+                        const dayDate = diaDoc.fecha ? diaDoc.fecha.split('-')[2] : '';
+                        if (dayDate) _safeSetCell(sheet, `${col}${filas.fecha}`, dayDate);
+                    }
+                }
             }
-        } else {
-            const flatKey = diaKeyAliases[dayName];
-            datosDia = datosSemana?.[flatKey] || null;
-        }
 
-        if (!datosDia) return;
+            if (!datosDia) return;
 
-        _safeSetCell(sheet, `${col}${filasBloque.lugar}`,     datosDia.lugar     || '');
-        _safeSetCell(sheet, `${col}${filasBloque.hora}`,      datosDia.hora      || '');
-        _safeSetCell(sheet, `${col}${filasBloque.conductor}`, datosDia.conductor || '');
-        _safeSetCell(sheet, `${col}${filasBloque.auxiliar}`,  datosDia.auxiliar  || '');
-        _safeSetCell(sheet, `${col}${filasBloque.faceta}`,    datosDia.faceta    || '');
+            _safeSetCell(sheet, `${col}${filas.lugar}`,     datosDia.lugar     || '');
+            _safeSetCell(sheet, `${col}${filas.hora}`,      datosDia.hora      || '');
+            _safeSetCell(sheet, `${col}${filas.conductor}`, datosDia.conductor || '');
+            _safeSetCell(sheet, `${col}${filas.auxiliar}`,  datosDia.auxiliar  || '');
+            _safeSetCell(sheet, `${col}${filas.faceta}`,    datosDia.faceta    || '');
 
-        // CRÍTICO: Territorio solo para conductores
-        if (esConductor) {
-            _safeSetCell(sheet, `${col}${filasBloque.territorio}`, datosDia.territorio || '');
-        } else {
-            _safeSetCell(sheet, `${col}${filasBloque.territorio}`, ''); // limpiar celda
-        }
+            if (esConductor) {
+                _safeSetCell(sheet, `${col}${filas.territorio}`, datosDia.territorio || '');
+            } else {
+                _safeSetCell(sheet, `${col}${filas.territorio}`, '');
+            }
+        });
     });
 };
 
-/**
- * Genera workbook ARGB institucional desde cero si no hay plantilla disponible.
- */
 const _buildFallbackWorkbook = (ExcelJS, datosSemana, esConductor) => {
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'Xolvy Territorial Intelligence';
-    workbook.created = new Date();
-
-    const sheet = workbook.addWorksheet(
-        esConductor ? 'Conductores' : 'Publicadores',
-        { pageSetup: { paperSize: 9, orientation: 'landscape' } }
-    );
+    const sheet = workbook.addWorksheet(esConductor ? 'Conductores' : 'Publicadores');
 
     sheet.columns = [
         { header: 'Turno / Campo', key: 'campo', width: 18 },
         ...DAYS.map(d => ({ header: d, key: d.toLowerCase(), width: 22 }))
     ];
 
-    const congName  = getCongName();
     const weekLabel = getWeekLabel(datosSemana).replace(/_al_/g, ' al ');
 
     sheet.mergeCells('A1:H1');
-    const titleCell = sheet.getCell('A1');
-    titleCell.value = `${congName.toUpperCase()} — Programa de Predicación`;
-    titleCell.font = { bold: true, size: 16, color: { argb: 'FF1E293B' } };
-    titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
-    titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
-    sheet.getRow(1).height = 36;
-
+    sheet.getCell('A1').value = 'PROGRAMA DE PREDICACIÓN';
     sheet.mergeCells('A2:H2');
-    const subtitleCell = sheet.getCell('A2');
-    subtitleCell.value = `Semana del ${weekLabel}${esConductor ? '' : ' · Vista Publicadores'}`;
-    subtitleCell.font = { bold: true, size: 11, color: { argb: 'FF64748B' } };
-    subtitleCell.alignment = { horizontal: 'center', vertical: 'middle' };
-    sheet.getRow(2).height = 24;
+    sheet.getCell('A2').value = 'CONGREGACIÓN "NUEVE DE OCTUBRE" 14282';
+    sheet.mergeCells('A3:H3');
+    sheet.getCell('A3').value = `Semana del ${weekLabel}`;
 
-    const headerRow = sheet.getRow(3);
-    headerRow.values = ['', ...DAYS];
-    headerRow.eachCell((cell, colNum) => {
-        if (colNum === 1) return;
-        const dayDate = (datosSemana.dias || []).find(d => d.nombre === cell.value)?.fecha;
-        cell.value = `${cell.value}${dayDate ? '\n' + dayDate.split('-').reverse().join('/') : ''}`;
-        cell.font = { bold: true, size: 10, color: { argb: 'FFFFFFFF' } };
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } };
-        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-    });
-    headerRow.height = 40;
-
-    const fields = esConductor
-        ? ['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', 'Territorio']
-        : ['Lugar', 'Hora', 'Conductor', 'Faceta'];
-
-    let currentRow = 4;
-
-    SHIFTS.forEach(shift => {
-        const shiftHeaderRow = sheet.getRow(currentRow);
-        const colors = SHIFT_COLORS[shift];
-        shiftHeaderRow.values = [SHIFT_LABELS[shift].toUpperCase(), ...DAYS.map(() => '')];
-        shiftHeaderRow.eachCell(cell => {
-            cell.font = { bold: true, size: 9, color: { argb: colors.text } };
-            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.bg } };
-            cell.border = { bottom: { style: 'thin', color: { argb: colors.border } } };
-        });
-        shiftHeaderRow.height = 20;
-        currentRow++;
-
-        fields.forEach(field => {
-            const fieldRow = sheet.getRow(currentRow);
-            const fKey = field.toLowerCase();
-            const rowValues = [field];
-
-            DAYS.forEach(dayName => {
-                const diaData = (datosSemana.dias || []).find(d => d.nombre === dayName);
-                const sData = diaData ? diaData[shift] || {} : {};
-
-                if (!esConductor && (fKey === 'territorio' || fKey === 'auxiliar')) {
-                    rowValues.push('');
-                    return;
-                }
-                rowValues.push(sData[fKey] || '');
-            });
-
-            fieldRow.values = rowValues;
-            fieldRow.eachCell((cell, colNum) => {
-                cell.font = colNum === 1
-                    ? { bold: true, size: 8, color: { argb: 'FF64748B' } }
-                    : { size: 9, color: { argb: 'FF1E293B' } };
-                cell.alignment = { vertical: 'middle', wrapText: true };
-                cell.border = {
-                    bottom: { style: 'hair', color: { argb: 'FFE2E8F0' } },
-                    right: { style: 'hair', color: { argb: 'FFE2E8F0' } }
-                };
-                if (colNum === 1) {
-                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
-                }
-            });
-            fieldRow.height = 18;
-            currentRow++;
-        });
-
-        currentRow++; // Espacio entre turnos
-    });
-
-    const footerRow = sheet.getRow(currentRow);
-    sheet.mergeCells(`A${currentRow}:H${currentRow}`);
-    footerRow.getCell(1).value = `Generado por Xolvy Intelligence · ${new Date().toLocaleString('es-ES')}`;
-    footerRow.getCell(1).font = { italic: true, size: 8, color: { argb: 'FF94A3B8' } };
-    footerRow.getCell(1).alignment = { horizontal: 'right' };
-
+    // Simple fill for demo
     return workbook;
 };
 
-// ── Escritura segura en celda ──────────────────────────────────────────────────
 const _safeSetCell = (sheet, address, value) => {
     try {
         sheet.getCell(address).value = (value !== undefined && value !== null) ? String(value) : '';
@@ -319,16 +182,13 @@ const _safeSetCell = (sheet, address, value) => {
     }
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 2. EXPORTADOR PNG — DELEGACIÓN A EXCEL (Arquitectura v2.6)
+// ─────────────────────────────────────────────────────────────────────────────
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 2. EXPORTADOR PNG — DEPRECADO
-// DOM Phantom + html2canvas ELIMINADO (causaba WSoD y dependencia circular)
-// El usuario debe usar exportarProgramaExcel() para mantener la calidad.
-// ─────────────────────────────────────────────────────────────────────────────
-export const exportarProgramaPNG = async (_datosSemana, _tipo = 'conductor') => {
-    notify(
-        '📊 La exportación PNG ha sido reemplazada. Usa el botón "Exportar Excel" para obtener el reporte de alta calidad.',
-        'info',
-        5000
-    );
+export const exportarProgramaPNG = async (datosSemana, tipoExportacion = 'conductor') => {
+    notify('ℹ️ La exportación PNG directa ha sido deshabilitada para asegurar fidelidad total al formato original.', 'info', 5000);
+    notify('📂 Se descargará un archivo Excel (.xlsx) usando la plantilla institucional.', 'info', 5000);
+    
+    return await exportarProgramaExcel(datosSemana, tipoExportacion);
 };

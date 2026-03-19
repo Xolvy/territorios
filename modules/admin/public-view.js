@@ -12,7 +12,7 @@ export const renderPredicacionTab = async (container) => {
         getPublicadores(),
         getConfiguracion()
     ]);
-    publicadores.sort((a, b) => a.nombre.localeCompare(b.nombre));
+    publicadores.sort((a, b) => String(a.nombre || '').localeCompare(String(b.nombre || '')));
 
     // Xolvy Live Pool: Real-time synchronization
     const unsub = startLivePool("predicacion_publica", [], (allData) => {

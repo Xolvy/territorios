@@ -1,6 +1,6 @@
 
 import { auth } from '../firebase-config.js';
-import { where } from "firebase/firestore";
+import { where, documentId } from "firebase/firestore";
 import {
     getTerritorios, getConductores, getPublicadores, getTelefonos, getTelefonosParaSesion,
     getConfiguracion,
@@ -257,11 +257,11 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
         // Inyecta el botón (FAB) - Nuevo Orbe Multimodal de Nexo
         const fab = document.createElement('div');
         fab.id = 'nexo-fab';
-        fab.className = 'fixed bottom-6 right-6 w-16 h-16 bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-600 rounded-full flex items-center justify-center cursor-pointer z-[9999] hover:scale-110 active:scale-95 transition-all backdrop-blur-md border border-white/20 overflow-hidden group shadow-[0_0_30px_rgba(6,182,212,0.5)]';
+        fab.className = 'fixed bottom-6 right-6 w-16 h-16 rounded-[50%] flex items-center justify-center cursor-pointer z-[9999] hover:scale-110 active:scale-95 transition-all backdrop-blur-[10px] border border-white/20 overflow-hidden group shadow-[0_0_30px_rgba(6,182,212,0.6)] bg-white/10 dark:bg-black/20';
         fab.innerHTML = `
-            <div class="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
-            <div class="absolute inset-0 bg-gradient-to-tr from-cyan-400 to-indigo-500 rounded-full blur-md opacity-30 group-hover:opacity-60 transition-opacity animate-pulse pointer-events-none"></div>
-            <i class="fas fa-sparkles text-white text-[28px] relative z-10 group-hover:scale-110 group-active:scale-90 transition-transform"></i>
+            <div class="absolute inset-0 bg-gradient-to-tr from-cyan-400/40 to-indigo-500/40 rounded-[50%] pointer-events-none"></div>
+            <div class="absolute inset-2 bg-gradient-to-tr from-cyan-400 to-indigo-500 rounded-[50%] blur-xl opacity-80 group-hover:opacity-100 transition-opacity animate-pulse shadow-[inset_0_0_20px_rgba(255,255,255,0.8)] pointer-events-none"></div>
+            <i class="fas fa-microchip text-white text-[28px] relative z-10 group-hover:scale-110 group-active:scale-90 transition-transform drop-shadow-lg"></i>
         `;
         
         // Remover instancia previa si existe
@@ -584,73 +584,74 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
             container.innerHTML = `
         <div class="${VisualEngine.get('shell.container')}" data-adaptive-container="true">
           <div class="${VisualEngine.get('shell.mainOrder')}">
-            <header class="${VisualEngine.get('header.wrapper')} sticky top-0 z-50 backdrop-blur-xl border-b border-slate-200/50 dark:border-white/5" data-mobile-order="1">
-                <div class="${VisualEngine.get('header.glow')} !opacity-20"></div>
-                <div class="flex items-center gap-4 md:gap-6 relative z-10">
-                    <div class="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-indigo-600 to-teal-500 rounded-2xl md:rounded-3xl flex items-center justify-center text-white shadow-2xl shadow-indigo-500/20 transform hover:rotate-3 transition-transform duration-500">
-                        <i class="fas fa-id-card text-xl md:text-2xl"></i>
-                    </div>
-                    <div>
-                        <h2 class="text-xl md:text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter leading-none">
-                            Hola, ${displayName.split(' ')[0]}
-                        </h2>
-                        <div class="flex items-center gap-2 mt-1 md:mt-2">
-                             <div class="${VisualEngine.get('status.badge')} ${VisualEngine.get('status.online')} hidden">
-                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                Sincronizado
-                             </div>
+                <header class="${VisualEngine.get('header.wrapper')} sticky top-0 z-50 backdrop-blur-xl border-b border-slate-200/50 dark:border-white/5 !mb-6" data-mobile-order="1">
+                    <div class="${VisualEngine.get('header.glow')} !opacity-20"></div>
+                    <div class="flex items-center gap-4 md:gap-5 relative z-10">
+                        <div class="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-indigo-600 to-teal-500 rounded-xl md:rounded-2xl flex items-center justify-center text-white shadow-xl shadow-indigo-500/20 transform hover:rotate-3 transition-transform duration-500">
+                            <i class="fas fa-id-card text-lg md:text-xl"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] font-black tracking-[0.3em] text-indigo-500 uppercase">SISTEMA</span>
+                                <div class="w-1 h-1 rounded-full bg-slate-300 dark:bg-white/20"></div>
+                                <h2 class="text-sm md:text-base font-black text-slate-800 dark:text-white uppercase tracking-tighter leading-none">
+                                    Hola, ${displayName.split(' ')[0]}
+                                </h2>
+                            </div>
+                            <div class="flex items-center gap-2 mt-0.5 md:mt-1">
+                                 <div class="${VisualEngine.get('status.badge')} ${VisualEngine.get('status.online')} !py-0.5 !px-2">
+                                    <span class="w-1 h-1 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    <span class="text-[8px]">Sincronizado</span>
+                                 </div>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Dynamic Banner (Diffusion) -->
-                <div id="dynamic-banner-container" class="hidden lg:flex flex-1 justify-center items-center px-8 overflow-hidden pointer-events-none min-w-0">
-                    <div class="bg-indigo-50/50 dark:bg-indigo-500/5 px-8 py-3 rounded-[1.5rem] border border-indigo-100/50 dark:border-indigo-500/10 flex items-center gap-4 max-w-xl w-full">
-                        <div class="w-8 h-8 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-500 text-xs shrink-0 shadow-inner">
-                            <i class="fas fa-bullhorn animate-pulse"></i>
+                    <!-- Dynamic Banner (High Density) -->
+                    <div id="dynamic-banner-container" class="hidden lg:flex flex-1 justify-center items-center px-4 overflow-hidden pointer-events-none min-w-0">
+                        <div class="bg-indigo-50/50 dark:bg-indigo-500/5 px-6 py-2 rounded-xl border border-indigo-100/50 dark:border-indigo-500/10 flex items-center gap-3 max-w-lg w-full">
+                            <div class="w-6 h-6 bg-indigo-500/10 rounded-lg flex items-center justify-center text-indigo-500 text-[10px] shrink-0 shadow-inner">
+                                <i class="fas fa-bullhorn"></i>
+                            </div>
+                            <p id="dynamic-banner-content" class="text-[9px] font-black text-indigo-600/80 dark:text-indigo-300/90 uppercase tracking-[0.2em] animate-fade-in transition-all duration-700 truncate"></p>
                         </div>
-                        <p id="dynamic-banner-content" class="text-[10px] md:text-[11px] font-black text-indigo-600/80 dark:text-indigo-300/90 uppercase tracking-[0.25em] animate-fade-in transition-all duration-700 truncate"></p>
-                    </div>
-                </div>
-
-                <div class="flex flex-wrap items-center justify-end gap-2 md:gap-3 w-full lg:w-auto relative">
-                    <!-- Version Badge (Visible & Professional) -->
-                    <div class="hidden md:flex flex-col items-center bg-slate-50 dark:bg-white/5 px-4 lg:px-6 py-2 rounded-2xl border border-slate-100 dark:border-white/10 shadow-sm shrink-0 pointer-events-none cursor-default">
-                        <span class="text-[7px] font-black text-slate-400 uppercase tracking-[0.2em] mb-0.5">Versión</span>
-                        <span class="text-[9px] font-black text-slate-800 dark:text-white tracking-widest uppercase tabular-nums">${APP_VERSION}</span>
                     </div>
 
-                    <!-- Unified Pill Container (High Contrast & Z-Target) -->
-                    <div class="flex-none flex items-center justify-center gap-4 bg-slate-100 dark:bg-white/5 px-4 md:px-5 py-2.5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-inner relative z-[60]">
-                        <!-- Theme Toggle Button -->
-                        <button onclick="window.toggleTheme(); window.refreshConductorView();" class="text-slate-500 hover:text-primary transition-all active:scale-75 group/theme outline-none relative z-[70] pointer-events-auto">
-                            <i class="fas fa-moon dark:hidden"></i>
-                            <i class="fas fa-sun hidden dark:block text-yellow-500 animate-pulse"></i>
-                        </button>
-
-                        <div class="w-px h-3 bg-slate-200 dark:bg-white/10 mx-0.5 pointer-events-none"></div>
-
-                        <!-- Current View Status -->
-                        <div class="flex items-center gap-2 pointer-events-none">
-                            <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                            <span class="text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest whitespace-nowrap">Conductor</span>
+                    <div class="flex flex-wrap items-center justify-end gap-2 md:gap-3 w-full lg:w-auto relative">
+                        <!-- Version Badge (High Density) -->
+                        <div class="hidden md:flex flex-col items-center bg-slate-50 dark:bg-white/5 px-3 py-1.5 rounded-xl border border-slate-100 dark:border-white/10 shadow-sm shrink-0 pointer-events-auto z-10 cursor-default">
+                            <span class="text-[6px] font-black text-slate-400 uppercase tracking-[0.2em]">Versión</span>
+                            <span class="text-[8px] font-black text-slate-800 dark:text-white tracking-widest uppercase tabular-nums">${APP_VERSION}</span>
                         </div>
 
-                        <div class="w-px h-3 bg-slate-200 dark:bg-white/10 mx-0.5 pointer-events-none"></div>
-
-                        <!-- Action Button (Admin or Repair) -->
-                        ${(userRole === 'Administrador' || userRole === 'SuperAdmin' || conductorData?.privilegios?.includes('Administrador')) ? `
-                            <button id="btn-goto-admin" class="text-[8px] font-black text-primary hover:text-primary-dark uppercase tracking-widest transition-all active:scale-95 flex items-center gap-2 whitespace-nowrap outline-none px-1 relative z-[70] pointer-events-auto">
-                                <i class="fas fa-random text-[10px]"></i> Admin
+                        <!-- Integrated Pill UI -->
+                        <div class="flex-none flex items-center justify-center gap-3 bg-slate-100 dark:bg-white/5 px-3 py-2 rounded-xl border border-slate-200 dark:border-white/10 shadow-inner relative z-[60]">
+                            <button onclick="window.toggleTheme(); window.refreshConductorView();" class="text-slate-500 hover:text-primary transition-all active:scale-75 group/theme outline-none relative z-[70] pointer-events-auto text-xs">
+                                <i class="fas fa-moon dark:hidden"></i>
+                                <i class="fas fa-sun hidden dark:block text-yellow-500"></i>
                             </button>
-                        ` : ''}
-                    </div>
 
-                    <button id="logout-btn" class="${VisualEngine.get('button.base')} ${VisualEngine.get('button.danger')} !px-6 !py-2.5 lg:flex-none tabular-nums shrink-0">
-                        <i class="fas fa-power-off"></i> Salir
-                    </button>
-                </div>
-            </header>
+                            <div class="w-px h-3 bg-slate-200 dark:bg-white/10 mx-0.5 pointer-events-none"></div>
+
+                            <div class="flex items-center gap-2 pointer-events-none">
+                                <div class="w-1 h-1 rounded-full bg-emerald-500 animate-pulse"></div>
+                                <span class="text-[7px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest whitespace-nowrap">Conductor</span>
+                            </div>
+
+                            <div class="w-px h-3 bg-slate-200 dark:bg-white/10 mx-0.5 pointer-events-none"></div>
+
+                            ${(userRole === 'Administrador' || userRole === 'SuperAdmin' || conductorData?.privilegios?.includes('Administrador')) ? `
+                                <button id="btn-goto-admin" class="text-[7px] font-black text-primary hover:text-primary-dark uppercase tracking-widest transition-all active:scale-95 flex items-center gap-1.5 whitespace-nowrap outline-none px-1 relative z-[70] pointer-events-auto">
+                                    <i class="fas fa-random text-[9px]"></i> Admin
+                                </button>
+                            ` : ''}
+                        </div>
+
+                        <button id="logout-btn" class="${VisualEngine.get('button.base')} ${VisualEngine.get('button.danger')} !px-4 !py-2 !text-[9px] lg:flex-none tabular-nums shrink-0">
+                            <i class="fas fa-power-off text-[10px]"></i> Salir
+                        </button>
+                    </div>
+                </header>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-y-6 gap-x-8 px-2 md:px-4">
                 <!-- Agenda Section (Always Expanded, No container) -->
@@ -1355,7 +1356,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
             try {
                 // 1. System Config Pool
                 if (!configLivePoolUnsubscribe) {
-                    configLivePoolUnsubscribe = startLivePool("configuracion", [where("__name__", "==", "global_settings")], (data) => {
+                    configLivePoolUnsubscribe = startLivePool("configuracion", [where(documentId(), "==", "global_settings")], (data) => {
                         if (data.length > 0) {
                             currentSystemConfig = data[0];
                             console.log("⚙️ [Live Pool] System Config Updated.");
@@ -1375,7 +1376,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 // 3. Weekly Program Pool (Cronograma)
                 const poolWeekId = getSafeDateId(getMonday(new Date()));
                 if (!programLivePoolUnsubscribe) {
-                    programLivePoolUnsubscribe = startLivePool("programa_semanal", [where("__name__", "==", poolWeekId)], (data) => {
+                    programLivePoolUnsubscribe = startLivePool("programa_semanal", [where(documentId(), "==", poolWeekId)], (data) => {
                         if (data.length > 0) {
                             poolData.programa = data[0];
                             console.log("📅 [Live Pool] Weekly Program Updated.");
@@ -1735,7 +1736,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
             if (!hasShifts) {
                 if (agendaContainer) agendaContainer.innerHTML = `
-    <div class="col-span-full py-16 sm:py-24 px-6 sm:px-8 modern-card text-center animate-fade-in shadow-2xl bg-white dark:bg-[#0f1420]/60 border-slate-200 dark:border-white/10 relative overflow-hidden group">
+    <div class="col-span-full py-10 sm:py-16 px-6 sm:px-8 modern-card text-center animate-fade-in shadow-2xl bg-white dark:bg-[#0f1420]/60 border-slate-200 dark:border-white/10 relative overflow-hidden group">
         <div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
         <div class="flex flex-col items-center gap-8 relative z-10">
             <div class="w-24 h-24 bg-primary/10 rounded-[2.5rem] flex items-center justify-center text-4xl text-primary shadow-inner border border-primary/20 animate-float">

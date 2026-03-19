@@ -7,7 +7,7 @@ import {
 import { showNotification, formatGroups, getBaseTerritoryNumber, normalize } from '../utils/helpers.js';
 import { UIHelpers, showModal, showTerritorySelectionModal, showCustomConfirm } from '../services/ui-helpers.js';
 import { generateProgramPNG } from './program-generator.js';
-import { where } from "firebase/firestore";
+import { where, documentId } from "firebase/firestore";
 
 const { getMonday, formatDateId } = UIHelpers;
 
@@ -149,8 +149,9 @@ export const renderProgramaTab = async (container) => {
                     </div>
                 </div>
                 
-                <div class="flex flex-wrap items-center justify-center gap-3 w-full xl:w-auto">
-                    <div class="flex items-center bg-slate-100 dark:bg-white/5 rounded-2xl p-1 border border-slate-200 dark:border-white/5 shadow-inner">
+                <div class="flex flex-wrap items-center justify-center gap-3 w-full xl:w-auto overflow-visible relative">
+                    <!-- Week Navigation (Forced to Layer 50) -->
+                    <div class="flex items-center bg-slate-100 dark:bg-white/5 rounded-2xl p-1 border border-slate-200 dark:border-white/5 shadow-inner relative z-[50] mb-5 xl:mb-0">
                          <button id="prev-week" class="p-4 hover:bg-white dark:hover:bg-white/10 rounded-xl transition-all text-slate-400 hover:text-primary active:scale-95">
                             <i class="fas fa-chevron-left"></i>
                          </button>
@@ -162,7 +163,8 @@ export const renderProgramaTab = async (container) => {
                          </button>
                     </div>
 
-                    <nav data-adaptive-wrap="true" class="flex flex-wrap items-center justify-center lg:justify-start gap-2 bg-slate-100/50 dark:bg-white/5 p-1.5 rounded-2xl border border-slate-200/50 dark:border-white/5 shadow-sm w-full lg:w-max max-w-full">
+                    <!-- Action Buttons (Lower Layer 10) -->
+                    <nav data-adaptive-wrap="true" class="flex flex-wrap items-center justify-center lg:justify-start gap-2 bg-slate-100/50 dark:bg-white/5 p-1.5 rounded-2xl border border-slate-200/50 dark:border-white/5 shadow-sm w-full lg:w-max max-w-full relative z-[10]">
                         <button id="btn-sync-all-prog" class="btn-pro flex items-center gap-2 px-6 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-emerald-500/20 active:scale-95 group shrink-0" title="Formalizar todas las asignaciones programadas">
                             <i class="fas fa-project-diagram group-hover:rotate-12 transition-transform"></i>
                             Formalizar
@@ -188,18 +190,18 @@ export const renderProgramaTab = async (container) => {
                                 Exportar
                                 <i class="fas fa-chevron-down ml-1 text-[8px] opacity-70 group-hover:translate-y-0.5 transition-transform"></i>
                             </button>
-                            <div id="export-menu-options" class="dropdown-content absolute right-0 min-w-[220px]">
-                                <button id="btn-export-xls-prog">
-                                    <i class="fas fa-file-excel text-emerald-500"></i>
+                            <div id="export-menu-options" class="absolute right-0 top-full mt-3 min-w-[220px] bg-white dark:bg-slate-900 rounded-[1.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-slate-200 dark:border-white/10 p-2 z-[99] origin-top-right transition-all duration-300 transform scale-95 opacity-0 pointer-events-none data-[visible=true]:scale-100 data-[visible=true]:opacity-100 data-[visible=true]:pointer-events-auto">
+                                <button id="btn-export-xls-prog" class="w-full flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-emerald-500 rounded-xl transition-all text-left">
+                                    <i class="fas fa-file-excel text-emerald-500 text-sm"></i>
                                     Programa Excel
                                 </button>
-                                <div class="h-px bg-slate-100 dark:bg-white/5 my-1"></div>
-                                <button id="btn-export-png-cond-new">
-                                    <i class="fas fa-user-tie text-indigo-500"></i>
+                                <div class="h-px bg-slate-100 dark:bg-white/5 my-1 mx-2"></div>
+                                <button id="btn-export-png-cond-new" class="w-full flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-indigo-500 rounded-xl transition-all text-left">
+                                    <i class="fas fa-user-tie text-indigo-500 text-sm"></i>
                                     Formato Conductor
                                 </button>
-                                <button id="btn-export-png-pub-new">
-                                    <i class="fas fa-users text-emerald-500"></i>
+                                <button id="btn-export-png-pub-new" class="w-full flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-indigo-500 rounded-xl transition-all text-left">
+                                    <i class="fas fa-users text-emerald-500 text-sm"></i>
                                     Formato Publicador
                                 </button>
                             </div>
@@ -243,14 +245,20 @@ export const renderProgramaTab = async (container) => {
 
             // Xolvy Live Pool: Dynamic week synchronization
             if (programUnsub) { programUnsub(); programUnsub = null; }
-            programUnsub = startLivePool("programa_semanal", [where("__name__", "==", weekId)], (data) => {
-                if (data.length > 0) {
+            programUnsub = startLivePool("programa_semanal", [where(documentId(), "==", weekId)], (data) => {
+                if (data.length > 0 && data[0].dias) {
                     programa = data[0];
                     // Sync dates
                     programa.dias.forEach((dia, idx) => {
                         const expectedDate = new Date(currentWeekStart);
                         expectedDate.setDate(expectedDate.getDate() + idx);
                         dia.fecha = formatDateId(expectedDate);
+                        
+                        // Xolvy Robust: Ensure all mandatory turns exist in each day even if empty
+                        ['manana', 'tarde', 'noche'].forEach(tId => {
+                            if (!dia[tId]) dia[tId] = {};
+                        });
+                        if (dia.nombre === 'Martes' && !dia.zoom) dia.zoom = {};
                     });
                     console.log(`📅 [Live Pool] Week ${weekId} Updated.`);
                 } else {
@@ -341,18 +349,41 @@ export const renderProgramaTab = async (container) => {
             getTerritorios(), getPublicadores()
         ]);
 
+        const tableContainer = container.querySelector('#admin-prog-table');
+
+        // --- FORCED RENDER: BRUTE FORCE RECONSTRUCTION ---
+        if (!programa || !programa.dias || programa.dias.length === 0) {
+            console.warn("🛡️ [Data Shield] Brute forcing program structure...");
+            programa = {
+                id: formatDateId(currentWeekStart),
+                dias: dayNames.map((name, idx) => {
+                    const dayDate = new Date(currentWeekStart);
+                    dayDate.setDate(dayDate.getDate() + idx);
+                    return { 
+                        nombre: name, 
+                        fecha: formatDateId(dayDate), 
+                        manana: {}, tarde: {}, noche: {}, zoom: {} 
+                    };
+                })
+            };
+        }
+
         // Update local territories cache
         territorios.length = 0;
         territorios.push(...freshTerritorios);
 
-        const activeConductors = freshPersonnel.filter(p => p.es_conductor).sort((a, b) => a.nombre.localeCompare(b.nombre));
+        const activeConductors = freshPersonnel.filter(p => p.es_conductor && p.nombre).sort((a, b) => String(a.nombre || '').localeCompare(String(b.nombre || '')));
 
-
-
-        const tableContainer = container.querySelector('#admin-prog-table');
         let html = `<div class="space-y-12 pb-20">`;
+        
         programa.dias.forEach((dia, dayIndex) => {
             if (activeDayIndex !== -1 && activeDayIndex !== dayIndex) return;
+
+            // Xolvy Robust: Force default objects if dayData is null/empty
+            if (!dia.manana) dia.manana = {};
+            if (!dia.tarde) dia.tarde = {};
+            if (!dia.noche) dia.noche = {};
+            if (dia.nombre === 'Martes' && !dia.zoom) dia.zoom = {};
 
             const isWeekend = dia.nombre === 'Sábado' || dia.nombre === 'Domingo';
             const turnos = [
@@ -411,7 +442,7 @@ export const renderProgramaTab = async (container) => {
                     html += `<div class="space-y-1.5">`;
 
                     if (field === 'Territorio') {
-                        const conductor = dia[turnoId].conductor;
+                        const conductor = data.conductor || '';
                         html += `
                             <label class="text-[9px] font-black text-slate-400 tracking-[0.2em] uppercase ml-1 flex items-center justify-between">
                                 <span><i class="fas fa-map-marked-alt opacity-30"></i> ${field}</span>
@@ -462,8 +493,9 @@ export const renderProgramaTab = async (container) => {
                         if (field === 'Conductor' || field === 'Auxiliar') {
                             const effectiveShiftId = getEffectiveShiftId(turnoId, data.hora);
                             const availKey = `${dia.nombre}_${effectiveShiftId}`;
-                            const available = activeConductors.filter(c => c.disponibilidad && c.disponibilidad.includes(availKey));
-                            const nonAvailable = activeConductors.filter(c => !c.disponibilidad || !c.disponibilidad.includes(availKey));
+                            const safeCheck = (disp) => (Array.isArray(disp) ? disp : []).includes(availKey);
+                            const available = activeConductors.filter(e => safeCheck(e.disponibilidad));
+                            const nonAvailable = activeConductors.filter(e => !safeCheck(e.disponibilidad));
 
                             finalOpts = [
                                 ...available.map(c => ({ name: c.nombre, isAvail: true })),
@@ -550,9 +582,10 @@ export const renderProgramaTab = async (container) => {
             const badgeContainer = container.querySelector(`#status-badge-${dayIdx}-${turnoId}`);
             if (badgeContainer) {
                 const dia = programa.dias[dayIdx];
-                const v = dia[turnoId].territorio;
+                const turnData = dia[turnoId] || {};
+                const v = turnData.territorio;
                 const tNums = Array.from(new Set(String(v || '').split(/[,;/]/).map(n => n.trim()).filter(Boolean)));
-                const conductor = dia[turnoId].conductor;
+                const conductor = turnData.conductor;
 
                 const results = tNums.map(n => getTStatus(n, conductor, dia.fecha, turnoId));
                 const allSync = results.every(r => r.isSync);
@@ -1548,8 +1581,18 @@ export const renderProgramaTab = async (container) => {
         }, 'max-w-lg', 'modal-container-nested');
     };
 
-    container.querySelector('#prev-week').onclick = () => { currentWeekStart.setDate(currentWeekStart.getDate() - 7); loadWeekData(); };
-    container.querySelector('#next-week').onclick = () => { currentWeekStart.setDate(currentWeekStart.getDate() + 7); loadWeekData(); };
+    container.querySelector('#prev-week').onclick = (e) => { 
+        e.preventDefault();
+        e.stopPropagation();
+        currentWeekStart.setDate(currentWeekStart.getDate() - 7); 
+        loadWeekData(); 
+    };
+    container.querySelector('#next-week').onclick = (e) => { 
+        e.preventDefault();
+        e.stopPropagation();
+        currentWeekStart.setDate(currentWeekStart.getDate() + 7); 
+        loadWeekData(); 
+    };
     container.querySelector('#btn-reset-today').onclick = () => { currentWeekStart = getMonday(new Date()); loadWeekData(); };
 
     container.querySelector('#btn-copy-prev-week').onclick = async () => {
@@ -1604,22 +1647,21 @@ export const renderProgramaTab = async (container) => {
         // Dropdown toggle logic
         dDown.onclick = (e) => {
             e.stopPropagation();
-            menuEl.classList.toggle('show');
+            const isVisible = menuEl.getAttribute('data-visible') === 'true';
+            menuEl.setAttribute('data-visible', !isVisible);
         };
         document.addEventListener('click', () => {
-            if (menuEl.classList.contains('show')) menuEl.classList.remove('show');
+            menuEl.setAttribute('data-visible', 'false');
         });
 
         // The button logic for export
         container.querySelector('#btn-export-png-cond-new').onclick = async () => {
-             showNotification("El formato PNG para PDF ha sido delegado. Redirigiendo a Excel...", "info");
-             const { exportarProgramaExcel } = await import('../services/export-service.js');
-             await exportarProgramaExcel(programa, true);
+             const { exportarProgramaPNG } = await import('../services/export-service.js');
+             await exportarProgramaPNG(programa, 'conductor');
         };
         container.querySelector('#btn-export-png-pub-new').onclick = async () => {
-             showNotification("El formato PNG para PDF ha sido delegado. Redirigiendo a Excel...", "info");
-             const { exportarProgramaExcel } = await import('../services/export-service.js');
-             await exportarProgramaExcel(programa, false);
+             const { exportarProgramaPNG } = await import('../services/export-service.js');
+             await exportarProgramaPNG(programa, 'publicador');
         };
     }
 
