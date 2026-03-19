@@ -188,21 +188,22 @@ export const renderReportsTab = async (container, config, appVersion) => {
             countLabel.innerText = `${filtered.length} REGISTROS DETECTADOS`;
 
             tableContainer.innerHTML = `
-                <div class="overflow-x-auto custom-scrollbar">
-                    <table class="w-full text-left border-separate border-spacing-y-2">
-                        <thead>
-                            <tr class="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                <div class="p-0">
+                    <table class="w-full text-left border-collapse block md:table">
+                        <thead class="hidden md:table-header-group">
+                            <tr class="text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-200/50 dark:border-white/5">
                                 <th class="px-6 pb-4">Territorio</th>
-                                <th class="px-6 pb-4">Conductor / Publicador</th>
+                                <th class="px-6 pb-4">Conductor</th>
                                 <th class="px-6 pb-4">Fecha Asig.</th>
                                 <th class="px-6 pb-4">Fecha Entr.</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody class="block md:table-row-group divide-y divide-slate-100 dark:divide-white/5 md:divide-y-0">
                             ${filtered.map(h => `
-                                <tr class="bg-slate-50 dark:bg-white/[0.03] text-[11px] font-bold text-slate-700 dark:text-gray-300 shadow-sm transition-all hover:bg-white dark:hover:bg-white/10">
+                                <!-- Desktop Row -->
+                                <tr class="hidden md:table-row bg-slate-50 dark:bg-white/[0.03] text-[11px] font-bold text-slate-700 dark:text-gray-300 shadow-sm transition-all hover:bg-white dark:hover:bg-white/10 group">
                                     <td class="px-6 py-4 rounded-l-2xl border-y border-l border-slate-200/50 dark:border-white/5">
-                                        <span class="w-10 h-10 flex items-center justify-center bg-emerald-500/10 text-emerald-600 rounded-xl font-black">#${h.numero}</span>
+                                        <span class="w-10 h-10 flex items-center justify-center bg-emerald-500/10 text-emerald-600 rounded-xl font-black shadow-inner">#${h.numero}</span>
                                     </td>
                                     <td class="px-6 py-4 border-y border-slate-200/50 dark:border-white/5 uppercase tracking-tight">${h.conductor || '—'}</td>
                                     <td class="px-6 py-4 border-y border-slate-200/50 dark:border-white/5 opacity-60">${UIHelpers.fmtDate(h.fecha_asignacion)}</td>
@@ -210,6 +211,21 @@ export const renderReportsTab = async (container, config, appVersion) => {
                                         <div class="flex items-center gap-2">
                                             <i class="fas fa-check-circle"></i>
                                             ${UIHelpers.fmtDate(h.fecha_entrega)}
+                                        </div>
+                                    </td>
+                                </tr>
+                                <!-- Mobile Row (Lista Maestra) -->
+                                <tr class="md:hidden block w-full hover:bg-slate-50 dark:hover:bg-white/5 active:scale-[0.98] transition-all cursor-pointer">
+                                    <td class="block p-5 w-full">
+                                        <div class="flex items-center gap-4 w-full">
+                                            <span class="w-12 h-12 shrink-0 bg-emerald-500/10 text-emerald-600 rounded-[1rem] flex items-center justify-center font-black text-lg shadow-inner">#${h.numero}</span>
+                                            <div class="flex flex-col gap-1 w-full min-w-0">
+                                                <div class="flex justify-between items-center w-full">
+                                                    <span class="text-sm font-black text-slate-800 dark:text-white uppercase truncate">${h.conductor || '—'}</span>
+                                                    <span class="shrink-0 text-[10px] font-black text-emerald-600 flex items-center gap-1"><i class="fas fa-check-circle"></i> ${UIHelpers.fmtDate(h.fecha_entrega)}</span>
+                                                </div>
+                                                <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate">A: ${UIHelpers.fmtDate(h.fecha_asignacion)}</span>
+                                            </div>
                                         </div>
                                     </td>
                                 </tr>

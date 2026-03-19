@@ -1,5 +1,5 @@
-import { getPublicadores, addPublicador, updatePublicador, deletePublicador, getGroupsConfig, startLivePool } from '../../data/firestore-services.js';
-import { showNotification, ensureOnline, normalize } from '../utils/helpers.js';
+import { addPublicador, updatePublicador, deletePublicador, getGroupsConfig, startLivePool } from '../../data/firestore-services.js';
+import { showNotification, normalize } from '../utils/helpers.js';
 import { showModal, showCustomConfirm } from '../services/ui-helpers.js';
 import { setAdminLivePool } from '../admin-dashboard.js';
 
@@ -93,7 +93,7 @@ export const renderPersonalTab = async (container) => {
 
             <div class="md:hidden space-y-4 px-2">
                 ${publicadores.map(p => `
-                    <div class="modern-card p-5 border-slate-200 dark:border-white/5 shadow-xl space-y-4 relative overflow-hidden active:scale-[0.98] transition-all">
+                    <div onclick="window.editPerson('${p.id}')" class="modern-card p-5 border-slate-200 dark:border-white/5 shadow-sm hover:shadow-md space-y-4 relative overflow-hidden active:scale-[0.98] transition-all cursor-pointer">
                         <div class="flex items-center justify-between gap-4">
                             <div class="flex items-center gap-4">
                                 <div class="w-12 h-12 rounded-2xl bg-gradient-to-br ${p.genero === 'Mujer' ? 'from-rose-500 to-pink-500' : 'from-primary to-blue-600'} flex items-center justify-center text-white font-black text-lg shadow-lg">

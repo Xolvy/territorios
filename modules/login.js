@@ -4,139 +4,90 @@ import { getPublicadores, getConfiguracion } from '../data/firestore-services.js
 import { VisualEngine } from './utils/visual-engine.js';
 
 export const renderLogin = (container, appVersion) => {
-    const cachedName = localStorage.getItem('cached_congregation_name') || "Sincronizando Portal...";
+    const cachedName = localStorage.getItem('cached_congregation_name') || "";
 
     container.innerHTML = `
-        <div class="${VisualEngine.get('shell.container')} flex flex-col items-center justify-between min-h-screen p-8 md:p-12 relative overflow-hidden">
-            <!-- Background Decorative Elements -->
-            <div class="fixed inset-0 overflow-hidden pointer-events-none opacity-40 dark:opacity-20 animate-fade-in">
-                <div class="absolute -top-[15%] -left-[15%] w-[70%] h-[70%] bg-primary/20 blur-[180px] rounded-full animate-pulse"></div>
-                <div class="absolute -bottom-[15%] -right-[15%] w-[70%] h-[70%] bg-indigo-500/10 blur-[180px] rounded-full animate-float"></div>
+        <div class="flex flex-col items-center justify-center min-h-screen bg-slate-50 dark:bg-[#060a12] p-6 sm:p-12 md:p-24 relative overflow-hidden font-sans">
+            <!-- Espacio Negativo & Fondos Abstractos -->
+            <div class="fixed inset-0 overflow-hidden pointer-events-none opacity-40 dark:opacity-20">
+                <div class="absolute top-[10%] left-[20%] w-[50%] h-[50%] bg-indigo-500/10 blur-[120px] rounded-full mix-blend-multiply dark:mix-blend-screen animate-pulse"></div>
+                <div class="absolute bottom-[20%] right-[10%] w-[40%] h-[40%] bg-blue-500/10 blur-[120px] rounded-full mix-blend-multiply dark:mix-blend-screen animate-float"></div>
             </div>
 
-            <!-- Header: Subtle & High Density -->
-            <header class="relative z-10 text-center space-y-2 mt-4 animate-slide-down">
-                <div class="flex items-center justify-center gap-3">
-                    <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white text-xs shadow-lg">
-                        <i class="fas fa-cube"></i>
-                    </div>
-                    <span class="text-[14px] font-black tracking-[0.5em] text-slate-800 dark:text-white uppercase">SISTEMA</span>
-                </div>
-                <p class="text-[9px] font-black text-slate-400 dark:text-slate-500 tracking-[0.3em] uppercase opacity-70">Plataforma Integral de Gestión · 2026</p>
+            <header class="absolute top-0 inset-x-0 w-full flex justify-center py-10 z-10 animate-fade-in opacity-50">
+                <span class="text-[9px] font-bold tracking-[0.4em] text-slate-500 uppercase">Portal Verificado</span>
             </header>
 
-            <div id="login-card-container" class="w-full max-w-[320px] space-y-6 text-center relative z-10 animate-fade-in py-10">
-                <!-- Brand Header -->
-                <div class="space-y-4">
-                    <div class="relative w-20 h-20 mx-auto mb-6 group">
-                        <!-- Soft Ambient Glow -->
-                        <div class="absolute inset-0 bg-primary/20 dark:bg-primary/10 blur-[40px] rounded-full scale-125 group-hover:scale-150 transition-all duration-1000 opacity-70"></div>
-                        
-                        <!-- Main Logo Container (Glass) -->
-                        <div class="relative w-full h-full bg-white/60 dark:bg-[#0f1420]/80 backdrop-blur-3xl rounded-[2rem] border border-white/40 dark:border-white/10 flex items-center justify-center shadow-xl transform transition-all duration-700 group-hover:scale-105 overflow-hidden">
-                            <div class="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent pointer-events-none"></div>
-                            <svg viewBox="0 0 512 512" class="w-10 h-10 drop-shadow-md">
-                                <defs>
-                                    <linearGradient id="mapGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                        <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
-                                        <stop offset="100%" style="stop-color:#f0fdfa;stop-opacity:1" />
-                                    </linearGradient>
-                                </defs>
-                                <path d="M48 96 L176 32 L304 96 L432 32 V384 L304 448 L176 384 L48 448 Z" 
-                                      fill="url(#mapGrad)" stroke="#0d9488" stroke-width="18" stroke-linejoin="round"/>
-                                <path d="M176 32 V384 M304 96 V448" stroke="#0d9488" stroke-width="18" stroke-linecap="round" opacity="0.3"/>
-                                <circle cx="240" cy="190" r="50" fill="#14b8a6" stroke="white" stroke-width="10"/>
-                                <circle cx="240" cy="190" r="18" fill="white"/>
-                                <path d="M240 240 L240 320" stroke="#14b8a6" stroke-width="20" stroke-linecap="round"/>
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="space-y-1">
-                        <h1 class="text-lg font-black tracking-tight text-slate-900 dark:text-white uppercase">
-                            Gestión de <span class="text-primary">Territorios</span>
-                        </h1>
-                        <p id="cong-label" class="text-[9px] font-black text-slate-400 dark:text-slate-500 tracking-[0.2em] uppercase transition-all duration-1000">${cachedName}</p>
+            <div id="login-card-container" class="w-full max-w-[300px] flex flex-col items-center relative z-10 animate-fade-in">
+                
+                <!-- Avatar Nexo Mejorado -->
+                <div class="relative w-28 h-28 mx-auto mb-10 group cursor-default">
+                    <div class="absolute inset-0 bg-indigo-500/20 dark:bg-indigo-500/10 blur-[40px] rounded-[2.5rem] scale-110 group-hover:scale-125 transition-transform duration-1000"></div>
+                    <div class="relative w-full h-full bg-white dark:bg-slate-900/50 backdrop-blur-2xl rounded-[2.5rem] border border-slate-100 dark:border-white/10 shadow-2xl flex items-center justify-center overflow-hidden transition-all duration-700 group-hover:shadow-indigo-500/20">
+                        <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent pointer-events-none"></div>
+                        <!-- Nexo AI / Network Icon Minimal -->
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" class="w-10 h-10 text-indigo-500 dark:text-indigo-400 drop-shadow-sm group-hover:scale-110 transition-transform duration-700">
+                            <!-- Digital Assistant Sparkle -->
+                            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" class="opacity-50 animate-[spin_10s_linear_infinite]" style="transform-origin: center;"></path>
+                            <!-- Core Brain/Node -->
+                            <rect x="7" y="7" width="10" height="10" rx="3" class="fill-indigo-500/10"></rect>
+                            <circle cx="12" cy="12" r="1.5" class="fill-indigo-500 dark:fill-indigo-400"></circle>
+                        </svg>
                     </div>
                 </div>
 
-                <!-- Role Selection -->
-                <div id="selection-area" class="grid grid-cols-1 gap-3 mt-8">
-                    <!-- Administrador State Wrapper -->
-                    <div id="admin-wrapper" class="group ${VisualEngine.get('card.premium')} !p-0 transition-all duration-500 overflow-hidden relative">
-                        <!-- Preview State -->
-                        <div id="admin-preview" class="flex items-center gap-4 p-4 w-full cursor-pointer hover:bg-primary/5 transition-colors">
-                            <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all duration-300">
-                                 <i class="fas fa-user-shield text-base"></i>
+                <!-- Tipografía Nexo -->
+                <div class="text-center space-y-2 mb-12">
+                    <h1 class="text-2xl md:text-3xl font-black tracking-tighter text-slate-900 dark:text-white uppercase flex items-center justify-center">
+                        NEX<span class="text-indigo-500 font-light">O</span>
+                    </h1>
+                    <p id="cong-label" class="text-[9px] font-bold text-slate-400 tracking-[0.25em] uppercase min-h-[14px]">${cachedName}</p>
+                </div>
+
+                <!-- Roles Secuencia Lineal Minimalista -->
+                <div class="w-full space-y-4">
+                    <!-- Administrador -->
+                    <div id="admin-wrapper" class="w-full bg-white dark:bg-slate-900/40 backdrop-blur-xl border border-slate-200/50 dark:border-white/5 rounded-[2rem] p-2 transition-all duration-500 shadow-sm hover:shadow-xl hover:border-indigo-500/30 overflow-hidden relative">
+                        <div id="admin-preview" class="flex items-center gap-4 py-3 px-4 w-full cursor-pointer group">
+                            <div class="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-indigo-500 transition-colors group-hover:bg-indigo-500 group-hover:text-white">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
                             </div>
                             <div class="flex-1 text-left">
-                                <h3 class="text-xs font-bold text-slate-800 dark:text-white mb-0.5">Administrador</h3>
-                                <p class="text-[10px] text-slate-500 dark:text-slate-400 font-medium line-clamp-1">Gestión avanzada</p>
+                                <h3 class="text-[11px] font-black tracking-widest uppercase text-slate-800 dark:text-white">Administrador</h3>
+                                <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5 opacity-70">Acceso Seguro</p>
                             </div>
-                            <i class="fas fa-chevron-right text-slate-300 group-hover:text-primary transition-colors text-[10px]"></i>
                         </div>
 
-                        <!-- Login State -->
-                        <div id="admin-login-state" class="hidden flex flex-col items-center text-center p-6 w-full animate-slide-up gap-6 relative">
-                            <button id="btn-close-admin" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all z-30">
-                                <i class="fas fa-times text-xs"></i>
+                        <!-- Estado Login Google -->
+                        <div id="admin-login-state" class="hidden flex-col items-center p-6 w-full animate-slide-up relative">
+                            <button id="btn-close-admin" class="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center text-slate-300 hover:text-slate-500 dark:hover:text-white transition-colors z-30">
+                                <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
                             </button>
                             
-                            <div class="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
-                                <i class="fas fa-shield-alt text-2xl"></i>
+                            <div class="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-indigo-500 mb-4">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                             </div>
                             
-                            <div class="space-y-1">
-                                <h3 class="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tighter">Acceso Seguro</h3>
-                                <p class="text-[9px] font-black text-primary uppercase tracking-[0.2em] opacity-80">Xolvy Digital ID</p>
-                            </div>
-
-                            <button id="btn-google-login-action" class="w-full flex items-center justify-center gap-3 py-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl font-black text-[11px] text-slate-700 dark:text-white hover:border-primary/50 transition-all shadow-sm active:scale-95">
-                                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5" alt="Google">
+                            <button id="btn-google-login-action" class="w-full flex items-center justify-center gap-3 py-3.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl font-bold text-[10px] uppercase tracking-widest text-slate-700 dark:text-white hover:bg-white dark:hover:bg-white/10 transition-all active:scale-95 shadow-sm">
+                                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-4 h-4 opacity-80" alt="Google">
                                 Entrar con Google
                             </button>
-                            
-                            <p id="auth-error" class="text-rose-500 text-[9px] font-black uppercase tracking-widest hidden"></p>
+                            <p id="auth-error" class="text-rose-500 text-[9px] font-black uppercase tracking-widest hidden mt-4 text-center"></p>
                         </div>
                     </div>
 
-                    <!-- Conductor Button -->
-                    <button id="btn-conductor" class="group ${VisualEngine.get('card.premium')} !p-4 flex items-center gap-4 hover:border-secondary/40 text-left transition-all duration-500">
-                        <div class="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary group-hover:bg-secondary group-hover:text-white transition-all duration-300">
-                             <i class="fas fa-user-friends text-base"></i>
+                    <!-- Conductor -->
+                    <button id="btn-conductor" class="w-full bg-transparent border border-slate-200/50 dark:border-white/5 rounded-[2rem] p-2 flex items-center gap-4 hover:bg-white dark:hover:bg-white/5 hover:border-slate-300 dark:hover:border-white/20 transition-all duration-500 group">
+                        <div class="w-10 h-10 rounded-2xl bg-slate-50 dark:bg-white/5 flex items-center justify-center text-slate-500 dark:text-slate-400 group-hover:bg-slate-800 dark:group-hover:bg-white group-hover:text-white dark:group-hover:text-slate-900 transition-colors">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
                         </div>
-                        <div class="flex-1">
-                            <h3 class="text-xs font-bold text-slate-800 dark:text-white mb-0.5">Conductor</h3>
-                            <p class="text-[10px] text-slate-500 dark:text-slate-400 font-medium line-clamp-1">Salidas de Hoy</p>
+                        <div class="flex-1 text-left">
+                            <h3 class="text-[11px] font-black tracking-widest uppercase text-slate-800 dark:text-white">Conductor</h3>
+                            <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5 opacity-70">Salidas Hoy</p>
                         </div>
-                        <i class="fas fa-chevron-right text-slate-300 group-hover:text-secondary transition-colors text-[10px]"></i>
                     </button>
                 </div>
             </div>
-
-            <!-- Footer: Compact & Extreme Bottom -->
-            <footer class="relative z-10 w-full mb-4 animate-slide-up">
-                <div class="flex flex-col items-center justify-center gap-3 opacity-40 hover:opacity-100 transition-opacity duration-700">
-                    <div class="flex items-center gap-6">
-                        <i class="fas fa-shield-halved text-[10px] text-slate-400"></i>
-                        <p class="text-[9px] text-slate-600 dark:text-slate-400 font-black tracking-[0.2em] uppercase">
-                            SISTEMA XOLVY · v${appVersion || '2.6'}
-                        </p>
-                        <i class="fas fa-fingerprint text-[10px] text-slate-400"></i>
-                    </div>
-                    <div class="space-y-1 text-center">
-                        <p class="text-[8px] text-slate-500 dark:text-slate-500 font-bold tracking-widest uppercase">© Congregation Software Solutions · Ecuador</p>
-                        <p class="text-[7px] text-slate-400 dark:text-slate-600 font-medium uppercase tracking-[0.1em]">Advanced Management Interface Architecture</p>
-                    </div>
-                </div>
-                
-                <!-- Symmetric Corner Icons -->
-                <div class="absolute bottom-0 left-0 p-2 opacity-20 pointer-events-none">
-                    <div class="w-4 h-4 border-l-2 border-b-2 border-slate-400 rounded-bl-sm"></div>
-                </div>
-                <div class="absolute bottom-0 right-0 p-2 opacity-20 pointer-events-none">
-                    <div class="w-4 h-4 border-r-2 border-b-2 border-slate-400 rounded-br-sm"></div>
-                </div>
-            </footer>
         </div>
     `;
 

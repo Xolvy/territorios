@@ -122,7 +122,8 @@ const renderLateTable = (list, now, exp) => {
         const color = diff > exp * 1.5 ? 'rose' : 'amber';
 
         return `
-            <tr class="hover:bg-slate-50 dark:hover:bg-white/[0.01] transition-colors group">
+            <!-- Fila Desktop -->
+            <tr class="hidden md:table-row hover:bg-slate-50 dark:hover:bg-white/[0.01] transition-colors group">
                 <td class="px-8 py-6">
                     <div class="flex items-center gap-4">
                         <span class="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center font-black text-sm shadow-lg group-hover:scale-110 transition-transform">${t.numero}</span>
@@ -142,6 +143,27 @@ const renderLateTable = (list, now, exp) => {
                     <div class="flex items-center justify-end gap-2">
                          <span class="text-[9px] font-black text-${color}-500 uppercase tracking-widest">${gravity}</span>
                          <div class="w-2 h-2 rounded-full bg-${color}-500 animate-pulse"></div>
+                    </div>
+                </td>
+            </tr>
+            <!-- Tarjeta Mobile (Lista Maestra) -->
+            <tr class="md:hidden block w-full hover:bg-slate-50 dark:hover:bg-white/5 active:scale-[0.98] transition-all cursor-pointer border-b border-slate-100 dark:border-white/5">
+                <td class="block p-5 w-full">
+                    <div class="flex justify-between items-start gap-3 w-full">
+                        <div class="flex items-center gap-4 w-full">
+                            <span class="w-12 h-12 shrink-0 bg-slate-900 text-white rounded-[1rem] flex items-center justify-center font-black text-lg shadow-lg">${t.numero}</span>
+                            <div class="flex flex-col gap-1 w-full min-w-0">
+                                <div class="flex justify-between items-center w-full">
+                                    <span class="text-sm font-black text-slate-800 dark:text-white uppercase truncate">${t.localidad || 'Congregación'}</span>
+                                    <span class="shrink-0 text-[10px] font-black text-${color}-600 bg-${color}-500/10 px-2.5 py-1 rounded-lg border border-${color}-500/20">${diff} d</span>
+                                </div>
+                                <span class="text-[11px] font-bold text-slate-500 uppercase tracking-widest truncate">${t.asignado_a}</span>
+                                <div class="flex justify-between items-center mt-1">
+                                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]"><i class="far fa-calendar-alt"></i> ${date.toLocaleDateString()}</span>
+                                    <span class="text-[9px] font-black text-${color}-500 uppercase tracking-widest flex items-center gap-1.5">${gravity} <span class="w-1.5 h-1.5 rounded-full bg-${color}-500 animate-pulse"></span></span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </td>
             </tr>
@@ -296,9 +318,9 @@ export const renderAnalyticsView = async (container, appVersion) => {
                         Acción Requerida
                     </div>
                 </div>
-                <div class="table-container overflow-x-auto p-0">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
+                <div class="table-container p-0">
+                    <table class="w-full text-left border-collapse block md:table">
+                        <thead class="hidden md:table-header-group">
                             <tr class="bg-gray-100/50 dark:bg-black/40 text-[10px] uppercase font-black text-slate-500 tracking-widest border-b border-slate-100 dark:border-white/5">
                                 <th class="px-8 py-6">Territorio</th>
                                 <th class="px-8 py-6">Responsable</th>
@@ -307,7 +329,7 @@ export const renderAnalyticsView = async (container, appVersion) => {
                                 <th class="px-8 py-6 text-right">Gravedad</th>
                             </tr>
                         </thead>
-                        <tbody id="late-table-body" class="divide-y divide-gray-100 dark:divide-white/5 text-sm">
+                        <tbody id="late-table-body" class="block md:table-row-group divide-y-0 md:divide-y divide-gray-100 dark:divide-white/5 text-sm">
                             <!-- Inyectado dinámicamente -->
                         </tbody>
                     </table>

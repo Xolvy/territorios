@@ -85,14 +85,6 @@ export const renderProgramaTab = async (container) => {
         }))
         .sort((a, b) => a.numero.localeCompare(b.numero, undefined, { numeric: true, sensitivity: 'base' }));
 
-    const activeConductors = allPersonnel
-        .filter(p => {
-            const hasName = p.nombre && normalize(p.nombre).length > 0;
-            return hasName && p.es_conductor;
-        })
-        .map(p => ({ ...p, nombre: normalize(p.nombre) }))
-        .sort((a, b) => a.nombre.localeCompare(b.nombre));
-
     // Shared Robust Helpers
     const normalizeT = (val) => String(val || '').trim();
     const normalizeLower = (val) => normalizeT(val).toLowerCase();
@@ -124,16 +116,6 @@ export const renderProgramaTab = async (container) => {
                 turno: t.turno
             }
         };
-    };
-
-    const options = {
-        Lugar: config.lugares || ['Salón del Reino'],
-        Hora: config.horarios_programa || ['09:00', '15:00', '19:00'],
-        Conductor: activeConductors.map(c => c.nombre),
-        Auxiliar: activeConductors.map(p => p.nombre),
-        Faceta: config.facetas || ['Casa en casa', 'Carritos'],
-        Territorio: territorios.map(t => t.numero),
-        Grupos: ['Todos', 'Grupos 1 y 5', 'Grupos 2 y 6', 'Grupos 3 y 4', ...Array.from({ length: 12 }, (_, i) => `Grupo ${i + 1}`)]
     };
 
     container.innerHTML = `
@@ -222,7 +204,7 @@ export const renderProgramaTab = async (container) => {
                      </div>
                 </div>
                 
-                <div class="modern-card !p-0 overflow-x-auto custom-scrollbar border border-slate-200 dark:border-white/5 shadow-inner" id="admin-prog-table"></div>
+                <div class="modern-card !p-0 border-0 bg-transparent shadow-none" id="admin-prog-table"></div>
 
                 <div class="flex flex-col sm:flex-row justify-between items-center px-8 mt-6 gap-4">
                     <div class="flex items-center gap-6">
@@ -344,66 +326,54 @@ export const renderProgramaTab = async (container) => {
     };
 
     const renderTable = async () => {
-        // Refresh territories and personnel in memory to get up-to-date status and availability
-        const [freshTerritorios, freshPersonnel] = await Promise.all([
-            getTerritorios(), getPublicadores()
-        ]);
-
+        const [freshTerritorios, freshPersonnel] = await Promise.all([getTerritorios(), getPublicadores()]);
         const tableContainer = container.querySelector('#admin-prog-table');
 
-        // --- FORCED RENDER: BRUTE FORCE RECONSTRUCTION ---
         if (!programa || !programa.dias || programa.dias.length === 0) {
-            console.warn("🛡️ [Data Shield] Brute forcing program structure...");
             programa = {
                 id: formatDateId(currentWeekStart),
                 dias: dayNames.map((name, idx) => {
                     const dayDate = new Date(currentWeekStart);
                     dayDate.setDate(dayDate.getDate() + idx);
-                    return { 
-                        nombre: name, 
-                        fecha: formatDateId(dayDate), 
-                        manana: {}, tarde: {}, noche: {}, zoom: {} 
-                    };
+                    return { nombre: name, fecha: formatDateId(dayDate), manana: {}, tarde: {}, noche: {}, zoom: {} };
                 })
             };
         }
 
-        // Update local territories cache
         territorios.length = 0;
         territorios.push(...freshTerritorios);
 
-        const activeConductors = freshPersonnel.filter(p => p.es_conductor && p.nombre).sort((a, b) => String(a.nombre || '').localeCompare(String(b.nombre || '')));
+        const activeConductorsFresh = freshPersonnel.filter(p => p.es_conductor && p.nombre).sort((a, b) => String(a.nombre || '').localeCompare(String(b.nombre || '')));
+        
+        // Cache for modal
+        window._progCache = { activeConductors: activeConductorsFresh, territorios, config, dayNames };
 
-        let html = `<div class="space-y-12 pb-20">`;
+        let html = `<div class="flex flex-col gap-8 md:gap-12 pb-24 max-w-4xl mx-auto">`;
         
         programa.dias.forEach((dia, dayIndex) => {
             if (activeDayIndex !== -1 && activeDayIndex !== dayIndex) return;
 
-            // Xolvy Robust: Force default objects if dayData is null/empty
             if (!dia.manana) dia.manana = {};
             if (!dia.tarde) dia.tarde = {};
             if (!dia.noche) dia.noche = {};
             if (dia.nombre === 'Martes' && !dia.zoom) dia.zoom = {};
-
-            const isWeekend = dia.nombre === 'Sábado' || dia.nombre === 'Domingo';
             const turnos = [
-                { id: 'manana', icon: 'fa-sun', label: 'Mañana', color: 'text-amber-500', bg: 'bg-amber-500/10', fields: ['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', ...(isWeekend ? ['Grupos'] : []), 'Territorio'] },
-                { id: 'tarde', icon: 'fa-cloud-sun', label: 'Tarde', color: 'text-orange-500', bg: 'bg-orange-500/10', fields: ['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', ...(isWeekend ? ['Grupos'] : []), 'Territorio'] },
-                { id: 'noche', icon: 'fa-moon', label: 'Noche', color: 'text-indigo-500', bg: 'bg-indigo-500/10', fields: ['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', ...(isWeekend ? ['Grupos'] : []), 'Territorio'] },
-                { id: 'zoom', icon: 'fa-video', label: 'Zoom', color: 'text-emerald-500', bg: 'bg-emerald-500/10', fields: ['Lugar', 'Hora', 'Conductor', 'Faceta'] }
+                { id: 'manana' }, { id: 'tarde' }, { id: 'noche' },
+                { id: 'zoom' }
             ];
 
             html += `
-                <div class="day-group animate-fade-in px-4 md:px-8 ${activeDayIndex === -1 && dayIndex > 0 ? 'mt-20 md:mt-32' : 'mt-6 md:mt-10'}">
-                    <div class="flex items-center gap-8 mb-12">
-                        <div class="flex flex-col">
-                            <h4 class="text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">${dia.nombre}</h4>
-                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-2 ml-1 opacity-60">${dia.fecha}</p>
+                <div class="day-group animate-fade-in relative">
+                    <!-- Sticky Header Pegajoso -->
+                    <div class="sticky top-16 md:top-20 z-30 bg-slate-50/95 dark:bg-[#0a0f18]/95 backdrop-blur-md py-4 mb-4 border-b border-slate-200/60 dark:border-white/5 flex items-center justify-between">
+                        <div>
+                            <h4 class="text-xl md:text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">${dia.nombre}</h4>
+                            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none mt-1">${dia.fecha}</p>
                         </div>
-                        <div class="h-0.5 flex-1 bg-gradient-to-r from-primary/30 to-transparent rounded-full opacity-30"></div>
+                        <div class="h-px flex-1 bg-gradient-to-r from-slate-200 dark:from-white/10 to-transparent ml-6"></div>
                     </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 md:gap-8">
+                    
+                    <div class="flex flex-col rounded-2xl md:rounded-3xl border border-slate-200/60 dark:border-white/5 bg-white dark:bg-white/[0.02] shadow-sm overflow-hidden">
             `;
 
             turnos.forEach(t => {
@@ -413,136 +383,210 @@ export const renderProgramaTab = async (container) => {
 
                 const data = dia[turnoId] || {};
                 const styling = getTurnoStyling(turnoId, data.hora);
+                const hasData = data.conductor || data.territorio || data.grupos;
+
+                // Status logic for territory badge
+                let statusBadgeHTML = '';
+                if (data.territorio) {
+                     const results = Array.from(new Set(String(data.territorio).split(/[,;/]/).map(n => n.trim()).filter(Boolean))).map(n => getTStatus(n, data.conductor, dia.fecha, turnoId));
+                     const conflict = results.find(r => r.isConflict);
+                     if (conflict) {
+                         statusBadgeHTML = `<span class="inline-flex items-center rounded bg-rose-50 dark:bg-rose-500/10 px-1.5 py-0.5 text-[8px] font-black text-rose-700 dark:text-rose-400 ring-1 ring-inset ring-rose-600/20 uppercase tracking-widest animate-pulse ml-1"><i class="fas fa-exclamation-triangle mr-1"></i>Ocup</span>`;
+                     }
+                }
 
                 html += `
-                    <div class="modern-card !p-4 md:!p-8 border-slate-100 dark:border-white/5 shadow-xl hover:shadow-2xl transition-all group/turn relative">
-                        <div class="flex items-center gap-4 mb-8">
-                            <div class="w-12 h-12 ${styling.bg} ${styling.color} rounded-2xl flex items-center justify-center text-lg shadow-inner group-hover/turn:scale-110 transition-transform duration-500">
+                    <div onclick="window.openEditTurnoSheet(${dayIndex}, '${turnoId}')" 
+                         class="flex flex-col sm:flex-row sm:items-center gap-4 p-4 md:p-6 border-b border-slate-100 dark:border-white/5 last:border-0 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer transition-colors active:bg-slate-100 w-full min-h-[56px] select-none group/row">
+                        
+                        <div class="flex items-center gap-4 min-w-[140px] shrink-0">
+                            <div class="w-10 h-10 ${styling.bg} ${styling.color} rounded-xl flex items-center justify-center text-sm shadow-inner shrink-0 transition-transform group-hover/row:scale-110">
                                 <i class="fas ${styling.icon}"></i>
                             </div>
-                            <span class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 block mb-0.5">${styling.label}</span>
-
-                            <!-- Botón Limpiar -->
-                            <button onclick="window.clearTurnData(${dayIndex}, '${turnoId}')" 
-                                    class="absolute top-6 right-6 w-8 h-8 rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center text-[10px] opacity-0 group-hover/turn:opacity-100 shadow-sm border border-rose-500/20 active:scale-90"
-                                    title="Limpiar datos del turno">
-                                <i class="fas fa-trash-alt"></i>
-                            </button>
+                            <div class="flex flex-col">
+                                <span class="text-[11px] font-black tracking-widest uppercase text-slate-800 dark:text-gray-200">${styling.label}</span>
+                                <span class="text-[10px] font-bold text-slate-400 mt-0.5">${data.hora || 'Sin hora'}</span>
+                            </div>
                         </div>
 
-                        <div class="space-y-4 md:space-y-6">
-                `;
-
-                t.fields.forEach(field => {
-                    const fieldId = field.toLowerCase();
-                    const val = data[fieldId] || '';
-                    const icon = getFieldIcon(field);
-                    const opts = options[field] || [];
-
-                    html += `<div class="space-y-1.5">`;
-
-                    if (field === 'Territorio') {
-                        const conductor = data.conductor || '';
-                        html += `
-                            <label class="text-[9px] font-black text-slate-400 tracking-[0.2em] uppercase ml-1 flex items-center justify-between">
-                                <span><i class="fas fa-map-marked-alt opacity-30"></i> ${field}</span>
-                                <div id="status-badge-${dayIndex}-${turnoId}">
-                                    ${val ? (() => {
-                                const results = Array.from(new Set(String(val).split(/[,;/]/).map(n => n.trim()).filter(Boolean))).map(n => getTStatus(n, conductor, dia.fecha, turnoId));
-                                const allSync = results.every(r => r.isSync);
-                                const conflict = results.find(r => r.isConflict);
-
-                                if (allSync) {
-                                    return `<button class="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 text-emerald-500 rounded-lg font-black text-[9px] uppercase tracking-wider hover:bg-emerald-500 hover:text-white transition-all">
-                                                <i class="fas fa-check-circle"></i> LISTO
-                                            </button>`;
-                                }
-
-                                if (conflict && conflict.details) {
-                                    return `<button onclick="window.showConflictDetails(${dayIndex}, '${turnoId}')" 
-                                                    class="flex items-center gap-1.5 px-3 py-1 bg-rose-500/10 text-rose-500 rounded-lg font-black text-[9px] uppercase tracking-wider hover:bg-rose-500 hover:text-white transition-all animate-pulse shadow-lg shadow-rose-500/10">
-                                                <i class="fas fa-exclamation-triangle"></i> OCUPADO
-                                            </button>`;
-                                }
-
-                                return `<button onclick="window.syncAssignmentFromProg(${dayIndex}, '${turnoId}')" 
-                                                class="flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-primary rounded-lg font-black text-[9px] uppercase tracking-wider hover:bg-primary hover:text-white transition-all shadow-lg shadow-primary/10 group">
-                                            <i class="fas fa-link group-hover:rotate-12 transition-transform"></i> ASIGNAR
-                                        </button>`;
-                            })() : ''}
+                        <div class="flex-1 flex flex-col gap-2 md:gap-1 pl-[56px] sm:pl-0">
+                            ${hasData ? `
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span class="text-sm font-black text-slate-900 dark:text-white uppercase">${data.conductor || 'Sin Asignar'}</span>
+                                    ${data.auxiliar ? `<span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">+ ${data.auxiliar}</span>` : ''}
                                 </div>
-                            </label>
-                            <button onclick="window.openTerritorySelector(${dayIndex}, '${turnoId}', this)" 
-                                    data-current="${val}"
-                                    class="w-full text-left bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-3.5 rounded-2xl hover:border-primary transition-all flex items-center justify-between shadow-sm">
-                                <span id="val-territorio-${dayIndex}-${turnoId}" class="text-[11px] font-black truncate ${val ? 'text-primary' : 'text-slate-400 opacity-40'}">${val || '—'}</span>
-                            </button>`;
-                    } else if (field === 'Grupos') {
-                        html += `
-                            <label class="text-[9px] font-black text-slate-400 tracking-[0.2em] uppercase ml-1 flex items-center gap-2">
-                                <i class="fas fa-users opacity-30"></i> ${field}
-                            </label>
-                            <button onclick="window.openGroupSelector(${dayIndex}, '${turnoId}', this)" 
-                                    class="w-full text-left bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-3.5 rounded-2xl hover:border-indigo-500 transition-all flex items-center justify-between shadow-sm">
-                                <span id="val-grupos-${dayIndex}-${turnoId}" class="text-[11px] font-black truncate ${val ? 'text-indigo-500' : 'text-slate-400 opacity-40'}">
-                                    ${formatGroups(val)}
-                                </span>
-                            </button>`;
-                    } else {
-                        let finalOpts = opts;
-                        if (field === 'Conductor' || field === 'Auxiliar') {
-                            const effectiveShiftId = getEffectiveShiftId(turnoId, data.hora);
-                            const availKey = `${dia.nombre}_${effectiveShiftId}`;
-                            const safeCheck = (disp) => (Array.isArray(disp) ? disp : []).includes(availKey);
-                            const available = activeConductors.filter(e => safeCheck(e.disponibilidad));
-                            const nonAvailable = activeConductors.filter(e => !safeCheck(e.disponibilidad));
-
-                            finalOpts = [
-                                ...available.map(c => ({ name: c.nombre, isAvail: true })),
-                                ...nonAvailable.map(c => ({ name: c.nombre, isAvail: false }))
-                            ];
-
-                            html += `
-                                <label class="text-[9px] font-black text-slate-400 tracking-[0.2em] uppercase ml-1 flex items-center gap-2">
-                                    <i class="fas ${icon} opacity-30"></i> ${field}
-                                </label>
-                                <div class="relative">
-                                    <select onchange="window.updateWeekData(${dayIndex}, '${turnoId}', '${fieldId}', this.value)" 
-                                            class="w-full bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-3.5 rounded-2xl text-[11px] font-black text-slate-700 dark:text-white outline-none focus:border-primary appearance-none cursor-pointer shadow-sm transition-all focus:ring-1 focus:ring-primary/20">
-                                        <option value="">—</option>
-                                        ${finalOpts.map(o => `<option value="${o.name}" ${val === o.name ? 'selected' : ''} class="${o.isAvail ? 'text-emerald-500 font-bold' : ''}">
-                                            ${o.isAvail ? '✅ ' : ''}${o.name}
-                                        </option>`).join('')}
-                                    </select>
-                                    <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-[9px] opacity-20 pointer-events-none"></i>
-                                </div>`;
-                        } else {
-                            html += `
-                                <label class="text-[9px] font-black text-slate-400 tracking-[0.2em] uppercase ml-1 flex items-center gap-2">
-                                    <i class="fas ${icon} opacity-30"></i> ${field}
-                                </label>
-                                <div class="relative">
-                                    <select onchange="window.updateWeekData(${dayIndex}, '${turnoId}', '${fieldId}', this.value)" 
-                                            class="w-full bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-3.5 rounded-2xl text-[11px] font-black text-slate-700 dark:text-white outline-none focus:border-primary appearance-none cursor-pointer shadow-sm transition-all focus:ring-1 focus:ring-primary/20">
-                                        <option value="">—</option>
-                                        ${opts.map(o => `<option value="${o}" ${val === o ? 'selected' : ''}>${o}</option>`).join('')}
-                                    </select>
-                                    <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-[9px] opacity-20 pointer-events-none"></i>
-                                </div>`;
-                        }
-                    }
-                    html += `</div>`;
-                });
-
-                html += `</div></div> `;
+                                <div class="flex flex-wrap items-center gap-1.5 mt-1">
+                                    ${data.faceta ? `<span class="inline-flex items-center rounded-md bg-blue-50 dark:bg-blue-500/10 px-2 py-0.5 text-[9px] font-black text-blue-700 dark:text-blue-400 ring-1 ring-inset ring-blue-700/10 dark:ring-blue-400/20 uppercase tracking-widest">${data.faceta}</span>` : ''}
+                                    ${data.territorio ? `<span class="inline-flex items-center rounded-md bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 text-[9px] font-black text-emerald-700 dark:text-emerald-400 ring-1 ring-inset ring-emerald-600/10 dark:ring-emerald-400/20 uppercase tracking-widest">Terr: ${data.territorio}</span>${statusBadgeHTML}` : ''}
+                                    ${data.grupos ? `<span class="inline-flex items-center rounded-md bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 text-[9px] font-black text-indigo-700 dark:text-indigo-400 ring-1 ring-inset ring-indigo-700/10 dark:ring-indigo-400/20 uppercase tracking-widest">${formatGroups(data.grupos)}</span>` : ''}
+                                </div>
+                            ` : `
+                                <span class="text-[11px] font-bold italic text-slate-400 opacity-60">Turno vacío. Toque para asignar.</span>
+                            `}
+                        </div>
+                        
+                        <div class="hidden sm:flex items-center justify-end text-slate-300 dark:text-slate-600 opacity-50 group-hover/row:opacity-100 group-hover:translate-x-1 transition-all">
+                            <i class="fas fa-chevron-right text-[10px]"></i>
+                        </div>
+                    </div>
+                `;
             });
-
-            html += `</div></div> `;
+            html += `</div></div>`;
         });
-
-        html += `</div> `;
+        html += `</div>`;
         tableContainer.innerHTML = html;
     };
+
+    window.openEditTurnoSheet = (dayIdx, turnoId) => {
+        const dia = programa.dias[dayIdx];
+        const data = dia[turnoId] || {};
+        const styling = getTurnoStyling(turnoId, data.hora);
+        const isWeekend = dia.nombre === 'Sábado' || dia.nombre === 'Domingo';
+        const fields = ['Lugar', 'Hora', 'Conductor', 'Auxiliar', 'Faceta', ...(isWeekend && turnoId !== 'zoom' ? ['Grupos'] : []), ...(turnoId !== 'zoom' ? ['Territorio'] : [])];
+        const localOptions = {
+            Lugar: window._progCache.config.lugares || ['Salón del Reino'],
+            Hora: window._progCache.config.horarios_programa || ['09:00', '15:00', '19:00'],
+            Conductor: window._progCache.activeConductors.map(c => c.nombre),
+            Auxiliar: window._progCache.activeConductors.map(p => p.nombre),
+            Faceta: window._progCache.config.facetas || ['Casa en casa', 'Carritos'],
+            Territorio: window._progCache.territorios.map(t => t.numero),
+            Grupos: ['Todos', 'Grupos 1 y 5', 'Grupos 2 y 6', 'Grupos 3 y 4', ...Array.from({ length: 12 }, (_, i) => `Grupo ${i + 1}`)]
+        };
+
+        let fieldsHTML = fields.map(field => {
+            const fieldId = field.toLowerCase();
+            const val = data[fieldId] || '';
+            const icon = getFieldIcon(field);
+            
+            if (field === 'Territorio') {
+                return `
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-slate-400 tracking-[0.2em] uppercase ml-1 flex items-center justify-between">
+                            <span><i class="fas fa-map-marked-alt opacity-30 mr-1"></i> ${field}</span>
+                        </label>
+                        <div onclick="window.openTerritorySelector(${dayIdx}, '${turnoId}', this.parentNode); setTimeout(()=>document.getElementById('modal-sheet').classList.add('hidden'), 50);" 
+                             data-current="${val}"
+                             class="w-full text-left bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-4 rounded-xl hover:border-primary transition-all flex items-center justify-between shadow-sm cursor-pointer">
+                            <span id="val-${fieldId}-modal" class="text-[12px] font-black truncate ${val ? 'text-primary' : 'text-slate-400 opacity-40'}">${val || '—'}</span>
+                            <i class="fas fa-search text-slate-300"></i>
+                        </div>
+                    </div>`;
+            } else if (field === 'Grupos') {
+                return `
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-slate-400 tracking-[0.2em] uppercase ml-1 flex items-center gap-2">
+                            <i class="fas fa-users opacity-30"></i> ${field}
+                        </label>
+                        <div onclick="window.openGroupSelector(${dayIdx}, '${turnoId}'); setTimeout(()=>document.getElementById('modal-sheet').classList.add('hidden'), 50);" 
+                             class="w-full text-left bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-4 rounded-xl hover:border-indigo-500 transition-all flex items-center justify-between shadow-sm cursor-pointer">
+                            <span id="val-${fieldId}-modal" class="text-[12px] font-black truncate ${val ? 'text-indigo-500' : 'text-slate-400 opacity-40'}">${formatGroups(val) || '—'}</span>
+                        </div>
+                    </div>`;
+            } else if (field === 'Conductor' || field === 'Auxiliar') {
+                const effectiveShiftId = getEffectiveShiftId(turnoId, data.hora);
+                const availKey = `${dia.nombre}_${effectiveShiftId}`;
+                const safeCheck = (disp) => (Array.isArray(disp) ? disp : []).includes(availKey);
+                const available = window._progCache.activeConductors.filter(e => safeCheck(e.disponibilidad));
+                const nonAvailable = window._progCache.activeConductors.filter(e => !safeCheck(e.disponibilidad));
+                const finalOpts = [
+                    ...available.map(c => ({ name: c.nombre, isAvail: true })),
+                    ...nonAvailable.map(c => ({ name: c.nombre, isAvail: false }))
+                ];
+
+                return `
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-slate-400 tracking-[0.2em] uppercase ml-1 flex items-center gap-2">
+                            <i class="fas ${icon} opacity-30"></i> ${field}
+                        </label>
+                        <div class="relative">
+                            <select onchange="window.updateWeekDataSheet(${dayIdx}, '${turnoId}', '${fieldId}', this.value)" 
+                                    class="w-full bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-4 rounded-xl text-[12px] font-black text-slate-700 dark:text-white outline-none focus:border-primary appearance-none cursor-pointer shadow-sm transition-all focus:ring-1 focus:ring-primary/20">
+                                <option value="">—</option>
+                                ${finalOpts.map(o => `<option value="${o.name}" ${val === o.name ? 'selected' : ''} class="${o.isAvail ? 'text-emerald-500 font-bold' : ''}">${o.isAvail ? '✅ ' : ''}${o.name}</option>`).join('')}
+                            </select>
+                            <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-[10px] opacity-20 pointer-events-none"></i>
+                        </div>
+                    </div>`;
+            } else {
+                return `
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-slate-400 tracking-[0.2em] uppercase ml-1 flex items-center gap-2">
+                            <i class="fas ${icon} opacity-30"></i> ${field}
+                        </label>
+                        <div class="relative">
+                            <select onchange="window.updateWeekDataSheet(${dayIdx}, '${turnoId}', '${fieldId}', this.value)" 
+                                    class="w-full bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-4 rounded-xl text-[12px] font-black text-slate-700 dark:text-white outline-none focus:border-primary appearance-none cursor-pointer shadow-sm transition-all focus:ring-1 focus:ring-primary/20">
+                                <option value="">—</option>
+                                ${localOptions[field].map(o => `<option value="${o}" ${val === o ? 'selected' : ''}>${o}</option>`).join('')}
+                            </select>
+                            <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-[10px] opacity-20 pointer-events-none"></i>
+                        </div>
+                    </div>`;
+            }
+        }).join('');
+
+        const modalDiv = document.getElementById('modal-container');
+        modalDiv.classList.remove('hidden');
+        modalDiv.innerHTML = `
+            <div id="modal-sheet" class="fixed inset-x-0 bottom-0 md:relative md:inset-auto md:w-[500px] w-full bg-white dark:bg-[#0a0f18] rounded-t-[2rem] md:rounded-[2rem] shadow-[0_-10px_40px_rgba(0,0,0,0.2)] md:shadow-2xl translate-y-full transition-transform duration-300 ease-out flex flex-col max-h-[90vh]">
+                <div class="w-12 h-1.5 bg-slate-200 dark:bg-white/10 rounded-full mx-auto mt-4 mb-2 md:hidden"></div>
+                
+                <header class="px-6 md:px-8 py-4 flex items-center justify-between shrink-0 border-b border-slate-100 dark:border-white/5">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 ${styling.bg} ${styling.color} rounded-xl flex items-center justify-center shadow-inner">
+                            <i class="fas ${styling.icon}"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-black uppercase tracking-tight text-slate-800 dark:text-white">${dia.nombre} • ${styling.label}</h3>
+                            <p class="text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-0.5">${dia.fecha}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-2">
+                        <button onclick="window.clearTurnData(${dayIdx}, '${turnoId}'); document.getElementById('modal-sheet-close').click();" class="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white flex items-center justify-center">
+                            <i class="fas fa-trash-alt text-[12px]"></i>
+                        </button>
+                        <button id="modal-sheet-close" class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-slate-600 dark:hover:text-white flex items-center justify-center">
+                            <i class="fas fa-times text-[14px]"></i>
+                        </button>
+                    </div>
+                </header>
+
+                <div class="flex-1 overflow-y-auto px-6 md:px-8 py-6 space-y-6 form-scroller">
+                    ${fieldsHTML}
+                </div>
+            </div>
+        `;
+
+        // Animate up
+        setTimeout(() => {
+            const sheet = document.getElementById('modal-sheet');
+            sheet.classList.remove('translate-y-full');
+            sheet.classList.add('translate-y-0');
+        }, 10);
+
+        document.getElementById('modal-sheet-close').onclick = () => {
+            const sheet = document.getElementById('modal-sheet');
+            sheet.classList.remove('translate-y-0');
+            sheet.classList.add('translate-y-full');
+            setTimeout(() => { modalDiv.classList.add('hidden'); }, 300);
+        };
+    };
+
+    window.updateWeekDataSheet = async (dayIdx, turnoId, fieldId, val) => {
+        programa.dias[dayIdx][turnoId][fieldId] = val;
+        try {
+            await saveProgramaSemanal(programa.id, programa);
+            // Si cambia la hora, afecta visualmente la etiqueta del turno, forzamos re-render
+            if (fieldId === 'hora') renderTable(); 
+            // Also re-render list behind the sheet gently
+            else renderTable(); 
+        } catch (e) {
+            console.error(e);
+            showNotification("Error guardando dato", "error");
+        }
+    };
+
 
     window.setActiveDay = (idx) => {
         activeDayIndex = idx;

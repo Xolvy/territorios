@@ -54,31 +54,31 @@ export const VisualEngine = {
     components: {
         // Main App Shell
         shell: {
-            container: "min-h-screen bg-hsl(var(--bg-main)) transition-all duration-700 ease-out",
-            mainOrder: "max-w-[1440px] mx-auto p-6 md:p-14 animate-fade-in"
+            container: "min-h-screen bg-slate-50 dark:bg-[#060a12] transition-colors duration-700 ease-out text-slate-800 dark:text-slate-200 tracking-tight",
+            mainOrder: "max-w-[1500px] mx-auto p-4 md:p-8 animate-fade-in"
         },
 
-        // Header System
+        // Header System (Fase 2)
         header: {
-            wrapper: "flex flex-col lg:flex-row justify-between items-start lg:items-center mb-10 p-6 md:p-10 glass-morphism rounded-[2.5rem] gap-8 relative overflow-hidden group",
-            glow: "absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none group-hover:from-primary/10 transition-all duration-1000"
+            wrapper: "flex flex-col lg:flex-row justify-between items-start lg:items-center p-6 md:px-10 md:py-8 bg-white/90 dark:bg-[#0a0f18]/90 backdrop-blur-md rounded-[2.5rem] border-b border-slate-200/80 dark:border-white/5 gap-6 relative overflow-visible group",
+            glow: "absolute inset-0 bg-transparent pointer-events-none"
         },
 
-        // Card System (The core of 2027 layout)
+        // Bento Box Card System (Fase 1)
         card: {
-            base: "modern-card transition-all duration-500",
-            premium: "modern-card bg-white dark:bg-[#0f1420]/75 backdrop-blur-3xl border border-white/20 dark:border-white/[0.05] rounded-[2rem] shadow-premium transition-transform",
-            flat: "bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/[0.05] rounded-2xl p-5",
-            interactive: "cursor-pointer group hover:border-primary/40 active:scale-[0.98] transition-all"
+            base: "bg-white dark:bg-[#0a0f18] rounded-2xl md:rounded-3xl border border-slate-200/60 dark:border-white/5 shadow-sm hover:shadow-md transition-all duration-300",
+            premium: "bg-white dark:bg-[#0a0f18] rounded-3xl border border-slate-200/60 dark:border-white/5 shadow-sm hover:shadow-md transition-all duration-300",
+            flat: "bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/[0.05] rounded-2xl p-5 hover:shadow-sm transition-all duration-300",
+            interactive: "cursor-pointer group hover:border-indigo-500/40 active:scale-[0.98] transition-all"
         },
 
-        // Button System
+        // Button System (Fase 3: Py-2, no fixed height)
         button: {
-            base: "btn-pro inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] transition-all active:scale-95 whitespace-nowrap",
-            primary: "bg-primary text-white shadow-xl shadow-primary/20 hover:bg-primary-dark hover:shadow-primary/30",
-            secondary: "bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10",
-            danger: "bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white border border-rose-500/20",
-            ghost: "bg-transparent text-slate-400 hover:text-primary hover:bg-primary/5"
+            base: "inline-flex items-center justify-center gap-2.5 px-6 py-2 rounded-xl font-bold text-[11px] uppercase tracking-widest transition-all active:scale-95 whitespace-nowrap overflow-hidden text-ellipsis",
+            primary: "bg-indigo-600 text-white shadow-sm hover:bg-indigo-700 hover:shadow-md",
+            secondary: "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10",
+            danger: "bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white border border-rose-500/20",
+            ghost: "bg-transparent text-slate-500 hover:text-indigo-600 hover:bg-indigo-50/50"
         },
 
         // Input & Form System

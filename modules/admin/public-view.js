@@ -309,7 +309,55 @@ export const renderPredicacionTab = async (container) => {
 
         viewCont.innerHTML = `
             <div class="px-2 md:px-8 py-6 max-w-full">
-                <div class="overflow-x-auto overflow-y-auto max-h-[70vh] rounded-2xl border border-white/10 shadow-2xl custom-scrollbar-thin w-full bg-[#0d1522]">
+                <!-- Mobile Master List View -->
+                <div class="lg:hidden space-y-6">
+                    ${dias.map(d => {
+                        const dayPags = filteredAsignaciones.filter(a => a.dia === d);
+                        if(dayPags.length === 0) return '';
+                        return `
+                        <div class="space-y-3">
+                            <h4 class="text-[10px] font-black text-cyan-500 uppercase tracking-[0.3em] bg-cyan-500/10 px-4 py-2.5 rounded-xl border border-cyan-500/20">${d}</h4>
+                            ${dayPags.map(a => {
+                                const idx = data.asignaciones.indexOf(a);
+                                return `
+                                    <div onclick="window.editPublicRowModal(${idx})" class="block p-4 bg-[#0d1522] border border-white/5 rounded-2xl shadow-sm hover:shadow-cyan-500/20 active:scale-[0.98] transition-all text-left cursor-pointer group">
+                                        <div class="flex justify-between items-start mb-3">
+                                            <div class="flex flex-col">
+                                                <span class="text-xs font-black text-white uppercase tracking-tighter">${a.lugar || 'Ubicación General'}</span>
+                                                <span class="text-[10px] text-cyan-400 font-bold uppercase mt-0.5"><i class="far fa-clock"></i> ${formatTimeDisplay(a.hora)} - ${formatTimeDisplay(a.hora_fin)}</span>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-3 bg-white/[0.02] group-hover:bg-white/[0.04] p-3 rounded-xl border border-white/5 transition-colors">
+                                            <span class="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 text-cyan-300 flex items-center justify-center font-black text-xs shrink-0 shadow-inner">${(a.publicador || '?').charAt(0)}</span>
+                                            <div class="flex flex-col min-w-0">
+                                                <span class="text-[11px] font-black text-slate-200 truncate uppercase">${a.publicador || '—'}</span>
+                                                ${a.companero ? `<span class="text-[9px] font-bold text-slate-500 truncate uppercase mt-0.5">+ ${a.companero}</span>` : ''}
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>`;
+                    }).join('')}
+                    
+                    ${filteredAsignaciones.filter(a => !a.dia).length > 0 ? `
+                        <div class="space-y-3">
+                            <h4 class="text-[10px] font-black text-rose-500 uppercase tracking-[0.3em] bg-rose-500/10 px-4 py-2.5 rounded-xl border border-rose-500/20">Sin Día Asignado</h4>
+                            ${filteredAsignaciones.filter(a => !a.dia).map(a => {
+                                const idx = data.asignaciones.indexOf(a);
+                                return `
+                                    <div onclick="window.editPublicRowModal(${idx})" class="block p-4 bg-[#0d1522] border border-white/5 rounded-2xl shadow-sm hover:shadow-rose-500/20 active:scale-[0.98] transition-all text-left cursor-pointer group">
+                                        <span class="text-[11px] font-black text-slate-200 truncate uppercase">${a.publicador || 'Turno Nuevo / Vacío'}</span>
+                                        <p class="text-[9px] text-slate-500 mt-1">Toque para editar y asignar un día</p>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+
+                <!-- Desktop Matrix View -->
+                <div class="hidden lg:block overflow-x-auto overflow-y-auto max-h-[70vh] rounded-2xl border border-white/10 shadow-2xl custom-scrollbar-thin w-full bg-[#0d1522]">
                     <table class="w-full min-w-max border-collapse">
                         <thead class="sticky top-0 z-30 bg-slate-900/90 backdrop-blur-md border-b border-white/10 shadow-lg">
                             <tr>

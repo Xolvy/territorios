@@ -144,8 +144,9 @@ export const showModal = (html, onRender, maxWidth = 'max-w-2xl', containerId = 
     if (!modal) return;
 
     modal.innerHTML = `
-        <div class="modal-backdrop-area absolute inset-0 cursor-default bg-slate-950/40 dark:bg-black/60 backdrop-blur-sm"></div>
-        <div class="relative w-full ${maxWidth} max-h-[90vh] md:max-h-[85vh] flex flex-col bg-white dark:bg-[#0b0f1a]/95 backdrop-blur-2xl rounded-[3rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] border border-slate-200 dark:border-white/10 animate-scale-in overflow-hidden z-10 ring-1 ring-black/5 dark:ring-white/5">
+        <div class="modal-backdrop-area absolute inset-0 cursor-default bg-slate-950/60 dark:bg-black/70 backdrop-blur-sm transition-opacity duration-300"></div>
+        <div class="absolute bottom-0 left-0 right-0 md:relative md:bottom-auto w-full mx-auto ${maxWidth} max-h-[92vh] md:max-h-[85vh] flex flex-col bg-slate-50 dark:bg-[#0a0f18]/95 backdrop-blur-2xl rounded-t-[3rem] md:rounded-[3rem] shadow-[0_-20px_80px_-20px_rgba(0,0,0,0.4)] md:shadow-2xl border-t md:border border-slate-200/60 dark:border-white/10 animate-slide-up z-10 ring-1 ring-black/5 dark:ring-white/5 overflow-hidden">
+            <div class="w-16 h-1.5 bg-slate-300 dark:bg-white/20 rounded-full mx-auto mt-4 mb-2 md:hidden"></div>
             ${html}
         </div>
     `;

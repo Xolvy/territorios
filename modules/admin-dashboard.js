@@ -37,15 +37,19 @@ async function loadSubModule(name, path) {
  * Main Entry Point for the Administration Control Panel
  * Refactored in 2026 for modular architecture and performance.
  */
-const renderNavItem = (id, icon, label, active) => `
-    <button class="nav-item ${active ? 'active' : ''} flex-1 lg:flex-initial flex items-center justify-center lg:justify-start gap-4 p-5 rounded-2xl transition-all group ${active ? VisualEngine.get('button.primary') + ' scale-[1.02]' : 'hover:bg-primary/10 dark:hover:bg-white/5 text-slate-500 dark:text-slate-400'}" data-tab="${id}">
-        <div class="w-10 h-10 rounded-xl flex items-center justify-center ${active ? 'bg-white/10' : 'bg-slate-100 dark:bg-white/5 group-hover:bg-primary/20'} transition-colors shrink-0">
+const renderNavItem = (id, icon, label, active) => {
+    const activeClasses = 'active bg-indigo-600 text-white shadow-md shadow-indigo-500/20 scale-[1.02]';
+    const inactiveClasses = 'hover:bg-indigo-50/50 dark:hover:bg-white/5 text-slate-500 dark:text-slate-400';
+    
+    return `
+    <button class="nav-item flex-1 lg:flex-initial flex items-center justify-center lg:justify-start gap-4 p-4 lg:p-5 rounded-2xl transition-all duration-300 group ${active ? activeClasses : inactiveClasses}" data-tab="${id}">
+        <div class="nav-icon-bg w-10 h-10 rounded-xl flex items-center justify-center transition-colors shrink-0 ${active ? 'bg-white/10 text-white' : 'bg-slate-100 dark:bg-white/5 group-hover:bg-indigo-500/10 group-hover:text-indigo-600'}">
             <i class="${icon} text-lg transition-transform group-hover:scale-110"></i>
         </div>
-        <span class="text-[11px] font-black uppercase tracking-widest hidden lg:block whitespace-nowrap">${label}</span>
-        ${active ? '<div class="hidden lg:block ml-auto w-1.5 h-1.5 rounded-full bg-white animate-pulse"></div>' : ''}
+        <span class="text-[11px] font-bold uppercase tracking-widest hidden lg:block whitespace-nowrap">${label}</span>
     </button>
     `;
+};
 
 const renderSkeleton = (container) => {
     container.innerHTML = `
@@ -151,12 +155,28 @@ const setupNavigation = (appVersion) => {
     const tabs = document.querySelectorAll('.nav-item');
     tabs.forEach(btn => {
         btn.onclick = (e) => {
-            tabs.forEach(t => t.classList.remove('active', 'bg-primary', 'text-white', 'shadow-xl', 'shadow-primary/20'));
-            tabs.forEach(t => t.classList.add('hover:bg-primary/5', 'text-slate-500', 'dark:text-gray-400'));
+            tabs.forEach(t => {
+                t.classList.remove('active', 'bg-indigo-600', 'text-white', 'shadow-md', 'shadow-indigo-500/20', 'scale-[1.02]');
+                t.classList.add('hover:bg-indigo-50/50', 'dark:hover:bg-white/5', 'text-slate-500', 'dark:text-slate-400');
+                
+                const iconBg = t.querySelector('.nav-icon-bg');
+                if (iconBg) {
+                    iconBg.classList.replace('bg-white/10', 'bg-slate-100');
+                    iconBg.classList.remove('text-white');
+                    iconBg.classList.add('dark:bg-white/5', 'group-hover:bg-indigo-500/10', 'group-hover:text-indigo-600');
+                }
+            });
 
             const target = e.currentTarget;
-            target.classList.add('active', 'bg-primary', 'text-white', 'shadow-xl', 'shadow-primary/20');
-            target.classList.remove('hover:bg-primary/5', 'text-slate-500', 'dark:text-gray-400');
+            target.classList.add('active', 'bg-indigo-600', 'text-white', 'shadow-md', 'shadow-indigo-500/20', 'scale-[1.02]');
+            target.classList.remove('hover:bg-indigo-50/50', 'dark:hover:bg-white/5', 'text-slate-500', 'dark:text-slate-400');
+            
+            const targetIconBg = target.querySelector('.nav-icon-bg');
+            if (targetIconBg) {
+                targetIconBg.classList.replace('bg-slate-100', 'bg-white/10');
+                targetIconBg.classList.add('text-white');
+                targetIconBg.classList.remove('dark:bg-white/5', 'group-hover:bg-indigo-500/10', 'group-hover:text-indigo-600');
+            }
 
             const tabId = target.dataset.tab;
             const urlMap = {
@@ -224,9 +244,9 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
                         </div>
                         <div>
                             <div class="flex items-center gap-2">
-                                <span class="text-[10px] font-black tracking-[0.3em] text-primary uppercase">SISTEMA</span>
+                                <span class="text-[10px] font-black tracking-[0.3em] text-primary uppercase">ADMINISTRACIÓN</span>
                                 <div class="w-1 h-1 rounded-full bg-slate-300 dark:bg-white/20"></div>
-                                <h1 class="text-sm md:text-base font-black text-slate-900 dark:text-white leading-tight uppercase tracking-tighter">Panel de Gestión</h1>
+                                <h1 class="text-sm md:text-base font-black text-slate-900 dark:text-white leading-tight uppercase tracking-tighter">Portal de Gestión Colectiva</h1>
                             </div>
                             <div class="flex items-center gap-2 mt-0.5">
                                  <div class="${VisualEngine.get('status.badge')} ${VisualEngine.get('status.online')} !py-0.5 !px-2">
