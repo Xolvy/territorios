@@ -2,7 +2,7 @@ import Chart from 'chart.js/auto';
 import {
     getHistorialReport, getConductores, getTerritorios, getPublicadores, getConfiguracion,
     assignTerritorio, returnTerritorio, transferTerritory, addHistoryRecord, updateHistoryRecord, deleteHistoryRecord, updateTerritorio,
-    getProgramaSemanal, getGlobalObservations
+    getProgramaSemanal, getGlobalObservations, startLivePool
 } from '../../data/firestore-services.js';
 import { UIHelpers, showModal, showCustomConfirm, showCustomPrompt, showTerritorySelectionModal } from '../services/ui-helpers.js';
 import { formatPhoneNumber, getStatusColor, showNotification } from '../utils/helpers.js';
@@ -259,6 +259,135 @@ export const renderHistorialView = async (container) => {
         }).join('');
     };
 
+    // --- Live Pool per-territory timeline subscriptions ---
+    const timelineLivePools = {}; // num -> unsub function
+
+    const stopTimelineLivePool = (num) => {
+        if (timelineLivePools[num]) {
+            timelineLivePools[num]();
+            delete timelineLivePools[num];
+        }
+    };
+
+    const getStatusBadge = (status) => {
+        const s = String(status || '').toLowerCase();
+        if (s === 'asignado') return { text: 'Asignado', color: 'text-rose-500 bg-rose-500/10', dot: 'bg-rose-500' };
+        if (s === 'completado' || s === 'predicado') return { text: 'Completado', color: 'text-emerald-500 bg-emerald-500/10', dot: 'bg-emerald-500' };
+        if (s === 'disponible' || s === 'libre') return { text: 'Liberado', color: 'text-slate-500 bg-slate-100 dark:bg-white/10', dot: 'bg-slate-400' };
+        if (s === 'devuelto') return { text: 'Devuelto', color: 'text-amber-500 bg-amber-500/10', dot: 'bg-amber-500' };
+        if (s === 'sobrepuesto') return { text: 'Absorbido', color: 'text-indigo-400 bg-indigo-500/10', dot: 'bg-indigo-400' };
+        if (s === 'extraviado') return { text: 'Extraviado', color: 'text-rose-600 bg-rose-600/10', dot: 'bg-rose-700' };
+        return { text: status || 'Registro', color: 'text-slate-400 bg-slate-50 dark:bg-white/5', dot: 'bg-slate-300' };
+    };
+
+    const renderTimelineContent = (content, liveHistory, mode, num) => {
+        const tHistory = (liveHistory || [])
+            .filter(h => {
+                if (mode === 's13') return true;
+                return h.observaciones && h.observaciones.trim().length > 0;
+            })
+            .sort((a, b) => getSortableDate(b) - getSortableDate(a));
+
+        if (tHistory.length === 0) {
+            content.innerHTML = `
+                <div class="py-12 text-center opacity-40 ml-10 flex flex-col items-center gap-4">
+                    <div class="w-16 h-16 bg-slate-100 dark:bg-white/5 rounded-2xl flex items-center justify-center text-2xl">
+                        <i class="fas fa-inbox"></i>
+                    </div>
+                    <p class="text-[10px] font-bold uppercase tracking-widest italic">Sin registros para esta vista</p>
+                </div>`;
+            return;
+        }
+
+        content.innerHTML = tHistory.map((h, idx) => {
+            const badge = getStatusBadge(h.estado);
+            const isActive = h.estado === 'Asignado';
+            const dateAsig = UIHelpers.fmtDate(h.fecha_asignacion || h.timestamp);
+            const dateEntr = h.fecha_entrega ? UIHelpers.fmtDate(h.fecha_entrega) : null;
+
+            // Duration badge
+            let durationStr = '';
+            if (h.fecha_asignacion) {
+                const start = new Date(h.fecha_asignacion);
+                const end = h.fecha_entrega ? new Date(h.fecha_entrega) : new Date();
+                const days = Math.round((end - start) / (1000 * 60 * 60 * 24));
+                if (days >= 0) durationStr = `${days}d`;
+            }
+
+            return `
+            <div class="relative pl-14 group/item animate-fade-in" data-hist-id="${h.id}">
+                <!-- Timeline dot -->
+                <div class="absolute left-3.5 top-3 w-4 h-4 ${badge.dot} rounded-full border-4 border-slate-50 dark:border-[#0d1117] z-10 shadow-md transition-all duration-300 group-hover/item:scale-150 ${isActive ? 'animate-pulse' : ''}"></div>
+                ${idx === 0 && isActive ? `<div class="absolute left-[14px] top-[28px] bottom-0 w-0.5 bg-gradient-to-b from-rose-500/40 to-transparent"></div>` : ''}
+
+                <div class="p-5 bg-white dark:bg-white/[0.03] rounded-3xl border ${isActive ? 'border-rose-200 dark:border-rose-500/20 shadow-rose-500/5' : 'border-slate-100 dark:border-white/5'} shadow-sm hover:shadow-lg transition-all duration-300 group-hover/item:-translate-y-0.5">
+                    
+                    <!-- Header row -->
+                    <div class="flex items-start justify-between gap-4 mb-4">
+                        <div class="flex items-center gap-3 flex-wrap">
+                            <span class="text-[10px] font-black ${badge.color} px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+                                <span class="w-1.5 h-1.5 ${badge.dot} rounded-full"></span>
+                                ${badge.text}
+                            </span>
+                            ${isActive ? `<span class="text-[8px] font-black text-rose-500 bg-rose-500/10 px-2.5 py-1 rounded-full uppercase tracking-widest animate-pulse">● En Progreso</span>` : ''}
+                            ${durationStr ? `<span class="text-[8px] font-bold text-slate-400 bg-slate-100 dark:bg-white/5 px-2.5 py-1 rounded-full">${durationStr}</span>` : ''}
+                        </div>
+                        <!-- Action Buttons (always visible for all records) -->
+                        <div class="flex items-center gap-1.5 shrink-0 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                            <button onclick="window.editHistoryRecord('${h.id}')" 
+                                    title="Editar registro"
+                                    class="w-8 h-8 flex items-center justify-center bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-all text-[10px]">
+                                <i class="fas fa-pen"></i>
+                            </button>
+                            ${isActive ? `
+                            <button onclick="window.quickComplete('${h.territorio_id}', '${h.id}')" 
+                                    title="Marcar como completado"
+                                    class="w-8 h-8 flex items-center justify-center bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white rounded-xl transition-all text-[10px]">
+                                <i class="fas fa-check"></i>
+                            </button>` : ''}
+                            <button onclick="window.deleteTimelineRecord('${h.id}', '${num}')" 
+                                    title="Eliminar registro"
+                                    class="w-8 h-8 flex items-center justify-center bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white rounded-xl transition-all text-[10px]">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Data grid -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        <div class="flex flex-col">
+                            <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1">Responsable</span>
+                            <span class="text-[11px] font-black text-slate-800 dark:text-white uppercase truncate">${h.conductor || 'Sin asignar'}</span>
+                            ${h.auxiliar ? `<span class="text-[9px] text-slate-400 font-bold">${h.auxiliar}</span>` : ''}
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1">Turno</span>
+                            <span class="text-[11px] font-black text-slate-600 dark:text-slate-300 capitalize">${h.turno || '—'}</span>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1">Asignación</span>
+                            <span class="text-[11px] font-bold text-slate-600 dark:text-slate-400">${dateAsig}</span>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1">Entrega</span>
+                            ${dateEntr 
+                                ? `<span class="text-[11px] font-black text-emerald-500">${dateEntr}</span>` 
+                                : `<span class="text-[9px] font-bold text-rose-400 uppercase">Pendiente</span>`}
+                        </div>
+                    </div>
+
+                    ${h.observaciones ? `
+                    <div class="mt-4 pt-4 border-t border-slate-100 dark:border-white/5">
+                        <p class="text-[10px] text-slate-500 dark:text-slate-400 italic leading-relaxed">
+                            <i class="fas fa-quote-left text-slate-300 dark:text-white/10 mr-2 text-xs"></i>${h.observaciones}<i class="fas fa-quote-right text-slate-300 dark:text-white/10 ml-2 text-xs"></i>
+                        </p>
+                    </div>` : ''}
+                </div>
+            </div>
+            `;
+        }).join('');
+    };
+
     window.viewTimeline = (num, mode = 's13') => {
         const el = document.getElementById(`timeline-${num}`);
         const content = document.getElementById(`timeline-content-${num}`);
@@ -270,94 +399,94 @@ export const renderHistorialView = async (container) => {
 
         const isHidden = el.classList.contains('hidden');
         if (isHidden) {
-            document.querySelectorAll('[id^="timeline-"]').forEach(d => d.classList.add('hidden'));
+            // Close any other open timelines and stop their live pools
+            document.querySelectorAll('[id^="timeline-"]').forEach(d => {
+                if (!d.classList.contains('hidden') && d.id !== `timeline-${num}`) {
+                    const closedNum = d.id.replace('timeline-', '');
+                    stopTimelineLivePool(closedNum);
+                    d.classList.add('hidden');
+                }
+            });
             el.classList.remove('hidden');
         } else if (mode === el.dataset.mode) {
+            // Same tab clicked again = close
+            stopTimelineLivePool(num);
             el.classList.add('hidden');
             return;
         }
 
         el.dataset.mode = mode;
         const isObs = mode === 'obs';
-        title.innerText = isObs ? 'Observaciones y Notas' : 'Cronología S-13';
+        if (title) title.innerText = isObs ? 'Observaciones y Notas' : 'Cronología S-13 · Live';
 
         // Update sub-tab buttons
-        if (btnS13) btnS13.className = `px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest ${!isObs ? 'bg-slate-900 text-white' : 'bg-slate-200 dark:bg-white/5 text-slate-500'}`;
-        if (btnObs) btnObs.className = `px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest ${isObs ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-white/5 text-slate-500'}`;
+        if (btnS13) btnS13.className = `px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all ${!isObs ? 'bg-slate-900 dark:bg-white/10 text-white' : 'bg-slate-200 dark:bg-white/5 text-slate-500 hover:text-slate-700'}`;
+        if (btnObs) btnObs.className = `px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all ${isObs ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-white/5 text-slate-500 hover:text-slate-700'}`;
 
-        const tHistory = (historyByNum[num] || [])
-            .filter(h => {
-                if (mode === 's13') return true; // Show all states in general chronology
-                return h.observaciones && h.observaciones.trim().length > 0;
-            })
-            .sort((a, b) => getSortableDate(b) - getSortableDate(a));
+        // Show loading state
+        content.innerHTML = `
+            <div class="ml-14 py-8 flex items-center gap-4">
+                <div class="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest animate-pulse">Conectando Live Pool...</span>
+            </div>`;
 
-        if (tHistory.length === 0) {
-            content.innerHTML = `<div class="py-10 text-center opacity-40 ml-10"><p class="text-[10px] font-bold uppercase tracking-widest italic">Sin registros para esta vista</p></div>`;
-            return;
-        }
+        // Stop existing live pool for this territory
+        stopTimelineLivePool(num);
 
-        content.innerHTML = tHistory.map(h => {
-            const getStatusBadge = (status) => {
-                const s = String(status || '').toLowerCase();
-                if (s === 'asignado') return { text: 'Asignado', color: 'text-rose-500 bg-rose-500/10' };
-                if (s === 'completado' || s === 'predicado') return { text: 'Completado', color: 'text-emerald-500 bg-emerald-500/10' };
-                if (s === 'disponible' || s === 'libre') return { text: 'Liberado', color: 'text-slate-500 bg-slate-100 dark:bg-white/10' };
-                if (s === 'devuelto') return { text: 'Devuelto', color: 'text-amber-500 bg-amber-500/10' };
-                if (s === 'sobrepuesto') return { text: 'Absorbido', color: 'text-indigo-400 bg-indigo-500/10' };
-                if (s === 'extraviado') return { text: 'Extraviado', color: 'text-rose-600 bg-rose-600/10' };
-                return { text: status, color: 'text-slate-400 bg-slate-50 dark:bg-white/5' };
-            };
-            const badge = getStatusBadge(h.estado);
-            const canEdit = h.estado === 'Asignado';
-            const canComplete = h.estado === 'Asignado';
+        // Start Xolvy Live Pool: render initial static data, then subscribe for real-time updates
+        // Use the already-loaded historyByNum as initial data, then update via live pool
+        const initialLiveHistory = historyByNum[num] || [];
+        renderTimelineContent(content, initialLiveHistory, mode, num);
 
-            return `
-            <div class="relative pl-12 group/item animate-fade-in">
-                <div class="absolute left-3.5 top-2 w-3.5 h-3.5 ${mode === 's13' ? (h.estado === 'Asignado' ? 'bg-rose-500' : 'bg-emerald-500') : 'bg-indigo-500'} rounded-full border-4 border-white dark:border-[#0d1117] z-10 shadow-sm transition-transform group-hover/item:scale-150"></div>
-                <div class="p-6 bg-white dark:bg-white/[0.02] rounded-3xl border border-slate-100 dark:border-white/5 shadow-sm hover:shadow-xl transition-all">
-                    <div class="flex flex-col gap-6">
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                            <div class="flex flex-col">
-                                <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Responsable</span>
-                                <span class="text-xs font-black text-slate-800 dark:text-white uppercase truncate">${h.conductor || 'Anónimo'}${h.auxiliar ? ' <span class="text-[8px] opacity-40">/ ' + h.auxiliar + '</span>' : ''}</span>
-                            </div>
-                            <div class="flex flex-col">
-                                <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Evento</span>
-                                <span class="text-[10px] font-black ${badge.color} px-3 py-1 rounded-lg w-fit transition-all">${badge.text}</span>
-                            </div>
-                            <div class="flex flex-col">
-                                <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Cronología (Asig. ➔ Entrega)</span>
-                                <div class="flex flex-col gap-0.5">
-                                    <span class="text-[10px] font-bold text-slate-600 dark:text-gray-400">Asig: ${UIHelpers.fmtDate(h.fecha_asignacion || h.timestamp)}</span>
-                                    ${h.fecha_entrega ? `<span class="text-[10px] font-black text-emerald-500">Entr: ${UIHelpers.fmtDate(h.fecha_entrega)}</span>` : '<span class="text-[9px] text-rose-400 font-bold uppercase animate-pulse">En curso...</span>'}
-                                </div>
-                            </div>
-                            <div class="flex flex-col col-span-1 md:col-span-1 lg:col-span-1">
-                                <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Observación</span>
-                                <span class="text-[10px] font-medium text-slate-500 dark:text-gray-400 italic leading-tight">"${h.observaciones || 'Sin notas'}"</span>
-                            </div>
-                        </div>
+        // Subscribe for real-time updates (filter by numero field)
+        import('../../data/firestore-services.js').then(({ startLivePool }) => {
+            import('firebase/firestore').then(({ where }) => {
+                const unsub = startLivePool(
+                    'historial_territorios',
+                    [where('numero', '==', num)],
+                    (liveData) => {
+                        // Update the local cache too
+                        historyByNum[num] = liveData;
+                        // Refresh content if timeline is still open for this num
+                        const currentEl = document.getElementById(`timeline-${num}`);
+                        const currentContent = document.getElementById(`timeline-content-${num}`);
+                        if (currentEl && !currentEl.classList.contains('hidden') && currentContent) {
+                            const currentMode = currentEl.dataset.mode || 's13';
+                            renderTimelineContent(currentContent, liveData, currentMode, num);
+                        }
+                    }
+                );
+                timelineLivePools[num] = unsub;
+            });
+        });
+    };
 
-                        ${(canEdit || canComplete) ? `
-                            <div class="flex items-center gap-3 pt-4 border-t border-slate-100 dark:border-white/5">
-                                ${canEdit ? `
-                                    <button onclick="window.editHistoryRecord('${h.id}')" class="px-5 py-2.5 bg-slate-900 dark:bg-white/5 text-white dark:text-slate-400 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all">
-                                        <i class="fas fa-edit mr-2"></i> Corregir
-                                    </button>
-                                ` : ''}
-                                ${canComplete ? `
-                                    <button onclick="window.quickComplete('${h.territorio_id}', '${h.id}')" class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-500 shadow-lg shadow-emerald-500/20 transition-all">
-                                        <i class="fas fa-check-circle mr-2"></i> Finalizar
-                                    </button>
-                                ` : ''}
-                            </div>
-                        ` : ''}
-                    </div>
-                </div>
-            </div>
-        `;
-        }).join('');
+    window.deleteTimelineRecord = (hId, num) => {
+        showCustomConfirm('¿Eliminar este registro del historial S-13? Esta acción no se puede deshacer.', async () => {
+            try {
+                await deleteHistoryRecord(hId);
+                showNotification('Registro eliminado', 'success');
+                // Live Pool will auto-refresh the timeline. Force refresh historyByNum
+                const freshHistory = await getHistorialReport();
+                freshHistory.forEach(h => {
+                    let rawNum = String(h.numero || '');
+                    const nums = rawNum.split(/[,/]/).map(s => String(s).trim()).filter(Boolean);
+                    nums.forEach(n => {
+                        if (!historyByNum[n]) historyByNum[n] = [];
+                    });
+                });
+                // Re-render the visible timeline grid
+                renderGrid();
+            } catch (e) {
+                console.error(e);
+                showNotification('Error eliminando registro', 'error');
+            }
+        });
+    };
+
+    // Clean up all live pools when leaving this view
+    window._stopAllTimelineLivePools = () => {
+        Object.keys(timelineLivePools).forEach(num => stopTimelineLivePool(num));
     };
 
     window.showGlobalObservations = async () => {

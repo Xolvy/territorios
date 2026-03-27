@@ -21,13 +21,26 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100;300;400;500;600;700;800;900&display=swap"
         rel="stylesheet">
 
+    <!-- Leaflet Maps CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <!-- CSS Assets (Processed by Vite) -->
     <link rel="stylesheet" href="/src/input.css">
 
     <!-- Emergency Power-Up: Hard Sync if stuck -->
     <script>
         (function () {
-            const CURRENT_BUILD = "2.5";
+            const CURRENT_BUILD = "2.7.0";
+            
+            // --- Xolvy Theme Engine 2.0 (FOUC Prevention) ---
+            const theme = localStorage.getItem('theme') || 'auto';
+            if (theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+
             try {
                 const lastForce = localStorage.getItem('last_force_sync');
                 const now = Date.now();
@@ -55,7 +68,7 @@
 </head>
 
 <body
-    class="h-full font-['Outfit',sans-serif] antialiased selection:bg-teal-500/30 selection:text-teal-900 overflow-x-hidden">
+    class="h-full font-['Outfit',sans-serif] antialiased selection:bg-teal-500/30 selection:text-teal-900 overflow-x-hidden transition-colors duration-300 ease-in-out">
     <div class="bg-accents">
         <div class="accent-blob bg-indigo-500/20 dark:bg-indigo-600/30 top-[-20%] left-[-10%] animation-delay-0"></div>
         <div class="accent-blob bg-teal-500/20 dark:bg-teal-600/20 bottom-[-20%] right-[-10%] animation-delay-2000">

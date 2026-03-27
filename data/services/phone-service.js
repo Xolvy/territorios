@@ -194,12 +194,23 @@ export const logSessionSummary = async (summary) => {
 
 export const getSessionSummaries = async () => {
     try {
-        const q = query(collection(db, "resumenes_sesion_telefonia"), orderBy("timestamp", "desc"), limit(50));
+        const q = query(collection(db, "resumenes_sesion_telefonia"), orderBy("timestamp", "desc"), limit(100));
         const querySnapshot = await getDocs(q);
         return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (e) {
         console.error("Error getting session summaries:", e);
         return [];
+    }
+};
+
+export const deleteSessionSummary = async (id) => {
+    try {
+        await deleteDoc(doc(db, "resumenes_sesion_telefonia", id));
+        ServiceCache.clear("telefonos");
+        return true;
+    } catch (e) {
+        console.error("Error deleting session summary:", e);
+        throw e;
     }
 };
 

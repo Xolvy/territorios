@@ -9,7 +9,6 @@ import { MapViewer } from '../map-viewer.js';
 export const renderS12View = async (container, config, appVersion) => {
     let terrs = [];
     try {
-        console.log("🔍 [Xolvy Data Shield] S12 View: Requesting fresh data...");
         const tRaw = await getTerritorios();
 
         // Xolvy Data Shield: Robust normalization & ghost filtering
@@ -17,7 +16,6 @@ export const renderS12View = async (container, config, appVersion) => {
         terrs = tRaw
             .filter(rec => {
                 const hasNum = rec.numero && String(rec.numero).trim().length > 0;
-                if (!hasNum) console.warn(`🛡️ [Data Shield] Filtered ghost record: ${rec.id}`);
                 return hasNum;
             })
             .map(rec => ({
@@ -27,14 +25,11 @@ export const renderS12View = async (container, config, appVersion) => {
                 localidad: String(rec.localidad || '').replace(/grupos?/gi, '').trim()
             }))
             .sort((a, b) => String(a.numero || '').localeCompare(String(b.numero || ''), undefined, { numeric: true }));
-
-        console.log(`📊 [Data Shield] S12 View: ${terrs.length} valid records ready.`);
     } catch (e) {
         console.error("Error sorting S12:", e);
     }
 
     const renderGrid = (query = '') => {
-        console.log(`🎨 S12 Grid: Rendering with query='${query}', total available=${terrs.length}`);
         const filtered = query ? terrs.filter(t =>
             String(t.numero || '').toLowerCase().includes(query) ||
             (t.localidad && t.localidad.toLowerCase().includes(query)) ||

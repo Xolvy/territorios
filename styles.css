@@ -7524,3 +7524,466 @@ textarea:focus {
     -ms-overflow-style: none;
     scrollbar-width: none;
 }
+.leaflet-tooltip.map-label-transparent {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: white !important;
+    font-weight: 800 !important;
+    font-size: 14px !important;
+    text-shadow: 0px 0px 4px black, 0px 0px 4px black !important;
+    pointer-events: none !important;
+}
+
+/* Estilo Premium "Dark Glass Pill" para Etiquetas de Mapa */
+.leaflet-tooltip.map-label-glass {
+    background-color: rgba(15, 23, 42, 0.7) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    border-radius: 20px !important; 
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+    color: #ffffff !important; 
+    font-weight: 700 !important;
+    font-size: 12px !important;
+    letter-spacing: 0.5px !important;
+    padding: 4px 12px !important;
+    text-shadow: none !important; 
+    pointer-events: none !important;
+}
+
+.leaflet-tooltip-pane .leaflet-tooltip-top.map-label-glass::before,
+.leaflet-tooltip-pane .leaflet-tooltip-bottom.map-label-glass::before,
+.leaflet-tooltip-pane .leaflet-tooltip-left.map-label-glass::before,
+.leaflet-tooltip-pane .leaflet-tooltip-right.map-label-glass::before {
+    display: none !important;
+}
+
+/* --- UI POLISH v2.7.2: DARK MODE CONTRAST --- */
+[data-theme='dark'] label, 
+[data-theme='dark'] h1, 
+[data-theme='dark'] h2, 
+[data-theme='dark'] h3, 
+[data-theme='dark'] h4, 
+[data-theme='dark'] p, 
+[data-theme='dark'] span {
+    color: #f1f5f9 !important;
+}
+
+[data-theme='dark'] input, 
+[data-theme='dark'] textarea, 
+[data-theme='dark'] select {
+    background-color: #1e293b !important;
+    color: #ffffff !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Modal Map Dark Mode */
+[data-theme='dark'] .map-modal-body {
+    background-color: #1e293b !important;
+    color: #f1f5f9 !important;
+}
+
+/* Interactive Map Container Fix */
+#xolvy-leaflet-map {
+    background-color: #ffffff !important;
+}
+
+/* Standardized Buttons & Hover Effects */
+.card-actions {
+    opacity: 0;
+    transform: translateX(10px);
+    transition: all 0.3s ease-in-out;
+}
+
+.modern-card:hover .card-actions {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.action-btn-minimal {
+    width: 36px !important;
+    height: 36px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 50% !important;
+    color: #94a3b8 !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+
+.action-btn-minimal.view:hover { background: rgba(59, 130, 246, 0.15) !important; color: #3b82f6 !important; }
+.action-btn-minimal.edit:hover { background: rgba(148, 163, 184, 0.15) !important; color: #ffffff !important; }
+.action-btn-minimal.delete:hover { background: rgba(244, 63, 94, 0.15) !important; color: #f43f5e !important; }
+
+[data-theme='dark'] .action-btn-minimal:hover {
+    background: rgba(255,255,255,0.05) !important;
+}
+
+/* --- GEOLOCATION BUTTON STYLE --- */
+.locate-button {
+    background: white !important;
+    padding: 0 !important;
+    border-radius: 8px !important;
+    cursor: pointer !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 36px !important;
+    height: 36px !important;
+    border: 1px solid rgba(0,0,0,0.1) !important;
+    transition: all 0.2s ease !important;
+}
+
+.locate-button:hover {
+    background: #f8fafc !important;
+    transform: scale(1.05);
+}
+
+.locate-button svg { 
+    width: 22px; 
+    height: 22px; 
+    fill: #3b82f6; 
+}
+
+/* --- UI POLISH v2.7.2: FIX DE CONTRASTE Y MODAL --- */
+[data-theme='dark'] .modal-content, 
+[data-theme='dark'] .modal-header {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+}
+
+[data-theme='dark'] .modal-title,
+[data-theme='dark'] .modal-header .btn-close {
+    color: #ffffff !important;
+    filter: invert(1);
+}
+
+/* FORZAR DARK GLASS PILL (SIEMPRE OSCURAS) */
+.leaflet-tooltip.map-label-glass {
+    background-color: rgba(15, 23, 42, 0.8) !important;
+    color: white !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 20px !important;
+    padding: 4px 12px !important;
+    text-shadow: none !important;
+    font-weight: 700 !important;
+    font-size: 12px !important;
+    pointer-events: none !important;
+}
+
+/* ELIMINADO POR REDISEÑO PREMIUM */
+
+/* --- GPS PULSE EFFECT --- */
+.gps-pulse-marker {
+    background: #3b82f6;
+    border-radius: 50%;
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+    animation: pulse-gps 2s infinite;
+}
+
+@keyframes pulse-gps {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+    }
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+    }
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+    }
+}
+
+/* ELIMINADO POR REDISEÑO PREMIUM V3 */
+
+
+/* --- SIDEBAR & HEADER POLISH v3.0 --- */
+.nav-item {
+    margin-bottom: 8px !important;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+
+.nav-item.active {
+    background: #4f46e5 !important;
+    color: white !important;
+    box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.4) !important;
+}
+
+.nav-item.active .nav-icon-bg {
+    background: rgba(255,255,255,0.2) !important;
+    color: white !important;
+}
+
+.search-wrapper-v3 {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+.search-wrapper-v3 i {
+    position: absolute !important;
+    left: 20px !important;
+    color: #94a3b8 !important;
+    font-size: 0.9rem !important;
+    pointer-events: none !important;
+}
+
+.search-input-v3 {
+    padding-left: 52px !important;
+    width: 100% !important;
+    border-radius: 20px !important;
+    border: 1px solid rgba(0,0,0,0.06) !important;
+    background: #f8fafc !important;
+    font-weight: 700 !important;
+    transition: all 0.3s ease !important;
+}
+
+[data-theme='dark'] .search-input-v3 {
+    background: #1e293b !important;
+    border-color: rgba(255,255,255,0.05) !important;
+    color: white !important;
+}
+
+.search-input-v3:focus {
+    border-color: #4f46e5 !important;
+    background: white !important;
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1) !important;
+}
+
+[data-theme='dark'] .search-input-v3:focus {
+    background: #0f172a !important;
+}
+
+
+/* --- PREMIUM BUTTONS EVOLUTION v3.1 --- */
+.action-btn-xl {
+    position: relative !important;
+    background: rgba(255, 255, 255, 0.7) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.4) !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05), inset 0 1px 1px rgba(255, 255, 255, 1) !important;
+    color: #475569 !important;
+    width: 48px !important;
+    height: 48px !important;
+    border-radius: 16px !important;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+
+[data-theme='dark'] .action-btn-xl {
+    background: rgba(30, 41, 59, 0.5) !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.05) !important;
+    color: #94a3b8 !important;
+}
+
+.action-btn-xl i {
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)) !important;
+}
+
+.action-btn-xl:hover {
+    transform: translateY(-5px) scale(1.1) !important;
+    background: white !important;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.12) !important;
+}
+
+[data-theme='dark'] .action-btn-xl:hover {
+    background: #1e293b !important;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4) !important;
+}
+
+.action-btn-xl.view:hover { color: #2563eb !important; border-color: #2563eb !important; }
+.action-btn-xl.edit:hover { color: #d97706 !important; border-color: #d97706 !important; }
+.action-btn-xl.delete:hover { color: #e11d48 !important; border-color: #e11d48 !important; }
+
+/* Animación de pulso sutil en hover */
+.action-btn-xl::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 18px;
+    background: currentColor;
+    opacity: 0;
+    z-index: -1;
+    transition: all 0.5s ease;
+}
+
+.action-btn-xl:hover::after {
+    inset: -6px;
+    opacity: 0.1;
+}
+
+/* --- ULTIMATE PREMIUM BUTTONS v3.2 --- */
+.action-btn-xl {
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 14px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1) !important;
+    border: 1px solid rgba(0,0,0,0.05) !important;
+    background: #f8fafc !important;
+    color: #64748b !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05) !important;
+    cursor: pointer !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+[data-theme='dark'] .action-btn-xl {
+    background: rgba(255,255,255,0.03) !important;
+    border-color: rgba(255,255,255,0.08) !important;
+    color: #94a3b8 !important;
+}
+
+.action-btn-xl i {
+    font-size: 16px !important;
+    z-index: 10 !important;
+    transition: all 0.3s ease !important;
+}
+
+/* Capas de Brillo Premium */
+.action-btn-xl::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 50%);
+    opacity: 0; transition: opacity 0.3s ease;
+}
+
+.action-btn-xl:hover::before { opacity: 1; }
+
+/* Hover States Específicos */
+.action-btn-xl.view:hover {
+    background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+    color: white !important;
+    box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.4) !important;
+    border-color: #2563eb !important;
+}
+
+.action-btn-xl.edit:hover {
+    background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+    color: white !important;
+    box-shadow: 0 10px 15px -3px rgba(245, 158, 11, 0.4) !important;
+    border-color: #d97706 !important;
+}
+
+.action-btn-xl.delete:hover {
+    background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+    color: white !important;
+    box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.4) !important;
+    border-color: #dc2626 !important;
+}
+
+.action-btn-xl:hover i {
+    transform: scale(1.1) rotate(5deg);
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+}
+
+}
+/* ELIMINADO POR REDISEÑO PREMIUM V2.8 */
+
+
+
+/* --- DARK MODE INPUT FIX v2.8 --- */
+[data-theme='dark'] input,
+[data-theme='dark'] textarea,
+[data-theme='dark'] select {
+    background-color: #1e293b !important;
+    color: #ffffff !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme='dark'] .modal-content {
+    background-color: #0f172a !important;
+    border-color: #1e293b !important;
+}
+
+
+/* =========================================
+   DISEÑO PREMIUM TARJETAS TERRITORIO (FORZADO)
+   ========================================= */
+.territory-card {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 16px !important;
+    padding: 16px 20px !important;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05) !important;
+    gap: 16px !important;
+    transition: all 0.2s ease !important;
+    margin-bottom: 10px;
+}
+.territory-card:hover { transform: translateY(-3px) !important; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1) !important; }
+
+.territory-id-badge {
+    display: flex !important; align-items: center !important; justify-content: center !important;
+    width: 48px !important; height: 48px !important;
+    background: #eff6ff !important; color: #2563eb !important;
+    font-size: 20px !important; font-weight: 800 !important;
+    border-radius: 12px !important; flex-shrink: 0 !important;
+}
+
+.territory-info { flex-grow: 1 !important; display: flex !important; flex-direction: column !important; gap: 4px !important; }
+.territory-name { font-size: 16px !important; font-weight: 700 !important; color: #0f172a !important; margin: 0 !important; }
+.territory-meta { font-size: 13px !important; font-weight: 500 !important; color: #64748b !important; }
+
+.card-actions { display: flex !important; gap: 10px !important; opacity: 0; transition: opacity 0.2s ease !important; }
+.territory-card:hover .card-actions { opacity: 1 !important; }
+
+.action-btn {
+    display: flex !important; align-items: center !important; justify-content: center !important;
+    width: 38px !important; height: 38px !important;
+    border-radius: 10px !important; border: none !important;
+    background: #f8fafc !important; color: #475569 !important; cursor: pointer !important;
+}
+.action-btn.map-btn:hover { background: #dbeafe !important; color: #2563eb !important; }
+.action-btn.edit-btn:hover { background: #f1f5f9 !important; color: #0f172a !important; }
+.action-btn.delete-btn:hover { background: #fee2e2 !important; color: #dc2626 !important; }
+
+/* MODO OSCURO */
+[data-theme="dark"] .territory-card { background: #1e293b !important; border-color: #334155 !important; }
+[data-theme="dark"] .territory-id-badge { background: #0f172a !important; color: #38bdf8 !important; }
+[data-theme="dark"] .territory-name { color: #f8fafc !important; }
+[data-theme="dark"] .action-btn { background: #334155 !important; color: #cbd5e1 !important; }
+
+/* =========================================
+   FIX: SUPERPOSICIÓN DE CAPAS (MODAL OVERLAY)
+   ========================================= */
+/* Asegura que el fondo oscuro tape ABSOLUTAMENTE TODO */
+.modal-backdrop, 
+.swal2-container, 
+.nexo-loading-overlay { 
+    z-index: 9998 !important;
+    background-color: rgba(15, 23, 42, 0.7) !important; /* Tono oscuro elegante */
+    backdrop-filter: blur(6px) !important;
+    -webkit-backdrop-filter: blur(6px) !important;
+}
+
+/* Asegura que la caja blanca del modal quede por encima del fondo */
+.modal, 
+.swal2-popup, 
+.nexo-modal-box { 
+    z-index: 9999 !important;
+}
+
+/* Prevenir que elementos 'sticky' o 'fixed' del layout rompan el flujo durante el modal */
+body.modal-open .sidebar,
+body.modal-open .header,
+body.swal2-shown .sidebar,
+body.swal2-shown .header {
+    z-index: 1 !important; /* Los rebaja temporalmente si es necesario */
+}
+

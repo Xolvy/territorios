@@ -33,24 +33,12 @@ export const MapViewer = {
                 <div class="flex-1 w-full relative overflow-hidden bg-[#0f172a]">
                     
                     <!-- STATIC IMAGE VIEW (PNG VISOR) -->
-                    <div id="static-image-viewer" class="absolute inset-0 w-full h-full flex items-center justify-center p-4 transition-opacity duration-500 opacity-100 overflow-hidden bg-slate-100 dark:bg-black/40 backdrop-blur-sm z-30 touch-none">
-                        ${imagen ? `<img id="map-img-element" src="${imagen}" class="max-w-full max-h-full object-contain shadow-2xl rounded-2xl transition-all duration-200 ease-out origin-center" style="transform: scale(1) translate(0px, 0px);">` 
-                        : `<div class="flex flex-col items-center gap-4 opacity-50"><i class="fas fa-image text-6xl shadow-inner text-slate-400"></i><p class="font-black tracking-[0.2em] uppercase text-xs text-slate-500">Sin Imagen Disponible</p></div>`}
-                        
-                        <!-- Floating Zoom Controls -->
+                    <div id="static-image-viewer" class="absolute inset-0 w-full h-full flex items-center justify-center p-6 transition-opacity duration-500 opacity-100 overflow-hidden bg-slate-200 dark:bg-slate-700/40 z-30 touch-none">
                         ${imagen ? `
-                        <div class="absolute bottom-10 right-10 flex flex-col gap-3 z-50">
-                            <button id="btn-zoom-in" class="w-12 h-12 rounded-2xl bg-white/95 dark:bg-[#1a1c2a]/95 backdrop-blur shadow-2xl text-primary font-black border border-slate-200 dark:border-white/10 flex items-center justify-center hover:scale-110 active:scale-90 transition-all">
-                                <i class="fas fa-plus"></i>
-                            </button>
-                            <button id="btn-zoom-out" class="w-12 h-12 rounded-2xl bg-white/95 dark:bg-[#1a1c2a]/95 backdrop-blur shadow-2xl text-primary font-black border border-slate-200 dark:border-white/10 flex items-center justify-center hover:scale-110 active:scale-90 transition-all">
-                                <i class="fas fa-minus"></i>
-                            </button>
-                            <button id="btn-zoom-reset" class="w-12 h-12 rounded-2xl bg-primary text-white shadow-2xl flex items-center justify-center hover:scale-110 active:scale-90 transition-all group">
-                                <i class="fas fa-undo-alt group-hover:rotate-[-45deg] transition-transform"></i>
-                            </button>
-                        </div>
-                        ` : ''}
+                        <div class="relative max-w-full max-h-full flex items-center justify-center bg-white rounded-2xl shadow-2xl overflow-hidden" style="max-height:100%;">
+                            <img id="map-img-element" src="${imagen}" class="block max-w-full max-h-full object-contain transition-all duration-200 ease-out origin-center" style="transform: scale(1) translate(0px, 0px); background:#fff;">
+                        </div>` 
+                        : `<div class="flex flex-col items-center gap-4 opacity-50"><i class="fas fa-image text-6xl shadow-inner text-slate-400"></i><p class="font-black tracking-[0.2em] uppercase text-xs text-slate-500">Sin Imagen Disponible</p></div>`}
                     </div>
 
                 </div>
@@ -63,23 +51,6 @@ export const MapViewer = {
             btnToggle.onclick = () => {
                 showKmlMapModal(territory);
             };
-        }
-
-        if (imagen) {
-            setTimeout(() => {
-                if (UIHelpers.initImagePanZoom) {
-                    const controller = UIHelpers.initImagePanZoom('map-img-element', 'static-image-viewer');
-                    if (controller) {
-                        const btnIn = container.querySelector('#btn-zoom-in');
-                        const btnOut = container.querySelector('#btn-zoom-out');
-                        const btnReset = container.querySelector('#btn-zoom-reset');
-
-                        if (btnIn) btnIn.onclick = () => controller.zoom(0.3);
-                        if (btnOut) btnOut.onclick = () => controller.zoom(-0.3);
-                        if (btnReset) btnReset.onclick = () => controller.reset();
-                    }
-                }
-            }, 100);
         }
 
         document.getElementById('close-map').onclick = () => {

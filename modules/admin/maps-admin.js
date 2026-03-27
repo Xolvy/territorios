@@ -66,62 +66,10 @@ export const renderMapsAdmin = async (container, config) => {
         progressDiv.classList.remove('hidden');
 
         try {
-            const parser = new DOMParser();
-            const xml = parser.parseFromString(kmlText, 'text/xml');
-            const placemarks = xml.querySelectorAll('Placemark');
-            const territoryGroups = {};
+            const { parseKmlToGroupedData } = await import('../utils/kml-parser.js');
+            const groups = parseKmlToGroupedData(kmlText);
+            const tNums = Object.keys(groups);
 
-            // 1. Extraer Polígonos de Manzanas y Puntos de Interés
-            const poisData = [];
-            placemarks.forEach(pm => {
-                const name = pm.querySelector('name')?.textContent || '';
-                const tMatch = name.match(/\(T(\d+)\)/i);
-                if (tMatch) {
-                    const tNum = tMatch[1];
-                    if (!territoryGroups[tNum]) territoryGroups[tNum] = [];
-
-                    // Case: Polygon (Blocks)
-                    const polygon = pm.querySelector('Polygon');
-                    if (polygon) {
-                        const coordsText = polygon.querySelector('coordinates')?.textContent || '';
-                        const coords = coordsText.trim().split(/\s+/).map(row => {
-                            const [lng, lat] = row.split(',').map(Number);
-                            return [lng, lat];
-                        });
-
-                        territoryGroups[tNum].push({
-                            type: "Feature",
-                            properties: { name },
-                            geometry: {
-                                type: "Polygon",
-                                coordinates: [coords]
-                            }
-                        });
-                    }
-
-                    // Case: Point (POI / Special Zones)
-                    const point = pm.querySelector('Point');
-                    if (point) {
-                        const coordsText = point.querySelector('coordinates')?.textContent || '';
-                        const [lng, lat] = coordsText.trim().split(',').map(Number);
-                        const desc = pm.querySelector('description')?.textContent || '';
-
-                        poisData.push({
-                            nombre: name.replace(/\(T\d+\)/i, '').trim(),
-                            tipo: 'Otro',
-                            territorio_numero: tNum,
-                            descripcion: desc,
-                            lat, lng
-                        });
-                    }
-                }
-            });
-
-            // 2. Extraer Polígono de Contorno del Territorio (si existe)
-            // En tu KML hay una carpeta "Territorio" con un Placemark "Territorio"
-            // Podríamos intentar detectar cuál es el contorno principal si queremos.
-
-            const tNums = Object.keys(territoryGroups);
             if (tNums.length === 0) throw new Error("No se detectaron etiquetas como (T1), (T2) en el KML.");
 
             let completed = 0;
@@ -129,20 +77,21 @@ export const renderMapsAdmin = async (container, config) => {
             progressCount.innerText = `0 / ${total}`;
 
             for (const tNum of tNums) {
+                // Estructura GeoJSON MultiPolygon (Conversión para Firestore)
                 const geojson = {
                     type: "FeatureCollection",
-                    features: territoryGroups[tNum]
+                    features: groups[tNum].map((latLngs, idx) => ({
+                        type: "Feature",
+                        properties: { name: `Manzana ${idx + 1}` },
+                        geometry: {
+                            type: "Polygon",
+                            coordinates: [latLngs.map(c => [c[1], c[0]])] // Volver a [Lng, Lat] para GeoJSON
+                        }
+                    }))
                 };
 
-                const territoryId = await updateTerritoryGeoJSON(tNum, geojson);
-                if (territoryId) {
-                    // Sync POIs for this territory if any
-                    const tPois = poisData.filter(p => p.territorio_numero === tNum);
-                    for (const poi of tPois) {
-                        const { addPuntoInteres } = await import('../../data/firestore-services.js');
-                        await addPuntoInteres({ ...poi, territorio_id: territoryId });
-                    }
-
+                const success = await updateTerritoryGeoJSON(tNum, geojson);
+                if (success) {
                     completed++;
                     const percent = (completed / total) * 100;
                     progressBar.style.width = `${percent}%`;

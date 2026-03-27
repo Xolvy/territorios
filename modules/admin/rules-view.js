@@ -7,6 +7,27 @@ import {
 import { showCustomPrompt, showModal, showCustomConfirm } from '../services/ui-helpers.js';
 import { showNotification } from '../utils/helpers.js';
 
+/**
+ * Ordena cronológicamente un array de strings de tiempo (soporta AM/PM y 24h).
+ */
+const sortChronologically = (times) => {
+    if (!times || !Array.isArray(times)) return [];
+    const parse = (s) => {
+        if (!s || typeof s !== 'string') return 0;
+        const raw = s.toLowerCase().trim();
+        const mod = raw.includes('pm') ? 'pm' : (raw.includes('am') ? 'am' : null);
+        let [h, m] = raw.replace(/[ap]m/g, '').split(':').map(Number);
+        if (isNaN(h)) h = 0;
+        if (mod === 'pm' && h < 12) h += 12;
+        if (mod === 'am' && h === 12) h = 0;
+        // Inferencia: Si es < 8 y no tiene AM/PM, probablemente es de la mañana para JW (ej. 9:00), 
+        // pero si es < 8 y es tarde escolar/reunión, asumimos coherencia 24h o PM.
+        if (!mod && h > 0 && h < 7) h += 12; 
+        return h * 60 + (m || 0);
+    };
+    return [...times].sort((a, b) => parse(a) - parse(b));
+};
+
 export const renderConfigTab = async (container, config, appVersion, reloadTabFn) => {
     const [puntosInteres, territorios] = await Promise.all([
         getPuntosInteres(), getTerritorios()
@@ -30,7 +51,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
     };
 
     container.innerHTML = `
-        <div class="max-w-4xl mx-auto space-y-8 animate-fade-in pb-32 w-full overflow-x-hidden px-4">
+        <div class="max-w-4xl mx-auto space-y-12 animate-fade-in pb-32 w-full overflow-x-hidden">
                 <!--Header Section-->
                 <div class="flex items-center gap-6 mb-10">
                     <div class="w-16 h-16 bg-gradient-to-br from-indigo-500 to-slate-900 rounded-2xl flex items-center justify-center text-2xl text-white shadow-xl shadow-indigo-500/20 transform -rotate-3">
@@ -142,11 +163,13 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                     </div>
                                 </label>
                                 <div id="list-horarios" class="flex flex-wrap gap-2 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 min-h-[60px]">
-                                    ${(config.horarios_programa || []).map((h, i) => `
+                                    ${(sortChronologically(config.horarios_programa || [])).map((h, i) => `
                                             <div class="bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-bold flex items-center gap-2 shadow-sm animate-scale-in cursor-move">
                                                 <i class="fas fa-grip-vertical text-slate-300 text-[8px]"></i>
-                                                ${h}
-                                                <button onclick="window.removeConfigItem('horarios', ${i})" class="text-slate-400 hover:text-red-500 transition-colors"><i class="fas fa-times"></i></button>
+                                                <span class="flex-1">${h}</span>
+                                                <button data-action="remove-item" data-type="horarios" data-index="${i}" class="text-slate-400 hover:text-red-500 transition-colors">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
                                             </div>
                                         `).join('')}
                                 </div>
@@ -165,8 +188,10 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                     ${(config.lugares || []).map((l, i) => `
                                             <div class="bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-bold flex items-center gap-2 shadow-sm animate-scale-in cursor-move">
                                                 <i class="fas fa-grip-vertical text-slate-300 text-[8px]"></i>
-                                                ${l}
-                                                <button onclick="window.removeConfigItem('lugares', ${i})" class="text-slate-400 hover:text-red-500 transition-colors"><i class="fas fa-times"></i></button>
+                                                <span class="flex-1">${l}</span>
+                                                <button data-action="remove-item" data-type="lugares" data-index="${i}" class="text-slate-400 hover:text-red-500 transition-colors">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
                                             </div>
                                         `).join('')}
                                 </div>
@@ -196,8 +221,10 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                     ${(config.facetas || []).map((f, i) => `
                                         <div class="bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-bold flex items-center gap-2 shadow-sm animate-scale-in cursor-move">
                                             <i class="fas fa-grip-vertical text-slate-300 text-[8px]"></i>
-                                            ${f}
-                                            <button onclick="window.removeConfigItem('facetas', ${i})" class="text-slate-400 hover:text-red-500 transition-colors"><i class="fas fa-times"></i></button>
+                                            <span class="flex-1">${f}</span>
+                                            <button data-action="remove-item" data-type="facetas" data-index="${i}" class="text-slate-400 hover:text-red-500 transition-colors">
+                                                <i class="fas fa-times"></i>
+                                            </button>
                                         </div>
                                     `).join('')}
                                 </div>
@@ -211,16 +238,17 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                         <div id="led-tipos_t" class="led-status-container !static hidden"></div>
                                         <button id="add-tipo-t" class="text-[9px] text-blue-500 hover:underline">+ Añadir</button>
                                     </div>
-                                </label>
-                                <div id="list-tipos-t" class="flex flex-wrap gap-2 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 min-h-[60px]">
+                                           <div id="list-tipos-t" class="flex flex-wrap gap-2 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 min-h-[60px]">
                                     ${(config.tipos_territorio || ['Casa en Casa', 'Negocios', 'Pública']).map((t, i) => `
                                         <div class="bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-bold flex items-center gap-2 shadow-sm animate-scale-in cursor-move">
                                             <i class="fas fa-grip-vertical text-slate-300 text-[8px]"></i>
-                                            ${t}
-                                            <button onclick="window.removeConfigItem('tipos_t', ${i})" class="text-slate-400 hover:text-red-500 transition-colors"><i class="fas fa-times"></i></button>
+                                            <span class="flex-1">${t}</span>
+                                            <button data-action="remove-item" data-type="tipos_t" data-index="${i}" class="text-slate-400 hover:text-red-500 transition-colors">
+                                                <i class="fas fa-times"></i>
+                                            </button>
                                         </div>
                                     `).join('')}
-                                </div>
+                                </div>                           </div>
                             </div>
                         </div>
 
@@ -343,76 +371,159 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
         });
     }, 100);
 
-    // --- AUTO-SAVE LOGIC ---
+    // --- AUTO-SAVE LOGIC (ENHANCED) ---
     let saveTimeout;
-    const triggerAutoSave = (id) => {
-        const inputEl = container.querySelector(`#${id}`);
+    const performSave = async (id = null) => {
+        if (saveTimeout) clearTimeout(saveTimeout);
+        
+        const inputEl = id ? container.querySelector(`#${id}`) : null;
         const statusEl = inputEl?.parentElement?.querySelector('.led-status-container');
 
         if (statusEl) {
             statusEl.innerHTML = '<div class="led-spinner"></div>';
             statusEl.classList.remove('hidden', 'opacity-0');
+            statusEl.style.display = 'flex';
         }
 
-        if (saveTimeout) clearTimeout(saveTimeout);
-        saveTimeout = setTimeout(async () => {
-            try {
-                config.congregacion = {
-                    nombre: container.querySelector('#conf-nombre')?.value.trim() || config.congregacion?.nombre,
-                    numero: container.querySelector('#conf-numero')?.value.trim() || config.congregacion?.numero
-                };
-                config.gemini_key = container.querySelector('#gemini-key')?.value.trim() || config.gemini_key;
-                config.tema_mes = container.querySelector('#conf-tema-mes')?.value.trim() || config.tema_mes;
+        try {
+            // Capturar valores reales de la UI (sin fallback destructivo)
+            const nombreVal = container.querySelector('#conf-nombre')?.value.trim();
+            const numeroVal = container.querySelector('#conf-numero')?.value.trim();
+            const geminiVal = container.querySelector('#gemini-key')?.value.trim();
+            const temaVal = container.querySelector('#conf-tema-mes')?.value.trim();
 
-                await saveConfiguracion(config);
-
-                if (statusEl) {
-                    statusEl.innerHTML = '<i class="fas fa-check-circle led-check"></i>';
-                    setTimeout(() => {
-                        statusEl.classList.add('opacity-0');
-                        setTimeout(() => {
-                            statusEl.classList.add('hidden');
-                            statusEl.innerHTML = '';
-                        }, 500);
-                    }, 2000);
-                }
-            } catch (e) {
-                console.error("Auto-save error:", e);
-                if (statusEl) statusEl.innerHTML = '<i class="fas fa-exclamation-circle text-red-500 text-[10px]"></i>';
+            // Sincronizar objeto config
+            if (nombreVal !== undefined) {
+                if (!config.congregacion) config.congregacion = {};
+                config.congregacion.nombre = nombreVal;
             }
-        }, 1500); // Trigger saving 1.5s after stop typing
+            if (numeroVal !== undefined) {
+                if (!config.congregacion) config.congregacion = {};
+                config.congregacion.numero = numeroVal;
+            }
+            if (geminiVal !== undefined) config.gemini_key = geminiVal;
+            if (temaVal !== undefined) config.tema_mes = temaVal;
+
+            // Persistir en Firestore
+            await saveConfiguracion(config);
+
+            if (statusEl) {
+                statusEl.innerHTML = '<i class="fas fa-check-circle led-check"></i>';
+                setTimeout(() => {
+                    statusEl.classList.add('opacity-0');
+                    setTimeout(() => {
+                        statusEl.classList.add('hidden');
+                        statusEl.style.display = 'none';
+                    }, 500);
+                }, 1500);
+            }
+            
+            // Si es un cambio mayor, notificar brevemente
+            if (!id || id === 'conf-nombre') showNotification("Ajustes guardados", "success");
+            
+        } catch (e) {
+            console.error("Auto-save error:", e);
+            if (statusEl) statusEl.innerHTML = '<i class="fas fa-exclamation-circle text-red-500 text-[10px]"></i>';
+            showNotification("Error al guardar", "error");
+        }
     };
 
-    // Attach to text inputs
+    const triggerAutoSave = (id) => {
+        if (saveTimeout) clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(() => performSave(id), 1200);
+    };
+
+    // Attach listeners to text inputs (Blur for immediate, Input for debounced)
     ['conf-nombre', 'conf-numero', 'gemini-key', 'conf-tema-mes'].forEach(id => {
         const el = container.querySelector(`#${id}`);
         if (el) {
             el.addEventListener('input', () => triggerAutoSave(id));
+            el.addEventListener('blur', () => performSave(id));
         }
     });
 
     // Helper functions for dynamic lists (modified to save immediately)
+    // --- OPTIMISTIC LIST RENDERING ---
+    const renderListItems = (type) => {
+        const containerId = type === 'horarios' ? 'list-horarios' : 
+                          type === 'lugares' ? 'list-lugares' :
+                          type === 'facetas' ? 'list-facetas' : 
+                          type === 'tipos_t' ? 'list-tipos-t' : null;
+        if (!containerId) return;
+        
+        const listEl = container.querySelector(`#${containerId}`);
+        if (!listEl) return;
+
+        let items = [];
+        if (type === 'horarios') {
+            config.horarios_programa = sortChronologically(config.horarios_programa || []);
+            items = config.horarios_programa;
+        } else if (type === 'lugares') items = config.lugares || [];
+        else if (type === 'facetas') items = config.facetas || [];
+        else if (type === 'tipos_t') items = config.tipos_territorio || ['Casa en Casa', 'Negocios', 'Pública'];
+
+        listEl.innerHTML = items.map((val, i) => `
+            <div class="bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-bold flex items-center gap-2 shadow-sm animate-scale-in cursor-move">
+                <i class="fas fa-grip-vertical text-slate-300 text-[8px]"></i>
+                <span class="flex-1">${val}</span>
+                <button data-action="remove-item" data-type="${type}" data-index="${i}" class="text-slate-400 hover:text-red-500 transition-colors">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `).join('');
+    };
+
+    // Event Delegation para eliminación de badges
+    container.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-action="remove-item"]');
+        if (!btn) return;
+        const { type, index } = btn.dataset;
+        window.removeConfigItem(type, parseInt(index));
+    });
+
     const addConfigItem = (type) => {
-        const labels = { horarios: 'Horario (ej. 09:00AM)', lugares: 'Lugar', facetas: 'Faceta', tipos_t: 'Tipo de Territorio' };
+        const labels = { 
+            horarios: 'Horario (ej. 09:00AM)', 
+            lugares: 'Lugar de Reunión', 
+            facetas: 'Faceta de Servicio', 
+            tipos_t: 'Tipo de Territorio' 
+        };
+        
         showCustomPrompt(`Añadir ${labels[type]}:`, "", async (val) => {
-            if (!val) return;
-            const finishLED = await triggerManualLED(type);
-
+            if (!val || val.trim() === "") return;
+            const text = val.trim();
+            
+            // 1. Optimistic Update (UI)
             if (type === 'horarios') {
-                config.horarios_programa = [...(config.horarios_programa || []), val];
+                config.horarios_programa = [...(config.horarios_programa || []), text];
+            } else if (type === 'lugares') {
+                config.lugares = [...(config.lugares || []), text];
+            } else if (type === 'facetas') {
+                config.facetas = [...(config.facetas || []), text];
+            } else if (type === 'tipos_t') {
+                config.tipos_territorio = [...(config.tipos_territorio || ['Casa en Casa', 'Negocios', 'Pública']), text];
             }
-            if (type === 'lugares') config.lugares = [...(config.lugares || []), val];
-            if (type === 'facetas') config.facetas = [...(config.facetas || []), val];
-            if (type === 'tipos_t') config.tipos_territorio = [...(config.tipos_territorio || ['Casa en Casa', 'Negocios', 'Pública']), val];
+            
+            renderListItems(type);
+            showNotification("Añadido localmente", "success");
 
-            await saveConfiguracion(config);
-            await finishLED();
-            reloadTabFn('config');
+            // 2. Background Saving
+            const finishLED = await triggerManualLED(type);
+            try {
+                await saveConfiguracion(config);
+                await finishLED();
+            } catch (e) {
+                console.error("Add item error:", e);
+                await finishLED(false);
+                showNotification("Error al sincronizar", "error");
+            }
         });
     };
 
     window.removeConfigItem = async (type, index) => {
         const finishLED = await triggerManualLED(type);
+        
+        // Optimistic UI
         if (type === 'horarios') config.horarios_programa.splice(index, 1);
         if (type === 'lugares') config.lugares.splice(index, 1);
         if (type === 'facetas') config.facetas.splice(index, 1);
@@ -420,9 +531,17 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
             if (!config.tipos_territorio) config.tipos_territorio = ['Casa en Casa', 'Negocios', 'Pública'];
             config.tipos_territorio.splice(index, 1);
         }
-        await saveConfiguracion(config);
-        await finishLED();
-        reloadTabFn('config');
+        
+        renderListItems(type);
+
+        try {
+            await saveConfiguracion(config);
+            await finishLED();
+        } catch (e) {
+            console.error("Remove item error:", e);
+            await finishLED(false);
+            showNotification("Error al sincronizar", "error");
+        }
     };
 
     // --- POI (ZONAS) HANDLERS ---
@@ -485,8 +604,21 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                 </footer>
             </div>
         `, (modal) => {
-            modal.querySelector('#btn-cancel-poi').onclick = () => modal.classList.add('hidden');
-            modal.querySelector('#save-poi-btn').onclick = async () => {
+            modal.querySelector('#btn-cancel-poi').onclick = (e) => {
+                if (e) {
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                }
+                modal.classList.add('hidden');
+                modal.innerHTML = ''; // Destrucción del DOM
+            };
+
+            modal.querySelector('#save-poi-btn').onclick = async (e) => {
+                if (e) {
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                }
+
                 const btn = modal.querySelector('#save-poi-btn');
                 const name = modal.querySelector('#poi-name').value.trim();
                 const type = modal.querySelector('#poi-type').value;
@@ -506,6 +638,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                     else await addPuntoInteres(data);
 
                     modal.classList.add('hidden');
+                    modal.innerHTML = ''; // Destrucción completa
                     await finishLED();
                     showNotification(isEdit ? "Zona actualizada" : "Zona añadida");
                     reloadTabFn('config');

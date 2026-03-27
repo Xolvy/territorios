@@ -218,21 +218,53 @@ export const showCustomPrompt = (message, defaultValue, onConfirm) => {
         input.focus();
         input.select();
 
-        const handleConfirm = () => {
+        const handleConfirm = (e) => {
+            if (e) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+            }
             const val = input.value.trim();
             if (val) {
                 modal.classList.add('hidden');
+                modal.innerHTML = ''; // Limpieza real del DOM
                 onConfirm(val);
             }
         };
 
-        input.onkeydown = (e) => {
-            if (e.key === 'Enter') handleConfirm();
-            if (e.key === 'Escape') modal.classList.add('hidden');
+        let isCanceling = false;
+        const btnCancel = modal.querySelector('#prompt-cancel');
+        btnCancel.addEventListener('mousedown', () => { isCanceling = true; });
+        btnCancel.onclick = (e) => {
+            if (e) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+            }
+            modal.classList.add('hidden');
+            modal.innerHTML = ''; // Destrucción completa del modal
         };
 
-        modal.querySelector('#prompt-cancel').onclick = () => modal.classList.add('hidden');
-        modal.querySelector('#prompt-ok').onclick = handleConfirm;
+        input.onblur = () => {
+            setTimeout(() => {
+                if (!isCanceling && input.value.trim() !== '') {
+                    handleConfirm();
+                }
+            }, 100);
+        };
+
+        input.onkeydown = (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                handleConfirm(e);
+            }
+            if (e.key === 'Escape') {
+                isCanceling = true;
+                modal.classList.add('hidden');
+                modal.innerHTML = '';
+            }
+        };
+
+        modal.querySelector('#prompt-ok').onclick = (e) => handleConfirm(e);
     }, 'max-w-sm');
 };
 

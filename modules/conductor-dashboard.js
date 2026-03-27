@@ -2,14 +2,13 @@
 import { auth } from '../firebase-config.js';
 import { where, documentId } from "firebase/firestore";
 import {
-    getTerritorios, getConductores, getPublicadores, getTelefonos, getTelefonosParaSesion,
+    getTerritorios, getPublicadores, getTelefonos, getTelefonosParaSesion,
     getConfiguracion,
     getProgramaSemanal, saveProgramaSemanal, syncSlotWithTerritories, getTerritoryHistory,
     addPublicador,
     releaseUnusedTelefonos, solicitarNumeros, updateTelefonoStatus, logSessionSummary, releaseTelefonosById,
     transferTerritory, takeTerritoryPartial, assignFreeTerritory,
-    getPuntosInteres,
-    startLivePool, returnTerritorio, updateTelefono
+    startLivePool, returnTerritorio
 } from '../data/firestore-services.js';
 import { showNotification, formatPhoneNumber, formatManzanas, normalizeRobust } from './utils/helpers.js';
 import { NexoAgent } from './nexo-ai/nexo-core.js';
@@ -582,9 +581,9 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
             const wasMapsOpen = container.querySelector('#details-maps')?.open ?? false;
 
             container.innerHTML = `
-        <div class="${VisualEngine.get('shell.container')}" data-adaptive-container="true">
-          <div class="${VisualEngine.get('shell.mainOrder')}">
-                <header class="${VisualEngine.get('header.wrapper')} sticky top-0 z-50 backdrop-blur-xl border-b border-slate-200/50 dark:border-white/5 !mb-6" data-mobile-order="1">
+        <div class="${VisualEngine.get('shell.container')} h-screen overflow-hidden transition-colors duration-300" data-adaptive-container="true">
+          <div class="${VisualEngine.get('shell.mainOrder')} h-full flex flex-col transition-colors duration-300">
+                <header class="${VisualEngine.get('header.wrapper')} sticky top-0 z-50 backdrop-blur-xl border-b border-slate-200/50 dark:border-white/5 !mb-6 transition-all duration-300" data-mobile-order="1">
                     <div class="${VisualEngine.get('header.glow')} !opacity-20"></div>
                     <div class="flex items-center gap-4 md:gap-5 relative z-10">
                         <div class="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-indigo-600 to-teal-500 rounded-xl md:rounded-2xl flex items-center justify-center text-white shadow-xl shadow-indigo-500/20 transform hover:rotate-3 transition-transform duration-500">
@@ -626,7 +625,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
                         <!-- Integrated Pill UI -->
                         <div class="flex-none flex items-center justify-center gap-3 bg-slate-100 dark:bg-white/5 px-3 py-2 rounded-xl border border-slate-200 dark:border-white/10 shadow-inner relative z-[60]">
-                            <button onclick="window.toggleTheme(); window.refreshConductorView();" class="text-slate-500 hover:text-primary transition-all active:scale-75 group/theme outline-none relative z-[70] pointer-events-auto text-xs">
+                            <button onclick="window.toggleTheme()" class="text-slate-500 hover:text-primary transition-all active:scale-75 group/theme outline-none relative z-[70] pointer-events-auto text-xs">
                                 <i class="fas fa-moon dark:hidden"></i>
                                 <i class="fas fa-sun hidden dark:block text-yellow-500"></i>
                             </button>
@@ -641,7 +640,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                             <div class="w-px h-3 bg-slate-200 dark:bg-white/10 mx-0.5 pointer-events-none"></div>
 
                             ${(userRole === 'Administrador' || userRole === 'SuperAdmin' || conductorData?.privilegios?.includes('Administrador')) ? `
-                                <button id="btn-goto-admin" class="text-[7px] font-black text-primary hover:text-primary-dark uppercase tracking-widest transition-all active:scale-95 flex items-center gap-1.5 whitespace-nowrap outline-none px-1 relative z-[70] pointer-events-auto">
+                                <button id="btn-goto-admin" onclick="window.switchToAdminView()" class="text-[7px] font-black text-primary hover:text-primary-dark uppercase tracking-widest transition-all active:scale-95 flex items-center gap-1.5 whitespace-nowrap outline-none px-1 relative z-[70] pointer-events-auto">
                                     <i class="fas fa-random text-[9px]"></i> Admin
                                 </button>
                             ` : ''}
@@ -653,7 +652,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                     </div>
                 </header>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-y-6 gap-x-8 px-2 md:px-4">
+                <div class="flex-1 min-h-0 overflow-y-auto custom-scrollbar grid grid-cols-1 lg:grid-cols-2 gap-y-6 gap-x-8 px-2 md:px-4 pb-12 transition-colors duration-300">
                 <!-- Agenda Section (Always Expanded, No container) -->
                 <div class="lg:col-span-2 ${mods.agenda !== false ? '' : 'hidden'} mb-10" id="agenda-section">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 px-6">
@@ -726,7 +725,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 </div>
 
                 <!-- Maps Module -->
-                <div class="lg:col-span-2 modern-card border-slate-200 dark:border-white/10 shadow-xl transition-all overflow-hidden !p-0 ${mods.mapas !== false ? '' : 'hidden'} bg-white dark:bg-slate-900/40 mb-4 rounded-3xl" id="interactive-maps-module">
+                <div class="lg:col-span-2 ${VisualEngine.get('card.premium')} !p-0 overflow-hidden ${mods.mapas !== false ? '' : 'hidden'} mb-4" id="interactive-maps-module">
                     <details id="details-maps" class="group/maps" ${wasMapsOpen ? 'open' : ''}>
                         <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-6 md:p-8 cursor-pointer list-none select-none hover:bg-slate-50 transition-colors">
                             <div class="flex items-start gap-6">
@@ -756,7 +755,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 </div>
 
                 <!-- Phone Module -->
-                <div class="lg:col-span-2 relative modern-card p-6 md:p-8 ${mods.telefonos !== false ? '' : 'hidden'} border-slate-200 dark:border-white/10 shadow-xl bg-white dark:bg-slate-900/40 mb-4 rounded-3xl" id="phone-module-card">
+                <div class="lg:col-span-2 ${VisualEngine.get('card.premium')} p-6 md:p-8 ${mods.telefonos !== false ? '' : 'hidden'} mb-4" id="phone-module-card">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 px-2">
                         <div class="flex items-center gap-4">
                             <div class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
@@ -775,18 +774,18 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                         </div>
                     </div>
 
-                    <div id="phone-compact-view" class="animate-fade-in p-2 md:p-8">
-                        <div class="bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-900/10 dark:to-slate-900 p-8 md:p-12 text-center rounded-3xl border border-indigo-100 dark:border-indigo-500/10 shadow-inner">
-                           <div class="w-20 h-20 bg-indigo-600/10 rounded-2xl flex items-center justify-center text-4xl text-indigo-600 mx-auto mb-8">
+                    <div id="phone-compact-view" class="animate-fade-in p-2 md:p-4">
+                        <div class="bg-indigo-50/50 dark:bg-indigo-900/10 p-8 md:p-12 text-center rounded-3xl border border-indigo-100 dark:border-indigo-500/10 shadow-sm transition-all hover:shadow-md">
+                           <div class="w-20 h-20 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-4xl text-indigo-600 mx-auto mb-8 shadow-inner">
                                <i class="fas fa-phone-alt"></i>
                            </div>
                            <h3 class="text-2xl font-black text-slate-800 dark:text-white mb-4 uppercase tracking-tighter">¿Listo para Predicar?</h3>
-                           <p class="text-slate-500 dark:text-slate-400 max-w-md mx-auto mb-10 font-medium">Inicia tu sesión de hoy para ver tus números asignados.</p>
+                           <p class="text-[11px] text-slate-500 font-black uppercase tracking-[0.2em] max-w-md mx-auto mb-10">Inicia tu sesión de hoy para ver tus números asignados.</p>
                            <div class="flex flex-wrap justify-center gap-4" id="phone-actions-container">
-                               <button id="btn-solicitar" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-black shadow-lg transition-all active:scale-95 flex items-center gap-3 uppercase tracking-widest text-[9px]">
+                               <button id="btn-solicitar" class="${VisualEngine.get('button.base')} bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg active:scale-95 text-[9px]">
                                    <i class="fas fa-rocket text-base"></i> Solicitar Números
                                </button>
-                               <button id="btn-zoom-compact" onclick="window.open(AppConfig.zoom_url, '_blank')" class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-2xl font-black shadow-lg shadow-blue-500/30 transition-all active:scale-95 flex items-center gap-3 uppercase tracking-widest text-[9px]">
+                               <button id="btn-zoom-compact" onclick="window.open(AppConfig.zoom_url, '_blank')" class="${VisualEngine.get('button.base')} bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/30 active:scale-95 text-[9px]">
                                    <i class="fas fa-video text-base"></i> Conectar Zoom
                                </button>
                            </div>
@@ -832,7 +831,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
                 <!-- Availability Module -->
                 <div class="lg:col-span-2 ${mods.disponibilidad !== false ? '' : 'hidden'} mb-4" id="availability-section">
-                    <div class="modern-card !p-0 border-slate-200 dark:border-white/10 shadow-xl transition-all bg-white dark:bg-slate-900/40 rounded-3xl overflow-hidden">
+                    <div class="${VisualEngine.get('card.premium')} !p-0 overflow-hidden">
                          <details id="details-availability" class="group/avail-details" ${wasAvailOpen ? 'open' : ''}>
                              <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-6 md:p-8 cursor-pointer list-none select-none hover:bg-slate-50 transition-colors">
                                 <div class="flex items-start gap-6">

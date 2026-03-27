@@ -1,0 +1,111 @@
+
+> app-territorios@2.6.1 build
+> vite build
+
+[36mvite v7.3.1 [32mbuilding client environment for production...[36m[39m
+transforming...
+[32mÔ£ô[39m 99 modules transformed.
+
+Ô£¿ [vite-plugin-compression]:algorithm=gzip - compressed file successfully: 
+dist/D:/_CODE/app-territorios/assets/ai-voice-assistant-CpwbPJnk.js.gz     5.40kb / gzip: 2.43kb
+dist/D:/_CODE/app-territorios/assets/ai-view-CwLPziHQ.js.gz                7.35kb / gzip: 2.38kb
+dist/D:/_CODE/app-territorios/assets/availability-D_DEXcLf.js.gz           3.90kb / gzip: 1.46kb
+dist/D:/_CODE/app-territorios/assets/admin-dashboard-D_BUKyT-.js.gz        22.07kb / gzip: 5.70kb
+dist/D:/_CODE/app-territorios/assets/alerts-qI3q0uC6.js.gz                 4.50kb / gzip: 1.79kb
+dist/D:/_CODE/app-territorios/assets/campaigns-view-BdWWD9S1.js.gz         3.50kb / gzip: 1.33kb
+dist/D:/_CODE/app-territorios/assets/analytics-view-C953iou8.js.gz         21.71kb / gzip: 5.65kb
+dist/D:/_CODE/app-territorios/assets/config-service-DhgOR6jn.js.gz         1.98kb / gzip: 0.67kb
+dist/D:/_CODE/app-territorios/assets/assignments-view-CBH1kDxK.js.gz       7.40kb / gzip: 2.15kb
+dist/D:/_CODE/app-territorios/assets/diagnostic-service-DvpNkf-g.js.gz     2.11kb / gzip: 0.96kb
+dist/D:/_CODE/app-territorios/assets/cluster-map-DKIU1vJa.js.gz            12.45kb / gzip: 4.89kb
+dist/D:/_CODE/app-territorios/assets/background-sync-CEsMoGXY.js.gz        2.35kb / gzip: 1.16kb
+dist/D:/_CODE/app-territorios/assets/diffusion-view-Dcm9QExR.js.gz         5.83kb / gzip: 1.86kb
+dist/D:/_CODE/app-territorios/assets/kml-parser-B6Ae2gxt.js.gz             1.97kb / gzip: 1.17kb
+dist/D:/_CODE/app-territorios/assets/export-service-C3kKZcTx.js.gz         3.78kb / gzip: 1.97kb
+dist/D:/_CODE/app-territorios/assets/grupos-view-Bjo5ooXq.js.gz            6.62kb / gzip: 1.79kb
+dist/D:/_CODE/app-territorios/assets/firestore-services-Bkbd2PZ-.js.gz     2.32kb / gzip: 0.92kb
+dist/D:/_CODE/app-territorios/assets/maps-explorer-t94y_e4q.js.gz          2.48kb / gzip: 1.01kb
+dist/D:/_CODE/app-territorios/assets/map-viewer-CIG8F2_X.js.gz             10.76kb / gzip: 3.14kb
+dist/D:/_CODE/app-territorios/assets/history-view-Ca8C2c81.js.gz           35.59kb / gzip: 6.96kb
+dist/D:/_CODE/app-territorios/assets/login-BY2NeWVB.js.gz                  11.51kb / gzip: 3.33kb
+dist/D:/_CODE/app-territorios/assets/maps-admin-Ctqo6YIV.js.gz             6.79kb / gzip: 2.49kb
+dist/D:/_CODE/app-territorios/assets/nexo-core-DeJ216KY.js.gz              3.71kb / gzip: 1.70kb
+dist/D:/_CODE/app-territorios/assets/onboarding-BF8jXCcx.js.gz             3.71kb / gzip: 1.71kb
+dist/D:/_CODE/app-territorios/assets/pdf-report-service-DBcPnHv9.js.gz     4.48kb / gzip: 1.91kb
+dist/D:/_CODE/app-territorios/assets/phone-module-BZbwi1q2.js.gz           7.72kb / gzip: 2.25kb
+dist/D:/_CODE/app-territorios/assets/maps-view-DQ_KQEYb.js.gz              20.08kb / gzip: 5.05kb
+dist/D:/_CODE/app-territorios/assets/program-generator-Dy0-h1Mu.js.gz      2.16kb / gzip: 1.28kb
+dist/D:/_CODE/app-territorios/assets/program-service-DwviQMfi.js.gz        3.90kb / gzip: 1.76kb
+dist/D:/_CODE/app-territorios/assets/program-views-BVWckxgk.js.gz          13.02kb / gzip: 3.34kb
+dist/D:/_CODE/app-territorios/assets/personal-view-etAliVMp.js.gz          33.90kb / gzip: 6.88kb
+dist/D:/_CODE/app-territorios/assets/phones-view-Cls6kRyC.js.gz            18.42kb / gzip: 4.36kb
+dist/D:/_CODE/app-territorios/assets/pwa-manager-Gmiemzzc.js.gz            7.91kb / gzip: 2.69kb
+dist/D:/_CODE/app-territorios/assets/puntos-view-C-WfS9Ft.js.gz            11.08kb / gzip: 2.92kb
+dist/D:/_CODE/app-territorios/assets/report-s12-Dq7qt_pU.js.gz             4.65kb / gzip: 1.43kb
+dist/D:/_CODE/app-territorios/assets/reports-generator-DK9alPGr.js.gz      3.99kb / gzip: 1.72kb
+dist/D:/_CODE/app-territorios/assets/public-view-DcGbOLnW.js.gz            38.66kb / gzip: 7.13kb
+dist/D:/_CODE/app-territorios/assets/recursos-D-_wqUwM.js.gz               17.18kb / gzip: 4.68kb
+dist/D:/_CODE/app-territorios/assets/report-s13-DsKFQFfp.js.gz             21.32kb / gzip: 5.73kb
+dist/D:/_CODE/app-territorios/assets/rescue-D-MbfglT.js.gz                 8.08kb / gzip: 2.02kb
+dist/D:/_CODE/app-territorios/assets/reports-view-l5MmHVBc.js.gz           28.77kb / gzip: 5.81kb
+dist/D:/_CODE/app-territorios/assets/resources-view-qAwUHw4D.js.gz         10.23kb / gzip: 2.66kb
+dist/D:/_CODE/app-territorios/assets/store-C8ks06hL.js.gz                  1.03kb / gzip: 0.49kb
+dist/D:/_CODE/app-territorios/assets/s13-exporter-B5_QCZRU.js.gz           6.12kb / gzip: 1.60kb
+dist/D:/_CODE/app-territorios/assets/s12-view-2nI5EwBu.js.gz               14.57kb / gzip: 3.92kb
+dist/D:/_CODE/app-territorios/assets/territorios-manifest-B-X81LpZ.js.gz   1.43kb / gzip: 0.71kb
+dist/D:/_CODE/app-territorios/assets/territories-view-B3TWxnCK.js.gz       4.11kb / gzip: 1.63kb
+dist/D:/_CODE/app-territorios/assets/ui-components-B0H6wFu8.js.gz          2.11kb / gzip: 0.94kb
+dist/D:/_CODE/app-territorios/assets/rules-view-CzpUya73.js.gz             31.86kb / gzip: 5.99kb
+dist/D:/_CODE/app-territorios/assets/territory-service-0J4pbmnc.js.gz      10.50kb / gzip: 3.44kb
+dist/D:/_CODE/app-territorios/assets/weekly-program-DXxXcRzQ.js.gz         4.96kb / gzip: 2.09kb
+dist/D:/_CODE/app-territorios/manifest.json.gz                             1.80kb / gzip: 0.61kb
+dist/D:/_CODE/app-territorios/index.html.gz                                4.99kb / gzip: 1.96kb
+dist/D:/_CODE/app-territorios/service-worker.js.gz                         4.07kb / gzip: 1.22kb
+dist/D:/_CODE/app-territorios/assets/ui-helpers-9wjNpJw0.js.gz             23.34kb / gzip: 5.72kb
+dist/D:/_CODE/app-territorios/sw.js.gz                                     5.61kb / gzip: 2.07kb
+dist/D:/_CODE/app-territorios/sw-custom.js.gz                              7.65kb / gzip: 2.53kb
+dist/D:/_CODE/app-territorios/workbox-f813f45e.js.gz                       20.99kb / gzip: 7.17kb
+dist/D:/_CODE/app-territorios/assets/main-bZemCrWy.js.gz                   64.00kb / gzip: 20.38kb
+dist/D:/_CODE/app-territorios/assets/conductor-dashboard-kF25hziV.js.gz    92.71kb / gzip: 20.41kb
+dist/D:/_CODE/app-territorios/assets/motion-helpers-BkfLYxWs.js.gz         60.58kb / gzip: 20.87kb
+dist/D:/_CODE/app-territorios/assets/program-view-DnQXnT7Y.js.gz           79.39kb / gzip: 16.30kb
+dist/D:/_CODE/app-territorios/assets/schemas-D1cwgrgY.js.gz                62.34kb / gzip: 16.51kb
+dist/D:/_CODE/app-territorios/assets/main-7cMEGr-3.css.gz                  225.49kb / gzip: 52.86kb
+dist/D:/_CODE/app-territorios/assets/ui-vendor-DG55Riqd.js.gz              307.55kb / gzip: 98.14kb
+dist/D:/_CODE/app-territorios/assets/firebase-vendor-CSMrh1zE.js.gz        591.83kb / gzip: 137.82kb
+dist/D:/_CODE/app-territorios/assets/utils-vendor-BIG0xgmE.js.gz           478.18kb / gzip: 152.57kb
+dist/D:/_CODE/app-territorios/assets/PDFButton-CvinadSU.js.gz              415.97kb / gzip: 172.02kb
+dist/D:/_CODE/app-territorios/pdf-lib.js.gz                                512.81kb / gzip: 201.54kb
+dist/D:/_CODE/app-territorios/assets/exceljs.min-sibmU1lt.js.gz            912.11kb / gzip: 249.04kb
+
+
+
+Ô£¿ [36m[vite-plugin-image-optimizer][39m - optimized images successfully: 
+[2mdist[22m/[94mfavicon.svg[39m      [90m[32m0%[39m[90m [39m [33m[1mskipped[22m[39m [2moriginal: 0.90 kB <= optimized: 0.90 kB[22m
+[2mdist[22m/[94micon-512.svg[39m     [90m[32m0%[39m[90m [39m [33m[1mskipped[22m[39m [2moriginal: 0.90 kB <= optimized: 0.90 kB[22m
+[2mdist[22m/[94micon-192.svg[39m     [90m[32m0%[39m[90m [39m [33m[1mskipped[22m[39m [2moriginal: 0.90 kB <= optimized: 0.90 kB[22m
+[2mdist[22m/[94mpwa-192x192.png[39m  [90m[32m0%[39m[90m [39m [33m[1mskipped[22m[39m [2moriginal: 1.72 kB <= optimized: 1.72 kB[22m
+[2mdist[22m/[94mpwa-512x512.png[39m  [90m[32m0%[39m[90m [39m [33m[1mskipped[22m[39m [2moriginal: 4.33 kB <= optimized: 4.33 kB[22m
+
+
+
+­ƒÜ¿ [31m[vite-plugin-image-optimizer][39m - errors during optimization: 
+dist/assets/mapa-general.jpg      Input buffer contains unsupported image format
+
+
+dist/assets/mapa_territorio.png   Input buffer contains unsupported image format
+Ô£ù Build failed in 3.19s
+error during build:
+[vite-plugin-pwa:build] [plugin vite-plugin-pwa:build] modules/services/ai-vision-service.js: There was an error during the build:
+  Could not resolve "../data/firestore-services.js" from "modules/services/ai-vision-service.js"
+Additionally, handling the error in the 'buildEnd' hook caused the following error:
+  Could not resolve "../data/firestore-services.js" from "modules/services/ai-vision-service.js"
+file: D:/_CODE/app-territorios/modules/services/ai-vision-service.js
+    at getRollupError (file:///D:/_CODE/app-territorios/node_modules/rollup/dist/es/shared/parseAst.js:400:41)
+    at file:///D:/_CODE/app-territorios/node_modules/rollup/dist/es/shared/node-entry.js:23423:39
+    at async catchUnfinishedHookActions (file:///D:/_CODE/app-territorios/node_modules/rollup/dist/es/shared/node-entry.js:22881:16)
+    at async rollupInternal (file:///D:/_CODE/app-territorios/node_modules/rollup/dist/es/shared/node-entry.js:23406:5)
+    at async buildEnvironment (file:///D:/_CODE/app-territorios/node_modules/vite/dist/node/chunks/config.js:33541:12)
+    at async Object.build (file:///D:/_CODE/app-territorios/node_modules/vite/dist/node/chunks/config.js:33900:19)
+    at async Object.buildApp (file:///D:/_CODE/app-territorios/node_modules/vite/dist/node/chunks/config.js:33897:153)
+    at async CAC.<anonymous> (file:///D:/_CODE/app-territorios/node_modules/vite/dist/node/cli.js:629:3)

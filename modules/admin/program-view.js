@@ -2,8 +2,9 @@ import {
     getTerritorios, getConfiguracion, getPublicadores,
     getProgramaSemanal, saveProgramaSemanal, getGroupsConfig, returnTerritorioMultiple,
     getHistorialReport, returnTerritorioParcial, startLivePool,
-    returnTerritorio, syncSlotWithTerritories
+    returnTerritorio, syncSlotWithTerritories, importProgramFromJSON
 } from '../../data/firestore-services.js';
+import { extractProgramFromImage } from '../services/ai-vision-service.js';
 import { showNotification, formatGroups, getBaseTerritoryNumber, normalize } from '../utils/helpers.js';
 import { UIHelpers, showModal, showTerritorySelectionModal, showCustomConfirm } from '../services/ui-helpers.js';
 import { generateProgramPNG } from './program-generator.js';
@@ -67,7 +68,7 @@ export const renderProgramaTab = async (container) => {
 
     const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
-    const [rawTerritorios, config, allPersonnel, historial] = await Promise.all([
+    const [rawTerritorios, config, _, historial] = await Promise.all([
         getTerritorios(), getConfiguracion(), getPublicadores(), getHistorialReport()
     ]);
 
@@ -119,7 +120,7 @@ export const renderProgramaTab = async (container) => {
     };
 
     container.innerHTML = `
-        <div class="max-w-[1700px] mx-auto space-y-6 md:space-y-8 animate-fade-in p-2 md:p-6">
+        <div class="max-w-[1700px] mx-auto space-y-12 animate-fade-in pb-10">
             <header class="flex flex-col xl:flex-row items-center justify-between gap-6">
                 <div class="flex items-center gap-5">
                     <div class="w-14 h-14 bg-gradient-to-br from-primary to-indigo-600 rounded-2xl flex items-center justify-center text-2xl text-white shadow-xl shadow-primary/20">
@@ -134,40 +135,46 @@ export const renderProgramaTab = async (container) => {
                 <div class="flex flex-wrap items-center justify-center gap-3 w-full xl:w-auto overflow-visible relative">
                     <!-- Week Navigation (Forced to Layer 50) -->
                     <div class="flex items-center bg-slate-100 dark:bg-white/5 rounded-2xl p-1 border border-slate-200 dark:border-white/5 shadow-inner relative z-[50] mb-5 xl:mb-0">
-                         <button id="prev-week" class="p-4 hover:bg-white dark:hover:bg-white/10 rounded-xl transition-all text-slate-400 hover:text-primary active:scale-95">
+                         <button id="btn-prev-week" class="p-4 hover:bg-white dark:hover:bg-white/10 rounded-xl transition-all text-slate-400 hover:text-primary active:scale-95">
                             <i class="fas fa-chevron-left"></i>
                          </button>
                          <div class="px-8 py-2 min-w-[200px] text-center">
                              <span id="week-range-label" class="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest">Cargando...</span>
                          </div>
-                         <button id="next-week" class="p-4 hover:bg-white dark:hover:bg-white/10 rounded-xl transition-all text-slate-400 hover:text-primary active:scale-95">
+                         <button id="btn-next-week" class="p-4 hover:bg-white dark:hover:bg-white/10 rounded-xl transition-all text-slate-400 hover:text-primary active:scale-95">
                             <i class="fas fa-chevron-right"></i>
                          </button>
                     </div>
 
                     <!-- Action Buttons (Lower Layer 10) -->
                     <nav data-adaptive-wrap="true" class="flex flex-wrap items-center justify-center lg:justify-start gap-2 bg-slate-100/50 dark:bg-white/5 p-1.5 rounded-2xl border border-slate-200/50 dark:border-white/5 shadow-sm w-full lg:w-max max-w-full relative z-[10]">
-                        <button id="btn-sync-all-prog" class="btn-pro flex items-center gap-2 px-6 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-emerald-500/20 active:scale-95 group shrink-0" title="Formalizar todas las asignaciones programadas">
+                        <button id="action-formalizar-prog" class="btn-pro flex items-center gap-2 px-6 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-emerald-500/20 active:scale-95 group shrink-0" title="Formalizar todas las asignaciones programadas">
                             <i class="fas fa-project-diagram group-hover:rotate-12 transition-transform"></i>
                             Formalizar
                         </button>
 
-                        <button id="btn-reset-today" class="btn-pro bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 px-6 py-4 rounded-xl font-black hover:bg-slate-50 transition-all text-[10px] uppercase tracking-widest shrink-0">Hoy</button>
+                        <button id="action-hoy-prog" class="btn-pro bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 px-6 py-4 rounded-xl font-black hover:bg-slate-50 transition-all text-[10px] uppercase tracking-widest shrink-0">Hoy</button>
                         
-                        <button id="btn-reception-prog" class="btn-pro flex items-center gap-2 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-rose-500 px-6 py-4 rounded-xl font-black hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all text-[10px] uppercase tracking-widest group shrink-0" title="Recibir territorios finalizados">
+                        <button id="action-recepcion-prog" class="btn-pro flex items-center gap-2 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-rose-500 px-6 py-4 rounded-xl font-black hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all text-[10px] uppercase tracking-widest group shrink-0" title="Recibir territorios finalizados">
                             <i class="fas fa-file-import group-hover:-translate-x-1 transition-transform"></i>
                             Recepción
                         </button>
                         
                         <div class="h-4 w-px bg-slate-200 dark:bg-white/10 mx-2 hidden lg:block"></div>
 
-                        <button id="btn-copy-prev-week" class="btn-pro flex items-center gap-2 px-6 py-4 bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 hover:bg-indigo-500 hover:text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-indigo-500/5 group shrink-0" title="Replicar estructura de la semana pasada">
+                        <button id="action-escanear-prog" class="btn-pro flex items-center gap-2 px-6 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-indigo-600/20 active:scale-95 group shrink-0" title="Escanear programa desde imagen con IA">
+                            <i class="fas fa-camera group-hover:scale-110 transition-transform"></i>
+                            Escanear
+                        </button>
+
+
+                        <button id="action-replicar-prog" class="btn-pro flex items-center gap-2 px-6 py-4 bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 hover:bg-indigo-500 hover:text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-indigo-500/5 group shrink-0" title="Replicar estructura de la semana pasada">
                             <i class="fas fa-copy group-hover:scale-110 transition-transform"></i>
                             Replicar
                         </button>
                         
                         <div class="dropdown-container relative z-50">
-                            <button id="btn-export-dropdown" class="btn-pro flex items-center gap-2 bg-emerald-500 text-white px-6 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-emerald-500/20 active:scale-95 group shrink-0" title="Opciones de Exportación">
+                            <button id="action-exportar-prog" class="btn-pro flex items-center gap-2 bg-emerald-500 text-white px-6 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-emerald-500/20 active:scale-95 group shrink-0" title="Opciones de Exportación">
                                 <i class="fas fa-file-export"></i>
                                 Exportar
                                 <i class="fas fa-chevron-down ml-1 text-[8px] opacity-70 group-hover:translate-y-0.5 transition-transform"></i>
@@ -189,22 +196,41 @@ export const renderProgramaTab = async (container) => {
                             </div>
                         </div>
                     </nav>
-
-
                 </div>
             </header>
+
+            <!-- Nexo AI Progress HUD -->
+            <div id="ai-scanning-overlay" class="absolute inset-0 backdrop-blur-md z-[9999] flex items-center justify-center hidden animate-fade-in nexo-loading-overlay" style="background:radial-gradient(ellipse at center,rgba(15,15,35,0.78)0%,rgba(5,5,20,0.90)100%);">
+                <div style="position:absolute;top:-10%;left:-8%;width:420px;height:420px;background:radial-gradient(circle,rgba(99,102,241,0.20)0%,transparent 70%);border-radius:50%;filter:blur(40px);pointer-events:none;"></div>
+                <div style="position:absolute;bottom:-15%;right:-5%;width:500px;height:500px;background:radial-gradient(circle,rgba(139,92,246,0.18)0%,transparent 70%);border-radius:50%;filter:blur(50px);pointer-events:none;"></div>
+                <div style="position:absolute;top:15%;right:6%;width:280px;height:280px;background:radial-gradient(circle,rgba(34,211,238,0.09)0%,transparent 70%);border-radius:50%;filter:blur(35px);pointer-events:none;"></div>
+                <div style="position:absolute;bottom:20%;left:4%;width:220px;height:220px;background:radial-gradient(circle,rgba(244,114,182,0.07)0%,transparent 70%);border-radius:50%;filter:blur(30px);pointer-events:none;"></div>
+                <div class="relative mx-4 w-full max-w-sm p-10 text-center animate-scale-in nexo-modal-box" style="background:rgba(255,255,255,0.05);backdrop-filter:blur(24px);border-radius:2.5rem;border:1px solid rgba(255,255,255,0.10);box-shadow:0 0 0 1px rgba(99,102,241,0.18),0 40px 80px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.07);">
+                    <div style="position:absolute;inset:0;border-radius:2.5rem;background:radial-gradient(ellipse at top,rgba(99,102,241,0.09)0%,transparent 60%);pointer-events:none;"></div>
+                    <div class="relative w-24 h-24 mx-auto mb-8">
+                        <div class="absolute inset-0 rounded-full" style="border:4px solid rgba(99,102,241,0.12);"></div>
+                        <div class="absolute inset-2 rounded-full animate-spin" style="border:4px solid transparent;border-top-color:#6366f1;"></div>
+                        <div class="absolute inset-5 rounded-full animate-spin" style="border:2px solid transparent;border-bottom-color:#a78bfa;animation-direction:reverse;animation-duration:1.4s;"></div>
+                        <div class="absolute inset-0 flex items-center justify-center text-2xl" style="color:#818cf8;">
+                            <i class="fas fa-wand-magic-sparkles animate-pulse"></i>
+                        </div>
+                    </div>
+                    <h3 class="text-xl font-black uppercase tracking-wider mb-2" style="color:#fff;text-shadow:0 0 24px rgba(99,102,241,0.55);">Nexo Vision AI</h3>
+                    <p class="font-bold text-xs uppercase tracking-widest animate-pulse" style="color:rgba(148,163,184,0.75);">Analizando imagen de programación...</p>
+                    <div class="mt-6 h-0.5 rounded-full overflow-hidden" style="background:rgba(255,255,255,0.06);">
+                        <div class="h-full rounded-full animate-pulse" style="width:65%;background:linear-gradient(90deg,#6366f1,#a78bfa);box-shadow:0 0 10px rgba(99,102,241,0.8);"></div>
+                    </div>
+                </div>
+            </div>
+
+
 
             <div id="day-selector-container" class="flex flex-wrap items-center justify-center gap-2 mt-8 animate-fade-in" data-adaptive-scroll="true"></div>
 
             <div class="relative group min-h-[500px]">
-                <div id="prog-loading-overlay" class="absolute inset-0 bg-white/80 dark:bg-slate-900/80 z-50 backdrop-blur-sm flex items-center justify-center hidden rounded-[2.5rem]">
-                     <div class="flex flex-col items-center gap-4">
-                        <div class="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
-                        <p class="text-[10px] font-black uppercase text-primary tracking-widest animate-pulse">Sincronizando...</p>
-                     </div>
+                <div class="modern-card !p-0 border-0 bg-transparent shadow-none" id="admin-prog-table">
+                    <div class="h-[500px] bg-slate-200/50 dark:bg-white/5 rounded-[3rem] animate-pulse"></div>
                 </div>
-                
-                <div class="modern-card !p-0 border-0 bg-transparent shadow-none" id="admin-prog-table"></div>
 
                 <div class="flex flex-col sm:flex-row justify-between items-center px-8 mt-6 gap-4">
                     <div class="flex items-center gap-6">
@@ -219,9 +245,6 @@ export const renderProgramaTab = async (container) => {
     `;
 
     const loadWeekData = async () => {
-        const overlay = container.querySelector('#prog-loading-overlay');
-        overlay?.classList.remove('hidden');
-
         try {
             const weekId = formatDateId(currentWeekStart);
 
@@ -268,16 +291,77 @@ export const renderProgramaTab = async (container) => {
                 renderDaySelector();
                 renderFilters();
                 renderTable();
-                overlay?.classList.add('hidden');
             });
             // setAdminLivePool(programUnsub); // This line was removed as per the instruction's implied change.
 
         } catch (error) {
             console.error(error);
             showNotification("Error cargando programa", "error");
-            overlay?.classList.add('hidden');
         }
     };
+
+    // --- AI SCAN MEMORY INPUT (ATTACHED FOR IOS) ---
+    let memoryScannerInput = document.getElementById('ai-scanner-input-global');
+    if (!memoryScannerInput) {
+        memoryScannerInput = document.createElement('input');
+        memoryScannerInput.id = 'ai-scanner-input-global';
+        memoryScannerInput.type = 'file';
+        memoryScannerInput.accept = 'image/png, image/jpeg, image/webp';
+        memoryScannerInput.style.position = 'absolute';
+        memoryScannerInput.style.opacity = '0';
+        memoryScannerInput.style.pointerEvents = 'none';
+        document.body.appendChild(memoryScannerInput);
+    }
+    
+    // Always clear old listeners to prevent duplicates on remount
+    const clone = memoryScannerInput.cloneNode(true);
+    memoryScannerInput.parentNode.replaceChild(clone, memoryScannerInput);
+    memoryScannerInput = clone;
+
+    const aiOverlay = container.querySelector('#ai-scanning-overlay');
+
+    memoryScannerInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        aiOverlay?.classList.remove('hidden');
+        document.body.classList.add('modal-open');
+
+        try {
+            // Fase 1: Extracción con Vision API
+            const extractedData = await extractProgramFromImage(file);
+            aiOverlay?.classList.add('hidden');
+            document.body.classList.remove('modal-open');
+
+            // Fase 2: Confirmación de Sobrescritura
+            showCustomConfirm('Se han extraído los datos exitosamente. Al aplicar, se sobrescribirá TODA la semana actual. ¿Deseas continuar?', async () => {
+                const weekId = formatDateId(currentWeekStart);
+                showNotification("Importando datos...", "info");
+                
+                await importProgramFromJSON(weekId, extractedData);
+                
+                showNotification("Programa importado con éxito por Nexo AI", "success");
+                loadWeekData(); // Refrescar vista
+            });
+
+        } catch (err) {
+            console.error("❌ AI Scan Error:", err);
+            aiOverlay?.classList.add('hidden');
+            document.body.classList.remove('modal-open');
+            showModal(`
+                <div class="p-8 text-center space-y-6">
+                    <div class="w-20 h-20 bg-rose-500/10 text-rose-500 rounded-3xl flex items-center justify-center text-3xl mx-auto shadow-xl">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <h2 class="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Fallo en Visión IA</h2>
+                    <p class="text-slate-500 dark:text-slate-400 font-bold text-sm max-w-sm mx-auto">No se pudo leer la tabla con claridad. Por favor, sube una imagen con mejor resolución o mayor contraste.</p>
+                    <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] active:scale-95 transition-all">Entendido</button>
+                </div>
+            `);
+        } finally {
+            memoryScannerInput.value = ''; // Reset input
+        }
+    });
 
     const renderDaySelector = () => {
         const dayBar = container.querySelector('#day-selector-container');
@@ -357,15 +441,17 @@ export const renderProgramaTab = async (container) => {
             if (!dia.tarde) dia.tarde = {};
             if (!dia.noche) dia.noche = {};
             if (dia.nombre === 'Martes' && !dia.zoom) dia.zoom = {};
-            const turnos = [
-                { id: 'manana' }, { id: 'tarde' }, { id: 'noche' },
-                { id: 'zoom' }
-            ];
+
+            // Build dynamic turno list: base slots + any extra groups (manana_2, tarde_2, etc.)
+            const baseTurnos = ['manana', 'tarde', 'noche', 'zoom'];
+            const extraKeys = Object.keys(dia).filter(k => /^(manana|tarde|noche)_\d+$/.test(k)).sort();
+            const allTurnoIds = [...baseTurnos, ...extraKeys];
+            const turnos = allTurnoIds.map(id => ({ id }));
 
             html += `
                 <div class="day-group animate-fade-in relative">
-                    <!-- Sticky Header Pegajoso -->
-                    <div class="sticky top-16 md:top-20 z-30 bg-slate-50/95 dark:bg-[#0a0f18]/95 backdrop-blur-md py-4 mb-4 border-b border-slate-200/60 dark:border-white/5 flex items-center justify-between">
+                    <!-- Header Día Normal -->
+                    <div class="py-4 mb-4 border-b border-slate-200/60 dark:border-white/5 flex items-center justify-between">
                         <div>
                             <h4 class="text-xl md:text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">${dia.nombre}</h4>
                             <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none mt-1">${dia.fecha}</p>
@@ -378,12 +464,13 @@ export const renderProgramaTab = async (container) => {
 
             turnos.forEach(t => {
                 const turnoId = t.id;
-                if (turnoId === 'zoom' && dia.nombre !== 'Martes') return;
-                if (!activeTurns.has(turnoId)) return;
+                const baseId = turnoId.split('_')[0]; // 'manana_2' → 'manana'
+                if (baseId === 'zoom' && dia.nombre !== 'Martes') return;
+                if (!activeTurns.has(baseId)) return;
 
                 const data = dia[turnoId] || {};
-                const styling = getTurnoStyling(turnoId, data.hora);
-                const hasData = data.conductor || data.territorio || data.grupos;
+                const styling = getTurnoStyling(baseId, data.hora);
+                const hasData = data.conductor || data.territorio || data.grupos || data.faceta || data.lugar;
 
                 // Status logic for territory badge
                 let statusBadgeHTML = '';
@@ -464,12 +551,13 @@ export const renderProgramaTab = async (container) => {
                         <label class="text-[10px] font-black text-slate-400 tracking-[0.2em] uppercase ml-1 flex items-center justify-between">
                             <span><i class="fas fa-map-marked-alt opacity-30 mr-1"></i> ${field}</span>
                         </label>
-                        <div onclick="window.openTerritorySelector(${dayIdx}, '${turnoId}', this.parentNode); setTimeout(()=>document.getElementById('modal-sheet').classList.add('hidden'), 50);" 
+                        <div onclick="window.openTerritorySelector(${dayIdx}, '${turnoId}', this);" 
                              data-current="${val}"
-                             class="w-full text-left bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-4 rounded-xl hover:border-primary transition-all flex items-center justify-between shadow-sm cursor-pointer">
+                             class="w-full text-left bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-4 rounded-xl hover:border-primary transition-all flex items-center justify-between shadow-sm cursor-pointer block-scale-click">
                             <span id="val-${fieldId}-modal" class="text-[12px] font-black truncate ${val ? 'text-primary' : 'text-slate-400 opacity-40'}">${val || '—'}</span>
                             <i class="fas fa-search text-slate-300"></i>
                         </div>
+                        <input type="hidden" id="select-territorio" value="${val}">
                     </div>`;
             } else if (field === 'Grupos') {
                 return `
@@ -477,10 +565,11 @@ export const renderProgramaTab = async (container) => {
                         <label class="text-[10px] font-black text-slate-400 tracking-[0.2em] uppercase ml-1 flex items-center gap-2">
                             <i class="fas fa-users opacity-30"></i> ${field}
                         </label>
-                        <div onclick="window.openGroupSelector(${dayIdx}, '${turnoId}'); setTimeout(()=>document.getElementById('modal-sheet').classList.add('hidden'), 50);" 
-                             class="w-full text-left bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-4 rounded-xl hover:border-indigo-500 transition-all flex items-center justify-between shadow-sm cursor-pointer">
+                        <div onclick="window.openGroupSelector(${dayIdx}, '${turnoId}');" 
+                             class="w-full text-left bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-4 rounded-xl hover:border-indigo-500 transition-all flex items-center justify-between shadow-sm cursor-pointer block-scale-click">
                             <span id="val-${fieldId}-modal" class="text-[12px] font-black truncate ${val ? 'text-indigo-500' : 'text-slate-400 opacity-40'}">${formatGroups(val) || '—'}</span>
                         </div>
+                        <input type="hidden" id="select-grupos" value="${val}">
                     </div>`;
             } else if (field === 'Conductor' || field === 'Auxiliar') {
                 const effectiveShiftId = getEffectiveShiftId(turnoId, data.hora);
@@ -499,7 +588,8 @@ export const renderProgramaTab = async (container) => {
                             <i class="fas ${icon} opacity-30"></i> ${field}
                         </label>
                         <div class="relative">
-                            <select onchange="window.updateWeekDataSheet(${dayIdx}, '${turnoId}', '${fieldId}', this.value)" 
+                            <select id="select-${fieldId}" 
+                                    onchange="window.updateWeekDataSheet(${dayIdx}, '${turnoId}', '${fieldId}', this.value)" 
                                     class="w-full bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-4 rounded-xl text-[12px] font-black text-slate-700 dark:text-white outline-none focus:border-primary appearance-none cursor-pointer shadow-sm transition-all focus:ring-1 focus:ring-primary/20">
                                 <option value="">—</option>
                                 ${finalOpts.map(o => `<option value="${o.name}" ${val === o.name ? 'selected' : ''} class="${o.isAvail ? 'text-emerald-500 font-bold' : ''}">${o.isAvail ? '✅ ' : ''}${o.name}</option>`).join('')}
@@ -514,7 +604,8 @@ export const renderProgramaTab = async (container) => {
                             <i class="fas ${icon} opacity-30"></i> ${field}
                         </label>
                         <div class="relative">
-                            <select onchange="window.updateWeekDataSheet(${dayIdx}, '${turnoId}', '${fieldId}', this.value)" 
+                            <select id="${fieldId === 'lugar' || fieldId === 'hora' ? 'input-' + fieldId : 'select-' + fieldId}" 
+                                    onchange="window.updateWeekDataSheet(${dayIdx}, '${turnoId}', '${fieldId}', this.value)" 
                                     class="w-full bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-4 rounded-xl text-[12px] font-black text-slate-700 dark:text-white outline-none focus:border-primary appearance-none cursor-pointer shadow-sm transition-all focus:ring-1 focus:ring-primary/20">
                                 <option value="">—</option>
                                 ${localOptions[field].map(o => `<option value="${o}" ${val === o ? 'selected' : ''}>${o}</option>`).join('')}
@@ -552,8 +643,14 @@ export const renderProgramaTab = async (container) => {
                     </div>
                 </header>
 
-                <div class="flex-1 overflow-y-auto px-6 md:px-8 py-6 space-y-6 form-scroller">
+                <div class="flex-1 overflow-y-auto px-6 md:px-8 py-6 space-y-6 form-scroller pb-32">
                     ${fieldsHTML}
+                </div>
+                
+                <div class="absolute bottom-0 left-0 w-full p-4 md:p-6 bg-gradient-to-t from-white via-white to-transparent dark:from-[#0a0f18] dark:via-[#0a0f18] pointer-events-none">
+                    <button onclick="window.saveTurnDataFromSheet(${dayIdx}, '${turnoId}')" class="pointer-events-auto w-full py-4 rounded-xl bg-slate-900 dark:bg-primary text-white font-black text-[12px] uppercase tracking-widest shadow-xl shadow-slate-900/20 dark:shadow-primary/20 transition-all hover:-translate-y-1 active:scale-[0.98]">
+                        Aceptar y Guardar
+                    </button>
                 </div>
             </div>
         `;
@@ -574,7 +671,7 @@ export const renderProgramaTab = async (container) => {
     };
 
     window.updateWeekDataSheet = async (dayIdx, turnoId, fieldId, val) => {
-        programa.dias[dayIdx][turnoId][fieldId] = val;
+        programa.dias[dayIdx][turnoId][fieldId] = val || '';
         try {
             await saveProgramaSemanal(programa.id, programa);
             // Si cambia la hora, afecta visualmente la etiqueta del turno, forzamos re-render
@@ -584,6 +681,47 @@ export const renderProgramaTab = async (container) => {
         } catch (e) {
             console.error(e);
             showNotification("Error guardando dato", "error");
+        }
+    };
+
+    window.saveTurnDataFromSheet = async (dayIdx, turnoId) => {
+        // Recolección segura con fallbacks (Protocolo NEXO AI)
+        const payload = {
+            lugar: document.getElementById('input-lugar')?.value || "",
+            hora: document.getElementById('input-hora')?.value || "",
+            conductor: document.getElementById('select-conductor')?.value || "",
+            auxiliar: document.getElementById('select-auxiliar')?.value || "",
+            faceta: document.getElementById('select-faceta')?.value || "",
+            territorio: document.getElementById('select-territorio')?.value || "",
+            grupos: document.getElementById('select-grupos')?.value || ""
+        };
+
+        // Sanitización final anti-FirebaseError (REGLA ESTRICTA)
+        const safePayload = JSON.parse(JSON.stringify(payload));
+        
+        // Actualizar objeto local de forma integral
+        if (!programa.dias[dayIdx][turnoId]) programa.dias[dayIdx][turnoId] = {};
+        
+        programa.dias[dayIdx][turnoId] = {
+            ...programa.dias[dayIdx][turnoId],
+            ...safePayload
+        };
+
+        try {
+            showNotification("Sincronizando...", "info");
+            await saveProgramaSemanal(programa.id, programa);
+            
+            // Re-renderizar tabla para reflejar cambios visuales
+            renderTable();
+            
+            // Cerrar modal sheet
+            const closeBtn = document.getElementById('modal-sheet-close');
+            if (closeBtn) closeBtn.click();
+            
+            showNotification("Turno actualizado", "success");
+        } catch (e) {
+            console.error("❌ [Save error]:", e);
+            showNotification("Error al guardar cambios", "error");
         }
     };
 
@@ -602,8 +740,8 @@ export const renderProgramaTab = async (container) => {
     };
 
     window.updateWeekData = async (dayIdx, turnoId, fieldId, val) => {
-        // Optimistic update
-        programa.dias[dayIdx][turnoId][fieldId] = val;
+        // Optimistic update with fallback
+        programa.dias[dayIdx][turnoId][fieldId] = val || '';
 
         // Update visual value if it was a custom selector (territorio)
         const valEl = container.querySelector(`#val-${fieldId}-${dayIdx}-${turnoId}`);
@@ -878,6 +1016,18 @@ export const renderProgramaTab = async (container) => {
         }
 
         showTerritorySelectionModal(btn.dataset.current || '', territorios, (res) => {
+            const hidden = document.getElementById('select-territorio');
+            if (hidden) hidden.value = res || '';
+
+            // Actualizar visualmente el campo en el modal sheet
+            const displaySpan = document.getElementById('val-territorio-modal');
+            if (displaySpan) {
+                displaySpan.innerText = res || '—';
+                displaySpan.className = `text-[12px] font-black truncate ${res ? 'text-primary' : 'text-slate-400 opacity-40'}`;
+            }
+            // Actualizar data-current del div clickeable para próximas aperturas
+            if (btn) btn.dataset.current = res || '';
+
             window.updateWeekData(dayIdx, turnoId, 'territorio', res);
         }, 'modal-container-nested', historial, weekAssignments);
     };
@@ -1067,6 +1217,8 @@ export const renderProgramaTab = async (container) => {
     };
 
     window.setProgramGroup = (dayIdx, turnoId, val) => {
+        const hidden = document.getElementById('select-grupos');
+        if (hidden) hidden.value = val || '';
         window.updateWeekData(dayIdx, turnoId, 'grupos', val);
     };
 
@@ -1074,7 +1226,7 @@ export const renderProgramaTab = async (container) => {
 
 
 
-    container.querySelector('#btn-reception-prog').onclick = async () => {
+    const execActionRecepcion = async () => {
         // Show ALL assigned territories, regardless of the week, so users can return overdue ones
         const assigned = territorios.filter(t => t.estado === 'Asignado' && t.fecha_asignacion);
 
@@ -1364,7 +1516,7 @@ export const renderProgramaTab = async (container) => {
         });
     };
 
-    container.querySelector('#btn-sync-all-prog').onclick = async () => {
+    const execActionFormalizar = async () => {
         // Collect all planned assignments that are not sync
         const freshTerritorios = await getTerritorios();
         const normalize = (val) => String(val || '').trim();
@@ -1625,21 +1777,24 @@ export const renderProgramaTab = async (container) => {
         }, 'max-w-lg', 'modal-container-nested');
     };
 
-    container.querySelector('#prev-week').onclick = (e) => { 
+    container.querySelector('#btn-prev-week').onclick = (e) => { 
         e.preventDefault();
         e.stopPropagation();
         currentWeekStart.setDate(currentWeekStart.getDate() - 7); 
         loadWeekData(); 
     };
-    container.querySelector('#next-week').onclick = (e) => { 
+    container.querySelector('#btn-next-week').onclick = (e) => { 
         e.preventDefault();
         e.stopPropagation();
         currentWeekStart.setDate(currentWeekStart.getDate() + 7); 
         loadWeekData(); 
     };
-    container.querySelector('#btn-reset-today').onclick = () => { currentWeekStart = getMonday(new Date()); loadWeekData(); };
+    const execActionHoy = () => { 
+        currentWeekStart = getMonday(new Date()); 
+        loadWeekData(); 
+    };
 
-    container.querySelector('#btn-copy-prev-week').onclick = async () => {
+    const execActionReplicar = async () => {
         showCustomConfirm("¿Seguro que deseas sobrescribir esta semana con los datos de la semana pasada? Se conservarán los turnos y conductores, pero se limpiarán los territorios.", async () => {
             try {
                 const prev = new Date(currentWeekStart);
@@ -1680,33 +1835,52 @@ export const renderProgramaTab = async (container) => {
         });
     };
 
-    container.querySelector('#btn-export-xls-prog').onclick = async () => {
+    const execActionExportXls = async () => {
         const { exportarProgramaExcel } = await import('../services/export-service.js');
         await exportarProgramaExcel(programa);
     };
 
-    const dDown = container.querySelector('#btn-export-dropdown');
-    const menuEl = container.querySelector('#export-menu-options');
-    if (dDown && menuEl) {
-        // Dropdown toggle logic
-        dDown.onclick = (e) => {
-            e.stopPropagation();
+    // --- ACTION BAR EVENT DELEGATION (GHOST CLICK ERADICATOR) ---
+    const navBar = container.querySelector('nav');
+    navBar?.addEventListener('click', (e) => {
+        const btn = e.target.closest('button, #action-exportar-prog');
+        if (!btn) return;
+        
+        e.preventDefault();
+        e.stopPropagation();
+
+        const id = btn.id;
+
+        if (id === 'action-formalizar-prog') {
+            execActionFormalizar();
+        } else if (id === 'action-hoy-prog') {
+            execActionHoy();
+        } else if (id === 'action-recepcion-prog') {
+            execActionRecepcion();
+        } else if (id === 'action-escanear-prog') {
+            memoryScannerInput.click();
+        } else if (id === 'action-replicar-prog') {
+            execActionReplicar();
+        } else if (id === 'action-exportar-prog') {
+            const menuEl = container.querySelector('#export-menu-options');
             const isVisible = menuEl.getAttribute('data-visible') === 'true';
             menuEl.setAttribute('data-visible', !isVisible);
-        };
+        } else if (id === 'btn-export-xls-prog') {
+            execActionExportXls();
+        } else if (id === 'btn-export-png-cond-new') {
+            import('../services/export-service.js').then(m => m.exportarProgramaPNG(programa, 'conductor'));
+        } else if (id === 'btn-export-png-pub-new') {
+            import('../services/export-service.js').then(m => m.exportarProgramaPNG(programa, 'publicador'));
+        }
+    });
+
+    const menuEl = container.querySelector('#export-menu-options');
+    if (menuEl) {
         document.addEventListener('click', () => {
             menuEl.setAttribute('data-visible', 'false');
         });
 
-        // The button logic for export
-        container.querySelector('#btn-export-png-cond-new').onclick = async () => {
-             const { exportarProgramaPNG } = await import('../services/export-service.js');
-             await exportarProgramaPNG(programa, 'conductor');
-        };
-        container.querySelector('#btn-export-png-pub-new').onclick = async () => {
-             const { exportarProgramaPNG } = await import('../services/export-service.js');
-             await exportarProgramaPNG(programa, 'publicador');
-        };
+        // Sub-buttons export logic moved to delegation
     }
 
     await loadWeekData();

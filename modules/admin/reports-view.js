@@ -1,5 +1,5 @@
-import { getTerritorios, getHistorialReport, getSessionSummaries } from '../../data/firestore-services.js';
-import { showNotification } from '../utils/helpers.js';
+import { getTerritorios, getHistorialReport, getSessionSummaries, deleteHistoryRecord, deleteSessionSummary } from '../../data/firestore-services.js';
+import { showNotification, renderSkeleton } from '../utils/helpers.js';
 import { renderHistorialView } from './history-view.js';
 import { UIHelpers, showModal } from '../services/ui-helpers.js';
 
@@ -9,7 +9,7 @@ export const renderReportsTab = async (container, config, appVersion) => {
 
     const renderMain = () => {
         container.innerHTML = `
-            <div class="animate-fade-in space-y-8 max-w-7xl mx-auto p-4 md:p-6 overflow-x-hidden">
+            <div class="animate-fade-in space-y-12 max-w-7xl mx-auto overflow-x-hidden">
                 <!-- Main Nav: Historial vs Reportes -->
                 <nav class="flex flex-wrap items-center gap-3 p-2 bg-white/50 dark:bg-white/[0.03] backdrop-blur-xl rounded-[2.2rem] w-max border border-slate-200 dark:border-white/5 mx-auto transition-all shadow-sm overflow-hidden">
                     <button id="main-btn-historial" class="px-10 py-4 rounded-[1.8rem] text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 border border-transparent">
@@ -52,7 +52,7 @@ export const renderReportsTab = async (container, config, appVersion) => {
 
     const renderHistorialSection = async () => {
         const target = container.querySelector('#main-report-content');
-        target.innerHTML = `<div class="py-20 text-center opacity-30"><i class="fas fa-circle-notch fa-spin text-3xl"></i></div>`;
+        renderSkeleton(target);
 
         // Use history-view.js logic but injected here
         await renderHistorialView(target, config, appVersion);
@@ -82,7 +82,7 @@ export const renderReportsTab = async (container, config, appVersion) => {
         } catch (e) { console.error(e); }
 
         target.innerHTML = `
-            <div class="space-y-8 animate-fade-in">
+            <div class="space-y-12 animate-fade-in">
                 <nav class="flex items-center gap-3 p-1.5 bg-slate-100/50 dark:bg-white/5 rounded-2xl w-max mx-auto transition-all">
                     <button id="sub-btn-s13" class="px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all">Registro S-13</button>
                     <button id="sub-btn-s12" class="px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all">Tarjetas S-12</button>
@@ -112,7 +112,7 @@ export const renderReportsTab = async (container, config, appVersion) => {
 
     const renderS13Print = (target, history) => {
         target.innerHTML = `
-            <div class="space-y-8 animate-fade-in max-w-4xl mx-auto">
+            <div class="space-y-12 animate-fade-in max-w-4xl mx-auto">
                 <div class="modern-card p-10 space-y-8 border-slate-100 dark:border-white/5 shadow-2xl relative overflow-hidden">
                     <div class="absolute -right-10 -top-10 w-40 h-40 bg-emerald-500/5 rotate-12 rounded-[3rem] pointer-events-none"></div>
                     
@@ -196,9 +196,10 @@ export const renderReportsTab = async (container, config, appVersion) => {
                                 <th class="px-6 pb-4">Conductor</th>
                                 <th class="px-6 pb-4">Fecha Asig.</th>
                                 <th class="px-6 pb-4">Fecha Entr.</th>
+                                <th class="px-6 pb-4 text-right">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody class="block md:table-row-group divide-y divide-slate-100 dark:divide-white/5 md:divide-y-0">
+                        <tbody class="block md:table-row-group divide-y divide-slate-100 dark:divide-white/5 md:divide-y-0" id="s13-preview-tbody">
                             ${filtered.map(h => `
                                 <!-- Desktop Row -->
                                 <tr class="hidden md:table-row bg-slate-50 dark:bg-white/[0.03] text-[11px] font-bold text-slate-700 dark:text-gray-300 shadow-sm transition-all hover:bg-white dark:hover:bg-white/10 group">
@@ -207,11 +208,16 @@ export const renderReportsTab = async (container, config, appVersion) => {
                                     </td>
                                     <td class="px-6 py-4 border-y border-slate-200/50 dark:border-white/5 uppercase tracking-tight">${h.conductor || '—'}</td>
                                     <td class="px-6 py-4 border-y border-slate-200/50 dark:border-white/5 opacity-60">${UIHelpers.fmtDate(h.fecha_asignacion)}</td>
-                                    <td class="px-6 py-4 rounded-r-2xl border-y border-r border-slate-200/50 dark:border-white/5 font-black text-emerald-500">
+                                    <td class="px-6 py-4 border-y border-slate-200/50 dark:border-white/5 font-black text-emerald-500">
                                         <div class="flex items-center gap-2">
                                             <i class="fas fa-check-circle"></i>
                                             ${UIHelpers.fmtDate(h.fecha_entrega)}
                                         </div>
+                                    </td>
+                                    <td class="px-6 py-4 rounded-r-2xl border-y border-r border-slate-200/50 dark:border-white/5 text-right">
+                                        <button onclick="window.deleteReportS13('${h.id}')" class="w-8 h-8 rounded-xl bg-slate-50 dark:bg-white/5 hover:bg-rose-500 hover:text-white text-slate-400 transition-all shadow-sm border border-slate-200 dark:border-white/10 opacity-30 group-hover:opacity-100 flex items-center justify-center" title="Eliminar Registro">
+                                            <i class="fas fa-trash-alt text-[10px]"></i>
+                                        </button>
                                     </td>
                                 </tr>
                                 <!-- Mobile Row (Lista Maestra) -->
@@ -224,7 +230,12 @@ export const renderReportsTab = async (container, config, appVersion) => {
                                                     <span class="text-sm font-black text-slate-800 dark:text-white uppercase truncate">${h.conductor || '—'}</span>
                                                     <span class="shrink-0 text-[10px] font-black text-emerald-600 flex items-center gap-1"><i class="fas fa-check-circle"></i> ${UIHelpers.fmtDate(h.fecha_entrega)}</span>
                                                 </div>
-                                                <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate">A: ${UIHelpers.fmtDate(h.fecha_asignacion)}</span>
+                                                <div class="flex justify-between items-center w-full">
+                                                    <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate">A: ${UIHelpers.fmtDate(h.fecha_asignacion)}</span>
+                                                    <button onclick="window.deleteReportS13('${h.id}'); event.stopPropagation();" class="text-rose-500/50 hover:text-rose-500 transition-all p-2 rounded-lg -mr-2" title="Eliminar Registro">
+                                                        <i class="fas fa-trash-alt"></i>
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     </td>
@@ -234,6 +245,35 @@ export const renderReportsTab = async (container, config, appVersion) => {
                     </table>
                 </div>
             `;
+            
+            window.deleteReportS13 = (id) => {
+                showModal(`
+                    <div class="p-8 text-center space-y-6">
+                        <div class="w-20 h-20 bg-rose-500/10 text-rose-500 rounded-3xl flex items-center justify-center text-3xl mx-auto shadow-xl">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <h2 class="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Eliminar Reporte</h2>
+                        <p class="text-slate-500 dark:text-slate-400 font-bold text-sm max-w-sm mx-auto">¿Estás seguro de que deseas eliminar este registro del reporte S-13?</p>
+                        <div class="flex gap-4">
+                            <button id="cancel-del-rep" class="flex-1 py-4 bg-slate-100 dark:bg-white/5 text-slate-500 rounded-2xl font-black uppercase tracking-widest text-[10px] active:scale-95 transition-all">Cancelar</button>
+                            <button id="confirm-del-rep" class="flex-[1.5] py-4 bg-rose-500 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] active:scale-95 transition-all shadow-xl shadow-rose-500/20">Eliminar</button>
+                        </div>
+                    </div>
+                `, (modal) => {
+                    modal.querySelector('#cancel-del-rep').onclick = () => modal.classList.add('hidden');
+                    modal.querySelector('#confirm-del-rep').onclick = async () => {
+                        modal.classList.add('hidden');
+                        try {
+                            await deleteHistoryRecord(id);
+                            showNotification("Reporte eliminado (Soft Delete)", "success");
+                            // Recargar reportes
+                            target.querySelector('#btn-do-print-s13').click();
+                        } catch (e) {
+                            showNotification("Error: " + e.message, "error");
+                        }
+                    };
+                });
+            };
 
             target.querySelector('#btn-export-s13-pdf').onclick = async () => {
                 const { generateS13Report } = await import('./reports-generator.js');
@@ -262,9 +302,8 @@ export const renderReportsTab = async (container, config, appVersion) => {
                         <button id="btn-print-sel-none" class="px-6 py-3 bg-slate-100 dark:bg-white/5 text-slate-500 font-extrabold rounded-xl text-[9px] uppercase tracking-widest border border-slate-200 dark:border-white/10 hover:bg-slate-200 transition-all">Ninguno</button>
                     </div>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     ${renderLayoutBtnPrint(1, 'fas fa-stop', '1 por hoja')}
-                    ${renderLayoutBtnPrint(2, 'fas fa-columns', '2 por hoja')}
                     ${renderLayoutBtnPrint(4, 'fas fa-th-large', '4 por hoja')}
                 </div>
                 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4" id="print-s12-grid-sel">
@@ -300,32 +339,123 @@ export const renderReportsTab = async (container, config, appVersion) => {
     };
 
     const showS12Preview = (selected, layout) => {
+        // Determine grid columns for the preview based on layout
+        const previewCols = layout === 1 ? 'grid-cols-1 max-w-lg mx-auto' : 'grid-cols-2';
+        const cardsLabel = layout === 1 ? '1 tarjeta por hoja' : '4 tarjetas por hoja';
+
         showModal(`
             <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden">
-                <header class="shrink-0 bg-indigo-600 p-8 text-white">
-                    <h3 class="text-xl font-black uppercase tracking-widest">Vista Previa S-12</h3>
-                    <p class="text-[9px] opacity-60 uppercase tracking-[0.4em] font-black">Revisión de ${selected.length} tarjetas</p>
+                <header class="shrink-0 bg-indigo-600 p-6 text-white flex items-center justify-between">
+                    <div>
+                        <h3 class="text-lg font-black uppercase tracking-widest">Vista Previa S-12</h3>
+                        <p class="text-[9px] opacity-60 uppercase tracking-[0.3em] font-black mt-1">${selected.length} tarjetas · ${cardsLabel}</p>
+                    </div>
+                    <span class="text-[9px] font-black uppercase bg-white/20 px-3 py-1.5 rounded-full tracking-widest">
+                        <i class="fas fa-eye mr-1"></i> PREVIEW
+                    </span>
                 </header>
-                <div class="flex-1 overflow-y-auto p-10 space-y-4 bg-slate-50 dark:bg-black/20">
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                        ${selected.map(t => `
-                            <div class="p-4 bg-white dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 text-center">
-                                <span class="text-lg font-black text-slate-800 dark:text-white">#${t.numero}</span>
-                                <p class="text-[8px] font-bold text-slate-400 truncate uppercase mt-1">${t.localidad || '—'}</p>
-                            </div>
-                        `).join('')}
+
+                <!-- Preview scrollable area -->
+                <div class="flex-1 overflow-y-auto p-6 md:p-8 bg-slate-100 dark:bg-black/30" id="s12-preview-scroll">
+                    <div class="text-center mb-6">
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Así se verán sus tarjetas al imprimir</p>
+                    </div>
+                    <div class="grid ${previewCols} gap-4" id="s12-preview-cards">
+                        ${selected.map(t => {
+                            const mapImg = t.imagen || t.imagen_url || t.mapa_url || '';
+                            return `
+                            <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden flex flex-col">
+                                <!-- Card header -->
+                                <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-600 font-black text-sm">${t.numero}</div>
+                                        <div>
+                                            <p class="text-[10px] font-black text-slate-800 uppercase tracking-tight leading-none">${t.localidad || t.nombre || '—'}</p>
+                                            <p class="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">${t.manzanas ? t.manzanas.split(',').filter(Boolean).length + ' manzanas' : 'S-12'}</p>
+                                        </div>
+                                    </div>
+                                    <span class="text-[8px] font-black px-2 py-0.5 rounded-full ${t.estado === 'Asignado' ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600'} uppercase">${t.estado || 'Disponible'}</span>
+                                </div>
+                                <!-- Map area -->
+                                <div class="relative flex-1 bg-white flex items-center justify-center" style="min-height:140px; max-height:${layout === 1 ? '260px' : '160px'}">
+                                    ${mapImg
+                                        ? `<img src="${mapImg}" alt="Mapa T-${t.numero}" class="w-full h-full object-contain p-2" style="background:#fff;">`
+                                        : `<div class="flex flex-col items-center gap-2 opacity-20 py-6">
+                                               <i class="fas fa-map text-3xl text-slate-400"></i>
+                                               <p class="text-[8px] font-black uppercase tracking-widest text-slate-400">Sin mapa</p>
+                                           </div>`
+                                    }
+                                </div>
+                            </div>`;
+                        }).join('')}
                     </div>
                 </div>
-                <footer class="p-8 border-t border-slate-100 dark:border-white/5 flex gap-4">
-                    <button onclick="this.closest('.fixed').classList.add('hidden')" class="flex-1 py-4 bg-slate-100 dark:bg-white/5 text-slate-500 font-black rounded-xl text-[10px] uppercase">Atrás</button>
-                    <button id="btn-final-s12" class="flex-[2] py-4 bg-indigo-600 text-white font-black rounded-xl text-[10px] uppercase tracking-widest">Confirmar y Descargar PDF</button>
+
+                <!-- Footer actions -->
+                <footer class="shrink-0 p-5 md:p-6 border-t border-slate-100 dark:border-white/5 bg-white dark:bg-black/40 flex flex-wrap gap-3">
+                    <button onclick="this.closest('.fixed').classList.add('hidden')" class="flex-1 py-4 bg-slate-100 dark:bg-white/5 text-slate-500 font-black rounded-xl text-[9px] uppercase tracking-widest transition-all active:scale-95">
+                        <i class="fas fa-arrow-left mr-2"></i> Atrás
+                    </button>
+                    <button id="btn-print-s12-direct" class="flex-1 py-4 bg-slate-800 hover:bg-slate-700 text-white font-black rounded-xl text-[9px] uppercase tracking-widest transition-all active:scale-95 shadow-lg">
+                        <i class="fas fa-print mr-2"></i> Imprimir
+                    </button>
+                    <button id="btn-final-s12" class="flex-[1.5] py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-xl text-[9px] uppercase tracking-widest shadow-xl shadow-indigo-600/20 transition-all active:scale-95">
+                        <i class="fas fa-file-pdf mr-2"></i> Descargar PDF
+                    </button>
                 </footer>
             </div>
         `, (modal) => {
+            // Descargar PDF
             modal.querySelector('#btn-final-s12').onclick = async () => {
                 const { generateS12Report } = await import('./reports-generator.js');
                 generateS12Report(selected, layout);
                 modal.closest('.fixed').classList.add('hidden');
+            };
+
+            // Imprimir directamente (print nativo del browser)
+            modal.querySelector('#btn-print-s12-direct').onclick = () => {
+                const printCols = layout === 1 ? '1' : '2';
+                const printWin = window.open('', '_blank', 'width=900,height=700');
+                printWin.document.write(`
+                    <html><head>
+                    <title>Tarjetas S-12</title>
+                    <style>
+                        @page { margin: 10mm; }
+                        body { margin: 0; font-family: sans-serif; background: #fff; }
+                        .grid { display: grid; grid-template-columns: repeat(${printCols}, 1fr); gap: 12px; }
+                        .card { border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; break-inside: avoid; page-break-inside: avoid; }
+                        .card-header { padding: 8px 12px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+                        .card-num { width: 28px; height: 28px; background: #eef2ff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 900; color: #4f46e5; font-size: 11px; }
+                        .card-title { font-weight: 900; font-size: 10px; color: #1e293b; text-transform: uppercase; }
+                        .card-sub { font-size: 7px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; }
+                        .card-badge { font-size: 7px; font-weight: 900; padding: 2px 6px; border-radius: 20px; text-transform: uppercase; }
+                        .badge-assigned { background: #fef3c7; color: #d97706; }
+                        .badge-available { background: #d1fae5; color: #059669; }
+                        .card-map { display: flex; align-items: center; justify-content: center; min-height: ${layout === 1 ? '220px' : '130px'}; background: #fff; padding: 8px; }
+                        .card-map img { max-width: 100%; max-height: 100%; object-fit: contain; }
+                        .no-map { opacity: 0.15; font-size: 10px; font-weight: 900; text-align: center; padding: 20px; }
+                    </style>
+                    </head><body>
+                    <div class="grid">
+                    ${selected.map(t => {
+                        const mapImg = t.imagen || t.imagen_url || t.mapa_url || '';
+                        const isAssigned = t.estado === 'Asignado';
+                        return `<div class="card">
+                            <div class="card-header">
+                                <div style="display:flex;gap:8px;align-items:center">
+                                    <div class="card-num">${t.numero}</div>
+                                    <div><div class="card-title">${t.localidad || t.nombre || '—'}</div><div class="card-sub">${t.manzanas ? t.manzanas.split(',').filter(Boolean).length + ' manzanas' : 'S-12'}</div></div>
+                                </div>
+                                <span class="card-badge ${isAssigned ? 'badge-assigned' : 'badge-available'}">${t.estado || 'Disponible'}</span>
+                            </div>
+                            <div class="card-map">${mapImg ? '<img src="' + mapImg + '" alt="Mapa">' : '<div class="no-map">Sin imagen de mapa</div>'}</div>
+                        </div>`;
+                    }).join('')}
+                    </div>
+                    </body></html>`);
+                printWin.document.close();
+                printWin.focus();
+                setTimeout(() => { printWin.print(); }, 600);
             };
         });
     };
@@ -346,7 +476,7 @@ export const renderReportsTab = async (container, config, appVersion) => {
 
     const renderTelefoniaSection = async () => {
         const target = container.querySelector('#main-report-content');
-        target.innerHTML = `<div class="py-20 text-center opacity-30"><i class="fas fa-circle-notch fa-spin text-3xl"></i></div>`;
+        renderSkeleton(target);
 
         try {
             const summaries = await getSessionSummaries();
@@ -363,7 +493,7 @@ export const renderReportsTab = async (container, config, appVersion) => {
             const currentWeek = getWeekNumber(today);
 
             target.innerHTML = `
-                <div class="space-y-8 animate-fade-in max-w-5xl mx-auto">
+                <div class="space-y-12 animate-fade-in max-w-5xl mx-auto">
                     <div class="flex justify-between items-center bg-white dark:bg-white/5 p-8 rounded-[2rem] border border-slate-200 dark:border-white/5 shadow-sm">
                         <div class="flex items-center gap-6">
                             <div class="w-14 h-14 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-2xl text-indigo-500 shadow-inner">
@@ -410,6 +540,9 @@ export const renderReportsTab = async (container, config, appVersion) => {
                                                 </div>
                                                 <button onclick="window.viewSessionDetail('${s.id}')" class="px-5 py-2 bg-slate-900 dark:bg-white/10 text-white rounded-lg text-[9px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg shadow-black/10">
                                                     Ver Detalles
+                                                </button>
+                                                <button onclick="window.deleteTelefoniaReport('${s.id}')" class="w-9 h-9 bg-slate-100 dark:bg-white/5 hover:bg-rose-500 hover:text-white text-slate-400 rounded-lg transition-all flex items-center justify-center border border-slate-200 dark:border-white/10" title="Eliminar Reporte">
+                                                    <i class="fas fa-trash-alt text-[10px]"></i>
                                                 </button>
                                             </div>
                                         </div>
@@ -486,6 +619,34 @@ export const renderReportsTab = async (container, config, appVersion) => {
                         </button>
                     </div>
                 `, null, 'max-w-xl');
+            };
+
+            window.deleteTelefoniaReport = (sid) => {
+                showModal(`
+                    <div class="p-8 text-center space-y-6">
+                        <div class="w-20 h-20 bg-rose-500/10 text-rose-500 rounded-3xl flex items-center justify-center text-3xl mx-auto shadow-xl">
+                            <i class="fas fa-trash-alt"></i>
+                        </div>
+                        <h2 class="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Eliminar Reporte</h2>
+                        <p class="text-slate-500 dark:text-slate-400 font-bold text-sm max-w-sm mx-auto">¿Estás seguro de que deseas eliminar este reporte de sesión permanentemente?</p>
+                        <div class="flex gap-4">
+                            <button id="cancel-del-tel" class="flex-1 py-4 bg-slate-100 dark:bg-white/5 text-slate-500 rounded-2xl font-black uppercase tracking-widest text-[10px] active:scale-95 transition-all">Cancelar</button>
+                            <button id="confirm-del-tel" class="flex-[1.5] py-4 bg-rose-500 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] active:scale-95 transition-all shadow-xl shadow-rose-500/20">Eliminar Permanente</button>
+                        </div>
+                    </div>
+                `, (modal) => {
+                    modal.querySelector('#cancel-del-tel').onclick = () => modal.classList.add('hidden');
+                    modal.querySelector('#confirm-del-tel').onclick = async () => {
+                        modal.classList.add('hidden');
+                        try {
+                            await deleteSessionSummary(sid);
+                            showNotification("Reporte eliminado", "success");
+                            renderTelefoniaSection(); // Refrescar vista
+                        } catch (e) {
+                            showNotification("Error: " + e.message, "error");
+                        }
+                    };
+                });
             };
 
         } catch (e) {

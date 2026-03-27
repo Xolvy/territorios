@@ -181,7 +181,7 @@ export const renderAnalyticsView = async (container, appVersion) => {
     }
 
     container.innerHTML = `
-        <div class="h-full flex flex-col gap-6 animate-fade-in custom-scrollbar pt-4 md:pt-8 pb-10 px-2 md:px-6">
+        <div class="flex flex-col gap-12 animate-fade-in">
             <!-- Header Premium con Estética Glassmorphism -->
             <header class="flex flex-col md:flex-row justify-between items-start md:items-center p-8 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 rounded-[2.5rem] shadow-2xl relative overflow-hidden border border-white/10 gap-6">
                 <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>

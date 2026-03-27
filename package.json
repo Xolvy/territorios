@@ -1,6 +1,6 @@
 {
   "name": "app-territorios",
-  "version": "2.6.1",
+  "version": "2.9.0",
   "description": "[![Deploy to Firebase](https://github.com/Xolvy/conductores/actions/workflows/firebase-deploy.yml/badge.svg)](https://github.com/Xolvy/conductores/actions/workflows/firebase-deploy.yml)",
   "main": "app.js",
   "scripts": {
@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "deploy": "npm run build && firebase deploy --only hosting && node scripts/deploy_v2.6.js"
+    "set-version": "node scripts/set_version.js",
+    "deploy": "npm run build && firebase deploy --only hosting"
   },
   "repository": {
     "type": "git",

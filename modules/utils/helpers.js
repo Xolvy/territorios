@@ -381,3 +381,28 @@ export const isIOS = () => {
         // iPad on iOS 13 detection
         || (navigator.userAgent.includes("Mac") && "ontouchend" in document);
 };
+
+/**
+ * 🦴 XOLVY SKELETON ENGINE - Premium Loading States
+ * Replaces ugly spinners with structural shadows for a smoother UX.
+ */
+export const renderSkeleton = (container) => {
+    if (!container) return;
+    container.innerHTML = `
+    <div class="p-4 md:p-10 space-y-8 md:space-y-12 animate-pulse w-full h-full flex flex-col">
+        <!-- Header Skeleton -->
+        <div class="h-40 bg-slate-200 dark:bg-white/5 rounded-[2.5rem] border border-slate-100 dark:border-white/[0.05]"></div>
+        
+        <!-- Stats Grid Skeleton -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 shrink-0">
+            <div class="h-28 bg-slate-200 dark:bg-white/5 rounded-3xl border border-slate-100 dark:border-white/[0.05]"></div>
+            <div class="h-28 bg-slate-200 dark:bg-white/5 rounded-3xl border border-slate-100 dark:border-white/[0.05]"></div>
+            <div class="h-28 bg-slate-200 dark:bg-white/5 rounded-3xl border border-slate-100 dark:border-white/[0.05]"></div>
+            <div class="h-28 bg-slate-200 dark:bg-white/5 rounded-3xl border border-slate-100 dark:border-white/[0.05]"></div>
+        </div>
+        
+        <!-- Main Content Skeleton -->
+        <div class="flex-1 min-h-[400px] bg-slate-200 dark:bg-white/5 rounded-[3rem] border border-slate-100 dark:border-white/[0.05] shadow-inner"></div>
+    </div>
+    `;
+};

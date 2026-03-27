@@ -2,7 +2,7 @@ import {
     getSystemVersion, setSystemVersion, getConfiguracion
 } from '../data/firestore-services.js';
 import { auth } from '../firebase-config.js';
-import { showNotification } from './utils/helpers.js';
+import { showNotification, renderSkeleton } from './utils/helpers.js';
 
 import { moduleRegistry } from './utils/module-registry.js';
 import { XolvyAdaptive } from './utils/adaptive.js';
@@ -38,40 +38,28 @@ async function loadSubModule(name, path) {
  * Refactored in 2026 for modular architecture and performance.
  */
 const renderNavItem = (id, icon, label, active) => {
-    const activeClasses = 'active bg-indigo-600 text-white shadow-md shadow-indigo-500/20 scale-[1.02]';
-    const inactiveClasses = 'hover:bg-indigo-50/50 dark:hover:bg-white/5 text-slate-500 dark:text-slate-400';
+    const activeClasses = 'active bg-indigo-600 text-white shadow-xl shadow-indigo-600/30 scale-[1.02] border-indigo-400/20';
+    const inactiveClasses = 'hover:bg-slate-100/50 dark:hover:bg-white/5 text-slate-500 dark:text-slate-400 border-transparent';
     
     return `
-    <button class="nav-item flex-1 lg:flex-initial flex items-center justify-center lg:justify-start gap-4 p-4 lg:p-5 rounded-2xl transition-all duration-300 group ${active ? activeClasses : inactiveClasses}" data-tab="${id}">
-        <div class="nav-icon-bg w-10 h-10 rounded-xl flex items-center justify-center transition-colors shrink-0 ${active ? 'bg-white/10 text-white' : 'bg-slate-100 dark:bg-white/5 group-hover:bg-indigo-500/10 group-hover:text-indigo-600'}">
+    <button class="nav-item flex-1 lg:flex-initial flex items-center justify-center lg:justify-start gap-4 p-4 rounded-2xl border transition-all duration-300 group ${active ? activeClasses : inactiveClasses}" data-tab="${id}">
+        <div class="nav-icon-bg w-11 h-11 rounded-2xl flex items-center justify-center transition-all shrink-0 ${active ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-white/5 group-hover:bg-indigo-500/10 group-hover:text-indigo-600 shadow-inner'}">
             <i class="${icon} text-lg transition-transform group-hover:scale-110"></i>
         </div>
-        <span class="text-[11px] font-bold uppercase tracking-widest hidden lg:block whitespace-nowrap">${label}</span>
+        <span class="text-[10px] font-black uppercase tracking-[0.15rem] hidden lg:block whitespace-nowrap opacity-80 group-hover:opacity-100 transition-opacity">${label}</span>
     </button>
     `;
 };
 
-const renderSkeleton = (container) => {
-    container.innerHTML = `
-    <div class="p-10 space-y-12 animate-pulse">
-            <div class="flex flex-col sm:flex-row justify-between items-center gap-6">
-                <div class="h-10 w-64 bg-slate-100 dark:bg-white/5 rounded-2xl"></div>
-                <div class="h-12 w-48 bg-slate-100 dark:bg-white/5 rounded-2xl"></div>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div class="h-64 bg-slate-100 dark:bg-white/5 rounded-[2.5rem]"></div>
-                <div class="h-64 bg-slate-100 dark:bg-white/5 rounded-[2.5rem]"></div>
 
-                <div class="h-64 bg-slate-100 dark:bg-white/5 rounded-[2.5rem]"></div>
-            </div>
-            <div class="h-[500px] bg-slate-100 dark:bg-white/5 rounded-[3rem]"></div>
-        </div >
-    `;
-};
 
 const loadTab = async (tabName, appVersion) => {
     const contentDiv = document.getElementById('admin-content');
     stopAdminLivePools(); // Clean up previous listeners
+    // Also clean up per-territory timeline live pools (Xolvy Live Pool)
+    if (typeof window._stopAllTimelineLivePools === 'function') {
+        window._stopAllTimelineLivePools();
+    }
     renderSkeleton(contentDiv);
 
     try {
@@ -155,29 +143,30 @@ const setupNavigation = (appVersion) => {
     const tabs = document.querySelectorAll('.nav-item');
     tabs.forEach(btn => {
         btn.onclick = (e) => {
+            // EXCLUSIÓN MUTUA v2.9
+            const currentTab = e.currentTarget.dataset.tab;
             tabs.forEach(t => {
-                t.classList.remove('active', 'bg-indigo-600', 'text-white', 'shadow-md', 'shadow-indigo-500/20', 'scale-[1.02]');
-                t.classList.add('hover:bg-indigo-50/50', 'dark:hover:bg-white/5', 'text-slate-500', 'dark:text-slate-400');
-                
+                const isActive = t.dataset.tab === currentTab;
                 const iconBg = t.querySelector('.nav-icon-bg');
-                if (iconBg) {
-                    iconBg.classList.replace('bg-white/10', 'bg-slate-100');
-                    iconBg.classList.remove('text-white');
-                    iconBg.classList.add('dark:bg-white/5', 'group-hover:bg-indigo-500/10', 'group-hover:text-indigo-600');
+                
+                if (isActive) {
+                    t.classList.add('active', 'bg-indigo-600', 'text-white', 'shadow-xl', 'shadow-indigo-600/30', 'scale-[1.02]', 'border-indigo-400/20');
+                    t.classList.remove('hover:bg-slate-100/50', 'dark:hover:bg-white/5', 'text-slate-500', 'dark:text-slate-400', 'border-transparent');
+                    if (iconBg) {
+                        iconBg.classList.add('bg-white/20', 'text-white');
+                        iconBg.classList.remove('bg-slate-100', 'dark:bg-white/5', 'group-hover:bg-indigo-500/10', 'group-hover:text-indigo-600', 'shadow-inner');
+                    }
+                } else {
+                    t.classList.remove('active', 'bg-indigo-600', 'text-white', 'shadow-xl', 'shadow-indigo-600/30', 'scale-[1.02]', 'border-indigo-400/20');
+                    t.classList.add('hover:bg-slate-100/50', 'dark:hover:bg-white/5', 'text-slate-500', 'dark:text-slate-400', 'border-transparent');
+                    if (iconBg) {
+                        iconBg.classList.remove('bg-white/20', 'text-white');
+                        iconBg.classList.add('bg-slate-100', 'dark:bg-white/5', 'group-hover:bg-indigo-500/10', 'group-hover:text-indigo-600', 'shadow-inner');
+                    }
                 }
             });
 
             const target = e.currentTarget;
-            target.classList.add('active', 'bg-indigo-600', 'text-white', 'shadow-md', 'shadow-indigo-500/20', 'scale-[1.02]');
-            target.classList.remove('hover:bg-indigo-50/50', 'dark:hover:bg-white/5', 'text-slate-500', 'dark:text-slate-400');
-            
-            const targetIconBg = target.querySelector('.nav-icon-bg');
-            if (targetIconBg) {
-                targetIconBg.classList.replace('bg-slate-100', 'bg-white/10');
-                targetIconBg.classList.add('text-white');
-                targetIconBg.classList.remove('dark:bg-white/5', 'group-hover:bg-indigo-500/10', 'group-hover:text-indigo-600');
-            }
-
             const tabId = target.dataset.tab;
             const urlMap = {
                 'dashboard': 'dashboard',
@@ -234,87 +223,89 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
 
         // --- MAIN SHELL RENDER ---
         container.innerHTML = `
-    <div class=" ${VisualEngine.get('shell.container')}" data-adaptive-container="true">
-              <div class="${VisualEngine.get('shell.mainOrder')}">
-                <header class="${VisualEngine.get('header.wrapper')} sticky top-0 z-50 backdrop-blur-xl border-b border-slate-200/50 dark:border-white/5 !mb-6" data-mobile-order="1">
-                    <div class="${VisualEngine.get('header.glow')} !opacity-20"></div>
-                    <div class="flex items-center gap-4 md:gap-5 relative z-10">
-                        <div class="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-primary to-slate-900 rounded-xl flex items-center justify-center text-lg md:text-xl shadow-lg border border-primary/20 transition-transform hover:scale-105 duration-500 shrink-0">
-                            <i class="fas fa-university text-white"></i>
-                        </div>
-                        <div>
-                            <div class="flex items-center gap-2">
-                                <span class="text-[10px] font-black tracking-[0.3em] text-primary uppercase">ADMINISTRACIÓN</span>
-                                <div class="w-1 h-1 rounded-full bg-slate-300 dark:bg-white/20"></div>
-                                <h1 class="text-sm md:text-base font-black text-slate-900 dark:text-white leading-tight uppercase tracking-tighter">Portal de Gestión Colectiva</h1>
-                            </div>
-                            <div class="flex items-center gap-2 mt-0.5">
-                                 <div class="${VisualEngine.get('status.badge')} ${VisualEngine.get('status.online')} !py-0.5 !px-2">
-                                    <span class="relative flex h-1.5 w-1.5">
-                                       <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                       <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
-                                    </span>
-                                    <span class="text-[8px]">Sincronizado</span>
-                                 </div>
-                            </div>
-                        </div>
-                    </div>
+            <div class="${VisualEngine.get('shell.container')} h-screen overflow-hidden transition-colors duration-300" data-adaptive-container="true">
+                <div class="${VisualEngine.get('shell.mainOrder')} h-full flex flex-col transition-colors duration-300">
                     
-                    <div class="flex flex-wrap items-center justify-end gap-2 md:gap-3 w-full lg:w-auto relative">
-                        <!-- Version Badge (High Density) -->
-                        <div class="hidden md:flex flex-col items-center bg-slate-50 dark:bg-white/5 px-3 py-1.5 rounded-xl border border-slate-100 dark:border-white/10 shadow-sm shrink-0 pointer-events-none cursor-default">
-                            <span class="text-[6px] font-black text-slate-400 uppercase tracking-[0.2em]">Versión</span>
-                            <span class="text-[8px] font-black text-slate-800 dark:text-white tracking-widest uppercase tabular-nums">${appVersion}</span>
-                        </div>
-
-                        <!-- Unified Pill Container -->
-                        <div class="flex-none flex items-center justify-center gap-3 bg-slate-100 dark:bg-white/5 px-3 py-2 rounded-xl border border-slate-200 dark:border-white/10 shadow-inner relative z-[60]">
-                             <button onclick="window.toggleTheme(); window.refreshAdminView();" class="text-slate-500 hover:text-indigo-600 transition-all active:scale-75 group/theme outline-none relative z-[70] pointer-events-auto text-xs">
-                                 <i class="fas fa-moon dark:hidden"></i>
-                                 <i class="fas fa-sun hidden dark:block text-yellow-500"></i>
-                             </button>
-
-                             <div class="w-px h-3 bg-slate-200 dark:bg-white/10 mx-0.5 pointer-events-none"></div>
-
-                             <div class="flex items-center gap-2 pointer-events-none">
-                                 <div class="w-1 h-1 rounded-full bg-primary animate-pulse"></div>
-                                 <span class="text-[7px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest whitespace-nowrap">Admin</span>
-                             </div>
-
-                             <div class="w-px h-3 bg-slate-200 dark:bg-white/10 mx-0.5 pointer-events-none"></div>
-
-                             <button onclick="window.history.pushState({}, '', '/conductores'); location.reload();" class="text-[7px] font-black text-primary hover:text-indigo-600 uppercase tracking-widest transition-all active:scale-95 flex items-center gap-1.5 whitespace-nowrap outline-none px-1 relative z-[70] pointer-events-auto">
-                                 <i class="fas fa-random text-[9px]"></i> Salidas
-                             </button>
+                    <!-- HEADER PRO v3.0 -->
+                    <header class="${VisualEngine.get('header.wrapper')} header sticky top-0 z-50 backdrop-blur-3xl border-b border-slate-200/60 dark:border-white/5 !mb-10 transition-all duration-300" data-mobile-order="1">
+                        <div class="${VisualEngine.get('header.glow')} !opacity-30 bg-gradient-to-r from-indigo-500/5 to-transparent"></div>
+                        <div class="flex items-center gap-5 relative z-10">
+                            <div class="w-14 h-14 bg-gradient-to-br from-indigo-600 to-indigo-900 rounded-[1.25rem] flex items-center justify-center text-2xl shadow-2xl shadow-indigo-600/20 border border-white/20 transition-transform hover:rotate-3 duration-500 shrink-0">
+                                <i class="fas fa-university text-white shadow-sm"></i>
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-3">
+                                    <span class="text-[9px] font-black tracking-[0.4em] text-indigo-500 uppercase">SISTEMA CENTRAL</span>
+                                    <div class="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-white/20"></div>
+                                    <h1 class="text-base md:text-xl font-black text-slate-950 dark:text-white leading-none uppercase tracking-tighter">Gestión de Distritos</h1>
+                                </div>
+                                <div class="flex items-center gap-2.5 mt-2">
+                                     <div class="${VisualEngine.get('status.badge')} ${VisualEngine.get('status.online')} !py-1 !px-3 rounded-lg shadow-sm">
+                                        <span class="relative flex h-2 w-2">
+                                           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                           <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                        </span>
+                                        <span class="text-[9px] font-bold">TERMINAL ACTIVA</span>
+                                     </div>
+                                </div>
+                            </div>
                         </div>
                         
-                        <button id="logout-btn" class="${VisualEngine.get('button.base')} ${VisualEngine.get('button.danger')} !px-4 !py-2 !text-[9px] lg:flex-none tabular-nums shrink-0">
-                            <i class="fas fa-power-off text-[10px]"></i> Salir
-                        </button>
-                    </div>
-                </header>
-                <div class="flex flex-col lg:flex-row gap-8 items-start relative z-10">
-                    <!-- Navigation -->
-                    <aside class="w-full lg:w-72 lg:sticky lg:top-8 z-40 shrink-0">
-                        <nav class="flex flex-row lg:flex-col gap-2 overflow-x-auto scrollbar-hide lg:overflow-visible p-1 glass-morphism rounded-3xl lg:bg-transparent lg:border-none lg:shadow-none lg:backdrop-blur-none transition-all">
-                            ${renderNavItem('dashboard', 'fas fa-chart-line', 'Estadísticas', initialTab === 'dashboard')}
-                            ${renderNavItem('casa-en-casa', 'fas fa-map-location-dot', 'Territorios', initialTab === 'casa-en-casa')}
-                            ${renderNavItem('predicacion', 'fas fa-bullhorn', 'P. Pública', initialTab === 'predicacion')}
-                            ${renderNavItem('telefonos', 'fas fa-phone-volume', 'Telefonía', initialTab === 'telefonos')}
-                            <div class="hidden lg:block h-px bg-slate-200 dark:bg-white/10 my-4 mx-4"></div>
-                            ${renderNavItem('reportes', 'fas fa-file-invoice', 'Reportes', initialTab === 'reportes')}
-                            ${renderNavItem('recursos', 'fas fa-folder-open', 'Recursos', initialTab === 'recursos')}
-                            ${renderNavItem('personal', 'fas fa-users', 'Publicadores', initialTab === 'personal')}
-                            <div class="hidden lg:block h-px bg-slate-200 dark:bg-white/10 my-4 mx-4"></div>
-                            ${renderNavItem('config', 'fas fa-sliders', 'Ajustes', initialTab === 'config')}
-                        </nav>
-                    </aside>
+                        <div class="flex flex-wrap items-center justify-end gap-2 md:gap-3 w-full lg:w-auto relative">
+                            <div class="hidden md:flex flex-col items-center bg-slate-50 dark:bg-white/5 px-3 py-1.5 rounded-xl border border-slate-100 dark:border-white/10 shadow-sm shrink-0 pointer-events-none cursor-default">
+                                <span class="text-[6px] font-black text-slate-400 uppercase tracking-[0.2em]">Versión</span>
+                                <span class="text-[8px] font-black text-slate-800 dark:text-white tracking-widest uppercase tabular-nums">${appVersion}</span>
+                            </div>
 
-                    <!-- Content Area -->
-                    <main id="admin-content" class="${VisualEngine.get('card.premium')} min-h-[75vh] flex-1 w-full overflow-hidden relative group">
-                        <div class="absolute inset-0 bg-gradient-to-br from-primary/[0.02] to-transparent pointer-events-none"></div>
-                        <!-- Dynamic views load here -->
-                    </main>
+                            <div class="flex-none flex items-center justify-center gap-3 bg-slate-100 dark:bg-white/5 px-3 py-2 rounded-xl border border-slate-200 dark:border-white/10 shadow-inner relative z-[60]">
+                                 <button onclick="window.toggleTheme()" class="text-slate-500 hover:text-indigo-600 transition-all active:scale-75 group/theme outline-none relative z-[70] pointer-events-auto text-xs">
+                                     <i class="fas fa-moon dark:hidden"></i>
+                                     <i class="fas fa-sun hidden dark:block text-yellow-500"></i>
+                                 </button>
+
+                                 <div class="w-px h-3 bg-slate-200 dark:bg-white/10 mx-0.5 pointer-events-none"></div>
+
+                                 <div class="flex items-center gap-2 pointer-events-none">
+                                     <div class="w-1 h-1 rounded-full bg-primary animate-pulse"></div>
+                                     <span class="text-[7px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest whitespace-nowrap">Admin</span>
+                                 </div>
+
+                                 <div class="w-px h-3 bg-slate-200 dark:bg-white/10 mx-0.5 pointer-events-none"></div>
+
+                             <button onclick="window.switchToConductorView()" class="text-[7px] font-black text-primary hover:text-indigo-600 uppercase tracking-widest transition-all active:scale-95 flex items-center gap-1.5 whitespace-nowrap outline-none px-1 relative z-[70] pointer-events-auto">
+                                 <i class="fas fa-random text-[9px]"></i> Conductor
+                             </button>
+                            </div>
+                            
+                            <button id="logout-btn" class="${VisualEngine.get('button.base')} ${VisualEngine.get('button.danger')} !px-4 !py-2 !text-[9px] lg:flex-none tabular-nums shrink-0">
+                                <i class="fas fa-power-off text-[10px]"></i> Salir
+                            </button>
+                        </div>
+                    </header>
+
+                    <div class="flex-1 min-h-0 flex flex-col lg:flex-row gap-8 items-stretch relative z-10 overflow-hidden transition-colors duration-300">
+                        <!-- Navigation -->
+                        <aside class="w-full lg:w-72 z-40 shrink-0 h-full overflow-y-auto overscroll-contain transition-all duration-300 scrollbar-hide sidebar">
+                            <nav class="flex flex-row lg:flex-col gap-3 overflow-x-auto scrollbar-hide lg:overflow-visible p-1 transition-all">
+                                ${renderNavItem('dashboard', 'fas fa-chart-line', 'Estadísticas', initialTab === 'dashboard')}
+                                ${renderNavItem('casa-en-casa', 'fas fa-map-location-dot', 'Territorios', initialTab === 'casa-en-casa')}
+                                ${renderNavItem('predicacion', 'fas fa-bullhorn', 'P. Pública', initialTab === 'predicacion')}
+                                ${renderNavItem('telefonos', 'fas fa-phone-volume', 'Telefonía', initialTab === 'telefonos')}
+                                <div class="hidden lg:block h-px bg-slate-200 dark:bg-white/10 my-4 mx-4"></div>
+                                ${renderNavItem('reportes', 'fas fa-file-invoice', 'Reportes', initialTab === 'reportes')}
+                                ${renderNavItem('recursos', 'fas fa-folder-open', 'Recursos', initialTab === 'recursos')}
+                                ${renderNavItem('personal', 'fas fa-users', 'Publicadores', initialTab === 'personal')}
+                                <div class="hidden lg:block h-px bg-slate-200 dark:bg-white/10 my-4 mx-4"></div>
+                                ${renderNavItem('config', 'fas fa-sliders', 'Ajustes', initialTab === 'config')}
+                            </nav>
+                        </aside>
+
+                        <!-- Content Area -->
+                        <main id="admin-content" class="${VisualEngine.get('card.premium')} flex-1 w-full h-full overflow-y-auto overscroll-contain relative group pt-12 pb-10 px-6 lg:px-10 custom-scrollbar transition-colors duration-300">
+                            <div class="absolute inset-0 bg-gradient-to-br from-primary/[0.02] to-transparent pointer-events-none"></div>
+                            <!-- Dynamic views load here -->
+                        </main>
+                    </div>
                 </div>
             </div>
             

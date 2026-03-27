@@ -11,7 +11,7 @@ import { getStorage } from "firebase/storage";
 // Configuración de Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyDrgpMp04uuFRz61vNIOzD9CCPl8p_wDL0",
-  authDomain: "territorios-jw.firebaseapp.com",
+  authDomain: "territorios-jw.web.app",
   projectId: "territorios-jw",
   storageBucket: "territorios-jw.firebasestorage.app",
   messagingSenderId: "350092132257",

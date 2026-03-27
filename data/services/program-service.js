@@ -95,7 +95,9 @@ export const syncAssignmentToWeeklyProgram = async (territoryData, conductorName
         t.faceta = details.faceta || t.faceta || '';
         if (details.campana !== undefined) t.campana = details.campana;
 
-        await setDoc(doc(db, COL_VISOR, weekId), prog);
+        // Protocolo de Sanitización Anti-Undefined de Firebase
+        const sanitizedProg = JSON.parse(JSON.stringify(prog));
+        await setDoc(doc(db, COL_VISOR, weekId), sanitizedProg);
     } catch (e) {
         console.error("Error syncing to weekly program:", e);
     }
@@ -182,7 +184,9 @@ export const removeAssignmentFromWeeklyProgram = async (territoryNum, fechaISO, 
             } else {
                 t.territorio = filtered.join(' / ');
             }
-            await setDoc(doc(db, COL_VISOR, weekId), prog);
+            // Protocolo de Sanitización Anti-Undefined de Firebase
+            const sanitizedProg = JSON.parse(JSON.stringify(prog));
+            await setDoc(doc(db, COL_VISOR, weekId), sanitizedProg);
         }
     } catch (e) {
         console.error("Error in removeAssignmentFromWeeklyProgram:", e);
@@ -264,7 +268,11 @@ export const runProgramDiagnostic = async (weekId) => {
 
 export const saveProgramaSemanal = async (weekId, data) => {
     if (!weekId) throw new Error("Week ID required for saving Visor");
-    await setDoc(doc(db, COL_VISOR, weekId), data, { merge: true });
+    
+    // Protocolo de Sanitización Anti-Undefined de Firebase
+    const sanitizedData = JSON.parse(JSON.stringify(data));
+    
+    await setDoc(doc(db, COL_VISOR, weekId), sanitizedData, { merge: true });
     await saveAuditLog('SAVE_VISOR_DRAFT', { weekId });
 };
 
@@ -318,3 +326,76 @@ export const formalizeWeek = async (weekId, programaData) => {
         throw e;
     }
 };
+
+export const importProgramFromJSON = async (weekId, aiData) => {
+    try {
+        if (!weekId || !aiData) throw new Error("Parámetros insuficientes");
+
+        const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+        
+        // Crear estructura base
+        const newProg = {
+            id: weekId,
+            dias: dayNames.map(name => ({
+                nombre: name,
+                manana: {},
+                tarde: {},
+                noche: {},
+                zoom: {}
+            }))
+        };
+
+        // Mapear datos de la IA
+        for (const [diaNombre, turnos] of Object.entries(aiData)) {
+            const diaIdx = dayNames.indexOf(diaNombre);
+            if (diaIdx === -1) continue;
+
+            const diaProg = newProg.dias[diaIdx];
+            
+            if (Array.isArray(turnos)) {
+                turnos.forEach(t => {
+                    // Normalizar turnoId: 'mañana' → 'manana', 'MAÑANA' → 'manana'
+                    const rawTurno = String(t.turno || 'manana').toLowerCase();
+                    const baseId = rawTurno.normalize("NFD").replace(/[\u0300-\u036f]/g, "").split('_')[0];
+                    
+                    // Solo aceptamos turnos válidos en nuestra estructura
+                    if (!['manana', 'tarde', 'noche', 'zoom'].includes(baseId)) return;
+
+                    // Omitir si no hay ningún dato de valor
+                    const hasContent = t.conductor || t.territorio || t.faceta || t.lugar || t.hora;
+                    if (!hasContent) return;
+
+                    const slotData = {
+                        lugar: t.lugar || '',
+                        hora: t.hora || '',
+                        conductor: t.conductor || '',
+                        auxiliar: t.auxiliar || '',
+                        faceta: t.faceta || '',
+                        territorio: t.territorio || '',
+                        grupos: t.grupos || ''
+                    };
+
+                    // Si el slot base ya tiene datos, buscar el siguiente id disponible (manana_2, manana_3...)
+                    if (diaProg[baseId] && (diaProg[baseId].conductor || diaProg[baseId].territorio || diaProg[baseId].faceta || diaProg[baseId].lugar)) {
+                        let n = 2;
+                        while (diaProg[`${baseId}_${n}`]) n++;
+                        diaProg[`${baseId}_${n}`] = slotData;
+                    } else {
+                        diaProg[baseId] = slotData;
+                    }
+                });
+            }
+        }
+
+        // Guardar en Firestore con Sanitización
+        const sanitizedProg = JSON.parse(JSON.stringify(newProg));
+        await setDoc(doc(db, COL_VISOR, weekId), sanitizedProg);
+        await saveAuditLog('IMPORT_AI_PROGRAM', { weekId });
+
+        return true;
+    } catch (e) {
+        console.error("Error importing program from AI JSON:", e);
+        throw e;
+    }
+};
+

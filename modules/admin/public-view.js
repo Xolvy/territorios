@@ -39,7 +39,7 @@ export const renderPredicacionTab = async (container) => {
 
     const renderMainLayout = () => {
         container.innerHTML = `
-            <div class="space-y-10 animate-fade-in pb-10">
+            <div class="space-y-12 animate-fade-in">
                 <!-- Executive Header -->
                 <header class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 bg-white dark:bg-white/[0.02] p-6 lg:p-8 rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-xl">
                     <div class="flex items-center gap-6">
@@ -115,12 +115,14 @@ export const renderPredicacionTab = async (container) => {
             renderCurrentView();
         };
 
-        // Bind Add
+        // Bind Add — abre directamente el modal de edición
         container.querySelector('#add-row-btn').onclick = async () => {
             data.asignaciones = data.asignaciones || [];
-            data.asignaciones.push({ dia: '', hora: '', hora_fin: '', lugar: '', publicador: '', companero: '' });
+            data.asignaciones.push({ dia: 'Lunes', hora: '', hora_fin: '', lugar: (config.lugares || [])[0] || '', publicador: '', companero: '' });
             await savePredicacionPublica(data);
             renderCurrentView();
+            const newIdx = data.asignaciones.length - 1;
+            window.editPublicRowModal(newIdx);
         };
 
         // Bind PDF
@@ -274,169 +276,146 @@ export const renderPredicacionTab = async (container) => {
         if (!viewCont) return;
 
         const dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-        const formatTimeDisplay = (time) => {
+        const ftd = (time) => {
             if (!time) return '—';
-            let parts = time.split(':');
-            let h = parts[0] || '00';
-            let m = parts[1] || '00';
-            return `${h.padStart(2, '0')}:${m.padEnd(2, '0')}`;
+            const [h = '00', m = '00'] = time.split(':');
+            return `${h.padStart(2,'0')}:${m.padStart(2,'0')}`;
         };
         const filteredAsignaciones = filterData();
 
-        const rowKeysMap = new Map();
-        filteredAsignaciones.forEach(row => {
-            const timeStr = `${formatTimeDisplay(row.hora)} - ${formatTimeDisplay(row.hora_fin)}`;
-            const lugarStr = row.lugar || 'Ubicación General';
-            const key = `${lugarStr}|${timeStr}`;
-            if (!rowKeysMap.has(key)) rowKeysMap.set(key, { lugar: lugarStr, time: timeStr, hora: row.hora, hora_fin: row.hora_fin });
-        });
-        
-        // Add predefined row slots from options or configuration if requested, but for now we follow data strictly plus standard slots if none
-        if (rowKeysMap.size === 0) {
-            viewCont.innerHTML = `<div class="text-center p-20 text-slate-500 font-bold uppercase tracking-widest text-xs flex flex-col items-center justify-center gap-4 border border-dashed border-white/10 rounded-2xl mx-8 min-h-[50vh]"><i class="fas fa-boxes text-4xl opacity-50 mb-4"></i> No hay turnos planificados. Agregue eventos desde la lista.</div>`;
-            return;
-        }
-
-        let rowKeysList = Array.from(rowKeysMap.values());
-        rowKeysList.sort((a, b) => {
-            const tCmp = a.time.localeCompare(b.time);
-            return tCmp !== 0 ? tCmp : a.lugar.localeCompare(b.lugar);
-        });
-
-        container.querySelector('#matrix-bg')?.classList.add('opacity-100');
+        container.querySelector('#matrix-bg')?.classList.remove('opacity-100');
         const emptyState = container.querySelector('#empty-state');
         if (emptyState) emptyState.classList.add('hidden');
 
+        if (filteredAsignaciones.length === 0) {
+            viewCont.innerHTML = `<div class="flex flex-col items-center justify-center py-24 gap-4 opacity-40">
+                <i class="fas fa-calendar-alt text-5xl text-slate-400"></i>
+                <p class="text-[11px] font-black uppercase tracking-[0.4em] text-slate-500">Sin turnos planificados</p>
+            </div>`;
+            return;
+        }
+
+        // Agrupar por día
+        const porDia = {};
+        dias.forEach(d => { porDia[d] = []; });
+        porDia['Sin Día'] = [];
+        filteredAsignaciones.forEach(a => {
+            const key = dias.includes(a.dia) ? a.dia : 'Sin Día';
+            porDia[key].push(a);
+        });
+
+        const DAY_COLORS = {
+            'Lunes':     { accent: 'text-indigo-500', bg: 'bg-indigo-500/10', border: 'border-indigo-500/20', dot: 'bg-indigo-500' },
+            'Martes':    { accent: 'text-violet-500', bg: 'bg-violet-500/10', border: 'border-violet-500/20', dot: 'bg-violet-500' },
+            'Miércoles': { accent: 'text-sky-500',    bg: 'bg-sky-500/10',    border: 'border-sky-500/20',    dot: 'bg-sky-500' },
+            'Jueves':    { accent: 'text-emerald-500',bg: 'bg-emerald-500/10',border: 'border-emerald-500/20',dot: 'bg-emerald-500' },
+            'Viernes':   { accent: 'text-amber-500',  bg: 'bg-amber-500/10',  border: 'border-amber-500/20',  dot: 'bg-amber-500' },
+            'Sábado':    { accent: 'text-rose-500',   bg: 'bg-rose-500/10',   border: 'border-rose-500/20',   dot: 'bg-rose-500' },
+            'Domingo':   { accent: 'text-orange-500', bg: 'bg-orange-500/10', border: 'border-orange-500/20', dot: 'bg-orange-500' },
+            'Sin Día':   { accent: 'text-slate-400',  bg: 'bg-slate-200/60 dark:bg-white/5', border: 'border-slate-200 dark:border-white/10', dot: 'bg-slate-400' },
+        };
+
+        const allDays = [...dias, 'Sin Día'].filter(d => porDia[d]?.length > 0);
+
         viewCont.innerHTML = `
-            <div class="px-2 md:px-8 py-6 max-w-full">
-                <!-- Mobile Master List View -->
-                <div class="lg:hidden space-y-6">
-                    ${dias.map(d => {
-                        const dayPags = filteredAsignaciones.filter(a => a.dia === d);
-                        if(dayPags.length === 0) return '';
-                        return `
-                        <div class="space-y-3">
-                            <h4 class="text-[10px] font-black text-cyan-500 uppercase tracking-[0.3em] bg-cyan-500/10 px-4 py-2.5 rounded-xl border border-cyan-500/20">${d}</h4>
-                            ${dayPags.map(a => {
+            <div class="p-4 md:p-8 space-y-3">
+                ${allDays.map((dia, dayIdx) => {
+                    const turnos = porDia[dia];
+                    const c = DAY_COLORS[dia] || DAY_COLORS['Sin Día'];
+                    const accordionId = `acc-day-${dayIdx}`;
+                    return `
+                    <div class="rounded-2xl border border-slate-200 dark:border-white/[0.07] bg-white dark:bg-white/[0.02] shadow-sm overflow-hidden transition-all">
+                        <!-- Day Header (always visible, clickable) -->
+                        <button type="button"
+                            onclick="document.getElementById('${accordionId}').classList.toggle('hidden'); this.querySelector('.acc-arrow').classList.toggle('rotate-180')"
+                            class="w-full flex items-center justify-between px-5 py-4 hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors group">
+                            <div class="flex items-center gap-3">
+                                <span class="w-2.5 h-2.5 rounded-full ${c.dot} shrink-0 shadow-sm"></span>
+                                <span class="text-[11px] font-black uppercase tracking-[0.25em] ${c.accent}">${dia}</span>
+                                <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-[9px] font-black ${c.bg} ${c.accent} border ${c.border}">${turnos.length}</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="hidden sm:block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">${turnos.length} turno${turnos.length !== 1 ? 's' : ''}</span>
+                                <i class="acc-arrow fas fa-chevron-down text-[10px] text-slate-400 transition-transform duration-300"></i>
+                            </div>
+                        </button>
+
+                        <!-- Turnos list (collapsible) -->
+                        <div id="${accordionId}" class="hidden border-t border-slate-100 dark:border-white/[0.05] divide-y divide-slate-100 dark:divide-white/[0.04]">
+                            ${turnos.map(a => {
                                 const idx = data.asignaciones.indexOf(a);
+                                const cardId = `turno-detail-${dayIdx}-${idx}`;
+                                const timeStr = `${ftd(a.hora)} – ${ftd(a.hora_fin)}`;
+                                const lugar = a.lugar || 'Ubicación General';
+                                const pubInitial = (a.publicador || '?').charAt(0).toUpperCase();
                                 return `
-                                    <div onclick="window.editPublicRowModal(${idx})" class="block p-4 bg-[#0d1522] border border-white/5 rounded-2xl shadow-sm hover:shadow-cyan-500/20 active:scale-[0.98] transition-all text-left cursor-pointer group">
-                                        <div class="flex justify-between items-start mb-3">
-                                            <div class="flex flex-col">
-                                                <span class="text-xs font-black text-white uppercase tracking-tighter">${a.lugar || 'Ubicación General'}</span>
-                                                <span class="text-[10px] text-cyan-400 font-bold uppercase mt-0.5"><i class="far fa-clock"></i> ${formatTimeDisplay(a.hora)} - ${formatTimeDisplay(a.hora_fin)}</span>
+                                <div class="group">
+                                    <!-- Turno compact row -->
+                                    <button type="button"
+                                        onclick="document.getElementById('${cardId}').classList.toggle('hidden'); this.querySelector('.turno-arrow').classList.toggle('rotate-180')"
+                                        class="w-full flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50/80 dark:hover:bg-white/[0.02] transition-colors text-left">
+                                        <!-- Avatar -->
+                                        <div class="w-9 h-9 rounded-xl ${c.bg} ${c.accent} flex items-center justify-center font-black text-sm shrink-0 border ${c.border}">
+                                            ${pubInitial}
+                                        </div>
+                                        <!-- Info compact -->
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-[12px] font-black text-slate-800 dark:text-white truncate uppercase">${a.publicador || '—'}</p>
+                                            <p class="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider truncate">${lugar} &middot; ${timeStr}</p>
+                                        </div>
+                                        <!-- Expand arrow -->
+                                        <i class="turno-arrow fas fa-chevron-down text-[9px] text-slate-300 dark:text-slate-600 transition-transform duration-200 shrink-0"></i>
+                                    </button>
+
+                                    <!-- Turno expanded detail -->
+                                    <div id="${cardId}" class="hidden px-5 pb-4 pt-1 bg-slate-50/50 dark:bg-black/10 animate-fade-in">
+                                        <div class="grid grid-cols-2 gap-3 mb-4">
+                                            <div class="space-y-1">
+                                                <p class="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em]">Lugar</p>
+                                                <p class="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase">${lugar}</p>
+                                            </div>
+                                            <div class="space-y-1">
+                                                <p class="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em]">Horario</p>
+                                                <p class="text-[11px] font-black ${c.accent}">${timeStr}</p>
+                                            </div>
+                                            <div class="space-y-1">
+                                                <p class="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em]">Publicador Principal</p>
+                                                <p class="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase">${a.publicador || '—'}</p>
+                                            </div>
+                                            <div class="space-y-1">
+                                                <p class="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em]">Acompañante</p>
+                                                <p class="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase">${a.companero || '—'}</p>
                                             </div>
                                         </div>
-                                        <div class="flex items-center gap-3 bg-white/[0.02] group-hover:bg-white/[0.04] p-3 rounded-xl border border-white/5 transition-colors">
-                                            <span class="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 text-cyan-300 flex items-center justify-center font-black text-xs shrink-0 shadow-inner">${(a.publicador || '?').charAt(0)}</span>
-                                            <div class="flex flex-col min-w-0">
-                                                <span class="text-[11px] font-black text-slate-200 truncate uppercase">${a.publicador || '—'}</span>
-                                                ${a.companero ? `<span class="text-[9px] font-bold text-slate-500 truncate uppercase mt-0.5">+ ${a.companero}</span>` : ''}
-                                            </div>
+                                        <div class="flex items-center gap-2">
+                                            <button onclick="window.editPublicRowModal(${idx})"
+                                                class="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-primary/10 hover:bg-primary text-primary hover:text-white text-[9px] font-black uppercase tracking-wider transition-all active:scale-95">
+                                                <i class="fas fa-pen text-[9px]"></i> Editar
+                                            </button>
+                                            <button onclick="window.deletePublicRow(${idx})"
+                                                class="w-9 h-9 flex items-center justify-center rounded-xl bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white transition-all active:scale-95">
+                                                <i class="fas fa-trash text-[9px]"></i>
+                                            </button>
                                         </div>
                                     </div>
-                                `;
-                            }).join('')}
-                        </div>`;
-                    }).join('')}
-                    
-                    ${filteredAsignaciones.filter(a => !a.dia).length > 0 ? `
-                        <div class="space-y-3">
-                            <h4 class="text-[10px] font-black text-rose-500 uppercase tracking-[0.3em] bg-rose-500/10 px-4 py-2.5 rounded-xl border border-rose-500/20">Sin Día Asignado</h4>
-                            ${filteredAsignaciones.filter(a => !a.dia).map(a => {
-                                const idx = data.asignaciones.indexOf(a);
-                                return `
-                                    <div onclick="window.editPublicRowModal(${idx})" class="block p-4 bg-[#0d1522] border border-white/5 rounded-2xl shadow-sm hover:shadow-rose-500/20 active:scale-[0.98] transition-all text-left cursor-pointer group">
-                                        <span class="text-[11px] font-black text-slate-200 truncate uppercase">${a.publicador || 'Turno Nuevo / Vacío'}</span>
-                                        <p class="text-[9px] text-slate-500 mt-1">Toque para editar y asignar un día</p>
-                                    </div>
-                                `;
+                                </div>`;
                             }).join('')}
                         </div>
-                    ` : ''}
-                </div>
-
-                <!-- Desktop Matrix View -->
-                <div class="hidden lg:block overflow-x-auto overflow-y-auto max-h-[70vh] rounded-2xl border border-white/10 shadow-2xl custom-scrollbar-thin w-full bg-[#0d1522]">
-                    <table class="w-full min-w-max border-collapse">
-                        <thead class="sticky top-0 z-30 bg-slate-900/90 backdrop-blur-md border-b border-white/10 shadow-lg">
-                            <tr>
-                                <th class="sticky left-0 z-40 bg-[linear-gradient(to_right,rgba(15,23,42,1)_95%,transparent)] md:bg-slate-900/90 backdrop-blur-md border-r border-b border-white/10 p-5 text-left min-w-[220px]">
-                                    <span class="text-[10px] font-black uppercase text-slate-400 tracking-[0.3em]"><i class="fas fa-map-marker-alt"></i> Lugar y Horario</span>
-                                </th>
-                                ${dias.map(d => `<th class="p-5 text-center min-w-[200px] border-b border-white/10 bg-slate-900/90 backdrop-blur-md">
-                                    <span class="text-[11px] font-black uppercase text-cyan-400 tracking-[0.2em] shadow-cyan-500/50 drop-shadow-md">${d}</span>
-                                </th>`).join('')}
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-white/5 relative z-10">
-                            ${rowKeysList.map(rk => {
-                                return `
-                                    <tr class="even:bg-white/[0.02] hover:bg-white/[0.04] transition-colors group/row">
-                                        <td class="sticky left-0 z-20 bg-slate-900/95 group-hover/row:bg-slate-800/95 backdrop-blur-md border-r border-white/10 p-5 align-top transition-colors">
-                                            <div class="flex flex-col gap-1.5">
-                                                <span class="text-[13px] font-black text-white uppercase tracking-tighter leading-tight drop-shadow-md">${rk.lugar}</span>
-                                                <span class="text-[11px] text-cyan-500 font-black tracking-widest flex items-center gap-2 drop-shadow-sm"><i class="far fa-clock"></i> ${rk.time}</span>
-                                            </div>
-                                        </td>
-                                        ${dias.map(d => {
-                                            const foundMatches = filteredAsignaciones.filter(a => 
-                                                a.dia === d && 
-                                                (a.lugar || 'Ubicación General') === rk.lugar && 
-                                                `${formatTimeDisplay(a.hora)} - ${formatTimeDisplay(a.hora_fin)}` === rk.time
-                                            );
-                                            
-                                            if (foundMatches.length > 0) {
-                                                return `
-                                                    <td class="p-3 align-top border-x border-dashed border-white/5 relative group-hover/row:bg-white/[0.02]">
-                                                        <div class="flex flex-col gap-2 w-full h-full justify-start items-center">
-                                                            ${foundMatches.map(a => {
-                                                                const originalIdx = data.asignaciones.indexOf(a);
-                                                                return `
-                                                                    <div class="relative group/chip w-full animate-fade-in shadow-xl hover:z-30">
-                                                                        <div class="inline-flex items-center px-4 py-2.5 rounded-xl text-xs font-black bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 text-cyan-50 border border-cyan-500/30 w-full justify-center transition-all shadow-md group-hover/chip:shadow-cyan-500/20 group-hover/chip:border-cyan-400/60 uppercase tracking-wider relative overflow-hidden backdrop-blur-md">
-                                                                            <div class="absolute inset-0 bg-white/5 opacity-0 group-hover/chip:opacity-100 transition-opacity"></div>
-                                                                            <div class="flex flex-col w-full text-center relative z-10">
-                                                                                <span class="block w-full truncate font-black tracking-tight" title="${a.publicador}">${a.publicador || '—'}</span>
-                                                                                ${a.companero ? `<span class="text-[9px] text-cyan-200 uppercase truncate block w-full mt-1 font-bold opacity-80" title="Apoyo: ${a.companero}">+ ${a.companero}</span>` : ''}
-                                                                            </div>
-                                                                        </div>
-                                                                        <div class="absolute -top-3 -right-2 flex gap-1 z-50 opacity-0 group-hover/chip:opacity-100 transition-all group-hover/chip:translate-y-1">
-                                                                           <button onclick="window.editPublicRowModal(${originalIdx})" class="w-7 h-7 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full flex items-center justify-center shadow-2xl transform active:scale-95 border border-white/10"><i class="fas fa-pen text-[10px]"></i></button>
-                                                                           <button onclick="window.deletePublicRow(${originalIdx})" class="w-7 h-7 bg-rose-600 hover:bg-rose-500 text-white rounded-full flex items-center justify-center shadow-2xl transform active:scale-95 border border-white/10"><i class="fas fa-trash text-[10px]"></i></button>
-                                                                        </div>
-                                                                    </div>
-                                                                `;
-                                                            }).join('')}
-                                                        </div>
-                                                    </td>
-                                                `;
-                                            } else {
-                                                return `
-                                                    <td class="p-2 align-middle border-x border-dashed border-white/5 h-full">
-                                                        <div onclick="window.quickAddPublicRow('${d}', '${rk.lugar}', '${rk.hora}', '${rk.hora_fin}')" class="border border-dashed border-slate-600/40 hover:border-cyan-500/50 hover:bg-cyan-500/5 transition-all duration-300 cursor-pointer rounded-xl m-1 min-h-[50px] h-full flex items-center justify-center group/add shadow-inner backdrop-blur-sm">
-                                                            <i class="fas fa-plus text-slate-500/30 group-hover/add:text-cyan-400/80 group-hover/add:scale-[1.3] group-hover/add:rotate-90 transition-all duration-300 text-sm drop-shadow-xl"></i>
-                                                        </div>
-                                                    </td>
-                                                `;
-                                            }
-                                        }).join('')}
-                                    </tr>
-                                `;
-                            }).join('')}
-                        </tbody>
-                    </table>
-                </div>
+                    </div>`;
+                }).join('')}
             </div>
-            
-            <style>
-            .custom-scrollbar-thin::-webkit-scrollbar { width: 5px; height: 5px; }
-            .custom-scrollbar-thin::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 10px; }
-            .custom-scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(6, 182, 212, 0.4); border-radius: 10px; }
-            .custom-scrollbar-thin::-webkit-scrollbar-thumb:hover { background: rgba(6, 182, 212, 0.8); }
-            </style>
         `;
+
+        // Expandir el primer día automáticamente
+        const firstAccordion = viewCont.querySelector('[id^="acc-day-"]');
+        if (firstAccordion) {
+            firstAccordion.classList.remove('hidden');
+            viewCont.querySelector('button .acc-arrow')?.classList.add('rotate-180');
+        }
     };
+
+
+
 
     window.quickAddPublicRow = async (dia, lugar, hora, hora_fin) => {
         data.asignaciones = data.asignaciones || [];
@@ -451,6 +430,14 @@ export const renderPredicacionTab = async (container) => {
 
     window.editPublicRowModal = (idx) => {
         const row = data.asignaciones[idx];
+        // Opciones de publicadores para los selects del modal
+        const pubOpts = publicadores.map(p =>
+            `<option value="${p.nombre}" ${(row.publicador || '') === p.nombre ? 'selected' : ''}>${p.nombre}</option>`
+        ).join('');
+        const socOpts = publicadores.map(p =>
+            `<option value="${p.nombre}" ${(row.companero || '') === p.nombre ? 'selected' : ''}>${p.nombre}</option>`
+        ).join('');
+
         showModal(`
             <div class="p-8 space-y-8 bg-white dark:bg-[#0a0f18] rounded-[2.5rem]">
                 <header class="flex items-center gap-6">
@@ -458,7 +445,7 @@ export const renderPredicacionTab = async (container) => {
                         <i class="fas fa-edit"></i>
                     </div>
                     <div>
-                        <h3 class="text-2xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">Editar Turno</h3>
+                        <h3 class="text-2xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">${idx === (data.asignaciones.length - 1) && !row.dia ? 'Nuevo Turno' : 'Editar Turno'}</h3>
                         <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em] mt-1">Modificar registro S-13</p>
                     </div>
                 </header>
@@ -486,11 +473,17 @@ export const renderPredicacionTab = async (container) => {
                     </div>
                     <div class="space-y-2">
                         <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Publicador Principal</label>
-                        <input type="text" id="edit-p-pub" value="${row.publicador || ''}" list="list-publicadores" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-xs font-bold uppercase text-slate-700 dark:text-white outline-none">
+                        <select id="edit-p-pub" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-xs font-bold uppercase text-slate-700 dark:text-white outline-none">
+                            <option value="">— Seleccionar —</option>
+                            ${pubOpts}
+                        </select>
                     </div>
                     <div class="space-y-2">
                         <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Acompañante</label>
-                        <input type="text" id="edit-p-soc" value="${row.companero || ''}" list="list-publicadores" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-xs font-bold uppercase text-slate-700 dark:text-white outline-none">
+                        <select id="edit-p-soc" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-xs font-bold uppercase text-slate-700 dark:text-white outline-none">
+                            <option value="">— Ninguno —</option>
+                            ${socOpts}
+                        </select>
                     </div>
                 </div>
 

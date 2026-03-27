@@ -11,7 +11,8 @@ export const renderPersonalTab = async (container) => {
 
     const renderMainLayout = () => {
         container.innerHTML = `
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-6 px-4">
+            <div class="space-y-12 animate-fade-in">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
                 <div class="space-y-1">
                     <h3 class="text-2xl md:text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Directorio de Personal</h3>
                     <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] ml-1">Gestión centralizada de publicadores</p>
@@ -54,7 +55,7 @@ export const renderPersonalTab = async (container) => {
                                     </td>
                                     <td class="p-6 text-center">
                                         <span class="text-[10px] font-black uppercase text-slate-400 bg-slate-100 dark:bg-white/5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 shadow-inner">
-                                            ${p.grupo || '?'}
+                                            ${groups.find(g => g.id == p.grupo)?.numero_nombre || (p.grupo ? `Grupo ${p.grupo}` : '—')}
                                         </span>
                                     </td>
                                     <td class="p-6">
@@ -106,12 +107,13 @@ export const renderPersonalTab = async (container) => {
                             </div>
                             <div class="flex-shrink-0">
                                 <span class="bg-slate-100 dark:bg-white/5 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 text-[9px] font-black text-slate-500">
-                                    G ${p.grupo || '?'}
+                                    ${groups.find(g => g.id == p.grupo)?.numero_nombre || (p.grupo ? `G${p.grupo}` : '—')}
                                 </span>
                             </div>
                         </div>
                     </div>
                 `).join('')}
+                </div>
             </div>
         `;
 
@@ -225,7 +227,7 @@ export const renderPersonalTab = async (container) => {
                                 <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Grupo Asignado</label>
                                 <select id="p-group" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-sm font-bold focus:border-primary outline-none shadow-sm transition-all text-slate-700 dark:text-white appearance-none cursor-pointer">
                                     <option value="0" ${!person?.grupo || person?.grupo === 0 ? 'selected' : ''}>Sin asignar</option>
-                                    ${(groups || []).map(g => `<option value="${g.id}" ${person?.grupo == g.id ? 'selected' : ''}>${g.nombre || `Grupo ${g.id}`}</option>`).join('')}
+                                    ${(groups || []).map(g => `<option value="${g.id}" ${person?.grupo == g.id ? 'selected' : ''}>${g.numero_nombre || `Grupo ${g.id}`} - ${g.lugar || 'Sin ubicación'}</option>`).join('')}
                                 </select>
                             </div>
                         </div>
@@ -426,6 +428,8 @@ export const renderPersonalTab = async (container) => {
                     else await addPublicador(data);
                     showNotification("Personal actualizado");
                     modal.classList.add('hidden');
+                    modal.innerHTML = '';
+                    renderMainLayout(); // Optimistic Redraw
                 } catch (e) {
                     showNotification("Error: " + e.message, "error");
                     saveBtn.innerHTML = original; saveBtn.disabled = false;
@@ -442,13 +446,13 @@ export const renderPersonalTab = async (container) => {
         const renderGroupsList = (modal) => {
             const list = modal.querySelector('#groups-config-list');
             list.innerHTML = localGroups.map((g, idx) => `
-                <div class="p-6 modern-card border-slate-100 dark:border-white/5 space-y-4 group/group-card relative">
+                <div class="p-6 modern-card border-slate-100 dark:border-white/5 space-y-4 group/group-card relative group-item-block">
                     <div class="flex justify-between items-center">
                         <div class="flex items-center gap-3">
                             <span class="w-8 h-8 rounded-lg bg-indigo-500 text-white flex items-center justify-center font-black text-xs">#${g.id}</span>
-                            <input type="text" value="${g.nombre}" onchange="window.updateGroupField(${idx}, 'nombre', this.value)" placeholder="Nombre del Grupo" class="bg-transparent border-b border-dashed border-slate-200 focus:border-indigo-500 outline-none font-black text-sm uppercase tracking-tight text-slate-800 dark:text-white">
+                            <input type="text" value="${g.numero_nombre || g.nombre || `Grupo ${g.id}`}" data-field="numero_nombre" placeholder="Nombre del Grupo" class="bg-transparent border-b border-dashed border-slate-200 focus:border-indigo-500 outline-none font-black text-sm uppercase tracking-tight text-slate-800 dark:text-white group-input">
                         </div>
-                        <button onclick="window.removeGroup(${idx})" class="w-8 h-8 rounded-lg hover:bg-rose-500/10 text-slate-300 hover:text-rose-500 transition-all">
+                        <button onclick="window.removeGroupConfig(${idx})" class="w-8 h-8 rounded-lg hover:bg-rose-500/10 text-slate-300 hover:text-rose-500 transition-all">
                             <i class="fas fa-trash-alt text-xs"></i>
                         </button>
                     </div>
@@ -456,20 +460,20 @@ export const renderPersonalTab = async (container) => {
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div class="space-y-1.5">
                             <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Lugar de Salida</label>
-                            <input type="text" value="${g.casa_salida || ''}" onchange="window.updateGroupField(${idx}, 'casa_salida', this.value)" placeholder="Ej: Familia Barrera" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-xl p-3 text-[11px] font-bold outline-none focus:border-indigo-500/50">
+                            <input type="text" value="${g.lugar || g.casa_salida || ''}" data-field="lugar" placeholder="Ej: Familia Barrera" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-xl p-3 text-[11px] font-bold outline-none focus:border-indigo-500/50 group-input">
                         </div>
                         <div class="space-y-1.5">
                             <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Superintendente</label>
-                            <select onchange="window.updateGroupField(${idx}, 'lider', this.value)" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-xl p-3 text-[11px] font-bold outline-none focus:border-indigo-500/50 appearance-none">
+                            <select data-field="superintendente" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-xl p-3 text-[11px] font-bold outline-none focus:border-indigo-500/50 appearance-none group-input">
                                 <option value="">— Sin asignar —</option>
-                                ${personnel.map(p => `<option value="${p.nombre}" ${g.lider === p.nombre ? 'selected' : ''}>${p.nombre}</option>`).join('')}
+                                ${personnel.filter(p => p.genero === 'Hombre').map(p => `<option value="${p.nombre}" ${ (g.superintendente || g.lider) === p.nombre ? 'selected' : ''}>${p.nombre}</option>`).join('')}
                             </select>
                         </div>
                         <div class="space-y-1.5">
                             <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Auxiliar</label>
-                            <select onchange="window.updateGroupField(${idx}, 'asistente', this.value)" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-xl p-3 text-[11px] font-bold outline-none focus:border-indigo-500/50 appearance-none">
+                            <select data-field="auxiliar" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-xl p-3 text-[11px] font-bold outline-none focus:border-indigo-500/50 appearance-none group-input">
                                 <option value="">— Sin asignar —</option>
-                                ${personnel.map(p => `<option value="${p.nombre}" ${g.asistente === p.nombre ? 'selected' : ''}>${p.nombre}</option>`).join('')}
+                                ${personnel.filter(p => p.genero === 'Hombre').map(p => `<option value="${p.nombre}" ${(g.auxiliar || g.asistente) === p.nombre ? 'selected' : ''}>${p.nombre}</option>`).join('')}
                             </select>
                         </div>
                     </div>
@@ -477,8 +481,10 @@ export const renderPersonalTab = async (container) => {
             `).join('');
         };
 
-        window.updateGroupField = (idx, field, val) => { localGroups[idx][field] = val; };
-        window.removeGroup = (idx) => { localGroups.splice(idx, 1); renderGroupsList(document.getElementById('modal-container')); };
+        window.removeGroupConfig = (idx) => { 
+            localGroups.splice(idx, 1); 
+            renderGroupsList(document.getElementById('modal-container')); 
+        };
 
         showModal(`
             <div class="flex flex-col h-[85vh] bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden">
@@ -510,17 +516,44 @@ export const renderPersonalTab = async (container) => {
         `, (modal) => {
             renderGroupsList(modal);
             modal.querySelector('#add-new-group-btn').onclick = () => {
-                const nextId = localGroups.length > 0 ? Math.max(...localGroups.map(g => g.id)) + 1 : 1;
-                localGroups.push({ id: nextId, nombre: `Grupo ${nextId}`, lider: "", asistente: "", casa_salida: "" });
+                const nextId = localGroups.length > 0 ? Math.max(...localGroups.map(g => parseInt(g.id))) + 1 : 1;
+                localGroups.push({ id: nextId, numero_nombre: `Grupo ${nextId}`, superintendente: "", auxiliar: "", lugar: "" });
                 renderGroupsList(modal);
             };
             modal.querySelector('#save-groups-btn').onclick = async () => {
                 const btn = modal.querySelector('#save-groups-btn');
                 btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
-                await saveGroupsConfig(localGroups);
-                showNotification("Configuración de grupos guardada");
-                modal.classList.add('hidden');
+                btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Guardando...';
+                
+                // Recolección manual del DOM para asegurar integridad absoluta
+                const groupBlocks = modal.querySelectorAll('.group-item-block');
+                const finalGroups = Array.from(groupBlocks).map(block => {
+                    const id = parseInt(block.querySelector('span').innerText.replace('#', ''));
+                    const inputs = block.querySelectorAll('.group-input');
+                    const data = { id };
+                    inputs.forEach(input => {
+                        const field = input.dataset.field;
+                        data[field] = input.value;
+                    });
+                    return data;
+                });
+
+                try {
+                    await saveGroupsConfig(finalGroups);
+                    // Actualizamos caché local para el closure de Personal
+                    groups.length = 0;
+                    groups.push(...finalGroups);
+                    
+                    showNotification("Configuración de grupos guardada exitosamente");
+                    modal.classList.add('hidden');
+                    modal.innerHTML = '';
+                    renderMainLayout(); // Re-render para mostrar grupos actualizados en la tabla si fuera necesario
+                } catch (e) {
+                    console.error("Save groups error:", e);
+                    showNotification("Error al guardar grupos", "error");
+                    btn.disabled = false;
+                    btn.innerHTML = 'Guardar Configuración';
+                }
             };
         }, 'max-w-3xl');
     };

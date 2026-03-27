@@ -1,5 +1,5 @@
 import { getTerritorios, deleteTerritorio, updateTerritorio, updateTerritoryGeoJSON, startLivePool, uploadMapPNG } from '../../data/firestore-services.js';
-import { showNotification } from '../utils/helpers.js';
+import { showNotification, renderSkeleton } from '../utils/helpers.js';
 import { showModal, showCustomConfirm } from '../services/ui-helpers.js';
 import { MapViewer } from '../map-viewer.js';
 import { setAdminLivePool } from '../admin-dashboard.js';
@@ -21,7 +21,6 @@ export const renderMapsView = async (container, config, appVersion) => {
             }))
             .sort((a, b) => String(a.numero || '').localeCompare(String(b.numero || ''), undefined, { numeric: true }));
 
-        console.log("🗺️ [Live Pool] Territories Updated.");
         const currentSearch = container.querySelector('#maps-search')?.value.trim().toLowerCase();
         renderGrid(currentSearch);
     });
@@ -42,67 +41,109 @@ export const renderMapsView = async (container, config, appVersion) => {
             return;
         }
 
+        const statusColors = {
+            'Asignado':   { bg: 'bg-amber-500/10',   text: 'text-amber-500',   dot: 'bg-amber-400',   label: 'Asignado' },
+            'Completado': { bg: 'bg-emerald-500/10', text: 'text-emerald-500', dot: 'bg-emerald-400', label: 'Completado' },
+            'Disponible': { bg: 'bg-slate-100 dark:bg-white/5', text: 'text-slate-400', dot: 'bg-slate-300', label: 'Disponible' },
+        };
+
         grid.innerHTML = filtered.map(t => {
-            const isAssigned = t.estado === 'Asignado' || t.estado === 'Pendiente';
             const allMzs = t.manzanas ? String(t.manzanas).split(',').filter(Boolean).length : 0;
+            const subtitle = t.localidad || t.nombre || '—';
+            const estado = t.estado || 'Disponible';
+            const sc = statusColors[estado] || statusColors['Disponible'];
+            const hasMap = !!(t.geojson || t.imagen);
 
             return `
-            <div class="modern-card p-5 md:p-6 border-slate-100 dark:border-white/5 shadow-sm group hover:border-primary/50 transition-all bg-white dark:bg-slate-900/40 flex flex-col h-full relative overflow-hidden">
-                <div class="flex justify-between items-start mb-6 shrink-0">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 md:w-12 md:h-12 bg-slate-50 dark:bg-white/5 rounded-xl md:rounded-2xl flex items-center justify-center text-base md:text-lg font-black text-slate-800 dark:text-white shadow-inner shrink-0">
-                            ${t.numero}
-                        </div>
-                        <div class="flex gap-1 p-1 bg-slate-50/50 dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5">
-                            <button onclick="window.viewMapFromBaseS12('${t.id}')" class="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center bg-white dark:bg-white/5 text-indigo-500 rounded-lg shadow-sm border border-black/5 dark:border-white/10 hover:bg-indigo-500 hover:text-white transition-all" title="Ver Mapa"><i class="fas fa-map-marked-alt text-[10px]"></i></button>
-                        </div>
-                    </div>
-                    
-                    <div class="flex gap-1 opacity-10 md:opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
-                        <button onclick="window.editTerritorioS12('${t.id}')" class="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center bg-slate-50 dark:bg-white/5 text-slate-400 hover:text-primary rounded-lg border border-slate-200 dark:border-white/10 transition-all" title="Editar"><i class="fas fa-edit text-[10px]"></i></button>
-                        <button onclick="window.deleteTerritorioS12('${t.id}')" class="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center bg-slate-50 dark:bg-white/5 text-slate-400 hover:text-rose-500 rounded-lg border border-slate-200 dark:border-white/10 transition-all" title="Eliminar"><i class="fas fa-trash-alt text-[10px]"></i></button>
-                    </div>
-                </div>
+            <div class="group relative flex flex-col bg-white dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/[0.07] rounded-2xl shadow-sm hover:shadow-xl hover:shadow-slate-200/60 dark:hover:shadow-black/30 hover:-translate-y-0.5 hover:border-primary/30 dark:hover:border-primary/30 transition-all duration-300 overflow-hidden">
                 
-                <div class="flex-1 flex flex-col justify-between">
-                    <p class="text-[11px] md:text-sm font-black text-slate-800 dark:text-white uppercase truncate flex items-center gap-2 mb-4" title="${t.localidad || t.nombre || ''}">
-                        <i class="fas fa-location-dot text-[10px] text-primary/40 shrink-0"></i>
-                        <span class="truncate">${t.localidad || t.nombre || '—'}</span>
-                    </p>
-                    
-                    <div class="pt-4 border-t border-slate-100 dark:border-white/5 flex flex-wrap items-center justify-end gap-2">
-                        <div class="text-[7px] md:text-[8px] font-black text-slate-400 uppercase bg-slate-50 dark:bg-white/5 px-1.5 py-0.5 md:py-1 rounded-md border border-slate-100 dark:border-white/5 shrink-0">${allMzs} MZ</div>
+                <div class="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-primary/80 via-indigo-500/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+
+                <div class="flex items-start justify-between p-5 pb-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center shadow-lg shadow-primary/25 shrink-0">
+                            <span class="text-white font-black text-sm leading-none">${t.numero}</span>
+                        </div>
+                        <div class="flex flex-col min-w-0">
+                            <span class="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] leading-none mb-1">Territorio</span>
+                            <h4 class="text-[13px] font-black text-slate-800 dark:text-white leading-tight truncate max-w-[130px]">${subtitle}</h4>
+                        </div>
                     </div>
+                    ${estado !== 'Disponible' ? `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-wider shrink-0 ${sc.bg} ${sc.text}">
+                        <span class="w-1.5 h-1.5 rounded-full ${sc.dot}"></span>
+                        ${sc.label}
+                    </span>` : ''}
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2 px-5 pb-4 border-b border-slate-100 dark:border-white/[0.05]">
+                    <div class="inline-flex items-center gap-1.5 bg-slate-50 dark:bg-white/5 px-3 py-1.5 rounded-lg border border-slate-100 dark:border-white/5">
+                        <i class="fas fa-th-large text-[9px] text-primary opacity-70"></i>
+                        <span class="text-[9px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest">${allMzs} Manzana${allMzs !== 1 ? 's' : ''}</span>
+                    </div>
+                    ${hasMap ? `<div class="inline-flex items-center gap-1.5 bg-emerald-500/5 px-3 py-1.5 rounded-lg border border-emerald-500/10">
+                        <i class="fas fa-map text-[9px] text-emerald-500"></i>
+                        <span class="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Con Mapa</span>
+                    </div>` : ''}
+                </div>
+
+                ${t.asignado_a ? `
+                <div class="px-5 py-3 flex items-center gap-2 border-b border-slate-100 dark:border-white/[0.05]">
+                    <div class="w-5 h-5 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0">
+                        <i class="fas fa-user text-[8px] text-amber-500"></i>
+                    </div>
+                    <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 truncate">${t.asignado_a}</span>
+                </div>` : ''}
+
+                <div class="flex items-center gap-2 p-4 mt-auto bg-slate-50/50 dark:bg-black/10">
+                    <button onclick="window.viewMapFromBaseS12('${t.id}')"
+                        class="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-primary/10 hover:bg-primary text-primary hover:text-white text-[9px] font-black uppercase tracking-wider transition-all duration-200 active:scale-95 group/btn">
+                        <i class="fas fa-map-marked-alt text-[10px] group-hover/btn:scale-110 transition-transform"></i>
+                        <span>Mapa</span>
+                    </button>
+                    <button onclick="window.editTerritorioS12('${t.id}')"
+                        class="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-indigo-500 text-slate-400 hover:text-white text-[9px] font-black uppercase tracking-wider transition-all duration-200 active:scale-95 group/btn">
+                        <i class="fas fa-pen text-[10px] group-hover/btn:scale-110 transition-transform"></i>
+                        <span>Editar</span>
+                    </button>
+                    <button onclick="window.deleteTerritorioS12('${t.id}')"
+                        class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-rose-500 text-slate-400 hover:text-white transition-all duration-200 active:scale-95 group/btn shrink-0">
+                        <i class="fas fa-trash text-[10px] group-hover/btn:scale-110 transition-transform"></i>
+                    </button>
                 </div>
             </div>`;
         }).join('');
     };
 
     container.innerHTML = `
-        <div class="animate-fade-in p-6 space-y-8 max-w-6xl mx-auto">
-            <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+        <div class="animate-fade-in p-6 space-y-12 max-w-7xl mx-auto">
+            <header class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
                 <div>
-                    <h3 class="text-2xl md:text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter flex items-center gap-4">
-                        <div class="w-12 h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-500 shadow-inner">
-                            <i class="fas fa-map-location-dot"></i>
+                    <h3 class="text-2xl md:text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter flex items-center gap-5">
+                        <div class="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-2xl shadow-indigo-600/20">
+                            <i class="fas fa-map-location-dot text-xl"></i>
                         </div>
-                        Mapas de Territorios
+                        Gestión de Territorios
                     </h3>
-                    <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] mt-2 ml-1">Visor y gestión de polígonos</p>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.4em] mt-3 ml-1">Visor y gestión de polígonos satelitales</p>
                 </div>
-                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
-                    <button id="btn-open-kml-mgr" class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-500/20 active:scale-95 flex items-center justify-center gap-3 transition-all shrink-0">
-                        <i class="fas fa-magic"></i> <span class="truncate">Gestionar Polígonos (KML)</span>
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full lg:w-auto">
+                    <button id="btn-open-kml-mgr" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-600/20 active:scale-95 flex items-center justify-center gap-3 transition-all shrink-0">
+                        <i class="fas fa-file-import"></i> <span>Importar KML</span>
                     </button>
-                    <input type="text" id="maps-search" placeholder="Buscar número o localidad..." class="w-full sm:w-64 bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 rounded-2xl px-5 py-4 text-sm font-bold shadow-sm outline-none focus:border-primary transition-all">
+                    <div class="search-wrapper-v3 flex-1 lg:w-72">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="maps-search" placeholder="Buscar número o localidad..." class="search-input-v3 py-4 text-sm font-bold outline-none">
+                    </div>
                 </div>
             </header>
 
             <div id="maps-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-                <div class="col-span-full py-20 text-center opacity-30"><i class="fas fa-circle-notch fa-spin text-3xl"></i></div>
+                <div id="maps-skeleton-container" class="col-span-full"></div>
             </div>
         </div>
     `;
+
+    renderSkeleton(container.querySelector('#maps-skeleton-container'));
 
 
 

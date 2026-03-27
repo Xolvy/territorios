@@ -52,6 +52,7 @@ export default defineConfig({
                 cleanupOutdatedCaches: true,
                 maximumFileSizeToCacheInBytes: 10000000,
                 cacheId: `territorios-shell-${pkg.version.replace(/\./g, '-')}`,
+                navigateFallbackDenylist: [/^\/__/],
                 // Cache de plantillas Excel/PDF para uso offline
                 runtimeCaching: [
                     {

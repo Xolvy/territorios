@@ -8,7 +8,7 @@ export const renderRecursosTab = async (container) => {
     const recursos = await getRecursos();
 
     container.innerHTML = `
-        <div class="animate-fade-in p-2 md:p-6 space-y-10 max-w-7xl mx-auto pb-20">
+        <div class="animate-fade-in space-y-12 max-w-7xl mx-auto">
             <!-- MATERIAL DE APOYO SECTION -->
             <section class="space-y-10">
                 <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
