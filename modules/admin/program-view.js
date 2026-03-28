@@ -120,6 +120,82 @@ export const renderProgramaTab = async (container) => {
         };
     };
 
+    window._pickerStateDate = new Date(currentWeekStart);
+
+    window.openWeekSelector = () => {
+        window._pickerStateDate = new Date(currentWeekStart);
+        renderWeekSelectorModal();
+    };
+
+    const renderWeekSelectorModal = () => {
+        const modalDiv = document.getElementById('modal-container');
+        modalDiv.classList.remove('hidden');
+
+        const year = window._pickerStateDate.getFullYear();
+        const month = window._pickerStateDate.getMonth();
+        const monthName = new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' }).format(window._pickerStateDate).toUpperCase();
+        
+        const weeksHTML = [];
+        let d = new Date(year, month, 1);
+        const firstDay = d.getDay() || 7;
+        d.setDate(d.getDate() - (firstDay - 1));
+        
+        for(let i = 0; i < 6; i++) {
+            if (d.getMonth() > month && d.getFullYear() >= year) break;
+            if (d.getFullYear() > year) break;
+            
+            const monday = new Date(d);
+            const sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+            
+            const labelStr = `${monday.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })} — ${sunday.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}`.toUpperCase();
+            
+            // Re-normalize hours for pure date comparison
+            const mTime = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate()).getTime();
+            const currTime = new Date(currentWeekStart.getFullYear(), currentWeekStart.getMonth(), currentWeekStart.getDate()).getTime();
+            const isCurrent = (mTime === currTime);
+            
+            weeksHTML.push(`
+                <button onclick="window.selectWeekFromPicker(${monday.getTime()})" class="w-full p-4 rounded-2xl border ${isCurrent ? 'border-primary bg-primary/5 text-primary' : 'border-slate-100 dark:border-white/5 text-slate-600 dark:text-slate-300 hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-white/5'} transition-all flex items-center justify-between group">
+                    <span class="text-[11px] font-black uppercase tracking-widest">${labelStr}</span>
+                    <i class="fas fa-check text-primary ${isCurrent ? 'opacity-100' : 'opacity-0'}"></i>
+                </button>
+            `);
+            d.setDate(d.getDate() + 7);
+        }
+
+        modalDiv.innerHTML = `
+            <div class="p-8 space-y-6 bg-white dark:bg-[#0a0f18] rounded-[2.5rem] max-w-sm w-full shadow-2xl animate-scale-in flex flex-col mx-auto my-auto relative">
+                <header class="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-white/5">
+                    <button onclick="window.navPickerMonth(-1)" class="w-10 h-10 rounded-xl bg-slate-50 dark:bg-white/5 text-slate-400 hover:text-primary hover:bg-slate-100 transition-colors flex items-center justify-center">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div class="text-center">
+                        <h3 class="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-white">${monthName}</h3>
+                    </div>
+                    <button onclick="window.navPickerMonth(1)" class="w-10 h-10 rounded-xl bg-slate-50 dark:bg-white/5 text-slate-400 hover:text-primary hover:bg-slate-100 transition-colors flex items-center justify-center">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </header>
+                <div class="space-y-2 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
+                    ${weeksHTML.join('')}
+                </div>
+                <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="w-full py-4 bg-slate-100 dark:bg-white/5 text-slate-500 font-black rounded-2xl text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all mt-2">Cerrar</button>
+            </div>
+        `;
+    };
+
+    window.navPickerMonth = (dir) => {
+        window._pickerStateDate.setMonth(window._pickerStateDate.getMonth() + dir);
+        renderWeekSelectorModal();
+    };
+
+    window.selectWeekFromPicker = (timeMs) => {
+        document.getElementById('modal-container').classList.add('hidden');
+        currentWeekStart = new Date(timeMs);
+        loadWeekData();
+    };
+
     container.innerHTML = `
         <div class="max-w-[1700px] mx-auto space-y-12 animate-fade-in pb-10">
             <header class="flex flex-col xl:flex-row items-center justify-between gap-6">
@@ -139,9 +215,10 @@ export const renderProgramaTab = async (container) => {
                          <button id="btn-prev-week" class="p-4 hover:bg-white dark:hover:bg-white/10 rounded-xl transition-all text-slate-400 hover:text-primary active:scale-95">
                             <i class="fas fa-chevron-left"></i>
                          </button>
-                         <div class="px-8 py-2 min-w-[200px] text-center">
-                             <span id="week-range-label" class="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest">Cargando...</span>
-                         </div>
+                         <button onclick="window.openWeekSelector()" class="px-8 py-3 min-w-[200px] flex items-center justify-center gap-2 text-center hover:bg-white dark:hover:bg-white/10 rounded-xl transition-all group active:scale-95">
+                             <span id="week-range-label" class="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest group-hover:text-primary transition-colors">Cargando...</span>
+                             <i class="fas fa-chevron-down text-[10px] text-slate-400 group-hover:text-primary transition-colors"></i>
+                         </button>
                          <button id="btn-next-week" class="p-4 hover:bg-white dark:hover:bg-white/10 rounded-xl transition-all text-slate-400 hover:text-primary active:scale-95">
                             <i class="fas fa-chevron-right"></i>
                          </button>
@@ -464,11 +541,18 @@ export const renderProgramaTab = async (container) => {
             // Build dynamic turno list solely from DB properties
             const allTurnoIds = Object.keys(dia).filter(k => k !== 'nombre' && k !== 'fecha');
             
+            // Filter out slots that have no actual data (e.g. empty strings)
+            const activeTurnos = allTurnoIds.filter(id => {
+                const data = dia[id];
+                if (!data) return false;
+                return Object.values(data).some(val => val !== "" && val !== null && val !== undefined && val !== false);
+            });
+            
             const sortOrder = { 'manana': 1, 'tarde': 2, 'noche': 3, 'zoom': 4 };
             const getOrder = (id) => sortOrder[id.split('_')[0]] || 99;
-            allTurnoIds.sort((a, b) => getOrder(a) - getOrder(b) || a.localeCompare(b));
+            activeTurnos.sort((a, b) => getOrder(a) - getOrder(b) || a.localeCompare(b));
             
-            const turnos = allTurnoIds.map(id => ({ id }));
+            const turnos = activeTurnos.map(id => ({ id }));
 
             html += `
                 <div class="day-group animate-fade-in relative">

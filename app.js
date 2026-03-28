@@ -16,7 +16,7 @@ VisualEngine.applyGlobalEcosystem();
 moduleRegistry.init();
 
 // The version is injected by Vite at build time (Core Shell Version)
-const APP_VERSION = "2.9.0";
+const APP_VERSION = "2.9.5";
 
 // --- XOLVY MODULAR: MICRO-MODULE ENGINE ---
 const dynamicModules = import.meta.glob('./modules/**/*.js');
