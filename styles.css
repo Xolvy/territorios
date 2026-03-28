@@ -8002,3 +8002,45 @@ body.swal2-shown > [class^="swal2-container"] {
     background-color: rgba(15, 23, 42, 0.85) !important;
     backdrop-filter: blur(8px) !important;
 }
+/* --- PROGRAM TOOLBAR --- */
+/* Contenedor principal de la barra */
+.program-toolbar {
+    display: flex !important;
+    align-items: center !important;
+    gap: 16px !important; 
+    width: 100% !important;
+    background: transparent !important;
+    flex-wrap: wrap; 
+}
+
+/* Sub-grupos de botones unidos */
+.toolbar-group {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important; 
+    background: #ffffff; 
+    padding: 6px;
+    border-radius: 14px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    border: 1px solid #e2e8f0;
+    flex-wrap: wrap; 
+}
+
+/* Divisor sutil */
+.toolbar-divider {
+    height: 24px;
+    width: 1px;
+    background-color: #cbd5e1;
+    margin: 0 4px;
+}
+
+/* Ajuste modo oscuro */
+html.dark .toolbar-group {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+html.dark .toolbar-divider {
+    background-color: rgba(255, 255, 255, 0.1);
+}

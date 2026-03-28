@@ -222,37 +222,44 @@ export const renderProgramaTab = async (container) => {
                          <button id="btn-next-week" class="p-4 hover:bg-white dark:hover:bg-white/10 rounded-xl transition-all text-slate-400 hover:text-primary active:scale-95">
                             <i class="fas fa-chevron-right"></i>
                          </button>
+                         <div class="h-6 w-px bg-slate-200 dark:bg-white/10 mx-2"></div>
+                         <button id="action-hoy-prog" class="p-3 px-5 hover:bg-white dark:hover:bg-white/10 rounded-xl transition-all text-slate-500 hover:text-primary active:scale-95 font-black text-[10px] uppercase tracking-widest">Hoy</button>
                     </div>
 
                     <!-- Action Buttons (Lower Layer 10) -->
-                    <nav data-adaptive-wrap="true" class="flex flex-wrap items-center justify-center lg:justify-start gap-2 bg-slate-100/50 dark:bg-white/5 p-1.5 rounded-2xl border border-slate-200/50 dark:border-white/5 shadow-sm w-full lg:w-max max-w-full relative z-[10]">
-                        <button id="action-formalizar-prog" class="btn-pro flex items-center gap-2 px-6 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-emerald-500/20 active:scale-95 group shrink-0" title="Formalizar todas las asignaciones programadas">
-                            <i class="fas fa-project-diagram group-hover:rotate-12 transition-transform"></i>
-                            Formalizar
-                        </button>
-
-                        <button id="action-hoy-prog" class="btn-pro bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 px-6 py-4 rounded-xl font-black hover:bg-slate-50 transition-all text-[10px] uppercase tracking-widest shrink-0">Hoy</button>
+                    <nav data-adaptive-wrap="true" class="program-toolbar relative z-[10] w-full lg:w-max max-w-full">
                         
-                        <button id="action-recepcion-prog" class="btn-pro flex items-center gap-2 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-rose-500 px-6 py-4 rounded-xl font-black hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all text-[10px] uppercase tracking-widest group shrink-0" title="Recibir territorios finalizados">
-                            <i class="fas fa-file-import group-hover:-translate-x-1 transition-transform"></i>
-                            Recepción
-                        </button>
-                        
-                        <div class="h-4 w-px bg-slate-200 dark:bg-white/10 mx-2 hidden lg:block"></div>
+                        <!-- Group 1 -->
+                        <div class="toolbar-group">
+                            <button id="action-formalizar-prog" class="btn-pro flex items-center gap-2 px-5 py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-[10px] font-black text-[10px] uppercase tracking-widest transition-all shadow-md shadow-emerald-500/20 active:scale-95 group shrink-0" title="Formalizar todas las asignaciones programadas">
+                                <i class="fas fa-project-diagram group-hover:rotate-12 transition-transform"></i>
+                                Formalizar
+                            </button>
+                            <button id="action-recepcion-prog" class="btn-pro flex items-center gap-2 px-5 py-3.5 bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20 text-rose-500 dark:text-rose-400 rounded-[10px] font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 group shrink-0" title="Recibir territorios finalizados">
+                                <i class="fas fa-file-import group-hover:-translate-x-1 transition-transform"></i>
+                                Recepción
+                            </button>
+                        </div>
 
-                        <button id="action-escanear-prog" class="btn-pro flex items-center gap-2 px-6 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-indigo-600/20 active:scale-95 group shrink-0" title="Escanear programa desde imagen con IA">
-                            <i class="fas fa-camera group-hover:scale-110 transition-transform"></i>
-                            Escanear
-                        </button>
+                        <div class="toolbar-divider hidden md:block"></div>
 
+                        <!-- Group 2 -->
+                        <div class="toolbar-group">
+                            <button id="action-escanear-prog" class="btn-pro flex items-center gap-2 px-5 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-[10px] font-black text-[10px] uppercase tracking-widest transition-all shadow-md shadow-indigo-600/20 active:scale-95 group shrink-0" title="Escanear programa desde imagen con IA">
+                                <i class="fas fa-camera group-hover:scale-110 transition-transform"></i>
+                                Escanear
+                            </button>
+                            <button id="action-replicar-prog" class="btn-pro flex items-center gap-2 px-5 py-3.5 bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-[10px] font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 group shrink-0" title="Replicar estructura de la semana pasada">
+                                <i class="fas fa-copy group-hover:scale-110 transition-transform"></i>
+                                Replicar
+                            </button>
+                        </div>
 
-                        <button id="action-replicar-prog" class="btn-pro flex items-center gap-2 px-6 py-4 bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 hover:bg-indigo-500 hover:text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-indigo-500/5 group shrink-0" title="Replicar estructura de la semana pasada">
-                            <i class="fas fa-copy group-hover:scale-110 transition-transform"></i>
-                            Replicar
-                        </button>
-                        
-                        <div class="dropdown-container relative z-50">
-                            <button id="action-exportar-prog" class="btn-pro flex items-center gap-2 bg-emerald-500 text-white px-6 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-emerald-500/20 active:scale-95 group shrink-0" title="Opciones de Exportación">
+                        <div style="flex-grow: 1" class="hidden xl:block"></div>
+
+                        <!-- Export Dropdown -->
+                        <div class="dropdown-container relative z-50 shrink-0">
+                            <button id="action-exportar-prog" class="btn-pro flex items-center justify-center w-full gap-2 px-6 py-4 bg-slate-800 dark:bg-white/10 hover:bg-slate-700 dark:hover:bg-white/20 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-slate-900/10 active:scale-95 group" title="Opciones de Exportación">
                                 <i class="fas fa-file-export"></i>
                                 Exportar
                                 <i class="fas fa-chevron-down ml-1 text-[8px] opacity-70 group-hover:translate-y-0.5 transition-transform"></i>
