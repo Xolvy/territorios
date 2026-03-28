@@ -1328,29 +1328,29 @@ export const renderProgramaTab = async (container) => {
         const selected = new Set(currentVal.replace(/grupos?/gi, '').split(/[,;y&]+/).map(s => s.trim()).filter(Boolean));
 
         window.showModal(`
-            <div class="flex flex-col max-h-[80vh] bg-white dark:bg-[#0a0f18] rounded-[2.5rem] border border-indigo-500/20 shadow-2xl overflow-hidden">
-                <header class="p-8 pb-4 flex items-center gap-6 shrink-0">
-                    <div class="w-16 h-16 bg-indigo-500/10 rounded-3xl flex items-center justify-center text-3xl text-indigo-500 shadow-inner">
+            <div class="flex flex-col max-h-[80vh] w-[90vw] max-w-sm mx-auto bg-white dark:bg-[#0a0f18] rounded-[2rem] border border-indigo-500/20 shadow-2xl overflow-hidden animate-scale-in">
+                <header class="p-6 pb-3 flex items-center gap-4 shrink-0">
+                    <div class="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-xl text-indigo-500 shadow-inner">
                         <i class="fas fa-check-double"></i>
                     </div>
                     <div>
-                        <h3 class="text-2xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">Seleccionar Grupos</h3>
-                        <p class="text-[10px] text-indigo-500 font-bold uppercase tracking-[0.3em] mt-1 italic">Versión 2.4.1.9 • Selección Múltiple</p>
+                        <h3 class="text-lg font-black uppercase tracking-tighter text-slate-800 dark:text-white leading-none">Grupos</h3>
+                        <p class="text-[8px] text-indigo-500 font-bold uppercase tracking-[0.2em] mt-1 italic">Selección Múltiple</p>
                     </div>
                 </header>
 
-                <div class="flex-1 overflow-y-auto custom-scrollbar px-8 py-2">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="group-selection-grid">
-                        <label class="group-item p-5 modern-card border-slate-100 dark:border-white/5 hover:border-indigo-500 transition-all cursor-pointer flex items-center gap-4 ${selected.has('Todos') ? 'bg-indigo-500/5 border-indigo-500/50' : ''}">
-                            <div class="relative w-6 h-6 shrink-0">
+                <div class="flex-1 overflow-y-auto custom-scrollbar px-6 py-2">
+                    <div class="grid grid-cols-1 gap-2" id="group-selection-grid">
+                        <label class="group-item p-3 modern-card border-slate-100 dark:border-white/5 hover:border-indigo-500 transition-all cursor-pointer flex items-center gap-3 ${selected.has('Todos') ? 'bg-indigo-500/5 border-indigo-500/50' : ''}">
+                            <div class="relative w-5 h-5 shrink-0">
                                 <input type="checkbox" class="group-checkbox absolute inset-0 opacity-0 cursor-pointer z-10" value="Todos" ${selected.has('Todos') ? 'checked' : ''}>
-                                <div class="check-box-ui w-6 h-6 border-2 border-slate-200 dark:border-white/10 rounded-lg flex items-center justify-center transition-all ${selected.has('Todos') ? 'bg-indigo-500 border-indigo-500' : ''}">
-                                    <i class="fas fa-check text-[10px] text-white ${selected.has('Todos') ? 'opacity-100' : 'opacity-0'} transition-opacity"></i>
+                                <div class="check-box-ui w-5 h-5 border-2 border-slate-200 dark:border-white/10 rounded-lg flex items-center justify-center transition-all ${selected.has('Todos') ? 'bg-indigo-500 border-indigo-500' : ''}">
+                                    <i class="fas fa-check text-[8px] text-white ${selected.has('Todos') ? 'opacity-100' : 'opacity-0'} transition-opacity"></i>
                                 </div>
                             </div>
                             <div class="flex-1">
-                                <p class="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">Todos</p>
-                                <p class="text-[8px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Salida General</p>
+                                <p class="text-[12px] font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none mb-0.5">Todos</p>
+                                <p class="text-[8px] text-slate-400 font-bold uppercase tracking-widest leading-none">Salida General</p>
                             </div>
                         </label>
 
@@ -1358,16 +1358,16 @@ export const renderProgramaTab = async (container) => {
             const gNum = g.nombre.replace(/grupos?/gi, '').trim();
             const isSel = selected.has(gNum) || selected.has(g.nombre);
             return `
-                            <label class="group-item p-5 modern-card border-slate-100 dark:border-white/5 hover:border-indigo-500 transition-all cursor-pointer flex items-center gap-4 ${isSel ? 'bg-indigo-500/5 border-indigo-500/50' : ''}">
-                                <div class="relative w-6 h-6 shrink-0">
+                            <label class="group-item p-3 modern-card border-slate-100 dark:border-white/5 hover:border-indigo-500 transition-all cursor-pointer flex items-center gap-3 ${isSel ? 'bg-indigo-500/5 border-indigo-500/50' : ''}">
+                                <div class="relative w-5 h-5 shrink-0">
                                     <input type="checkbox" class="group-checkbox absolute inset-0 opacity-0 cursor-pointer z-10" value="${gNum}" ${isSel ? 'checked' : ''}>
-                                    <div class="check-box-ui w-6 h-6 border-2 border-slate-200 dark:border-white/10 rounded-lg flex items-center justify-center transition-all ${isSel ? 'bg-indigo-500 border-indigo-500' : ''}">
-                                        <i class="fas fa-check text-[10px] text-white ${isSel ? 'opacity-100' : 'opacity-0'} transition-opacity"></i>
+                                    <div class="check-box-ui w-5 h-5 border-2 border-slate-200 dark:border-white/10 rounded-lg flex items-center justify-center transition-all ${isSel ? 'bg-indigo-500 border-indigo-500' : ''}">
+                                        <i class="fas fa-check text-[8px] text-white ${isSel ? 'opacity-100' : 'opacity-0'} transition-opacity"></i>
                                     </div>
                                 </div>
                                 <div class="flex-1">
-                                    <p class="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">G. ${gNum}</p>
-                                    <p class="text-[8px] text-slate-400 font-bold uppercase tracking-widest mt-0.5 truncate max-w-[120px]">${g.casa_salida || '—'}</p>
+                                    <p class="text-[12px] font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none mb-0.5">Grupo ${gNum}</p>
+                                    <p class="text-[8px] text-slate-400 font-bold uppercase tracking-widest leading-none truncate max-w-[150px]">${g.casa_salida || '—'}</p>
                                 </div>
                             </label>
                         `;
@@ -1375,9 +1375,9 @@ export const renderProgramaTab = async (container) => {
                     </div>
                 </div>
 
-                <div class="p-8 pt-4 border-t border-slate-50 dark:border-white/5 flex gap-4 shrink-0">
-                    <button onclick="document.getElementById('modal-container-nested').classList.add('hidden')" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest">Cancelar</button>
-                    <button id="confirm-groups" class="flex-[2.5] py-5 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-600/20 active:scale-95 transition-all">ASIGNAR SELECCIONADOS</button>
+                <div class="p-6 pt-4 border-t border-slate-50 dark:border-white/5 flex gap-3 shrink-0">
+                    <button onclick="document.getElementById('modal-container-nested').classList.add('hidden')" class="flex-1 py-4 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-xl text-[9px] uppercase tracking-widest hover:bg-slate-100 transition-all">Cancelar</button>
+                    <button id="confirm-groups" class="flex-[2] py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-xl text-[9px] uppercase tracking-widest shadow-xl shadow-indigo-600/20 active:scale-95 transition-all">Asignar</button>
                 </div>
             </div>
         `, (modal) => {
