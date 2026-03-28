@@ -9,7 +9,7 @@ import { showNotification, formatGroups, getBaseTerritoryNumber, normalize } fro
 import { UIHelpers, showModal, showTerritorySelectionModal, showCustomConfirm } from '../services/ui-helpers.js';
 import { generateProgramPNG } from './program-generator.js';
 import { db } from '../../firebase-config.js';
-import { where, documentId, collection, query, getDocs } from "firebase/firestore";
+import { where, documentId, collection, getDocs } from "firebase/firestore";
 
 const { getMonday, formatDateId } = UIHelpers;
 
@@ -69,7 +69,7 @@ export const renderProgramaTab = async (container) => {
 
     const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
-    const [rawTerritorios, config, _, historial] = await Promise.all([
+    const [rawTerritorios, config, , historial] = await Promise.all([
         getTerritorios(), getConfiguracion(), getPublicadores(), getHistorialReport()
     ]);
 
@@ -616,6 +616,7 @@ export const renderProgramaTab = async (container) => {
                                     ${data.auxiliar ? `<span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">+ ${data.auxiliar}</span>` : ''}
                                 </div>
                                 <div class="flex flex-wrap items-center gap-1.5 mt-1">
+                                    ${data.lugar ? `<span class="inline-flex items-center rounded-md bg-slate-100 dark:bg-white/10 px-2 py-0.5 text-[9px] font-black text-slate-600 dark:text-slate-300 ring-1 ring-inset ring-slate-200 dark:ring-white/5 uppercase tracking-widest"><i class="fas fa-map-marker-alt mr-1 text-[7px] opacity-50"></i>${data.lugar}</span>` : ''}
                                     ${data.faceta ? `<span class="inline-flex items-center rounded-md bg-blue-50 dark:bg-blue-500/10 px-2 py-0.5 text-[9px] font-black text-blue-700 dark:text-blue-400 ring-1 ring-inset ring-blue-700/10 dark:ring-blue-400/20 uppercase tracking-widest">${data.faceta}</span>` : ''}
                                     ${data.territorio ? `<span class="inline-flex items-center rounded-md bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 text-[9px] font-black text-emerald-700 dark:text-emerald-400 ring-1 ring-inset ring-emerald-600/10 dark:ring-emerald-400/20 uppercase tracking-widest">Terr: ${data.territorio}</span>${statusBadgeHTML}` : ''}
                                     ${data.grupos ? `<span class="inline-flex items-center rounded-md bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 text-[9px] font-black text-indigo-700 dark:text-indigo-400 ring-1 ring-inset ring-indigo-700/10 dark:ring-indigo-400/20 uppercase tracking-widest">${formatGroups(data.grupos)}</span>` : ''}
@@ -827,6 +828,8 @@ export const renderProgramaTab = async (container) => {
             territorio: document.getElementById('select-territorio')?.value || "",
             grupos: document.getElementById('select-grupos')?.value || ""
         };
+
+        console.log("💾 [Save Payload]:", payload);
 
         // Sanitización final anti-FirebaseError (REGLA ESTRICTA)
         const safePayload = JSON.parse(JSON.stringify(payload));
@@ -1328,29 +1331,29 @@ export const renderProgramaTab = async (container) => {
         const selected = new Set(currentVal.replace(/grupos?/gi, '').split(/[,;y&]+/).map(s => s.trim()).filter(Boolean));
 
         window.showModal(`
-            <div class="flex flex-col max-h-[80vh] w-[90vw] max-w-sm mx-auto bg-white dark:bg-[#0a0f18] rounded-[2rem] border border-indigo-500/20 shadow-2xl overflow-hidden animate-scale-in">
-                <header class="p-6 pb-3 flex items-center gap-4 shrink-0">
-                    <div class="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-xl text-indigo-500 shadow-inner">
+            <div class="flex flex-col max-h-[75vh] w-[90vw] max-w-[320px] mx-auto bg-white dark:bg-[#0a0f18] rounded-[1.5rem] border border-indigo-500/20 shadow-2xl overflow-hidden animate-scale-in">
+                <header class="p-5 pb-2 flex items-center gap-3 shrink-0">
+                    <div class="w-8 h-8 bg-indigo-500/10 rounded-lg flex items-center justify-center text-lg text-indigo-500 shadow-inner">
                         <i class="fas fa-check-double"></i>
                     </div>
                     <div>
-                        <h3 class="text-lg font-black uppercase tracking-tighter text-slate-800 dark:text-white leading-none">Grupos</h3>
-                        <p class="text-[8px] text-indigo-500 font-bold uppercase tracking-[0.2em] mt-1 italic">Selección Múltiple</p>
+                        <h3 class="text-base font-black uppercase tracking-tight text-slate-800 dark:text-white leading-none">Grupos</h3>
+                        <p class="text-[7px] text-indigo-500 font-bold uppercase tracking-wider mt-0.5 opacity-60">Selección Múltiple</p>
                     </div>
                 </header>
 
-                <div class="flex-1 overflow-y-auto custom-scrollbar px-6 py-2">
-                    <div class="grid grid-cols-1 gap-2" id="group-selection-grid">
-                        <label class="group-item p-3 modern-card border-slate-100 dark:border-white/5 hover:border-indigo-500 transition-all cursor-pointer flex items-center gap-3 ${selected.has('Todos') ? 'bg-indigo-500/5 border-indigo-500/50' : ''}">
-                            <div class="relative w-5 h-5 shrink-0">
+                <div class="flex-1 overflow-y-auto custom-scrollbar px-5 py-2">
+                    <div class="grid grid-cols-1 gap-1.5" id="group-selection-grid">
+                        <label class="group-item p-2.5 modern-card border-slate-100 dark:border-white/5 hover:border-indigo-500 transition-all cursor-pointer flex items-center gap-3 ${selected.has('Todos') ? 'bg-indigo-500/5 border-indigo-500/50' : ''}">
+                            <div class="relative w-4 h-4 shrink-0">
                                 <input type="checkbox" class="group-checkbox absolute inset-0 opacity-0 cursor-pointer z-10" value="Todos" ${selected.has('Todos') ? 'checked' : ''}>
-                                <div class="check-box-ui w-5 h-5 border-2 border-slate-200 dark:border-white/10 rounded-lg flex items-center justify-center transition-all ${selected.has('Todos') ? 'bg-indigo-500 border-indigo-500' : ''}">
-                                    <i class="fas fa-check text-[8px] text-white ${selected.has('Todos') ? 'opacity-100' : 'opacity-0'} transition-opacity"></i>
+                                <div class="check-box-ui w-4 h-4 border-2 border-slate-200 dark:border-white/10 rounded flex items-center justify-center transition-all ${selected.has('Todos') ? 'bg-indigo-500 border-indigo-500' : ''}">
+                                    <i class="fas fa-check text-[7px] text-white ${selected.has('Todos') ? 'opacity-100' : 'opacity-0'} transition-opacity"></i>
                                 </div>
                             </div>
                             <div class="flex-1">
-                                <p class="text-[12px] font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none mb-0.5">Todos</p>
-                                <p class="text-[8px] text-slate-400 font-bold uppercase tracking-widest leading-none">Salida General</p>
+                                <p class="text-[11px] font-black text-slate-800 dark:text-white uppercase leading-none mb-0.5">Todos</p>
+                                <p class="text-[7px] text-slate-400 font-medium uppercase tracking-widest leading-none">Salida General</p>
                             </div>
                         </label>
 
@@ -1358,16 +1361,16 @@ export const renderProgramaTab = async (container) => {
             const gNum = g.nombre.replace(/grupos?/gi, '').trim();
             const isSel = selected.has(gNum) || selected.has(g.nombre);
             return `
-                            <label class="group-item p-3 modern-card border-slate-100 dark:border-white/5 hover:border-indigo-500 transition-all cursor-pointer flex items-center gap-3 ${isSel ? 'bg-indigo-500/5 border-indigo-500/50' : ''}">
-                                <div class="relative w-5 h-5 shrink-0">
+                            <label class="group-item p-2.5 modern-card border-slate-100 dark:border-white/5 hover:border-indigo-500 transition-all cursor-pointer flex items-center gap-3 ${isSel ? 'bg-indigo-500/5 border-indigo-500/50' : ''}">
+                                <div class="relative w-4 h-4 shrink-0">
                                     <input type="checkbox" class="group-checkbox absolute inset-0 opacity-0 cursor-pointer z-10" value="${gNum}" ${isSel ? 'checked' : ''}>
-                                    <div class="check-box-ui w-5 h-5 border-2 border-slate-200 dark:border-white/10 rounded-lg flex items-center justify-center transition-all ${isSel ? 'bg-indigo-500 border-indigo-500' : ''}">
-                                        <i class="fas fa-check text-[8px] text-white ${isSel ? 'opacity-100' : 'opacity-0'} transition-opacity"></i>
+                                    <div class="check-box-ui w-4 h-4 border-2 border-slate-200 dark:border-white/10 rounded flex items-center justify-center transition-all ${isSel ? 'bg-indigo-500 border-indigo-500' : ''}">
+                                        <i class="fas fa-check text-[7px] text-white ${isSel ? 'opacity-100' : 'opacity-0'} transition-opacity"></i>
                                     </div>
                                 </div>
                                 <div class="flex-1">
-                                    <p class="text-[12px] font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none mb-0.5">Grupo ${gNum}</p>
-                                    <p class="text-[8px] text-slate-400 font-bold uppercase tracking-widest leading-none truncate max-w-[150px]">${g.casa_salida || '—'}</p>
+                                    <p class="text-[11px] font-black text-slate-800 dark:text-white uppercase leading-none mb-0.5">Grupo ${gNum}</p>
+                                    <p class="text-[7px] text-slate-400 font-medium uppercase tracking-widest leading-none truncate max-w-[150px]">${g.casa_salida || '—'}</p>
                                 </div>
                             </label>
                         `;
@@ -1375,9 +1378,9 @@ export const renderProgramaTab = async (container) => {
                     </div>
                 </div>
 
-                <div class="p-6 pt-4 border-t border-slate-50 dark:border-white/5 flex gap-3 shrink-0">
-                    <button onclick="document.getElementById('modal-container-nested').classList.add('hidden')" class="flex-1 py-4 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-xl text-[9px] uppercase tracking-widest hover:bg-slate-100 transition-all">Cancelar</button>
-                    <button id="confirm-groups" class="flex-[2] py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-xl text-[9px] uppercase tracking-widest shadow-xl shadow-indigo-600/20 active:scale-95 transition-all">Asignar</button>
+                <div class="p-5 pt-3 border-t border-slate-50 dark:border-white/5 flex gap-2 shrink-0">
+                    <button onclick="document.getElementById('modal-container-nested').classList.add('hidden')" class="flex-1 py-3 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-lg text-[8px] uppercase tracking-widest hover:bg-slate-100 transition-all">Cancelar</button>
+                    <button id="confirm-groups" class="flex-[2] py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-lg text-[8px] uppercase tracking-widest shadow-xl shadow-indigo-600/20 active:scale-95 transition-all">Asignar Grupos</button>
                 </div>
             </div>
         `, (modal) => {
@@ -1410,8 +1413,20 @@ export const renderProgramaTab = async (container) => {
     };
 
     window.setProgramGroup = (dayIdx, turnoId, val) => {
+        console.log(`🛡️ [v2.9.5] Setting Groups for Day ${dayIdx}, Turn ${turnoId}:`, val);
         const hidden = document.getElementById('select-grupos');
-        if (hidden) hidden.value = val || '';
+        if (hidden) {
+            hidden.value = val || '';
+            console.log("✅ Hidden input 'select-grupos' updated");
+        } else {
+            console.warn("⚠️ Element 'select-grupos' not found in DOM");
+        }
+        
+        // Sincronizar con el objeto principal inmediatamente para evitar pérdida por refresco
+        if (programa.dias[dayIdx] && programa.dias[dayIdx][turnoId]) {
+            programa.dias[dayIdx][turnoId].grupos = val || '';
+        }
+
         window.updateWeekData(dayIdx, turnoId, 'grupos', val);
     };
 
