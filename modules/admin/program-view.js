@@ -1420,14 +1420,28 @@ export const renderProgramaTab = async (container) => {
 
 
     const execActionRecepcion = async () => {
-        // --- BYPASS CACHE: Force fresh fetch from Firestore to avoid stale names (Juan vs Roberto bug) ---
         showNotification("Actualizando lista de asignaciones...", "info");
         
         // LIMPIEZA EXPLÍCITA: Vaciar caché in-memory antes del fetch fresco
         territorios.length = 0; 
+
+        // RASTREO CONTEXTUAL (Current Week Scope Limiting)
+        // Extraemos todos los números base de territorio que la interfaz TIENE asginados en esta semana visualizada
+        const currentWeekTerritorios = new Set();
+        if (programa && programa.dias) {
+            programa.dias.forEach(dia => {
+                Object.keys(dia).filter(k => k !== 'nombre' && k !== 'fecha').forEach(tId => {
+                    const data = dia[tId];
+                    if (data && data.territorio) {
+                        String(data.territorio).split(/[,;/]/).map(t => getBaseTerritoryNumber(t)).forEach(n => {
+                            if (n) currentWeekTerritorios.add(normalizeLower(n));
+                        });
+                    }
+                });
+            });
+        }
         
         // QUERY FRESCA AL MAESTRO IGNORANDO LA CACHÉ
-        // Buscamos por "estado" o "status" para mantener compatibilidad con asignaciones muy antiguas
         const snap = await getDocs(collection(db, "territorios"));
         
         const assigned = snap.docs
@@ -1473,7 +1487,7 @@ export const renderProgramaTab = async (container) => {
                             <button id="sort-by-terr" class="px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all border border-transparent active-sort bg-primary text-white shadow-lg shadow-primary/20">Territorio</button>
                             <button id="sort-by-date" class="px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all border border-slate-200/50 text-slate-500 hover:bg-white dark:hover:bg-white/10">Fecha</button>
                         </div>
-                        <button id="reception-select-all" class="px-4 py-2 bg-white dark:bg-white/5 rounded-xl text-[8px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-all border border-slate-200/50 shadow-sm">Deseleccionar Todos</button>
+                        <button id="reception-select-all" class="px-4 py-2 bg-white dark:bg-white/5 rounded-xl text-[8px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-all border border-slate-200/50 shadow-sm">Alternar Selector</button>
                     </div>
 
                     <div id="bulk-reception-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1525,6 +1539,10 @@ export const renderProgramaTab = async (container) => {
                     const asigDate = new Date(t.assignmentDate);
                     const diffDays = Math.ceil(Math.abs(now - asigDate) / (1000 * 60 * 60 * 24));
                     const isLate = diffDays > 10;
+                    
+                    const baseNum = normalizeLower(getBaseTerritoryNumber(t.numero));
+                    const isFromCurrentWeek = currentWeekTerritorios.has(baseNum);
+                    const isCheckedAttr = isFromCurrentWeek ? 'checked' : '';
 
                     return `
                     <div class="modern-card !p-5 ${isLate ? 'border-rose-500/20 bg-rose-500/[0.01]' : 'border-slate-100 dark:border-white/5'} group hover:border-rose-500/30 transition-all animate-fade-in relative overflow-hidden flex flex-col gap-4">
@@ -1540,7 +1558,7 @@ export const renderProgramaTab = async (container) => {
                             </div>
                             <!-- Bulk Checkbox -->
                             <div class="reception-check-container relative w-6 h-6">
-                                <input type="checkbox" class="reception-check absolute inset-0 opacity-0 cursor-pointer z-10" value="${t.id}" checked>
+                                <input type="checkbox" class="reception-check absolute inset-0 opacity-0 cursor-pointer z-10" value="${t.id}" ${isCheckedAttr}>
                                 <div class="w-6 h-6 border-2 border-slate-200 dark:border-white/10 rounded-lg flex items-center justify-center transition-all bg-white dark:bg-transparent">
                                     <i class="fas fa-check text-[10px] text-rose-500 opacity-0 transition-opacity"></i>
                                 </div>
