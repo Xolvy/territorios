@@ -442,7 +442,7 @@ export const renderProgramaTab = async (container) => {
                 dias: dayNames.map((name, idx) => {
                     const dayDate = new Date(currentWeekStart);
                     dayDate.setDate(dayDate.getDate() + idx);
-                    return { nombre: name, fecha: formatDateId(dayDate), manana: {}, tarde: {}, noche: {}, zoom: {} };
+                    return { nombre: name, fecha: formatDateId(dayDate) };
                 })
             };
         }
@@ -460,15 +460,14 @@ export const renderProgramaTab = async (container) => {
         programa.dias.forEach((dia, dayIndex) => {
             if (activeDayIndex !== -1 && activeDayIndex !== dayIndex) return;
 
-            if (!dia.manana) dia.manana = {};
-            if (!dia.tarde) dia.tarde = {};
-            if (!dia.noche) dia.noche = {};
-            if (dia.nombre === 'Martes' && !dia.zoom) dia.zoom = {};
-
-            // Build dynamic turno list: base slots + any extra groups (manana_2, tarde_2, etc.)
-            const baseTurnos = ['manana', 'tarde', 'noche', 'zoom'];
-            const extraKeys = Object.keys(dia).filter(k => /^(manana|tarde|noche)_\d+$/.test(k)).sort();
-            const allTurnoIds = [...baseTurnos, ...extraKeys];
+            // Remove empty initializations that forced hardcoded views
+            // Build dynamic turno list solely from DB properties
+            const allTurnoIds = Object.keys(dia).filter(k => k !== 'nombre' && k !== 'fecha');
+            
+            const sortOrder = { 'manana': 1, 'tarde': 2, 'noche': 3, 'zoom': 4 };
+            const getOrder = (id) => sortOrder[id.split('_')[0]] || 99;
+            allTurnoIds.sort((a, b) => getOrder(a) - getOrder(b) || a.localeCompare(b));
+            
             const turnos = allTurnoIds.map(id => ({ id }));
 
             html += `
@@ -535,12 +534,30 @@ export const renderProgramaTab = async (container) => {
                             `}
                         </div>
                         
-                        <div class="hidden sm:flex items-center justify-end text-slate-300 dark:text-slate-600 opacity-50 group-hover/row:opacity-100 group-hover:translate-x-1 transition-all">
-                            <i class="fas fa-chevron-right text-[10px]"></i>
+                        <div class="hidden sm:flex items-center justify-end text-slate-300 dark:text-slate-600 opacity-50 group-hover/row:opacity-100 transition-all gap-4">
+                            <button onclick="event.stopPropagation(); window.clearTurnData(${dayIndex}, '${turnoId}')" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-rose-500 hover:text-white transition-all text-slate-400 md:text-rose-400" title="Eliminar Horario">
+                                <i class="fas fa-trash-alt text-[11px]"></i>
+                            </button>
+                            <i class="fas fa-chevron-right text-[10px] group-hover/row:translate-x-1 transition-transform"></i>
+                        </div>
+                        
+                        <!-- Mobile Delete Button (Visible only on small screens) -->
+                        <div class="sm:hidden absolute top-4 right-4">
+                            <button onclick="event.stopPropagation(); window.clearTurnData(${dayIndex}, '${turnoId}')" class="w-8 h-8 flex items-center justify-center rounded-lg bg-rose-500/10 text-rose-500">
+                                <i class="fas fa-trash-alt text-[11px]"></i>
+                            </button>
                         </div>
                     </div>
                 `;
             });
+            html += `
+                <div onclick="window.addNewSlot(${dayIndex})" class="flex items-center justify-center p-4 min-h-[56px] cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 transition-all text-slate-400 hover:text-indigo-500 border-t border-slate-100 dark:border-white/5 border-dashed m-1.5 rounded-[1.5rem]">
+                    <div class="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl bg-slate-100 dark:bg-white/5 group">
+                        <i class="fas fa-plus group-hover:scale-125 transition-transform"></i>
+                        <span>Agregar Horario</span>
+                    </div>
+                </div>
+            `;
             html += `</div></div>`;
         });
         html += `</div>`;
@@ -841,19 +858,79 @@ export const renderProgramaTab = async (container) => {
     };
 
     window.clearTurnData = async (dayIdx, turnoId) => {
-        showCustomConfirm('¿Limpiar todos los datos de este turno?', async () => {
-            programa.dias[dayIdx][turnoId] = {};
+        showCustomConfirm('¿Eliminar por completo este horario de la jornada?', async () => {
+            delete programa.dias[dayIdx][turnoId];
+            if (programa.isFormalized) programa.isFormalized = false;
 
             try {
-                showNotification("Limpiando turno...", "info");
+                showNotification("Eliminando horario...", "info");
                 await saveProgramaSemanal(programa.id, programa);
                 renderTable();
-                showNotification("Datos del turno eliminados", "success");
+                showNotification("Horario eliminado", "success");
             } catch (e) {
                 console.error(e);
-                showNotification("Error al limpiar datos", "error");
+                showNotification("Error al eliminar", "error");
             }
         });
+    };
+
+    window.addNewSlot = (dayIdx) => {
+        const modalDiv = document.getElementById('modal-container');
+        modalDiv.classList.remove('hidden');
+        modalDiv.innerHTML = `
+            <div class="p-8 space-y-6 bg-white dark:bg-[#0a0f18] rounded-[2.5rem] max-w-sm w-full shadow-2xl animate-scale-in flex flex-col mx-auto my-auto relative pointer-events-auto">
+                <header class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-500 text-xl">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">Nuevo Horario</h3>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-0.5">Selecciona el tipo de salida</p>
+                    </div>
+                </header>
+                <div class="grid grid-cols-2 gap-3">
+                    ${[
+                        { id: 'manana', label: 'Mañana', icon: 'fa-sun', color: 'text-amber-500', bg: 'bg-amber-500/10', border: 'hover:border-amber-500' },
+                        { id: 'tarde', label: 'Tarde', icon: 'fa-cloud-sun', color: 'text-orange-500', bg: 'bg-orange-500/10', border: 'hover:border-orange-500' },
+                        { id: 'noche', label: 'Noche', icon: 'fa-moon', color: 'text-indigo-500', bg: 'bg-indigo-500/10', border: 'hover:border-indigo-500' },
+                        { id: 'zoom', label: 'Zoom', icon: 'fa-video', color: 'text-emerald-500', bg: 'bg-emerald-500/10', border: 'hover:border-emerald-500' }
+                    ].map(t => `
+                        <button onclick="window.createSlot(${dayIdx}, '${t.id}')" class="flex flex-col items-center gap-3 p-5 rounded-3xl border border-slate-100 dark:border-white/5 ${t.border} transition-all group bg-slate-50 dark:bg-white/[0.02]">
+                            <div class="w-10 h-10 rounded-xl ${t.bg} ${t.color} flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
+                                <i class="fas ${t.icon}"></i>
+                            </div>
+                            <span class="text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">${t.label}</span>
+                        </button>
+                    `).join('')}
+                </div>
+                <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="w-full py-4 bg-slate-100 dark:bg-white/5 text-slate-500 font-black rounded-2xl text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all mt-4">Cancelar</button>
+            </div>
+        `;
+    };
+
+    window.createSlot = async (dayIdx, baseType) => {
+        document.getElementById('modal-container').classList.add('hidden');
+        const dia = programa.dias[dayIdx];
+        
+        let newTurnoId = baseType;
+        let suffix = 2;
+        while(dia[newTurnoId]) {
+            newTurnoId = `${baseType}_${suffix}`;
+            suffix++;
+        }
+        
+        dia[newTurnoId] = {};
+        if (programa.isFormalized) programa.isFormalized = false;
+        
+        try {
+            showNotification("Agregando horario...", "info");
+            await saveProgramaSemanal(programa.id, programa);
+            renderTable();
+            window.openEditTurnoSheet(dayIdx, newTurnoId);
+        } catch(e) {
+            console.error(e);
+            showNotification("Error creando horario", "error");
+        }
     };
 
     window.showConflictDetails = (dayIdx, turnoId) => {
@@ -1159,7 +1236,7 @@ export const renderProgramaTab = async (container) => {
         // Normalize: remove word "Grupo" if present to match keys
         const selected = new Set(currentVal.replace(/grupos?/gi, '').split(/[,;y&]+/).map(s => s.trim()).filter(Boolean));
 
-        showModal(`
+        window.showModal(`
             <div class="flex flex-col max-h-[80vh] bg-white dark:bg-[#0a0f18] rounded-[2.5rem] border border-indigo-500/20 shadow-2xl overflow-hidden">
                 <header class="p-8 pb-4 flex items-center gap-6 shrink-0">
                     <div class="w-16 h-16 bg-indigo-500/10 rounded-3xl flex items-center justify-center text-3xl text-indigo-500 shadow-inner">
@@ -1208,7 +1285,7 @@ export const renderProgramaTab = async (container) => {
                 </div>
 
                 <div class="p-8 pt-4 border-t border-slate-50 dark:border-white/5 flex gap-4 shrink-0">
-                    <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest">Cancelar</button>
+                    <button onclick="document.getElementById('modal-container-nested').classList.add('hidden')" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest">Cancelar</button>
                     <button id="confirm-groups" class="flex-[2.5] py-5 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-600/20 active:scale-95 transition-all">ASIGNAR SELECCIONADOS</button>
                 </div>
             </div>
@@ -1236,9 +1313,9 @@ export const renderProgramaTab = async (container) => {
                 const rawVal = checked.includes('Todos') ? 'Todos' : checked.join(', ');
                 const finalVal = formatGroups(rawVal);
                 window.setProgramGroup(dayIdx, turnoId, finalVal);
-                modal.classList.add('hidden');
+                document.getElementById('modal-container-nested').classList.add('hidden');
             };
-        });
+        }, '', 'modal-container-nested');
     };
 
     window.setProgramGroup = (dayIdx, turnoId, val) => {
