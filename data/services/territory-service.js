@@ -1,6 +1,6 @@
 import { db, storage } from '../../firebase-config.js';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc, query, where, getDoc, setDoc, Timestamp, writeBatch, arrayUnion, runTransaction, orderBy, limit } from "firebase/firestore";
+import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc, query, where, getDoc, setDoc, Timestamp, writeBatch, arrayUnion, runTransaction, orderBy, limit, serverTimestamp } from "firebase/firestore";
 import { ServiceCache, fetchCached } from './base-service.js';
 import { logReturn, logAssignment } from './history-service.js';
 import { saveAuditLog } from './audit-service.js';
@@ -448,15 +448,17 @@ export const returnTerritorioMultiple = async (ids, notes, customDate, status = 
             if (!snap.exists()) continue;
             const tId = snap.id;
             const tData = snap.data();
-            const tNum = String(tData.numero);
+            const tNum = String(tData.numero || '').trim();
+            if (!tNum) continue;
+
             const prevConductor = tData.currentAssignee || tData.asignado_a || null;
 
-            // a) En territorios: Cambia a status: 'Disponible', limpia currentAssignee y assignmentDate.
+            // a) SOBRESCRITURA ABSOLUTA EN MAESTRO (Goma de borrar activa)
             batch.update(doc(db, COL_TERRITORIOS, tId), {
                 status: 'Disponible',
                 currentAssignee: null,
                 assignmentDate: null,
-                // Mantener compatibilidad
+                // Mantener compatibilidad total
                 estado: 'Disponible',
                 asignado_a: null,
                 fecha_asignacion: null,
@@ -466,18 +468,23 @@ export const returnTerritorioMultiple = async (ids, notes, customDate, status = 
                 hora: null,
                 faceta: null,
                 turno: null,
-                prog_sync: null
+                prog_sync: null,
+                lastUpdated: serverTimestamp()
             });
 
-            // b) En banco_s13 (Live Pool): Busca el registro activo y estámpale la returnDate
+            // b) SOBRESCRITURA EN LIVE POOL (banco_s13)
+            // Buscamos el registro activo para este número de territorio
             const activeRef = activeAssignmentsForThese[tNum];
             if (activeRef) {
+                console.log(`✅ [Reception] Cerrando ciclo en banco_s13 para ${tNum}`);
                 batch.update(activeRef, {
-                    estado: 'Completado', // O el status que se pase
+                    estado: status === 'Completado' ? 'Completado' : 'Disponible',
                     fecha_entrega: dateToUse,
-                    returnDate: dateToUse,
-                    timestamp_entrega: Timestamp.now()
+                    returnDate: dateToUse, // Campo espejo solicitado
+                    timestamp_entrega: serverTimestamp()
                 });
+            } else {
+                console.warn(`⚠️ [Reception] No se encontró asignación 'Asignado' en banco_s13 para el territorio ${tNum}`);
             }
 
             logPromises.push(logReturn(tId, dateToUse, status, notes, null, prevConductor));

@@ -1,6 +1,6 @@
 import { db } from '../../firebase-config.js';
 import { collection, query, where, getDocs, addDoc, getDoc, doc, writeBatch, orderBy, setDoc, Timestamp, serverTimestamp, deleteDoc, updateDoc } from "firebase/firestore";
-import { ServiceCache, fetchCached } from './base-service.js';
+import { ServiceCache } from './base-service.js';
 import { saveAuditLog } from './audit-service.js';
 
 const COL_VISOR = "programa_semanal";
@@ -264,7 +264,6 @@ export const runProgramDiagnostic = async (weekId) => {
         let totalSlots = 0;
         let pendingFormalization = 0;
 
-        let successCount = 0;
         for (let dayIdx = 0; dayIdx < prog.dias.length; dayIdx++) {
             const dia = prog.dias[dayIdx];
             ['manana', 'tarde', 'noche', 'zoom'].forEach(turno => {
@@ -307,66 +306,109 @@ export const rebuildHistoryFromSchedule = async () => {
 };
 
 export const formalizeWeek = async (weekId, assignments) => {
-    if (!weekId || !assignments || assignments.length === 0) return;
+    if (!weekId) return;
     
     try {
         const batch = writeBatch(db);
+        const assignmentsArray = assignments || [];
         
         // 1. Aislamiento de Scope: Marcar la semana como formalizada
         batch.update(doc(db, COL_VISOR, weekId), { isFormalized: true });
 
-        // --- MASTER SYNC: Resolve all territory numbers to doc IDs ---
+        // --- MASTER RESOLUTION: Map numbers to Doc IDs ---
         const terrSnap = await getDocs(collection(db, "territorios"));
-        const numToId = {};
+        const numToInfo = {};
         terrSnap.forEach(d => {
-            const num = String(d.data().numero || '').trim();
-            if (num) numToId[num] = d.id;
+            const data = d.data();
+            const num = String(data.numero || '').trim();
+            if (num) numToInfo[num] = { id: d.id, ...data };
         });
 
-        // REGLA DE SOBRESCRITURA TOTAL: Limpiar el Live Pool de esta semana
+        // 2. DETECTOR DE "BLANK OVERRIDE" (Goma de Borrar Contextual)
+        // Obtenemos los registros que estaban asignados ANTES para esta semana específica
         const qPrev = query(collection(db, COL_BANCO_S13), where("weekId", "==", weekId));
         const snapPrev = await getDocs(qPrev);
-        snapPrev.docs.forEach(d => batch.delete(d.ref));
+        
+        // Rastreamos qué territorios deben ser liberados si ya no figuran en el programa
+        const previouslyAssignedNums = new Set();
+        snapPrev.docs.forEach(d => {
+            const tNum = String(d.data().territorio_id || d.data().numero || '').trim();
+            if (tNum) previouslyAssignedNums.add(tNum);
+            
+            // Borrado físico de la asignación antigua (OBLIGATORIO por regla de idempotencia)
+            batch.delete(d.ref);
+        });
 
-        // 2. Procesar cada asignación en un flujo atómico
-        for (const asig of assignments) {
+        // Rastreamos los nuevos territorios del batch
+        const newAssignedNums = new Set(assignmentsArray.map(a => String(a.territorio_id || a.territorio || '').trim()));
+
+        // --- MASTER WIPE: Liberar territorios que el programa "borró" ---
+        previouslyAssignedNums.forEach(oldNum => {
+            if (!newAssignedNums.has(oldNum)) {
+                const info = numToInfo[oldNum];
+                if (info) {
+                    console.log(`🧹 [Blank Override] Liberando territorio ${oldNum} en Maestro`);
+                    batch.update(doc(db, "territorios", info.id), {
+                        status: 'Disponible',
+                        currentAssignee: null,
+                        assignmentDate: null,
+                        // Compatibilidad legacy
+                        estado: 'Disponible',
+                        asignado_a: null,
+                        fecha_asignacion: null,
+                        lastUpdated: serverTimestamp()
+                    });
+                }
+            }
+        });
+
+        // 3. PROCESAMIENTO ATÓMICO DE NUEVAS ASIGNACIONES (Mirror de la UI)
+        for (const asig of assignmentsArray) {
             const tNumStr = String(asig.territorio_id || asig.territorio).trim();
-            const tId = numToId[tNumStr];
+            const tInfo = numToInfo[tNumStr];
+            const turno = asig.turno || 'manana';
 
-            // b) Escribir/Actualizar el registro en el Live Pool (banco_s13)
-            const refS13 = doc(collection(db, COL_BANCO_S13));
-            batch.set(refS13, {
+            // a) Escribir en Live Pool (ID DETERMINISTA + Sobre-escritura total)
+            // Estructura: weekId_territorioId_turno (Seguriza contra duplicados y es reactivo)
+            const docId = `${weekId}_${tNumStr.replace(/[/ \s]/g, '_')}_${turno}`;
+            const refS13 = doc(db, COL_BANCO_S13, docId);
+            
+            const s13Data = {
                 territorio_id: tNumStr,
                 numero: tNumStr,
-                conductor: asig.conductor,
+                conductor: asig.conductor || '',
                 fecha_asignacion: asig.fecha_asignacion || weekId,
                 fecha_entrega: null,
                 estado: 'Asignado',
-                turno: asig.turno || 'manana',
+                turno: turno,
                 weekId: weekId,
                 timestamp: Timestamp.now(),
                 faceta: asig.faceta || 'Casa en casa',
                 observaciones: asig.observaciones || ''
-            });
+            };
 
-            // c) SOBRESCRIBIR EL MAESTRO (Forzado e idéntico)
-            if (tId) {
-                console.log("Guardando en Maestro:", { conductor: asig.conductor, fecha: asig.fecha_asignacion || weekId, tNumStr, tId });
-                batch.update(doc(db, "territorios", tId), {
+            // setDoc con merge: false garantiza que si el programa dice "X", el Live Pool dice "X"
+            batch.set(refS13, s13Data, { merge: false });
+
+            // b) ESPEJO DEL MAESTRO (Sobrescritura Imperativa)
+            if (tInfo) {
+                console.log(`📍 [Sync] Aplastando Maestro para ${tNumStr}`);
+                batch.update(doc(db, "territorios", tInfo.id), {
                     status: 'Asignado',
-                    currentAssignee: asig.conductor,
+                    currentAssignee: asig.conductor || '',
                     assignmentDate: asig.fecha_asignacion || weekId,
                     lastUpdated: serverTimestamp(),
-                    // Mantenemos compatibilidad con campos antiguos para no romper el resto de la UI
+                    // Compatibilidad
                     estado: 'Asignado',
-                    asignado_a: asig.conductor,
-                    fecha_asignacion: asig.fecha_asignacion || weekId
+                    asignado_a: asig.conductor || '',
+                    fecha_asignacion: asig.fecha_asignacion || weekId,
+                    turno: turno
                 });
             }
         }
 
         await batch.commit();
-        await saveAuditLog('FORMALIZE_WEEK_ATOMIC', { weekId, count: assignments.length });
+        await saveAuditLog('IDEMPOTENT_FORMALIZE', { weekId, count: assignmentsArray.length });
         
         ServiceCache.clear('historial');
         ServiceCache.clear('territorios_combined');
@@ -374,7 +416,7 @@ export const formalizeWeek = async (weekId, assignments) => {
         
         return true;
     } catch (e) {
-        console.error("Error in atomic formalizeWeek:", e);
+        console.error("❌ Error en formalizeWeek Atómico/Idempotente:", e);
         throw e;
     }
 };
