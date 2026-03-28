@@ -7890,7 +7890,7 @@ textarea:focus {
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
 }
 
-}
+
 /* ELIMINADO POR REDISEÑO PREMIUM V2.8 */
 
 
@@ -7987,3 +7987,18 @@ body.swal2-shown .header {
     z-index: 1 !important; /* Los rebaja temporalmente si es necesario */
 }
 
+
+/* FORZAR OVERLAY A PANTALLA COMPLETA */
+.nexo-loading-overlay, 
+body.swal2-shown > [class^="swal2-container"] {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    z-index: 99999 !important; /* Por encima de todo */
+    background-color: rgba(15, 23, 42, 0.85) !important;
+    backdrop-filter: blur(8px) !important;
+}

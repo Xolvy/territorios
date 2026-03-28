@@ -1,5 +1,5 @@
 import { db } from '../../firebase-config.js';
-import { collection, query, where, getDocs, addDoc, getDoc, doc, writeBatch, orderBy, limit, Timestamp, updateDoc, runTransaction, deleteDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, addDoc, getDoc, doc, writeBatch, orderBy, limit, Timestamp, runTransaction, deleteDoc } from "firebase/firestore";
 import { ServiceCache, fetchCached } from './base-service.js';
 import { saveAuditLog } from './audit-service.js';
 import { syncAssignmentToWeeklyProgram } from './program-service.js';
@@ -12,8 +12,8 @@ export const logAssignment = async (territorioData, conductorName, details = {})
     try {
         const dateKey = (details.fecha_asignacion || new Date().toISOString()).split('T')[0];
         const q = query(
-            collection(db, "historial_territorios"),
-            where("territorio_id", "==", territorioData.id),
+            collection(db, COL_BANCO_S13),
+            where("territorio_id", "==", String(territorioData.numero)),
             where("conductor", "==", conductorName),
             where("estado", "==", "Asignado")
         );
@@ -25,18 +25,13 @@ export const logAssignment = async (territorioData, conductorName, details = {})
             return;
         }
 
-        await addDoc(collection(db, "historial_territorios"), {
-            territorio_id: territorioData.id,
-            numero: territorioData.numero,
+        await addDoc(collection(db, COL_BANCO_S13), {
+            territorio_id: String(territorioData.numero).trim(),
+            numero: String(territorioData.numero).trim(),
             conductor: conductorName,
             auxiliar: details.auxiliar || null,
-            lugar: details.lugar || details.Lugar || null,
-            hora: details.hora || details.Hora || null,
-            faceta: details.faceta || details.Faceta || null,
-            campana: details.campana || null,
             turno: details.turno || null,
             fecha_asignacion: details.fecha_asignacion || new Date().toISOString(),
-            fecha_salida: details.fecha_salida || null,
             fecha_entrega: null,
             estado: 'Asignado',
             timestamp: Timestamp.now(),
@@ -49,15 +44,23 @@ export const logAssignment = async (territorioData, conductorName, details = {})
     }
 };
 
-export const logReturn = async (territorioId, fechaEntrega, status = 'Completado', notas = null, fotos = null) => {
+export const logReturn = async (territorioId, fechaEntrega, status = 'Completado', notas = null, fotos = null, conductorName = null) => {
     try {
         const tSnap = await getDoc(doc(db, COL_TERRITORIOS, territorioId));
         const num = tSnap.exists() ? String(tSnap.data().numero) : territorioId;
 
-        const q = query(
-            collection(db, COL_BANCO_S13),
+        // --- REFERENTIAL INTEGRITY: Query by territory AND conductor to avoid multi-reassignment closure bug ---
+        const filters = [
             where("territorio_id", "==", num),
             where("estado", "==", "Asignado")
+        ];
+        if (conductorName) {
+            filters.push(where("conductor", "==", String(conductorName).trim()));
+        }
+
+        const q = query(
+            collection(db, COL_BANCO_S13),
+            ...filters
         );
         const snapshot = await getDocs(q);
 
@@ -87,6 +90,7 @@ export const logReturn = async (territorioId, fechaEntrega, status = 'Completado
             }
         }
         ServiceCache.clear('territorios_combined');
+        ServiceCache.clear('historial');
     } catch (e) {
         console.error("Error al registrar entrega:", e);
     }
@@ -184,13 +188,12 @@ export const updateHistoryRecord = async (id, data) => {
 
 export const deleteHistoryRecord = async (id) => {
     try {
-        await updateDoc(doc(db, "historial_territorios", id), {
-            deleted: true,
-            deletedAt: Timestamp.now()
-        });
+        // banco_s13 is the authoritative collection for all S-13 / Cronología records
+        await deleteDoc(doc(db, COL_BANCO_S13, id));
         ServiceCache.clear('historial');
     } catch (e) {
-        console.error("Error in soft-delete history:", e);
+        console.error("Error deleting history record from banco_s13:", e);
+        throw e;
     }
 };
 

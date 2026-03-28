@@ -34,9 +34,12 @@ const normalizeTerritorioData = (id, data, latestAssignment = null) => {
         try { geojson = JSON.parse(geojson); } catch (e) { geojson = null; }
     }
     const numeroStr = String(data.numero || '');
-    const estado = latestAssignment ? latestAssignment.estado : (data.estado || 'Disponible');
-    const asignado_a = latestAssignment ? latestAssignment.conductor : null;
-    const fecha_asignacion = latestAssignment ? latestAssignment.fecha_asignacion : null;
+    
+    // Aislamiento de Scope: Priorizamos los campos del Live Pool (S-13) 
+    // pero permitimos lectura del Maestro con los nuevos nombres
+    const estado = latestAssignment ? latestAssignment.estado : (data.status || data.estado || 'Disponible');
+    const asignado_a = latestAssignment ? latestAssignment.conductor : (data.currentAssignee || data.asignado_a || null);
+    const fecha_asignacion = latestAssignment ? latestAssignment.fecha_asignacion : (data.assignmentDate || data.fecha_asignacion || null);
 
     return {
         id,
@@ -47,7 +50,15 @@ const normalizeTerritorioData = (id, data, latestAssignment = null) => {
         estado: estado,
         asignado_a: asignado_a,
         fecha_asignacion: fecha_asignacion,
-        last_assignment: latestAssignment
+        last_assignment: latestAssignment,
+        // Alisos para nuevos nombres
+        status: estado,
+        currentAssignee: asignado_a,
+        assignmentDate: fecha_asignacion,
+        // Datos puros del Maestro (para Recepción estricta)
+        master_status: data.status || data.estado || 'Disponible',
+        master_assignee: data.currentAssignee || data.asignado_a || null,
+        master_date: data.assignmentDate || data.fecha_asignacion || null
     };
 };
 
@@ -254,11 +265,12 @@ export const assignTerritorio = async (id, conductorName, details = {}) => {
 export const returnTerritorio = async (id, notes, customDate, status = 'Completado', fotos = null) => {
     try {
         const dateToUse = customDate ? new Date(customDate).toISOString() : new Date().toISOString();
-        await runTransaction(db, async (transaction) => {
+        const conductorName = await runTransaction(db, async (transaction) => {
             const tRef = doc(db, COL_TERRITORIOS, id);
             const tSnap = await transaction.get(tRef);
-            if (!tSnap.exists()) return;
+            if (!tSnap.exists()) return null;
             const tData = tSnap.data();
+            const prevConductor = tData.asignado_a || null;
 
             transaction.update(tRef, {
                 asignado_a: null,
@@ -277,10 +289,12 @@ export const returnTerritorio = async (id, notes, customDate, status = 'Completa
                 await updateGlobalStats(transaction, 'territorios_disponibles', 1);
                 await updateGlobalStats(transaction, 'territorios_asignados', -1);
             }
+            return prevConductor;
         });
 
-        await logReturn(id, dateToUse, status, notes, fotos);
+        await logReturn(id, dateToUse, status, notes, fotos, conductorName);
         ServiceCache.clear('territorios');
+        ServiceCache.clear('territorios_combined');
         ServiceCache.clear('historial');
         ServiceCache.clear('stats_globales');
     } catch (e) {
@@ -412,26 +426,74 @@ export const updateAssignmentData = async (id, updates = {}) => {
 };
 
 export const returnTerritorioMultiple = async (ids, notes, customDate, status = 'Completado') => {
-    const batch = writeBatch(db);
-    const dateToUse = customDate ? new Date(customDate).toISOString() : new Date().toISOString();
+    try {
+        const dateToUse = customDate ? new Date(customDate).toISOString() : new Date().toISOString();
+        const batch = writeBatch(db);
+        
+        // 1. Fetch relevant data for all territories and their active assignments
+        const [tSnaps, bancoSnap] = await Promise.all([
+            Promise.all(ids.map(id => getDoc(doc(db, COL_TERRITORIOS, id)))),
+            getDocs(query(collection(db, COL_BANCO_S13), where("estado", "==", "Asignado")))
+        ]);
 
-    for (const id of ids) {
-        batch.update(doc(db, COL_TERRITORIOS, id), {
-            asignado_a: null,
-            fecha_asignacion: null,
-            auxiliar: null,
-            lugar: null,
-            hora: null,
-            faceta: null,
-            turno: null,
-            ultima_fecha: dateToUse,
-            estado: status === 'Perdido' ? 'Extraviado' : (status === 'Disponible' ? 'Sin asignar' : 'Predicado'),
-            prog_sync: null
+        const activeAssignmentsForThese = {};
+        bancoSnap.docs.forEach(d => {
+            const bData = d.data();
+            activeAssignmentsForThese[String(bData.territorio_id)] = d.ref;
         });
 
-        await logReturn(id, dateToUse, status, notes);
+        const logPromises = [];
+
+        for (const snap of tSnaps) {
+            if (!snap.exists()) continue;
+            const tId = snap.id;
+            const tData = snap.data();
+            const tNum = String(tData.numero);
+            const prevConductor = tData.currentAssignee || tData.asignado_a || null;
+
+            // a) En territorios: Cambia a status: 'Disponible', limpia currentAssignee y assignmentDate.
+            batch.update(doc(db, COL_TERRITORIOS, tId), {
+                status: 'Disponible',
+                currentAssignee: null,
+                assignmentDate: null,
+                // Mantener compatibilidad
+                estado: 'Disponible',
+                asignado_a: null,
+                fecha_asignacion: null,
+                ultima_fecha: dateToUse,
+                auxiliar: null,
+                lugar: null,
+                hora: null,
+                faceta: null,
+                turno: null,
+                prog_sync: null
+            });
+
+            // b) En banco_s13 (Live Pool): Busca el registro activo y estámpale la returnDate
+            const activeRef = activeAssignmentsForThese[tNum];
+            if (activeRef) {
+                batch.update(activeRef, {
+                    estado: 'Completado', // O el status que se pase
+                    fecha_entrega: dateToUse,
+                    returnDate: dateToUse,
+                    timestamp_entrega: Timestamp.now()
+                });
+            }
+
+            logPromises.push(logReturn(tId, dateToUse, status, notes, null, prevConductor));
+        }
+
+        await batch.commit();
+        await Promise.all(logPromises);
+
+        ServiceCache.clear('territorios');
+        ServiceCache.clear('territorios_combined');
+        ServiceCache.clear('historial');
+        ServiceCache.clear('stats_globales');
+    } catch (e) {
+        console.error("Critical error in atomic returnTerritorioMultiple:", e);
+        throw e;
     }
-    await batch.commit();
 };
 
 export const returnTerritorioParcial = async (originalId, completedManzanas, remainingManzanas, unassignRemaining = false, notes = null, customDate = null, fotos = null) => {

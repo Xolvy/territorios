@@ -2,13 +2,14 @@ import {
     getTerritorios, getConfiguracion, getPublicadores,
     getProgramaSemanal, saveProgramaSemanal, getGroupsConfig, returnTerritorioMultiple,
     getHistorialReport, returnTerritorioParcial, startLivePool,
-    returnTerritorio, syncSlotWithTerritories, importProgramFromJSON
+    returnTerritorio, syncSlotWithTerritories, importProgramFromJSON, formalizeWeek
 } from '../../data/firestore-services.js';
 import { extractProgramFromImage } from '../services/ai-vision-service.js';
 import { showNotification, formatGroups, getBaseTerritoryNumber, normalize } from '../utils/helpers.js';
 import { UIHelpers, showModal, showTerritorySelectionModal, showCustomConfirm } from '../services/ui-helpers.js';
 import { generateProgramPNG } from './program-generator.js';
-import { where, documentId } from "firebase/firestore";
+import { db } from '../../firebase-config.js';
+import { where, documentId, collection, query, getDocs } from "firebase/firestore";
 
 const { getMonday, formatDateId } = UIHelpers;
 
@@ -251,6 +252,8 @@ export const renderProgramaTab = async (container) => {
             // Xolvy Live Pool: Dynamic week synchronization
             if (programUnsub) { programUnsub(); programUnsub = null; }
             programUnsub = startLivePool("programa_semanal", [where(documentId(), "==", weekId)], (data) => {
+                const btnFormalizar = container.querySelector('#action-formalizar-prog');
+
                 if (data.length > 0 && data[0].dias) {
                     programa = data[0];
                     // Sync dates
@@ -265,8 +268,28 @@ export const renderProgramaTab = async (container) => {
                         });
                         if (dia.nombre === 'Martes' && !dia.zoom) dia.zoom = {};
                     });
+                    
+                    // Actualizar estado del botón Formalizar
+                    if (programa.isFormalized && btnFormalizar) {
+                        btnFormalizar.disabled = true;
+                        btnFormalizar.innerHTML = '<i class="fas fa-check-double mr-2"></i> Formalizado';
+                        btnFormalizar.className = btnFormalizar.className.replace('bg-emerald-500', 'bg-slate-400').replace('hover:bg-emerald-600', '');
+                    } else if (btnFormalizar) {
+                        btnFormalizar.disabled = false;
+                        btnFormalizar.innerHTML = '<i class="fas fa-project-diagram group-hover:rotate-12 transition-transform"></i> Formalizar';
+                        if (!btnFormalizar.className.includes('bg-emerald-500')) {
+                            btnFormalizar.className = btnFormalizar.className.replace('bg-slate-400', 'bg-emerald-500');
+                        }
+                    }
+
                     console.log(`📅 [Live Pool] Week ${weekId} Updated.`);
                 } else {
+                    // Reset Button
+                    if (btnFormalizar) {
+                        btnFormalizar.disabled = false;
+                        btnFormalizar.innerHTML = '<i class="fas fa-project-diagram group-hover:rotate-12 transition-transform"></i> Formalizar';
+                    }
+
                     // Create dummy if doesn't exist to allow editing
                     programa = {
                         id: weekId,
@@ -672,6 +695,7 @@ export const renderProgramaTab = async (container) => {
 
     window.updateWeekDataSheet = async (dayIdx, turnoId, fieldId, val) => {
         programa.dias[dayIdx][turnoId][fieldId] = val || '';
+        if (programa.isFormalized) programa.isFormalized = false;
         try {
             await saveProgramaSemanal(programa.id, programa);
             // Si cambia la hora, afecta visualmente la etiqueta del turno, forzamos re-render
@@ -742,6 +766,7 @@ export const renderProgramaTab = async (container) => {
     window.updateWeekData = async (dayIdx, turnoId, fieldId, val) => {
         // Optimistic update with fallback
         programa.dias[dayIdx][turnoId][fieldId] = val || '';
+        if (programa.isFormalized) programa.isFormalized = false;
 
         // Update visual value if it was a custom selector (territorio)
         const valEl = container.querySelector(`#val-${fieldId}-${dayIdx}-${turnoId}`);
@@ -1227,10 +1252,33 @@ export const renderProgramaTab = async (container) => {
 
 
     const execActionRecepcion = async () => {
-        // Show ALL assigned territories, regardless of the week, so users can return overdue ones
-        const assigned = territorios.filter(t => t.estado === 'Asignado' && t.fecha_asignacion);
+        // --- BYPASS CACHE: Force fresh fetch from Firestore to avoid stale names (Juan vs Roberto bug) ---
+        showNotification("Actualizando lista de asignaciones...", "info");
+        
+        // LIMPIEZA EXPLÍCITA: Vaciar caché in-memory antes del fetch fresco
+        territorios.length = 0; 
+        
+        // QUERY FRESCA AL MAESTRO IGNORANDO LA CACHÉ
+        // Buscamos por "estado" o "status" para mantener compatibilidad con asignaciones muy antiguas
+        const snap = await getDocs(collection(db, "territorios"));
+        
+        const assigned = snap.docs
+            .map(d => ({ id: d.id, ...d.data() }))
+            .filter(d => d.status === "Asignado" || d.estado === "Asignado")
+            .map(data => ({
+                id: data.id,
+                numero: data.numero,
+                manzanas: data.manzanas || '',
+                status: data.status || data.estado,
+                currentAssignee: data.currentAssignee || data.asignado_a,
+                assignmentDate: data.assignmentDate || data.fecha_asignacion,
+                master_status: data.status || data.estado,
+            }));
 
         if (assigned.length === 0) return showNotification("No hay territorios asignados para devolver", "info");
+
+        // Repoblar array local SOLO con los activos (para la vista de recepción actual)
+        territorios.push(...assigned);
 
         let sortMode = 'territorio'; // 'territorio' | 'fecha'
 
@@ -1300,13 +1348,13 @@ export const renderProgramaTab = async (container) => {
                     if (sortMode === 'territorio') {
                         return a.numero.localeCompare(b.numero, undefined, { numeric: true });
                     } else {
-                        return new Date(a.fecha_asignacion) - new Date(b.fecha_asignacion);
+                        return new Date(a.assignmentDate) - new Date(b.assignmentDate);
                     }
                 });
 
                 listContainer.innerHTML = sorted.map(t => {
                     const mzCount = t.manzanas ? String(t.manzanas).split(/[,;]/).map(s => s.trim()).filter(Boolean).length : 0;
-                    const asigDate = new Date(t.fecha_asignacion);
+                    const asigDate = new Date(t.assignmentDate);
                     const diffDays = Math.ceil(Math.abs(now - asigDate) / (1000 * 60 * 60 * 24));
                     const isLate = diffDays > 10;
 
@@ -1336,13 +1384,13 @@ export const renderProgramaTab = async (container) => {
                                 <i class="fas fa-location-dot text-[8px] text-slate-400 opacity-40"></i>
                                 <h4 class="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-tight truncate">${t.nombre || 'Territorio ' + t.numero}</h4>
                             </div>
-                            <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest pl-4 truncate">${t.asignado_a || '—'}</p>
+                            <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest pl-4 truncate">${t.currentAssignee || '—'}</p>
                         </div>
 
                         <div class="flex items-center justify-between mt-2 pt-3 border-t border-slate-50 dark:border-white/5">
                             <div class="flex flex-col gap-1">
                                 <span class="text-[8px] font-black ${isLate ? 'text-rose-500' : 'text-slate-400'} uppercase tracking-tighter">
-                                    ${UIHelpers.fmtDateAt(t.fecha_asignacion)}
+                                    ${UIHelpers.fmtDateAt(t.assignmentDate)}
                                     ${isLate ? ` • <span class="animate-pulse">${diffDays} DÍAS</span>` : ''}
                                 </span>
                                 ${mzCount > 0 ? `<span class="bg-indigo-500/5 text-indigo-500 text-[7px] font-black px-1.5 py-0.5 rounded w-fit uppercase">${mzCount} MZ</span>` : ''}
@@ -1517,8 +1565,13 @@ export const renderProgramaTab = async (container) => {
     };
 
     const execActionFormalizar = async () => {
-        // Collect all planned assignments that are not sync
+        // Collect all planned assignments that are not sync with a FRESH fetch
         const freshTerritorios = await getTerritorios();
+        
+        // Update local territories cache for consistency across the program view
+        territorios.length = 0;
+        territorios.push(...freshTerritorios);
+
         const normalize = (val) => String(val || '').trim();
         const territoryMap = freshTerritorios.reduce((acc, t) => { acc[normalize(t.numero)] = t; return acc; }, {});
 
@@ -1639,20 +1692,14 @@ export const renderProgramaTab = async (container) => {
 
                 const btn = e.currentTarget;
                 btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> PROCESANDO...';
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> PROCESANDO...';
 
-                const { syncSlotWithTerritories } = await import('../../data/firestore-services.js');
-                showNotification(`Formalizando ${checkedIdxs.length} asignaciones...`, 'info');
-
-                // 1. Resolve and Group checked assignments by "Effective Slot" (Date + Turn)
-                // This is CRITICAL to handle "Total Replacement" correctly without conflicts
                 const weekId = programa.id;
                 const globalDate = modal.querySelector('#sync-global-date').value;
-                const effectiveSlots = new Map();
-
-                for (const idx of checkedIdxs) {
+                
+                // Preparar asignaciones para el Formalize Masivo
+                const assignments = checkedIdxs.map(idx => {
                     const item = toSync[idx];
-
                     let resolvedDateISO;
                     if (globalDate) {
                         resolvedDateISO = new Date(globalDate + 'T12:00:00Z').toISOString();
@@ -1661,41 +1708,32 @@ export const renderProgramaTab = async (container) => {
                         d.setUTCDate(d.getUTCDate() + item.dayIdx);
                         resolvedDateISO = d.toISOString();
                     }
-
-                    // The Key for Bilateral Sync grouping is resolved Date + Turn
-                    const slotKey = `${resolvedDateISO.split('T')[0]}_${item.turnoId}`;
-
-                    if (!effectiveSlots.has(slotKey)) {
-                        effectiveSlots.set(slotKey, {
-                            dayIdx: item.dayIdx,
-                            turnoId: item.turnoId,
-                            dia: item.dia,
-                            conductor: item.data.conductor,
-                            tNums: [],
-                            fullData: item.data,
-                            resolvedDateISO
-                        });
-                    }
-                    effectiveSlots.get(slotKey).tNums.push(item.specificT);
-                }
-
-                // 2. Synchronize each effective slot
-                for (const [, slot] of effectiveSlots) {
-                    const syncData = {
-                        ...slot.fullData,
-                        // Override territory list with ONLY the ones selected in the modal for this slot
-                        territorio: slot.tNums.join(' / '),
-                        prog_sync: true
+                    
+                    return {
+                        territorio_id: item.specificT,
+                        conductor: item.data.conductor,
+                        fecha_asignacion: resolvedDateISO,
+                        turno: item.turnoId,
+                        faceta: item.data.faceta || 'Casa en casa',
+                        observaciones: item.data.observaciones || ''
                     };
+                });
 
-                    console.log(`Bilateral Sync: Formalizing slot with resolved PREACHING date ${slot.resolvedDateISO} and ${slot.tNums.length} territories`);
-                    const chosenAssignmentDate = globalDate ? new Date(globalDate + 'T12:00:00Z').toISOString() : null;
-                    await syncSlotWithTerritories(weekId, slot.dayIdx, slot.turnoId, syncData, slot.resolvedDateISO, chosenAssignmentDate);
+                try {
+                    showNotification(`Formalizando ${assignments.length} asignaciones...`, 'info');
+                    await formalizeWeek(weekId, assignments);
+
+                    showNotification(`¡${assignments.length} asignaciones formalizadas con éxito!`, 'success');
+                    modal.classList.add('hidden');
+                    
+                    // RECARGA OBLIGATORIA
+                    await loadWeekData();
+                } catch (err) {
+                    console.error("Error formalizando:", err);
+                    showNotification("Error en la formalización", "error");
+                    btn.disabled = false;
+                    btn.innerHTML = 'Formalizar Selección';
                 }
-
-                showNotification(`¡${checkedIdxs.length} asignaciones formalizadas con éxito!`, 'success');
-                modal.classList.add('hidden');
-                loadWeekData();
             };
         });
     };
@@ -1790,7 +1828,10 @@ export const renderProgramaTab = async (container) => {
         loadWeekData(); 
     };
     const execActionHoy = () => { 
-        currentWeekStart = getMonday(new Date()); 
+        const today = new Date();
+        const day = today.getDay() || 7; 
+        if(day !== 1) today.setHours(-24 * (day - 1));
+        currentWeekStart = today; 
         loadWeekData(); 
     };
 

@@ -60,14 +60,11 @@ export const renderHistorialView = async (container) => {
     const idToNum = {};
     allTerritorios.forEach(t => idToNum[t.id] = t.numero);
 
-    // Group history by territory number for easy access (Robust Normalization & Multi-Territory Support)
     const historyByNum = history.reduce((acc, h) => {
-        // Support for multi-territory records (e.g., "1 / 2" or "15, 16")
-        // FALLBACK: If numero is missing, use ID mapping
-        let rawNum = String(h.numero || '');
-        if (!rawNum && h.territorio_id && idToNum[h.territorio_id]) {
-            rawNum = idToNum[h.territorio_id];
-        }
+        // En el nuevo sistema banco_s13, h.numero ya viene del mapeo de h.territorio_id
+        // Si no existe, usamos h.territorio_id directamente como número
+        const rawNum = String(h.numero || h.territorio_id || '').trim();
+        if (!rawNum) return acc;
 
         const nums = rawNum.split(/[,/]/).map(s => normalizeT(s)).filter(Boolean);
 
@@ -438,21 +435,35 @@ export const renderHistorialView = async (container) => {
         const initialLiveHistory = historyByNum[num] || [];
         renderTimelineContent(content, initialLiveHistory, mode, num);
 
-        // Subscribe for real-time updates (filter by numero field)
+        // Subscribe for real-time updates to banco_s13 (the authoritative S-13 collection)
+        // territorio_id in banco_s13 stores the territory NUMBER (e.g. "4") as a String
         import('../../data/firestore-services.js').then(({ startLivePool }) => {
             import('firebase/firestore').then(({ where }) => {
+                const cleanNum = String(num).trim();
                 const unsub = startLivePool(
-                    'historial_territorios',
-                    [where('numero', '==', num)],
+                    'banco_s13',
+                    [where('territorio_id', '==', cleanNum)],
                     (liveData) => {
+                        // Augment with `numero` field for renderTimelineContent compatibility
+                        const normalized = liveData.map(h => ({
+                            ...h,
+                            numero: h.numero || h.territorio_id || cleanNum
+                        })).sort((a, b) => {
+                            const getMs = (h) => {
+                                const d = h.timestamp || h.fecha_entrega || h.fecha_asignacion;
+                                if (!d) return 0;
+                                return (d.toDate ? d.toDate() : new Date(d)).getTime();
+                            };
+                            return getMs(b) - getMs(a);
+                        });
                         // Update the local cache too
-                        historyByNum[num] = liveData;
+                        historyByNum[num] = normalized;
                         // Refresh content if timeline is still open for this num
                         const currentEl = document.getElementById(`timeline-${num}`);
                         const currentContent = document.getElementById(`timeline-content-${num}`);
                         if (currentEl && !currentEl.classList.contains('hidden') && currentContent) {
                             const currentMode = currentEl.dataset.mode || 's13';
-                            renderTimelineContent(currentContent, liveData, currentMode, num);
+                            renderTimelineContent(currentContent, normalized, currentMode, num);
                         }
                     }
                 );
