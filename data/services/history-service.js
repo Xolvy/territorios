@@ -164,25 +164,46 @@ export const updateHistoryRecord = async (id, data) => {
             if (!oldSnap.exists()) return;
             const old = oldSnap.data();
 
-            transaction.update(histRef, data);
-
-            if (old.estado === 'Asignado' && (data.conductor || data.fecha_asignacion || data.turno)) {
-                const tQuery = query(collection(db, COL_TERRITORIOS), where("numero", "==", old.numero));
+            // Sincronización Bidireccional con Maestro (territorios)
+            // Solo sincronizamos si es el registro más reciente (el que está marcado como 'Asignado')
+            if (old.estado === 'Asignado') {
+                const tQuery = query(collection(db, COL_TERRITORIOS), where("numero", "==", String(old.numero)));
                 const tSnap = await getDocs(tQuery);
+                
                 if (!tSnap.empty) {
-                    const tId = tSnap.docs[0].id;
+                    const tDoc = tSnap.docs[0];
+                    const tId = tDoc.id;
+                    const territory = tDoc.data();
                     const tUpdate = {};
-                    if (data.conductor) tUpdate.asignado_a = data.conductor;
-                    if (data.fecha_asignacion) tUpdate.fecha_asignacion = data.fecha_asignacion;
-                    if (data.turno) tUpdate.turno = data.turno;
-                    transaction.update(doc(db, COL_TERRITORIOS, tId), tUpdate);
+
+                    // Si el usuario añadió una fecha de entrega manual desde el historial, liberamos el territorio
+                    if (data.fecha_entrega) {
+                        data.estado = 'Completado';
+                        tUpdate.estado = 'Disponible';
+                        tUpdate.asignado_a = null;
+                        tUpdate.fecha_asignacion = null;
+                        tUpdate.turno = null;
+                        tUpdate.is_incomplete = false;
+                    } else {
+                        // Si solo cambiaron el conductor o la fecha/turno mientras sigue asignado
+                        if (data.conductor) tUpdate.asignado_a = data.conductor;
+                        if (data.fecha_asignacion) tUpdate.fecha_asignacion = data.fecha_asignacion;
+                        if (data.turno) tUpdate.turno = data.turno;
+                    }
+
+                    if (Object.keys(tUpdate).length > 0) {
+                        transaction.update(doc(db, COL_TERRITORIOS, tId), tUpdate);
+                    }
                 }
             }
+
+            transaction.update(histRef, data);
         });
         ServiceCache.clear('historial');
-        ServiceCache.clear('territorios');
+        ServiceCache.clear('territorios_combined');
     } catch (e) {
         console.error("Atomic transaction failed in updateHistoryRecord:", e);
+        throw e;
     }
 };
 

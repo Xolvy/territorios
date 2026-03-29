@@ -153,6 +153,7 @@ export const showModal = (html, onRender, maxWidth = 'max-w-2xl', containerId = 
 
     modal.classList.remove('hidden');
     modal.classList.add('flex');
+    document.body.classList.add('overflow-hidden');
 
     if (onRender) onRender(modal);
 
@@ -160,6 +161,12 @@ export const showModal = (html, onRender, maxWidth = 'max-w-2xl', containerId = 
         modal.classList.add('hidden');
         modal.classList.remove('flex');
         window.removeEventListener('keydown', handleEsc);
+        
+        // Remove body lock if no other modals remain open
+        const openModals = document.querySelectorAll('[id^="modal-container"]:not(.hidden)');
+        if (openModals.length === 0) {
+            document.body.classList.remove('overflow-hidden');
+        }
     };
 
     const handleEsc = (e) => {
@@ -274,11 +281,24 @@ export const showCustomAlert = (message) => {
     showNotification(message, type);
 };
 
-window.closeModal = () => {
-    const mc = document.getElementById('modal-container');
+window.closeModal = (id = 'modal-container') => {
+    const mc = document.getElementById(id);
     if (mc) {
         mc.classList.add('hidden');
         mc.innerHTML = '';
+    }
+    const mcs = document.querySelectorAll('[id^="modal-container"]:not(.hidden)');
+    if (mcs.length === 0) {
+        document.body.classList.remove('overflow-hidden');
+    }
+};
+
+window.hideModal = (id = 'modal-container') => {
+    const mc = document.getElementById(id);
+    if (mc) mc.classList.add('hidden');
+    const mcs = document.querySelectorAll('[id^="modal-container"]:not(.hidden)');
+    if (mcs.length === 0) {
+        document.body.classList.remove('overflow-hidden');
     }
 };
 

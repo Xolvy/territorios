@@ -47,6 +47,32 @@ const getEffectiveShiftId = (turnoId, horaStr) => {
     return 'noche';
 };
 
+/**
+ * 🕵️‍♂️ SMART VALIDATION (NEXO AI CROSS-CHECK)
+ * Evalúa la coherencia entre Jornada, Hora y Faceta.
+ */
+const checkIncongruences = (turnoId, hora, faceta) => {
+    const findings = [];
+    const t = (turnoId || '').toLowerCase();
+    const h = (hora || '').toLowerCase();
+    const f = (faceta || '').toLowerCase();
+
+    // Regla A: Tiempo (AM en turnos de Noche estrictamente)
+    if (t.includes('noche') && h.includes('am')) {
+        findings.push("Horario AM en jornada nocturna");
+    }
+
+    // Regla B: Física vs Virtual (Casa en casa/Calles en Zoom)
+    // FIXED: Telefonica y Cartas son COMPATIBLES con Zoom.
+    if (t.includes('zoom') && (f.includes('casa') || f.includes('calle') || f.includes('negocio') || f.includes('carritos') || f.includes('digital (físico)'))) {
+        findings.push("Faceta física en jornada virtual (Zoom)");
+    }
+
+    // Regla C: Eliminada (Telefónica/Cartas ahora es válida en cualquier jornada, sea Mañana, Tarde o Noche)
+
+    return findings;
+};
+
 const getTurnoStyling = (turnoId, horaStr) => {
     const defaults = {
         manana: { label: 'Mañana', icon: 'fa-sun', color: 'text-amber-500', bg: 'bg-amber-500/10' },
@@ -517,7 +543,7 @@ export const renderProgramaTab = async (container) => {
     };
 
     const renderTable = async () => {
-        const [freshTerritorios, freshPersonnel] = await Promise.all([getTerritorios(), getPublicadores()]);
+        const [freshTerritorios, freshPersonnel, freshGroupsCfg] = await Promise.all([getTerritorios(), getPublicadores(), getGroupsConfig()]);
         const tableContainer = container.querySelector('#admin-prog-table');
 
         if (!programa || !programa.dias || programa.dias.length === 0) {
@@ -537,7 +563,7 @@ export const renderProgramaTab = async (container) => {
         const activeConductorsFresh = freshPersonnel.filter(p => p.es_conductor && p.nombre).sort((a, b) => String(a.nombre || '').localeCompare(String(b.nombre || '')));
         
         // Cache for modal
-        window._progCache = { activeConductors: activeConductorsFresh, territorios, config, dayNames };
+        window._progCache = { activeConductors: activeConductorsFresh, territorios, config, dayNames, grupos: freshGroupsCfg };
 
         let html = `<div class="flex flex-col gap-8 md:gap-12 pb-24 max-w-4xl mx-auto">`;
         
@@ -597,8 +623,17 @@ export const renderProgramaTab = async (container) => {
 
                 html += `
                     <div onclick="window.openEditTurnoSheet(${dayIndex}, '${turnoId}')" 
-                         class="flex flex-col sm:flex-row sm:items-center gap-4 p-4 md:p-6 border-b border-slate-100 dark:border-white/5 last:border-0 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer transition-colors active:bg-slate-100 w-full min-h-[56px] select-none group/row">
+                         class="flex flex-col sm:flex-row sm:items-center gap-4 p-4 md:p-6 border-b border-slate-100 dark:border-white/5 last:border-0 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer transition-colors active:bg-slate-100 w-full min-h-[56px] select-none group/row relative">
                         
+                        ${(() => {
+                            const warnings = checkIncongruences(turnoId, data.hora, data.faceta);
+                            return warnings.length > 0 ? `
+                                <div class="absolute top-2 right-12 text-amber-500 animate-pulse drop-shadow-sm" title="${warnings.join(', ')}">
+                                    <i class="fas fa-exclamation-triangle text-[10px]"></i>
+                                </div>
+                            ` : '';
+                         })()}
+
                         <div class="flex items-center gap-4 min-w-[140px] shrink-0">
                             <div class="w-10 h-10 ${styling.bg} ${styling.color} rounded-xl flex items-center justify-center text-sm shadow-inner shrink-0 transition-transform group-hover/row:scale-110">
                                 <i class="fas ${styling.icon}"></i>
@@ -668,8 +703,7 @@ export const renderProgramaTab = async (container) => {
             Conductor: window._progCache.activeConductors.map(c => c.nombre),
             Auxiliar: window._progCache.activeConductors.map(p => p.nombre),
             Faceta: window._progCache.config.facetas || ['Casa en casa', 'Carritos'],
-            Territorio: window._progCache.territorios.map(t => t.numero),
-            Grupos: ['Todos', 'Grupos 1 y 5', 'Grupos 2 y 6', 'Grupos 3 y 4', ...Array.from({ length: 12 }, (_, i) => `Grupo ${i + 1}`)]
+            Territorio: window._progCache.territorios.map(t => t.numero)
         };
 
         let fieldsHTML = fields.map(field => {
@@ -686,23 +720,53 @@ export const renderProgramaTab = async (container) => {
                         <div onclick="window.openTerritorySelector(${dayIdx}, '${turnoId}', this);" 
                              data-current="${val}"
                              class="w-full text-left bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-4 rounded-xl hover:border-primary transition-all flex items-center justify-between shadow-sm cursor-pointer block-scale-click">
-                            <span id="val-${fieldId}-modal" class="text-[12px] font-black truncate ${val ? 'text-primary' : 'text-slate-400 opacity-40'}">${val || '—'}</span>
+                            <span id="val-territorio-modal" class="text-[12px] font-black truncate ${val ? 'text-primary' : 'text-slate-400 opacity-40'}">${val || '—'}</span>
                             <i class="fas fa-search text-slate-300"></i>
                         </div>
                         <input type="hidden" id="select-territorio" value="${val}">
                     </div>`;
+
             } else if (field === 'Grupos') {
+                const currentGroups = val.split(',').map(g => g.trim()).filter(Boolean);
+                const baseGrupos = window._progCache.grupos || [];
+                const gList = [{nombre:'Todos'}].concat(baseGrupos);
+                const displayText = currentGroups.length > 0 ? currentGroups.join(', ') : '-';
+                
+                const dropHtml = gList.map((g) => {
+                    const gName = g.nombre.replace(/grupos?/gi, '').trim();
+                    const groupStr = gName === 'Todos' ? 'Todos' : (gName.toLowerCase().startsWith('grupo') ? gName : `Grupo ${gName}`);
+                    
+                    const isChecked = currentGroups.some(c => c.toLowerCase() === groupStr.toLowerCase() || c === gName || c === `Grupo ${gName}`);
+                    
+                    return `
+                        <label class="flex items-center p-3 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl cursor-pointer transition-colors group/chk">
+                            <div class="relative w-5 h-5 flex items-center justify-center shrink-0">
+                                <input type="checkbox" value="${gName}" ${isChecked?'checked':''} onchange="window.handleSheetGroupToggle(this)" class="group-checkbox absolute opacity-0 inset-0 z-10 cursor-pointer w-full h-full">
+                                <div class="w-4 h-4 rounded border-2 border-slate-300 dark:border-white/20 ${isChecked ? 'bg-primary border-primary' : ''} flex items-center justify-center transition-all peer-ui">
+                                    <i class="fas fa-check text-[8px] text-white transition-opacity" style="opacity: ${isChecked ? '1' : '0'};"></i>
+                                </div>
+                            </div>
+                            <span class="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300 ml-3 group-hover/chk:text-primary transition-colors">${groupStr}</span>
+                        </label>`;
+                }).join('');
+
                 return `
                     <div class="space-y-2">
-                        <label class="text-[10px] font-black text-slate-400 tracking-[0.2em] uppercase ml-1 flex items-center gap-2">
-                            <i class="fas fa-users opacity-30"></i> ${field}
+                        <label class="text-[10px] font-black text-slate-400 tracking-[0.2em] uppercase ml-1 flex items-center justify-between">
+                            <span><i class="fas fa-users-cog opacity-30 mr-1"></i> ${field}</span>
                         </label>
-                        <div onclick="window.openGroupSelector(${dayIdx}, '${turnoId}');" 
-                             class="w-full text-left bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-4 rounded-xl hover:border-indigo-500 transition-all flex items-center justify-between shadow-sm cursor-pointer block-scale-click">
-                            <span id="val-${fieldId}-modal" class="text-[12px] font-black truncate ${val ? 'text-indigo-500' : 'text-slate-400 opacity-40'}">${formatGroups(val) || '—'}</span>
+                        <div class="custom-multiselect relative" id="sheet-groups-container">
+                            <div onclick="window.toggleSheetGroupDropdown(event)" class="w-full text-left bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-4 rounded-xl hover:border-primary transition-all flex items-center justify-between shadow-sm cursor-pointer block-scale-click min-h-[52px]">
+                                <span id="selected-groups-text" class="text-[12px] font-black truncate pr-4 ${currentGroups.length ? 'text-primary' : 'text-slate-400 opacity-40'}">${displayText}</span>
+                                <i class="fas fa-chevron-down text-[10px] text-slate-400 opacity-50 transition-transform duration-300 pointer-events-none" id="groups-dropdown-icon"></i>
+                            </div>
+                            <div id="sheet-groups-dropdown" class="hidden absolute left-0 right-0 bottom-full mb-1 bg-white dark:bg-[#151a26] border border-slate-200 dark:border-white/10 rounded-2xl shadow-[0_-15px_35px_-10px_rgba(0,0,0,0.3)] dark:shadow-none z-50 max-h-56 overflow-y-auto custom-scrollbar p-2 animate-scale-in origin-bottom">
+                                ${dropHtml}
+                            </div>
                         </div>
                         <input type="hidden" id="select-grupos" value="${val}">
                     </div>`;
+
             } else if (field === 'Conductor' || field === 'Auxiliar') {
                 const effectiveShiftId = getEffectiveShiftId(turnoId, data.hora);
                 const availKey = `${dia.nombre}_${effectiveShiftId}`;
@@ -722,7 +786,7 @@ export const renderProgramaTab = async (container) => {
                         <div class="relative">
                             <select id="select-${fieldId}" 
                                     onchange="window.updateWeekDataSheet(${dayIdx}, '${turnoId}', '${fieldId}', this.value)" 
-                                    class="w-full bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-4 rounded-xl text-[12px] font-black text-slate-700 dark:text-white outline-none focus:border-primary appearance-none cursor-pointer shadow-sm transition-all focus:ring-1 focus:ring-primary/20">
+                                    class="w-full bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 py-5 px-4 rounded-xl text-[12px] font-black text-slate-700 dark:text-white outline-none focus:border-primary appearance-none cursor-pointer shadow-sm transition-all focus:ring-1 focus:ring-primary/20 min-h-[52px]">
                                 <option value="">—</option>
                                 ${finalOpts.map(o => `<option value="${o.name}" ${val === o.name ? 'selected' : ''} class="${o.isAvail ? 'text-emerald-500 font-bold' : ''}">${o.isAvail ? '✅ ' : ''}${o.name}</option>`).join('')}
                             </select>
@@ -738,7 +802,7 @@ export const renderProgramaTab = async (container) => {
                         <div class="relative">
                             <select id="${fieldId === 'lugar' || fieldId === 'hora' ? 'input-' + fieldId : 'select-' + fieldId}" 
                                     onchange="window.updateWeekDataSheet(${dayIdx}, '${turnoId}', '${fieldId}', this.value)" 
-                                    class="w-full bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-4 rounded-xl text-[12px] font-black text-slate-700 dark:text-white outline-none focus:border-primary appearance-none cursor-pointer shadow-sm transition-all focus:ring-1 focus:ring-primary/20">
+                                    class="w-full bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 py-5 px-4 rounded-xl text-[12px] font-black text-slate-700 dark:text-white outline-none focus:border-primary appearance-none cursor-pointer shadow-sm transition-all focus:ring-1 focus:ring-primary/20 min-h-[52px]">
                                 <option value="">—</option>
                                 ${localOptions[field].map(o => `<option value="${o}" ${val === o ? 'selected' : ''}>${o}</option>`).join('')}
                             </select>
@@ -750,56 +814,163 @@ export const renderProgramaTab = async (container) => {
 
         const modalDiv = document.getElementById('modal-container');
         modalDiv.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden'); // Lock scroll
+
+        const incongruences = checkIncongruences(turnoId, data.hora, data.faceta);
+
         modalDiv.innerHTML = `
-            <div id="modal-sheet" class="fixed inset-x-0 bottom-0 md:relative md:inset-auto md:w-[500px] w-full bg-white dark:bg-[#0a0f18] rounded-t-[2rem] md:rounded-[2rem] shadow-[0_-10px_40px_rgba(0,0,0,0.2)] md:shadow-2xl translate-y-full transition-transform duration-300 ease-out flex flex-col max-h-[90vh]">
-                <div class="w-12 h-1.5 bg-slate-200 dark:bg-white/10 rounded-full mx-auto mt-4 mb-2 md:hidden"></div>
+            <div onclick="window.hideModal('modal-container')" class="absolute inset-0 bg-slate-950/60 dark:bg-black/80 backdrop-blur-sm z-0"></div>
+            <div id="modal-sheet" onclick="event.stopPropagation()" class="relative w-[95vw] h-[90vh] max-h-[90vh] md:w-[540px] md:h-auto bg-white dark:bg-[#0a0f18] rounded-2xl md:rounded-[3rem] shadow-2xl flex flex-col overflow-y-auto z-50 transition-all duration-300 mx-auto my-auto custom-scrollbar">
+                <div class="w-12 h-1.5 bg-slate-200 dark:bg-white/10 rounded-full mx-auto mt-4 mb-2 md:hidden shrink-0"></div>
                 
-                <header class="px-6 md:px-8 py-4 flex items-center justify-between shrink-0 border-b border-slate-100 dark:border-white/5">
-                    <div class="flex items-center gap-4">
-                        <div class="w-10 h-10 ${styling.bg} ${styling.color} rounded-xl flex items-center justify-center shadow-inner">
-                            <i class="fas ${styling.icon}"></i>
+                <header class="px-6 md:px-8 py-4 flex flex-col shrink-0 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-[#0a0f18]">
+                    <div class="flex items-center justify-between w-full mb-1">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 ${styling.bg} ${styling.color} rounded-xl flex items-center justify-center shadow-inner">
+                                <i class="fas ${styling.icon}"></i>
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h3 class="text-[10px] font-black uppercase text-slate-400 tracking-widest">${dia.nombre}</h3>
+                                    <span class="text-xs opacity-20">•</span>
+                                    
+                                    <!-- Custom Premium Dropdown -->
+                                    <div class="relative inline-block">
+                                        <button onclick="window.toggleJornadaDropdown(event)" 
+                                                class="group flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-white/[0.05] rounded-full hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200/50 dark:border-white/5 transition-all active:scale-95 shadow-sm">
+                                            <span id="modal-shift-label" class="text-[12px] font-black uppercase text-slate-800 dark:text-white tracking-tight">${styling.label}</span>
+                                            <i class="fas fa-chevron-down text-[8px] opacity-30 group-hover:opacity-100 transition-opacity"></i>
+                                        </button>
+                                        
+                                        <div id="jornada-dropdown" class="absolute top-full left-0 mt-3 w-40 bg-white dark:bg-[#151a26] rounded-[1.2rem] shadow-[0_15px_50px_-10px_rgba(0,0,0,0.3)] border border-slate-200 dark:border-white/10 hidden z-[110] overflow-hidden backdrop-blur-xl animate-scale-in origin-top-left">
+                                            ${[
+                                                { id: 'manana', label: 'Mañana', icon: 'fa-sun', color: 'text-amber-500', bg: 'bg-amber-500/10' },
+                                                { id: 'tarde', label: 'Tarde', icon: 'fa-cloud-sun', color: 'text-orange-500', bg: 'bg-orange-500/10' },
+                                                { id: 'noche', label: 'Noche', icon: 'fa-moon', color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
+                                                { id: 'zoom', label: 'Zoom', icon: 'fa-video', color: 'text-emerald-500', bg: 'bg-emerald-500/10' }
+                                            ].map(opt => `
+                                                <button onclick="window.selectJornada(${dayIdx}, '${turnoId}', '${opt.id}')" 
+                                                        class="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors border-b border-slate-50 dark:border-white/5 last:border-0 group/opt">
+                                                    <div class="w-7 h-7 ${opt.bg} ${opt.color} rounded-lg flex items-center justify-center text-[10px] group-hover/opt:scale-110 transition-transform">
+                                                        <i class="fas ${opt.icon}"></i>
+                                                    </div>
+                                                    <span class="text-[10px] font-bold uppercase tracking-widest text-slate-700 dark:text-slate-300">${opt.label}</span>
+                                                </button>
+                                            `).join('')}
+                                        </div>
+                                        <input type="hidden" id="select-turno-id" value="${turnoId.includes('zoom') ? 'zoom' : (turnoId.includes('noche') ? 'noche' : (turnoId.includes('tarde') ? 'tarde' : 'manana'))}">
+                                    </div>
+                                </div>
+                                <p class="text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-0.5">${dia.fecha}</p>
+                            </div>
                         </div>
-                        <div>
-                            <h3 class="text-lg font-black uppercase tracking-tight text-slate-800 dark:text-white">${dia.nombre} • ${styling.label}</h3>
-                            <p class="text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-0.5">${dia.fecha}</p>
+                        
+                        <div class="flex gap-2">
+                            <button onclick="window.clearTurnData(${dayIdx}, '${turnoId}'); document.getElementById('modal-sheet-close').click();" class="w-10 h-10 min-h-[44px] rounded-xl bg-rose-50 dark:bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white flex items-center justify-center transition-all">
+                                <i class="fas fa-trash-alt text-[12px]"></i>
+                            </button>
+                            <button id="modal-sheet-close" class="w-10 h-10 min-h-[44px] rounded-xl bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-slate-600 dark:hover:text-white flex items-center justify-center transition-all">
+                                <i class="fas fa-times text-[14px]"></i>
+                            </button>
                         </div>
                     </div>
-                    
-                    <div class="flex gap-2">
-                        <button onclick="window.clearTurnData(${dayIdx}, '${turnoId}'); document.getElementById('modal-sheet-close').click();" class="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white flex items-center justify-center">
-                            <i class="fas fa-trash-alt text-[12px]"></i>
-                        </button>
-                        <button id="modal-sheet-close" class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-slate-600 dark:hover:text-white flex items-center justify-center">
-                            <i class="fas fa-times text-[14px]"></i>
-                        </button>
-                    </div>
+
+                    ${incongruences.length > 0 ? `
+                        <div class="mt-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center gap-3 animate-pulse">
+                            <i class="fas fa-exclamation-triangle text-amber-500 text-xs"></i>
+                            <div class="flex flex-col">
+                                <p class="text-[9px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest">Incongruencia detectada</p>
+                                <p class="text-[8px] text-amber-500 font-bold leading-tight mt-0.5">${incongruences.join('. ')}.</p>
+                            </div>
+                        </div>
+                    ` : ''}
                 </header>
 
-                <div class="flex-1 overflow-y-auto px-6 md:px-8 py-6 space-y-6 form-scroller pb-32">
+                <div class="px-6 md:px-8 py-6 space-y-6 form-scroller flex-1">
                     ${fieldsHTML}
                 </div>
                 
-                <div class="absolute bottom-0 left-0 w-full p-4 md:p-6 bg-gradient-to-t from-white via-white to-transparent dark:from-[#0a0f18] dark:via-[#0a0f18] pointer-events-none">
-                    <button onclick="window.saveTurnDataFromSheet(${dayIdx}, '${turnoId}')" class="pointer-events-auto w-full py-4 rounded-xl bg-slate-900 dark:bg-primary text-white font-black text-[12px] uppercase tracking-widest shadow-xl shadow-slate-900/20 dark:shadow-primary/20 transition-all hover:-translate-y-1 active:scale-[0.98]">
-                        Aceptar y Guardar
+                <div class="px-6 pb-6 md:px-8 md:pb-8 mt-auto shrink-0 z-20">
+                    <button onclick="window.saveTurnDataFromSheet(${dayIdx}, '${turnoId}')" class="w-full py-4 min-h-[48px] rounded-2xl bg-slate-900 dark:bg-primary text-white font-black text-[13px] uppercase tracking-widest shadow-xl shadow-slate-900/40 dark:shadow-primary/40 transition-all hover:scale-[1.02] active:scale-[0.98]">
+                        ACEPTAR Y GUARDAR
                     </button>
                 </div>
             </div>
         `;
 
-        // Animate up
+        // Animation logic
         setTimeout(() => {
             const sheet = document.getElementById('modal-sheet');
-            sheet.classList.remove('translate-y-full');
-            sheet.classList.add('translate-y-0');
+            if (sheet) {
+                sheet.classList.add('animate-modal-pop');
+            }
         }, 10);
 
         document.getElementById('modal-sheet-close').onclick = () => {
             const sheet = document.getElementById('modal-sheet');
-            sheet.classList.remove('translate-y-0');
-            sheet.classList.add('translate-y-full');
-            setTimeout(() => { modalDiv.classList.add('hidden'); }, 300);
+            if (sheet) {
+                sheet.style.transform = 'translate(-50%, -50%) scale(0.9)';
+                sheet.style.opacity = '0';
+            }
+            setTimeout(() => { 
+                window.hideModal('modal-container');
+            }, 200);
         };
+    };
+
+    window.toggleSheetGroupDropdown = (e) => {
+        if(e) e.stopPropagation();
+        const drop = document.getElementById('sheet-groups-dropdown');
+        const icon = document.getElementById('groups-dropdown-icon');
+        if(drop) {
+            drop.classList.toggle('hidden');
+            if(!drop.classList.contains('hidden')) {
+                icon.classList.add('rotate-180');
+                const closeDrop = (evt) => {
+                    const ct = document.getElementById('sheet-groups-container');
+                    if (ct && !ct.contains(evt.target)) {
+                        drop.classList.add('hidden');
+                        icon.classList.remove('rotate-180');
+                        document.removeEventListener('click', closeDrop);
+                    }
+                };
+                setTimeout(() => document.addEventListener('click', closeDrop), 10);
+            } else {
+                icon.classList.remove('rotate-180');
+            }
+        }
+    };
+
+    window.handleSheetGroupToggle = (checkbox) => {
+        const container = document.getElementById('sheet-groups-dropdown');
+        const peerUi = checkbox.nextElementSibling;
+        const icon = peerUi.querySelector('i');
+        
+        if (checkbox.checked) {
+             peerUi.classList.add('bg-primary', 'border-primary');
+             icon.style.opacity = '1';
+        } else {
+             peerUi.classList.remove('bg-primary', 'border-primary');
+             icon.style.opacity = '0';
+        }
+
+        const checkedBoxes = Array.from(container.querySelectorAll('.group-checkbox:checked'));
+        
+        let checkedVals = checkedBoxes.map(cb => {
+             const v = cb.value;
+             return v === 'Todos' ? 'Todos' : (v.toLowerCase().startsWith('grupo') ? v : `Grupo ${v}`);
+        });
+        
+        let finalStr = checkedVals.includes('Todos') ? 'Todos' : checkedVals.join(', ');
+
+        const hidden = document.getElementById('select-grupos');
+        if (hidden) hidden.value = finalStr;
+
+        const textSpan = document.getElementById('selected-groups-text');
+        if (textSpan) {
+            textSpan.innerText = finalStr || '-';
+            textSpan.className = `text-[12px] font-black truncate pr-4 ${finalStr ? 'text-primary' : 'text-slate-400 opacity-40'}`;
+        }
     };
 
     window.updateWeekDataSheet = async (dayIdx, turnoId, fieldId, val) => {
@@ -817,42 +988,103 @@ export const renderProgramaTab = async (container) => {
         }
     };
 
+    window.toggleJornadaDropdown = (e) => {
+        if (e) e.stopPropagation();
+        const drop = document.getElementById('jornada-dropdown');
+        if (drop) {
+            const isHidden = drop.classList.contains('hidden');
+            // Cerrar otros dropdowns si los hubiera
+            drop.classList.toggle('hidden');
+            
+            if (isHidden) {
+                const closeHandler = () => {
+                    drop.classList.add('hidden');
+                    window.removeEventListener('click', closeHandler);
+                };
+                window.addEventListener('click', closeHandler);
+            }
+        }
+    };
+
+    window.selectJornada = (dayIdx, turnoId, newBaseType) => {
+        const input = document.getElementById('select-turno-id');
+        if (input) input.value = newBaseType;
+        
+        const label = document.getElementById('modal-shift-label');
+        if (label) {
+            const optLabel = { manana: 'Mañana', tarde: 'Tarde', noche: 'Noche', zoom: 'Zoom' }[newBaseType];
+            label.innerText = optLabel;
+        }
+        
+        window.updateModalTurnoStyle(dayIdx, turnoId, newBaseType);
+        document.getElementById('jornada-dropdown')?.classList.add('hidden');
+    };
+
+    window.updateModalTurnoStyle = (dayIdx, turnoId, newBaseType) => {
+        // Obtenemos el styling basado en el nuevo tipo de turno
+        // Solo para feedback visual inmediato en el modal
+        const styling = getTurnoStyling(newBaseType, document.getElementById('input-hora')?.value);
+        const iconContainer = document.querySelector('#modal-sheet header .shadow-inner');
+        const icon = iconContainer.querySelector('i');
+        
+        iconContainer.className = `w-10 h-10 ${styling.bg} ${styling.color} rounded-xl flex items-center justify-center shadow-inner transition-colors duration-300`;
+        icon.className = `fas ${styling.icon}`;
+        
+        // Re-validar incongruencias en tiempo real si es posible (opcional)
+    };
+
     window.saveTurnDataFromSheet = async (dayIdx, turnoId) => {
-        // Recolección segura con fallbacks (Protocolo NEXO AI)
+        const newTurnoBase = document.getElementById('select-turno-id')?.value || turnoId;
+        const horaVal = document.getElementById('input-hora')?.value || "";
+        const facetaVal = document.getElementById('select-faceta')?.value || "";
+
+        // Si el usuario cambió la base de la jornada (ej de Zoom a Mañana)
+        // debemos ver si ya existe ese ID o generar uno nuevo si es necesario.
+        // Por ahora, si es el ID original (ej: manana), lo sobreescribimos.
+        // Si cambió la base, re-mapeamos el ID si es posible.
+        
         const payload = {
             lugar: document.getElementById('input-lugar')?.value || "",
-            hora: document.getElementById('input-hora')?.value || "",
+            hora: horaVal,
             conductor: document.getElementById('select-conductor')?.value || "",
             auxiliar: document.getElementById('select-auxiliar')?.value || "",
-            faceta: document.getElementById('select-faceta')?.value || "",
+            faceta: facetaVal,
             territorio: document.getElementById('select-territorio')?.value || "",
             grupos: document.getElementById('select-grupos')?.value || ""
         };
 
         console.log("💾 [Save Payload]:", payload);
-
-        // Sanitización final anti-FirebaseError (REGLA ESTRICTA)
         const safePayload = JSON.parse(JSON.stringify(payload));
-        
-        // Actualizar objeto local de forma integral
-        if (!programa.dias[dayIdx][turnoId]) programa.dias[dayIdx][turnoId] = {};
-        
-        programa.dias[dayIdx][turnoId] = {
-            ...programa.dias[dayIdx][turnoId],
+
+        const dia = programa.dias[dayIdx];
+        const oldData = dia[turnoId] || {};
+
+        // REGLA DE TRASPASO DE JORNADA:
+        // Si el ID de turno cambió (ej de manana_2 a noche_2), debemos mover el objeto.
+        let targetId = turnoId;
+        if (!turnoId.includes(newTurnoBase)) {
+            // Buscamos un nuevo ID único para la nueva base
+            let suffix = 1;
+            targetId = suffix === 1 ? newTurnoBase : `${newTurnoBase}_${suffix}`;
+            while(dia[targetId] && targetId !== turnoId) {
+                suffix++;
+                targetId = `${newTurnoBase}_${suffix}`;
+            }
+            // Borrar el anterior
+            delete dia[turnoId];
+        }
+
+        dia[targetId] = {
+            ...oldData,
             ...safePayload
         };
 
         try {
             showNotification("Sincronizando...", "info");
             await saveProgramaSemanal(programa.id, programa);
-            
-            // Re-renderizar tabla para reflejar cambios visuales
             renderTable();
-            
-            // Cerrar modal sheet
             const closeBtn = document.getElementById('modal-sheet-close');
             if (closeBtn) closeBtn.click();
-            
             showNotification("Turno actualizado", "success");
         } catch (e) {
             console.error("❌ [Save error]:", e);
@@ -997,13 +1229,13 @@ export const renderProgramaTab = async (container) => {
                         </button>
                     `).join('')}
                 </div>
-                <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="w-full py-4 bg-slate-100 dark:bg-white/5 text-slate-500 font-black rounded-2xl text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all mt-4">Cancelar</button>
+                <button onclick="window.hideModal('modal-container')" class="w-full py-4 bg-slate-100 dark:bg-white/5 text-slate-500 font-black rounded-2xl text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all mt-4">Cancelar</button>
             </div>
         `;
     };
 
     window.createSlot = async (dayIdx, baseType) => {
-        document.getElementById('modal-container').classList.add('hidden');
+        window.hideModal('modal-container');
         const dia = programa.dias[dayIdx];
         
         let newTurnoId = baseType;
@@ -1080,7 +1312,7 @@ export const renderProgramaTab = async (container) => {
                 </div>
 
                 <div class="flex gap-4 pt-4 shrink-0">
-                    <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all">Ignorar</button>
+                    <button onclick="window.hideModal('modal-container')" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all">Ignorar</button>
                     <button id="confirm-force-sync" class="flex-[2.5] py-5 bg-rose-500 hover:bg-rose-600 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-rose-500/20 active:scale-95 transition-all group">
                         <i class="fas fa-bolt mr-2 group-hover:animate-bounce"></i> FORZAR ASIGNACIÓN
                     </button>
@@ -1088,7 +1320,7 @@ export const renderProgramaTab = async (container) => {
             </div>
         `, (modal) => {
             modal.querySelector('#confirm-force-sync').onclick = async () => {
-                modal.classList.add('hidden');
+                window.hideModal('modal-container');
                 await window.syncAssignmentFromProg(dayIdx, turnoId, true);
             };
         });
@@ -1159,7 +1391,7 @@ export const renderProgramaTab = async (container) => {
                 </div>
 
                 <div class="flex gap-4 pt-6 border-t border-slate-50 dark:border-white/5">
-                    <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest">Cancelar</button>
+                    <button onclick="window.hideModal('modal-container')" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest">Cancelar</button>
                     <button id="confirm-sync-asig" class="flex-[2] py-5 bg-primary text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all">ASIGNAR FORMALMENTE</button>
                 </div>
             </div>
@@ -1181,7 +1413,7 @@ export const renderProgramaTab = async (container) => {
                 }, preachingDateISO, assignmentDateISO);
 
                 showNotification(`¡Asignación formalizada! (${foundTs.length} territorios)`, 'success');
-                modal.classList.add('hidden');
+                window.hideModal('modal-container');
 
                 // Refresh data and table
                 const updatedT = await getTerritorios();
@@ -1260,7 +1492,7 @@ export const renderProgramaTab = async (container) => {
                                 <i class="fas fa-print"></i>
                             </button>
                             <div class="w-px h-6 bg-slate-200 dark:bg-white/10 mx-2"></div>
-                            <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-slate-600 transition-all flex items-center justify-center">
+                            <button onclick="window.hideModal('modal-container')" class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-slate-600 transition-all flex items-center justify-center">
                                 <i class="fas fa-times"></i>
                             </button>
                         </div>
@@ -1331,7 +1563,7 @@ export const renderProgramaTab = async (container) => {
         const selected = new Set(currentVal.replace(/grupos?/gi, '').split(/[,;y&]+/).map(s => s.trim()).filter(Boolean));
 
         window.showModal(`
-            <div class="flex flex-col max-h-[75vh] w-[90vw] max-w-[320px] mx-auto bg-white dark:bg-[#0a0f18] rounded-[1.5rem] border border-indigo-500/20 shadow-2xl overflow-hidden animate-scale-in">
+            <div class="flex flex-col max-h-[75vh] overflow-hidden animate-scale-in">
                 <header class="p-5 pb-2 flex items-center gap-3 shrink-0">
                     <div class="w-8 h-8 bg-indigo-500/10 rounded-lg flex items-center justify-center text-lg text-indigo-500 shadow-inner">
                         <i class="fas fa-check-double"></i>
@@ -1379,7 +1611,7 @@ export const renderProgramaTab = async (container) => {
                 </div>
 
                 <div class="p-5 pt-3 border-t border-slate-50 dark:border-white/5 flex gap-2 shrink-0">
-                    <button onclick="document.getElementById('modal-container-nested').classList.add('hidden')" class="flex-1 py-3 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-lg text-[8px] uppercase tracking-widest hover:bg-slate-100 transition-all">Cancelar</button>
+                    <button onclick="window.hideModal('modal-container-nested')" class="flex-1 py-3 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-lg text-[8px] uppercase tracking-widest hover:bg-slate-100 transition-all">Cancelar</button>
                     <button id="confirm-groups" class="flex-[2] py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-lg text-[8px] uppercase tracking-widest shadow-xl shadow-indigo-600/20 active:scale-95 transition-all">Asignar Grupos</button>
                 </div>
             </div>
@@ -1407,9 +1639,9 @@ export const renderProgramaTab = async (container) => {
                 const rawVal = checked.includes('Todos') ? 'Todos' : checked.join(', ');
                 const finalVal = formatGroups(rawVal);
                 window.setProgramGroup(dayIdx, turnoId, finalVal);
-                document.getElementById('modal-container-nested').classList.add('hidden');
+                window.hideModal('modal-container-nested');
             };
-        }, '', 'modal-container-nested');
+        }, 'max-w-[340px]', 'modal-container-nested');
     };
 
     window.setProgramGroup = (dayIdx, turnoId, val) => {
@@ -1417,6 +1649,11 @@ export const renderProgramaTab = async (container) => {
         const hidden = document.getElementById('select-grupos');
         if (hidden) {
             hidden.value = val || '';
+            const spanVisual = document.getElementById('val-grupos-modal');
+            if (spanVisual) {
+                spanVisual.innerText = val || '—';
+                spanVisual.className = `text-[12px] font-black truncate ${val ? 'text-primary' : 'text-slate-400 opacity-40'}`;
+            }
             console.log("✅ Hidden input 'select-grupos' updated");
         } else {
             console.warn("⚠️ Element 'select-grupos' not found in DOM");
@@ -1527,7 +1764,7 @@ export const renderProgramaTab = async (container) => {
                     </div>
 
                     <div class="pt-6 border-t border-slate-50 dark:border-white/5 flex gap-4">
-                        <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest transition-all hover:bg-slate-100 dark:hover:bg-white/10">Cancelar</button>
+                        <button onclick="window.hideModal('modal-container')" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest transition-all hover:bg-slate-100 dark:hover:bg-white/10">Cancelar</button>
                         <button id="confirm-bulk-reception" class="flex-[2] py-5 bg-rose-500 hover:bg-rose-400 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-rose-500/20 flex items-center justify-center gap-3 transition-transform active:scale-95 group">
                             <i class="fas fa-check-circle group-hover:scale-110 transition-transform"></i>
                             <span id="btn-reception-text">Confirmar Devolución</span>

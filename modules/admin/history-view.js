@@ -1,13 +1,9 @@
-import Chart from 'chart.js/auto';
 import {
-    getHistorialReport, getConductores, getTerritorios, getPublicadores, getConfiguracion,
-    assignTerritorio, returnTerritorio, transferTerritory, addHistoryRecord, updateHistoryRecord, deleteHistoryRecord, updateTerritorio,
-    getProgramaSemanal, getGlobalObservations, startLivePool
+    getHistorialReport, getPublicadores, updateHistoryRecord, addHistoryRecord, returnTerritorio,
+    getProgramaSemanal, getGlobalObservations, getTerritorios, assignTerritorio
 } from '../../data/firestore-services.js';
-import { UIHelpers, showModal, showCustomConfirm, showCustomPrompt, showTerritorySelectionModal } from '../services/ui-helpers.js';
-import { formatPhoneNumber, getStatusColor, showNotification } from '../utils/helpers.js';
-
-const { formatDisplayDateRange } = UIHelpers;
+import { UIHelpers, showModal, showCustomConfirm } from '../services/ui-helpers.js';
+import { showNotification } from '../utils/helpers.js';
 
 export const renderHistorialView = async (container) => {
     const monday = UIHelpers.getMonday(new Date());
@@ -75,7 +71,7 @@ export const renderHistorialView = async (container) => {
         return acc;
     }, {});
 
-    // Helper to extract a sortable value from different date formats
+    // --- HELPERS INTERNOS ---
     const getSortableDate = (h) => {
         const d = h.timestamp || h.fecha_entrega || h.fecha_asignacion;
         if (!d) return 0;
@@ -124,11 +120,9 @@ export const renderHistorialView = async (container) => {
                 </div>
             </header>
 
-            <!-- List Section -->
-            <div class="space-y-4">
-                <div id="unified-control-grid" class="space-y-3">
-                    <!-- Dynamic Grid -->
-                </div>
+            <!-- Dynamic Grid System -->
+            <div id="unified-control-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full">
+                <!-- Injected by renderGrid -->
             </div>
         </div>
 
@@ -191,313 +185,291 @@ export const renderHistorialView = async (container) => {
             grid.innerHTML = `<div class="py-20 text-center opacity-30 text-[10px] font-black uppercase tracking-widest">Sin registros encontrados</div>`;
             return;
         }
-
         grid.innerHTML = displayList.map(t => {
-            const tNumKey = String(t.numero || '');
-            const tHistory = (historyByNum[tNumKey] || [])
-                .sort((a, b) => getSortableDate(b) - getSortableDate(a));
-
             const isFree = t.estado === 'Libre' || t.estado === 'Disponible' || t.estado === 'Sin asignar';
             const numBg = isFree ? 'bg-emerald-500 shadow-emerald-500/30' : 'bg-rose-500 shadow-rose-500/30';
 
             return `
-                <div class="modern-card !p-0 border-slate-100 dark:border-white/5 shadow-sm hover:shadow-md transition-all group overflow-hidden flex flex-col bg-white dark:bg-[#0d1117]">
-                    <div class="flex flex-col p-4 lg:p-6 gap-6">
-                        <div class="flex items-center gap-6 w-full">
-                            <div class="w-16 h-16 ${numBg} rounded-2xl flex items-center justify-center text-white text-2xl font-black shadow-lg shrink-0 group-hover:scale-110 transition-transform duration-500">
+                <div class="modern-card flex flex-col !p-0 border-slate-100 dark:border-white/5 shadow-sm hover:shadow-md transition-all group overflow-hidden bg-white dark:bg-[#0d1117] h-full"> 
+                    <div class="flex flex-col p-6 gap-5 flex-1">
+                        <div class="flex items-center justify-between gap-4">
+                            <div class="w-14 h-14 ${numBg} rounded-2xl flex items-center justify-center text-white text-xl font-black shadow-lg shrink-0 group-hover:rotate-12 transition-transform duration-500">
                                 ${t.numero}
                             </div>
-                            
-                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 flex-1">
-                                <div class="flex flex-col">
-                                    <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 opacity-60">Localidad</span>
-                                    <div class="flex items-center gap-2 text-slate-700 dark:text-white">
-                                        <span class="text-[13px] font-black uppercase truncate">${t.localidad || 'Mi Ciudad'}</span>
-                                    </div>
-                                </div>
-                                <div class="flex flex-col">
-                                    <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 opacity-60">Manzanas</span>
-                                    <div class="flex items-center gap-2 text-slate-500 dark:text-slate-400">
-                                        <span class="text-[11px] font-bold truncate">${t.manzanas || 'Sin manzanas'}</span>
-                                    </div>
-                                </div>
-                                <div class="flex flex-col lg:items-end justify-center">
-                                    ${t.asignado_a ? `<span class="text-[9px] font-black text-slate-400 uppercase truncate max-w-[150px] bg-slate-50 dark:bg-white/5 px-3 py-1.5 rounded-lg border border-slate-100 dark:border-white/5">${t.asignado_a}</span>` : ''}
-                                </div>
+                            <div class="flex flex-col items-end">
+                                <span class="text-[7px] font-black ${isFree ? 'text-emerald-500' : 'text-rose-500'} uppercase tracking-[0.2em] mb-1">${t.estado}</span>
+                                ${t.asignado_a ? `<span class="text-[8px] font-black text-slate-400 uppercase truncate max-w-[110px] bg-slate-50 dark:bg-white/5 px-2.5 py-1.5 rounded-lg border border-slate-100 dark:border-white/5">${t.asignado_a}</span>` : ''}
                             </div>
                         </div>
 
-                        <div class="flex items-center gap-2 w-full pt-4 border-t border-slate-50 dark:border-white/5">
-                            <button onclick="window.viewTimeline('${t.numero}', 's13')" class="flex-1 h-14 flex items-center justify-center gap-3 bg-slate-900 dark:bg-slate-800 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-slate-800 transition-all shadow-lg active:scale-95">
-                                <i class="fas fa-clock-rotate-left text-xs"></i> Cronología
-                            </button>
-                            <button onclick="window.viewTimeline('${t.numero}', 'obs')" class="flex-1 h-14 flex items-center justify-center gap-3 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-indigo-500 transition-all shadow-xl shadow-indigo-600/20 active:scale-95">
-                                <i class="fas fa-comment-dots text-xs"></i> Notas
-                            </button>
+                        <div class="space-y-4">
+                            <div class="flex flex-col">
+                                <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 opacity-60">Localidad</span>
+                                <span class="text-[12px] font-black uppercase text-slate-700 dark:text-white truncate">${t.localidad || 'Mi Ciudad'}</span>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 opacity-60">Área Geográfica</span>
+                                <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">${t.manzanas || 'Sin manzanas'}</span>
+                            </div>
                         </div>
                     </div>
 
-                    <div id="timeline-${t.numero}" class="hidden animate-slide-up border-t border-slate-50 dark:border-white/5 bg-slate-50/50 dark:bg-black/20 p-6 lg:p-10">
-                         <div class="flex items-center justify-between gap-4 mb-10">
-                            <h5 id="timeline-title-${t.numero}" class="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Cronología S-13</h5>
-                            <div class="h-px flex-1 bg-slate-200 dark:bg-white/5 mx-4"></div>
-                            <div class="flex gap-2">
-                                <button onclick="window.viewTimeline('${t.numero}', 's13')" id="t-btn-s13-${t.numero}" class="px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest bg-slate-900 text-white">S-13</button>
-                                <button onclick="window.viewTimeline('${t.numero}', 'obs')" id="t-btn-obs-${t.numero}" class="px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest bg-slate-200 dark:bg-white/5 text-slate-500">Notas</button>
-                            </div>
-                        </div>
-
-                        <div id="timeline-content-${t.numero}" class="relative space-y-8 before:absolute before:left-5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200 dark:before:bg-white/5">
-                            <!-- Injected by viewTimeline -->
-                        </div>
+                    <div class="mt-auto border-t border-slate-50 dark:border-white/5 p-4 bg-slate-50/50 dark:bg-white/5">
+                        <button onclick="window.viewTimeline('${t.numero}')" class="w-full h-12 flex items-center justify-center gap-3 bg-slate-900 dark:bg-slate-800 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-slate-800 transition-all shadow-lg active:scale-95 group">
+                            <i class="fas fa-clock-rotate-left text-xs group-hover:rotate-[-120deg] transition-transform duration-500"></i> Cronología
+                        </button>
                     </div>
                 </div>
             `;
         }).join('');
     };
 
-    // --- Live Pool per-territory timeline subscriptions ---
-    const timelineLivePools = {}; // num -> unsub function
-
-    const stopTimelineLivePool = (num) => {
-        if (timelineLivePools[num]) {
-            timelineLivePools[num]();
-            delete timelineLivePools[num];
-        }
-    };
-
-    const getStatusBadge = (status) => {
-        const s = String(status || '').toLowerCase();
-        if (s === 'asignado') return { text: 'Asignado', color: 'text-rose-500 bg-rose-500/10', dot: 'bg-rose-500' };
-        if (s === 'completado' || s === 'predicado') return { text: 'Completado', color: 'text-emerald-500 bg-emerald-500/10', dot: 'bg-emerald-500' };
-        if (s === 'disponible' || s === 'libre') return { text: 'Liberado', color: 'text-slate-500 bg-slate-100 dark:bg-white/10', dot: 'bg-slate-400' };
-        if (s === 'devuelto') return { text: 'Devuelto', color: 'text-amber-500 bg-amber-500/10', dot: 'bg-amber-500' };
-        if (s === 'sobrepuesto') return { text: 'Absorbido', color: 'text-indigo-400 bg-indigo-500/10', dot: 'bg-indigo-400' };
-        if (s === 'extraviado') return { text: 'Extraviado', color: 'text-rose-600 bg-rose-600/10', dot: 'bg-rose-700' };
-        return { text: status || 'Registro', color: 'text-slate-400 bg-slate-50 dark:bg-white/5', dot: 'bg-slate-300' };
-    };
-
-    const renderTimelineContent = (content, liveHistory, mode, num) => {
-        const tHistory = (liveHistory || [])
-            .filter(h => {
-                if (mode === 's13') return true;
-                return h.observaciones && h.observaciones.trim().length > 0;
-            })
-            .sort((a, b) => getSortableDate(b) - getSortableDate(a));
-
-        if (tHistory.length === 0) {
-            content.innerHTML = `
-                <div class="py-12 text-center opacity-40 ml-10 flex flex-col items-center gap-4">
-                    <div class="w-16 h-16 bg-slate-100 dark:bg-white/5 rounded-2xl flex items-center justify-center text-2xl">
-                        <i class="fas fa-inbox"></i>
+    // --- NUEVO VISOR S-13 INTERACTIVO (TIMELINE REDESIGN) ---
+    window.viewTimeline = async (num) => {
+        showModal(`
+            <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden shadow-2xl">
+                <header class="shrink-0 bg-slate-900 p-8 text-white relative overflow-hidden">
+                    <div class="absolute inset-0 bg-primary/10 backdrop-blur-3xl"></div>
+                    <div class="relative z-10 flex items-center justify-between">
+                        <div class="flex items-center gap-6">
+                            <div class="w-16 h-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-3xl shadow-xl border border-white/20">
+                                <i class="fas fa-history text-primary"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-2xl font-black uppercase tracking-tighter leading-none mb-1">Registro S-13</h3>
+                                <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Territorio #${num}</p>
+                            </div>
+                        </div>
+                        <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="w-12 h-12 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all">
+                            <i class="fas fa-times"></i>
+                        </button>
                     </div>
-                    <p class="text-[10px] font-bold uppercase tracking-widest italic">Sin registros para esta vista</p>
+                </header>
+
+                <div id="timeline-view-content" class="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-12 space-y-10 bg-slate-50/50 dark:bg-black/20">
+                    <div class="flex items-center gap-4 animate-pulse">
+                        <div class="w-2 h-2 rounded-full bg-primary mb-1"></div>
+                        <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">Cargando línea de tiempo...</span>
+                    </div>
+                </div>
+
+                <footer class="p-6 border-t border-slate-100 dark:border-white/5 bg-white dark:bg-black/40 flex justify-between items-center text-[9px] font-black text-slate-400 uppercase tracking-widest italic">
+                    <div><i class="fas fa-info-circle mr-2"></i> Orden cronológico descendente</div>
+                    <div id="timeline-total-count">...</div>
+                </footer>
+            </div>
+        `, async (modal) => {
+            const content = modal.querySelector('#timeline-view-content');
+            const counter = modal.querySelector('#timeline-total-count');
+
+            // Suscripción Live Pool para el territorio específico
+            const { startLivePool } = await import('../../data/firestore-services.js');
+            const { where } = await import('firebase/firestore');
+            
+            const unsub = startLivePool('banco_s13', [where('territorio_id', '==', String(num))], (data) => {
+                const sorted = data.sort((a, b) => {
+                    const getMs = (h) => {
+                        const d = h.timestamp || h.fecha_entrega || h.fecha_asignacion;
+                        if (!d) return 0;
+                        return (d.toDate ? d.toDate() : new Date(d)).getTime();
+                    };
+                    return getMs(b) - getMs(a);
+                });
+
+                if (counter) counter.innerText = `${sorted.length} Registros Encontrados`;
+                renderTimelineUI(content, sorted, num);
+            });
+
+            // Limpieza al cerrar modal
+            const closeBtn = modal.querySelector('button[onclick]');
+            const oldOnClick = closeBtn.onclick;
+            closeBtn.onclick = () => {
+                unsub();
+                if (oldOnClick) oldOnClick.call(closeBtn);
+            };
+        }, 'max-w-3xl');
+    };
+
+    const renderTimelineUI = (container, history, num) => {
+        if (history.length === 0) {
+            container.innerHTML = `
+                <div class="h-64 flex flex-col items-center justify-center opacity-30 gap-5 text-center">
+                    <div class="w-20 h-20 bg-slate-200 dark:bg-white/5 rounded-3xl flex items-center justify-center text-4xl">
+                        <i class="fas fa-folder-open"></i>
+                    </div>
+                    <p class="text-xs font-black uppercase tracking-widest">Sin historial registrado aún</p>
                 </div>`;
             return;
         }
 
-        content.innerHTML = tHistory.map((h, idx) => {
-            const badge = getStatusBadge(h.estado);
-            const isActive = h.estado === 'Asignado';
-            const dateAsig = UIHelpers.fmtDate(h.fecha_asignacion || h.timestamp);
-            const dateEntr = h.fecha_entrega ? UIHelpers.fmtDate(h.fecha_entrega) : null;
+        container.innerHTML = `
+            <div class="relative space-y-12 before:absolute before:left-[21px] before:top-4 before:bottom-4 before:w-1 before:bg-gradient-to-b before:from-primary/30 before:via-slate-200 dark:before:via-white/5 before:to-transparent">
+                ${history.map((h) => {
+                    const isEnCurso = !h.fecha_entrega;
+                    const dateAsig = UIHelpers.fmtDate(h.fecha_asignacion || h.timestamp);
+                    const dateEntr = h.fecha_entrega ? UIHelpers.fmtDate(h.fecha_entrega) : null;
+                    const badgeClass = isEnCurso 
+                        ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' 
+                        : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
+                    const dotClass = isEnCurso ? 'bg-amber-500 shadow-amber-500/40 animate-pulse' : 'bg-emerald-500 shadow-emerald-500/40';
 
-            // Duration badge
-            let durationStr = '';
-            if (h.fecha_asignacion) {
-                const start = new Date(h.fecha_asignacion);
-                const end = h.fecha_entrega ? new Date(h.fecha_entrega) : new Date();
-                const days = Math.round((end - start) / (1000 * 60 * 60 * 24));
-                if (days >= 0) durationStr = `${days}d`;
-            }
-
-            return `
-            <div class="relative pl-14 group/item animate-fade-in" data-hist-id="${h.id}">
-                <!-- Timeline dot -->
-                <div class="absolute left-3.5 top-3 w-4 h-4 ${badge.dot} rounded-full border-4 border-slate-50 dark:border-[#0d1117] z-10 shadow-md transition-all duration-300 group-hover/item:scale-150 ${isActive ? 'animate-pulse' : ''}"></div>
-                ${idx === 0 && isActive ? `<div class="absolute left-[14px] top-[28px] bottom-0 w-0.5 bg-gradient-to-b from-rose-500/40 to-transparent"></div>` : ''}
-
-                <div class="p-5 bg-white dark:bg-white/[0.03] rounded-3xl border ${isActive ? 'border-rose-200 dark:border-rose-500/20 shadow-rose-500/5' : 'border-slate-100 dark:border-white/5'} shadow-sm hover:shadow-lg transition-all duration-300 group-hover/item:-translate-y-0.5">
-                    
-                    <!-- Header row -->
-                    <div class="flex items-start justify-between gap-4 mb-4">
-                        <div class="flex items-center gap-3 flex-wrap">
-                            <span class="text-[10px] font-black ${badge.color} px-3 py-1.5 rounded-xl flex items-center gap-1.5">
-                                <span class="w-1.5 h-1.5 ${badge.dot} rounded-full"></span>
-                                ${badge.text}
-                            </span>
-                            ${isActive ? `<span class="text-[8px] font-black text-rose-500 bg-rose-500/10 px-2.5 py-1 rounded-full uppercase tracking-widest animate-pulse">● En Progreso</span>` : ''}
-                            ${durationStr ? `<span class="text-[8px] font-bold text-slate-400 bg-slate-100 dark:bg-white/5 px-2.5 py-1 rounded-full">${durationStr}</span>` : ''}
+                    return `
+                    <div class="relative pl-14 group/item">
+                        <!-- Conector Dot -->
+                        <div class="absolute left-0 top-1.5 w-11 h-11 flex items-center justify-center z-10 bg-slate-50 dark:bg-[#0a0f18] rounded-full">
+                            <div class="w-4 h-4 rounded-full ${dotClass} shadow-lg border-2 border-white dark:border-slate-900"></div>
                         </div>
-                        <!-- Action Buttons (always visible for all records) -->
-                        <div class="flex items-center gap-1.5 shrink-0 opacity-0 group-hover/item:opacity-100 transition-opacity">
-                            <button onclick="window.editHistoryRecord('${h.id}')" 
-                                    title="Editar registro"
-                                    class="w-8 h-8 flex items-center justify-center bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-all text-[10px]">
-                                <i class="fas fa-pen"></i>
-                            </button>
-                            ${isActive ? `
-                            <button onclick="window.quickComplete('${h.territorio_id}', '${h.id}')" 
-                                    title="Marcar como completado"
-                                    class="w-8 h-8 flex items-center justify-center bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white rounded-xl transition-all text-[10px]">
-                                <i class="fas fa-check"></i>
-                            </button>` : ''}
-                            <button onclick="window.deleteTimelineRecord('${h.id}', '${num}')" 
-                                    title="Eliminar registro"
-                                    class="w-8 h-8 flex items-center justify-center bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white rounded-xl transition-all text-[10px]">
-                                <i class="fas fa-trash-alt"></i>
-                            </button>
+
+                        <!-- Tarjeta S-13 -->
+                        <div id="card-h-${h.id}" class="bg-white dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/[0.07] rounded-3xl p-6 shadow-sm hover:shadow-xl hover:border-primary/20 transition-all duration-500 group-hover/item:-translate-y-1">
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <h4 class="text-base font-black text-slate-800 dark:text-white uppercase tracking-tight">${h.conductor || 'Sin asignar'}</h4>
+                                    <div class="flex items-center gap-3 mt-1.5">
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[8px] font-black uppercase border ${badgeClass}">
+                                            <span class="w-1 h-1 rounded-full bg-current"></span>
+                                            ${isEnCurso ? '🟠 En Curso' : '🟢 Completado'}
+                                        </span>
+                                        ${h.turno ? `<span class="text-[8px] font-bold text-slate-400 uppercase bg-slate-100 dark:bg-white/5 px-2 py-1 rounded-lg">${h.turno}</span>` : ''}
+                                    </div>
+                                </div>
+                                <button onclick="window.surgicalEditS13('${h.id}', '${num}')" class="w-10 h-10 bg-slate-50 dark:bg-white/5 hover:bg-primary hover:text-white rounded-xl flex items-center justify-center text-slate-400 transition-all active:scale-90 shadow-inner">
+                                    <i class="fas fa-pencil-alt text-xs"></i>
+                                </button>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-8 pt-4 border-t border-slate-50 dark:border-white/5">
+                                <div class="space-y-1">
+                                    <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest block">Fecha Salida</span>
+                                    <span class="text-[11px] font-bold text-slate-600 dark:text-slate-300 flex items-center gap-2">
+                                        <i class="far fa-calendar-alt opacity-40"></i> ${dateAsig}
+                                    </span>
+                                </div>
+                                <div class="space-y-1">
+                                    <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest block">Fecha Llegada</span>
+                                    <span class="text-[11px] font-black ${isEnCurso ? 'text-amber-500 italic opacity-60' : 'text-emerald-500'} flex items-center gap-2">
+                                        <i class="fas fa-flag-checkered opacity-40"></i> ${dateEntr || 'Pendiente...'}
+                                    </span>
+                                </div>
+                            </div>
+
+                            ${h.observaciones ? `
+                            <div class="mt-4 p-4 bg-slate-50/50 dark:bg-white/5 rounded-2xl italic text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+                                "${h.observaciones}"
+                            </div>` : ''}
                         </div>
                     </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    };
 
-                    <!-- Data grid -->
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                        <div class="flex flex-col">
-                            <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1">Responsable</span>
-                            <span class="text-[11px] font-black text-slate-800 dark:text-white uppercase truncate">${h.conductor || 'Sin asignar'}</span>
-                            ${h.auxiliar ? `<span class="text-[9px] text-slate-400 font-bold">${h.auxiliar}</span>` : ''}
-                        </div>
-                        <div class="flex flex-col">
-                            <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1">Turno</span>
-                            <span class="text-[11px] font-black text-slate-600 dark:text-slate-300 capitalize">${h.turno || '—'}</span>
-                        </div>
-                        <div class="flex flex-col">
-                            <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1">Asignación</span>
-                            <span class="text-[11px] font-bold text-slate-600 dark:text-slate-400">${dateAsig}</span>
-                        </div>
-                        <div class="flex flex-col">
-                            <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1">Entrega</span>
-                            ${dateEntr 
-                                ? `<span class="text-[11px] font-black text-emerald-500">${dateEntr}</span>` 
-                                : `<span class="text-[9px] font-bold text-rose-400 uppercase">Pendiente</span>`}
-                        </div>
+    // --- CIRUGÍA DE DATOS (SURGICAL INLINE EDITING) ---
+    window.surgicalEditS13 = async (hId, tNum) => {
+        // Encontrar el registro en el cache local de la vista
+        const h = historyByNum[tNum].find(x => x.id === hId);
+        if (!h) return;
+
+        const dateAsigVal = (h.fecha_asignacion || h.timestamp || new Date().toISOString()).split('T')[0];
+        const dateEntrVal = h.fecha_entrega ? h.fecha_entrega.split('T')[0] : '';
+        const cardEl = document.getElementById(`card-h-${hId}`);
+        if (!cardEl) return;
+
+        // Guardar HTML original para revertir si es necesario
+        const originalHTML = cardEl.innerHTML;
+        cardEl.classList.add('border-primary', 'shadow-primary/10');
+
+        cardEl.innerHTML = `
+            <div class="animate-fade-in space-y-5">
+                <div class="flex items-center gap-4 mb-2">
+                    <div class="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
+                        <i class="fas fa-edit"></i>
                     </div>
+                    <div>
+                        <h5 class="text-xs font-black uppercase tracking-tight text-primary">Modo Cirugía de Datos</h5>
+                        <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Ajustando S-13 · T-${tNum}</p>
+                    </div>
+                </div>
 
-                    ${h.observaciones ? `
-                    <div class="mt-4 pt-4 border-t border-slate-100 dark:border-white/5">
-                        <p class="text-[10px] text-slate-500 dark:text-slate-400 italic leading-relaxed">
-                            <i class="fas fa-quote-left text-slate-300 dark:text-white/10 mr-2 text-xs"></i>${h.observaciones}<i class="fas fa-quote-right text-slate-300 dark:text-white/10 ml-2 text-xs"></i>
-                        </p>
-                    </div>` : ''}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Conductor</label>
+                        <input type="text" id="edit-surgery-cond" value="${h.conductor || ''}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-xs font-bold outline-none focus:border-primary transition-all uppercase">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Turno</label>
+                        <select id="edit-surgery-turno" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-xs font-bold outline-none cursor-pointer">
+                            <option value="manana" ${h.turno === 'manana' ? 'selected' : ''}>MAÑANA</option>
+                            <option value="tarde" ${h.turno === 'tarde' ? 'selected' : ''}>TARDE</option>
+                            <option value="noche" ${h.turno === 'noche' ? 'selected' : ''}>NOCHE</option>
+                            <option value="zoom" ${h.turno === 'zoom' ? 'selected' : ''}>ZOOM</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Fecha Salida</label>
+                        <input type="date" id="edit-surgery-asig" value="${dateAsigVal}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-xs font-bold outline-none text-blue-500">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Fecha Llegada</label>
+                        <input type="date" id="edit-surgery-entr" value="${dateEntrVal}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-xs font-bold outline-none text-emerald-500">
+                    </div>
+                </div>
+
+                <div class="flex gap-2 pt-2">
+                    <button id="btn-surgery-cancel" class="flex-1 py-3 bg-slate-100 dark:bg-white/5 text-slate-500 font-black rounded-xl text-[9px] uppercase tracking-widest transition-all">Cancelar</button>
+                    <button id="btn-surgery-save" class="flex-[2] py-3 bg-primary text-white font-black rounded-xl text-[9px] uppercase tracking-widest shadow-lg shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-2">
+                         <i class="fas fa-save"></i> Aplicar Cambios
+                    </button>
                 </div>
             </div>
-            `;
-        }).join('');
-    };
+        `;
 
-    window.viewTimeline = (num, mode = 's13') => {
-        const el = document.getElementById(`timeline-${num}`);
-        const content = document.getElementById(`timeline-content-${num}`);
-        const title = document.getElementById(`timeline-title-${num}`);
-        const btnS13 = document.getElementById(`t-btn-s13-${num}`);
-        const btnObs = document.getElementById(`t-btn-obs-${num}`);
+        cardEl.querySelector('#btn-surgery-cancel').onclick = () => {
+            cardEl.innerHTML = originalHTML;
+            cardEl.classList.remove('border-primary', 'shadow-primary/10');
+        };
 
-        if (!el || !content) return;
+        cardEl.querySelector('#btn-surgery-save').onclick = async () => {
+            const btn = cardEl.querySelector('#btn-surgery-save');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Guardando...';
 
-        const isHidden = el.classList.contains('hidden');
-        if (isHidden) {
-            // Close any other open timelines and stop their live pools
-            document.querySelectorAll('[id^="timeline-"]').forEach(d => {
-                if (!d.classList.contains('hidden') && d.id !== `timeline-${num}`) {
-                    const closedNum = d.id.replace('timeline-', '');
-                    stopTimelineLivePool(closedNum);
-                    d.classList.add('hidden');
-                }
-            });
-            el.classList.remove('hidden');
-        } else if (mode === el.dataset.mode) {
-            // Same tab clicked again = close
-            stopTimelineLivePool(num);
-            el.classList.add('hidden');
-            return;
-        }
+            const cond = cardEl.querySelector('#edit-surgery-cond').value.trim();
+            const asig = cardEl.querySelector('#edit-surgery-asig').value;
+            const entr = cardEl.querySelector('#edit-surgery-entr').value;
+            const turno = cardEl.querySelector('#edit-surgery-turno').value;
 
-        el.dataset.mode = mode;
-        const isObs = mode === 'obs';
-        if (title) title.innerText = isObs ? 'Observaciones y Notas' : 'Cronología S-13 · Live';
-
-        // Update sub-tab buttons
-        if (btnS13) btnS13.className = `px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all ${!isObs ? 'bg-slate-900 dark:bg-white/10 text-white' : 'bg-slate-200 dark:bg-white/5 text-slate-500 hover:text-slate-700'}`;
-        if (btnObs) btnObs.className = `px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all ${isObs ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-white/5 text-slate-500 hover:text-slate-700'}`;
-
-        // Show loading state
-        content.innerHTML = `
-            <div class="ml-14 py-8 flex items-center gap-4">
-                <div class="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
-                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest animate-pulse">Conectando Live Pool...</span>
-            </div>`;
-
-        // Stop existing live pool for this territory
-        stopTimelineLivePool(num);
-
-        // Start Xolvy Live Pool: render initial static data, then subscribe for real-time updates
-        // Use the already-loaded historyByNum as initial data, then update via live pool
-        const initialLiveHistory = historyByNum[num] || [];
-        renderTimelineContent(content, initialLiveHistory, mode, num);
-
-        // Subscribe for real-time updates to banco_s13 (the authoritative S-13 collection)
-        // territorio_id in banco_s13 stores the territory NUMBER (e.g. "4") as a String
-        import('../../data/firestore-services.js').then(({ startLivePool }) => {
-            import('firebase/firestore').then(({ where }) => {
-                const cleanNum = String(num).trim();
-                const unsub = startLivePool(
-                    'banco_s13',
-                    [where('territorio_id', '==', cleanNum)],
-                    (liveData) => {
-                        // Augment with `numero` field for renderTimelineContent compatibility
-                        const normalized = liveData.map(h => ({
-                            ...h,
-                            numero: h.numero || h.territorio_id || cleanNum
-                        })).sort((a, b) => {
-                            const getMs = (h) => {
-                                const d = h.timestamp || h.fecha_entrega || h.fecha_asignacion;
-                                if (!d) return 0;
-                                return (d.toDate ? d.toDate() : new Date(d)).getTime();
-                            };
-                            return getMs(b) - getMs(a);
-                        });
-                        // Update the local cache too
-                        historyByNum[num] = normalized;
-                        // Refresh content if timeline is still open for this num
-                        const currentEl = document.getElementById(`timeline-${num}`);
-                        const currentContent = document.getElementById(`timeline-content-${num}`);
-                        if (currentEl && !currentEl.classList.contains('hidden') && currentContent) {
-                            const currentMode = currentEl.dataset.mode || 's13';
-                            renderTimelineContent(currentContent, normalized, currentMode, num);
-                        }
-                    }
-                );
-                timelineLivePools[num] = unsub;
-            });
-        });
-    };
-
-    window.deleteTimelineRecord = (hId, num) => {
-        showCustomConfirm('¿Eliminar este registro del historial S-13? Esta acción no se puede deshacer.', async () => {
             try {
-                await deleteHistoryRecord(hId);
-                showNotification('Registro eliminado', 'success');
-                // Live Pool will auto-refresh the timeline. Force refresh historyByNum
-                const freshHistory = await getHistorialReport();
-                freshHistory.forEach(h => {
-                    let rawNum = String(h.numero || '');
-                    const nums = rawNum.split(/[,/]/).map(s => String(s).trim()).filter(Boolean);
-                    nums.forEach(n => {
-                        if (!historyByNum[n]) historyByNum[n] = [];
-                    });
-                });
-                // Re-render the visible timeline grid
-                renderGrid();
+                const updateData = {
+                    conductor: cond,
+                    fecha_asignacion: new Date(asig + 'T12:00:00Z').toISOString(),
+                    turno: turno,
+                    estado: entr ? 'Completado' : 'Asignado'
+                };
+
+                if (entr) {
+                    updateData.fecha_entrega = new Date(entr + 'T12:00:00Z').toISOString();
+                } else {
+                    updateData.fecha_entrega = null; // En caso de que se borre la fecha
+                }
+
+                await updateHistoryRecord(hId, updateData);
+                showNotification("S-13 Actualizado Quirúrgicamente", "success");
+                // No necesitamos refrescar manualmente el cardEl, el Live Pool se encargará de re-renderizar todo el TimelineUI
             } catch (e) {
-                console.error(e);
-                showNotification('Error eliminando registro', 'error');
+                showNotification("Error en sincronización: " + e.message, "error");
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save"></i> Aplicar Cambios';
             }
-        });
+        };
     };
 
-    // Clean up all live pools when leaving this view
     window._stopAllTimelineLivePools = () => {
-        Object.keys(timelineLivePools).forEach(num => stopTimelineLivePool(num));
+        // Obsoleto pero mantenido por compatibilidad
     };
 
     window.showGlobalObservations = async () => {
@@ -595,85 +567,9 @@ export const renderHistorialView = async (container) => {
         });
     };
 
-    window.editHistoryRecord = async (id) => {
-        const hist = history.find(h => h.id === id);
-        if (!hist) return;
+    // --- ELIMINADOS MODALES VIEJOS DE EDICIÓN ---
 
-        const dateVal = (hist.fecha_asignacion || new Date().toISOString()).split('T')[0];
-
-        showModal(`
-            <div class="p-8 space-y-10">
-                <header class="flex items-center gap-6">
-                    <div class="w-16 h-16 bg-blue-500/10 rounded-3xl flex items-center justify-center text-3xl text-blue-500 shadow-inner">
-                        <i class="fas fa-edit"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-2xl font-black uppercase tracking-tighter">Corregir Registro S-13</h3>
-                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em] mt-1">Territorio #${hist.numero}</p>
-                    </div>
-                </header>
-
-                <div class="space-y-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-3">
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Conductor</label>
-                            <select id="edit-h-conductor" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all uppercase appearance-none cursor-pointer">
-                                ${allPublicadores.map(p => `<option value="${p.nombre}" ${p.nombre === hist.conductor ? 'selected' : ''}>${p.nombre}</option>`).join('')}
-                            </select>
-                        </div>
-                        <div class="space-y-3">
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Fecha Asignación</label>
-                            <input type="date" id="edit-h-date" value="${dateVal}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-blue-500 outline-none focus:border-primary transition-all shadow-inner">
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-3">
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Turno</label>
-                            <select id="edit-h-turno" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all">
-                                <option value="manana" ${hist.turno === 'manana' ? 'selected' : ''}>MAÑANA</option>
-                                <option value="tarde" ${hist.turno === 'tarde' ? 'selected' : ''}>TARDE</option>
-                                <option value="noche" ${hist.turno === 'noche' ? 'selected' : ''}>NOCHE</option>
-                                <option value="zoom" ${hist.turno === 'zoom' ? 'selected' : ''}>ZOOM</option>
-                            </select>
-                        </div>
-                        <div class="pt-6">
-                            <p class="text-[9px] text-slate-400 font-bold uppercase leading-tight italic">⚠️ Cambiar el turno o fecha actualizará automáticamente el Programa Semanal.</p>
-                        </div>
-                    </div>
-                    <div class="space-y-3">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Notas / Observaciones</label>
-                        <textarea id="edit-h-notes" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[12px] font-bold text-slate-700 dark:text-white outline-none focus:border-primary transition-all shadow-inner h-32" placeholder="Escribe detalles importantes...">${hist.observaciones || ''}</textarea>
-                    </div>
-                </div>
-
-                <div class="flex gap-4 pt-6 border-t border-slate-50 dark:border-white/5">
-                    <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest">Cancelar</button>
-                    <button id="confirm-edit-h" class="flex-[2] py-5 bg-blue-600 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-blue-500/20 transition-all active:scale-95">Actualizar Historial</button>
-                </div>
-            </div>
-        `, (modal) => {
-            modal.querySelector('#confirm-edit-h').onclick = async () => {
-                const conductor = modal.querySelector('#edit-h-conductor').value;
-                const fecha = modal.querySelector('#edit-h-date').value;
-                const turno = modal.querySelector('#edit-h-turno').value;
-                const notes = modal.querySelector('#edit-h-notes').value;
-
-                if (!conductor || !fecha) return showNotification("Complete los campos obligatorios", "warning");
-
-                await updateHistoryRecord(id, {
-                    conductor: conductor,
-                    fecha_asignacion: new Date(fecha + 'T12:00:00Z').toISOString(),
-                    turno: turno,
-                    observaciones: notes
-                });
-                showNotification("Registro actualizado exitosamente");
-                modal.classList.add('hidden');
-                renderHistorialView(container);
-            };
-        });
-    };
-
-    window.quickComplete = async (tId, hId) => {
+    window.quickComplete = async (tId) => {
         showCustomConfirm("¿Deseas marcar este territorio como completado ahora?", async () => {
             await returnTerritorio(tId, "Completado desde Historial", new Date().toISOString());
             showNotification("Territorio finalizado");
