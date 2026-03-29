@@ -37,15 +37,15 @@ async function loadSubModule(name, path) {
  * Refactored in 2026 for modular architecture and performance.
  */
 const renderNavItem = (id, icon, label, active) => {
-    const activeClasses = 'active bg-indigo-600 text-white shadow-xl shadow-indigo-600/30 scale-[1.02] border-indigo-400/20';
-    const inactiveClasses = 'hover:bg-slate-100/50 dark:hover:bg-white/5 text-slate-500 dark:text-slate-400 border-transparent';
+    const activeClasses = 'bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-400/20 shadow-none relative after:absolute after:left-0 after:top-1/4 after:bottom-1/4 after:w-1 after:bg-indigo-600 after:rounded-r-full';
+    const inactiveClasses = 'text-slate-500 hover:text-slate-900 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5 border-transparent shadow-none';
     
     return `
-    <button class="nav-item flex-shrink-0 flex items-center justify-center lg:justify-start gap-4 p-3 lg:p-4 rounded-xl lg:rounded-2xl border transition-all duration-300 group ${active ? activeClasses : inactiveClasses}" data-tab="${id}">
-        <div class="nav-icon-bg w-9 h-9 lg:w-11 lg:h-11 rounded-lg lg:rounded-2xl flex items-center justify-center transition-all shrink-0 ${active ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-white/5 group-hover:bg-indigo-500/10 group-hover:text-indigo-600 shadow-inner'}">
-            <i class="${icon} text-base lg:text-lg transition-transform group-hover:scale-110"></i>
+    <button class="nav-item flex-shrink-0 flex items-center justify-center lg:justify-start gap-3 p-3 lg:px-4 lg:py-3.5 rounded-xl border transition-all duration-300 group ${active ? activeClasses : inactiveClasses}" data-tab="${id}">
+        <div class="nav-icon-bg w-8 h-8 lg:w-9 lg:h-9 rounded-lg flex items-center justify-center transition-all shrink-0 ${active ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-white/5 group-hover:bg-indigo-600 group-hover:text-white'}">
+            <i class="${icon} text-sm transition-transform group-hover:scale-110"></i>
         </div>
-        <span class="text-[10px] font-black uppercase tracking-[0.1rem] lg:tracking-[0.15rem] hidden lg:block whitespace-nowrap opacity-80 group-hover:opacity-100 transition-opacity">${label}</span>
+        <span class="text-[11px] font-bold tracking-tight hidden lg:block whitespace-nowrap">${label}</span>
     </button>
     `;
 };
@@ -149,18 +149,14 @@ const setupNavigation = (appVersion) => {
                 const iconBg = t.querySelector('.nav-icon-bg');
                 
                 if (isActive) {
-                    t.classList.add('active', 'bg-indigo-600', 'text-white', 'shadow-xl', 'shadow-indigo-600/30', 'scale-[1.02]', 'border-indigo-400/20');
-                    t.classList.remove('hover:bg-slate-100/50', 'dark:hover:bg-white/5', 'text-slate-500', 'dark:text-slate-400', 'border-transparent');
+                    t.className = `nav-item flex-shrink-0 flex items-center justify-center lg:justify-start gap-3 p-3 lg:px-4 lg:py-3.5 rounded-xl border transition-all duration-300 group bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-400/20 shadow-none relative after:absolute after:left-0 after:top-1/4 after:bottom-1/4 after:w-1 after:bg-indigo-600 after:rounded-r-full`;
                     if (iconBg) {
-                        iconBg.classList.add('bg-white/20', 'text-white');
-                        iconBg.classList.remove('bg-slate-100', 'dark:bg-white/5', 'group-hover:bg-indigo-500/10', 'group-hover:text-indigo-600', 'shadow-inner');
+                        iconBg.className = 'nav-icon-bg w-8 h-8 lg:w-9 lg:h-9 rounded-lg flex items-center justify-center transition-all shrink-0 bg-indigo-600 text-white';
                     }
                 } else {
-                    t.classList.remove('active', 'bg-indigo-600', 'text-white', 'shadow-xl', 'shadow-indigo-600/30', 'scale-[1.02]', 'border-indigo-400/20');
-                    t.classList.add('hover:bg-slate-100/50', 'dark:hover:bg-white/5', 'text-slate-500', 'dark:text-slate-400', 'border-transparent');
+                    t.className = `nav-item flex-shrink-0 flex items-center justify-center lg:justify-start gap-3 p-3 lg:px-4 lg:py-3.5 rounded-xl border transition-all duration-300 group text-slate-500 hover:text-slate-900 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5 border-transparent shadow-none`;
                     if (iconBg) {
-                        iconBg.classList.remove('bg-white/20', 'text-white');
-                        iconBg.classList.add('bg-slate-100', 'dark:bg-white/5', 'group-hover:bg-indigo-500/10', 'group-hover:text-indigo-600', 'shadow-inner');
+                        iconBg.className = 'nav-icon-bg w-8 h-8 lg:w-9 lg:h-9 rounded-lg flex items-center justify-center transition-all shrink-0 bg-slate-100 dark:bg-white/5 group-hover:bg-indigo-600 group-hover:text-white';
                     }
                 }
             });
@@ -226,44 +222,42 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
                 <!-- ROOT SHELL -->
                 <div class="flex-1 flex flex-col min-h-0 relative overflow-hidden">
                     
-                    <!-- HEADER PRO v3.0 (Responsive & Compact) -->
-                    <header class="w-full z-50 backdrop-blur-3xl border-b border-slate-200/60 dark:border-white/5 px-4 lg:px-10 py-3 lg:py-5 transition-all duration-300 shrink-0">
+                    <!-- HEADER CLEAN v4.0 (Stripe Style) -->
+                    <header class="w-full z-50 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-b border-slate-200 dark:border-white/5 px-6 lg:px-12 py-4 lg:py-6 transition-all duration-300 shrink-0">
                         <div class="flex flex-row items-center justify-between gap-4 relative z-10">
-                            <div class="flex items-center gap-3 lg:gap-5">
-                                <div class="w-10 h-10 lg:w-14 lg:h-14 bg-gradient-to-br from-indigo-600 to-indigo-900 rounded-xl lg:rounded-[1.25rem] flex items-center justify-center text-lg lg:text-2xl shadow-xl shadow-indigo-600/20 border border-white/20 shrink-0">
+                            <div class="flex items-center gap-4 lg:gap-6">
+                                <div class="w-10 h-10 lg:w-12 lg:h-12 bg-indigo-600 rounded-xl flex items-center justify-center text-lg lg:text-xl shadow-indigo-600/20 border border-white/20 shrink-0">
                                     <i class="fas fa-university text-white"></i>
                                 </div>
-                                <div>
-                                    <div class="flex flex-col lg:flex-row lg:items-baseline lg:gap-3">
-                                        <h1 class="text-sm md:text-xl font-black text-slate-950 dark:text-white uppercase tracking-tighter shrink-0 order-2 lg:order-1">Gestión Central</h1>
-                                        <span class="text-[7px] lg:text-[9px] font-black tracking-[0.3em] text-indigo-500 uppercase order-1 lg:order-2 opacity-70">Admin Panel</span>
-                                    </div>
-                                    <div class="hidden lg:flex items-center gap-2 mt-1">
-                                         <div class="flex items-center gap-1.5 py-0.5 px-2 bg-emerald-500/10 text-emerald-500 rounded-lg">
-                                            <span class="relative flex h-1.5 w-1.5">
+                                <div class="flex flex-col">
+                                    <h1 class="text-lg lg:text-2xl font-bold text-slate-900 dark:text-white tracking-tight leading-none mb-1">Centro de Gestión</h1>
+                                    <div class="flex items-center gap-2">
+                                         <div class="flex items-center gap-1.5 py-0.5 px-2 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/50 rounded-full">
+                                            <span class="relative flex h-1 w-1">
                                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                               <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                                               <span class="relative inline-flex rounded-full h-1 w-1 bg-emerald-600"></span>
                                             </span>
-                                            <span class="text-[7px] font-bold uppercase tracking-widest">Servidor Activo</span>
+                                            <span class="text-[8px] font-bold uppercase tracking-widest">Activo</span>
                                          </div>
+                                         <span class="text-[9px] font-semibold text-slate-400 uppercase tracking-[0.2em] ml-1">v${appVersion}</span>
                                     </div>
                                 </div>
                             </div>
                             
-                            <div class="flex items-center gap-2 lg:gap-4">
-                                <div class="flex items-center gap-1.5 bg-slate-100 dark:bg-white/5 p-1 rounded-xl border border-slate-200 dark:border-white/10 shadow-inner">
-                                     <button onclick="window.toggleTheme()" class="w-8 h-8 flex items-center justify-center text-slate-500 hover:text-indigo-600 transition-all active:scale-75 outline-none">
-                                         <i class="fas fa-moon dark:hidden text-[10px]"></i>
-                                         <i class="fas fa-sun hidden dark:block text-yellow-500 text-[10px]"></i>
+                            <div class="flex items-center gap-3 lg:gap-4">
+                                <div class="flex items-center gap-1.5 bg-slate-50 dark:bg-white/5 p-1.5 rounded-xl border border-slate-200 dark:border-white/10">
+                                     <button onclick="window.toggleTheme()" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-indigo-600 transition-all active:scale-95 outline-none">
+                                         <i class="fas fa-moon dark:hidden text-[11px]"></i>
+                                         <i class="fas fa-sun hidden dark:block text-yellow-500 text-[11px]"></i>
                                      </button>
-                                     <div class="w-px h-3 bg-slate-200 dark:bg-white/10 mx-0.5"></div>
-                                     <button onclick="window.switchToConductorView()" class="w-8 h-8 flex items-center justify-center text-slate-500 hover:text-primary transition-all active:scale-75 outline-none" title="Cambiar a Conductor">
-                                         <i class="fas fa-user-circle text-[10px]"></i>
+                                     <div class="w-px h-3 bg-slate-200 dark:bg-white/10 mx-1"></div>
+                                     <button onclick="window.switchToConductorView()" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-indigo-600 transition-all active:scale-95 outline-none" title="Cambiar a Vista Conductor">
+                                         <i class="fas fa-compass text-[11px]"></i>
                                      </button>
                                 </div>
-                                <button id="logout-btn" class="w-10 h-10 lg:w-auto lg:px-5 lg:py-2.5 rounded-xl bg-rose-500/10 dark:bg-rose-500/20 text-rose-500 flex items-center justify-center font-black text-[9px] uppercase tracking-widest transition-all hover:bg-rose-500 hover:text-white shadow-xl shadow-rose-500/20">
-                                    <i class="fas fa-power-off"></i>
-                                    <span class="hidden lg:inline ml-2">Salir</span>
+                                <button id="logout-btn" class="h-10 px-6 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-[10px] uppercase tracking-widest transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2">
+                                    <i class="fas fa-power-off text-xs opacity-60"></i>
+                                    <span class="hidden lg:inline">Cerrar Sesión</span>
                                 </button>
                             </div>
                         </div>
@@ -273,17 +267,23 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
                     <div class="flex-1 flex flex-col lg:flex-row min-h-0 relative overflow-hidden transition-all duration-300">
                         
                         <!-- NAVIGATION (Side / Bottom) -->
-                        <aside class="order-2 lg:order-1 w-full lg:w-72 bg-white/80 dark:bg-[#0a0f18]/90 lg:bg-transparent backdrop-blur-2xl lg:backdrop-blur-none border-t lg:border-t-0 lg:border-r border-slate-200/60 dark:border-white/10 p-2 lg:p-8 shrink-0 z-50 shadow-[0_-10px_50px_rgba(0,0,0,0.1)] lg:shadow-none">
-                            <nav class="flex flex-row lg:flex-col gap-2 p-1 overflow-x-auto lg:overflow-y-auto scrollbar-hide overscroll-contain">
-                                ${renderNavItem('dashboard', 'fas fa-chart-line', 'Tablero', initialTab === 'dashboard')}
-                                ${renderNavItem('casa-en-casa', 'fas fa-map-location-dot', 'Territorios', initialTab === 'casa-en-casa')}
-                                ${renderNavItem('predicacion', 'fas fa-bullhorn', 'Horarios', initialTab === 'predicacion')}
-                                ${renderNavItem('telefonos', 'fas fa-phone-volume', 'Telefonía', initialTab === 'telefonos')}
-                                <div class="hidden lg:block h-px bg-slate-200 dark:bg-white/10 my-4 mx-4"></div>
-                                ${renderNavItem('reportes', 'fas fa-file-invoice', 'Reportes', initialTab === 'reportes')}
-                                ${renderNavItem('personal', 'fas fa-users', 'Publicadores', initialTab === 'personal')}
-                                ${renderNavItem('recursos', 'fas fa-folder-open', 'Recursos', initialTab === 'recursos')}
-                                ${renderNavItem('config', 'fas fa-sliders', 'Ajustes', initialTab === 'config')}
+                        <aside class="order-2 lg:order-1 w-full lg:w-72 bg-white dark:bg-slate-900 border-t lg:border-t-0 lg:border-r border-slate-200 dark:border-white/5 p-2 lg:p-6 shrink-0 z-50 transition-all duration-300">
+                            <nav class="flex flex-row lg:flex-col gap-1 p-1 overflow-x-auto lg:overflow-y-auto scrollbar-hide overscroll-contain">
+                                <div class="hidden lg:block mb-4 px-4 py-2">
+                                     <span class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Menú Principal</span>
+                                </div>
+                                ${renderNavItem('dashboard', 'fas fa-grid-2', 'Tablero Metas', initialTab === 'dashboard')}
+                                ${renderNavItem('casa-en-casa', 'fas fa-map', 'Territorios', initialTab === 'casa-en-casa')}
+                                ${renderNavItem('predicacion', 'fas fa-calendar-days', 'Programa Semanal', initialTab === 'predicacion')}
+                                ${renderNavItem('telefonos', 'fas fa-phone', 'Telefonía', initialTab === 'telefonos')}
+                                <div class="hidden lg:block h-px bg-slate-100 dark:bg-white/5 my-4 mx-4"></div>
+                                <div class="hidden lg:block mb-4 px-4 py-2">
+                                     <span class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Administración</span>
+                                </div>
+                                ${renderNavItem('reportes', 'fas fa-clock-rotate-left', 'Cronología S-13', initialTab === 'reportes')}
+                                ${renderNavItem('personal', 'fas fa-user-group', 'Publicadores', initialTab === 'personal')}
+                                ${renderNavItem('recursos', 'fas fa-folder-tree', 'Archivos', initialTab === 'recursos')}
+                                ${renderNavItem('config', 'fas fa-gear', 'Configuración', initialTab === 'config')}
                             </nav>
                         </aside>
 

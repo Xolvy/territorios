@@ -224,72 +224,60 @@ export const renderProgramaTab = async (container) => {
 
     container.innerHTML = `
         <div class="max-w-[1700px] mx-auto space-y-12 animate-fade-in pb-10">
-            <header class="flex flex-col xl:flex-row items-center justify-between gap-6">
-                <div class="flex items-center gap-5">
-                    <div class="w-14 h-14 bg-gradient-to-br from-primary to-indigo-600 rounded-2xl flex items-center justify-center text-2xl text-white shadow-xl shadow-primary/20">
-                        <i class="fas fa-calendar-alt"></i>
+            <!-- Header Clean Aesthetic -->
+            <header class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 pb-2 border-b border-slate-100 dark:border-white/5">
+                <div class="flex flex-col">
+                    <div class="flex items-center gap-3 mb-2">
+                        <span class="px-2 py-0.5 bg-indigo-50 text-indigo-600 text-[9px] font-bold uppercase tracking-widest rounded border border-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-400/20">Operational Planning</span>
+                        <div class="h-px w-8 bg-slate-200 dark:bg-white/10"></div>
                     </div>
-                    <div>
-                        <h3 class="text-2xl font-black text-slate-900 dark:text-white mb-0.5 uppercase tracking-tighter">Programa Semanal</h3>
-                        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Planificación de salidas de campo</p>
-                    </div>
+                    <h2 class="text-3xl lg:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">Programa Semanal</h2>
+                    <p class="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">Sincronización de territorios y salidas de campo</p>
                 </div>
-                
-                <div class="flex flex-wrap items-center justify-center gap-3 w-full xl:w-auto overflow-visible relative">
-                    <!-- Week Navigation (Forced to Layer 50) -->
-                    <div class="flex items-center bg-slate-100 dark:bg-white/5 rounded-2xl p-1 border border-slate-200 dark:border-white/5 shadow-inner relative z-[50] mb-5 xl:mb-0">
-                         <button id="btn-prev-week" class="p-4 hover:bg-white dark:hover:bg-white/10 rounded-xl transition-all text-slate-400 hover:text-primary active:scale-95">
-                            <i class="fas fa-chevron-left"></i>
-                         </button>
-                         <button onclick="window.openWeekSelector()" class="px-8 py-3 min-w-[200px] flex items-center justify-center gap-2 text-center hover:bg-white dark:hover:bg-white/10 rounded-xl transition-all group active:scale-95">
-                             <span id="week-range-label" class="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest group-hover:text-primary transition-colors">Cargando...</span>
-                             <i class="fas fa-chevron-down text-[10px] text-slate-400 group-hover:text-primary transition-colors"></i>
-                         </button>
-                         <button id="btn-next-week" class="p-4 hover:bg-white dark:hover:bg-white/10 rounded-xl transition-all text-slate-400 hover:text-primary active:scale-95">
-                            <i class="fas fa-chevron-right"></i>
-                         </button>
-                         <div class="h-6 w-px bg-slate-200 dark:bg-white/10 mx-2"></div>
-                         <button id="action-hoy-prog" class="p-3 px-5 hover:bg-white dark:hover:bg-white/10 rounded-xl transition-all text-slate-500 hover:text-primary active:scale-95 font-black text-[10px] uppercase tracking-widest">Hoy</button>
-                    </div>
 
-                    <!-- Action Buttons (Lower Layer 10) -->
-                    <nav data-adaptive-wrap="true" class="program-toolbar relative z-[10] w-full lg:w-max max-w-full">
-                        
-                        <!-- Group 1 -->
-                        <div class="toolbar-group">
-                            <button id="action-formalizar-prog" class="btn-pro flex items-center gap-2 px-5 py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-[10px] font-black text-[10px] uppercase tracking-widest transition-all shadow-md shadow-emerald-500/20 active:scale-95 group shrink-0" title="Formalizar todas las asignaciones programadas">
-                                <i class="fas fa-project-diagram group-hover:rotate-12 transition-transform"></i>
-                                Formalizar
+                <div class="flex items-center bg-white dark:bg-slate-900 rounded-xl p-1 border border-slate-200 dark:border-white/10 shadow-sm">
+                     <button id="btn-prev-week" class="p-3.5 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg transition-all text-slate-400 hover:text-indigo-600 active:scale-95">
+                        <i class="fas fa-arrow-left text-xs"></i>
+                     </button>
+                     <button onclick="window.openWeekSelector()" class="px-6 py-2.5 min-w-[180px] flex flex-col items-center justify-center gap-0.5 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg transition-all group active:scale-95">
+                         <span id="week-range-label" class="text-[10px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest group-hover:text-indigo-600 transition-colors">Cargando Semana...</span>
+                         <span class="text-[8px] text-slate-400 font-medium uppercase tracking-tighter">Calendario Maestro <i class="fas fa-chevron-down ml-1 text-[7px] opacity-50"></i></span>
+                     </button>
+                     <button id="btn-next-week" class="p-3.5 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg transition-all text-slate-400 hover:text-indigo-600 active:scale-95">
+                        <i class="fas fa-arrow-right text-xs"></i>
+                     </button>
+                </div>
+            </header>
+
+                    <!-- Premium Toolbar -->
+                    <nav data-adaptive-wrap="true" class="flex flex-wrap items-center gap-3 w-full lg:w-max">
+                        <div class="flex items-center gap-2">
+                            <button id="action-formalizar-prog" class="px-5 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all shadow-sm shadow-emerald-200 active:scale-95 group flex items-center gap-2">
+                                <i class="fas fa-bolt-lightning text-emerald-200 group-hover:scale-110 transition-transform"></i> Formalizar
                             </button>
-                            <button id="action-recepcion-prog" class="btn-pro flex items-center gap-2 px-5 py-3.5 bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20 text-rose-500 dark:text-rose-400 rounded-[10px] font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 group shrink-0" title="Recibir territorios finalizados">
-                                <i class="fas fa-file-import group-hover:-translate-x-1 transition-transform"></i>
-                                Recepción
+                            <button id="action-recepcion-prog" class="px-5 py-3.5 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 rounded-xl border border-slate-200 dark:border-white/10 hover:border-rose-500 hover:text-rose-600 transition-all font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95 group">
+                                <i class="fas fa-inbox opacity-40 group-hover:opacity-100"></i> Recepción
                             </button>
                         </div>
 
                         <div class="toolbar-divider hidden md:block"></div>
 
-                        <!-- Group 2 -->
-                        <div class="toolbar-group">
-                            <button id="action-escanear-prog" class="btn-pro flex items-center gap-2 px-5 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-[10px] font-black text-[10px] uppercase tracking-widest transition-all shadow-md shadow-indigo-600/20 active:scale-95 group shrink-0" title="Escanear programa desde imagen con IA">
-                                <i class="fas fa-camera group-hover:scale-110 transition-transform"></i>
-                                Escanear
+                        <div class="flex items-center gap-2">
+                            <button id="action-escanear-prog" class="px-5 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all shadow-sm shadow-indigo-200 active:scale-95 group flex items-center gap-2">
+                                <i class="fas fa-wand-magic-sparkles text-indigo-200 group-hover:scale-110 transition-transform"></i> Nexo Vision
                             </button>
-                            <button id="action-replicar-prog" class="btn-pro flex items-center gap-2 px-5 py-3.5 bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-[10px] font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 group shrink-0" title="Replicar estructura de la semana pasada">
-                                <i class="fas fa-copy group-hover:scale-110 transition-transform"></i>
-                                Replicar
+                            <button id="action-replicar-prog" class="px-5 py-3.5 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 rounded-xl border border-slate-200 dark:border-white/10 hover:border-indigo-500 hover:text-indigo-600 transition-all font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95 group">
+                                <i class="fas fa-clone opacity-40 group-hover:opacity-100"></i> Replicar
                             </button>
                         </div>
 
                         <div style="flex-grow: 1" class="hidden xl:block"></div>
 
-                        <!-- Export Dropdown -->
-                        <div class="dropdown-container relative z-50 shrink-0">
-                            <button id="action-exportar-prog" class="btn-pro flex items-center justify-center w-full gap-2 px-6 py-4 bg-slate-800 dark:bg-white/10 hover:bg-slate-700 dark:hover:bg-white/20 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-slate-900/10 active:scale-95 group" title="Opciones de Exportación">
-                                <i class="fas fa-file-export"></i>
-                                Exportar
-                                <i class="fas fa-chevron-down ml-1 text-[8px] opacity-70 group-hover:translate-y-0.5 transition-transform"></i>
-                            </button>
+                        <!-- Export Action -->
+                        <button id="action-exportar-prog" class="px-6 py-3.5 bg-slate-900 dark:bg-white/10 hover:bg-slate-800 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all shadow-sm active:scale-95 group flex items-center gap-2">
+                            <i class="fas fa-share-nodes opacity-70"></i> Compartir
+                            <i class="fas fa-chevron-down ml-1 text-[7px] opacity-40 group-hover:translate-y-0.5 transition-transform"></i>
+                        </button>
                             <div id="export-menu-options" class="absolute right-0 top-full mt-3 min-w-[220px] bg-white dark:bg-slate-900 rounded-[1.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-slate-200 dark:border-white/10 p-2 z-[99] origin-top-right transition-all duration-300 transform scale-95 opacity-0 pointer-events-none data-[visible=true]:scale-100 data-[visible=true]:opacity-100 data-[visible=true]:pointer-events-auto">
                                 <button id="btn-export-xls-prog" class="w-full flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-emerald-500 rounded-xl transition-all text-left">
                                     <i class="fas fa-file-excel text-emerald-500 text-sm"></i>

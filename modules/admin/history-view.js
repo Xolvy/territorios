@@ -187,36 +187,35 @@ export const renderHistorialView = async (container) => {
         }
         grid.innerHTML = displayList.map(t => {
             const isFree = t.estado === 'Libre' || t.estado === 'Disponible' || t.estado === 'Sin asignar';
-            const numBg = isFree ? 'bg-emerald-500 shadow-emerald-500/30' : 'bg-rose-500 shadow-rose-500/30';
-
+            
             return `
-                <div class="modern-card flex flex-col !p-0 border-slate-100 dark:border-white/5 shadow-sm hover:shadow-md transition-all group overflow-hidden bg-white dark:bg-[#0d1117] h-full"> 
+                <div class="flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm hover:shadow-md transition-all group overflow-hidden h-full"> 
                     <div class="flex flex-col p-6 gap-5 flex-1">
                         <div class="flex items-center justify-between gap-4">
-                            <div class="w-14 h-14 ${numBg} rounded-2xl flex items-center justify-center text-white text-xl font-black shadow-lg shrink-0 group-hover:rotate-12 transition-transform duration-500">
+                            <div class="w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg shadow-sm border ${isFree ? 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-400/20' : 'bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-400/20'}">
                                 ${t.numero}
                             </div>
                             <div class="flex flex-col items-end">
-                                <span class="text-[7px] font-black ${isFree ? 'text-emerald-500' : 'text-rose-500'} uppercase tracking-[0.2em] mb-1">${t.estado}</span>
-                                ${t.asignado_a ? `<span class="text-[8px] font-black text-slate-400 uppercase truncate max-w-[110px] bg-slate-50 dark:bg-white/5 px-2.5 py-1.5 rounded-lg border border-slate-100 dark:border-white/5">${t.asignado_a}</span>` : ''}
+                                <span class="text-[9px] font-bold ${isFree ? 'text-emerald-600' : 'text-rose-600'} uppercase tracking-widest mb-1">${t.estado}</span>
+                                ${t.asignado_a ? `<span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase truncate max-w-[110px] bg-slate-50 dark:bg-white/5 px-2.5 py-1.5 rounded-lg border border-slate-100 dark:border-white/5">${t.asignado_a}</span>` : ''}
                             </div>
                         </div>
 
                         <div class="space-y-4">
                             <div class="flex flex-col">
-                                <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 opacity-60">Localidad</span>
-                                <span class="text-[12px] font-black uppercase text-slate-700 dark:text-white truncate">${t.localidad || 'Mi Ciudad'}</span>
+                                <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Localidad</span>
+                                <span class="text-xs font-bold text-slate-900 dark:text-white truncate uppercase tracking-tight">${t.localidad || 'Mi Ciudad'}</span>
                             </div>
                             <div class="flex flex-col">
-                                <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 opacity-60">Área Geográfica</span>
-                                <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">${t.manzanas || 'Sin manzanas'}</span>
+                                <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Área Geográfica</span>
+                                <span class="text-[10px] font-medium text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">${t.manzanas || 'Sin manzanas'}</span>
                             </div>
                         </div>
                     </div>
 
-                    <div class="mt-auto border-t border-slate-50 dark:border-white/5 p-4 bg-slate-50/50 dark:bg-white/5">
-                        <button onclick="window.viewTimeline('${t.numero}')" class="w-full h-12 flex items-center justify-center gap-3 bg-slate-900 dark:bg-slate-800 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-slate-800 transition-all shadow-lg active:scale-95 group">
-                            <i class="fas fa-clock-rotate-left text-xs group-hover:rotate-[-120deg] transition-transform duration-500"></i> Cronología
+                    <div class="mt-auto border-t border-slate-50 dark:border-white/5 p-4 bg-slate-50/50 dark:bg-black/20">
+                        <button onclick="window.viewTimeline('${t.numero}')" class="w-full h-11 flex items-center justify-center gap-3 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl border border-slate-200 dark:border-white/10 text-[10px] font-bold uppercase tracking-widest hover:border-indigo-500 hover:text-indigo-600 transition-all shadow-sm active:scale-95 group">
+                            <i class="fas fa-clock-rotate-left text-xs opacity-40 group-hover:opacity-100 group-hover:rotate-[-120deg] transition-transform duration-500"></i> Cronología
                         </button>
                     </div>
                 </div>
@@ -227,23 +226,20 @@ export const renderHistorialView = async (container) => {
     // --- NUEVO VISOR S-13 INTERACTIVO (TIMELINE REDESIGN) ---
     window.viewTimeline = async (num) => {
         showModal(`
-            <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden shadow-2xl">
-                <header class="shrink-0 bg-slate-900 p-8 text-white relative overflow-hidden">
-                    <div class="absolute inset-0 bg-primary/10 backdrop-blur-3xl"></div>
-                    <div class="relative z-10 flex items-center justify-between">
+            <div class="flex flex-col h-full bg-white dark:bg-slate-950 rounded-[2.5rem] overflow-hidden shadow-2xl">
+                <header class="shrink-0 p-8 flex items-center justify-between border-b border-slate-100 dark:border-white/5">
                         <div class="flex items-center gap-6">
-                            <div class="w-16 h-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-3xl shadow-xl border border-white/20">
-                                <i class="fas fa-history text-primary"></i>
+                            <div class="w-14 h-14 bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400 rounded-2xl flex items-center justify-center text-2xl border border-indigo-100 dark:border-indigo-400/20">
+                                <i class="fas fa-history"></i>
                             </div>
                             <div>
-                                <h3 class="text-2xl font-black uppercase tracking-tighter leading-none mb-1">Registro S-13</h3>
-                                <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Territorio #${num}</p>
+                                <h3 class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Registro S-13</h3>
+                                <p class="text-xs text-slate-500 font-medium mt-0.5 uppercase tracking-widest">Territorio #${num}</p>
                             </div>
                         </div>
-                        <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="w-12 h-12 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all">
+                        <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="w-10 h-10 rounded-full hover:bg-slate-50 dark:hover:bg-white/5 flex items-center justify-center transition-all text-slate-400">
                             <i class="fas fa-times"></i>
                         </button>
-                    </div>
                 </header>
 
                 <div id="timeline-view-content" class="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-12 space-y-10 bg-slate-50/50 dark:bg-black/20">

@@ -12,76 +12,78 @@ export const renderPersonalTab = async (container) => {
     const renderMainLayout = () => {
         container.innerHTML = `
             <div class="space-y-12 animate-fade-in">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
-                <div class="space-y-1">
-                    <h3 class="text-2xl md:text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Directorio de Personal</h3>
-                    <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] ml-1">Gestión centralizada de publicadores</p>
-                </div>
-                
-                <div class="flex gap-4 w-full sm:w-auto">
-                    <button id="btn-manage-groups" class="flex-1 sm:flex-none bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 hover:bg-indigo-500 hover:text-white px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] transition-all active:scale-95 flex items-center justify-center gap-3">
-                        <i class="fas fa-users"></i> Grupos
-                    </button>
-                    <button id="btn-add-person" class="flex-[1.5] sm:flex-none bg-primary hover:bg-primary-light text-white px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 transition-all active:scale-95 flex items-center justify-center gap-3">
-                        <i class="fas fa-plus"></i> Nuevo Registro
-                    </button>
-                </div>
-            </div>
+                <!-- Header Clean Aesthetic -->
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 pb-2 border-b border-slate-100 dark:border-white/5">
+                    <div class="flex flex-col">
+                        <div class="flex items-center gap-3 mb-2">
+                            <span class="px-2 py-0.5 bg-indigo-50 text-indigo-600 text-[9px] font-bold uppercase tracking-widest rounded border border-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-400/20">Active Directory</span>
+                            <div class="h-px w-8 bg-slate-200 dark:bg-white/10"></div>
+                        </div>
+                        <h2 class="text-3xl lg:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">Directorio de Personal</h2>
+                        <p class="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">Gestión estratégica de la congregación</p>
+                    </div>
 
-            <div class="hidden md:block modern-card !p-0 overflow-hidden border-slate-200 dark:border-white/5 shadow-2xl">
+                    <div class="flex items-center gap-3 w-full md:w-auto">
+                        <button id="btn-manage-groups" class="px-5 py-3.5 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 rounded-xl border border-slate-200 dark:border-white/10 hover:border-indigo-500 hover:text-indigo-600 transition-all font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 shadow-sm active:scale-95 group">
+                            <i class="fas fa-users opacity-40 group-hover:opacity-100"></i> Roles y Grupos
+                        </button>
+                        <button id="btn-add-person" class="flex-1 md:flex-none px-6 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 shadow-sm shadow-indigo-200 active:scale-95 group">
+                            <i class="fas fa-plus opacity-70"></i> Nuevo Registro
+                        </button>
+                    </div>
+                </div>
+
+            <div class="hidden md:block bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden mt-8">
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse">
                         <thead>
-                            <tr class="bg-slate-50 dark:bg-black/20 text-slate-400 text-[9px] font-black uppercase tracking-[0.2em] border-b border-slate-100 dark:border-white/5">
-                                <th class="p-6">Nombre y Apellido</th>
-                                <th class="p-6 text-center">Grupo</th>
-                                <th class="p-6 text-center">Rol / Estado</th>
-                                <th class="p-6 text-right">Acciones</th>
+                            <tr class="bg-slate-50/50 dark:bg-black/20 text-slate-400 text-[10px] font-bold uppercase tracking-widest border-b border-slate-100 dark:border-white/5">
+                                <th class="px-8 py-6">Nombre y Apellido</th>
+                                <th class="px-8 py-6 text-center">Grupo</th>
+                                <th class="px-8 py-6 text-center">Rol / Estado</th>
+                                <th class="px-8 py-6 text-right">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-100 dark:divide-white/5">
+                        <tbody class="divide-y divide-slate-50 dark:divide-white/5">
                             ${publicadores.map(p => `
-                                <tr class="group hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
-                                    <td class="p-6">
+                                <tr class="group hover:bg-slate-50/50 dark:hover:bg-white/[0.01] transition-colors">
+                                    <td class="px-8 py-5">
                                         <div class="flex items-center gap-4">
-                                            <div class="w-10 h-10 rounded-xl bg-gradient-to-br ${p.genero === 'Mujer' ? 'from-rose-500 to-pink-500' : 'from-primary to-blue-600'} flex items-center justify-center text-white font-black text-sm shadow-lg group-hover:scale-110 transition-transform">
+                                            <div class="w-10 h-10 rounded-xl bg-slate-900 dark:bg-white/10 flex items-center justify-center text-white font-bold text-sm shadow-sm">
                                                 ${p.nombre.charAt(0)}
                                             </div>
                                             <div>
-                                                <p class="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-tight">${p.nombre}</p>
-                                                <p class="text-[9px] text-slate-400 font-mono">${p.telefono || 'SIN TELÉFONO'}</p>
+                                                <p class="text-sm font-bold text-slate-900 dark:text-white tracking-tight">${p.nombre}</p>
+                                                <p class="text-[10px] text-slate-400 font-medium">${p.telefono || 'Sin teléfono'}</p>
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="p-6 text-center">
-                                        <span class="text-[10px] font-black uppercase text-slate-400 bg-slate-100 dark:bg-white/5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 shadow-inner">
+                                    <td class="px-8 py-5 text-center">
+                                        <span class="text-[10px] font-bold uppercase text-slate-500 bg-slate-100/50 dark:bg-white/5 px-3 py-1.5 rounded-lg ring-1 ring-slate-200/50 dark:ring-white/10">
                                             ${groups.find(g => g.id == p.grupo)?.numero_nombre || (p.grupo ? `Grupo ${p.grupo}` : '—')}
                                         </span>
                                     </td>
-                                    <td class="p-6">
+                                    <td class="px-8 py-5">
                                         <div class="flex flex-wrap items-center justify-center gap-2">
                                             ${p.privilegios?.includes('Superintendente de Circuito') ? `
-                                                <span class="text-[8px] font-black uppercase tracking-widest bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 px-3 py-1 rounded-full">Sup. Circuito</span>
+                                                <span class="text-[9px] font-bold uppercase tracking-widest bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400 ring-1 ring-indigo-200 px-3 py-1 rounded-full">Sup. Circuito</span>
                                             ` : ''}
                                             ${p.es_conductor ? `
-                                                <button onclick="event.stopPropagation(); window.showPublicadorAvailability('${p.id}')" class="text-[8px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full hover:bg-emerald-500 hover:text-white transition-all">
-                                                    <i class="fas fa-check-circle mr-1"></i> Conductor
+                                                <button onclick="event.stopPropagation(); window.showPublicadorAvailability('${p.id}')" class="text-[9px] font-bold uppercase tracking-widest bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 ring-1 ring-emerald-200 px-3 py-1 rounded-full hover:bg-emerald-600 hover:text-white transition-all">
+                                                    Conductor
                                                 </button>
                                             ` : `
-                                                ${!p.privilegios?.includes('Superintendente de Circuito') ? `<span class="text-[8px] font-black uppercase tracking-widest text-slate-400 opacity-40">Publicador</span>` : ''}
+                                                ${!p.privilegios?.includes('Superintendente de Circuito') ? `<span class="text-[9px] font-bold uppercase tracking-widest text-slate-400 opacity-40">Publicador</span>` : ''}
                                             `}
-                                            ${p.privilegios?.includes('Administrador') ? `
-                                                <span class="text-[8px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-600 border border-amber-500/20 px-3 py-1 rounded-full">Admin</span>
-                                            ` : ''}
                                         </div>
                                     </td>
-                                    <td class="p-6">
-                                        <div class="flex items-center justify-end gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
-                                            <button onclick="window.editPerson('${p.id}')" class="w-9 h-9 flex items-center justify-center bg-white dark:bg-slate-800 text-slate-500 hover:text-primary rounded-xl border border-slate-200 dark:border-white/10 hover:border-primary/40 transition-all shadow-sm">
-                                                <i class="fas fa-edit text-[10px]"></i>
+                                    <td class="px-8 py-5">
+                                        <div class="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button onclick="window.editPerson('${p.id}')" class="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all">
+                                                <i class="fas fa-edit text-xs"></i>
                                             </button>
-                                            <button onclick="window.deletePerson('${p.id}')" class="w-9 h-9 flex items-center justify-center bg-white dark:bg-slate-800 text-slate-500 hover:text-rose-500 rounded-xl border border-slate-200 dark:border-white/10 hover:border-rose-500/40 transition-all shadow-sm">
-                                                <i class="fas fa-trash-alt text-[10px]"></i>
+                                            <button onclick="window.deletePerson('${p.id}')" class="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all">
+                                                <i class="fas fa-trash-alt text-xs"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -92,21 +94,21 @@ export const renderPersonalTab = async (container) => {
                 </div>
             </div>
 
-            <div class="md:hidden space-y-4 px-2">
+            <div class="md:hidden space-y-3 mt-4">
                 ${publicadores.map(p => `
-                    <div onclick="window.editPerson('${p.id}')" class="modern-card p-5 border-slate-200 dark:border-white/5 shadow-sm hover:shadow-md space-y-4 relative overflow-hidden active:scale-[0.98] transition-all cursor-pointer">
+                    <div onclick="window.editPerson('${p.id}')" class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-white/5 shadow-sm p-5 space-y-4 relative active:scale-[0.98] transition-all cursor-pointer">
                         <div class="flex items-center justify-between gap-4">
                             <div class="flex items-center gap-4">
-                                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br ${p.genero === 'Mujer' ? 'from-rose-500 to-pink-500' : 'from-primary to-blue-600'} flex items-center justify-center text-white font-black text-lg shadow-lg">
+                                <div class="w-11 h-11 rounded-xl bg-slate-900 dark:bg-white/10 flex items-center justify-center text-white font-bold text-lg">
                                     ${p.nombre.charAt(0)}
                                 </div>
                                 <div class="min-w-0">
-                                    <p class="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight truncate">${p.nombre}</p>
-                                    <p class="text-[10px] text-slate-400 font-mono font-bold">${p.telefono || 'SIN TELÉFONO'}</p>
+                                    <p class="text-sm font-bold text-slate-900 dark:text-white tracking-tight truncate">${p.nombre}</p>
+                                    <p class="text-[11px] text-slate-400 font-medium">${p.telefono || 'Sin teléfono'}</p>
                                 </div>
                             </div>
                             <div class="flex-shrink-0">
-                                <span class="bg-slate-100 dark:bg-white/5 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 text-[9px] font-black text-slate-500">
+                                <span class="bg-slate-50 dark:bg-white/5 px-2.5 py-1.5 rounded-lg border border-slate-100 dark:border-white/10 text-[10px] font-bold text-slate-500 uppercase">
                                     ${groups.find(g => g.id == p.grupo)?.numero_nombre || (p.grupo ? `G${p.grupo}` : '—')}
                                 </span>
                             </div>
@@ -188,18 +190,15 @@ export const renderPersonalTab = async (container) => {
         const shifts = [{ id: 'manana', label: 'Mañ.', color: 'text-yellow-500' }, { id: 'tarde', label: 'Tar.', color: 'text-orange-500' }, { id: 'noche', label: 'Noc.', color: 'text-blue-500' }];
 
         showModal(`
-            <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden">
-                <header class="shrink-0 bg-primary p-6 md:p-8 text-white relative overflow-hidden">
-                    <div class="absolute inset-0 bg-white/10 backdrop-blur-3xl"></div>
-                    <div class="relative z-10 flex items-center gap-6">
-                        <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center text-3xl shadow-2xl border border-white/30">
-                            <i class="fas fa-user-circle"></i>
+            <div class="flex flex-col h-full bg-white dark:bg-slate-950 rounded-[2.5rem] overflow-hidden">
+                <header class="shrink-0 p-8 flex items-center gap-6 border-b border-slate-100 dark:border-white/5">
+                        <div class="w-14 h-14 bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400 rounded-2xl flex items-center justify-center text-2xl border border-indigo-100 dark:border-indigo-400/20">
+                            <i class="fas fa-user-plus"></i>
                         </div>
                         <div>
-                            <h3 class="text-2xl font-black uppercase tracking-tight leading-none mb-1">${isEdit ? 'Editar Registro' : 'Nuevo Registro'}</h3>
-                            <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Gestión de Personal</p>
+                            <h3 class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">${isEdit ? 'Editar Registro' : 'Nuevo Registro'}</h3>
+                            <p class="text-xs text-slate-500 font-medium mt-0.5 uppercase tracking-widest">Información del Publicador</p>
                         </div>
-                    </div>
                 </header>
 
                 <div class="flex-1 p-5 md:p-8 space-y-6 md:space-y-8 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-black/20">
@@ -487,28 +486,27 @@ export const renderPersonalTab = async (container) => {
         };
 
         showModal(`
-            <div class="flex flex-col h-[85vh] bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden">
-                <header class="shrink-0 bg-indigo-600 p-8 text-white relative">
-                    <div class="absolute inset-0 bg-gradient-to-br from-indigo-500 to-primary/40 backdrop-blur-3xl"></div>
-                    <div class="relative z-10 flex justify-between items-center">
-                        <div>
-                            <h3 class="text-2xl font-black uppercase tracking-tight leading-none mb-1">Configuración de Grupos</h3>
-                            <p class="text-[10px] opacity-70 font-bold uppercase tracking-[0.2em]">Estructura de la Congregación</p>
+            <div class="flex flex-col h-[85vh] bg-white dark:bg-slate-950 rounded-[2.5rem] overflow-hidden">
+                <header class="shrink-0 p-8 flex items-center justify-between border-b border-slate-100 dark:border-white/5">
+                        <div class="flex items-center gap-6">
+                            <div class="w-14 h-14 bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400 rounded-2xl flex items-center justify-center text-2xl border border-indigo-100 dark:border-indigo-400/20">
+                                <i class="fas fa-users-cog"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Estructura Grupal</h3>
+                                <p class="text-xs text-slate-500 font-medium mt-0.5 uppercase tracking-widest">Configuración de Salidas</p>
+                            </div>
                         </div>
-                        <div class="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center text-2xl shadow-2xl border border-white/20">
-                            <i class="fas fa-users-cog"></i>
-                        </div>
-                    </div>
                 </header>
-                <div class="flex-1 p-6 space-y-6 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-black/20">
+                <div class="flex-1 p-6 space-y-6 overflow-y-auto custom-scrollbar bg-slate-50/50 dark:bg-black/20">
                     <div id="groups-config-list" class="space-y-4"></div>
-                    <button id="add-new-group-btn" class="w-full py-4 border-2 border-dashed border-slate-200 dark:border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-500 hover:border-indigo-500/50 transition-all flex items-center justify-center gap-3">
+                    <button id="add-new-group-btn" class="w-full py-4 border-2 border-dashed border-slate-200 dark:border-white/10 rounded-2xl text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-indigo-600 hover:border-indigo-400 transition-all flex items-center justify-center gap-3">
                         <i class="fas fa-plus-circle"></i> Añadir Nuevo Grupo
                     </button>
                 </div>
-                <div class="shrink-0 p-6 bg-white dark:bg-black/40 border-t border-slate-100 dark:border-white/5 flex gap-4">
-                    <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest">Cancelar</button>
-                    <button id="save-groups-btn" class="flex-[2] bg-indigo-600 hover:bg-indigo-500 text-white py-5 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-indigo-600/20 transition-all active:scale-[0.99]">
+                <div class="shrink-0 p-8 bg-white dark:bg-black/40 border-t border-slate-100 dark:border-white/5 flex gap-4">
+                    <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="flex-1 py-4 bg-slate-50 dark:bg-white/5 text-slate-500 font-bold rounded-xl text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-colors">Cancelar</button>
+                    <button id="save-groups-btn" class="flex-[2] bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-xl text-[11px] font-bold uppercase tracking-widest shadow-sm shadow-indigo-200 transition-all active:scale-[0.99]">
                         Guardar Configuración
                     </button>
                 </div>
