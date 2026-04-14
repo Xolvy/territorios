@@ -138,26 +138,28 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
             ])
         ]);
 
-        const [allT, allTel, publicadores, initialProg] = baseData;
+        const [allT, allTel, allPublicadores, initialProg] = baseData;
         const [mAvail, mRec, mMaps, mRescue, mPhone, mProg] = modules;
 
         // Xolvy Identity Shield: Use canonical identity as the Single Source of Truth
         const identity = window.XolvyApp?.identity;
-        let displayName = identity ? identity.nombreCanonico : (normalizeRobust(nameOrEmail || 'Usuario'));
+        let displayName = identity ? identity.nombreCanonico : nameOrEmail;
+
+        // Búsqueda hiper-robusta ignorando mayúsculas y tildes
+        const normalizar = (txt) => String(txt || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+        const targetName = normalizar(displayName);
+
+        const allC = allPublicadores; // getPublicadores ya viene resuelto en baseData
+        let conductorData = allC.find(c => normalizar(c.nombre) === targetName) || null;
+
+        // Restaurar el nombre con sus mayúsculas originales para que la UI se vea bien
+        if (conductorData && conductorData.nombre) {
+            displayName = conductorData.nombre;
+        } else {
+            console.error(`[Data Shield] CRÍTICO: No se encontró publicador para: ${targetName}`);
+        }
         
         console.log("[IdentityShield] Conductor Dashboard cargado con nombre canónico:", displayName);
-
-        // PASO 1: Garantizar que conductorData sea el perfil oficial de la identidad blindada
-        let conductorData = null;
-        if (identity && identity.docId) {
-            const allC = await getPublicadores();
-            conductorData = allC.find(c => (c.id === identity.docId) || (c.nombre === displayName)) || null;
-        }
-
-        if (!conductorData) {
-            console.warn(`[Identity Shield] Conductor no encontrado inicialmente para: ${displayName}. Reintentando resolution...`);
-        }
-        // Redundantes: ya vienen del import
 
         // Xolvy Modular: Pool Data and Unsubscribe references (Initialized early for HMS/LivePool access)
         let currentLivePoolUnsubscribe = null;
@@ -171,6 +173,19 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
             programa: null,
             s13: [],
             banco_s13: [] // FIX-A: Track active assignments from the S-13 live pool
+        };
+
+        // Al final de renderConductorDashboard, levantar la cortina (dentro del try antes de salir)
+        const levantarCortina = () => {
+            const loginOverlay = document.getElementById('login-stage-container') || 
+                               document.querySelector('.login-wrapper') || 
+                               document.getElementById('login-root') ||
+                               document.getElementById('conductor-modal'); // Agregado como fallback seguro
+            if (loginOverlay) {
+                loginOverlay.style.opacity = '0';
+                loginOverlay.style.pointerEvents = 'none';
+                setTimeout(() => loginOverlay.remove(), 600);
+            }
         };
 
         // Xolvy Modular: Cleanup function for all active Firestore listeners
@@ -233,20 +248,25 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
             if (identity && identity.docId) {
                 const allC = await getPublicadores();
-                const found = allC.find(c => c.id === identity.docId || c.nombre === canonicalName);
+                const found = allC.find(c => c.id === identity.docId || normalizeRobust(c.nombre) === normalizeRobust(canonicalName));
                 if (found) return { ...found, es_conductor: true };
             }
 
-            const normalized = String(nombreConductor || '').trim().toLowerCase();
+            const normalized      = String(nombreConductor || '').trim().toLowerCase();
             const normalizedPhone = normalized.replace(/\D/g, '');
 
             for (let i = 0; i < intentos; i++) {
                 const allC = await getPublicadores();
                 const conductor = allC.find(c => {
-                    const name = normalizeRobust(c.nombre || c.nombre_completo);
-                    const email = normalizeRobust(c.email);
+                    const name  = String(c.nombre || '').trim().toLowerCase();
+                    const email = String(c.email  || '').trim().toLowerCase();
                     const phone = String(c.telefono || '').replace(/\D/g, '');
-                    return name === normalized || email === normalized || (normalizedPhone && phone === normalizedPhone);
+                    const normalizedSearch = String(nombreConductor || '').trim().toLowerCase();
+                    const normalizedPhoneSearch = normalizedSearch.replace(/\D/g, '');
+                    
+                    return name === normalizedSearch 
+                        || email === normalizedSearch 
+                        || (normalizedPhoneSearch && phone === normalizedPhoneSearch);
                 });
                 
                 if (conductor) return conductor;
@@ -289,7 +309,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 const conductorDataRef = await obtenerConductorData(displayName);
 
                 if (conductorDataRef && conductorDataRef.nombre) {
-                    displayName = normalizeRobust(conductorDataRef.nombre);
+                    displayName = conductorDataRef.nombre;
                 }
 
                 const userMods = conductorDataRef?.modulos || { agenda: true, programa: true, disponibilidad: true, telefonos: true, mapas: true, ayudas: true, rescue: false };
@@ -972,7 +992,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
             await loadUnifiedDashboard(container, displayName, null, null, null, userRole, {
                 territorios: allT,
                 telefonos: allTel,
-                publicadores: publicadores,
+                publicadores: allPublicadores,
                 programa: initialProg
             }, { mAvail, mRec, mMaps, mRescue, mPhone, mProg });
             
@@ -1005,6 +1025,9 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
             // FIX: Ensure telephony and dynamic features sync on first load
             await refreshConductorView(true);
+
+            // LEVANTAR EL TELÓN (Destruir el Loading Stage)
+            levantarCortina();
         });
         
     } catch (error) {

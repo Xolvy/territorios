@@ -38,7 +38,7 @@ export const getMisTelefonos = async () => {
 export const getTelefonosParaSesion = async (conductorName) => {
     try {
         if (!conductorName) return [];
-        
+
         // Identity Shield: Prefer the global canonical identity if available
         const identity = window.XolvyApp?.identity;
         const canonicalName = identity?.nombreCanonico || conductorName;
@@ -148,11 +148,6 @@ export const solicitarNumeros = async (cantidad = 30, conductorName = null) => {
 
             return selectedDocs.length;
         });
-
-        if (result === 0) {
-            const resetDone = await checkAndResetTelephoneCycle(true);
-            if (resetDone) return await solicitarNumeros(cantidad, canonicalName);
-        }
 
         ServiceCache.clear("telefonos");
         return result;
@@ -354,6 +349,17 @@ export const releaseUnusedTelefonos = async (userId, globalCleanup = false, forc
                 }
             });
             if (releasePromises.length > 0) await Promise.all(releasePromises);
+        }
+
+        // --- TAREAS DE MANTENIMIENTO AL FINALIZAR SESIÓN ---
+        // Se ejecutan en segundo plano para preparar el pozo sin bloquear la interfaz del conductor
+        if (force) {
+            console.log("🧹 [Phone Service] Ejecutando mantenimiento global post-sesión...");
+            Promise.all([
+                repararTelefonosData(),
+                checkAndResetTelephoneCycle()
+            ]).then(() => console.log("✨ [Phone Service] Mantenimiento post-sesión completado."))
+                .catch(e => console.error("Error en mantenimiento post-sesión:", e));
         }
     } catch (e) {
         console.error("Error releasing telefonos:", e);
@@ -577,7 +583,6 @@ export const updateTelefonoStatus = async (id, estado, publicadorName, comentari
     }
 
     await updateDoc(doc(db, COL_TELEFONOS, id), data);
-    await checkAndResetTelephoneCycle();
 };
 
 export const deleteTelefono = async (id) => {

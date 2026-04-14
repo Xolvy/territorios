@@ -202,7 +202,7 @@ export const renderRecursosSection = (container) => {
             ];
 
             let currentStep = 0;
-            
+
             // 1. Eliminar instancias previas si existen
             const oldOverlay = document.getElementById('nexo-tour-overlay');
             const oldTooltip = document.getElementById('nexo-tour-tooltip');
@@ -213,12 +213,12 @@ export const renderRecursosSection = (container) => {
             const overlay = document.createElement('div');
             overlay.id = 'nexo-tour-overlay';
             overlay.style.cssText = 'position: fixed; inset: 0; background: rgba(15, 23, 42, 0.8); z-index: 999998; transition: opacity 0.5s; opacity: 0; pointer-events: auto;';
-            
+
             // 3. Crear Highlight Box
             const highlightBox = document.createElement('div');
             highlightBox.id = 'nexo-tour-highlight';
             highlightBox.style.cssText = 'position: absolute; border: 2px solid #10B981; border-radius: 16px; box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.8), 0 0 30px rgba(16, 185, 129, 0.5); transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); z-index: 999998; pointer-events: none;';
-            
+
             // 4. Crear Tooltip (Inyección directa al Body)
             const tooltip = document.createElement('div');
             tooltip.id = 'nexo-tour-tooltip';
@@ -240,7 +240,7 @@ export const renderRecursosSection = (container) => {
 
                     const step = steps[index];
                     const target = document.getElementById(step.id);
-                    
+
                     if (!target || target.offsetParent === null) {
                         return goToStep(index + 1);
                     }
@@ -249,7 +249,7 @@ export const renderRecursosSection = (container) => {
 
                     setTimeout(() => {
                         const rect = target.getBoundingClientRect();
-                        
+
                         // Posicionar Highlight
                         highlightBox.style.top = `${rect.top + window.scrollY - 10}px`;
                         highlightBox.style.left = `${rect.left + window.scrollX - 10}px`;

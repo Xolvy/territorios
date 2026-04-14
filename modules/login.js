@@ -204,12 +204,21 @@ export const renderConductorSelection = async () => {
 
                     const name = btn.getAttribute('data-name');
                     const phone = btn.getAttribute('data-phone');
+
+                    // Helper para capitalizar tipo oración:
+                    const toTitleCase = (str) => String(str || '')
+                        .toLowerCase()
+                        .split(' ')
+                        .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+                        .join(' ');
+                    
+                    const nombreCapitalizado = toTitleCase(name);
                     
                     // 2. State mutations (IdentityShield already handles resolution in app.js via demo-login)
                     localStorage.setItem('demo_role', 'Conductor');
                     localStorage.setItem('selected_conductor_name', phone || name);
                     
-                    const sessionData = { nombre: name, email: phone || name, rol: 'Conductor' };
+                    const sessionData = { nombre: nombreCapitalizado, email: phone || name, rol: 'Conductor' };
                     localStorage.setItem('xolvy_session', JSON.stringify(sessionData));
                     
                     window.XolvyApp = window.XolvyApp || {};

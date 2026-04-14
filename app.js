@@ -30,23 +30,35 @@ async function loadModule(moduleName, basePath) {
 // Shell View Accessors
 const loadLogin = async () => (await loadModule('login', './modules/login.js')).renderLogin;
 const loadAdmin = async () => (await loadModule('admin', './modules/admin-dashboard.js')).renderAdminDashboard;
+let _conductorLoading = false;
 const loadConductor = async () => {
-    // ERROR 2 — Esperar a que Firebase Auth tenga usuario antes de cargar módulos
-    await new Promise((resolve) => {
-        if (auth.currentUser) { resolve(); return; }
-        const timeout = setTimeout(() => {
-            console.warn("⚠️ [Auth] Timeout en loadConductor — procediendo sin usuario");
-            resolve();
-        }, 3500);
-        const unsub = onAuthStateChanged(auth, (u) => {
-            if (u) {
-                clearTimeout(timeout);
-                unsub();
+    if (_conductorLoading) {
+        console.warn('[App] loadConductor ya está en ejecución, ignorando llamada duplicada');
+        return window.XolvyApp.lastConductorRender || (async () => {});
+    }
+    _conductorLoading = true;
+    try {
+        // ERROR 2 — Esperar a que Firebase Auth tenga usuario antes de cargar módulos
+        await new Promise((resolve) => {
+            if (auth.currentUser) { resolve(); return; }
+            const timeout = setTimeout(() => {
+                console.warn("⚠️ [Auth] Timeout en loadConductor — procediendo sin usuario");
                 resolve();
-            }
+            }, 3500);
+            const unsub = onAuthStateChanged(auth, (u) => {
+                if (u) {
+                    clearTimeout(timeout);
+                    unsub();
+                    resolve();
+                }
+            });
         });
-    });
-    return (await loadModule('conductor', './modules/conductor-dashboard.js')).renderConductorDashboard;
+        const render = (await loadModule('conductor', './modules/conductor-dashboard.js')).renderConductorDashboard;
+        window.XolvyApp.lastConductorRender = render;
+        return render;
+    } finally {
+        _conductorLoading = false;
+    }
 };
 
 
