@@ -40,3 +40,6 @@ build/
 # Temporary files
 *.tmp
 *.temp
+
+# Secrets
+serviceAccountKey.json
