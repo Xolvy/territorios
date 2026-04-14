@@ -1,133 +1,99 @@
 import { auth } from '../firebase-config.js';
-import { GoogleAuthProvider, signInWithRedirect } from "firebase/auth";
-import { getPublicadores, getConfiguracion } from '../data/firestore-services.js';
+import { GoogleAuthProvider, signInWithRedirect, getRedirectResult } from "firebase/auth";
+import { getPublicadores } from '../data/firestore-services.js';
 
 
-export const renderLogin = (container, appVersion) => {
-    // cachedName removed
+export const renderLogin = (container) => {
+    // --- XOLVY REDIRECT CAPTURE (PWA SILENT LOGIN) ---
+    getRedirectResult(auth).then((result) => {
+        if (result && result.user) {
+            console.log("💎 [Auth] Redirect Login Exitosa:", result.user.email);
+            // No es necesario redirigir manualmente aquí porque onAuthStateChanged en app.js lo capturará
+        }
+    }).catch((error) => {
+        console.error("❌ [Auth] Error en Redirect Login:", error);
+    });
 
     container.innerHTML = `
-        <div class="bg-slate-50 min-h-screen flex items-center justify-center p-4 sm:p-8 font-sans animate-fade-in">
-            <!-- Split-Card Enterprise -->
-            <div class="w-full max-w-4xl bg-white rounded-[2rem] shadow-2xl shadow-slate-200/50 border border-slate-100 flex flex-col md:flex-row overflow-hidden relative z-10 transition-all duration-500 hover:shadow-[0_25px_50px_-12px_rgba(0,0,0,0.1)]">
+        <div class="bg-slate-50 dark:bg-slate-950 min-h-screen flex items-center justify-center p-6 font-sans animate-fade-in relative overflow-hidden" style="min-height: 100vh; min-height: 100dvh;">
+            <!-- Professional Deep Glow -->
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1200px] h-[1200px] bg-blue-900/20 rounded-full blur-[160px] pointer-events-none"></div>
+
+            <div class="z-10 w-full max-w-4xl bg-white dark:bg-slate-900 enterprise-card p-4 sm:p-6 lg:p-8 shadow-2xl rounded-[2.5rem] grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-6">
                 
-                <!-- Panel Izquierdo (Identidad) -->
-                <div class="md:w-1/2 bg-slate-50/80 p-10 lg:p-14 flex flex-col justify-between border-b md:border-b-0 md:border-r border-slate-200/60 relative overflow-hidden">
-                    <!-- Icon Area -->
-                    <div>
-                        <div class="w-16 h-16 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center text-indigo-500 text-2xl mb-8">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8">
-                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                                <circle cx="12" cy="10" r="3"></circle>
-                            </svg>
-                        </div>
-                        <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tight leading-tight uppercase">
-                            Gestión de<br>Territorios
-                        </h1>
+                <!-- Panel Administrador -->
+                <button id="btn-google-login" class="group flex flex-col items-center px-4 py-4 sm:p-5 bg-slate-50 dark:bg-white/5 rounded-2xl border-2 border-slate-100 dark:border-white/5 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-blue-500 w-full max-w-sm mx-auto text-sm sm:text-base text-center cursor-pointer relative z-[9999]">
+                    <div class="p-3 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-600/20 mb-3 transition-transform group-hover:scale-105 duration-500">
+                        <i class="fas fa-user-shield text-2xl h-8 w-8 flex items-center justify-center"></i>
                     </div>
-                </div>
-
-                <!-- Panel Derecho (Controles) -->
-                <div class="md:w-1/2 p-10 lg:p-14 flex flex-col justify-center bg-white relative min-h-[420px] md:min-h-[480px]">
-                    <h2 class="text-sm font-bold text-slate-800 mb-8 uppercase tracking-widest">Selecciona tu perfil de acceso</h2>
-
-                    <div class="w-full">
-                        <!-- Administrador Section -->
-                        <div id="admin-wrapper" class="w-full">
-                            <!-- Admin Initial View -->
-                            <button id="admin-preview" class="w-full bg-slate-900 text-white hover:bg-slate-800 rounded-xl p-4 shadow-md transition-all flex items-center justify-center gap-3 active:scale-[0.98]">
-                                <i class="fas fa-lock text-slate-400 text-xs"></i>
-                                <span class="text-[10px] font-black tracking-widest uppercase">Administrador</span>
-                            </button>
-
-                            <!-- Panel Google (Admin) -->
-                            <div id="admin-login-state" class="hidden flex-col items-center w-full animate-fade-in relative transition-all duration-300">
-                                <div class="w-full border-t border-slate-100 mt-6 pt-6 relative">
-                                    <button id="btn-close-admin" class="absolute -top-3 right-0 w-6 h-6 rounded-md flex items-center justify-center bg-slate-50 text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-all z-30 shadow-sm border border-slate-100">
-                                        <i class="fas fa-times text-[10px]"></i>
-                                    </button>
-                                    
-                                    <p class="text-slate-500 text-[9px] font-black uppercase tracking-widest mb-4 text-center">Acceso de administrador</p>
-                                    
-                                    <button id="btn-google-login-action" class="w-full h-[52px] flex items-center justify-center gap-3 bg-white border border-slate-200 rounded-xl font-black text-[10px] uppercase tracking-widest text-slate-700 hover:bg-slate-50 hover:border-indigo-300 transition-all active:scale-95 shadow-sm focus:ring-4 focus:ring-indigo-500/10">
-                                        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5" alt="Google">
-                                    </button>
-                                    <p id="auth-error" class="text-rose-500 text-[10px] font-black uppercase tracking-widest hidden mt-4 text-center"></p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Botón Conductor -->
-                        <button id="btn-conductor" class="w-full bg-white border-2 border-slate-100 text-slate-700 hover:border-indigo-100 hover:bg-slate-50 rounded-xl p-4 transition-all mt-4 flex items-center justify-center gap-3 active:scale-[0.98]">
-                            <i class="fas fa-users text-slate-300 transition-colors text-xs"></i>
-                            <span class="text-[10px] font-black tracking-widest uppercase shadow-none">Conductor</span>
-                        </button>
+                    <h2 class="text-xl lg:text-2xl font-extrabold text-slate-950 dark:text-white tracking-tight mb-1 text-center">Administrador</h2>
+                    <p class="text-slate-600 dark:text-slate-400 mb-4 text-[10px] lg:text-xs leading-relaxed max-w-[240px]">Gestión total de datos, reportes estratégicos S-13 y analíticas avanzadas.</p>
+                    
+                    <div id="google-status-wrapper" class="mt-auto pt-2 flex items-center justify-center gap-2 text-[10px] lg:text-xs font-bold text-slate-400 group-hover:text-blue-600 transition-colors">
+                        <img src="https://www.google.com/images/branding/product/2x/googleg_32dp.png" class="w-4 h-4 grayscale group-hover:grayscale-0 transition-all" alt="G">
+                        <span>ACCEDER CON GOOGLE &rarr;</span>
                     </div>
-                </div>
+                </button>
+
+                <!-- Panel Conductor -->
+                <button id="btn-conductor-trigger" class="group flex flex-col items-center px-4 py-4 sm:p-5 bg-slate-50 dark:bg-white/5 rounded-2xl border-2 border-slate-100 dark:border-white/5 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-slate-900 dark:hover:border-white/10 w-full max-w-sm mx-auto text-sm sm:text-base text-center cursor-pointer">
+                    <div class="p-3 bg-slate-900 dark:bg-white/10 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-slate-900/20 mb-3 transition-transform group-hover:scale-105 duration-500">
+                        <i class="fas fa-map-marked-alt text-2xl h-8 w-8 flex items-center justify-center"></i>
+                    </div>
+                    <h2 class="text-xl lg:text-2xl font-extrabold text-slate-950 dark:text-white tracking-tight mb-1 text-center">Conductor</h2>
+                    <p class="text-slate-600 dark:text-slate-400 mb-4 text-[10px] lg:text-xs leading-relaxed max-w-[240px]">Terminal de campo optimizada para la predicación y gestión de territorios.</p>
+                    
+                    <div class="mt-auto pt-2 flex items-center justify-center gap-2 text-[10px] lg:text-xs font-bold text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
+                        <span>ENTRAR AL TERMINAL &rarr;</span>
+                    </div>
+                </button>
+
+                <div id="auth-error" class="hidden col-span-full mt-2 text-rose-600 text-[8px] font-bold uppercase tracking-widest text-center"></div>
             </div>
+            
+            <p class="absolute bottom-10 text-[10px] font-bold text-slate-600 uppercase tracking-[0.5em]">OPERATIONAL LEVEL &bull; XOLVY CORE</p>
         </div>
     `;
 
-    getConfiguracion().then(config => {
-        const label = document.getElementById('cong-label');
-        if (label) {
-            const name = config.congregacion?.nombre
-                ? `Congregación ${config.congregacion.nombre}`
-                : "Portal de Gestión Colectiva";
-            label.textContent = name;
-            localStorage.setItem('cached_congregation_name', name);
-        }
-    });
-
-    const adminPreview = document.getElementById('admin-preview');
-    const adminLogin = document.getElementById('admin-login-state');
-    const closeBtn = document.getElementById('btn-close-admin');
-    const conductorBtn = document.getElementById('btn-conductor');
-
-    adminPreview.addEventListener('click', () => {
-        adminPreview.classList.add('hidden');
-        adminLogin.classList.remove('hidden');
-        conductorBtn.classList.add('opacity-30', 'pointer-events-none', 'grayscale', 'scale-95');
-    });
-
-    closeBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        adminLogin.classList.add('hidden');
-        adminPreview.classList.remove('hidden');
-        conductorBtn.classList.remove('opacity-30', 'pointer-events-none', 'grayscale', 'scale-95');
-    });
-
-    const btnGoogle = document.getElementById('btn-google-login-action');
-    btnGoogle.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        
-        btnGoogle.disabled = true;
-        btnGoogle.classList.add('opacity-50', 'pointer-events-none');
-        btnGoogle.innerHTML = `<div class="w-5 h-5 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>`;
-        
+    // Se asegura que el DOM ya ha renderizado antes de bindear (Event Loop Queue)
+    setTimeout(() => {
+        const btnGoogle = document.getElementById('btn-google-login');
+        const googleStatusWrapper = document.getElementById('google-status-wrapper');
+        const btnConductorTrigger = document.getElementById('btn-conductor-trigger');
         const errorEl = document.getElementById('auth-error');
-        errorEl.classList.add('hidden');
 
-        try {
-            const provider = new GoogleAuthProvider();
-            provider.setCustomParameters({ prompt: 'select_account' });
-            localStorage.setItem('demo_role', 'Administrador');
-            await signInWithRedirect(auth, provider);
-        } catch (error) {
-            console.warn("Auth Redirect error:", error);
-            errorEl.classList.remove('hidden');
-            errorEl.textContent = `ERROR: ${error.message}`;
-            
-            btnGoogle.disabled = false;
-            btnGoogle.classList.remove('opacity-50', 'pointer-events-none');
-            btnGoogle.innerHTML = `<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5" alt="Google">`;
+        if (btnGoogle) {
+            btnGoogle.addEventListener('click', async () => {
+                btnGoogle.disabled = true;
+                googleStatusWrapper.innerHTML = `<i class="fas fa-circle-notch animate-spin mr-2"></i> Redirigiendo...`;
+                try {
+                    const provider = new GoogleAuthProvider();
+                    provider.setCustomParameters({ prompt: 'select_account' });
+                    localStorage.setItem('demo_role', 'Administrador');
+                    await signInWithRedirect(auth, provider);
+                    // Aquí el navegador redirige, no hay retorno inmediato.
+                } catch (error) {
+                    console.error("Error en Auth:", error);
+                    errorEl.textContent = "Error de Servidor: " + error.message;
+                    errorEl.classList.remove('hidden');
+                    btnGoogle.disabled = false;
+                    googleStatusWrapper.innerHTML = `
+                        <img src="https://www.google.com/images/branding/product/2x/googleg_32dp.png" class="w-5 h-5 grayscale group-hover:grayscale-0 transition-all" alt="G">
+                        <span>ACCEDER CON GOOGLE &rarr;</span>
+                    `;
+                    alert("Fallo al iniciar sesión: " + error.message);
+                }
+            });
         }
-    });
 
-    conductorBtn.addEventListener('click', () => renderConductorSelection(container, appVersion));
+        if (btnConductorTrigger) {
+            btnConductorTrigger.addEventListener('click', () => renderConductorSelection());
+        }
+    }, 0);
 };
 
-export const renderConductorSelection = async (container, appVersion) => {
+
+export const renderConductorSelection = async () => {
     const modal = document.createElement('div');
     modal.id = 'conductor-modal';
     modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 animate-fade-in';
@@ -173,11 +139,27 @@ export const renderConductorSelection = async (container, appVersion) => {
     document.getElementById('btn-close-modal-c').onclick = () => modal.remove();
 
     try {
-        const people = await getPublicadores();
-        const conductors = people.filter(p => p.es_conductor || p.modulos?.habilitado).sort((a, b) => String(a.nombre || '').localeCompare(String(b.nombre || '')));
-
         const list = document.getElementById('conductores-list');
         const searchInput = document.getElementById('conductor-search');
+        
+        let people = [];
+        try {
+            people = await getPublicadores();
+        } catch (e) {
+            console.warn('[Login] getPublicadores failed — likely permissions:', e);
+            if (list) {
+                list.innerHTML = `
+                    <div class="text-center py-10 opacity-60">
+                        <i class="fas fa-exclamation-triangle mb-3 text-amber-500"></i>
+                        <p class="text-[9px] font-black uppercase tracking-widest text-slate-500">Error de Sincronización</p>
+                        <p class="text-[8px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">Reintenta en unos segundos</p>
+                    </div>
+                `;
+            }
+            return;
+        }
+
+        const conductors = people.filter(p => p.es_conductor || p.modulos?.habilitado).sort((a, b) => String(a.nombre || '').localeCompare(String(b.nombre || '')));
 
         const updateList = (filter = '') => {
             const term = filter.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -216,12 +198,57 @@ export const renderConductorSelection = async (container, appVersion) => {
             }).join('');
 
             list.querySelectorAll('.conductor-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
+                btn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+
                     const name = btn.getAttribute('data-name');
                     const phone = btn.getAttribute('data-phone');
+                    
+                    // 2. State mutations (IdentityShield already handles resolution in app.js via demo-login)
+                    localStorage.setItem('demo_role', 'Conductor');
+                    localStorage.setItem('selected_conductor_name', phone || name);
+                    
+                    const sessionData = { nombre: name, email: phone || name, rol: 'Conductor' };
+                    localStorage.setItem('xolvy_session', JSON.stringify(sessionData));
+                    
+                    window.XolvyApp = window.XolvyApp || {};
+                    window.XolvyApp.user = sessionData;
+
+                    // 3. SaaS Premium Loading State (Fix Parpadeo)
+                    modal.innerHTML = `
+                        <div class="w-full h-full flex items-center justify-center bg-slate-50/90 dark:bg-[#0a0f18]/95 backdrop-blur-3xl animate-fade-in relative overflow-hidden">
+                            <!-- Premium Glows -->
+                            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+                            
+                            <div class="z-10 flex flex-col items-center gap-8">
+                                <div class="relative">
+                                    <div class="w-24 h-24 border-4 border-indigo-500/10 border-t-indigo-500 rounded-full animate-spin"></div>
+                                    <div class="absolute inset-0 flex items-center justify-center">
+                                        <i class="fas fa-id-card text-indigo-500 text-2xl animate-pulse"></i>
+                                    </div>
+                                </div>
+                                <div class="text-center">
+                                    <h3 class="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Sincronizando Perfil</h3>
+                                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-3">Iniciando terminal para <span class="text-indigo-500">${name}</span></p>
+                                </div>
+                            </div>
+                            
+                            <p class="absolute bottom-12 text-[9px] font-black text-slate-400 uppercase tracking-[0.4em] opacity-40">Operational Level &bull; Xolvy Hub 2027</p>
+                        </div>
+                    `;
+                    modal.className = 'fixed inset-0 z-[99999] flex items-center justify-center p-0';
+                    
+                    // Zero-Bounce: Forzar suspensión de cambios de Auth por 500ms
+                    window._authSuspended = true;
+                    setTimeout(() => window._authSuspended = false, 500);
+
+                    // Dispatch routing trigger programmatically
                     document.dispatchEvent(new CustomEvent('demo-login', {
                         detail: { email: phone || name, role: 'Conductor' }
                     }));
+
+                    // El loader se removerá automáticamente cuando el Dashboard se monte y limpie el body/container
                 });
             });
         };

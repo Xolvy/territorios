@@ -9,16 +9,15 @@
  */
 
 export const VisualEngine = {
-    // CURRENT VISUAL GENERATION: 2.0 (Renovación 2027)
-    version: "2.0.2027",
+    // CURRENT VISUAL GENERATION: 3.0 (Modern Professional SaaS)
+    version: "3.0.2027",
 
     /**
      * 🟢 MODO DE USO PARA EL USUARIO:
-     * Para cambiar TODO el aspecto visual de la aplicación:
-     * 1. Modifica los strings en 'components' (ej. cambia 'rounded-2xl' por 'rounded-none').
-     * 2. O elige un pre-ajuste en el futuro cambiando el 'activeProfile'.
+     * El sistema ha pasado a un estilo SaaS Robusto (FinTech/CRM).
+     * Fondo Gris Tenue (Slate-100) + Tarjetas Blancas (Shadow-MD).
      */
-    activeProfile: "renovacion_2027",
+    activeProfile: "professional_saas",
 
     /**
      * DESIGN TOKENS - The source of truth for all visual values
@@ -54,31 +53,31 @@ export const VisualEngine = {
     components: {
         // Main App Shell
         shell: {
-            container: "min-h-screen bg-slate-50 dark:bg-[#060a12] transition-colors duration-700 ease-out text-slate-800 dark:text-slate-200 tracking-tight",
-            mainOrder: "max-w-[1500px] mx-auto p-4 md:p-8 animate-fade-in"
+            container: "min-h-screen bg-slate-100 dark:bg-[#0f172a] transition-colors duration-300 ease-out text-slate-900 dark:text-slate-100 tracking-tight",
+            mainOrder: "max-w-full mx-auto animate-fade-in"
         },
 
         // Header System (Fase 2)
         header: {
-            wrapper: "flex flex-col lg:flex-row justify-between items-start lg:items-center p-6 md:px-10 md:py-8 bg-white/90 dark:bg-[#0a0f18]/90 backdrop-blur-md rounded-[2.5rem] border-b border-slate-200/80 dark:border-white/5 gap-6 relative overflow-visible group",
-            glow: "absolute inset-0 bg-transparent pointer-events-none"
+            wrapper: "bg-white dark:bg-[#1e293b] h-16 w-full px-6 flex items-center justify-between sticky top-0 z-[100]",
+            glow: "hidden"
         },
 
         // Bento Box Card System (Fase 1)
         card: {
-            base: "bg-white dark:bg-[#0a0f18] rounded-2xl md:rounded-3xl border border-slate-200/60 dark:border-white/5 shadow-sm hover:shadow-md transition-all duration-300",
-            premium: "bg-white dark:bg-[#0a0f18] rounded-3xl border border-slate-200/60 dark:border-white/5 shadow-sm hover:shadow-md transition-all duration-300",
-            flat: "bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/[0.05] rounded-2xl p-5 hover:shadow-sm transition-all duration-300",
-            interactive: "cursor-pointer group hover:border-indigo-500/40 active:scale-[0.98] transition-all"
+            base: "bg-white dark:bg-[#1e293b] rounded-xl border border-slate-100 dark:border-white/5 shadow-md hover:shadow-lg transition-all duration-300",
+            premium: "bg-white dark:bg-[#1e293b] rounded-2xl border border-slate-100 dark:border-white/5 shadow-lg hover:shadow-xl transition-all duration-300",
+            flat: "bg-slate-50/50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] rounded-xl p-5 hover:bg-white transition-all duration-300",
+            interactive: "cursor-pointer group hover:border-blue-600/40 active:scale-[0.98] transition-all"
         },
 
         // Button System (Fase 3: Py-2, no fixed height)
         button: {
-            base: "inline-flex items-center justify-center gap-2.5 px-6 py-2 rounded-xl font-bold text-[11px] uppercase tracking-widest transition-all active:scale-95 whitespace-nowrap overflow-hidden text-ellipsis",
-            primary: "bg-indigo-600 text-white shadow-sm hover:bg-indigo-700 hover:shadow-md",
-            secondary: "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10",
-            danger: "bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white border border-rose-500/20",
-            ghost: "bg-transparent text-slate-500 hover:text-indigo-600 hover:bg-indigo-50/50"
+            base: "inline-flex items-center justify-center gap-2.5 px-6 py-2.5 rounded-xl font-bold text-[11px] uppercase tracking-widest transition-all active:scale-95",
+            primary: "bg-blue-600 text-white shadow-md shadow-blue-500/20 hover:bg-blue-700 hover:shadow-lg",
+            secondary: "bg-slate-800 text-white shadow-sm hover:bg-slate-900",
+            danger: "bg-rose-600 text-white shadow-sm hover:bg-rose-700",
+            ghost: "bg-transparent text-slate-500 hover:text-blue-600 hover:bg-blue-50"
         },
 
         // Input & Form System

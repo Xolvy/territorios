@@ -1,7 +1,7 @@
 import {
     getGroupsConfig, getPublicadores, saveGroupsConfig
 } from '../../data/firestore-services.js';
-import { showNotification } from '../utils/helpers.js';
+import { showNotification, toTitleCase } from '../utils/helpers.js';
 
 export const renderGruposTab = async (container) => {
     const groups = await getGroupsConfig();
@@ -36,7 +36,7 @@ export const renderGruposTab = async (container) => {
                                 <div class="relative">
                                     <select id="leader-${g.id}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-xs font-bold text-slate-700 dark:text-slate-200 focus:border-teal-500 outline-none shadow-sm appearance-none cursor-pointer">
                                         <option value="">Sin asignar</option>
-                                        ${publicadores.map(p => `<option value="${p.nombre}" ${g.lider === p.nombre ? 'selected' : ''}>${p.nombre}</option>`).join('')}
+                                        ${publicadores.map(p => `<option value="${p.nombre}" ${g.lider === p.nombre ? 'selected' : ''}>${toTitleCase(p.nombre)}</option>`).join('')}
                                     </select>
                                     <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-[10px] pointer-events-none"></i>
                                 </div>
@@ -47,7 +47,7 @@ export const renderGruposTab = async (container) => {
                                 <div class="relative">
                                     <select id="assistant-${g.id}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-xs font-bold text-slate-700 dark:text-slate-200 focus:border-teal-500 outline-none shadow-sm appearance-none cursor-pointer">
                                         <option value="">Sin asignar</option>
-                                        ${publicadores.map(p => `<option value="${p.nombre}" ${g.asistente === p.nombre ? 'selected' : ''}>${p.nombre}</option>`).join('')}
+                                        ${publicadores.map(p => `<option value="${p.nombre}" ${g.asistente === p.nombre ? 'selected' : ''}>${toTitleCase(p.nombre)}</option>`).join('')}
                                     </select>
                                     <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-[10px] pointer-events-none"></i>
                                 </div>

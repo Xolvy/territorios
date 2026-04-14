@@ -5,12 +5,9 @@ import { ServiceCache, fetchCached } from './base-service.js';
 // --- CONDUCTORES ---
 
 export const getConductores = async () => {
-    return fetchCached('conductores', async () => {
-        const querySnapshot = await getDocs(collection(db, "publicadores"));
-        return querySnapshot.docs
-            .map(doc => ({ id: doc.id, ...doc.data() }))
-            .filter(p => p.es_conductor === true);
-    });
+    // Reusar getPublicadores (ya cacheada) y filtrar en memoria
+    const todos = await getPublicadores();
+    return todos.filter(p => p.es_conductor === true || (p.privilegios && p.privilegios.includes("Conductor")));
 };
 
 export const addConductor = async (conductor) => {

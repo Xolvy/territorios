@@ -6,11 +6,11 @@ import { showNotification } from '../utils/helpers.js';
 import { showCustomConfirm, showModal } from '../services/ui-helpers.js';
 import { setAdminLivePool } from '../admin-dashboard.js';
 
-export const renderPredicacionTab = async (container) => {
+export const renderPredicacionTab = async (container, configData = null) => {
     let data = { asignaciones: [] };
     const [publicadores, config] = await Promise.all([
         getPublicadores(),
-        getConfiguracion()
+        configData || getConfiguracion()
     ]);
     publicadores.sort((a, b) => String(a.nombre || '').localeCompare(String(b.nombre || '')));
 
@@ -41,28 +41,28 @@ export const renderPredicacionTab = async (container) => {
         container.innerHTML = `
             <div class="space-y-12 animate-fade-in">
                 <!-- Executive Header -->
-                <header class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 bg-white dark:bg-white/[0.02] p-6 lg:p-8 rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-xl">
+                <header class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 bg-white dark:bg-slate-900 p-6 lg:p-8 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm">
                     <div class="flex items-center gap-6">
-                        <div class="w-16 h-16 bg-primary/10 rounded-3xl flex items-center justify-center text-3xl text-primary shadow-inner">
+                        <div class="w-16 h-16 bg-slate-50 dark:bg-white/5 rounded-2xl flex items-center justify-center text-3xl text-slate-400 border border-slate-100 dark:border-white/5">
                             <i class="fas fa-street-view"></i>
                         </div>
                         <div>
-                            <h3 class="text-2xl lg:text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter leading-none mb-2">Predicación Pública</h3>
-                            <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] ml-1 opacity-70">Logística de Turnos S-13</p>
+                            <h3 class="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none mb-2">Predicación Pública</h3>
+                            <p class="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] ml-1 opacity-70">Logística de Turnos S-13</p>
                         </div>
                     </div>
                     
                     <div class="flex flex-wrap items-center gap-4 w-full lg:w-auto">
                         <div class="relative flex-1 lg:min-w-[400px] group no-print">
-                            <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors"><i class="fas fa-search text-xs"></i></span>
-                            <input type="text" id="public-search" placeholder="Filtrar día o publicador..." value="${currentSearchQuery}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl !pl-12 pr-4 py-4 text-xs font-black shadow-inner outline-none focus:border-primary transition-all uppercase">
+                            <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors"><i class="fas fa-search text-xs"></i></span>
+                            <input type="text" id="public-search" placeholder="Filtrar día o publicador..." value="${currentSearchQuery}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl !pl-12 pr-4 py-4 text-xs font-black shadow-inner outline-none focus:border-blue-500 transition-all uppercase">
                         </div>
                         
                         <div class="grid grid-cols-3 gap-3 w-full lg:w-auto no-print">
                             <button id="toggle-view-btn" class="bg-slate-900 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-800 transition-all flex items-center justify-center gap-3 shadow-lg active:scale-95">
                                 <i class="fas ${currentView === 'table' ? 'fa-th-large' : 'fa-list'}"></i> ${currentView === 'table' ? 'Matriz' : 'Lista'}
                             </button>
-                            <button id="add-row-btn" class="bg-primary hover:bg-primary-light text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20 transition-all active:scale-95 flex items-center justify-center gap-3">
+                            <button id="add-row-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-200 dark:shadow-none transition-all active:scale-95 flex items-center justify-center gap-3">
                                 <i class="fas fa-plus"></i> Nuevo
                             </button>
                             <button id="export-pdf" class="bg-white dark:bg-white/5 text-slate-500 hover:text-primary px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest border border-slate-200 dark:border-white/10 transition-all flex items-center justify-center gap-3 active:scale-95">
@@ -77,8 +77,8 @@ export const renderPredicacionTab = async (container) => {
                 </div>
 
                 <!-- Main Display Area -->
-                <div class="modern-card !p-0 overflow-visible border border-slate-100 dark:border-white/5 min-h-[500px] shadow-2xl relative bg-white dark:bg-[#0d1117] rounded-[2.5rem]" id="pdf-content">
-                    <div id="matrix-bg" class="absolute inset-0 bg-slate-50 dark:bg-black/40 opacity-0 transition-opacity pointer-events-none rounded-[2.5rem]"></div>
+                <div class="enterprise-card overflow-visible min-h-[500px] relative bg-white dark:bg-slate-900 rounded-3xl" id="pdf-content">
+                    <div id="matrix-bg" class="absolute inset-0 bg-slate-50 dark:bg-black/40 opacity-0 transition-opacity pointer-events-none rounded-3xl"></div>
                     
                     <div id="view-container" class="relative z-10 w-full">
                         <!-- Content depends on currentView -->

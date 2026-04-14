@@ -6,7 +6,7 @@ import { formatPhoneNumber, getStatusColor, showNotification } from '../utils/he
 import { showModal, showCustomConfirm } from '../services/ui-helpers.js';
 import { setAdminLivePool } from '../admin-dashboard.js';
 
-export const renderTelefonosTab = async (container) => {
+export const renderTelefonosTab = async (container, configData = null) => {
     let telefonos = [];
     const publicadores = await getPublicadores();
 
@@ -27,32 +27,33 @@ export const renderTelefonosTab = async (container) => {
         <div class="space-y-12 animate-fade-in">
             <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div>
-                    <h3 class="text-2xl md:text-3xl font-black text-slate-800 dark:text-white flex items-center gap-3 uppercase tracking-tighter">
-                        <i class="fas fa-phone-alt text-primary"></i> Directorio Telefónico
+                    <h3 class="text-2xl md:text-3xl font-black text-slate-900 dark:text-white flex items-center gap-3 uppercase tracking-tighter">
+                        <i class="fas fa-phone-alt text-blue-600"></i> Directorio Telefónico
                     </h3>
-                    <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] mt-1 ml-1">Gestión de registros y asignaciones para predicación</p>
+                    <p class="text-[10px] text-slate-500 font-black uppercase tracking-[0.3em] mt-1 ml-1">Gestión de registros y asignaciones para predicación</p>
                 </div>
                 
                 <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
                     <div class="relative flex-1 md:flex-none md:w-64 group">
-                        <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors"><i class="fas fa-search"></i></span>
-                        <input type="text" id="phone-search" placeholder="Número o nombre..." class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl !pl-14 pr-4 py-4 text-sm font-bold shadow-sm outline-none focus:border-primary transition-all text-slate-700 dark:text-white">
+                        <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors"><i class="fas fa-search"></i></span>
+                        <input type="text" id="phone-search" placeholder="Número o nombre..." class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl !pl-14 pr-4 py-4 text-sm font-bold shadow-sm outline-none focus:border-blue-600 transition-all text-slate-700 dark:text-white">
                     </div>
-                    <button id="add-phone-btn" class="flex-1 md:flex-none px-8 py-4 bg-primary hover:bg-primary-light text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-3">
+                    <button id="add-phone-btn" class="flex-1 md:flex-none px-8 py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-sm transition-all active:scale-95 flex items-center justify-center gap-3">
                         <i class="fas fa-plus-circle"></i> Agregar Registro
                     </button>
-                    <label class="flex items-center gap-2 px-4 py-4 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl cursor-pointer whitespace-nowrap group/toggle">
-                        <input type="checkbox" id="show-hidden-phones" class="w-4 h-4 rounded text-primary transition-transform group-active/toggle:scale-90">
-                        <span class="text-[9px] font-black uppercase text-slate-400 tracking-wider">Ver Ocultos</span>
+                    <label class="relative inline-flex items-center cursor-pointer group px-5 py-3.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl transition-all hover:border-slate-300 dark:hover:border-white/20 whitespace-nowrap">
+                        <input type="checkbox" id="show-hidden-phones" class="peer sr-only">
+                        <div class="relative w-10 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all shrink-0"></div>
+                        <span class="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-3">Ver Ocultos</span>
                     </label>
                 </div>
             </header>
 
-            <div class="hidden lg:block modern-card !p-0 overflow-hidden border-slate-100 dark:border-white/5 shadow-2xl relative">
+            <div class="hidden lg:block enterprise-card overflow-hidden border-slate-200 dark:border-white/5 shadow-sm relative">
                     <table class="w-full text-left border-collapse table-fixed">
-                        <thead class="bg-slate-50 dark:bg-black/40 text-slate-400 text-[9px] font-black uppercase tracking-[0.2em] border-b border-slate-100 dark:border-white/5">
+                        <thead class="bg-slate-50 dark:bg-black/40 text-slate-400 text-[9px] font-black uppercase tracking-[0.2em] border-b border-slate-200 dark:border-white/5">
                             <tr>
-                                <th class="p-4 md:p-6 w-[40%] cursor-pointer hover:bg-slate-100 dark:hover:bg-white/5 transition-colors group/th text-primary" data-sort="propietario">
+                                <th class="p-4 md:p-6 w-[40%] cursor-pointer hover:bg-slate-100 dark:hover:bg-white/5 transition-colors group/th text-blue-600" data-sort="propietario">
                                     Información de Contacto <i class="fas fa-sort-up ml-2 transition-all"></i>
                                 </th>
                                 <th class="p-4 md:p-6 text-center w-[20%] cursor-pointer hover:bg-slate-100 dark:hover:bg-white/5 transition-colors group/th" data-sort="estado">
@@ -197,7 +198,7 @@ export const renderTelefonosTab = async (container) => {
             const asignadoA = getDisplayName(t.solicitado_por || t.asignado_a);
 
             return `
-            <div class="modern-card p-5 border-slate-100 dark:border-white/5 shadow-xl space-y-4 relative overflow-hidden group">
+            <div class="enterprise-card p-5 border-slate-200 dark:border-white/5 shadow-sm space-y-4 relative overflow-hidden group">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 shrink-0 rounded-xl bg-primary/10 flex items-center justify-center text-primary">

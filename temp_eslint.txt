@@ -1,6 +1,0 @@
-
-D:\_CODE\app-territorios\modules\conductor\phone-module.js
-  91:124  error  Unnecessary escape character: \'  no-useless-escape
-
-Ô£û 1 problem (1 error, 0 warnings)
-

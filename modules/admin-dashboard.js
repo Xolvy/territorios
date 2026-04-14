@@ -2,7 +2,7 @@ import {
     getSystemVersion, setSystemVersion, getConfiguracion
 } from '../data/firestore-services.js';
 import { auth } from '../firebase-config.js';
-import { showNotification, renderSkeleton } from './utils/helpers.js';
+import { showNotification } from './utils/helpers.js';
 
 import { moduleRegistry } from './utils/module-registry.js';
 import { XolvyAdaptive } from './utils/adaptive.js';
@@ -36,23 +36,34 @@ async function loadSubModule(name, path) {
  * Main Entry Point for the Administration Control Panel
  * Refactored in 2026 for modular architecture and performance.
  */
-const renderNavItem = (id, icon, label, active) => {
-    const activeClasses = 'bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-400/20 shadow-none relative after:absolute after:left-0 after:top-1/4 after:bottom-1/4 after:w-1 after:bg-indigo-600 after:rounded-r-full';
-    const inactiveClasses = 'text-slate-500 hover:text-slate-900 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5 border-transparent shadow-none';
-    
-    return `
-    <button class="nav-item flex-shrink-0 flex items-center justify-center lg:justify-start gap-3 p-3 lg:px-4 lg:py-3.5 rounded-xl border transition-all duration-300 group ${active ? activeClasses : inactiveClasses}" data-tab="${id}">
-        <div class="nav-icon-bg w-8 h-8 lg:w-9 lg:h-9 rounded-lg flex items-center justify-center transition-all shrink-0 ${active ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-white/5 group-hover:bg-indigo-600 group-hover:text-white'}">
-            <i class="${icon} text-sm transition-transform group-hover:scale-110"></i>
+const renderSkeleton = (container) => {
+    container.innerHTML = `
+        <div class="p-10 space-y-12 animate-pulse">
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-6">
+                <div class="h-10 w-64 bg-slate-100 dark:bg-white/5 rounded-2xl"></div>
+                <div class="h-12 w-48 bg-slate-100 dark:bg-white/5 rounded-2xl"></div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="h-64 bg-slate-100 dark:bg-white/5 rounded-[2.5rem]"></div>
+                <div class="h-64 bg-slate-100 dark:bg-white/5 rounded-[2.5rem]"></div>
+                <div class="h-64 bg-slate-100 dark:bg-white/5 rounded-[2.5rem]"></div>
+            </div>
+            <div class="h-[500px] bg-slate-100 dark:bg-white/5 rounded-[3rem]"></div>
         </div>
-        <span class="text-[11px] font-bold tracking-tight hidden lg:block whitespace-nowrap">${label}</span>
-    </button>
     `;
 };
 
+const renderNavItem = (id, icon, label, active) => `
+    <button class="nav-item ${active ? 'active' : ''} flex-1 lg:flex-initial flex items-center justify-center lg:justify-start gap-4 p-5 rounded-2xl transition-all group ${active ? 'bg-gradient-to-r from-primary to-indigo-600 text-white shadow-xl shadow-primary/30' : 'hover:bg-primary/5 text-slate-500 dark:text-gray-400'}" data-tab="${id}">
+        <i class="${icon} text-lg transition-transform group-hover:scale-125 shrink-0"></i>
+        <span class="text-[11px] font-black uppercase tracking-widest hidden lg:block whitespace-nowrap">${label}</span>
+        ${active ? '<div class="hidden lg:block ml-auto w-1.5 h-1.5 rounded-full bg-white opacity-50"></div>' : ''}
+    </button>
+`;
 
 
-const loadTab = async (tabName, appVersion) => {
+
+const loadTab = async (tabName, appVersion, configData = null) => {
     const contentDiv = document.getElementById('admin-content');
     stopAdminLivePools(); // Clean up previous listeners
     // Also clean up per-territory timeline live pools (Xolvy Live Pool)
@@ -62,57 +73,56 @@ const loadTab = async (tabName, appVersion) => {
     renderSkeleton(contentDiv);
 
     try {
+        // Fallback for direct calls that might miss configData
+        const config = configData || await getConfiguracion();
+
         switch (tabName) {
             case 'config': {
-                const config = await getConfiguracion();
                 const mRules = await loadSubModule('rules_view', './admin/rules-view.js');
-                await mRules.renderConfigTab(contentDiv, config, appVersion, (tabId) => loadTab(tabId, appVersion));
+                await mRules.renderConfigTab(contentDiv, config, appVersion, (tabId) => loadTab(tabId, appVersion, config));
                 break;
             }
             case 'casa-en-casa': {
-                const cfg = await getConfiguracion();
                 const mTerrs = await loadSubModule('territories_view', './admin/territories-view.js');
-                await mTerrs.renderCasaEnCasaTab(contentDiv, cfg, appVersion);
+                await mTerrs.renderCasaEnCasaTab(contentDiv, config, appVersion);
                 break;
             }
             case 'predicacion': {
                 const mPublic = await loadSubModule('public_view', './admin/public-view.js');
-                await mPublic.renderPredicacionTab(contentDiv);
+                await mPublic.renderPredicacionTab(contentDiv, config);
                 break;
             }
             case 'telefonos': {
                 const mPhones = await loadSubModule('phones_view', './admin/phones-view.js');
-                await mPhones.renderTelefonosTab(contentDiv);
+                await mPhones.renderTelefonosTab(contentDiv, config);
                 break;
             }
             case 'reportes': {
                 const mReports = await loadSubModule('reports_view', './admin/reports-view.js');
-                await mReports.renderReportsTab(contentDiv);
+                await mReports.renderReportsTab(contentDiv, config, appVersion);
                 break;
             }
             case 'recursos': {
-                const cfg = await getConfiguracion();
                 const mRecs = await loadSubModule('resources_view', './admin/resources-view.js');
-                await mRecs.renderRecursosTab(contentDiv, cfg, appVersion);
+                await mRecs.renderRecursosTab(contentDiv, config, appVersion);
                 break;
             }
             case 'personal': {
-                const cfg = await getConfiguracion();
                 const mPers = await loadSubModule('personal_view', './admin/personal-view.js');
-                await mPers.renderPersonalTab(contentDiv, cfg, appVersion);
+                await mPers.renderPersonalTab(contentDiv, config, appVersion);
                 break;
             }
             case 'dashboard':
             default: {
                 const mAnalytics = await loadSubModule('analytics_view', './analytics-view.js');
-                await mAnalytics.renderAnalyticsView(contentDiv, appVersion);
+                await mAnalytics.renderAnalyticsView(contentDiv, appVersion, config);
                 break;
             }
         }
         XolvyAdaptive.refresh();
     } catch (e) {
         contentDiv.innerHTML = `
-    < div class="flex flex-col items-center justify-center py-32 text-center space-y-4" >
+            <div class="flex flex-col items-center justify-center py-32 text-center space-y-4">
                 <div class="w-16 h-16 bg-rose-500/10 text-rose-500 rounded-2xl flex items-center justify-center text-2xl"><i class="fas fa-triangle-exclamation"></i></div>
                 <h4 class="text-sm font-black uppercase text-slate-800 dark:text-white">Error de Carga</h4>
                 <p class="text-xs text-slate-400 max-w-xs">${e.message}</p>
@@ -121,20 +131,40 @@ const loadTab = async (tabName, appVersion) => {
                         <i class="fas fa-sync-alt mr-2"></i> Reintentar
                     </button>
                 </div>
-            </div >
-    `;
+            </div>
+        `;
     }
 };
 
-const setupNavigation = (appVersion) => {
-    // Logout Logic
+
+const setupNavigation = (appVersion, configData) => {
+    // Logout Logic (Deep Session Purge)
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
         logoutBtn.onclick = null; // Purge any existing
         logoutBtn.addEventListener('click', async (e) => {
             e.preventDefault();
+            console.log("🛡️ [AdminHub] Invocando Cierre de Sesión Blindado...");
+            
+            // 1. Detener todos los Live Pools activos
+            if (typeof window.stopActiveLivePools === 'function') {
+                window.stopActiveLivePools();
+            }
+            if (typeof stopAdminLivePools === 'function') {
+                stopAdminLivePools();
+            }
+
+            // 2. Limpieza profunda de LocalStorage
             localStorage.removeItem('demo_role');
+            localStorage.removeItem('xolvy_session');
+            localStorage.removeItem('phone_session_active');
+            localStorage.removeItem('selected_conductor_name');
+            localStorage.clear(); // Safe bet for hard reset
+
+            // 3. Firebase SignOut
             await auth.signOut();
+            
+            // 4. Redirección final
             location.href = '/login';
         });
     }
@@ -146,18 +176,11 @@ const setupNavigation = (appVersion) => {
             const currentTab = e.currentTarget.dataset.tab;
             tabs.forEach(t => {
                 const isActive = t.dataset.tab === currentTab;
-                const iconBg = t.querySelector('.nav-icon-bg');
                 
                 if (isActive) {
-                    t.className = `nav-item flex-shrink-0 flex items-center justify-center lg:justify-start gap-3 p-3 lg:px-4 lg:py-3.5 rounded-xl border transition-all duration-300 group bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-400/20 shadow-none relative after:absolute after:left-0 after:top-1/4 after:bottom-1/4 after:w-1 after:bg-indigo-600 after:rounded-r-full`;
-                    if (iconBg) {
-                        iconBg.className = 'nav-icon-bg w-8 h-8 lg:w-9 lg:h-9 rounded-lg flex items-center justify-center transition-all shrink-0 bg-indigo-600 text-white';
-                    }
+                    t.className = `nav-item active flex-1 lg:flex-initial flex items-center justify-center lg:justify-start gap-4 p-5 rounded-2xl transition-all group bg-primary text-white shadow-xl shadow-primary/20`;
                 } else {
-                    t.className = `nav-item flex-shrink-0 flex items-center justify-center lg:justify-start gap-3 p-3 lg:px-4 lg:py-3.5 rounded-xl border transition-all duration-300 group text-slate-500 hover:text-slate-900 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5 border-transparent shadow-none`;
-                    if (iconBg) {
-                        iconBg.className = 'nav-icon-bg w-8 h-8 lg:w-9 lg:h-9 rounded-lg flex items-center justify-center transition-all shrink-0 bg-slate-100 dark:bg-white/5 group-hover:bg-indigo-600 group-hover:text-white';
-                    }
+                    t.className = `nav-item flex-1 lg:flex-initial flex items-center justify-center lg:justify-start gap-4 p-5 rounded-2xl transition-all group hover:bg-primary/5 text-slate-500 dark:text-gray-400`;
                 }
             });
 
@@ -174,12 +197,13 @@ const setupNavigation = (appVersion) => {
                 'config': 'config'
             };
 
-            window.history.pushState({}, '', `/ administrador / ${urlMap[tabId] || 'dashboard'} `);
-            loadTab(tabId, appVersion);
+            window.history.pushState({}, '', `/administrador/${urlMap[tabId] || 'dashboard'}`);
+            loadTab(tabId, appVersion, configData);
             XolvyAdaptive.refresh();
         };
     });
 };
+
 
 export const renderAdminDashboard = async (container, appVersion, initialTab = 'dashboard') => {
     try {
@@ -196,15 +220,19 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
             await deleteHistoryRecordUI(id, cond, num);
         };
 
+        // --- CONFIGURATION SINGLETON ---
+        const configData = await getConfiguracion();
+
         window.dispatchModuleSync = () => {
             const currentTab = document.querySelector('.nav-item.active')?.dataset.tab;
-            if (currentTab) loadTab(currentTab, appVersion);
+            if (currentTab) loadTab(currentTab, appVersion, configData);
         };
 
         window.refreshAdminView = async () => {
             const currentTab = document.querySelector('.nav-item.active')?.dataset.tab || initialTab;
-            await loadTab(currentTab, appVersion);
+            await loadTab(currentTab, appVersion, configData);
         };
+
 
         // --- VERSION SYNCHRONIZATION ---
         if (appVersion) {
@@ -216,91 +244,76 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
             }).catch(e => console.warn("Version check skipped", e));
         }
 
-        // --- MAIN SHELL RENDER ---
-        container.innerHTML = `
-            <div class="flex flex-col h-screen overflow-hidden bg-slate-50 dark:bg-[#0a0f18] transition-colors duration-300">
-                <!-- ROOT SHELL -->
-                <div class="flex-1 flex flex-col min-h-0 relative overflow-hidden">
-                    
-                    <!-- HEADER CLEAN v4.0 (Stripe Style) -->
-                    <header class="w-full z-50 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-b border-slate-200 dark:border-white/5 px-6 lg:px-12 py-4 lg:py-6 transition-all duration-300 shrink-0">
-                        <div class="flex flex-row items-center justify-between gap-4 relative z-10">
-                            <div class="flex items-center gap-4 lg:gap-6">
-                                <div class="w-10 h-10 lg:w-12 lg:h-12 bg-indigo-600 rounded-xl flex items-center justify-center text-lg lg:text-xl shadow-indigo-600/20 border border-white/20 shrink-0">
-                                    <i class="fas fa-university text-white"></i>
-                                </div>
-                                <div class="flex flex-col">
-                                    <h1 class="text-lg lg:text-2xl font-bold text-slate-900 dark:text-white tracking-tight leading-none mb-1">Centro de Gestión</h1>
-                                    <div class="flex items-center gap-2">
-                                         <div class="flex items-center gap-1.5 py-0.5 px-2 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/50 rounded-full">
-                                            <span class="relative flex h-1 w-1">
-                                               <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                               <span class="relative inline-flex rounded-full h-1 w-1 bg-emerald-600"></span>
-                                            </span>
-                                            <span class="text-[8px] font-bold uppercase tracking-widest">Activo</span>
-                                         </div>
-                                         <span class="text-[9px] font-semibold text-slate-400 uppercase tracking-[0.2em] ml-1">v${appVersion}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="flex items-center gap-3 lg:gap-4">
-                                <div class="flex items-center gap-1.5 bg-slate-50 dark:bg-white/5 p-1.5 rounded-xl border border-slate-200 dark:border-white/10">
-                                     <button onclick="window.toggleTheme()" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-indigo-600 transition-all active:scale-95 outline-none">
-                                         <i class="fas fa-moon dark:hidden text-[11px]"></i>
-                                         <i class="fas fa-sun hidden dark:block text-yellow-500 text-[11px]"></i>
-                                     </button>
-                                     <div class="w-px h-3 bg-slate-200 dark:bg-white/10 mx-1"></div>
-                                     <button onclick="window.switchToConductorView()" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-indigo-600 transition-all active:scale-95 outline-none" title="Cambiar a Vista Conductor">
-                                         <i class="fas fa-compass text-[11px]"></i>
-                                     </button>
-                                </div>
-                                <button id="logout-btn" class="h-10 px-6 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-[10px] uppercase tracking-widest transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2">
-                                    <i class="fas fa-power-off text-xs opacity-60"></i>
-                                    <span class="hidden lg:inline">Cerrar Sesión</span>
-                                </button>
-                            </div>
-                        </div>
-                    </header>
-
-                    <!-- MAIN LAYOUT AREA -->
-                    <div class="flex-1 flex flex-col lg:flex-row min-h-0 relative overflow-hidden transition-all duration-300">
-                        
-                        <!-- NAVIGATION (Side / Bottom) -->
-                        <aside class="order-2 lg:order-1 w-full lg:w-72 bg-white dark:bg-slate-900 border-t lg:border-t-0 lg:border-r border-slate-200 dark:border-white/5 p-2 lg:p-6 shrink-0 z-50 transition-all duration-300">
-                            <nav class="flex flex-row lg:flex-col gap-1 p-1 overflow-x-auto lg:overflow-y-auto scrollbar-hide overscroll-contain">
-                                <div class="hidden lg:block mb-4 px-4 py-2">
-                                     <span class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Menú Principal</span>
-                                </div>
-                                ${renderNavItem('dashboard', 'fas fa-grid-2', 'Tablero Metas', initialTab === 'dashboard')}
-                                ${renderNavItem('casa-en-casa', 'fas fa-map', 'Territorios', initialTab === 'casa-en-casa')}
-                                ${renderNavItem('predicacion', 'fas fa-calendar-days', 'Programa Semanal', initialTab === 'predicacion')}
-                                ${renderNavItem('telefonos', 'fas fa-phone', 'Telefonía', initialTab === 'telefonos')}
-                                <div class="hidden lg:block h-px bg-slate-100 dark:bg-white/5 my-4 mx-4"></div>
-                                <div class="hidden lg:block mb-4 px-4 py-2">
-                                     <span class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Administración</span>
-                                </div>
-                                ${renderNavItem('reportes', 'fas fa-clock-rotate-left', 'Cronología S-13', initialTab === 'reportes')}
-                                ${renderNavItem('personal', 'fas fa-user-group', 'Publicadores', initialTab === 'personal')}
-                                ${renderNavItem('recursos', 'fas fa-folder-tree', 'Archivos', initialTab === 'recursos')}
-                                ${renderNavItem('config', 'fas fa-gear', 'Configuración', initialTab === 'config')}
-                            </nav>
-                        </aside>
-
-                        <!-- CONTENT VIEWPORT -->
-                        <main id="admin-content" class="order-1 lg:order-2 flex-1 w-full h-full min-h-0 overflow-y-auto overscroll-contain relative pb-28 lg:pb-12 pt-6 lg:pt-10 px-4 lg:px-12 custom-scrollbar transition-colors bg-slate-50 dark:bg-[#0a0f18] z-10">
-                            <!-- Injected Views -->
-                        </main>
+        // --- MAIN SHELL RENDER ---        container.innerHTML = `
+    <div class="animate-fade-in pb-32 lg:pb-8 w-full max-w-[1600px] mx-auto p-2 md:p-8 overflow-x-hidden relative" data-adaptive-container="true">
+        <!-- MorphinGlass Accent Glows -->
+        <div class="absolute top-0 left-0 w-[500px] h-[500px] bg-primary/5 blur-[120px] rounded-full pointer-events-none"></div>
+        
+        <header class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 lg:mb-10 p-4 md:p-8 bg-white/70 dark:bg-white/5 backdrop-blur-2xl rounded-2xl lg:rounded-[2rem] border border-slate-200 dark:border-white/10 shadow-2xl gap-6 relative z-10" data-mobile-order="1">
+            <div class="flex items-center gap-4 md:gap-6">
+                <div class="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-primary to-slate-900 rounded-2xl flex items-center justify-center text-2xl md:text-3xl shadow-xl shadow-primary/20 border border-primary/20 transition-transform hover:scale-105 duration-500 shrink-0">
+                    <i class="fas fa-university text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-3xl font-black text-slate-900 dark:text-white leading-tight uppercase tracking-tighter">Panel de Gestión</h1>
+                    <div class="flex items-center gap-2 mt-1">
+                        <span class="relative flex h-2 w-2">
+                           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                           <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                        <p class="text-[9px] md:text-[10px] text-slate-500 font-black uppercase tracking-widest">Sincronizado • v${appVersion}</p>
                     </div>
                 </div>
             </div>
             
-            <div id="modal-container" class="fixed inset-0 bg-slate-950/40 backdrop-blur-sm hidden overflow-y-auto z-[200] p-4 flex justify-center items-center"></div>
-            <div id="modal-container-nested" class="fixed inset-0 bg-slate-950/60 backdrop-blur-md hidden overflow-y-auto z-[500] p-4 flex justify-center items-center"></div>
+            <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                <div class="hidden sm:flex flex-col items-center bg-slate-50 dark:bg-white/5 px-6 py-2.5 rounded-2xl border border-slate-100 dark:border-white/10 shadow-sm">
+                    <span class="text-[7px] font-black text-slate-400 uppercase tracking-[0.3em] mb-0.5">Versión del Sistema</span>
+                    <span class="text-[10px] font-black text-slate-800 dark:text-white tracking-widest uppercase">Build v${appVersion}</span>
+                </div>
+
+                <div class="flex-1 lg:flex-none flex items-center justify-center gap-4 bg-slate-100 dark:bg-white/5 px-4 md:px-6 py-2.5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-inner min-w-fit shrink-0">
+                     <div class="flex items-center gap-2">
+                         <div class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></div>
+                         <span class="text-[8px] md:text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest whitespace-nowrap">Vista Admin</span>
+                     </div>
+                     <div class="w-px h-3 bg-slate-300 dark:bg-white/10 mx-0.5"></div>
+                     <button onclick="window.history.pushState({}, '', '/conductores'); location.reload();" class="text-[8px] md:text-[9px] font-black text-primary hover:text-indigo-600 uppercase tracking-widest transition-colors flex items-center gap-2 whitespace-nowrap group/switch shrink-0 px-1">
+                         <i class="fas fa-random text-[10px] group-hover:rotate-180 transition-transform duration-500"></i> Conductor
+                     </button>
+                </div>
+                
+                <button id="logout-btn" class="flex-1 lg:flex-none bg-rose-500/10 hover:bg-rose-600 text-rose-500 hover:text-white px-8 py-3.5 rounded-2xl border border-rose-500/20 transition-all font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-rose-500/5 active:scale-95">
+                    <i class="fas fa-sign-out-alt"></i> Salir
+                </button>
+            </div>
+        </header>
+
+        <div class="flex flex-col lg:flex-row gap-8 items-start">
+            <aside class="w-full lg:w-72 lg:sticky lg:top-8 z-40 shrink-0">
+                <nav class="flex flex-row lg:flex-col gap-2 overflow-x-auto scrollbar-hide lg:overflow-visible p-1 glass-morphism rounded-3xl lg:bg-transparent lg:border-none lg:shadow-none lg:backdrop-blur-none transition-all">
+                    ${renderNavItem('dashboard', 'fas fa-chart-line', 'Estadísticas', initialTab === 'dashboard')}
+                    ${renderNavItem('casa-en-casa', 'fas fa-map-location-dot', 'Territorios', initialTab === 'casa-en-casa')}
+                    ${renderNavItem('predicacion', 'fas fa-bullhorn', 'P. Pública', initialTab === 'predicacion')}
+                    ${renderNavItem('telefonos', 'fas fa-phone-volume', 'Telefonía', initialTab === 'telefonos')}
+                    ${renderNavItem('reportes', 'fas fa-file-invoice', 'Reportes', initialTab === 'reportes')}
+                    <div class="hidden lg:block h-px bg-slate-200 dark:bg-white/10 my-4 mx-4"></div>
+                    ${renderNavItem('config', 'fas fa-sliders', 'Ajustes', initialTab === 'config')}
+                </nav>
+            </aside>
+
+            <main id="admin-content" class="flex-1 w-full min-h-[70vh] rounded-[2.5rem] bg-white/70 dark:bg-white/5 backdrop-blur-2xl border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden relative z-10">
+            </main>
+        </div>
+    </div>
+    
+    <div id="modal-container" class="fixed inset-0 bg-slate-950/40 backdrop-blur-sm hidden overflow-y-auto z-[100] p-4 flex justify-center items-center transition-all duration-300"></div>
+    <div id="modal-container-nested" class="fixed inset-0 bg-slate-950/60 backdrop-blur-md hidden overflow-y-auto z-[500] p-4 flex justify-center items-center transition-all duration-300"></div>
 `;
 
-        setupNavigation(appVersion);
-        loadTab(initialTab, appVersion);
+        setupNavigation(appVersion, configData);
+        loadTab(initialTab, appVersion, configData);
+
         XolvyAdaptive.refresh();
 
     } catch (e) {

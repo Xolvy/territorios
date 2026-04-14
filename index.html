@@ -25,13 +25,18 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
+    <!-- Icons: FontAwesome (MANDATORY FIX) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
     <!-- CSS Assets (Processed by Vite) -->
     <link rel="stylesheet" href="/src/input.css">
 
     <!-- Emergency Power-Up: Hard Sync if stuck -->
     <script>
         (function () {
-            const CURRENT_BUILD = "2.9.5";
+            // --- DEEP EDIT 2026: FORCE RELOAD ---
+            const CURRENT_BUILD = "2.9.6-deep-edit";
+            console.log("🚀 XOLVY CORE: System Version [FORCE_SYNC_ACTIVE]");
             
             // --- Xolvy Theme Engine 2.0 (FOUC Prevention) ---
             const theme = localStorage.getItem('theme') || 'auto';
@@ -65,10 +70,11 @@
         });
     </script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 
 <body
-    class="h-full font-['Outfit',sans-serif] antialiased selection:bg-teal-500/30 selection:text-teal-900 overflow-x-hidden transition-colors duration-300 ease-in-out">
+    class="h-full font-['Outfit',sans-serif] antialiased selection:bg-teal-500/30 selection:text-teal-900 overflow-x-hidden transition-colors duration-700 ease-in-out bg-slate-50 dark:bg-gradient-to-br dark:from-slate-900 dark:via-[#0a0f18] dark:to-black">
     <div class="bg-accents">
         <div class="accent-blob bg-indigo-500/20 dark:bg-indigo-600/30 top-[-20%] left-[-10%] animation-delay-0"></div>
         <div class="accent-blob bg-teal-500/20 dark:bg-teal-600/20 bottom-[-20%] right-[-10%] animation-delay-2000">
@@ -78,9 +84,9 @@
         <div class="accent-blob bg-blue-500/10 dark:bg-blue-600/10 bottom-[20%] left-[20%] animation-delay-6000"></div>
     </div>
 
-    <main id="app-container" class="min-h-full">
+    <main id="app-container" class="min-h-full w-full">
         <!-- Application Root -->
-        <div class="flex items-center justify-center min-h-screen">
+        <div class="flex items-center justify-center min-h-screen" style="min-height: 100vh; min-height: 100dvh;">
             <div class="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
         </div>
     </main>

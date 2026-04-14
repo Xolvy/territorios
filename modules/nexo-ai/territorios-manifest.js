@@ -1,36 +1,73 @@
 export const NexoManifest = {
   app_name: "Territorios JW",
   contexto_global: "App para gestionar territorios de predicación, agenda, mapas interactivos, disponibilidad semanal y Live Pool telefónico.",
-  funciones_disponibles: [
+  tools: [
     {
-      nombre: "marcar_territorio_completado",
-      descripcion: "Marca un mapa físico principal como terminado.",
-      parametros: { numero_territorio: "string" }
-    },
-    {
-      nombre: "actualizar_estado_telefono",
-      descripcion: "Actualiza cómo resultó la llamada en una de las parcelas del usuario activo en el Live Pool.",
-      parametros: { ultimos_digitos: "string", nuevo_estado: "string (no_llamar, exitoso, ocupado, no_contesta)" }
-    },
-    {
-      nombre: "mostrar_mapa_territorio",
-      descripcion: "Abre el Explorador de Mapas y hace zoom al territorio indicado para guiar al conductor.",
-      parametros: { numero_territorio: "string" }
-    },
-    {
-      nombre: "actualizar_disponibilidad",
-      descripcion: "Actualiza la disponibilidad general del conductor para una semana específica.",
-      parametros: { rango_fechas: "objeto { inicio: yyyy-mm-dd, fin: yyyy-mm-dd }", disponible: "boolean" }
-    },
-    {
-      nombre: "actualizar_dias_disponibles",
-      descripcion: "Configura exactamente qué días y en qué franjas (Mañana, Tarde, Noche) saldrá a predicar nuestro compañero.",
-      parametros: { dias_detallados: "Array de objetos { dia: Lunes|Martes|Miércoles.., franjas: ['Mañana', 'Noche'] }" }
-    },
-    {
-      nombre: "leer_tema_semanal",
-      descripcion: "Lee el tema central de la predicación de esta semana y lo anuncia para que el usuario se prepare.",
-      parametros: {}
+      function_declarations: [
+        {
+          name: "registrar_predicacion_territorio",
+          description: "Registra el avance o la entrega final de un territorio de predicación (S-13). Úsala cuando el usuario informe haber terminado o trabajado sectores específicos.",
+          parameters: {
+            type: "OBJECT",
+            properties: {
+              territorio_id: {
+                type: "STRING",
+                description: "El ID o número del territorio (ej: '15')."
+              },
+              tipo_entrega: {
+                type: "STRING",
+                enum: ["completo", "parcial"],
+                description: "Si el territorio se terminó totalmente ('completo') o solo se avanzaron algunas partes ('parcial')."
+              },
+              manzanas_trabajadas: {
+                type: "ARRAY",
+                items: { type: "STRING" },
+                description: "Lista de manzanas o sectores que el usuario indica haber terminado (requerido solo para 'parcial')."
+              },
+              notas_novedades: {
+                type: "STRING",
+                description: "Información para el registro S-13 (casas vacías, personas interesadas, advertencias, etc.)."
+              }
+            },
+            required: ["territorio_id", "tipo_entrega"]
+          }
+        },
+        {
+          name: "agregar_nota_s13",
+          description: "Agrega una nota o novedad adicional a un territorio ya informado anteriormente.",
+          parameters: {
+            type: "OBJECT",
+            properties: {
+              territorio_id: { type: "STRING" },
+              nota: { type: "STRING", description: "La novedad encontrada (timbre dañado, persona sorda, etc.)" }
+            },
+            required: ["territorio_id", "nota"]
+          }
+        },
+        {
+          name: "actualizar_estado_telefono",
+          description: "Actualiza el resultado de una llamada en el Live Pool telefónico.",
+          parameters: {
+            type: "OBJECT",
+            properties: {
+              ultimos_digitos: { type: "STRING" },
+              nuevo_estado: { type: "STRING", enum: ["no_llamar", "exitoso", "ocupado", "no_contesta"] }
+            },
+            required: ["ultimos_digitos", "nuevo_estado"]
+          }
+        },
+        {
+          name: "mostrar_mapa_territorio",
+          description: "Abre el mapa interactivo y muestra el territorio indicado.",
+          parameters: {
+            type: "OBJECT",
+            properties: {
+              numero_territorio: { type: "STRING" }
+            },
+            required: ["numero_territorio"]
+          }
+        }
+      ]
     }
   ]
 };

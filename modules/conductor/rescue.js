@@ -17,7 +17,7 @@ export const renderRescueMissions = (allTerritorios, normalizedName, myExtraMiss
                             <i class="fas fa-rocket"></i>
                         </div>
                         <div class="space-y-1">
-                            <h3 class="text-2xl font-black uppercase tracking-tighter">Por completar</h3>
+                            <h3 class="text-2xl font-black uppercase tracking-tighter">Territorios disponibles</h3>
                             <p class="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Territorios pendientes y disponibles</p>
                         </div>
                     </div>
@@ -35,7 +35,10 @@ export const renderRescueMissions = (allTerritorios, normalizedName, myExtraMiss
                                         <span class="w-12 h-12 bg-indigo-500/10 text-indigo-600 rounded-xl flex items-center justify-center font-black text-lg">T${t.numero}</span>
                                         <div>
                                             <p class="text-[10px] font-black text-slate-800 dark:text-white uppercase">${t.localidad || 'General'}</p>
-                                            <p class="text-[8px] font-bold text-slate-400 uppercase truncate max-w-[150px]">${formatManzanas(t.manzanas)}</p>
+                                            <p class="text-[8px] font-bold text-slate-400 uppercase truncate max-w-[150px]">
+                                                ${formatManzanas(t.manzanas)}
+                                                ${t.manzanas_trabajadas && t.manzanas_trabajadas.length > 0 ? `<span class="text-emerald-500 font-extrabold ml-1">(${t.manzanas_trabajadas.length} marcadas)</span>` : ''}
+                                            </p>
                                         </div>
                                     </div>
                                     <button onclick="window.viewMapFromReport('${t.id}')" class="w-10 h-10 bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-indigo-500 rounded-xl transition-colors">
@@ -90,6 +93,7 @@ export const renderRescueMissions = (allTerritorios, normalizedName, myExtraMiss
                                             <p class="text-[10px] text-slate-500 dark:text-slate-400 font-bold leading-relaxed uppercase tracking-tight">
                                                 <i class="fas fa-map-marker-alt mr-2 opacity-40"></i>
                                                 ${formatManzanas(t.manzanas) || 'Territorio listo para predicar.'}
+                                                ${t.manzanas_trabajadas && t.manzanas_trabajadas.length > 0 ? `<span class="text-emerald-500 block mt-1">(${t.manzanas_trabajadas.length} manzanas ya trabajadas)</span>` : ''}
                                             </p>
                                         </div>
 

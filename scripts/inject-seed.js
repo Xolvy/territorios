@@ -95,7 +95,7 @@ async function injectSeed() {
 
         const cleanGeneral = {
             gemini_key: NEW_GEMINI_KEY,
-            nexo_model: "gemini-1.5-flash",
+            nexo_model: "gemini-3-flash",
             version_app: "2.6",
             // Preservamos logística vital del seed si existía
             temas_semanales: oldGeneral.temas_semanales || [],
@@ -121,7 +121,7 @@ async function injectSeed() {
         console.log(`- Programas: ${results.programa_semanal}`);
         console.log(`- Documentos Config: ${results.configuracion}`);
         console.log("-----------------------------------------");
-        console.log("👉 Nexo ha sido reconfigurado con Gemini 1.5 Flash.");
+        console.log("👉 Nexo ha sido reconfigurado con Gemini 3 Flash.");
 
         process.exit(0);
     } catch (e) {

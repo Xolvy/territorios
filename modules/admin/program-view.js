@@ -2,101 +2,43 @@ import {
     getTerritorios, getConfiguracion, getPublicadores,
     getProgramaSemanal, saveProgramaSemanal, getGroupsConfig, returnTerritorioMultiple,
     getHistorialReport, returnTerritorioParcial, startLivePool,
-    returnTerritorio, syncSlotWithTerritories, importProgramFromJSON, formalizeWeek
+    returnTerritorio, syncSlotWithTerritories, importProgramFromJSON, formalizeWeek,
+    sincronizarAsignacionesSalida, liberarAsignacionesDeSalida
 } from '../../data/firestore-services.js';
 import { extractProgramFromImage } from '../services/ai-vision-service.js';
-import { showNotification, formatGroups, getBaseTerritoryNumber, normalize } from '../utils/helpers.js';
+import { showNotification, formatGroups, getBaseTerritoryNumber, normalize, splitTerritories } from '../utils/helpers.js';
 import { UIHelpers, showModal, showTerritorySelectionModal, showCustomConfirm } from '../services/ui-helpers.js';
 import { generateProgramPNG } from './program-generator.js';
 import { db } from '../../firebase-config.js';
 import { where, documentId, collection, getDocs } from "firebase/firestore";
+import { openReceptionModal, openFormalizeModal } from './program-actions.js';
+import { 
+    parseTerritorioSelection, formatTerritorioSelection, getWeekOccupancy, 
+    getEffectiveManzanas, getEffectiveShiftId, checkIncongruences, 
+    getTurnoStyling, getFieldIcon 
+} from './program-helpers.js';
 
 const { getMonday, formatDateId } = UIHelpers;
 
-const getFieldIcon = (field) => {
-    const map = {
-        'Lugar': 'fa-map-marker-alt',
-        'Hora': 'fa-clock',
-        'Conductor': 'fa-user-tie',
-        'Auxiliar': 'fa-user',
-        'Faceta': 'fa-tag',
-        'Grupos': 'fa-users',
-        'Territorio': 'fa-map'
-    };
-    return map[field] || 'fa-info-circle';
-};
+// Helpers extraídos a program-helpers.js
 
-const getEffectiveShiftId = (turnoId, horaStr) => {
-    if (turnoId === 'zoom') return 'zoom';
-    if (!horaStr || horaStr === '—') return turnoId;
-
-    let hours = -1;
-    const time = horaStr.toLowerCase().trim();
-    const match = time.match(/(\d{1,2})[:.]?(\d{0,2})?\s*(am|pm)?/);
-
-    if (match) {
-        hours = parseInt(match[1]);
-        const ampm = match[3];
-        if (ampm === 'pm' && hours < 12) hours += 12;
-        if (ampm === 'am' && hours === 12) hours = 0;
-    }
-
-    if (hours === -1) return turnoId;
-    if (hours < 12) return 'manana';
-    if (hours < 18) return 'tarde';
-    return 'noche';
-};
-
-/**
- * 🕵️‍♂️ SMART VALIDATION (NEXO AI CROSS-CHECK)
- * Evalúa la coherencia entre Jornada, Hora y Faceta.
- */
-const checkIncongruences = (turnoId, hora, faceta) => {
-    const findings = [];
-    const t = (turnoId || '').toLowerCase();
-    const h = (hora || '').toLowerCase();
-    const f = (faceta || '').toLowerCase();
-
-    // Regla A: Tiempo (AM en turnos de Noche estrictamente)
-    if (t.includes('noche') && h.includes('am')) {
-        findings.push("Horario AM en jornada nocturna");
-    }
-
-    // Regla B: Física vs Virtual (Casa en casa/Calles en Zoom)
-    // FIXED: Telefonica y Cartas son COMPATIBLES con Zoom.
-    if (t.includes('zoom') && (f.includes('casa') || f.includes('calle') || f.includes('negocio') || f.includes('carritos') || f.includes('digital (físico)'))) {
-        findings.push("Faceta física en jornada virtual (Zoom)");
-    }
-
-    // Regla C: Eliminada (Telefónica/Cartas ahora es válida en cualquier jornada, sea Mañana, Tarde o Noche)
-
-    return findings;
-};
-
-const getTurnoStyling = (turnoId, horaStr) => {
-    const defaults = {
-        manana: { label: 'Mañana', icon: 'fa-sun', color: 'text-amber-500', bg: 'bg-amber-500/10' },
-        tarde: { label: 'Tarde', icon: 'fa-cloud-sun', color: 'text-orange-500', bg: 'bg-orange-500/10' },
-        noche: { label: 'Noche', icon: 'fa-moon', color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
-        zoom: { label: 'Zoom', icon: 'fa-video', color: 'text-emerald-500', bg: 'bg-emerald-500/10' }
-    };
-
-    const effectiveId = getEffectiveShiftId(turnoId, horaStr);
-    return defaults[effectiveId] || defaults.manana;
-};
-
-export const renderProgramaTab = async (container) => {
+export const renderProgramaTab = async (container, configData = null) => {
     const today = new Date();
     let currentWeekStart = getMonday(today);
     let programa = { dias: [] };
     let activeDayIndex = today.getDay() === 0 ? 6 : today.getDay() - 1;
     let activeTurns = new Set(['manana', 'tarde', 'noche', 'zoom']);
     let programUnsub = null;
+    let bancoUnsub = null;
+    let bancoS13Activos = new Set();
 
     const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
     const [rawTerritorios, config, , historial] = await Promise.all([
-        getTerritorios(), getConfiguracion(), getPublicadores(), getHistorialReport()
+        getTerritorios(),
+        configData || getConfiguracion(),
+        getPublicadores(),
+        getHistorialReport()
     ]);
 
     // Xolvy Data Shield: Aggressive normalization & Ghost filtering
@@ -141,7 +83,8 @@ export const renderProgramaTab = async (container) => {
                 id: t.id,
                 conductor: t.asignado_a,
                 fecha: dbDateKey,
-                turno: t.turno
+                turno: t.turno,
+                estado: t.estado || 'Asignado'
             }
         };
     };
@@ -182,7 +125,7 @@ export const renderProgramaTab = async (container) => {
             const isCurrent = (mTime === currTime);
             
             weeksHTML.push(`
-                <button onclick="window.selectWeekFromPicker(${monday.getTime()})" class="w-full p-4 rounded-2xl border ${isCurrent ? 'border-primary bg-primary/5 text-primary' : 'border-slate-100 dark:border-white/5 text-slate-600 dark:text-slate-300 hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-white/5'} transition-all flex items-center justify-between group">
+                <button onclick="window.selectWeekFromPicker(${monday.getTime()})" class="w-full p-4 rounded-2xl border ${isCurrent ? 'border-blue-600 bg-blue-600/5 text-blue-600' : 'border-slate-100 dark:border-white/5 text-slate-600 dark:text-slate-300 hover:border-blue-600/50 hover:bg-slate-50 dark:hover:bg-white/5'} transition-all flex items-center justify-between group">
                     <span class="text-[11px] font-black uppercase tracking-widest">${labelStr}</span>
                     <i class="fas fa-check text-primary ${isCurrent ? 'opacity-100' : 'opacity-0'}"></i>
                 </button>
@@ -223,9 +166,9 @@ export const renderProgramaTab = async (container) => {
     };
 
     container.innerHTML = `
-        <div class="max-w-[1700px] mx-auto space-y-12 animate-fade-in pb-10">
+        <div class="max-w-[1700px] mx-auto space-y-8 md:space-y-12 animate-fade-in pb-10 p-4">
             <!-- Header Clean Aesthetic -->
-            <header class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 pb-2 border-b border-slate-100 dark:border-white/5">
+            <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-slate-100 dark:border-white/5">
                 <div class="flex flex-col">
                     <div class="flex items-center gap-3 mb-2">
                         <span class="px-2 py-0.5 bg-indigo-50 text-indigo-600 text-[9px] font-bold uppercase tracking-widest rounded border border-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-400/20">Operational Planning</span>
@@ -235,95 +178,68 @@ export const renderProgramaTab = async (container) => {
                     <p class="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">Sincronización de territorios y salidas de campo</p>
                 </div>
 
-                <div class="flex items-center bg-white dark:bg-slate-900 rounded-xl p-1 border border-slate-200 dark:border-white/10 shadow-sm">
-                     <button id="btn-prev-week" class="p-3.5 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg transition-all text-slate-400 hover:text-indigo-600 active:scale-95">
+                <div class="inline-flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm h-14 overflow-hidden">
+                    
+                    <button id="btn-prev-week" class="px-5 h-full text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all hover:bg-slate-50 dark:hover:bg-white/5 active:scale-95">
                         <i class="fas fa-arrow-left text-xs"></i>
-                     </button>
-                     <button onclick="window.openWeekSelector()" class="px-6 py-2.5 min-w-[180px] flex flex-col items-center justify-center gap-0.5 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg transition-all group active:scale-95">
-                         <span id="week-range-label" class="text-[10px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest group-hover:text-indigo-600 transition-colors">Cargando Semana...</span>
-                         <span class="text-[8px] text-slate-400 font-medium uppercase tracking-tighter">Calendario Maestro <i class="fas fa-chevron-down ml-1 text-[7px] opacity-50"></i></span>
-                     </button>
-                     <button id="btn-next-week" class="p-3.5 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg transition-all text-slate-400 hover:text-indigo-600 active:scale-95">
+                    </button>
+
+                    <button onclick="window.openWeekSelector()" class="flex flex-col items-center justify-center px-6 min-w-[190px] h-full cursor-pointer group hover:bg-slate-50 dark:hover:bg-white/5 transition-all active:bg-slate-100/50">
+                        <span id="week-range-label" class="text-[11px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest group-hover:text-indigo-600 transition-colors">Cargando Semana...</span>
+                        <span class="text-[8px] text-slate-400 font-medium uppercase tracking-tighter">Calendario Maestro <i class="fas fa-chevron-down ml-1 text-[7px] opacity-50"></i></span>
+                    </button>
+
+                    <button id="btn-next-week" class="px-5 h-full text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all hover:bg-slate-50 dark:hover:bg-white/5 active:scale-95">
                         <i class="fas fa-arrow-right text-xs"></i>
-                     </button>
+                    </button>
+
+                    <div class="w-px h-8 bg-slate-100 dark:bg-white/10 mx-1 shrink-0"></div>
+
+                    <button onclick="window.resetToCurrentWeek()" class="px-6 h-full text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-all active:scale-95">
+                        Hoy
+                    </button>
                 </div>
             </header>
 
                     <!-- Premium Toolbar -->
-                    <nav data-adaptive-wrap="true" class="flex flex-wrap items-center gap-3 w-full lg:w-max">
-                        <div class="flex items-center gap-2">
-                            <button id="action-formalizar-prog" class="px-5 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all shadow-sm shadow-emerald-200 active:scale-95 group flex items-center gap-2">
-                                <i class="fas fa-bolt-lightning text-emerald-200 group-hover:scale-110 transition-transform"></i> Formalizar
-                            </button>
-                            <button id="action-recepcion-prog" class="px-5 py-3.5 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 rounded-xl border border-slate-200 dark:border-white/10 hover:border-rose-500 hover:text-rose-600 transition-all font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95 group">
-                                <i class="fas fa-inbox opacity-40 group-hover:opacity-100"></i> Recepción
+                    <nav class="flex flex-wrap items-center gap-2 md:gap-3 w-full">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button id="action-recepcion-prog" class="px-3 py-2 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 rounded-xl border border-slate-200 dark:border-white/10 hover:border-rose-500 hover:text-rose-600 transition-all font-bold text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95 group">
+                                <i class="fas fa-inbox opacity-40 group-hover:opacity-100 text-[10px]"></i> Recepción
                             </button>
                         </div>
 
-                        <div class="toolbar-divider hidden md:block"></div>
-
-                        <div class="flex items-center gap-2">
-                            <button id="action-escanear-prog" class="px-5 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all shadow-sm shadow-indigo-200 active:scale-95 group flex items-center gap-2">
-                                <i class="fas fa-wand-magic-sparkles text-indigo-200 group-hover:scale-110 transition-transform"></i> Nexo Vision
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button id="action-escanear-prog" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-[11px] uppercase tracking-widest transition-all shadow-sm shadow-indigo-200 active:scale-95 group flex items-center gap-2">
+                                <i class="fas fa-wand-magic-sparkles text-indigo-200 group-hover:scale-110 transition-transform text-[10px]"></i> Nexo Vision
                             </button>
-                            <button id="action-replicar-prog" class="px-5 py-3.5 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 rounded-xl border border-slate-200 dark:border-white/10 hover:border-indigo-500 hover:text-indigo-600 transition-all font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95 group">
-                                <i class="fas fa-clone opacity-40 group-hover:opacity-100"></i> Replicar
+                            <button id="action-replicar-prog" class="px-3 py-2 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 rounded-xl border border-slate-200 dark:border-white/10 hover:border-indigo-500 hover:text-indigo-600 transition-all font-bold text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95 group">
+                                <i class="fas fa-clone opacity-40 group-hover:opacity-100 text-[10px]"></i> Replicar
                             </button>
                         </div>
 
                         <div style="flex-grow: 1" class="hidden xl:block"></div>
 
                         <!-- Export Action -->
-                        <button id="action-exportar-prog" class="px-6 py-3.5 bg-slate-900 dark:bg-white/10 hover:bg-slate-800 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all shadow-sm active:scale-95 group flex items-center gap-2">
-                            <i class="fas fa-share-nodes opacity-70"></i> Compartir
-                            <i class="fas fa-chevron-down ml-1 text-[7px] opacity-40 group-hover:translate-y-0.5 transition-transform"></i>
-                        </button>
-                            <div id="export-menu-options" class="absolute right-0 top-full mt-3 min-w-[220px] bg-white dark:bg-slate-900 rounded-[1.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-slate-200 dark:border-white/10 p-2 z-[99] origin-top-right transition-all duration-300 transform scale-95 opacity-0 pointer-events-none data-[visible=true]:scale-100 data-[visible=true]:opacity-100 data-[visible=true]:pointer-events-auto">
-                                <button id="btn-export-xls-prog" class="w-full flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-emerald-500 rounded-xl transition-all text-left">
-                                    <i class="fas fa-file-excel text-emerald-500 text-sm"></i>
-                                    Programa Excel
-                                </button>
-                                <div class="h-px bg-slate-100 dark:bg-white/5 my-1 mx-2"></div>
-                                <button id="btn-export-png-cond-new" class="w-full flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-indigo-500 rounded-xl transition-all text-left">
-                                    <i class="fas fa-user-tie text-indigo-500 text-sm"></i>
-                                    Formato Conductor
-                                </button>
-                                <button id="btn-export-png-pub-new" class="w-full flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-indigo-500 rounded-xl transition-all text-left">
-                                    <i class="fas fa-users text-emerald-500 text-sm"></i>
-                                    Formato Publicador
-                                </button>
-                            </div>
+                        <div class="relative inline-block text-left" id="share-dropdown-container">
+                          <button onclick="toggleShareMenu(event)" class="flex items-center justify-center gap-2 px-4 py-2 bg-slate-900 text-white text-sm font-bold rounded-xl hover:bg-slate-800 transition-all">
+                            <i class="fas fa-share-alt"></i> COMPARTIR <i class="fas fa-chevron-down text-xs ml-1"></i>
+                          </button>
+                          
+                          <div id="share-menu" class="hidden absolute right-0 origin-top-right mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 z-[60] overflow-hidden">
+                            <button onclick="generarImagenPrograma('conductor')" class="w-full text-left px-4 py-3 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700 font-semibold transition-colors border-b border-slate-50 flex items-center">
+                              <i class="fas fa-car mr-3 text-slate-400"></i> Programa Conductor
+                            </button>
+                            <button onclick="generarImagenPrograma('publicador')" class="w-full text-left px-4 py-3 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700 font-semibold transition-colors flex items-center">
+                              <i class="fas fa-users mr-3 text-slate-400"></i> Programa Publicador
+                            </button>
+                          </div>
                         </div>
                     </nav>
                 </div>
             </header>
 
-            <!-- Nexo AI Progress HUD -->
-            <div id="ai-scanning-overlay" class="absolute inset-0 backdrop-blur-md z-[9999] flex items-center justify-center hidden animate-fade-in nexo-loading-overlay" style="background:radial-gradient(ellipse at center,rgba(15,15,35,0.78)0%,rgba(5,5,20,0.90)100%);">
-                <div style="position:absolute;top:-10%;left:-8%;width:420px;height:420px;background:radial-gradient(circle,rgba(99,102,241,0.20)0%,transparent 70%);border-radius:50%;filter:blur(40px);pointer-events:none;"></div>
-                <div style="position:absolute;bottom:-15%;right:-5%;width:500px;height:500px;background:radial-gradient(circle,rgba(139,92,246,0.18)0%,transparent 70%);border-radius:50%;filter:blur(50px);pointer-events:none;"></div>
-                <div style="position:absolute;top:15%;right:6%;width:280px;height:280px;background:radial-gradient(circle,rgba(34,211,238,0.09)0%,transparent 70%);border-radius:50%;filter:blur(35px);pointer-events:none;"></div>
-                <div style="position:absolute;bottom:20%;left:4%;width:220px;height:220px;background:radial-gradient(circle,rgba(244,114,182,0.07)0%,transparent 70%);border-radius:50%;filter:blur(30px);pointer-events:none;"></div>
-                <div class="relative mx-4 w-full max-w-sm p-10 text-center animate-scale-in nexo-modal-box" style="background:rgba(255,255,255,0.05);backdrop-filter:blur(24px);border-radius:2.5rem;border:1px solid rgba(255,255,255,0.10);box-shadow:0 0 0 1px rgba(99,102,241,0.18),0 40px 80px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.07);">
-                    <div style="position:absolute;inset:0;border-radius:2.5rem;background:radial-gradient(ellipse at top,rgba(99,102,241,0.09)0%,transparent 60%);pointer-events:none;"></div>
-                    <div class="relative w-24 h-24 mx-auto mb-8">
-                        <div class="absolute inset-0 rounded-full" style="border:4px solid rgba(99,102,241,0.12);"></div>
-                        <div class="absolute inset-2 rounded-full animate-spin" style="border:4px solid transparent;border-top-color:#6366f1;"></div>
-                        <div class="absolute inset-5 rounded-full animate-spin" style="border:2px solid transparent;border-bottom-color:#a78bfa;animation-direction:reverse;animation-duration:1.4s;"></div>
-                        <div class="absolute inset-0 flex items-center justify-center text-2xl" style="color:#818cf8;">
-                            <i class="fas fa-wand-magic-sparkles animate-pulse"></i>
-                        </div>
-                    </div>
-                    <h3 class="text-xl font-black uppercase tracking-wider mb-2" style="color:#fff;text-shadow:0 0 24px rgba(99,102,241,0.55);">Nexo Vision AI</h3>
-                    <p class="font-bold text-xs uppercase tracking-widest animate-pulse" style="color:rgba(148,163,184,0.75);">Analizando imagen de programación...</p>
-                    <div class="mt-6 h-0.5 rounded-full overflow-hidden" style="background:rgba(255,255,255,0.06);">
-                        <div class="h-full rounded-full animate-pulse" style="width:65%;background:linear-gradient(90deg,#6366f1,#a78bfa);box-shadow:0 0 10px rgba(99,102,241,0.8);"></div>
-                    </div>
-                </div>
-            </div>
-
-
-
+            <!-- Day Selector -->
             <div id="day-selector-container" class="flex flex-wrap items-center justify-center gap-2 mt-8 animate-fade-in" data-adaptive-scroll="true"></div>
 
             <div class="relative group min-h-[500px]">
@@ -338,10 +254,26 @@ export const renderProgramaTab = async (container) => {
                         </p>
                     </div>
                     <div id="turn-filters" class="flex items-center gap-2"></div>
+                    <button id="action-formalizar-prog" class="text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 transition-colors flex items-center gap-2 active:scale-95">
+                        <i class="fas fa-sync-alt text-[8px]"></i> Sincronización manual
+                    </button>
                 </div>
             </div>
         </div>
     `;
+
+    const checkFormalizationStatus = () => {
+        const btn = container.querySelector('#action-formalizar-prog');
+        if (!btn) return;
+
+        if (programa.isFormalized) {
+            btn.innerHTML = '<i class="fas fa-check-double text-[8px]"></i> Sincronizado';
+            btn.className = "text-[9px] font-black uppercase tracking-widest text-emerald-500 flex items-center gap-2 cursor-default";
+        } else {
+            btn.innerHTML = '<i class="fas fa-sync-alt text-[8px]"></i> Sincronización manual';
+            btn.className = "text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 transition-colors flex items-center gap-2 active:scale-95";
+        }
+    };
 
     const loadWeekData = async () => {
         try {
@@ -349,9 +281,15 @@ export const renderProgramaTab = async (container) => {
 
             // Xolvy Live Pool: Dynamic week synchronization
             if (programUnsub) { programUnsub(); programUnsub = null; }
-            programUnsub = startLivePool("programa_semanal", [where(documentId(), "==", weekId)], (data) => {
-                const btnFormalizar = container.querySelector('#action-formalizar-prog');
+            if (bancoUnsub) { bancoUnsub(); bancoUnsub = null; }
 
+            // Listener para S-13 (Badges de integridad)
+            bancoUnsub = startLivePool("banco_s13", [where("fecha_entrega", "==", null)], (data) => {
+                bancoS13Activos = new Set(data.map(d => String(d.numero || d.territorio_id).trim()));
+                renderTable();
+            });
+
+            programUnsub = startLivePool("programa_semanal", [where(documentId(), "==", weekId)], (data) => {
                 if (data.length > 0 && data[0].dias) {
                     programa = data[0];
                     // Sync dates
@@ -367,27 +305,8 @@ export const renderProgramaTab = async (container) => {
                         if (dia.nombre === 'Martes' && !dia.zoom) dia.zoom = {};
                     });
                     
-                    // Actualizar estado del botón Formalizar
-                    if (programa.isFormalized && btnFormalizar) {
-                        btnFormalizar.disabled = true;
-                        btnFormalizar.innerHTML = '<i class="fas fa-check-double mr-2"></i> Formalizado';
-                        btnFormalizar.className = btnFormalizar.className.replace('bg-emerald-500', 'bg-slate-400').replace('hover:bg-emerald-600', '');
-                    } else if (btnFormalizar) {
-                        btnFormalizar.disabled = false;
-                        btnFormalizar.innerHTML = '<i class="fas fa-project-diagram group-hover:rotate-12 transition-transform"></i> Formalizar';
-                        if (!btnFormalizar.className.includes('bg-emerald-500')) {
-                            btnFormalizar.className = btnFormalizar.className.replace('bg-slate-400', 'bg-emerald-500');
-                        }
-                    }
-
                     console.log(`📅 [Live Pool] Week ${weekId} Updated.`);
                 } else {
-                    // Reset Button
-                    if (btnFormalizar) {
-                        btnFormalizar.disabled = false;
-                        btnFormalizar.innerHTML = '<i class="fas fa-project-diagram group-hover:rotate-12 transition-transform"></i> Formalizar';
-                    }
-
                     // Create dummy if doesn't exist to allow editing
                     programa = {
                         id: weekId,
@@ -400,6 +319,9 @@ export const renderProgramaTab = async (container) => {
                         })
                     };
                 }
+
+                // Evaluar y pintar el botón principal
+                checkFormalizationStatus();
 
                 const lblRange = container.querySelector('#week-range-label');
                 if (lblRange) {
@@ -421,6 +343,75 @@ export const renderProgramaTab = async (container) => {
         }
     };
 
+    // --- NEXO VISION MULTIMODAL SCANNER ---
+    window.nexoVisionScanner = async () => {
+        let scannerInput = document.getElementById('nexo-vision-input');
+        if (!scannerInput) {
+            scannerInput = document.createElement('input');
+            scannerInput.id = 'nexo-vision-input';
+            scannerInput.type = 'file';
+            scannerInput.accept = 'image/*';
+            scannerInput.setAttribute('capture', 'environment');
+            scannerInput.className = 'hidden';
+            document.body.appendChild(scannerInput);
+        }
+
+        scannerInput.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if (window.XolvyAlert) {
+                window.XolvyAlert.fire({
+                    title: 'Nexo Vision AI',
+                    text: 'Iniciando análisis multimodal de tarjeta...',
+                    allowOutsideClick: false,
+                    didOpen: () => { window.XolvyAlert.showLoading(); }
+                });
+            }
+
+            try {
+                const reader = new FileReader();
+                reader.onload = async () => {
+                    const base64 = reader.result.split(',')[1];
+                    const nexo = window._nexoInstance || (await import('../nexo-ai/nexo-core.js')).nexo;
+                    const result = await nexo.analyzeImage(base64, file.type);
+                    
+                    if (result && result.territorio_id) {
+                        const allT = await getTerritorios();
+                        const t = allT.find(x => String(x.numero) === String(result.territorio_id));
+                        
+                        if (!t) throw new Error(`El territorio número ${result.territorio_id} no existe en la base de datos.`);
+                        
+                        const { updateTerritorio } = await import('../../data/services/territory-service.js');
+                        await updateTerritorio(t.id, { manzanas_trabajadas: result.manzanas_trabajadas });
+                        
+                        if (window.XolvyAlert) {
+                            window.XolvyAlert.fire({
+                                icon: 'success',
+                                title: 'Visión Completada',
+                                text: `Territorio ${result.territorio_id}: Avance registrado en manzanas [${result.manzanas_trabajadas.join(', ')}]`
+                            });
+                        }
+                        if (window.refreshConductorView) window.refreshConductorView(true);
+                        loadWeekData();
+                    } else {
+                        throw new Error("No se detectó un ID de territorio válido en la imagen.");
+                    }
+                };
+                reader.readAsDataURL(file);
+            } catch (err) {
+                console.error("Nexo Vision Error:", err);
+                if (window.XolvyAlert) {
+                    window.XolvyAlert.fire({ icon: 'error', title: 'Fallo de Análisis', text: err.message });
+                }
+            } finally {
+                scannerInput.value = '';
+            }
+        };
+
+        scannerInput.click();
+    };
+
     // --- AI SCAN MEMORY INPUT (ATTACHED FOR IOS) ---
     let memoryScannerInput = document.getElementById('ai-scanner-input-global');
     if (!memoryScannerInput) {
@@ -439,19 +430,51 @@ export const renderProgramaTab = async (container) => {
     memoryScannerInput.parentNode.replaceChild(clone, memoryScannerInput);
     memoryScannerInput = clone;
 
-    const aiOverlay = container.querySelector('#ai-scanning-overlay');
+    // --- NEXO VISION AI ENGINE (FULL INTERFACE OVERLAY) ---
+    let aiOverlay = document.getElementById('ai-scanning-overlay');
+    if (!aiOverlay) {
+        aiOverlay = document.createElement('div');
+        aiOverlay.id = 'ai-scanning-overlay';
+        aiOverlay.className = "fixed inset-0 z-[9999] bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center w-screen h-screen hidden animate-fade-in nexo-loading-overlay";
+        aiOverlay.style.background = "radial-gradient(ellipse at center,rgba(15,15,35,0.78)0%,rgba(5,5,20,0.90)100%)";
+        aiOverlay.innerHTML = `
+            <div style="position:absolute;top:-10%;left:-8%;width:420px;height:420px;background:radial-gradient(circle,rgba(99,102,241,0.20)0%,transparent 70%);border-radius:50%;filter:blur(40px);pointer-events:none;"></div>
+            <div style="position:absolute;bottom:-15%;right:-5%;width:500px;height:500px;background:radial-gradient(circle,rgba(139,92,246,0.18)0%,transparent 70%);border-radius:50%;filter:blur(50px);pointer-events:none;"></div>
+            <div style="position:absolute;top:15%;right:6%;width:280px;height:280px;background:radial-gradient(circle,rgba(34,211,238,0.09)0%,transparent 70%);border-radius:50%;filter:blur(35px);pointer-events:none;"></div>
+            <div style="position:absolute;bottom:20%;left:4%;width:220px;height:220px;background:radial-gradient(circle,rgba(244,114,182,0.07)0%,transparent 70%);border-radius:50%;filter:blur(30px);pointer-events:none;"></div>
+            <div class="relative mx-4 w-full max-w-sm p-10 text-center animate-scale-in nexo-modal-box" style="background:rgba(255,255,255,0.05);backdrop-filter:blur(24px);border-radius:2.5rem;border:1px solid rgba(255,255,255,0.10);box-shadow:0 0 0 1px rgba(99,102,241,0.18),0 40px 80px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.07);">
+                <div style="position:absolute;inset:0;border-radius:2.5rem;background:radial-gradient(ellipse at top,rgba(99,102,241,0.09)0%,transparent 60%);pointer-events:none;"></div>
+                <div class="relative w-24 h-24 mx-auto mb-8">
+                    <div class="absolute inset-0 rounded-full" style="border:4px solid rgba(99,102,241,0.12);"></div>
+                    <div class="absolute inset-2 rounded-full animate-spin" style="border:4px solid transparent;border-top-color:#6366f1;"></div>
+                    <div class="absolute inset-5 rounded-full animate-spin" style="border:2px solid transparent;border-bottom-color:#a78bfa;animation-direction:reverse;animation-duration:1.4s;"></div>
+                    <div class="absolute inset-0 flex items-center justify-center text-2xl" style="color:#818cf8;">
+                        <i class="fas fa-wand-magic-sparkles animate-pulse"></i>
+                    </div>
+                </div>
+                <h3 class="text-xl font-black uppercase tracking-wider mb-2" style="color:#fff;text-shadow:0 0 24px rgba(99,102,241,0.55);">Nexo Vision AI</h3>
+                <p class="font-bold text-xs uppercase tracking-widest animate-pulse" style="color:rgba(148,163,184,0.75);">Analizando imagen de programación...</p>
+                <div class="mt-6 h-0.5 rounded-full overflow-hidden" style="background:rgba(255,255,255,0.06);">
+                    <div class="h-full rounded-full animate-pulse" style="width:65%;background:linear-gradient(90deg,#6366f1,#a78bfa);box-shadow:0 0 10px rgba(99,102,241,0.8);"></div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(aiOverlay);
+    }
+
+    const aiOverlayRef = aiOverlay;
 
     memoryScannerInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        aiOverlay?.classList.remove('hidden');
+        aiOverlayRef?.classList.remove('hidden');
         document.body.classList.add('modal-open');
 
         try {
             // Fase 1: Extracción con Vision API
             const extractedData = await extractProgramFromImage(file);
-            aiOverlay?.classList.add('hidden');
+            aiOverlayRef?.classList.add('hidden');
             document.body.classList.remove('modal-open');
 
             // Fase 2: Confirmación de Sobrescritura
@@ -467,7 +490,7 @@ export const renderProgramaTab = async (container) => {
 
         } catch (err) {
             console.error("❌ AI Scan Error:", err);
-            aiOverlay?.classList.add('hidden');
+            aiOverlayRef?.classList.add('hidden');
             document.body.classList.remove('modal-open');
             showModal(`
                 <div class="p-8 text-center space-y-6">
@@ -486,11 +509,11 @@ export const renderProgramaTab = async (container) => {
 
     const renderDaySelector = () => {
         const dayBar = container.querySelector('#day-selector-container');
-        dayBar.innerHTML = `
+        if (dayBar) dayBar.innerHTML = `
             <div class="flex flex-wrap items-center justify-center gap-1.5 p-1.5 bg-slate-100 dark:bg-white/5 rounded-[2rem] border border-slate-200 dark:border-white/10">
                 ${dayNames.map((n, i) => `
                     <button onclick="window.setActiveDay(${i})" 
-                            class="relative px-5 py-2.5 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${activeDayIndex === i ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-105' : 'text-slate-500 hover:text-primary hover:bg-white dark:hover:bg-white/10'}">
+                            class="relative px-5 py-2.5 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${activeDayIndex === i ? 'bg-slate-900 dark:bg-blue-600 text-white shadow-lg shadow-slate-900/20 dark:shadow-blue-500/20 scale-105' : 'text-slate-500 hover:text-blue-600 hover:bg-white dark:hover:bg-white/10'}">
                         ${n}
                     </button>
                 `).join('')}
@@ -507,6 +530,7 @@ export const renderProgramaTab = async (container) => {
 
     const renderFilters = () => {
         const turnFilters = container.querySelector('#turn-filters');
+        if (!turnFilters) return;
         const turnosArr = [
             { id: 'manana', icon: 'fa-sun', label: 'Mañana', color: 'text-amber-500', bg: 'bg-amber-500/10' },
             { id: 'tarde', icon: 'fa-cloud-sun', label: 'Tarde', color: 'text-orange-500', bg: 'bg-orange-500/10' },
@@ -533,6 +557,7 @@ export const renderProgramaTab = async (container) => {
     const renderTable = async () => {
         const [freshTerritorios, freshPersonnel, freshGroupsCfg] = await Promise.all([getTerritorios(), getPublicadores(), getGroupsConfig()]);
         const tableContainer = container.querySelector('#admin-prog-table');
+        if (!tableContainer) return;
 
         if (!programa || !programa.dias || programa.dias.length === 0) {
             programa = {
@@ -592,26 +617,20 @@ export const renderProgramaTab = async (container) => {
             turnos.forEach(t => {
                 const turnoId = t.id;
                 const baseId = turnoId.split('_')[0]; // 'manana_2' → 'manana'
-                if (baseId === 'zoom' && dia.nombre !== 'Martes') return;
+                
+                // CRITICAL FIX: Removed hardcoded Tuesday filter for Zoom.
+                // Allow Zoom slots on any day if they exist in the DB.
+                
                 if (!activeTurns.has(baseId)) return;
 
                 const data = dia[turnoId] || {};
-                const styling = getTurnoStyling(baseId, data.hora);
-                const hasData = data.conductor || data.territorio || data.grupos || data.faceta || data.lugar;
+                const styling = getTurnoStyling(baseId, data?.hora);
+                const hasData = data?.conductor || data?.territorio || data?.grupos || data?.faceta || data?.lugar;
 
-                // Status logic for territory badge
-                let statusBadgeHTML = '';
-                if (data.territorio) {
-                     const results = Array.from(new Set(String(data.territorio).split(/[,;/]/).map(n => n.trim()).filter(Boolean))).map(n => getTStatus(n, data.conductor, dia.fecha, turnoId));
-                     const conflict = results.find(r => r.isConflict);
-                     if (conflict) {
-                         statusBadgeHTML = `<span class="inline-flex items-center rounded bg-rose-50 dark:bg-rose-500/10 px-1.5 py-0.5 text-[8px] font-black text-rose-700 dark:text-rose-400 ring-1 ring-inset ring-rose-600/20 uppercase tracking-widest animate-pulse ml-1"><i class="fas fa-exclamation-triangle mr-1"></i>Ocup</span>`;
-                     }
-                }
 
                 html += `
                     <div onclick="window.openEditTurnoSheet(${dayIndex}, '${turnoId}')" 
-                         class="flex flex-col sm:flex-row sm:items-center gap-4 p-4 md:p-6 border-b border-slate-100 dark:border-white/5 last:border-0 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer transition-colors active:bg-slate-100 w-full min-h-[56px] select-none group/row relative">
+                         class="flex flex-col sm:flex-row sm:items-center gap-4 p-4 md:p-6 border-b border-slate-100 dark:border-white/5 last:border-0 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer relative z-10 transition-all active:bg-slate-100 w-full min-h-[56px] group/row">
                         
                         ${(() => {
                             const warnings = checkIncongruences(turnoId, data.hora, data.faceta);
@@ -635,14 +654,39 @@ export const renderProgramaTab = async (container) => {
                         <div class="flex-1 flex flex-col gap-2 md:gap-1 pl-[56px] sm:pl-0">
                             ${hasData ? `
                                 <div class="flex flex-wrap items-center gap-2">
-                                    <span class="text-sm font-black text-slate-900 dark:text-white uppercase">${data.conductor || 'Sin Asignar'}</span>
-                                    ${data.auxiliar ? `<span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">+ ${data.auxiliar}</span>` : ''}
+                                    <span class="text-sm font-black text-slate-900 dark:text-white capitalize">${data.conductor || 'Sin Asignar'}</span>
+                                    ${data.auxiliar ? `<span class="text-[10px] text-slate-500 font-bold capitalize tracking-wider">+ ${data.auxiliar}</span>` : ''}
                                 </div>
                                 <div class="flex flex-wrap items-center gap-1.5 mt-1">
                                     ${data.lugar ? `<span class="inline-flex items-center rounded-md bg-slate-100 dark:bg-white/10 px-2 py-0.5 text-[9px] font-black text-slate-600 dark:text-slate-300 ring-1 ring-inset ring-slate-200 dark:ring-white/5 uppercase tracking-widest"><i class="fas fa-map-marker-alt mr-1 text-[7px] opacity-50"></i>${data.lugar}</span>` : ''}
                                     ${data.faceta ? `<span class="inline-flex items-center rounded-md bg-blue-50 dark:bg-blue-500/10 px-2 py-0.5 text-[9px] font-black text-blue-700 dark:text-blue-400 ring-1 ring-inset ring-blue-700/10 dark:ring-blue-400/20 uppercase tracking-widest">${data.faceta}</span>` : ''}
-                                    ${data.territorio ? `<span class="inline-flex items-center rounded-md bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 text-[9px] font-black text-emerald-700 dark:text-emerald-400 ring-1 ring-inset ring-emerald-600/10 dark:ring-emerald-400/20 uppercase tracking-widest">Terr: ${data.territorio}</span>${statusBadgeHTML}` : ''}
-                                    ${data.grupos ? `<span class="inline-flex items-center rounded-md bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 text-[9px] font-black text-indigo-700 dark:text-indigo-400 ring-1 ring-inset ring-indigo-700/10 dark:ring-indigo-400/20 uppercase tracking-widest">${formatGroups(data.grupos)}</span>` : ''}
+                                    ${data?.territorio ? `
+                                        <div class="flex items-center gap-2">
+                                            <span class="inline-flex items-center rounded-md bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 text-[9px] font-black text-emerald-700 dark:text-emerald-400 ring-1 ring-inset ring-emerald-600/10 dark:ring-emerald-400/20 uppercase tracking-widest">
+                                                Terr: ${(() => {
+                                                    try {
+                                                        if (!data?.territorio) return '—';
+                                                        const res = splitTerritories ? splitTerritories(data.territorio) : null;
+                                                        return Array.isArray(res) ? res.join(', ') : (data.territorio || '—');
+                                                    } catch(err) { return data?.territorio || '—'; }
+                                                })()}
+                                            </span>
+                                            ${(() => {
+                                                const terrs = String(data.territorio || '').split(/[,;/]/).map(t => t.trim()).filter(Boolean);
+                                                if (terrs.length === 0) return '';
+                                                const allSync = terrs.every(t => bancoS13Activos.has(t));
+                                                
+                                                if (allSync) {
+                                                    return '<span class="text-[9px] font-black text-emerald-500 uppercase tracking-tighter bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20"><i class="fas fa-check-circle mr-1"></i> ✓ S-13</span>';
+                                                } else {
+                                                    return '<span class="text-[9px] font-black text-amber-500 uppercase tracking-tighter bg-amber-500/10 px-2 py-1 rounded-lg border border-amber-500/20"><i class="fas fa-exclamation-triangle mr-1"></i> ⚠ Pendiente</span>';
+                                                }
+                                            })()}
+                                        </div>
+                                    ` : ''}
+                                    ${data?.grupos ? `<span class="inline-flex items-center rounded-md bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 text-[9px] font-black text-indigo-700 dark:text-indigo-400 ring-1 ring-inset ring-indigo-700/10 dark:ring-indigo-400/20 uppercase tracking-widest">${(() => {
+                                        try { return formatGroups(data.grupos); } catch(e) { return data.grupos; }
+                                    })()}</span>` : ''}
                                 </div>
                             ` : `
                                 <span class="text-[11px] font-bold italic text-slate-400 opacity-60">Turno vacío. Toque para asignar.</span>
@@ -680,6 +724,7 @@ export const renderProgramaTab = async (container) => {
     };
 
     window.openEditTurnoSheet = (dayIdx, turnoId) => {
+        console.log('Abriendo edición para:', turnoId);
         const dia = programa.dias[dayIdx];
         const data = dia[turnoId] || {};
         const styling = getTurnoStyling(turnoId, data.hora);
@@ -700,18 +745,109 @@ export const renderProgramaTab = async (container) => {
             const icon = getFieldIcon(field);
             
             if (field === 'Territorio') {
+                const currentSelection = parseTerritorioSelection(val);
+                // SORT MASTER LIST NUMERICALLY
+                const baseTs = [...(window._progCache.territorios || [])].sort((a,b) => {
+                    const na = parseInt(String(a.numero).match(/\d+/)) || 0;
+                    const nb = parseInt(String(b.numero).match(/\d+/)) || 0;
+                    return na - nb;
+                });
+                const occupancy = getWeekOccupancy(programa, dayIdx, turnoId);
+                const displayText = val || '-';
+                
+                const dropsHtml = baseTs.map((t) => {
+                    const tNum = String(t.numero);
+                    const manzanas = getEffectiveManzanas(t);
+                    const sel = currentSelection[tNum] || { blocks: new Set(), isFull: false };
+                    const occ = occupancy[tNum] || { blocks: new Set(), isFull: false };
+                    
+                    // Determine Status Badge
+                    let badgeClass = 'bg-emerald-100 text-emerald-700';
+                    let badgeText = 'Libre';
+                    
+                    if (occ.isFull) {
+                        badgeClass = 'bg-rose-100 text-rose-700';
+                        badgeText = 'Ocupado';
+                    } else if (occ.blocks.size > 0) {
+                        if (manzanas.length > 0 && manzanas.every(m => occ.blocks.has(m))) {
+                            badgeClass = 'bg-rose-100 text-rose-700';
+                            badgeText = 'Ocupado';
+                        } else {
+                            badgeClass = 'bg-amber-100 text-amber-700';
+                            badgeText = 'Parcial';
+                        }
+                    }
+
+                    const isChecked = sel.isFull || (manzanas.length > 0 && manzanas.every(m => sel.blocks.has(m)));
+                    const isFullyOccupied = badgeText === 'Ocupado';
+
+                    return `
+                        <div class="territorio-group p-3 border-b border-slate-50 dark:border-white/5 last:border-0">
+                            <div class="flex items-center justify-between mb-2">
+                                <label class="flex items-center gap-3 cursor-pointer group/selector relative">
+                                    <input type="checkbox" 
+                                           onchange="window.handleHierarchicalToggle(this, '${tNum}', true, null, '${turnoId}')"
+                                           ${isChecked ? 'checked' : ''} 
+                                           ${isFullyOccupied ? 'disabled' : ''}
+                                           class="absolute opacity-0 w-6 h-6 z-10 cursor-pointer">
+                                    <div class="w-5 h-5 rounded border-2 border-slate-300 dark:border-white/20 ${isChecked ? 'bg-blue-600 border-blue-600' : ''} flex items-center justify-center transition-all peer-ui ${isFullyOccupied ? 'opacity-30 cursor-not-allowed' : ''}">
+                                        <i class="fas fa-check text-[10px] text-white transition-opacity" style="opacity: ${isChecked ? '1' : '0'};"></i>
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <span class="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300 group-hover:text-primary transition-colors">Territorio ${tNum}</span>
+                                        <span class="text-[7px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                                            Última vez: ${t.ultima_fecha ? UIHelpers.fmtDateAt(t.ultima_fecha) : 'Nunca'}
+                                        </span>
+                                    </div>
+                                </label>
+                                <span class="px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${badgeClass}">${badgeText}</span>
+                            </div>
+                            
+                            <div class="grid grid-cols-3 sm:grid-cols-4 gap-1.5 ml-8">
+                                ${manzanas.map(m => {
+                                    const isMSelected = sel.isFull || sel.blocks.has(m);
+                                    const isMOccupied = occ.isFull || occ.blocks.has(m);
+                                    
+                                    if (isMOccupied) {
+                                        return `<div class="px-3 py-1 bg-slate-100 border border-slate-200 rounded-lg text-[9px] font-semibold text-slate-400 opacity-50 cursor-not-allowed line-through text-center">${m}</div>`;
+                                    }
+                                    
+                                    return `
+                                        <div onclick="window.handleHierarchicalToggle(this, '${tNum}', false, '${m}', '${turnoId}')" 
+                                             class="block-chip px-3 py-1 ${isMSelected ? 'bg-blue-600 border-blue-600 text-white shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-blue-50 hover:border-blue-300'} border rounded-lg text-[9px] font-semibold cursor-pointer transition-all text-center select-none"
+                                             data-selected="${isMSelected}">
+                                            ${m}
+                                        </div>`;
+                                }).join('')}
+                            </div>
+                        </div>`;
+                }).join('');
+
                 return `
                     <div class="space-y-2">
                         <label class="text-[10px] font-black text-slate-400 tracking-[0.2em] uppercase ml-1 flex items-center justify-between">
                             <span><i class="fas fa-map-marked-alt opacity-30 mr-1"></i> ${field}</span>
                         </label>
-                        <div onclick="window.openTerritorySelector(${dayIdx}, '${turnoId}', this);" 
-                             data-current="${val}"
-                             class="w-full text-left bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-4 rounded-xl hover:border-primary transition-all flex items-center justify-between shadow-sm cursor-pointer block-scale-click">
-                            <span id="val-territorio-modal" class="text-[12px] font-black truncate ${val ? 'text-primary' : 'text-slate-400 opacity-40'}">${val || '—'}</span>
-                            <i class="fas fa-search text-slate-300"></i>
+                        <div class="custom-multiselect relative" id="sheet-territorio-container">
+                            <div onclick="window.toggleSheetDropdown(event, 'sheet-territorio-dropdown', 'territorio-dropdown-icon')" class="w-full text-left bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-4 rounded-xl hover:border-primary transition-all flex items-center justify-between shadow-sm cursor-pointer block-scale-click min-h-[52px]">
+                                <span id="selected-territorio-text" class="text-[12px] font-black truncate pr-4 ${val ? 'text-primary' : 'text-slate-400 opacity-40'}">${displayText}</span>
+                                <i class="fas fa-chevron-down text-[10px] text-slate-400 opacity-50 transition-transform duration-300 pointer-events-none dropdown-chevron-icon" id="territorio-dropdown-icon"></i>
+                            </div>
+                            <div id="sheet-territorio-dropdown" class="custom-dropdown-content hidden absolute left-0 right-0 bottom-full mb-1 bg-white dark:bg-[#151a26] border border-slate-200 dark:border-white/10 rounded-2xl shadow-[0_-15px_35px_-10px_rgba(0,0,0,0.3)] z-50 max-h-80 overflow-y-auto custom-scrollbar p-0 animate-scale-in origin-bottom">
+                                <div class="p-2 space-y-1">
+                                    ${dropsHtml}
+                                </div>
+                                <div class="border-t border-slate-100 dark:border-white/5 p-2 bg-slate-50 dark:bg-[#0a0f18] rounded-b-xl flex justify-center sticky bottom-0 z-10">
+                                    <button onclick="window.limpiarTerritorio()" class="text-[10px] font-black text-slate-500 hover:text-rose-600 transition-colors py-1 px-4 tracking-widest uppercase">
+                                        LIMPIAR
+                                    </button>
+                                    <button onclick="window.cerrarMenuDesplegable(event, 'sheet-territorio-dropdown')" class="text-[10px] font-black text-blue-600 dark:text-blue-400 hover:text-blue-800 transition-colors py-1 px-4 uppercase tracking-widest">
+                                        CERRAR
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                        <input type="hidden" id="select-territorio" value="${val}">
+                        <input type="hidden" id="select-territorio" value="${val || ''}">
                     </div>`;
 
             } else if (field === 'Grupos') {
@@ -721,16 +857,15 @@ export const renderProgramaTab = async (container) => {
                 const displayText = currentGroups.length > 0 ? currentGroups.join(', ') : '-';
                 
                 const dropHtml = gList.map((g) => {
-                    const gName = g.nombre.replace(/grupos?/gi, '').trim();
-                    const groupStr = gName === 'Todos' ? 'Todos' : (gName.toLowerCase().startsWith('grupo') ? gName : `Grupo ${gName}`);
-                    
-                    const isChecked = currentGroups.some(c => c.toLowerCase() === groupStr.toLowerCase() || c === gName || c === `Grupo ${gName}`);
+                    const groupStr = g?.nombre || g?.numero_nombre || (g?.id ? `Grupo ${g.id}` : '');
+                    if (!groupStr || groupStr === 'Grupo ') return '';
+                    const isChecked = currentGroups.some(c => (c || '').toLowerCase() === (groupStr || '').toLowerCase() || c === groupStr);
                     
                     return `
                         <label class="flex items-center p-3 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl cursor-pointer transition-colors group/chk">
                             <div class="relative w-5 h-5 flex items-center justify-center shrink-0">
-                                <input type="checkbox" value="${gName}" ${isChecked?'checked':''} onchange="window.handleSheetGroupToggle(this)" class="group-checkbox absolute opacity-0 inset-0 z-10 cursor-pointer w-full h-full">
-                                <div class="w-4 h-4 rounded border-2 border-slate-300 dark:border-white/20 ${isChecked ? 'bg-primary border-primary' : ''} flex items-center justify-center transition-all peer-ui">
+                                <input type="checkbox" value="${groupStr}" ${isChecked?'checked':''} onchange="window.handleSheetMultiSelectToggle(this, 'select-grupos', 'selected-groups-text', 'sheet-groups-dropdown')" class="group-checkbox absolute opacity-0 inset-0 z-10 cursor-pointer w-full h-full">
+                                <div class="w-4 h-4 rounded border-2 border-slate-300 dark:border-white/20 ${isChecked ? 'bg-blue-600 border-blue-600' : ''} flex items-center justify-center transition-all peer-ui">
                                     <i class="fas fa-check text-[8px] text-white transition-opacity" style="opacity: ${isChecked ? '1' : '0'};"></i>
                                 </div>
                             </div>
@@ -744,12 +879,17 @@ export const renderProgramaTab = async (container) => {
                             <span><i class="fas fa-users-cog opacity-30 mr-1"></i> ${field}</span>
                         </label>
                         <div class="custom-multiselect relative" id="sheet-groups-container">
-                            <div onclick="window.toggleSheetGroupDropdown(event)" class="w-full text-left bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-4 rounded-xl hover:border-primary transition-all flex items-center justify-between shadow-sm cursor-pointer block-scale-click min-h-[52px]">
+                            <div onclick="window.toggleSheetDropdown(event, 'sheet-groups-dropdown', 'groups-dropdown-icon')" class="w-full text-left bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-4 rounded-xl hover:border-primary transition-all flex items-center justify-between shadow-sm cursor-pointer block-scale-click min-h-[52px]">
                                 <span id="selected-groups-text" class="text-[12px] font-black truncate pr-4 ${currentGroups.length ? 'text-primary' : 'text-slate-400 opacity-40'}">${displayText}</span>
-                                <i class="fas fa-chevron-down text-[10px] text-slate-400 opacity-50 transition-transform duration-300 pointer-events-none" id="groups-dropdown-icon"></i>
+                                <i class="fas fa-chevron-down text-[10px] text-slate-400 opacity-50 transition-transform duration-300 pointer-events-none dropdown-chevron-icon" id="groups-dropdown-icon"></i>
                             </div>
-                            <div id="sheet-groups-dropdown" class="hidden absolute left-0 right-0 bottom-full mb-1 bg-white dark:bg-[#151a26] border border-slate-200 dark:border-white/10 rounded-2xl shadow-[0_-15px_35px_-10px_rgba(0,0,0,0.3)] dark:shadow-none z-50 max-h-56 overflow-y-auto custom-scrollbar p-2 animate-scale-in origin-bottom">
+                            <div id="sheet-groups-dropdown" class="custom-dropdown-content hidden absolute left-0 right-0 bottom-full mb-1 bg-white dark:bg-[#151a26] border border-slate-200 dark:border-white/10 rounded-2xl shadow-[0_-15px_35px_-10px_rgba(0,0,0,0.3)] dark:shadow-none z-50 max-h-56 overflow-y-auto custom-scrollbar p-2 animate-scale-in origin-bottom">
                                 ${dropHtml}
+                                <div class="border-t border-slate-100 p-2 bg-slate-50 rounded-b-xl flex justify-center mt-2 sticky bottom-0">
+                                    <button onclick="window.cerrarMenuDesplegable(event, 'sheet-groups-dropdown')" class="text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors py-1 px-4">
+                                        CERRAR
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         <input type="hidden" id="select-grupos" value="${val}">
@@ -766,20 +906,54 @@ export const renderProgramaTab = async (container) => {
                     ...nonAvailable.map(c => ({ name: c.nombre, isAvail: false }))
                 ];
 
+                const currentPels = (val || '').split(',').map(p => p.trim()).filter(Boolean);
+                const displayText = currentPels.length > 0 ? currentPels.join(', ') : '-';
+                
+                const isSingle = (field === 'Conductor');
+                const dropHtml = finalOpts.map((o) => {
+                    const isChecked = currentPels.includes(o.name);
+                    const handler = isSingle 
+                        ? `window.handleSheetSingleSelectToggle(this, '${o.name}', 'select-${fieldId}', 'selected-${fieldId}-text', 'sheet-${fieldId}-dropdown')`
+                        : `const cb = this.querySelector('input'); cb.checked = !cb.checked; cb.dispatchEvent(new Event('change'));`;
+
+                    return `
+                        <label onclick="${handler}" class="flex items-center p-3 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl cursor-pointer transition-colors group/chk relative">
+                            <div class="relative w-5 h-5 flex items-center justify-center shrink-0">
+                                <input type="${isSingle ? 'radio' : 'checkbox'}" name="group-${fieldId}" value="${o.name}" ${isChecked?'checked':''} 
+                                       onclick="event.stopPropagation()"
+                                       onchange="${!isSingle ? `window.handleSheetMultiSelectToggle(this, 'select-${fieldId}', 'selected-${fieldId}-text', 'sheet-${fieldId}-dropdown')` : ''}"
+                                       class="group-checkbox absolute opacity-0 inset-0 z-10 cursor-pointer w-full h-full">
+                                <div class="w-4 h-4 rounded border-2 border-slate-300 dark:border-white/20 ${isChecked ? 'bg-blue-600 border-blue-600' : ''} flex items-center justify-center transition-all peer-ui">
+                                    <i class="fas fa-check text-[8px] text-white transition-opacity" style="opacity: ${isChecked ? '1' : '0'};"></i>
+                                </div>
+                            </div>
+                            <div class="ml-3 flex flex-col pointer-events-none">
+                                <span class="text-[11px] font-black tracking-tight text-slate-700 dark:text-slate-300 group-hover/chk:text-primary transition-colors capitalize">${o.name}</span>
+                                ${o.isAvail ? `<span class="text-[8px] font-bold text-emerald-500 uppercase tracking-widest mt-0.5">Disponible</span>` : ''}
+                            </div>
+                        </label>`;
+                }).join('');
+
                 return `
                     <div class="space-y-2">
                         <label class="text-[10px] font-black text-slate-400 tracking-[0.2em] uppercase ml-1 flex items-center gap-2">
                             <i class="fas ${icon} opacity-30"></i> ${field}
                         </label>
-                        <div class="relative">
-                            <select id="select-${fieldId}" 
-                                    onchange="window.updateWeekDataSheet(${dayIdx}, '${turnoId}', '${fieldId}', this.value)" 
-                                    class="w-full bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 py-5 px-4 rounded-xl text-[12px] font-black text-slate-700 dark:text-white outline-none focus:border-primary appearance-none cursor-pointer shadow-sm transition-all focus:ring-1 focus:ring-primary/20 min-h-[52px]">
-                                <option value="">—</option>
-                                ${finalOpts.map(o => `<option value="${o.name}" ${val === o.name ? 'selected' : ''} class="${o.isAvail ? 'text-emerald-500 font-bold' : ''}">${o.isAvail ? '✅ ' : ''}${o.name}</option>`).join('')}
-                            </select>
-                            <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-[10px] opacity-20 pointer-events-none"></i>
+                        <div class="custom-multiselect relative" id="sheet-${fieldId}-container">
+                            <div onclick="window.toggleSheetDropdown(event, 'sheet-${fieldId}-dropdown', '${fieldId}-dropdown-icon')" class="w-full text-left bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-4 rounded-xl hover:border-primary transition-all flex items-center justify-between shadow-sm cursor-pointer block-scale-click min-h-[52px]">
+                                <span id="selected-${fieldId}-text" class="text-[12px] font-black truncate pr-4 capitalize ${currentPels.length ? 'text-primary' : 'text-slate-400 opacity-40'}">${displayText}</span>
+                                <i class="fas fa-chevron-down text-[10px] text-slate-400 opacity-50 transition-transform duration-300 pointer-events-none dropdown-chevron-icon" id="${fieldId}-dropdown-icon"></i>
+                            </div>
+                            <div id="sheet-${fieldId}-dropdown" class="custom-dropdown-content hidden absolute left-0 right-0 bottom-full mb-1 bg-white dark:bg-[#151a26] border border-slate-200 dark:border-white/10 rounded-2xl shadow-[0_-15px_35px_-10px_rgba(0,0,0,0.3)] z-50 max-h-56 overflow-y-auto custom-scrollbar p-2 animate-scale-in origin-bottom">
+                                ${dropHtml}
+                                <div class="border-t border-slate-100 p-2 bg-slate-50 rounded-b-xl flex justify-center mt-2 sticky bottom-0">
+                                    <button onclick="window.cerrarMenuDesplegable(event, 'sheet-${fieldId}-dropdown')" class="text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors py-1 px-4">
+                                        CERRAR
+                                    </button>
+                                </div>
+                            </div>
                         </div>
+                        <input type="hidden" id="select-${fieldId}" value="${val}">
                     </div>`;
             } else {
                 return `
@@ -808,7 +982,7 @@ export const renderProgramaTab = async (container) => {
 
         modalDiv.innerHTML = `
             <div onclick="window.hideModal('modal-container')" class="absolute inset-0 bg-slate-950/60 dark:bg-black/80 backdrop-blur-sm z-0"></div>
-            <div id="modal-sheet" onclick="event.stopPropagation()" class="relative w-[95vw] h-[90vh] max-h-[90vh] md:w-[540px] md:h-auto bg-white dark:bg-[#0a0f18] rounded-2xl md:rounded-[3rem] shadow-2xl flex flex-col overflow-y-auto z-50 transition-all duration-300 mx-auto my-auto custom-scrollbar">
+            <div id="modal-sheet" onclick="event.stopPropagation()" class="relative w-[95vw] h-[90vh] max-h-[90vh] md:w-[540px] md:h-auto bg-white dark:bg-[#0a0f18] rounded-2xl md:rounded-[3rem] shadow-2xl flex flex-col overflow-hidden z-50 transition-all duration-300 mx-auto my-auto">
                 <div class="w-12 h-1.5 bg-slate-200 dark:bg-white/10 rounded-full mx-auto mt-4 mb-2 md:hidden shrink-0"></div>
                 
                 <header class="px-6 md:px-8 py-4 flex flex-col shrink-0 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-[#0a0f18]">
@@ -874,12 +1048,12 @@ export const renderProgramaTab = async (container) => {
                     ` : ''}
                 </header>
 
-                <div class="px-6 md:px-8 py-6 space-y-6 form-scroller flex-1">
+                <div class="px-6 md:px-8 py-6 space-y-6 form-scroller flex-1 overflow-y-auto custom-scrollbar pr-3 pb-10">
                     ${fieldsHTML}
                 </div>
                 
                 <div class="px-6 pb-6 md:px-8 md:pb-8 mt-auto shrink-0 z-20">
-                    <button onclick="window.saveTurnDataFromSheet(${dayIdx}, '${turnoId}')" class="w-full py-4 min-h-[48px] rounded-2xl bg-slate-900 dark:bg-primary text-white font-black text-[13px] uppercase tracking-widest shadow-xl shadow-slate-900/40 dark:shadow-primary/40 transition-all hover:scale-[1.02] active:scale-[0.98]">
+                    <button onclick="window.saveTurnDataFromSheet(${dayIdx}, '${turnoId}')" class="w-full py-4 min-h-[48px] rounded-2xl bg-slate-900 dark:bg-blue-600 text-white font-black text-[13px] uppercase tracking-widest shadow-xl shadow-slate-900/40 dark:shadow-blue-500/40 transition-all hover:scale-[1.02] active:scale-[0.98]">
                         ACEPTAR Y GUARDAR
                     </button>
                 </div>
@@ -906,59 +1080,244 @@ export const renderProgramaTab = async (container) => {
         };
     };
 
-    window.toggleSheetGroupDropdown = (e) => {
+    window.cerrarMenuDesplegable = (e, menuId) => {
+        if (e) e.stopPropagation();
+        const menu = document.getElementById(menuId);
+        if (menu) menu.classList.add('hidden');
+        const iconId = menuId.replace('sheet-', '').replace('-dropdown', '-dropdown-icon');
+        const icon = document.getElementById(iconId === 'groups-dropdown-icon' ? 'groups-dropdown-icon' : iconId);
+        if (icon) icon.classList.remove('rotate-180');
+    };
+
+    window.toggleSheetDropdown = (e, dropId, iconId) => {
         if(e) e.stopPropagation();
-        const drop = document.getElementById('sheet-groups-dropdown');
-        const icon = document.getElementById('groups-dropdown-icon');
-        if(drop) {
-            drop.classList.toggle('hidden');
-            if(!drop.classList.contains('hidden')) {
-                icon.classList.add('rotate-180');
-                const closeDrop = (evt) => {
-                    const ct = document.getElementById('sheet-groups-container');
-                    if (ct && !ct.contains(evt.target)) {
-                        drop.classList.add('hidden');
-                        icon.classList.remove('rotate-180');
-                        document.removeEventListener('click', closeDrop);
-                    }
-                };
-                setTimeout(() => document.addEventListener('click', closeDrop), 10);
-            } else {
-                icon.classList.remove('rotate-180');
-            }
+        const drop = document.getElementById(dropId);
+        const icon = document.getElementById(iconId);
+        if(!drop) return;
+        
+        const isHidden = drop.classList.contains('hidden');
+        
+        // Cerrar otros dropdowns personalizados para evitar colisiones visuales
+        document.querySelectorAll('.custom-dropdown-content').forEach(d => d.classList.add('hidden'));
+        document.querySelectorAll('.dropdown-chevron-icon').forEach(i => i.classList.remove('rotate-180'));
+        
+        if (isHidden) {
+            drop.classList.remove('hidden');
+            if(icon) icon.classList.add('rotate-180');
+            
+            const closeGlobal = (evt) => {
+                const dropMenu = document.getElementById(dropId);
+                const trigger = e.currentTarget || e.target;
+                if (dropMenu && !dropMenu.contains(evt.target) && trigger && !trigger.contains(evt.target)) {
+                    dropMenu.classList.add('hidden');
+                    if(icon) icon.classList.remove('rotate-180');
+                    document.removeEventListener('click', closeGlobal);
+                }
+            };
+            setTimeout(() => document.addEventListener('click', closeGlobal), 10);
         }
     };
 
-    window.handleSheetGroupToggle = (checkbox) => {
-        const container = document.getElementById('sheet-groups-dropdown');
-        const peerUi = checkbox.nextElementSibling;
-        const icon = peerUi.querySelector('i');
-        
-        if (checkbox.checked) {
-             peerUi.classList.add('bg-primary', 'border-primary');
-             icon.style.opacity = '1';
-        } else {
-             peerUi.classList.remove('bg-primary', 'border-primary');
-             icon.style.opacity = '0';
-        }
+    window.handleSheetMultiSelectToggle = (checkbox, hiddenId, textId, dropdownId) => {
+        const container = document.getElementById(dropdownId);
+        if (!container) return;
+
+        // Reactive Checkboxes: Update ALL states in the list for visual feedback
+        const allLabels = container.querySelectorAll('label.group\\/chk');
+        allLabels.forEach(label => {
+            const cb = label.querySelector('input');
+            const peerUi = label.querySelector('.peer-ui');
+            const icon = peerUi?.querySelector('i');
+            
+            if (cb && peerUi && icon) {
+                if (cb.checked) {
+                    peerUi.classList.add('bg-blue-600', 'border-blue-600');
+                    icon.style.opacity = '1';
+                } else {
+                    peerUi.classList.remove('bg-blue-600', 'border-blue-600');
+                    icon.style.opacity = '0';
+                }
+            }
+        });
 
         const checkedBoxes = Array.from(container.querySelectorAll('.group-checkbox:checked'));
+        let checkedVals = checkedBoxes.map(cb => cb.value);
         
-        let checkedVals = checkedBoxes.map(cb => {
-             const v = cb.value;
-             return v === 'Todos' ? 'Todos' : (v.toLowerCase().startsWith('grupo') ? v : `Grupo ${v}`);
-        });
-        
-        let finalStr = checkedVals.includes('Todos') ? 'Todos' : checkedVals.join(', ');
+        let finalStr = "";
+        if (hiddenId.includes('grupos') && checkedVals.includes('Todos')) {
+            finalStr = 'Todos';
+        } else {
+            finalStr = checkedVals.join(', ');
+        }
 
-        const hidden = document.getElementById('select-grupos');
+        const hidden = document.getElementById(hiddenId);
         if (hidden) hidden.value = finalStr;
 
-        const textSpan = document.getElementById('selected-groups-text');
+        const textSpan = document.getElementById(textId);
         if (textSpan) {
-            textSpan.innerText = finalStr || '-';
+            textSpan.innerText = finalStr || '—';
             textSpan.className = `text-[12px] font-black truncate pr-4 ${finalStr ? 'text-primary' : 'text-slate-400 opacity-40'}`;
         }
+    };
+
+    window.handleSheetSingleSelectToggle = (el, val, hiddenId, textId, dropdownId) => {
+        const container = document.getElementById(dropdownId);
+        if (!container) return;
+
+        // Visual feedback: Update radio state
+        container.querySelectorAll('input.group-checkbox').forEach(cb => {
+            cb.checked = (cb.value === val);
+        });
+
+        // Forced reactivity for UI tokens
+        const allLabels = container.querySelectorAll('label.group\\/chk');
+        allLabels.forEach(label => {
+            const cb = label.querySelector('input');
+            const peerUi = label.querySelector('.peer-ui');
+            const icon = peerUi?.querySelector('i');
+            if (cb && peerUi && icon) {
+                if (cb.checked) {
+                    peerUi.classList.add('bg-blue-600', 'border-blue-600');
+                    icon.style.opacity = '1';
+                } else {
+                    peerUi.classList.remove('bg-blue-600', 'border-blue-600');
+                    icon.style.opacity = '0';
+                }
+            }
+        });
+
+        const hidden = document.getElementById(hiddenId);
+        if (hidden) hidden.value = val;
+
+        const textSpan = document.getElementById(textId);
+        if (textSpan) {
+            textSpan.innerText = val || '—';
+            textSpan.className = `text-[12px] font-black truncate pr-4 ${val ? 'text-primary' : 'text-slate-400 opacity-40'}`;
+        }
+
+        // Auto-close for single select UX
+        setTimeout(() => window.cerrarMenuDesplegable(null, dropdownId), 180);
+    };
+
+    window.handleHierarchicalToggle = (el, tNum, isHeader, blockName, currentTurnId) => {
+        const hiddenInput = document.getElementById('select-territorio');
+        const textDisplay = document.getElementById('selected-territorio-text');
+        if (!hiddenInput) return;
+
+        const selection = parseTerritorioSelection(hiddenInput.value);
+        const t = window._progCache.territorios.find(x => String(x.numero) === String(tNum));
+        if (!t) return;
+        const manzanas = getEffectiveManzanas(t);
+        const occupancy = getWeekOccupancy(programa, activeDayIndex, currentTurnId); 
+
+        if (!selection[tNum]) selection[tNum] = { blocks: new Set(), isFull: false };
+
+        if (isHeader) {
+            const isChecked = el.checked;
+            if (isChecked) {
+                // Determine if it was already "Full" or "Partial"
+                // select all non-occupied blocks
+                const occ = occupancy[tNum] || { blocks: new Set(), isFull: false };
+                if (occ.isFull) return; // Should be disabled anyway
+                
+                if (manzanas.length === 0) {
+                    selection[tNum].isFull = true;
+                } else {
+                    // Filter out truly occupied blocks from the pool
+                    manzanas.forEach(m => {
+                        if (!occ.blocks.has(m)) selection[tNum].blocks.add(m);
+                    });
+                    // If all blocks selected, Mark as full? Or let format handle it.
+                    // Let's mark as full if all free blocks are selected and no blocks were occupied
+                    if (occ.blocks.size === 0) selection[tNum].isFull = true;
+                }
+            } else {
+                delete selection[tNum];
+            }
+        } else {
+            const dataSelected = el.dataset.selected === 'true';
+            if (dataSelected) {
+                selection[tNum].blocks.delete(blockName);
+                selection[tNum].isFull = false;
+                if (selection[tNum].blocks.size === 0) delete selection[tNum];
+            } else {
+                selection[tNum].blocks.add(blockName);
+                // If all manzanas selected and none occupied, could mark as full
+                if (manzanas.length > 0 && manzanas.every(m => selection[tNum].blocks.has(m))) {
+                    selection[tNum].isFull = true;
+                }
+            }
+        }
+
+        const finalVal = formatTerritorioSelection(selection);
+        hiddenInput.value = finalVal;
+        if (textDisplay) {
+            textDisplay.innerText = finalVal || '—';
+            textDisplay.className = `text-[12px] font-black truncate pr-4 ${finalVal ? 'text-primary' : 'text-slate-400 opacity-40'}`;
+        }
+
+        // Re-render the dropdown content to reflect changes immediately
+        const dropdown = document.getElementById('sheet-territorio-dropdown');
+        if (dropdown) {
+            // Find the specific territory group and update its UI
+            const groups = dropdown.querySelectorAll('.territorio-group');
+            groups.forEach(group => {
+                const title = group.querySelector('span.font-black').innerText;
+                const numMatch = title.match(/\d+/);
+                if (numMatch && numMatch[0] === tNum) {
+                    // Update Header Checkbox
+                    const cb = group.querySelector('input[type="checkbox"]');
+                    const peerUi = group.querySelector('.peer-ui');
+                    const checkIcon = peerUi.querySelector('i');
+                    const isNowChecked = selection[tNum] && (selection[tNum].isFull || (manzanas.length > 0 && manzanas.every(m => selection[tNum].blocks.has(m))));
+                    
+                    if (cb) cb.checked = !!isNowChecked;
+                    if (peerUi) {
+                        peerUi.classList.toggle('bg-blue-600', !!isNowChecked);
+                        peerUi.classList.toggle('border-blue-600', !!isNowChecked);
+                        checkIcon.style.opacity = isNowChecked ? '1' : '0';
+                    }
+
+                    // Update Chips
+                    const chips = group.querySelectorAll('.block-chip');
+                    chips.forEach(chip => {
+                        const mName = chip.innerText.trim();
+                        const isSelected = selection[tNum] && (selection[tNum].isFull || selection[tNum].blocks.has(mName));
+                        chip.dataset.selected = !!isSelected;
+                        chip.className = `block-chip px-3 py-1 ${isSelected ? 'bg-blue-600 border-blue-600 text-white shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-blue-50 hover:border-blue-300'} border rounded-lg text-[9px] font-semibold cursor-pointer transition-all text-center select-none`;
+                    });
+                }
+            });
+        }
+    };
+
+    window.limpiarTerritorio = () => {
+        const hiddenInput = document.getElementById('select-territorio');
+        const textDisplay = document.getElementById('selected-territorio-text');
+        if (hiddenInput) hiddenInput.value = "";
+        if (textDisplay) {
+            textDisplay.innerText = "—";
+            textDisplay.className = "text-[12px] font-black truncate pr-4 text-slate-400 opacity-40";
+        }
+        
+        const dropdown = document.getElementById('sheet-territorio-dropdown');
+        if (dropdown) {
+            // Uncheck all master checkboxes and chips
+            dropdown.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+                const peer = cb.closest('label').querySelector('.peer-ui');
+                if (peer) {
+                    peer.classList.remove('bg-blue-600', 'border-blue-600');
+                    const icon = peer.querySelector('i');
+                    if (icon) icon.style.opacity = '0';
+                }
+            });
+            dropdown.querySelectorAll('.block-chip').forEach(chip => {
+                chip.dataset.selected = 'false';
+                chip.className = "block-chip px-3 py-1 bg-slate-50 border-slate-200 text-slate-600 hover:bg-blue-50 hover:border-blue-300 border rounded-lg text-[9px] font-semibold cursor-pointer transition-all text-center select-none";
+            });
+        }
+        showNotification("Selección de territorio limpia.");
     };
 
     window.updateWeekDataSheet = async (dayIdx, turnoId, fieldId, val) => {
@@ -981,15 +1340,17 @@ export const renderProgramaTab = async (container) => {
         const drop = document.getElementById('jornada-dropdown');
         if (drop) {
             const isHidden = drop.classList.contains('hidden');
-            // Cerrar otros dropdowns si los hubiera
             drop.classList.toggle('hidden');
             
-            if (isHidden) {
-                const closeHandler = () => {
-                    drop.classList.add('hidden');
-                    window.removeEventListener('click', closeHandler);
+            if (!isHidden) {
+                const closeJornada = (evt) => {
+                    const btn = e.currentTarget || e.target;
+                    if (drop && !drop.contains(evt.target) && !btn.contains(evt.target)) {
+                        drop.classList.add('hidden');
+                        document.removeEventListener('click', closeJornada);
+                    }
                 };
-                window.addEventListener('click', closeHandler);
+                setTimeout(() => document.addEventListener('click', closeJornada), 10);
             }
         }
     };
@@ -1046,6 +1407,11 @@ export const renderProgramaTab = async (container) => {
 
         const dia = programa.dias[dayIdx];
         const oldData = dia[turnoId] || {};
+        
+        // --- CAMBIO 2: Detección de cambios de territorio para liberación ---
+        const oldTerrs = String(oldData.territorio || '').split(/[,;/]/).map(t => t.trim()).filter(Boolean);
+        const newTerrs = String(safePayload.territorio || '').split(/[,;/]/).map(t => t.trim()).filter(Boolean);
+        const removedTerrs = oldTerrs.filter(t => !newTerrs.includes(t));
 
         // REGLA DE TRASPASO DE JORNADA:
         // Si el ID de turno cambió (ej de manana_2 a noche_2), debemos mover el objeto.
@@ -1069,8 +1435,29 @@ export const renderProgramaTab = async (container) => {
 
         try {
             showNotification("Sincronizando...", "info");
+            
+            // Invalidate formalization state strictly before saving
+            programa.isFormalized = false;
             await saveProgramaSemanal(programa.id, programa);
-            renderTable();
+
+            // --- CAMBIO 1: Sincronización Automática S-13 ---
+            // A) Liberar territorios eliminados
+            if (removedTerrs.length > 0) {
+                console.log("🧹 Liberando territorios eliminados:", removedTerrs);
+                await liberarAsignacionesDeSalida(removedTerrs, programa.id);
+            }
+
+            // B) Sincronizar territorios actuales (Nuevos o actualizados)
+            const resolvedDateISO = new Date(dia.fecha + 'T12:00:00Z').toISOString();
+            await sincronizarAsignacionesSalida({
+                ...dia[targetId],
+                turnoId: targetId
+            }, programa.id, resolvedDateISO);
+            
+            // Critical Refresh: Re-render button and table
+            checkFormalizationStatus();
+            await renderTable(); 
+            
             const closeBtn = document.getElementById('modal-sheet-close');
             if (closeBtn) closeBtn.click();
             showNotification("Turno actualizado", "success");
@@ -1110,7 +1497,9 @@ export const renderProgramaTab = async (container) => {
         }
 
         // Silent background save
-        saveProgramaSemanal(programa.id, programa).catch(e => {
+        saveProgramaSemanal(programa.id, programa).then(() => {
+            checkFormalizationStatus();
+        }).catch(e => {
             console.error("Error background saving:", e);
             showNotification("Error al sincronizar cambio", "error");
         });
@@ -1121,13 +1510,20 @@ export const renderProgramaTab = async (container) => {
             if (badgeContainer) {
                 const dia = programa.dias[dayIdx];
                 const turnData = dia[turnoId] || {};
-                const v = turnData.territorio;
-                const tNums = Array.from(new Set(String(v || '').split(/[,;/]/).map(n => n.trim()).filter(Boolean)));
-                const conductor = turnData.conductor;
+                const v = turnData?.territorio;
+                let tNums = [];
+                try {
+                    const res = splitTerritories ? splitTerritories(v || '') : null;
+                    tNums = Array.from(new Set(Array.isArray(res) ? res : String(v || '').split(/[,;/]/).map(n => n.trim()).filter(Boolean)));
+                } catch(e) {
+                    console.warn("Error parsing territory for badge update", e);
+                    tNums = String(v || '').split(/[,;/]/).map(n => n.trim()).filter(Boolean);
+                }
+                const conductor = turnData?.conductor;
 
-                const results = tNums.map(n => getTStatus(n, conductor, dia.fecha, turnoId));
-                const allSync = results.every(r => r.isSync);
-                const conflict = results.find(r => r.isConflict);
+                const results = tNums.map(n => getTStatus(n, conductor, dia?.fecha, turnoId));
+                const allSync = results.every(r => r?.isSync);
+                const conflict = results.find(r => r?.isConflict);
 
                 if (!v) {
                     badgeContainer.innerHTML = '';
@@ -1139,13 +1535,14 @@ export const renderProgramaTab = async (container) => {
                                                     <i class="fas fa-check-circle"></i> LISTO
                                                 </button>`;
                 } else if (conflict && conflict.details) {
+                    const statusText = String(conflict.details.estado || 'OCUPADO').toUpperCase();
                     badgeContainer.innerHTML = `<button onclick="window.showConflictDetails(${dayIdx}, '${turnoId}')" 
                                                         class="flex items-center gap-1.5 px-3 py-1 bg-rose-500/10 text-rose-500 rounded-lg font-black text-[9px] uppercase tracking-wider hover:bg-rose-500 hover:text-white transition-all animate-pulse shadow-lg shadow-rose-500/10">
-                                                    <i class="fas fa-exclamation-triangle"></i> OCUPADO
+                                                    <i class="fas fa-exclamation-triangle"></i> ${statusText}
                                                 </button>`;
                 } else {
                     badgeContainer.innerHTML = `<button onclick="window.syncAssignmentFromProg(${dayIdx}, '${turnoId}')" 
-                                                        class="flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-primary rounded-lg font-black text-[9px] uppercase tracking-wider hover:bg-primary hover:text-white transition-all shadow-lg shadow-primary/10 group">
+                                                        class="flex items-center gap-1.5 px-3 py-1 bg-blue-600/10 text-blue-600 rounded-lg font-black text-[9px] uppercase tracking-wider hover:bg-blue-600 hover:text-white transition-all shadow-lg shadow-blue-500/10 group">
                                                     <i class="fas fa-link group-hover:rotate-12 transition-transform"></i> ASIGNAR
                                                 </button>`;
                 }
@@ -1179,6 +1576,7 @@ export const renderProgramaTab = async (container) => {
             try {
                 showNotification("Eliminando horario...", "info");
                 await saveProgramaSemanal(programa.id, programa);
+                checkFormalizationStatus();
                 renderTable();
                 showNotification("Horario eliminado", "success");
             } catch (e) {
@@ -1250,7 +1648,12 @@ export const renderProgramaTab = async (container) => {
     window.showConflictDetails = (dayIdx, turnoId) => {
         const dia = programa.dias[dayIdx];
         const data = dia[turnoId];
-        const tNums = Array.from(new Set(String(data.territorio || '').split(/[,;/]/).map(n => n.trim()).filter(Boolean)));
+        let tNums = [];
+        try {
+            tNums = Array.from(new Set(splitTerritories ? splitTerritories(data.territorio || '') : String(data.territorio || '').split(/[,;/]/).map(n => n.trim()).filter(Boolean)));
+        } catch(e) {
+            tNums = String(data.territorio || '').split(/[,;/]/).map(n => n.trim()).filter(Boolean);
+        }
         const conductor = data.conductor;
         const results = tNums.map(n => getTStatus(n, conductor, dia.fecha, turnoId));
         const conflicts = results.filter(r => r.isConflict);
@@ -1380,7 +1783,7 @@ export const renderProgramaTab = async (container) => {
 
                 <div class="flex gap-4 pt-6 border-t border-slate-50 dark:border-white/5">
                     <button onclick="window.hideModal('modal-container')" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest">Cancelar</button>
-                    <button id="confirm-sync-asig" class="flex-[2] py-5 bg-primary text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all">ASIGNAR FORMALMENTE</button>
+                    <button id="confirm-sync-asig" class="flex-[2] py-5 bg-blue-600 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-blue-500/20 hover:scale-[1.02] active:scale-95 transition-all">ASIGNAR FORMALMENTE</button>
                 </div>
             </div>
         `, (modal) => {
@@ -1421,8 +1824,7 @@ export const renderProgramaTab = async (container) => {
                     const tStr = d[turn]?.territorio;
                     if (tStr) {
                         // Handle multiple territories like "1, 2(Mz 1), 3"
-                        // Robust extraction: find numbers followed by start of parentheses or separators
-                        const matches = tStr.matchAll(/(\d+)(?:\s*\(|$|[\s,;/])/g);
+                        const matches = (tStr || '').matchAll(/(\d+)(?:\s*\(|$|[\s,;/])/g);
                         for (const match of matches) {
                             weekAssignments.push(match[1]);
                         }
@@ -1448,99 +1850,228 @@ export const renderProgramaTab = async (container) => {
         }, 'modal-container-nested', historial, weekAssignments);
     };
 
-    // Attach PNG & Share events (deferred until DOM binds)
-    setTimeout(() => {
-        const btnPngDropdown = container.querySelector('#btn-png-dropdown');
-        const pngMenu = container.querySelector('#export-png-menu');
+    window.toggleShareMenu = function(e) {
+      if(e) e.stopPropagation();
+      const menu = document.getElementById('share-menu');
+      if(menu) menu.classList.toggle('hidden');
+    };
 
-        const showProgramPreview = async (isConductores) => {
-            const dataUrl = await generateProgramPNG(programa, isConductores);
-            if (!dataUrl) return;
+    // Close dropdown on outside click
+    document.addEventListener('click', function(event) {
+      const shareMenu = document.getElementById('share-menu');
+      const shareContainer = document.getElementById('share-dropdown-container');
+      if (shareMenu && !shareMenu.classList.contains('hidden')) {
+        if (shareContainer && !shareContainer.contains(event.target)) {
+          shareMenu.classList.add('hidden');
+        }
+      }
+    });
 
-            showModal(`
-                <div class="flex flex-col bg-white dark:bg-[#0a0f18] rounded-[2rem] overflow-hidden max-w-4xl w-full mx-auto shadow-2xl animate-scale-in">
-                    <header class="p-8 border-b border-slate-100 dark:border-white/5 flex items-center justify-between shrink-0">
-                        <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 bg-indigo-500 text-white rounded-2xl flex items-center justify-center text-xl">
-                                <i class="fas fa-image"></i>
-                            </div>
-                            <div>
-                                <h3 class="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-white">Vista Previa</h3>
-                                <p class="text-[9px] text-indigo-500 font-bold uppercase tracking-tighter">Programa de Predicación</p>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <button id="preview-share" class="w-10 h-10 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition-all flex items-center justify-center shadow-lg shadow-emerald-500/20" title="Compartir">
-                                <i class="fas fa-share-nodes"></i>
-                            </button>
-                            <button id="preview-download" class="w-10 h-10 rounded-xl bg-primary text-white hover:bg-primary/90 transition-all flex items-center justify-center shadow-lg shadow-primary/20" title="Descargar">
-                                <i class="fas fa-download"></i>
-                            </button>
-                            <button id="preview-print" class="w-10 h-10 rounded-xl bg-slate-800 text-white hover:bg-slate-900 transition-all flex items-center justify-center shadow-lg shadow-slate-900/20" title="Imprimir">
-                                <i class="fas fa-print"></i>
-                            </button>
-                            <div class="w-px h-6 bg-slate-200 dark:bg-white/10 mx-2"></div>
-                            <button onclick="window.hideModal('modal-container')" class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-slate-600 transition-all flex items-center justify-center">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                    </header>
-
-                    <div class="p-8 overflow-y-auto flex justify-center bg-slate-50 dark:bg-black/20">
-                        <img src="${dataUrl}" class="max-w-full h-auto rounded-xl shadow-2xl border border-slate-200 dark:border-white/10">
-                    </div>
-                </div>
-            `, async (modal) => {
-                const startDay = programa.dias[0]?.fecha || '—';
-
-                modal.querySelector('#preview-share').onclick = async () => {
-                    const blob = await (await fetch(dataUrl)).blob();
-                    const file = new File([blob], `Programa_${startDay}.png`, { type: 'image/png' });
-                    if (navigator.share) {
-                        await navigator.share({ files: [file], title: `Programa Semanal`, text: `Programa de la semana ${startDay}` });
+    window.generarImagenPrograma = async function(tipo, forceDownload = false) {
+        try {
+            // 1. Ocultar menú y crear contenedor temporal
+            const shareMenu = document.getElementById('share-menu');
+            if(shareMenu) shareMenu.classList.add('hidden');
+    
+            const tempDiv = document.createElement('div');
+            // TÉCNICA OFF-SCREEN FIXED:
+            tempDiv.style.position = 'fixed'; 
+            tempDiv.style.top = '0';
+            tempDiv.style.left = '200vw'; // Fuera de la vista horizontal
+            tempDiv.style.width = '1200px'; 
+            tempDiv.style.zIndex = '-9999'; 
+            document.body.appendChild(tempDiv);
+    
+            // 2. Cargar HTML (Manejo de caché para asegurar que traiga las filas Zoom y color Domingo nuevas)
+            const tipoPlural = tipo.endsWith('s') ? tipo : tipo + 'es';
+            const cacheBust = new Date().getTime();
+            const response = await fetch(`/templates/prog_${tipoPlural}.html?v=${cacheBust}`);
+            if (!response.ok) throw new Error("No se encontró la plantilla HTML");
+            tempDiv.innerHTML = await response.text();
+    
+            // Transformar la estructura nativa 'programa.dias' en el flat array esperado por el Smart Mapper
+            const turnos = [];
+            if (programa && programa.dias) {
+                programa.dias.forEach(diaData => {
+                    const turnIds = Object.keys(diaData).filter(k => k !== 'nombre' && k !== 'fecha');
+                    turnIds.forEach(id => {
+                        const t = diaData[id];
+                        // CRITICAL FIX: Skip empty slots (e.g. Domingo has tarde/noche/zoom
+                        // as empty objects that overwrite valid manana_2 data)
+                        const hasData = t && Object.values(t).some(v => v !== '' && v !== null && v !== undefined && v !== false);
+                        if (hasData) {
+                            turnos.push({
+                                dia: diaData.nombre, 
+                                jornada: id, 
+                                ...t
+                            });
+                        }
+                    });
+                });
+            }
+            
+            const gruposPorBloque = { m: new Set(), t: new Set(), n: new Set(), z: new Set() };
+    
+            // 3. SMART MAPPER: Enrutar datos a las celdas exactas
+            turnos.forEach(turno => {
+                if(!turno) return;
+    
+                // A. Detectar el Día (1 = Lunes, 7 = Domingo)
+                let diaIndex = 1;
+                const diaStr = String(turno.dia || turno.diaText || turno.diaSemana || '').toLowerCase();
+                if (diaStr.includes('mar')) diaIndex = 2;
+                else if (diaStr.includes('mie') || diaStr.includes('mié')) diaIndex = 3;
+                else if (diaStr.includes('jue')) diaIndex = 4;
+                else if (diaStr.includes('vie')) diaIndex = 5;
+                else if (diaStr.includes('sab') || diaStr.includes('sáb')) diaIndex = 6;
+                else if (diaStr.includes('dom')) diaIndex = 7;
+                else if (diaStr.includes('lun')) diaIndex = 1;
+    
+                // B. Detectar el Bloque (m=mañana, t=tarde, n=noche, z=zoom)
+                let bloque = 'm';
+                const jornadaStr = String(turno.jornada || turno.turno || turno.franja || '').toLowerCase();
+                const lugarStr = String(turno.lugar || '').toLowerCase();
+                const isDomingo = (diaIndex === 7);
+                
+                if (lugarStr.includes('zoom') || jornadaStr.includes('zoom')) {
+                    bloque = 'z';
+                } else if (isDomingo) {
+                    // Especial DOMINGO: Sus jornadas se distinguen por sufijo numérico
+                    // manana      → bloque m
+                    // manana_2    → bloque t  (segunda mañana/turno en la tabla)
+                    // manana_3    → bloque n  (tercera jornada)
+                    // tarde/noche → sus propios bloques
+                    if (jornadaStr.includes('tarde')) bloque = 't';
+                    else if (jornadaStr.includes('noche')) bloque = 'n';
+                    else if (jornadaStr.includes('_3')) bloque = 'n';
+                    else if (jornadaStr.includes('_2')) bloque = 't';
+                    else bloque = 'm'; // manana sin sufijo o manana_1
+                } else {
+                    // Normal rest of days
+                    if (jornadaStr.includes('tarde')) bloque = 't';
+                    else if (jornadaStr.includes('noche')) bloque = 'n';
+                    else if (jornadaStr.includes('mañana') || jornadaStr.includes('manana')) bloque = 'm';
+                }
+    
+                // C. Inyectar datos en las celdas asegurando el centrado vertical
+                const setCell = (idSuffix, valor) => {
+                    if (!valor) return; // No sobrescribir celdas con valor vacío
+                    const el = tempDiv.querySelector(`#${bloque}-${diaIndex}-${idSuffix}`);
+                    if (el) {
+                        el.innerHTML = valor;
+                        el.style.verticalAlign = 'middle';
                     }
                 };
-
-                modal.querySelector('#preview-download').onclick = async () => {
-                    const { downloadImage } = await import('./program-generator.js');
-                    downloadImage(dataUrl, isConductores, startDay);
-                };
-
-                modal.querySelector('#preview-print').onclick = () => {
-                    const win = window.open("");
-                    win.document.write(`<img src="${dataUrl}" style="width:100%" onload="window.print();window.close()">`);
-                    win.document.close();
-                };
+    
+                setCell('lugar', turno.lugar);
+                setCell('hora', turno.horario || turno.horarioText || turno.hora);
+                setCell('conductor', turno.conductor);
+                setCell('faceta', turno.faceta);
+                setCell('territorio', turno.territorio);
+                
+                const auxiliarStr = Array.isArray(turno.auxiliares) ? turno.auxiliares.join(', ') : (turno.auxiliares || turno.auxiliar || '');
+                setCell('auxiliar', auxiliarStr);
+    
+                // D. Recopilar grupos del bloque para la celda combinada (rowspan)
+                if(turno.grupo || turno.grupos) {
+                    const gStr = String(turno.grupo || turno.grupos);
+                    gStr.split(',').forEach(g => {
+                        let tag = g.trim();
+                        if (tag.toLowerCase() === 'todos') {
+                            gruposPorBloque[bloque].add('Todos');
+                        } else {
+                            const num = tag.replace(/\D/g, ''); // Extract only digits
+                            if(num) gruposPorBloque[bloque].add(num);
+                        }
+                    });
+                }
             });
-        };
-
-        if (btnPngDropdown && pngMenu) {
-            btnPngDropdown.onclick = (e) => {
-                e.stopPropagation();
-                pngMenu.classList.toggle('show');
-            };
-
-            document.addEventListener('click', () => {
-                pngMenu.classList.remove('show');
-            });
-
-            const btnPngCond = container.querySelector('#btn-export-png-cond-new');
-            if (btnPngCond) {
-                btnPngCond.onclick = () => {
-                    showProgramPreview(true);
-                    pngMenu.classList.remove('show');
-                };
+    
+            // Inyectar específicamente los "Días + Fechas" en los encabezados si existen '#th-dia-X'
+            if (programa && programa.dias) {
+                programa.dias.forEach((dia, idx) => {
+                    const dIdx = idx + 1;
+                    const thEl = tempDiv.querySelector(`#th-dia-${dIdx}`);
+                    if (thEl) {
+                        let numDia = dia.fecha ? dia.fecha.split('-')[2] : '';
+                        if (numDia) numDia = parseInt(numDia, 10).toString();
+                        thEl.textContent = dia.nombre + (numDia ? ' ' + numDia : '');
+                    }
+                });
             }
 
-            const btnPngPub = container.querySelector('#btn-export-png-pub-new');
-            if (btnPngPub) {
-                btnPngPub.onclick = () => {
-                    showProgramPreview(false);
-                    pngMenu.classList.remove('show');
-                };
+            // Obtener el total de grupos del sistema para la lógica de "Todos" (fallback 6)
+            let finalGroupsCount = 6;
+            try {
+                if (typeof getGroupsConfig === 'function') {
+                    const cfg = await getGroupsConfig();
+                    if (cfg && cfg.length > 0) finalGroupsCount = cfg.length;
+                }
+            } catch(e) { console.warn("No se pudo obtener grupos", e); }
+
+            // 4. Inyectar los grupos unidos y ordenados
+            Object.keys(gruposPorBloque).forEach(b => {
+                const gruposEl = tempDiv.querySelector(`#${b}-grupos`);
+                if (gruposEl) {
+                    const setGroups = gruposPorBloque[b];
+                    
+                    if (setGroups.has('Todos') || setGroups.size >= finalGroupsCount) {
+                        gruposEl.innerHTML = 'Todos';
+                    } else {
+                        const arr = Array.from(setGroups)
+                                        .filter(x => x !== 'Todos')
+                                        .sort((a,b) => parseInt(a) - parseInt(b));
+                        gruposEl.innerHTML = arr.length > 0 ? arr.join(', ') : '&nbsp;';
+                    }
+                    gruposEl.style.verticalAlign = 'top'; // FIX: Datos de grupos alineados hacia arriba
+                }
+            });
+    
+            // Inyectar el rango de fechas en el título
+            const rangoFechasEl = tempDiv.querySelector('#rango-fechas');
+            if(rangoFechasEl) {
+                const lblRange = document.querySelector('#week-range-label');
+                rangoFechasEl.textContent = window.programaData?.rangoFechas || window.currentWeekDataGlobal?.rangoFechas || (lblRange ? lblRange.innerText : '');
             }
+    
+            // 5. Tomar la foto de alta calidad
+            const exportContainer = tempDiv.querySelector('#export-container');
+            await new Promise(r => setTimeout(r, 600)); // Delay para permitir el render del DOM
+    
+            // Usamos scale: 2 para calidad Retina/Impresión y windowWidth para evitar cortes
+            const canvas = await html2canvas(exportContainer, { 
+                scale: 2, 
+                useCORS: true, 
+                backgroundColor: "#ffffff",
+                windowWidth: 1200, 
+                width: 1200, 
+                windowHeight: exportContainer.scrollHeight + 100 // FIX CORTE VERTICAL
+            });
+            
+            // IMPORTANTE: Limpiar el DOM y restaurar overflow
+            tempDiv.remove(); 
+    
+            // 6. Compartir la imagen
+            canvas.toBlob(async (blob) => {
+                const file = new File([blob], `programa_${tipoPlural}.png`, { type: 'image/png' });
+                if (!forceDownload && navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({ title: 'Programa de Predicación', files: [file] });
+                } else {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `programa_${tipoPlural}.png`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    showNotification("Programa descargado localmente", "success");
+                }
+            }, 'image/png');
+    
+        } catch (error) {
+            console.error("Error exportando imagen:", error);
+            showNotification("Fallo al exportar", "error");
         }
-    }, 100);
+    };
 
     window.openGroupSelector = async (dayIdx, turnoId) => {
         console.log("🛡️ [v2.4.1.9] Opening Multi-Group Selector...");
@@ -1548,7 +2079,7 @@ export const renderProgramaTab = async (container) => {
         const currentVal = programa.dias[dayIdx][turnoId].grupos || '';
 
         // Normalize: remove word "Grupo" if present to match keys
-        const selected = new Set(currentVal.replace(/grupos?/gi, '').split(/[,;y&]+/).map(s => s.trim()).filter(Boolean));
+        const selected = new Set((currentVal || '').replace(/grupos?/gi, '').split(/[,;y&]+/).map(s => s.trim()).filter(Boolean));
 
         window.showModal(`
             <div class="flex flex-col max-h-[75vh] overflow-hidden animate-scale-in">
@@ -1578,18 +2109,18 @@ export const renderProgramaTab = async (container) => {
                         </label>
 
                         ${groups.map(g => {
-            const gNum = g.nombre.replace(/grupos?/gi, '').trim();
-            const isSel = selected.has(gNum) || selected.has(g.nombre);
+            const groupStr = g?.nombre || g?.numero_nombre || (g?.id ? `Grupo ${g.id}` : '');
+            const isSel = selected.has(groupStr) || selected.has(g?.nombre || '') || selected.has(String(g?.id || ''));
             return `
                             <label class="group-item p-2.5 modern-card border-slate-100 dark:border-white/5 hover:border-indigo-500 transition-all cursor-pointer flex items-center gap-3 ${isSel ? 'bg-indigo-500/5 border-indigo-500/50' : ''}">
                                 <div class="relative w-4 h-4 shrink-0">
-                                    <input type="checkbox" class="group-checkbox absolute inset-0 opacity-0 cursor-pointer z-10" value="${gNum}" ${isSel ? 'checked' : ''}>
+                                    <input type="checkbox" class="group-checkbox absolute inset-0 opacity-0 cursor-pointer z-10" value="${groupStr}" ${isSel ? 'checked' : ''}>
                                     <div class="check-box-ui w-4 h-4 border-2 border-slate-200 dark:border-white/10 rounded flex items-center justify-center transition-all ${isSel ? 'bg-indigo-500 border-indigo-500' : ''}">
                                         <i class="fas fa-check text-[7px] text-white ${isSel ? 'opacity-100' : 'opacity-0'} transition-opacity"></i>
                                     </div>
                                 </div>
                                 <div class="flex-1">
-                                    <p class="text-[11px] font-black text-slate-800 dark:text-white uppercase leading-none mb-0.5">Grupo ${gNum}</p>
+                                    <p class="text-[11px] font-black text-slate-800 dark:text-white uppercase leading-none mb-0.5">${groupStr}</p>
                                     <p class="text-[7px] text-slate-400 font-medium uppercase tracking-widest leading-none truncate max-w-[150px]">${g.casa_salida || '—'}</p>
                                 </div>
                             </label>
@@ -1660,585 +2191,12 @@ export const renderProgramaTab = async (container) => {
 
 
     const execActionRecepcion = async () => {
-        showNotification("Actualizando lista de asignaciones...", "info");
-        
-        // LIMPIEZA EXPLÍCITA: Vaciar caché in-memory antes del fetch fresco
-        territorios.length = 0; 
-
-        // RASTREO CONTEXTUAL (Current Week Scope Limiting)
-        // Extraemos todos los números base de territorio que la interfaz TIENE asginados en esta semana visualizada
-        const currentWeekTerritorios = new Set();
-        if (programa && programa.dias) {
-            programa.dias.forEach(dia => {
-                Object.keys(dia).filter(k => k !== 'nombre' && k !== 'fecha').forEach(tId => {
-                    const data = dia[tId];
-                    if (data && data.territorio) {
-                        String(data.territorio).split(/[,;/]/).map(t => getBaseTerritoryNumber(t)).forEach(n => {
-                            if (n) currentWeekTerritorios.add(normalizeLower(n));
-                        });
-                    }
-                });
-            });
-        }
-        
-        // QUERY FRESCA AL MAESTRO IGNORANDO LA CACHÉ
-        const snap = await getDocs(collection(db, "territorios"));
-        
-        const assigned = snap.docs
-            .map(d => ({ id: d.id, ...d.data() }))
-            .filter(d => d.status === "Asignado" || d.estado === "Asignado")
-            .map(data => ({
-                id: data.id,
-                numero: data.numero,
-                manzanas: data.manzanas || '',
-                status: data.status || data.estado,
-                currentAssignee: data.currentAssignee || data.asignado_a,
-                assignmentDate: data.assignmentDate || data.fecha_asignacion,
-                master_status: data.status || data.estado,
-            }));
-
-        if (assigned.length === 0) return showNotification("No hay territorios asignados para devolver", "info");
-
-        // Repoblar array local SOLO con los activos (para la vista de recepción actual)
-        territorios.push(...assigned);
-
-        let sortMode = 'territorio'; // 'territorio' | 'fecha'
-
-        showModal(`
-            <div class="flex flex-col h-full max-h-[85vh] w-full max-w-xl mx-auto">
-                <header class="p-6 pb-2 shrink-0 border-b border-slate-50 dark:border-white/5">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 bg-rose-500/10 rounded-2xl flex items-center justify-center text-2xl text-rose-500 shadow-inner">
-                                <i class="fas fa-file-import"></i>
-                            </div>
-                            <div>
-                                <h3 class="text-xl font-black uppercase tracking-tight text-slate-800 dark:text-white leading-none">Recepción Manual</h3>
-                                <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">Devolver territorios</p>
-                            </div>
-                        </div>
-                    </div>
-                </header>
-
-                <div class="flex-1 overflow-y-auto px-6 space-y-4 custom-scrollbar py-4">
-                    <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-50 dark:bg-black/20 p-3 rounded-2xl border border-slate-200/50 mb-2">
-                        <div class="flex items-center gap-2">
-                            <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest mr-2">Ordenar por:</span>
-                            <button id="sort-by-terr" class="px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all border border-transparent active-sort bg-primary text-white shadow-lg shadow-primary/20">Territorio</button>
-                            <button id="sort-by-date" class="px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all border border-slate-200/50 text-slate-500 hover:bg-white dark:hover:bg-white/10">Fecha</button>
-                        </div>
-                        <button id="reception-select-all" class="px-4 py-2 bg-white dark:bg-white/5 rounded-xl text-[8px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-all border border-slate-200/50 shadow-sm">Alternar Selector</button>
-                    </div>
-
-                    <div id="bulk-reception-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <!-- List filled by script -->
-                    </div>
-
-                    <div class="p-4 bg-amber-500/5 rounded-2xl border border-amber-500/10 flex items-center gap-4 group/toggle cursor-pointer" id="toggle-no-preached">
-                         <div class="relative w-10 h-6 shrink-0">
-                             <input type="checkbox" id="check-no-preached" class="absolute inset-0 opacity-0 cursor-pointer z-10">
-                             <div class="toggle-bg w-10 h-6 bg-slate-200 dark:bg-slate-800 rounded-full transition-colors group-hover/toggle:bg-slate-300 dark:group-hover/toggle:bg-slate-700"></div>
-                             <div class="toggle-dot absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform shadow-sm"></div>
-                         </div>
-                         <div class="flex-1">
-                             <p class="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-tight leading-none mb-1">Devolver sin predicar</p>
-                             <p class="text-[8px] font-bold text-slate-400 uppercase tracking-widest">No se marcará como "Abarcado" en el historial S-13</p>
-                         </div>
-                    </div>
-
-                    <div class="space-y-4">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Fecha de Entrega/Devolución</label>
-                        <input type="date" id="reception-global-date" value="${new Date().toISOString().split('T')[0]}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[14px] font-black text-rose-500 outline-none focus:border-rose-500 transition-all uppercase shadow-inner">
-                    </div>
-
-                    <div class="pt-6 border-t border-slate-50 dark:border-white/5 flex gap-4">
-                        <button onclick="window.hideModal('modal-container')" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest transition-all hover:bg-slate-100 dark:hover:bg-white/10">Cancelar</button>
-                        <button id="confirm-bulk-reception" class="flex-[2] py-5 bg-rose-500 hover:bg-rose-400 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-rose-500/20 flex items-center justify-center gap-3 transition-transform active:scale-95 group">
-                            <i class="fas fa-check-circle group-hover:scale-110 transition-transform"></i>
-                            <span id="btn-reception-text">Confirmar Devolución</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `, (modal) => {
-            const listContainer = modal.querySelector('#bulk-reception-list');
-
-
-            const renderList = () => {
-                const now = new Date();
-                const sorted = [...assigned].sort((a, b) => {
-                    if (sortMode === 'territorio') {
-                        return a.numero.localeCompare(b.numero, undefined, { numeric: true });
-                    } else {
-                        return new Date(a.assignmentDate) - new Date(b.assignmentDate);
-                    }
-                });
-
-                listContainer.innerHTML = sorted.map(t => {
-                    const mzCount = t.manzanas ? String(t.manzanas).split(/[,;]/).map(s => s.trim()).filter(Boolean).length : 0;
-                    const asigDate = new Date(t.assignmentDate);
-                    const diffDays = Math.ceil(Math.abs(now - asigDate) / (1000 * 60 * 60 * 24));
-                    const isLate = diffDays > 10;
-                    
-                    const baseNum = normalizeLower(getBaseTerritoryNumber(t.numero));
-                    const isFromCurrentWeek = currentWeekTerritorios.has(baseNum);
-                    const isCheckedAttr = isFromCurrentWeek ? 'checked' : '';
-
-                    return `
-                    <div class="modern-card !p-5 ${isLate ? 'border-rose-500/20 bg-rose-500/[0.01]' : 'border-slate-100 dark:border-white/5'} group hover:border-rose-500/30 transition-all animate-fade-in relative overflow-hidden flex flex-col gap-4">
-                        ${isLate ? '<div class="absolute -right-8 -top-8 w-16 h-16 bg-rose-500/10 rotate-45 flex items-end justify-center pb-1"><i class="fas fa-clock text-[8px] text-rose-500 mb-1"></i></div>' : ''}
-                        <div class="flex items-start justify-between">
-                            <div class="flex items-center gap-2">
-                                <div class="w-10 h-10 ${isLate ? 'bg-rose-500/10 text-rose-500' : 'bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-white'} rounded-2xl flex items-center justify-center text-lg font-black shadow-inner">
-                                    ${t.numero}
-                                </div>
-                                <div class="p-2 bg-indigo-500/5 text-indigo-500 rounded-xl">
-                                    <i class="fas fa-map-marked-alt text-[10px]"></i>
-                                </div>
-                            </div>
-                            <!-- Bulk Checkbox -->
-                            <div class="reception-check-container relative w-6 h-6">
-                                <input type="checkbox" class="reception-check absolute inset-0 opacity-0 cursor-pointer z-10" value="${t.id}" ${isCheckedAttr}>
-                                <div class="w-6 h-6 border-2 border-slate-200 dark:border-white/10 rounded-lg flex items-center justify-center transition-all bg-white dark:bg-transparent">
-                                    <i class="fas fa-check text-[10px] text-rose-500 opacity-0 transition-opacity"></i>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="space-y-0.5 mt-1">
-                            <div class="flex items-center gap-2">
-                                <i class="fas fa-location-dot text-[8px] text-slate-400 opacity-40"></i>
-                                <h4 class="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-tight truncate">${t.nombre || 'Territorio ' + t.numero}</h4>
-                            </div>
-                            <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest pl-4 truncate">${t.currentAssignee || '—'}</p>
-                        </div>
-
-                        <div class="flex items-center justify-between mt-2 pt-3 border-t border-slate-50 dark:border-white/5">
-                            <div class="flex flex-col gap-1">
-                                <span class="text-[8px] font-black ${isLate ? 'text-rose-500' : 'text-slate-400'} uppercase tracking-tighter">
-                                    ${UIHelpers.fmtDateAt(t.assignmentDate)}
-                                    ${isLate ? ` • <span class="animate-pulse">${diffDays} DÍAS</span>` : ''}
-                                </span>
-                                ${mzCount > 0 ? `<span class="bg-indigo-500/5 text-indigo-500 text-[7px] font-black px-1.5 py-0.5 rounded w-fit uppercase">${mzCount} MZ</span>` : ''}
-                            </div>
-                            
-                            <div class="flex items-center gap-1">
-                                <!-- ✅ COMPLETO -->
-                                <button onclick="window.quickReturn('${t.id}', 'Completado')" 
-                                        class="w-8 h-8 flex items-center justify-center bg-emerald-500/10 text-emerald-500 rounded-lg hover:bg-emerald-500 hover:text-white transition-all shadow-sm group/btn" 
-                                        title="Marcar como Completado">
-                                    <i class="fas fa-check text-[10px] group-hover/btn:scale-110 transition-transform"></i>
-                                </button>
-                                
-                                <!-- ✂️ PARCIAL -->
-                                <button onclick="window.openPartialReception('${t.id}')" 
-                                        class="w-8 h-8 flex items-center justify-center bg-amber-500/10 text-amber-500 rounded-lg hover:bg-amber-500 hover:text-white transition-all shadow-sm group/btn" 
-                                        title="Devolución Parcial">
-                                    <i class="fas fa-scissors text-[10px] group-hover/btn:scale-110 transition-transform"></i>
-                                </button>
-
-                                <!-- 🔄 LIBERAR -->
-                                <button onclick="window.quickReturn('${t.id}', 'Disponible')" 
-                                        class="w-8 h-8 flex items-center justify-center bg-slate-100 dark:bg-white/10 text-slate-400 hover:bg-slate-700 dark:hover:bg-white hover:text-white transition-all shadow-sm group/btn" 
-                                        title="Liberar sin predicar">
-                                    <i class="fas fa-undo-alt text-[10px] group-hover/btn:rotate-[-45deg] transition-transform"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                }).join('');
-
-                modal.querySelectorAll('.reception-check').forEach(cb => {
-                    cb.onchange = (e) => {
-                        const icon = e.target.parentElement.querySelector('i');
-                        const box = e.target.parentElement.querySelector('div');
-                        if (e.target.checked) {
-                            icon.classList.remove('opacity-0');
-                            box.classList.add('border-rose-500');
-                        } else {
-                            icon.classList.add('opacity-0');
-                            box.classList.remove('border-rose-500');
-                        }
-                        updateCounter();
-                    };
-                    // Initial state
-                    if (cb.checked) {
-                        cb.parentElement.querySelector('i').classList.remove('opacity-0');
-                        cb.parentElement.querySelector('div').classList.add('border-rose-500');
-                    }
-                });
-                updateCounter();
-            };
-
-            // Helpers for per-item actions
-            window.quickReturn = async (id, status) => {
-                const date = modal.querySelector('#reception-global-date').value;
-                const note = status === 'Disponible' ? "Liberación rápida (sin predicar)" : "Recepción rápida (completado)";
-
-                try {
-                    showNotification("Procesando...", "info");
-                    await returnTerritorioMultiple([id], note, new Date(date + 'T12:00:00Z').toISOString(), status);
-
-                    // Remove from local list and re-render
-                    const idx = assigned.findIndex(x => x.id === id);
-                    if (idx > -1) assigned.splice(idx, 1);
-
-                    if (assigned.length === 0) modal.classList.add('hidden');
-                    else renderList();
-
-                    const updatedT = await getTerritorios();
-                    territorios.length = 0;
-                    territorios.push(...updatedT);
-                    renderTable();
-                    showNotification("Territorio procesado con éxito", "success");
-                } catch (e) {
-                    showNotification("Error: " + e.message, "error");
-                }
-            };
-
-            const updateCounter = () => {
-                const checked = modal.querySelectorAll('.reception-check:checked').length;
-                const text = modal.querySelector('#btn-reception-text');
-                if (text) text.innerText = `Confirmar Devolución (${checked})`;
-            };
-
-            const updateSortUI = () => {
-                const btnTerr = modal.querySelector('#sort-by-terr');
-                const btnDate = modal.querySelector('#sort-by-date');
-
-                if (sortMode === 'territorio') {
-                    btnTerr.classList.add('bg-primary', 'text-white', 'shadow-lg', 'shadow-primary/20');
-                    btnTerr.classList.remove('text-slate-500', 'border-slate-200/50');
-                    btnDate.classList.remove('bg-primary', 'text-white', 'shadow-lg', 'shadow-primary/20');
-                    btnDate.classList.add('text-slate-500', 'border-slate-200/50');
-                } else {
-                    btnDate.classList.add('bg-primary', 'text-white', 'shadow-lg', 'shadow-primary/20');
-                    btnDate.classList.remove('text-slate-500', 'border-slate-200/50');
-                    btnTerr.classList.remove('bg-primary', 'text-white', 'shadow-lg', 'shadow-primary/20');
-                    btnTerr.classList.add('text-slate-500', 'border-slate-200/50');
-                }
-                renderList();
-            };
-
-            modal.querySelector('#sort-by-terr').onclick = () => {
-                sortMode = 'territorio';
-                updateSortUI();
-            };
-            modal.querySelector('#sort-by-date').onclick = () => {
-                sortMode = 'fecha';
-                updateSortUI();
-            };
-
-            let allSelected = true;
-            modal.querySelector('#reception-select-all').onclick = () => {
-                allSelected = !allSelected;
-                modal.querySelectorAll('.reception-check').forEach(cb => {
-                    cb.checked = allSelected;
-                    cb.dispatchEvent(new Event('change'));
-                });
-                modal.querySelector('#reception-select-all').innerText = allSelected ? 'Deseleccionar Todos' : 'Seleccionar Todos';
-            };
-
-            // Toggle "No Preached" UI Logic
-            const checkNoPreached = modal.querySelector('#check-no-preached');
-            const toggleBtn = modal.querySelector('#toggle-no-preached');
-            const dot = modal.querySelector('.toggle-dot');
-            const bg = modal.querySelector('.toggle-bg');
-
-            toggleBtn.onclick = () => {
-                checkNoPreached.checked = !checkNoPreached.checked;
-                if (checkNoPreached.checked) {
-                    dot.style.transform = 'translateX(1rem)';
-                    bg.classList.add('bg-amber-500');
-                    bg.classList.remove('bg-slate-200', 'dark:bg-slate-800');
-                } else {
-                    dot.style.transform = 'translateX(0)';
-                    bg.classList.remove('bg-amber-500');
-                    bg.classList.add('bg-slate-200', 'dark:bg-slate-800');
-                }
-            };
-
-            modal.querySelector('#confirm-bulk-reception').onclick = async (e) => {
-                const checked = Array.from(modal.querySelectorAll('.reception-check:checked')).map(cb => cb.value);
-                if (checked.length === 0) return showNotification("Seleccione al menos un territorio", "warning");
-
-                const dateInput = modal.querySelector('#reception-global-date');
-                const date = dateInput.value;
-                if (!date) return;
-
-                const onlyReturn = checkNoPreached.checked;
-                const finalStatus = onlyReturn ? 'Disponible' : 'Completado';
-                const finalNotes = onlyReturn ? "Devolución sin predicar (Recepción Manual)" : "Recepción desde Programa";
-
-                const btn = e.currentTarget;
-                btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> PROCESANDO...';
-
-                await returnTerritorioMultiple(checked, finalNotes, new Date(date + 'T12:00:00Z').toISOString(), finalStatus);
-
-                showNotification(onlyReturn ? `Se liberaron ${checked.length} territorios.` : `Se recibieron ${checked.length} territorios.`);
-                modal.classList.add('hidden');
-
-                const updatedT = await getTerritorios();
-                territorios.length = 0;
-                territorios.push(...updatedT);
-                renderTable();
-            };
-
-            renderList();
-        });
+        showNotification("Cargando vista de recepción...", "info");
+        await openReceptionModal(programa, territorios, splitTerritories, renderTable);
     };
 
     const execActionFormalizar = async () => {
-        // Collect all planned assignments that are not sync with a FRESH fetch
-        const freshTerritorios = await getTerritorios();
-        
-        // Update local territories cache for consistency across the program view
-        territorios.length = 0;
-        territorios.push(...freshTerritorios);
-
-        const normalize = (val) => String(val || '').trim();
-        const territoryMap = freshTerritorios.reduce((acc, t) => { acc[normalize(t.numero)] = t; return acc; }, {});
-
-        const toSync = [];
-        programa.dias.forEach((dia, dayIdx) => {
-            ['manana', 'tarde', 'noche', 'zoom'].forEach(turnoId => {
-                const data = dia[turnoId];
-                if (data && data.territorio) {
-                    // Xolvy Robust Split: Handle all common separators
-                    const tNums = String(data.territorio).split(/[,;/]/).map(n => n.trim()).filter(n => n);
-
-                    tNums.forEach(tNum => {
-                        const baseT = getBaseTerritoryNumber(tNum);
-                        const tInfo = territoryMap[normalize(baseT)] || null;
-                        toSync.push({ dayIdx, turnoId, dia, data, tInfo, specificT: tNum });
-                    });
-                }
-            });
-        });
-
-        if (toSync.length === 0) return showNotification("No hay asignaciones programadas para formalizar", "info");
-
-        showModal(`
-            <div class="flex flex-col max-h-[80vh] p-6 space-y-4">
-                <header class="flex items-center gap-6">
-                    <div class="w-16 h-16 bg-emerald-500/10 rounded-3xl flex items-center justify-center text-3xl text-emerald-500 shadow-inner">
-                        <i class="fas fa-project-diagram"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-2xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">Formalización Masiva</h3>
-                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em] mt-1">Procesar semana actual</p>
-                    </div>
-                </header>
-
-                <div class="flex justify-between items-center mt-4">
-                    <p class="text-[11px] font-bold text-slate-500 uppercase px-1">Seleccione las asignaciones:</p>
-                    <button id="sync-select-all" class="px-6 py-3 bg-slate-100 dark:bg-white/5 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 hover:text-primary transition-all border border-slate-200/50">Deseleccionar Todo</button>
-                </div>
-                <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
-                        ${toSync.map((item, idx) => {
-            const isSync = item.tInfo && item.tInfo.estado === 'Asignado' && item.tInfo.asignado_a === item.data.conductor;
-            const exists = !!item.tInfo;
-            const hasConductor = !!item.data.conductor;
-            const canSync = exists && hasConductor;
-
-            return `
-                        <label class="p-3 bg-slate-50 dark:bg-white/5 rounded-xl border ${isSync ? 'border-emerald-500/10 opacity-70' : (canSync ? 'border-slate-100 dark:border-white/5' : 'border-amber-500/30')} flex items-center justify-between group cursor-pointer hover:bg-white dark:hover:bg-white/5 transition-all">
-                            <div class="flex items-center gap-3">
-                                <input type="checkbox" class="sync-check w-4 h-4 rounded accent-emerald-500" value="${idx}" ${canSync && !isSync ? 'checked' : ''} ${!canSync ? 'disabled' : ''}>
-                                <div class="w-8 h-8 ${exists ? 'bg-primary/10 text-primary' : 'bg-amber-500/10 text-amber-500'} flex items-center justify-center rounded-lg font-black text-[10px] shrink-0">${item.specificT}</div>
-                                <div class="flex flex-col">
-                                    <span class="text-[11px] font-black text-slate-800 dark:text-white uppercase leading-tight">${item.data.conductor || 'Sin Conductor'}</span>
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-[7px] font-bold text-slate-400 uppercase tracking-widest">${item.dia.nombre}</span>
-                                        ${isSync ? '<span class="text-[7px] font-black text-emerald-500 uppercase bg-emerald-500/10 px-1 py-0.5 rounded">Listo</span>' : ''}
-                                        ${!exists ? '<span class="text-[7px] font-black text-amber-500 uppercase bg-amber-500/10 px-1 py-0.5 rounded">No en Inventario</span>' : ''}
-                                        ${exists && !hasConductor ? '<span class="text-[7px] font-black text-amber-500 uppercase bg-amber-500/10 px-1 py-0.5 rounded">Falta Conductor</span>' : ''}
-                                    </div>
-                                </div>
-                            </div>
-                            <i class="fas ${isSync ? 'fa-check-circle text-emerald-500/30' : (canSync ? 'fa-arrow-right text-slate-200' : 'fa-exclamation-triangle text-amber-500')} text-[10px]"></i>
-                        </label>
-                    `}).join('')}
-                </div>
-
-
-
-                <div class="space-y-3 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 shrink-0">
-                    <div class="flex items-center justify-between">
-                        <label class="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 block">¿Fecha general de asignación?</label>
-                        <span class="text-[8px] font-bold text-emerald-500 uppercase bg-emerald-500/5 px-2 py-0.5 rounded">Sugerencia S-13: Domingo anterior</span>
-                    </div>
-                    <input type="date" id="sync-global-date" value="${(() => {
-                const d = new Date(currentWeekStart);
-                d.setDate(d.getDate() - 1);
-                return d.toISOString().split('T')[0];
-            })()}" class="w-full bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-white/10 p-4 rounded-xl text-[12px] font-black text-emerald-500 outline-none focus:border-emerald-500 transition-all uppercase shadow-inner">
-                    <p class="text-[8px] text-slate-400 font-bold uppercase tracking-widest italic leading-normal px-1">
-                        Si se deja vacío, se usará la fecha exacta del día de salida (Viernes, Sábado, etc.).
-                    </p>
-                </div>
-
-                <div class="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-white/5 shrink-0">
-                    <div class="flex items-center gap-2 opacity-20 hover:opacity-100 transition-opacity">
-                        <i class="fas fa-shield-alt text-[8px] text-emerald-500"></i>
-                        <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest">Sincronización Bilateral Activa</span>
-                    </div>
-                    <div class="flex gap-4">
-                        <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="px-6 py-4 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-lg text-[10px] uppercase tracking-widest">Cerrar</button>
-                        <button id="confirm-sync-all" class="px-8 py-4 bg-emerald-500 text-white font-black rounded-lg text-[10px] uppercase tracking-widest shadow-xl shadow-emerald-500/20 hover:scale-[1.02] transition-all">Formalizar Selección</button>
-                    </div>
-                </div>
-            </div>
-        `, (modal) => {
-            const updateCounter = () => {
-                const checked = modal.querySelectorAll('.sync-check:checked').length;
-                const btn = modal.querySelector('#confirm-sync-all');
-                if (btn) btn.innerText = `Formalizar Selección (${checked})`;
-            };
-
-            let syncSelected = true;
-            updateCounter();
-
-            modal.querySelector('#sync-select-all').onclick = () => {
-                syncSelected = !syncSelected;
-                modal.querySelectorAll('.sync-check').forEach(cb => cb.checked = syncSelected);
-                modal.querySelector('#sync-select-all').innerText = syncSelected ? 'Deseleccionar Todo' : 'Seleccionar Todo';
-                updateCounter();
-            };
-
-            modal.querySelectorAll('.sync-check').forEach(cb => {
-                cb.onchange = updateCounter;
-            });
-
-            modal.querySelector('#confirm-sync-all').onclick = async (e) => {
-                const checkedIdxs = Array.from(modal.querySelectorAll('.sync-check:checked')).map(cb => parseInt(cb.value));
-                if (checkedIdxs.length === 0) return showNotification("Seleccione al menos una asignación", "warning");
-
-                const btn = e.currentTarget;
-                btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> PROCESANDO...';
-
-                const weekId = programa.id;
-                const globalDate = modal.querySelector('#sync-global-date').value;
-                
-                // Preparar asignaciones para el Formalize Masivo
-                const assignments = checkedIdxs.map(idx => {
-                    const item = toSync[idx];
-                    let resolvedDateISO;
-                    if (globalDate) {
-                        resolvedDateISO = new Date(globalDate + 'T12:00:00Z').toISOString();
-                    } else {
-                        const d = new Date(weekId + 'T12:00:00Z');
-                        d.setUTCDate(d.getUTCDate() + item.dayIdx);
-                        resolvedDateISO = d.toISOString();
-                    }
-                    
-                    return {
-                        territorio_id: item.specificT,
-                        conductor: item.data.conductor,
-                        fecha_asignacion: resolvedDateISO,
-                        turno: item.turnoId,
-                        faceta: item.data.faceta || 'Casa en casa',
-                        observaciones: item.data.observaciones || ''
-                    };
-                });
-
-                try {
-                    showNotification(`Formalizando ${assignments.length} asignaciones...`, 'info');
-                    await formalizeWeek(weekId, assignments);
-
-                    showNotification(`¡${assignments.length} asignaciones formalizadas con éxito!`, 'success');
-                    modal.classList.add('hidden');
-                    
-                    // RECARGA OBLIGATORIA
-                    await loadWeekData();
-                } catch (err) {
-                    console.error("Error formalizando:", err);
-                    showNotification("Error en la formalización", "error");
-                    btn.disabled = false;
-                    btn.innerHTML = 'Formalizar Selección';
-                }
-            };
-        });
-    };
-
-    window.openPartialReception = async (id) => {
-        const t = territorios.find(x => x.id === id);
-        if (!t) return;
-
-        const apples = t.manzanas ? t.manzanas.split(',').map(s => s.trim()).filter(Boolean) : [];
-        if (apples.length <= 1) {
-            return showNotification("El territorio no tiene múltiples manzanas para dividir. Use recepción total.", "warning");
-        }
-
-        showModal(`
-            <div class="p-8 space-y-8 bg-white dark:bg-[#0a0f18] rounded-[2.5rem] max-w-lg">
-                <header class="flex items-center gap-6">
-                    <div class="w-16 h-16 bg-amber-500/10 rounded-3xl flex items-center justify-center text-3xl text-amber-500 shadow-inner">
-                        <i class="fas fa-scissors"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-2xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">Devolución Parcial</h3>
-                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em] mt-1">#${t.numero} • ${t.asignado_a}</p>
-                    </div>
-                </header>
-
-                <p class="text-[11px] font-bold text-slate-500 uppercase px-1">Seleccione las manzanas completadas:</p>
-                <div class="grid grid-cols-2 gap-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
-                    ${apples.map(a => `
-                        <label class="flex items-center gap-3 p-4 modern-card border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer transition-all">
-                            <input type="checkbox" class="apple-check w-5 h-5 rounded accent-amber-500" value="${a}">
-                            <span class="text-xs font-black text-slate-700 dark:text-white">${a}</span>
-                        </label>
-                    `).join('')}
-                </div>
-
-                <div class="space-y-4">
-                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Acción con el resto</label>
-                    <select id="partial-unassign" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-xs font-bold uppercase tracking-widest text-slate-700 dark:text-white outline-none">
-                        <option value="true">Devolver resto al inventario</option>
-                        <option value="false">Mantener resto asignado a ${t.asignado_a}</option>
-                    </select>
-                </div>
-
-                <div class="pt-6 border-t border-slate-50 dark:border-white/5 flex gap-4">
-                    <button id="cancel-partial" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest transition-all">Cancelar</button>
-                    <button id="confirm-partial" class="flex-[2] py-5 bg-amber-500 hover:bg-amber-400 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-amber-500/20 active:scale-95 transition-all">PROCESAR DEVOLUCIÓN</button>
-                </div>
-            </div>
-        `, (modal) => {
-            modal.querySelector('#cancel-partial').onclick = () => modal.classList.add('hidden');
-            modal.querySelector('#confirm-partial').onclick = async (e) => {
-                const checked = Array.from(modal.querySelectorAll('.apple-check:checked')).map(cb => cb.value);
-                if (checked.length === 0) return showNotification("Seleccione al menos una manzana", "warning");
-
-                const unassign = modal.querySelector('#partial-unassign').value === 'true';
-                const remaining = apples.filter(a => !checked.includes(a));
-
-                if (remaining.length === 0 && !unassign) {
-                    return showNotification("Si devuelve todas las manzanas, no puede mantener el resto asignado.", "warning");
-                }
-
-                const btn = e.currentTarget;
-                btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> PROCESANDO...';
-
-                try {
-                    await returnTerritorioParcial(t.id, checked, remaining, unassign, "Devolución parcial desde Programa", new Date().toISOString());
-                    showNotification(`Se devolvieron ${checked.length} manzanas.`);
-                    modal.classList.add('hidden');
-                    document.getElementById('modal-container').classList.add('hidden'); // Close reception modal too
-                    renderTable(); // Update program view
-                } catch (err) {
-                    console.error(err);
-                    showNotification("Error procesando devolución parcial", "error");
-                    btn.disabled = false;
-                    btn.innerHTML = 'PROCESAR DEVOLUCIÓN';
-                }
-            };
-        }, 'max-w-lg', 'modal-container-nested');
+        await openFormalizeModal(programa, territorios, loadWeekData);
     };
 
     container.querySelector('#btn-prev-week').onclick = (e) => { 
@@ -2254,12 +2212,10 @@ export const renderProgramaTab = async (container) => {
         loadWeekData(); 
     };
     const execActionHoy = () => { 
-        const today = new Date();
-        const day = today.getDay() || 7; 
-        if(day !== 1) today.setHours(-24 * (day - 1));
-        currentWeekStart = today; 
+        currentWeekStart = getMonday(new Date()); 
         loadWeekData(); 
     };
+    window.resetToCurrentWeek = execActionHoy;
 
     const execActionReplicar = async () => {
         showCustomConfirm("¿Seguro que deseas sobrescribir esta semana con los datos de la semana pasada? Se conservarán los turnos y conductores, pero se limpiarán los territorios.", async () => {
@@ -2325,7 +2281,9 @@ export const renderProgramaTab = async (container) => {
         } else if (id === 'action-recepcion-prog') {
             execActionRecepcion();
         } else if (id === 'action-escanear-prog') {
-            memoryScannerInput.click();
+            // Priority to Nexo Vision Multimodal, fallback to classic Program Scanner
+            if (window.nexoVisionScanner) window.nexoVisionScanner();
+            else memoryScannerInput.click();
         } else if (id === 'action-replicar-prog') {
             execActionReplicar();
         } else if (id === 'action-exportar-prog') {

@@ -1,6 +1,10 @@
 // Xolvy Data Shield: Centrally defined normalization rule
 export const normalize = (val) => String(val || '').trim().toLowerCase();
 export const normalizeRobust = (val) => String(val || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+export const toTitleCase = (str) => {
+    if (!str) return '';
+    return str.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+};
 
 export const formatPhoneNumber = (numero) => {
     if (!numero) return '';
@@ -405,4 +409,30 @@ export const renderSkeleton = (container) => {
         <div class="flex-1 min-h-[400px] bg-slate-200 dark:bg-white/5 rounded-[3rem] border border-slate-100 dark:border-white/[0.05] shadow-inner"></div>
     </div>
     `;
+};
+
+/**
+ * Retorna el lunes de la semana que contiene la fecha dada.
+ * @param {Date|string} d - Cualquier fecha válida
+ * @returns {Date} El lunes de esa semana
+ */
+export const getMonday = (d) => {
+    const date = new Date(d);
+    const day = date.getDay();
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+    return new Date(date.setDate(diff));
+};
+
+/**
+ * Formatea una fecha al formato YYYY-MM-DD usado como ID de documentos
+ * en la colección `programa_semanal` de Firestore.
+ * @param {Date|string} date - Fecha a formatear
+ * @returns {string} Formato "YYYY-MM-DD"
+ */
+export const getSafeDateId = (date) => {
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 };

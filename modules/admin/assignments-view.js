@@ -12,10 +12,13 @@ let _globalConductores = [];
 let _globalConfig = {};
 let _selectedIds = new Set();
 
-export const renderAsignacionesView = async (container) => {
+export const renderAsignacionesView = async (container, configData = null) => {
     const loadData = async () => {
         const [t, c, h, conf] = await Promise.all([
-            getTerritorios(), getConductores(), getHistorialReport(), getConfiguracion()
+            getTerritorios(),
+            getConductores(),
+            getHistorialReport(),
+            configData || getConfiguracion()
         ]);
 
         // Xolvy Data Shield: Robust normalization & ghost filtering
@@ -132,9 +135,10 @@ export const renderAsignacionesView = async (container) => {
                 <h3 class="text-xl font-black uppercase">Informar Territorios Completados</h3>
                 <div class="space-y-2 max-h-96 overflow-y-auto">
                     ${assigned.map(t => `
-                        <label class="flex items-center gap-4 p-4 bg-slate-50 dark:bg-white/5 rounded-xl cursor-pointer">
-                            <input type="checkbox" class="ret-check" value="${t.id}">
-                            <span class="text-sm font-bold uppercase">#${t.numero} - ${t.asignado_a}</span>
+                        <label class="flex items-center gap-4 p-4 bg-slate-50 dark:bg-white/5 rounded-xl cursor-pointer group hover:bg-white dark:hover:bg-white/10 transition-all border border-transparent hover:border-slate-100 dark:hover:border-white/5">
+                            <input type="checkbox" class="ret-check peer sr-only" value="${t.id}">
+                            <div class="relative w-10 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-emerald-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all shrink-0"></div>
+                            <span class="text-sm font-bold uppercase text-slate-700 dark:text-white">#${t.numero} - ${t.asignado_a}</span>
                         </label>
                     `).join('')}
                 </div>

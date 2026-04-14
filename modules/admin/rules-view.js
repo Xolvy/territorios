@@ -4,6 +4,7 @@ import {
     getPuntosInteres, addPuntoInteres, deletePuntoInteres, updatePuntoInteres,
     getTerritorios
 } from '../../data/firestore-services.js';
+import { ServiceCache } from '../../data/services/base-service.js';
 import { showCustomPrompt, showModal, showCustomConfirm } from '../services/ui-helpers.js';
 import { showNotification } from '../utils/helpers.js';
 
@@ -50,26 +51,44 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
         };
     };
 
+    const renderZonasUI = async () => {
+        const freshPuntos = await getPuntosInteres();
+        puntosInteres.length = 0;
+        puntosInteres.push(...freshPuntos);
+        const listZ = container.querySelector('#list-zonas');
+        if (listZ) {
+            listZ.innerHTML = puntosInteres.length === 0 ? '<p class="text-[10px] text-slate-400 text-center py-4 italic w-full">Sin zonas registradas</p>' : puntosInteres.map((p) => `
+                <div class="bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-bold flex items-center gap-2 shadow-sm animate-scale-in cursor-move group/tag" data-id="${p.id}">
+                    <i class="fas fa-grip-vertical text-slate-300 text-[8px]"></i>
+                    <div class="flex flex-col cursor-pointer" onclick="window.editPOI_Rules('${p.id}')">
+                        <span class="leading-none text-[11px]">${p.nombre}</span>
+                        <span class="text-[7px] text-slate-400 uppercase tracking-tighter">T-${p.territorio_numero || '??'}</span>
+                    </div>
+                    <button onclick="window.deletePOI_Rules('${p.id}')" class="text-slate-300 hover:text-red-500 transition-colors ml-1"><i class="fas fa-times"></i></button>
+                </div>
+            `).join('');
+        }
+    };
+
     container.innerHTML = `
         <div class="max-w-4xl mx-auto space-y-12 animate-fade-in pb-32 w-full overflow-x-hidden">
                 <!--Header Section-->
                 <div class="flex items-center gap-6 mb-10">
-                    <div class="w-16 h-16 bg-gradient-to-br from-indigo-500 to-slate-900 rounded-2xl flex items-center justify-center text-2xl text-white shadow-xl shadow-indigo-500/20 transform -rotate-3">
+                    <div class="w-16 h-16 bg-slate-100 dark:bg-white/5 rounded-2xl flex items-center justify-center text-2xl text-slate-400 border border-slate-200 dark:border-white/5 transform -rotate-3 transition-transform hover:rotate-0">
                         <i class="fas fa-cog"></i>
                     </div>
                     <div>
-                        <h3 class="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Ajustes del Sistema</h3>
-                        <p class="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-[0.3em] mt-1">Configuración Maestra de la Congregación</p>
+                        <h3 class="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Ajustes del Sistema</h3>
+                        <p class="text-[10px] text-blue-600 dark:text-blue-400 font-bold uppercase tracking-[0.3em] mt-1">Configuración Maestra de la Congregación</p>
                     </div>
                 </div>
 
                 <div class="space-y-8" data-adaptive-container="true">
                     
                     <!-- 1. COMUNICACIÓN Y DIFUSIÓN DINÁMICA -->
-                    <section class="modern-card group border-slate-200 dark:border-white/5 shadow-xl relative overflow-hidden">
-                        <div class="absolute -left-16 -bottom-16 w-32 h-32 bg-primary/5 rounded-full blur-3xl"></div>
+                    <section class="enterprise-card p-8 relative overflow-hidden">
                         <header class="flex items-center gap-3 mb-6">
-                            <i class="fas fa-broadcast-tower text-primary text-sm"></i>
+                            <i class="fas fa-broadcast-tower text-blue-600 text-sm"></i>
                             <h4 class="text-[11px] font-black uppercase tracking-widest text-slate-400">1. Comunicación y Difusión Dinámica</h4>
                         </header>
 
@@ -81,7 +100,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                 </label>
                                 <div class="relative">
                                     <textarea id="conf-tema-mes" rows="2" 
-                                        class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 pr-12 text-xs font-bold shadow-inner outline-none focus:border-primary transition-all text-slate-800 dark:text-white"
+                                        class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 pr-12 text-xs font-bold shadow-inner outline-none focus:border-blue-500 transition-all text-slate-800 dark:text-white"
                                         placeholder="Escribe el tema de conversación sugerido o enfoque semanal...">${config.tema_mes || ''}</textarea>
                                     <div class="led-status-container hidden" style="bottom: 2.5rem;"></div>
                                 </div>
@@ -92,13 +111,13 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                     Panel de Difusión (Anuncios Rotativos)
                                     <div class="flex items-center gap-2">
                                         <div id="led-diffusion" class="led-status-container !static hidden"></div>
-                                        <button id="add-diffusion-msg" class="text-[9px] text-primary hover:underline">+ Añadir Mensaje</button>
+                                        <button id="add-diffusion-msg" class="text-[9px] text-blue-600 hover:underline">+ Añadir Mensaje</button>
                                     </div>
                                 </label>
                                 <div id="list-diffusion" class="space-y-2.5 p-4 bg-slate-100/50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 min-h-[100px]">
                                     ${(config.diffusion_messages || []).map((msg, i) => `
                                         <div class="bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-slate-200 dark:border-white/10 text-[11px] font-black flex items-start gap-4 animate-scale-in group/msg cursor-move">
-                                            <div class="w-7 h-7 bg-primary/10 rounded-lg flex items-center justify-center text-primary shrink-0 mt-0.5 transition-transform group-hover/msg:rotate-12">
+                                            <div class="w-7 h-7 bg-blue-500/10 rounded-lg flex items-center justify-center text-blue-600 shrink-0 mt-0.5 transition-transform group-hover/msg:rotate-12">
                                                 <i class="fas fa-grip-vertical text-[10px]"></i>
                                             </div>
                                             <div class="flex-1 text-slate-600 dark:text-slate-300 leading-relaxed pt-1">${msg}</div>
@@ -114,10 +133,9 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                     </section>
 
                     <!-- 2. IDENTIDAD LOCAL -->
-                    <section class="modern-card group border-slate-200 dark:border-white/5 shadow-xl relative overflow-hidden">
-                        <div class="absolute -right-16 -top-16 w-32 h-32 bg-teal-500/5 rounded-full blur-3xl"></div>
+                    <section class="enterprise-card p-8 relative overflow-hidden">
                         <header class="flex items-center gap-3 mb-6">
-                            <i class="fas fa-id-card text-teal-500 text-sm"></i>
+                            <i class="fas fa-id-card text-blue-600 text-sm"></i>
                             <h4 class="text-[11px] font-black uppercase tracking-widest text-slate-400">2. Identidad Local</h4>
                         </header>
 
@@ -126,7 +144,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                 <label class="label-premium">Nombre de la Congregación</label>
                                 <div class="relative">
                                     <input type="text" id="conf-nombre" value="${config.congregacion?.nombre || ''}" 
-                                        class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 pr-12 text-sm font-bold shadow-inner outline-none focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10 transition-all text-slate-800 dark:text-white"
+                                        class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 pr-12 text-sm font-bold shadow-inner outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all text-slate-800 dark:text-white"
                                         placeholder="Ej. Nueve de Octubre">
                                     <div class="led-status-container hidden"></div>
                                 </div>
@@ -136,7 +154,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                 <label class="label-premium">Número de Congregación</label>
                                 <div class="relative">
                                     <input type="text" id="conf-numero" value="${config.congregacion?.numero || ''}" 
-                                        class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 pr-12 text-sm font-bold shadow-inner outline-none focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10 transition-all text-slate-800 dark:text-white"
+                                        class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 pr-12 text-sm font-bold shadow-inner outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all text-slate-800 dark:text-white"
                                         placeholder="Ej. 14282">
                                     <div class="led-status-container hidden"></div>
                                 </div>
@@ -145,10 +163,9 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                     </section>
 
                     <!-- 3. PLANIFICACIÓN DE SERVICIOS -->
-                    <section class="modern-card group border-slate-200 dark:border-white/5 shadow-xl relative overflow-hidden">
-                        <div class="absolute -right-16 -bottom-16 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl"></div>
+                    <section class="enterprise-card p-8 relative overflow-hidden">
                         <header class="flex items-center gap-3 mb-6">
-                            <i class="fas fa-calendar-check text-emerald-500 text-sm"></i>
+                            <i class="fas fa-calendar-check text-blue-600 text-sm"></i>
                             <h4 class="text-[11px] font-black uppercase tracking-widest text-slate-400">3. Planificación de Servicios</h4>
                         </header>
 
@@ -159,7 +176,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                     Horarios de Salida
                                     <div class="flex items-center gap-2">
                                         <div id="led-horarios" class="led-status-container !static hidden"></div>
-                                        <button id="add-horario" class="text-[9px] text-emerald-500 hover:underline">+ Añadir</button>
+                                        <button id="add-horario" class="text-[9px] text-blue-600 hover:underline">+ Añadir</button>
                                     </div>
                                 </label>
                                 <div id="list-horarios" class="flex flex-wrap gap-2 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 min-h-[60px]">
@@ -181,7 +198,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                     Lugares de Reunión
                                     <div class="flex items-center gap-2">
                                         <div id="led-lugares" class="led-status-container !static hidden"></div>
-                                        <button id="add-lugar" class="text-[9px] text-emerald-500 hover:underline">+ Añadir</button>
+                                        <button id="add-lugar" class="text-[9px] text-blue-600 hover:underline">+ Añadir</button>
                                     </div>
                                 </label>
                                  <div id="list-lugares" class="flex flex-wrap gap-2 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 min-h-[60px]">
@@ -200,21 +217,20 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                     </section>
 
                     <!-- 4. GESTIÓN DE CATEGORÍAS (Unified Section with Zonas) -->
-                    <section class="modern-card group border-slate-200 dark:border-white/5 shadow-xl relative overflow-hidden">
-                        <div class="absolute -right-16 -top-16 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl"></div>
+                    <section class="enterprise-card p-8 relative overflow-hidden">
                         <header class="flex items-center gap-3 mb-6">
-                            <i class="fas fa-tags text-amber-500 text-sm"></i>
+                            <i class="fas fa-tags text-blue-600 text-sm"></i>
                             <h4 class="text-[11px] font-black uppercase tracking-widest text-slate-400">4. Gestión de Categorías y Zonas</h4>
                         </header>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-                            <!-- Facetas -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start w-full mb-12">
+                            <!-- Columna 1: OPCIONES DE SALIDA -->
                             <div class="relative group/input">
                                 <label class="label-premium flex items-center justify-between">
                                     OPCIONES DE SALIDA (Facetas)
                                     <div class="flex items-center gap-2">
                                         <div id="led-facetas" class="led-status-container !static hidden"></div>
-                                        <button id="add-faceta" class="text-[9px] text-amber-500 hover:underline">+ Añadir</button>
+                                        <button id="add-faceta" class="text-[9px] text-blue-600 hover:underline">+ Añadir</button>
                                     </div>
                                 </label>
                                 <div id="list-facetas" class="flex flex-wrap gap-2 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 min-h-[60px]">
@@ -230,15 +246,16 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                 </div>
                             </div>
 
-                            <!-- Tipos de Territorio -->
+                            <!-- Columna 2: TIPOS DE TERRITORIO -->
                             <div class="relative group/input">
                                 <label class="label-premium flex items-center justify-between">
-                                    TIIPOS DE TERRITORIO (Mapa)
+                                    TIPOS DE TERRITORIO (Mapa)
                                     <div class="flex items-center gap-2">
                                         <div id="led-tipos_t" class="led-status-container !static hidden"></div>
                                         <button id="add-tipo-t" class="text-[9px] text-blue-500 hover:underline">+ Añadir</button>
                                     </div>
-                                           <div id="list-tipos-t" class="flex flex-wrap gap-2 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 min-h-[60px]">
+                                </label>
+                                <div id="list-tipos-t" class="flex flex-wrap gap-2 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 min-h-[60px]">
                                     ${(config.tipos_territorio || ['Casa en Casa', 'Negocios', 'Pública']).map((t, i) => `
                                         <div class="bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-bold flex items-center gap-2 shadow-sm animate-scale-in cursor-move">
                                             <i class="fas fa-grip-vertical text-slate-300 text-[8px]"></i>
@@ -248,7 +265,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                             </button>
                                         </div>
                                     `).join('')}
-                                </div>                           </div>
+                                </div>
                             </div>
                         </div>
 
@@ -260,7 +277,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                     <h5 class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Zonas de Predicación Especial</h5>
                                     <div class="flex items-center gap-2">
                                         <div id="led-zonas" class="led-status-container !static hidden"></div>
-                                        <button id="add-poi-btn" class="text-[9px] text-amber-500 hover:underline">+ Añadir</button>
+                                        <button id="add-poi-btn" class="text-[9px] text-blue-600 hover:underline">+ Añadir</button>
                                     </div>
                                 </div>
                             </header>
@@ -283,10 +300,9 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                     </section>
 
                     <!-- 5. INTELIGENCIA ARTIFICIAL -->
-                    <section class="modern-card group border-slate-200 dark:border-white/5 shadow-xl relative overflow-hidden">
-                        <div class="absolute -left-16 -bottom-16 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl"></div>
+                    <section class="enterprise-card p-8 relative overflow-hidden">
                         <header class="flex items-center gap-3 mb-6">
-                            <i class="fas fa-brain text-indigo-500 text-sm"></i>
+                            <i class="fas fa-brain text-blue-600 text-sm"></i>
                             <h4 class="text-[11px] font-black uppercase tracking-widest text-slate-400">5. Inteligencia Artificial</h4>
                         </header>
 
@@ -297,7 +313,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                             </label>
                             <div class="relative">
                                 <input type="password" id="gemini-key" value="${config.gemini_key || ''}" 
-                                    class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 pr-20 text-xs font-mono shadow-inner outline-none focus:border-indigo-500 transition-all text-slate-800 dark:text-white"
+                                    class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 pr-20 text-xs font-mono shadow-inner outline-none focus:border-blue-500 transition-all text-slate-800 dark:text-white"
                                     placeholder="AIzaSy...">
                                 <div class="led-status-container hidden" style="right: 3.5rem;"></div>
                                 <button class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-indigo-500 transition-colors" onclick="const p=this.parentElement.querySelector('input'); p.type=p.type==='password'?'text':'password'">
@@ -347,7 +363,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                     await updatePuntoInteres(idChain[i], { order: i });
                                 }
                                 await finishLED();
-                                reloadTabFn('config');
+                                renderZonasUI();
                             } catch (e) {
                                 console.error("POI Reorder error:", e);
                                 await finishLED(false);
@@ -548,58 +564,51 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
     const openPOIModal = (poi = null) => {
         const isEdit = !!poi;
         showModal(`
-            <div class="flex flex-col bg-white dark:bg-[#0a0f18] rounded-[2rem] overflow-hidden max-w-sm w-full mx-auto shadow-2xl">
-                <header class="p-6 bg-amber-500/10 border-b border-amber-500/20 flex items-center gap-4">
-                    <div class="w-10 h-10 bg-amber-500 text-white rounded-xl flex items-center justify-center text-lg">
-                        <i class="fas ${isEdit ? 'fa-edit' : 'fa-plus'}"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-white">${isEdit ? 'Editar Zona' : 'Añadir Zona'}</h3>
-                        <p class="text-[8px] text-amber-600 font-bold uppercase tracking-tighter">Predicación Especial</p>
-                    </div>
+            <div class="flex flex-col p-6 max-w-sm w-full mx-auto">
+                <header class="mb-6">
+                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-1 uppercase tracking-tighter">${isEdit ? 'Editar Zona' : 'Añadir Zona'}</h3>
+                    <p class="text-[10px] text-blue-600 dark:text-blue-400 font-bold uppercase tracking-widest">Predicación Especial</p>
                 </header>
 
-                <div class="p-6 space-y-6">
-                    <div class="space-y-4">
+                <div class="space-y-5">
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nombre de la Zona</label>
+                        <input type="text" id="poi-name" value="${poi?.nombre || ''}" class="w-full px-4 py-3 border border-slate-200 dark:border-white/10 rounded-xl bg-white dark:bg-[#0f172a] focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-white outline-none transition-all shadow-inner font-bold" placeholder="P. ej: Parada de Taxis Central">
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
                         <div class="space-y-1.5">
-                            <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Nombre</label>
-                            <input type="text" id="poi-name" value="${poi?.nombre || ''}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-[11px] font-bold text-slate-700 dark:text-white outline-none focus:border-amber-500 transition-all" placeholder="P. ej: Parada de Taxis Central">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Tipo</label>
+                            <select id="poi-type" class="w-full px-4 py-3 border border-slate-200 dark:border-white/10 rounded-xl bg-white dark:bg-[#0f172a] focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-white outline-none transition-all appearance-none cursor-pointer font-bold">
+                                <option value="Taxi" ${poi?.tipo === 'Taxi' ? 'selected' : ''}>🚕 Taxis</option>
+                                <option value="Bus" ${poi?.tipo === 'Bus' ? 'selected' : ''}>🚌 Bus</option>
+                                <option value="Parque" ${poi?.tipo === 'Parque' ? 'selected' : ''}>🌳 Parque</option>
+                                <option value="Comercial" ${poi?.tipo === 'Comercial' ? 'selected' : ''}>🏪 Tiendas</option>
+                            </select>
                         </div>
-                        
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="space-y-1.5">
-                                <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Tipo</label>
-                                <select id="poi-type" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-[11px] font-bold text-slate-700 dark:text-white outline-none focus:border-amber-500 transition-all uppercase">
-                                    <option value="Taxi" ${poi?.tipo === 'Taxi' ? 'selected' : ''}>🚕 Taxis</option>
-                                    <option value="Bus" ${poi?.tipo === 'Bus' ? 'selected' : ''}>🚌 Bus</option>
-                                    <option value="Parque" ${poi?.tipo === 'Parque' ? 'selected' : ''}>🌳 Parque</option>
-                                    <option value="Comercial" ${poi?.tipo === 'Comercial' ? 'selected' : ''}>🏪 Tiendas</option>
-                                </select>
-                            </div>
-                            <div class="space-y-1.5">
-                                <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Territorio</label>
-                                <select id="poi-terr" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-[11px] font-bold text-slate-700 dark:text-white outline-none focus:border-amber-500 transition-all uppercase">
-                                    <option value="">Buscar T...</option>
-                                    ${territorios.sort((a, b) => String(a.numero || '').localeCompare(String(b.numero || ''), undefined, { numeric: true })).map(t => `
-                                        <option value="${t.id}" data-num="${t.numero}" ${poi?.territorio_id === t.id ? 'selected' : ''}>T-${t.numero}</option>
-                                    `).join('')}
-                                </select>
-                            </div>
+                        <div class="space-y-1.5">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Territorio</label>
+                            <select id="poi-terr" class="w-full px-4 py-3 border border-slate-200 dark:border-white/10 rounded-xl bg-white dark:bg-[#0f172a] focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-white outline-none transition-all appearance-none cursor-pointer font-bold">
+                                <option value="">Buscar T...</option>
+                                ${territorios.sort((a, b) => String(a.numero || '').localeCompare(String(b.numero || ''), undefined, { numeric: true })).map(t => `
+                                    <option value="${t.id}" data-num="${t.numero}" ${poi?.territorio_id === t.id ? 'selected' : ''}>T-${t.numero}</option>
+                                `).join('')}
+                            </select>
                         </div>
+                    </div>
 
-                        <div class="space-y-1.5">
-                            <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Instrucciones</label>
-                            <textarea id="poi-desc" rows="2" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-[11px] font-medium text-slate-700 dark:text-white outline-none focus:border-amber-500 transition-all resize-none" placeholder="Ubicación exacta...">${poi?.descripcion || ''}</textarea>
-                        </div>
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Instrucciones / Ubicación</label>
+                        <textarea id="poi-desc" rows="2" class="w-full px-4 py-3 border border-slate-200 dark:border-white/10 rounded-xl bg-white dark:bg-[#0f172a] focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-white outline-none transition-all resize-none shadow-inner font-bold" placeholder="Ubicación exacta...">${poi?.descripcion || ''}</textarea>
                     </div>
                 </div>
 
-                <footer class="shrink-0 p-8 bg-white dark:bg-black/40 border-t border-slate-100 dark:border-white/5 flex gap-4">
-                    <button id="btn-cancel-poi" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] border border-slate-200 dark:border-white/10 transition-all active:scale-95">
-                        Cancelar
+                <footer class="mt-8 flex gap-3">
+                    <button type="button" id="btn-cancel-poi" class="flex-1 px-5 py-3.5 text-slate-500 dark:text-slate-400 font-black text-[10px] uppercase tracking-widest bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl transition-colors">
+                        Omitir
                     </button>
-                    <button id="save-poi-btn" class="flex-[1.5] py-5 bg-amber-600 hover:bg-amber-500 text-white font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-amber-600/20 transition-all active:scale-95 flex items-center justify-center gap-2">
-                        <i class="fas fa-save"></i> ${isEdit ? 'Actualizar' : 'Guardar Zona'}
+                    <button type="button" id="save-poi-btn" class="flex-[2] px-5 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-[10px] uppercase tracking-widest rounded-xl shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-3">
+                        <i class="fas fa-save opacity-70"></i> ${isEdit ? 'Actualizar' : 'Guardar Zona'}
                     </button>
                 </footer>
             </div>
@@ -641,14 +650,14 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                     modal.innerHTML = ''; // Destrucción completa
                     await finishLED();
                     showNotification(isEdit ? "Zona actualizada" : "Zona añadida");
-                    reloadTabFn('config');
+                    renderZonasUI();
                 } catch (e) {
                     showNotification("Error: " + e.message, "error");
                     btn.disabled = false;
                     btn.innerHTML = '<i class="fas fa-save"></i> Reintentar';
                 }
             };
-        });
+        }, 'max-w-sm');
     };
 
     const addHorBtn = container.querySelector('#add-horario');
@@ -665,14 +674,47 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
 
     const addDiffBtn = container.querySelector('#add-diffusion-msg');
     if (addDiffBtn) {
+        addDiffBtn.onclick = null; // Purge stale
         addDiffBtn.onclick = () => {
             showCustomPrompt("Contenido del Anuncio:", "", async (val) => {
                 if (!val) return;
                 const finishLED = await triggerManualLED('diffusion');
-                config.diffusion_messages = [...(config.diffusion_messages || []), val];
-                await saveConfiguracion(config);
-                await finishLED();
-                reloadTabFn('config');
+                
+                try {
+                    // Carga fresca para evitar machacar cambios en paralelo
+                    const freshConfig = await import('../../data/firestore-services.js').then(m => m.getConfiguracion());
+                    const currentMsgs = Array.isArray(freshConfig.diffusion_messages) ? freshConfig.diffusion_messages : [];
+                    
+                    // Solo añadir si no existe ya exactamente igual (opcional pero recomendado)
+                    // if (currentMsgs.includes(val)) return showNotification("Mensaje ya existe", "warning");
+
+                    freshConfig.diffusion_messages = [...currentMsgs, val];
+                    await saveConfiguracion(freshConfig);
+                    
+                    // Limpieza de caché local para asegurar que el re-render use datos nuevos
+                    ServiceCache.clear('configuracion');
+                    
+                    if (window.XolvyAlert) {
+                        window.XolvyAlert.fire({
+                            title: 'Anuncio Publicado',
+                            text: 'El banner se actualizará en segundos.',
+                            icon: 'success',
+                            timer: 2000,
+                            showConfirmButton: false,
+                            didClose: () => {
+                                // Re-render sin skeleton (para evitar parpadeo agresivo)
+                                renderSettingsView(container, freshConfig, appVersion, reloadTabFn);
+                            }
+                        });
+                    } else {
+                        await finishLED();
+                        renderConfigTab(container, freshConfig, appVersion, reloadTabFn);
+                    }
+                } catch (e) {
+                    console.error("Error al guardar anuncio:", e);
+                    showNotification("Error al guardar", "error");
+                    await finishLED(false);
+                }
             });
         };
     }
@@ -686,7 +728,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
         await deletePuntoInteres(id);
         await finishLED();
         showNotification("Zona eliminada");
-        reloadTabFn('config');
+        renderZonasUI();
     });
 
     window.removeDiffusionMessage = async (index) => {
@@ -694,8 +736,13 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
         const finishLED = await triggerManualLED('diffusion');
         config.diffusion_messages.splice(index, 1);
         await saveConfiguracion(config);
+        
+        // Sincronización Suave: Limpiar caché y re-renderizar sin skeleton
+        ServiceCache.clear('configuracion');
         await finishLED();
-        reloadTabFn('config');
+        renderSettingsView(container, config, appVersion, reloadTabFn);
     };
 };
+
+export const renderSettingsView = renderConfigTab;
 

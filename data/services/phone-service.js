@@ -1,8 +1,33 @@
+/**
+ * @module phone-service
+ * @description Servicio de gestión del módulo de telefonía.
+ *              Controla el ciclo de vida de los números: solicitud, sesión activa,
+ *              actualización de estado, limpieza automática y reciclaje de ciclos.
+ *
+ * @layer Backend / Data Layer
+ * @depends firebase-config.js, base-service.js
+ *
+ * @exports
+ *  - getTelefonos()               → Todos los números (sin filtro)
+ *  - getTelefonosParaSesion()     → Números activos del conductor actual
+ *  - solicitarNumeros()           → Solicitud atómica de lote de números
+ *  - releaseUnusedTelefonos()     → Libera números no usados de la sesión
+ *  - releaseTelefonosById()       → Liberación rápida por IDs (fire-and-forget)
+ *  - updateTelefonoStatus()       → Actualiza estado + publicador + comentario
+ *  - autoCleanTelefonosData()     → Auto-mantenimiento diario (24h)
+ *  - repararTelefonosData()       → Reparación manual de inconsistencias
+ *  - checkAndResetTelephoneCycle()→ Reinicia el ciclo de números agotados
+ */
 import { db } from '../../firebase-config.js';
 import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc, query, where, getDoc, setDoc, orderBy, limit, Timestamp, writeBatch, runTransaction, arrayUnion } from "firebase/firestore";
 import { ServiceCache } from './base-service.js';
 
-const COL_TELEFONOS = "telefonos";
+// ═══════════════════════════════════════════════════════════
+const COL_TELEFONOS = "telefonos"; // Colección de números de teléfono
+
+// ═══════════════════════════════════════════════════════════
+// LECTURA
+// ═══════════════════════════════════════════════════════════
 
 export const getMisTelefonos = async () => {
     // Return all for client-side filtering as dataset is small or implement query if needed
@@ -13,18 +38,22 @@ export const getMisTelefonos = async () => {
 export const getTelefonosParaSesion = async (conductorName) => {
     try {
         if (!conductorName) return [];
+        
+        // Identity Shield: Prefer the global canonical identity if available
+        const identity = window.XolvyApp?.identity;
+        const canonicalName = identity?.nombreCanonico || conductorName;
+        const authUid = identity?.uid || null;
+
         const phoneCol = collection(db, COL_TELEFONOS);
 
-        // Let's only fetch phones explicitly requested by THIS conductor.
-        const qSession = query(phoneCol,
-            where("solicitado_por", "==", conductorName)
-        );
+        // Fetch phones where solicitado_por matches the canonical identity
+        const qSession = query(phoneCol, where("solicitado_por", "==", canonicalName));
         const snap = await getDocs(qSession);
         const dataSession = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         let finalData = [...dataSession];
 
-        const qAssigned = query(phoneCol, where("asignado_a", "==", conductorName));
+        const qAssigned = query(phoneCol, where("asignado_a", "==", canonicalName));
         const snapAssigned = await getDocs(qAssigned);
         snapAssigned.forEach(d => {
             const docData = { id: d.id, ...d.data() };
@@ -33,7 +62,19 @@ export const getTelefonosParaSesion = async (conductorName) => {
             }
         });
 
-        // Remove Revisita as requested by user
+        // Search by legacy email/phone match if no direct hits (fallback)
+        if (finalData.length === 0 && conductorName) {
+            const qLegacy = query(phoneCol, where("publicador_asignado", "==", conductorName));
+            const snapLegacy = await getDocs(qLegacy);
+            snapLegacy.forEach(d => {
+                const docData = { id: d.id, ...d.data() };
+                if (!finalData.find(existing => existing.id === d.id)) {
+                    finalData.push(docData);
+                }
+            });
+        }
+
+        // Return only relevant statuses
         return finalData.filter(d => d.estado !== 'Revisita');
     } catch (e) {
         console.error("Error fetching session phones:", e);
@@ -50,8 +91,23 @@ export const addTelefono = async (telefono) => {
     await addDoc(collection(db, COL_TELEFONOS), telefono);
 };
 
+// ═══════════════════════════════════════════════════════════
+// SOLICITUD DE NÚMEROS (Sesión Atómica)
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Solicita un lote de números libres para la sesión del conductor.
+ * Usa una transacción atómica para marcarlos como 'En Sesión'.
+ * Si no hay números disponibles, intenta reiniciar el ciclo.
+ * @param {number} [cantidad=30] - Número de teléfonos a solicitar
+ * @param {string|null} [conductorName=null] - Nombre del conductor que solicita
+ * @returns {Promise<number>} Cantidad de números asignados
+ */
 export const solicitarNumeros = async (cantidad = 30, conductorName = null) => {
+    if (!conductorName) return 0;
     try {
+        const canonicalName = window.XolvyApp?.identity?.nombreCanonico || conductorName;
+
         const result = await runTransaction(db, async (transaction) => {
             const now = new Date();
             const sixMonthsAgo = new Date();
@@ -86,7 +142,7 @@ export const solicitarNumeros = async (cantidad = 30, conductorName = null) => {
                     publicador_asignado: null,
                     asignado_a: null,
                     fecha_asignacion: now.toISOString(),
-                    solicitado_por: conductorName
+                    solicitado_por: canonicalName // Usar el nombre canónico purificado por IdentityShield
                 });
             });
 
@@ -95,7 +151,7 @@ export const solicitarNumeros = async (cantidad = 30, conductorName = null) => {
 
         if (result === 0) {
             const resetDone = await checkAndResetTelephoneCycle(true);
-            if (resetDone) return await solicitarNumeros(cantidad, conductorName);
+            if (resetDone) return await solicitarNumeros(cantidad, canonicalName);
         }
 
         ServiceCache.clear("telefonos");
@@ -106,6 +162,17 @@ export const solicitarNumeros = async (cantidad = 30, conductorName = null) => {
     }
 };
 
+// ═══════════════════════════════════════════════════════════
+// CICLO Y MANTENIMIENTO
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Verifica si se agotó el ciclo de teléfonos y lo reinicia si corresponde.
+ * Un ciclo se considera agotado cuando todos los números tienen un estado final
+ * (contestaron, no contestan, no llamar, etc.).
+ * @param {boolean} [forceRequested=false] - Forzar reinicio aunque haya disponibles
+ * @returns {Promise<boolean>} `true` si se reinició el ciclo
+ */
 export const checkAndResetTelephoneCycle = async (forceRequested = false) => {
     try {
         const snapshot = await getDocs(collection(db, COL_TELEFONOS));
@@ -214,6 +281,16 @@ export const deleteSessionSummary = async (id) => {
     }
 };
 
+// ═══════════════════════════════════════════════════════════
+// LIBERACIÓN DE SESÍON
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Libera números no utilizados de la sesión de un conductor.
+ * @param {string|null} userId - Nombre del conductor cuya sesión limpiar
+ * @param {boolean} [globalCleanup=false] - Si `true`, limpia también números huerfanos globales
+ * @param {boolean} [force=false] - Si `true`, libera sin verificar umbral de tiempo
+ */
 export const releaseUnusedTelefonos = async (userId, globalCleanup = false, force = false) => {
     try {
         const phoneCol = collection(db, COL_TELEFONOS);
@@ -283,6 +360,15 @@ export const releaseUnusedTelefonos = async (userId, globalCleanup = false, forc
     }
 };
 
+// ═══════════════════════════════════════════════════════════
+// AUTO-LIMPIEZA (Cron interno 24h)
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Ejecuta la limpieza automática del módulo de telefonía (máx. 1 vez cada 24h).
+ * Se llama desde `app.js` al arrancar. Revisa si el último clean fue hace más de 24h
+ * antes de ejecutar `repararTelefonosData()`.
+ */
 export const autoCleanTelefonosData = async () => {
     try {
         const maintRef = doc(db, 'configuracion', 'mantenimiento_telefonia');
@@ -433,6 +519,18 @@ export const releaseTelefonosById = (ids) => {
     }
 };
 
+// ═══════════════════════════════════════════════════════════
+// ACTUALIZACIÓN DE ESTADO
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Actualiza el estado de un teléfono junto con el nombre del publicador y comentario.
+ * Casos especiales: 'Suspendido'/'Testigo' eliminan el documento; 'Sin asignar' limpia asignaciones.
+ * @param {string} id - ID del documento en Firestore
+ * @param {string} estado - Nuevo estado del teléfono
+ * @param {string} publicadorName - Nombre o ID del publicador
+ * @param {string|null} [comentario=null] - Nota opcional para el historial
+ */
 export const updateTelefonoStatus = async (id, estado, publicadorName, comentario = null) => {
     const data = {};
     if (estado !== undefined && estado !== null) {

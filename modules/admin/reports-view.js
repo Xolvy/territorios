@@ -148,15 +148,20 @@ export const renderReportsTab = async (container, config, appVersion) => {
                 <div id="s13-preview-results" class="hidden animate-fade-in space-y-6 pb-20">
                     <div class="flex items-center justify-between px-6">
                         <div class="flex flex-col">
-                            <h5 class="text-sm font-black text-slate-700 dark:text-gray-300 uppercase tracking-[0.3em]">Vista Previa</h5>
-                            <p id="s13-preview-count" class="text-[9px] text-emerald-500 font-black uppercase mt-1">0 registros detectados</p>
+                            <h5 class="text-sm font-black text-slate-700 dark:text-gray-300 uppercase tracking-[0.3em]">Vista Previa del Registro</h5>
+                            <p id="s13-preview-count" class="text-[9px] text-emerald-500 font-black uppercase mt-1">S-13 Generado</p>
                         </div>
-                        <button id="btn-export-s13-pdf" class="flex items-center gap-3 px-8 py-4 bg-rose-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-600 hover:scale-[1.02] transition-all shadow-xl shadow-rose-500/20 active:scale-95">
-                            <i class="fas fa-file-pdf text-lg"></i> Descargar PDF
-                        </button>
+                        <div class="flex gap-4">
+                            <button id="btn-print-s13-native" class="flex items-center gap-3 px-6 py-4 bg-slate-800 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl active:scale-95">
+                                <i class="fas fa-print"></i> Imprimir
+                            </button>
+                            <button id="btn-export-s13-pdf" class="flex items-center gap-3 px-8 py-4 bg-rose-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-600 transition-all shadow-xl shadow-rose-500/20 active:scale-95">
+                                <i class="fas fa-file-pdf"></i> Descargar PDF
+                            </button>
+                        </div>
                     </div>
-                    <div id="s13-preview-table-container" class="modern-card !p-8 border-slate-100 dark:border-white/5 shadow-2xl bg-white dark:bg-[#0a0f18] min-h-[400px]">
-                        <!-- Table rendered here -->
+                    <div id="s13-preview-table-container" class="modern-card !p-0 border-slate-100 dark:border-white/5 shadow-2xl bg-white dark:bg-[#0a0f18] min-h-[600px] overflow-hidden">
+                        <!-- PDF Iframe rendered here -->
                     </div>
                 </div>
             </div>
@@ -166,118 +171,35 @@ export const renderReportsTab = async (container, config, appVersion) => {
             const from = target.querySelector('#print-s13-from').value;
             const to = target.querySelector('#print-s13-to').value;
 
-            // Filter logic
-            const filtered = history.filter(h => {
-                const date = h.fecha_entrega || h.timestamp;
-                if (!date) return false;
-                const d = UIHelpers.formatDateId(date);
-                const isSuccess = h.estado === 'Completado' || h.estado === 'Predicado';
-                return isSuccess && d >= from && d <= to;
-            });
+            showNotification("Generando vista previa...", "info");
+            
+            const { generateS13Report } = await import('./reports-generator.js');
+            const result = await generateS13Report(history, from, to, { download: false });
 
-            if (filtered.length === 0) {
-                showNotification("No hay registros en ese rango de fechas", "warning");
-                return;
-            }
+            if (!result || !result.url) return;
 
             const resultsArea = target.querySelector('#s13-preview-results');
-            const countLabel = target.querySelector('#s13-preview-count');
             const tableContainer = target.querySelector('#s13-preview-table-container');
 
             resultsArea.classList.remove('hidden');
-            countLabel.innerText = `${filtered.length} REGISTROS DETECTADOS`;
-
             tableContainer.innerHTML = `
-                <div class="p-0">
-                    <table class="w-full text-left border-collapse block md:table">
-                        <thead class="hidden md:table-header-group">
-                            <tr class="text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-200/50 dark:border-white/5">
-                                <th class="px-6 pb-4">Territorio</th>
-                                <th class="px-6 pb-4">Conductor</th>
-                                <th class="px-6 pb-4">Fecha Asig.</th>
-                                <th class="px-6 pb-4">Fecha Entr.</th>
-                                <th class="px-6 pb-4 text-right">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody class="block md:table-row-group divide-y divide-slate-100 dark:divide-white/5 md:divide-y-0" id="s13-preview-tbody">
-                            ${filtered.map(h => `
-                                <!-- Desktop Row -->
-                                <tr class="hidden md:table-row bg-slate-50 dark:bg-white/[0.03] text-[11px] font-bold text-slate-700 dark:text-gray-300 shadow-sm transition-all hover:bg-white dark:hover:bg-white/10 group">
-                                    <td class="px-6 py-4 rounded-l-2xl border-y border-l border-slate-200/50 dark:border-white/5">
-                                        <span class="w-10 h-10 flex items-center justify-center bg-emerald-500/10 text-emerald-600 rounded-xl font-black shadow-inner">#${h.numero}</span>
-                                    </td>
-                                    <td class="px-6 py-4 border-y border-slate-200/50 dark:border-white/5 uppercase tracking-tight">${h.conductor || '—'}</td>
-                                    <td class="px-6 py-4 border-y border-slate-200/50 dark:border-white/5 opacity-60">${UIHelpers.fmtDate(h.fecha_asignacion)}</td>
-                                    <td class="px-6 py-4 border-y border-slate-200/50 dark:border-white/5 font-black text-emerald-500">
-                                        <div class="flex items-center gap-2">
-                                            <i class="fas fa-check-circle"></i>
-                                            ${UIHelpers.fmtDate(h.fecha_entrega)}
-                                        </div>
-                                    </td>
-                                    <td class="px-6 py-4 rounded-r-2xl border-y border-r border-slate-200/50 dark:border-white/5 text-right">
-                                        <button onclick="window.deleteReportS13('${h.id}')" class="w-8 h-8 rounded-xl bg-slate-50 dark:bg-white/5 hover:bg-rose-500 hover:text-white text-slate-400 transition-all shadow-sm border border-slate-200 dark:border-white/10 opacity-30 group-hover:opacity-100 flex items-center justify-center" title="Eliminar Registro">
-                                            <i class="fas fa-trash-alt text-[10px]"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                <!-- Mobile Row (Lista Maestra) -->
-                                <tr class="md:hidden block w-full hover:bg-slate-50 dark:hover:bg-white/5 active:scale-[0.98] transition-all cursor-pointer">
-                                    <td class="block p-5 w-full">
-                                        <div class="flex items-center gap-4 w-full">
-                                            <span class="w-12 h-12 shrink-0 bg-emerald-500/10 text-emerald-600 rounded-[1rem] flex items-center justify-center font-black text-lg shadow-inner">#${h.numero}</span>
-                                            <div class="flex flex-col gap-1 w-full min-w-0">
-                                                <div class="flex justify-between items-center w-full">
-                                                    <span class="text-sm font-black text-slate-800 dark:text-white uppercase truncate">${h.conductor || '—'}</span>
-                                                    <span class="shrink-0 text-[10px] font-black text-emerald-600 flex items-center gap-1"><i class="fas fa-check-circle"></i> ${UIHelpers.fmtDate(h.fecha_entrega)}</span>
-                                                </div>
-                                                <div class="flex justify-between items-center w-full">
-                                                    <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate">A: ${UIHelpers.fmtDate(h.fecha_asignacion)}</span>
-                                                    <button onclick="window.deleteReportS13('${h.id}'); event.stopPropagation();" class="text-rose-500/50 hover:text-rose-500 transition-all p-2 rounded-lg -mr-2" title="Eliminar Registro">
-                                                        <i class="fas fa-trash-alt"></i>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
+                <iframe src="${result.url}#toolbar=0&navpanes=0" class="w-full h-[700px] border-none" id="s13-iframe"></iframe>
             `;
-            
-            window.deleteReportS13 = (id) => {
-                showModal(`
-                    <div class="p-8 text-center space-y-6">
-                        <div class="w-20 h-20 bg-rose-500/10 text-rose-500 rounded-3xl flex items-center justify-center text-3xl mx-auto shadow-xl">
-                            <i class="fas fa-exclamation-triangle"></i>
-                        </div>
-                        <h2 class="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Eliminar Reporte</h2>
-                        <p class="text-slate-500 dark:text-slate-400 font-bold text-sm max-w-sm mx-auto">¿Estás seguro de que deseas eliminar este registro del reporte S-13?</p>
-                        <div class="flex gap-4">
-                            <button id="cancel-del-rep" class="flex-1 py-4 bg-slate-100 dark:bg-white/5 text-slate-500 rounded-2xl font-black uppercase tracking-widest text-[10px] active:scale-95 transition-all">Cancelar</button>
-                            <button id="confirm-del-rep" class="flex-[1.5] py-4 bg-rose-500 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] active:scale-95 transition-all shadow-xl shadow-rose-500/20">Eliminar</button>
-                        </div>
-                    </div>
-                `, (modal) => {
-                    modal.querySelector('#cancel-del-rep').onclick = () => modal.classList.add('hidden');
-                    modal.querySelector('#confirm-del-rep').onclick = async () => {
-                        modal.classList.add('hidden');
-                        try {
-                            await deleteHistoryRecord(id);
-                            showNotification("Reporte eliminado (Soft Delete)", "success");
-                            // Recargar reportes
-                            target.querySelector('#btn-do-print-s13').click();
-                        } catch (e) {
-                            showNotification("Error: " + e.message, "error");
-                        }
-                    };
-                });
+
+            target.querySelector('#btn-export-s13-pdf').onclick = () => {
+                const a = document.createElement('a');
+                a.href = result.url;
+                a.download = `Reporte_S13_${from}_${to}.pdf`;
+                a.click();
             };
 
-            target.querySelector('#btn-export-s13-pdf').onclick = async () => {
-                const { generateS13Report } = await import('./reports-generator.js');
-                generateS13Report(history, from, to);
+            target.querySelector('#btn-print-s13-native').onclick = () => {
+                const iframe = target.querySelector('#s13-iframe');
+                if (iframe) {
+                    iframe.contentWindow.print();
+                } else {
+                    window.open(result.url, '_blank').print();
+                }
             };
 
             resultsArea.scrollIntoView({ behavior: 'smooth' });
@@ -308,10 +230,11 @@ export const renderReportsTab = async (container, config, appVersion) => {
                 </div>
                 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4" id="print-s12-grid-sel">
                     ${terrs.map(t => `
-                        <div class="modern-card !p-4 border-slate-100 dark:border-white/5 shadow-sm cursor-pointer select-none transition-all hover:bg-indigo-50/50 dark:hover:bg-indigo-500/10 flex items-center gap-3 group" onclick="this.querySelector('input').click()">
-                            <input type="checkbox" value="${t.id}" class="w-5 h-5 rounded-lg border-2 border-slate-200 checked:bg-indigo-500 transition-all cursor-pointer" onclick="event.stopPropagation()">
-                            <span class="text-[12px] font-black text-slate-700 dark:text-white uppercase transition-all group-hover:text-indigo-500">${t.numero}</span>
-                        </div>
+                        <label class="modern-card !p-3 border-slate-100 dark:border-white/5 shadow-sm cursor-pointer select-none transition-all hover:bg-slate-50 dark:hover:bg-white/5 flex items-center gap-4 group">
+                            <input type="checkbox" value="${t.id}" class="peer sr-only">
+                            <div class="relative w-10 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-indigo-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all shrink-0"></div>
+                            <span class="text-[13px] font-black text-slate-700 dark:text-white uppercase transition-all group-hover:text-indigo-500">T-${t.numero}</span>
+                        </label>
                     `).join('')}
                 </div>
             </div>

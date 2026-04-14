@@ -1,7 +1,7 @@
 // Cerebro IA (intelligence.js) ha sido purgado. Las funciones pasan a Nexo.
 
 
-export const renderAdminAI = async (container, appVersion) => {
+export const renderAdminAI = async (container, configData = null, appVersion = null) => {
     container.innerHTML = `
         <div class="space-y-10 animate-fade-in p-2 md:p-6 max-w-5xl mx-auto w-full overflow-x-hidden">
             <header class="flex items-center gap-6 mb-2">
@@ -84,8 +84,7 @@ export const renderAdminAI = async (container, appVersion) => {
     };
 
     const runAction = async () => {
-        const { getConfiguracion } = await import('../../data/firestore-services.js');
-        const config = await getConfiguracion();
+        const config = configData || await import('../../data/firestore-services.js').then(m => m.getConfiguracion());
         if (!config.gemini_key) {
             logAI("ERROR: API Key de Gemini no configurada. Ve a Ajustes > Reglas.", 'error');
             return;

@@ -130,7 +130,6 @@ export const xToast = (message, type = 'success') => {
             </div>
         `,
         showClass: { popup: 'animate-fade-in' },
-        backdrop: false,
     });
 };
 

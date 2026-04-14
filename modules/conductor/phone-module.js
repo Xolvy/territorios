@@ -1,4 +1,4 @@
-import { showNotification, formatPhoneNumber } from '../utils/helpers.js';
+import { showNotification, formatPhoneNumber, normalizeRobust } from '../utils/helpers.js';
 import { updateTelefonoStatus, updateTelefono, deleteTelefono } from '../../data/firestore-services.js';
 import { showModal, showCustomPrompt } from '../services/ui-helpers.js';
 
@@ -97,8 +97,8 @@ export const initializePhoneModule = (initialPhones, publicadores, displayName, 
 
     window.updatePhoneStaff = async (id, staff) => {
         try {
-            // Corrected: passing staff as third param, null as status (keep current)
-            await updateTelefonoStatus(id, null, staff);
+            // Xolvy Data Shield: Garante de integridad en la firma (ID, Estado, Publicador, Notas)
+            await updateTelefonoStatus(id, null, staff, null);
             showNotification(`Asignado a ${staff}`, 'success');
         } catch (e) {
             showNotification('Error al asignar publicador', 'error');
@@ -127,7 +127,7 @@ export const initializePhoneModule = (initialPhones, publicadores, displayName, 
                 await deleteTelefono(id);
                 showNotification(`Registro eliminado de la BD: ${status}`, 'success');
             } else {
-                await updateTelefonoStatus(id, status, null);
+                await updateTelefonoStatus(id, status, null, null);
                 showNotification(`Estado actualizado: ${status}`, 'success');
             }
             window.closeModal();

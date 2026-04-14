@@ -1,4 +1,4 @@
-import { PDFDocument } from 'pdf-lib';
+import { PDFDocument, TextAlignment } from 'pdf-lib';
 import { showNotification } from '../utils/helpers.js';
 import { UIHelpers } from '../services/ui-helpers.js';
 
@@ -118,7 +118,7 @@ export const generateS12Report = async (territories, layout = 1) => {
     }
 };
 
-export const generateS13Report = async (history, from, to) => {
+export const generateS13Report = async (history, from, to, options = { download: true }) => {
     showNotification("Generando Registro S-13...", "info");
 
     try {
@@ -127,14 +127,19 @@ export const generateS13Report = async (history, from, to) => {
 
         // Filter history by date and SUCCESS status
         const filtered = history.filter(h => {
-            const rawDate = h.fecha_entrega || h.timestamp;
+            const rawDate = h.fecha_entrega || h.fecha || h.fecha_asignacion || h.timestamp;
             if (!rawDate) return false;
-            const date = UIHelpers.formatDateId(rawDate);
-            const isSuccess = h.estado === 'Completado' || h.estado === 'Predicado';
-            return isSuccess && date >= from && date <= to;
+            
+            const recordDate = UIHelpers.parseFirebaseDate(rawDate);
+            if (!recordDate) return false;
+
+            const dateStr = UIHelpers.formatDateId(recordDate);
+            const isSuccess = h.estado === 'Completado' || h.estado === 'Predicado' || h.estado === 'Terminado'; 
+
+            return isSuccess && dateStr >= from && dateStr <= to;
         });
 
-        // Group by territory
+        // 1. DATA PREPARATION: Group by territory and sort
         const grouped = filtered.reduce((acc, h) => {
             const num = String(h.numero);
             if (!acc[num]) acc[num] = [];
@@ -144,87 +149,128 @@ export const generateS13Report = async (history, from, to) => {
 
         const sortedNums = Object.keys(grouped).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
-        let terrIndex = 0;
+        // 2. CHUNK CALCULATION: How many series of 4 assignments do we need?
+        const maxChunks = sortedNums.reduce((max, num) => {
+            const count = grouped[num].length;
+            const chunks = Math.ceil(count / 4);
+            return Math.max(max, chunks);
+        }, 1);
 
-        while (terrIndex < sortedNums.length) {
-            const pageDoc = await PDFDocument.load(templateBytes);
-            const form = pageDoc.getForm();
-
-            // Set service year
-            const asigYearField = form.getTextField('Año de servicio');
-            if (asigYearField) asigYearField.setText(new Date().getFullYear().toString());
-
-            // 20 rows per page
-            for (let row = 0; row < 20 && terrIndex < sortedNums.length; row++) {
-                const num = sortedNums[terrIndex++];
-
-                // Get Last Completed specifically from the array mapping if possible (or the first record's ultima_fecha)
-                const records = grouped[num].sort((a, b) => new Date(a.fecha_asignacion) - new Date(b.fecha_asignacion));
-                const lastCompleted = records[0].ultima_fecha_completado || '';
-
-                // Fill Territory Number and Last Completed
-                const numField = form.getTextField(`Núm de terrRow${row + 1}`);
-                if (numField) numField.setText(num);
-
-                const lastCompletedField = form.getTextField(`Última fecha en que se completóRow${row + 1}`);
-                if (lastCompletedField) lastCompletedField.setText(lastCompleted);
-
-                // There are up to 4 iterations columns
-                // i = 0 => Texto1.row, Texto5.row, Texto6.row
-                // i = 1 => Texto2.row, Texto7.row, Texto8.row
-                // i = 2 => Texto3.row, Texto9.row, Texto10.row
-                // i = 3 => Texto4.row, Texto11.row, Texto12.row
-                const colMap = [
-                    { name: 1, out: 5, in: 6 },
-                    { name: 2, out: 7, in: 8 },
-                    { name: 3, out: 9, in: 10 },
-                    { name: 4, out: 11, in: 12 }
-                ];
-
-                // Take the most recent 4 records
-                const recentRecords = records.slice(-4);
-
-                for (let i = 0; i < recentRecords.length; i++) {
-                    const rec = recentRecords[i];
-                    const mapping = colMap[i];
-
-                    const fName = form.getTextField(`Texto${mapping.name}.${row}`);
-                    if (fName) fName.setText(rec.conductor || '');
-
-                    const fOut = form.getTextField(`Texto${mapping.out}.${row}`);
-                    if (fOut && rec.fecha_asignacion) fOut.setText(new Date(rec.fecha_asignacion).toLocaleDateString());
-
-                    const fIn = form.getTextField(`Texto${mapping.in}.${row}`);
-                    if (fIn && rec.fecha_entrega) fIn.setText(new Date(rec.fecha_entrega).toLocaleDateString());
-                }
-            }
-
-            form.flatten();
-            const [copiedPage] = await outDoc.copyPages(pageDoc, [0]);
-            outDoc.addPage(copiedPage);
-        }
-
-        // Handle empty scenario
         if (sortedNums.length === 0) {
+            // Empty template if no data
             const pageDoc = await PDFDocument.load(templateBytes);
             const asigYearField = pageDoc.getForm().getTextField('Año de servicio');
             if (asigYearField) asigYearField.setText(new Date().getFullYear().toString());
             pageDoc.getForm().flatten();
             const [copiedPage] = await outDoc.copyPages(pageDoc, [0]);
             outDoc.addPage(copiedPage);
+        } else {
+            // 3. MATRIX PAGINATION: Outer Loop = Chunks (Series of 4 assignments)
+            for (let chunkIdx = 0; chunkIdx < maxChunks; chunkIdx++) {
+                
+                // 4. RANGE PAGINATION: Middle Loop = Ranges of 20 territories
+                for (let rangeStart = 0; rangeStart < sortedNums.length; rangeStart += 20) {
+                    const pageDoc = await PDFDocument.load(templateBytes);
+                    const form = pageDoc.getForm();
+
+                    // Set service year
+                    const asigYearField = form.getTextField('Año de servicio');
+                    if (asigYearField) {
+                        asigYearField.setText(new Date().getFullYear().toString());
+                        try { asigYearField.setAlignment(TextAlignment.Center); } catch(e){}
+                    }
+
+                    // 5. ROW PAGINATION: Inner Loop = Fill 20 rows per page
+                    for (let r = 0; r < 20; r++) {
+                        const terrIdx = rangeStart + r;
+                        if (terrIdx >= sortedNums.length) break;
+
+                        const num = sortedNums[terrIdx];
+                        const rowPos = r + 1;
+                        const allRecords = grouped[num].sort((a, b) => new Date(a.fecha_asignacion) - new Date(b.fecha_asignacion));
+                        
+                        // Get records for THIS specific chunk series
+                        const chunkRecords = allRecords.slice(chunkIdx * 4, chunkIdx * 4 + 4);
+                        if (chunkRecords.length === 0 && chunkIdx > 0) {
+                            // Optionally skip territory if it has nothing in this series (except the first series)
+                            // But usually we print the number anyway for consistency in the sheet
+                        }
+
+                        // Territory Number (Centered)
+                        const numField = form.getTextField(`Núm de terrRow${rowPos}`);
+                        if (numField) {
+                            numField.setText(num);
+                            numField.setFontSize(9);
+                            try { numField.setAlignment(TextAlignment.Center); } catch(e){}
+                        }
+
+                        // Last Completed: Specifically the last delivery in THIS chunk series
+                        const lastCompletedField = form.getTextField(`Última fecha en que se completóRow${rowPos}`);
+                        if (lastCompletedField && chunkRecords.length > 0) {
+                            const lastDelInChunk = chunkRecords[chunkRecords.length - 1].fecha_entrega;
+                            if (lastDelInChunk) {
+                                lastCompletedField.setText(new Date(lastDelInChunk).toLocaleDateString());
+                                lastCompletedField.setFontSize(9);
+                                try { lastCompletedField.setAlignment(TextAlignment.Center); } catch(e){}
+                            }
+                        }
+
+                        const colMap = [
+                            { name: 1, out: 5, in: 6 },
+                            { name: 2, out: 7, in: 8 },
+                            { name: 3, out: 9, in: 10 },
+                            { name: 4, out: 11, in: 12 }
+                        ];
+
+                        chunkRecords.forEach((rec, i) => {
+                            const m = colMap[i];
+
+                            const fName = form.getTextField(`Texto${m.name}.${r}`);
+                            if (fName) {
+                                fName.setText(rec.conductor || '');
+                                fName.setFontSize(9);
+                                try { fName.setAlignment(TextAlignment.Center); } catch(e){}
+                            }
+
+                            const fOut = form.getTextField(`Texto${m.out}.${r}`);
+                            if (fOut && rec.fecha_asignacion) {
+                                fOut.setText(new Date(rec.fecha_asignacion).toLocaleDateString());
+                                fOut.setFontSize(9);
+                                try { fOut.setAlignment(TextAlignment.Center); } catch(e){}
+                            }
+
+                            const fIn = form.getTextField(`Texto${m.in}.${r}`);
+                            if (fIn && rec.fecha_entrega) {
+                                fIn.setText(new Date(rec.fecha_entrega).toLocaleDateString());
+                                fIn.setFontSize(9);
+                                try { fIn.setAlignment(TextAlignment.Center); } catch(e){}
+                            }
+                        });
+                    }
+
+                    form.flatten();
+                    const [copiedPage] = await outDoc.copyPages(pageDoc, [0]);
+                    outDoc.addPage(copiedPage);
+                }
+            }
         }
 
-        const finalPdf = await outDoc.save();
-        const blob = new Blob([finalPdf], { type: 'application/pdf' });
+        const finalPdfBytes = await outDoc.save();
+        const blob = new Blob([finalPdfBytes], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `S13_Registro_${new Date().getTime()}.pdf`;
-        a.click();
 
-        showNotification("Registro S-13 generado", "success");
+        if (options.download) {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `S13_Registro_${new Date().getTime()}.pdf`;
+            a.click();
+            showNotification("Registro S-13 generado", "success");
+        }
+
+        return { blob, url };
     } catch (e) {
         console.error("Error generating S-13:", e);
         showNotification("Hubo un error al generar el S-13: " + e.message, "error");
+        return null;
     }
 };

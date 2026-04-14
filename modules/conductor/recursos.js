@@ -107,7 +107,7 @@ export const renderRecursosSection = (container) => {
         const faqs = [
             { q: '¿Cómo informo un territorio?', a: 'En tu Agenda Inteligente, pulsa "Informar". Ahora puedes adjuntar fotos de evidencia, dictar notas por voz y reportar avances por manzanas (informe parcial) si no terminaste todo el sector.' },
             { q: '¿Cómo solicito números telefónicos?', a: 'En "Predicación Telefónica" pulsa "Solicitar". El sistema te asignará un bloque. Al terminar, usa el botón "Finalizar Sesión" para registrar tu actividad y liberar los números pendientes.' },
-            { q: '¿Qué es el botón "POR COMPLETAR"?', a: 'Muestra territorios libres (DISPONIBLE) o que han quedado a medias (INCOMPLETO). Puedes tomarlos voluntariamente para ayudar a terminar el sector de la congregación.' },
+            { q: '¿Qué es el botón "TERRITORIOS DISPONIBLES"?', a: 'Muestra territorios libres (DISPONIBLE) o que han quedado a medias (INCOMPLETO). Puedes tomarlos voluntariamente para ayudar a terminar el sector de la congregación.' },
             { q: '¿Cómo funcionan las Revisitas telefónicas?', a: 'Usa el botón "Revisitas" en el módulo de teléfonos para ver contactos interesados. Puedes llamarlos directamente o devolverlos al pozo general si ya no son necesarios.' },
             { q: '¿Se pueden informar varios territorios a la vez?', a: '¡Sí! Al abrir el modal de informe, puedes marcar las casillas de varios territorios y enviar un reporte masivo con una sola nota, ahorrando tiempo.' }
         ];

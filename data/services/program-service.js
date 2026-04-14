@@ -1,10 +1,36 @@
+/**
+ * @module program-service
+ * @description Servicio de gestión del Programa Semanal (Visor) y sincronización
+ *              bidireccional con el Live Pool (banco_s13) y el Maestro de territorios.
+ *
+ * @layer Backend / Data Layer
+ * @depends firebase-config.js, base-service.js, audit-service.js
+ *
+ * @exports
+ *  - getProgramaSemanal()              → Programa de una semana por ID
+ *  - saveProgramaSemanal()             → Guardar borrador del programa
+ *  - syncSlotWithTerritories()         → Sincronizar turno → Maestro + S-13
+ *  - formalizeWeek()                   → Formalizar semana (atómico e idempotente)
+ *  - importProgramFromJSON()           → Importar datos de IA (Nexo Vision)
+ *  - syncAssignmentToWeeklyProgram()   → Sincronizar asignación individual
+ *  - removeAssignmentFromWeeklyProgram()→ Quitar asignación del programa
+ *  - runProgramDiagnostic()            → Diagnosticar coherencia Visor vs S-13
+ *  - getPredicacionPublica()           → Leer predicación pública
+ *  - savePredicacionPublica()          → Guardar predicación pública
+ *  - getCampanas() / saveCampana() / deleteCampana() → CRUD de campañas
+ */
 import { db } from '../../firebase-config.js';
 import { collection, query, where, getDocs, addDoc, getDoc, doc, writeBatch, orderBy, setDoc, Timestamp, serverTimestamp, deleteDoc, updateDoc } from "firebase/firestore";
 import { ServiceCache } from './base-service.js';
 import { saveAuditLog } from './audit-service.js';
 
-const COL_VISOR = "programa_semanal";
-const COL_BANCO_S13 = "banco_s13";
+// ═══════════════════════════════════════════════════════════
+const COL_VISOR    = "programa_semanal"; // Colección del Visor (borrador + formalizado)
+const COL_BANCO_S13 = "banco_s13";       // Live Pool de asignaciones S-13
+
+// ═══════════════════════════════════════════════════════════
+// PREDICACIÓN PÚBLICA
+// ═══════════════════════════════════════════════════════════
 
 export const getPredicacionPublica = async () => {
     const querySnapshot = await getDocs(collection(db, "predicacion_publica"));
@@ -23,6 +49,17 @@ export const savePredicacionPublica = async (data) => {
     }
 };
 
+// ═══════════════════════════════════════════════════════════
+// SINCRONIZACIÓN CON EL PROGRAMA SEMANAL
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Sincroniza una asignación individual de territorio en el Programa Semanal (Visor).
+ * Calcula la semana y el día automáticamente a partir de `details.fecha_asignacion`.
+ * @param {object} territoryData - Datos del territorio (numero, etc.)
+ * @param {string} conductorName - Nombre del conductor
+ * @param {object} details - Detalles de la asignación (fecha, turno, lugar, etc.)
+ */
 export const syncAssignmentToWeeklyProgram = async (territoryData, conductorName, details) => {
     try {
         const baseDateStr = details.fecha_asignacion || new Date().toISOString();
@@ -103,6 +140,21 @@ export const syncAssignmentToWeeklyProgram = async (territoryData, conductorName
     }
 };
 
+// ═══════════════════════════════════════════════════════════
+// SINCRONIZACIÓN POR TURNO (Maestro + S-13)
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Actualiza en batch el Maestro y el banco_s13 desde un turno del Visor.
+ * Elimina registros S-13 de territorios que ya no están en el turno (diff) y
+ * crea nuevos registros para los que se agregaron.
+ * @param {string} weekId - ID de la semana (YYYY-MM-DD del lunes)
+ * @param {number} dayIdx - Índice del día (0=Lunes, 6=Domingo)
+ * @param {string} turno - ID del turno ('manana', 'tarde', 'noche', 'zoom')
+ * @param {object} tData - Datos del turno del Visor (conductor, territorio, etc.)
+ * @param {string} dateISO - Fecha ISO del día
+ * @param {string|null} [explicitAssignmentDate=null] - Fecha explícita de asignación
+ */
 export const syncSlotWithTerritories = async (weekId, dayIdx, turno, tData, dateISO, explicitAssignmentDate = null) => {
     try {
         const uiTerrs = tData.territorio ? String(tData.territorio).split(/[,;/]/).map(s => s.trim()).filter(Boolean) : [];
@@ -130,6 +182,7 @@ export const syncSlotWithTerritories = async (weekId, dayIdx, turno, tData, date
         });
 
         for (const num of uiTerrs) {
+            const timestampActual = new Date().toISOString();
             const existingDoc = snapPrev.docs.find(d => d.data().territorio_id === num);
             if (!existingDoc) {
                 const ref = doc(collection(db, COL_BANCO_S13));
@@ -138,7 +191,7 @@ export const syncSlotWithTerritories = async (weekId, dayIdx, turno, tData, date
                     territorio_id: tNumStr,
                     numero: tNumStr,
                     conductor: conductor,
-                    fecha_asignacion: explicitAssignmentDate || weekId,
+                    fecha_asignacion: timestampActual,
                     fecha_entrega: null,
                     estado: 'Asignado',
                     turno: turno,
@@ -160,7 +213,7 @@ export const syncSlotWithTerritories = async (weekId, dayIdx, turno, tData, date
                 batch.update(doc(db, "territorios", tId), {
                     estado: 'Asignado',
                     asignado_a: conductor,
-                    fecha_asignacion: explicitAssignmentDate || weekId,
+                    fecha_asignacion: timestampActual,
                     turno: turno
                 });
             }
@@ -174,6 +227,153 @@ export const syncSlotWithTerritories = async (weekId, dayIdx, turno, tData, date
     } catch (e) {
         console.error("Error in syncSlotWithTerritories:", e);
         throw e;
+    }
+};
+
+/**
+ * --- CAMBIO 1 & 2: Sincronización Automática ---
+ * Registra o libera territorios en banco_s13 y Maestro de forma automática.
+ */
+export const sincronizarAsignacionesSalida = async (salida, weekId, fechaSalida) => {
+    try {
+        if (!salida || !weekId) return;
+
+        // 1. Obtener el mapa de territorios del Maestro (número → {id, numero})
+        const terrSnap = await getDocs(collection(db, "territorios"));
+        const territoriosMaestro = terrSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        // 2. Parsear los números de territorio del string (soporta "8,9,10" / "8/9/10" / "8 9 10")
+        const numerosStr = salida.territorio || '';
+        const numeros = numerosStr
+            .split(/[,;/\s]+/)
+            .map(n => n.trim())
+            .filter(Boolean);
+
+        if (numeros.length === 0) return; // No hay territorios — saltar
+
+        const conductor = salida.conductor || salida.responsable || '';
+        const auxiliar  = salida.auxiliar || null;
+        const programa_id = `${weekId}_${salida.turnoId || 'desconocido'}`;
+
+        for (const numero of numeros) {
+            const maestro = territoriosMaestro.find(
+                t => String(t.numero).trim() === String(numero).trim()
+            );
+            if (!maestro) {
+                console.warn(`[AutoAsign] Territorio #${numero} no encontrado en Maestro`);
+                continue;
+            }
+
+            // 3. Verificar si ya tiene asignación activa (anti-duplicado)
+            const q = query(collection(db, COL_BANCO_S13),
+                where('territorio_id', '==', maestro.id), 
+                where('fecha_entrega', '==', null)
+            );
+            const existente = await getDocs(q);
+
+            if (!existente.empty) {
+                const docRef = existente.docs[0].ref;
+                const data = existente.docs[0].data();
+                
+                if (data.programa_id && data.programa_id !== programa_id) {
+                    console.warn(`[AutoAsign] T#${numero} ya asignado a ${data.conductor} (semana ${data.weekId})`);
+                }
+
+                await updateDoc(docRef, {
+                    conductor,
+                    auxiliar,
+                    fecha_asignacion: fechaSalida,
+                    programa_id,
+                    updatedAt: serverTimestamp()
+                });
+            } else {
+                // 4. Crear nueva asignación en banco_s13
+                await addDoc(collection(db, COL_BANCO_S13), {
+                    territorio_id:     maestro.id,
+                    territorio_numero: numero,
+                    numero:            numero,
+                    conductor,
+                    auxiliar,
+                    fecha_asignacion:  fechaSalida,
+                    fecha_entrega:     null,
+                    estado:            'Asignado',
+                    weekId,
+                    programa_id,
+                    createdAt:         serverTimestamp()
+                });
+            }
+
+            // 5. Actualizar Maestro
+            await updateDoc(doc(db, 'territorios', maestro.id), {
+                estado:           'Asignado',
+                asignado_a:       conductor,
+                auxiliar:         auxiliar,
+                fecha_asignacion: fechaSalida
+            });
+
+            // 6. Notificar al sistema
+            window.dispatchEvent(new CustomEvent('territorio-liberado', {
+                detail: { id: maestro.id, numero, status: 'asignado' }
+            }));
+        }
+
+        ServiceCache.clear('territorios');
+        ServiceCache.clear('territorios_combined');
+    } catch (e) {
+        console.error("Error en sincronizarAsignacionesSalida:", e);
+    }
+};
+
+/**
+ * Libera territorios que estaban en una salida pero ya no (Limpieza de S-13)
+ */
+export const liberarAsignacionesDeSalida = async (numerosALiberar, weekId) => {
+    try {
+        if (!numerosALiberar || numerosALiberar.length === 0) return;
+
+        // Necesitamos el Maestro para mapear números a IDs
+        const terrSnap = await getDocs(collection(db, "territorios"));
+        const numToId = {};
+        terrSnap.forEach(d => {
+            const num = String(d.data().numero || '').trim();
+            if (num) numToId[num] = d.id;
+        });
+
+        for (const num of numerosALiberar) {
+            const tNum = String(num).trim();
+            const tId = numToId[tNum];
+            if (!tId) continue;
+
+            const q = query(collection(db, COL_BANCO_S13), 
+                            where('territorio_id', '==', tId), 
+                            where('fecha_entrega', '==', null));
+            const snap = await getDocs(q);
+
+            for (const d of snap.docs) {
+                // Solo liberamos si pertenece a esta semana (protocolo de seguridad)
+                if (d.data().weekId === weekId) {
+                    await updateDoc(d.ref, { 
+                        fecha_entrega: serverTimestamp(),
+                        estado: 'Disponible'
+                    });
+
+                    // Liberar en Maestro
+                    await updateDoc(doc(db, 'territorios', tId), {
+                        estado: 'Disponible',
+                        asignado_a: null,
+                        fecha_asignacion: null
+                    });
+                    
+                    window.dispatchEvent(new CustomEvent('territorio-liberado', {
+                        detail: { id: tId, numero: tNum, status: 'disponible' }
+                    }));
+                }
+            }
+        }
+        ServiceCache.clear('territorios');
+        ServiceCache.clear('territorios_combined');
+    } catch (e) {
+        console.error("Error en liberarAsignacionesDeSalida:", e);
     }
 };
 
@@ -234,6 +434,15 @@ export const deleteCampana = async (name) => {
     await setDoc(doc(db, "configuracion", "campanas"), { list: newList });
 };
 
+// ═══════════════════════════════════════════════════════════
+// CRUD DEL PROGRAMA SEMANAL (Visor)
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Obtiene el programa semanal de una semana específica.
+ * @param {string} weekId - ID de la semana en formato YYYY-MM-DD
+ * @returns {Promise<object|null>} Datos del programa o null si no existe
+ */
 export const getProgramaSemanal = async (weekId) => {
     try {
         if (!weekId) return null;
@@ -305,6 +514,18 @@ export const rebuildHistoryFromSchedule = async () => {
     return 0;
 };
 
+// ═══════════════════════════════════════════════════════════
+// FORMALIZACIÓN (Atómica e Idempotente)
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Formaliza una semana: convierte el borrador en asignaciones oficiales en banco_s13.
+ * Proceso atómico e idempotente: borra todas las asignaciones previas de la semana
+ * y las reescribe. Libera del Maestro los territorios que desaparecieron del programa.
+ * @param {string} weekId - ID de la semana a formalizar
+ * @param {object[]} assignments - Array de asignaciones del programa
+ * @returns {Promise<boolean>} `true` si tuvo éxito
+ */
 export const formalizeWeek = async (weekId, assignments) => {
     if (!weekId) return;
     
@@ -363,13 +584,35 @@ export const formalizeWeek = async (weekId, assignments) => {
         });
 
         // 3. PROCESAMIENTO ATÓMICO DE NUEVAS ASIGNACIONES (Mirror de la UI)
+        const warnings = [];
         for (const asig of assignmentsArray) {
             const tNumStr = String(asig.territorio_id || asig.territorio).trim();
             const tInfo = numToInfo[tNumStr];
             const turno = asig.turno || 'manana';
 
+            // --- CAMBIO B: Verificación anti-solapamiento global ---
+            const asignacionActiva = await getDocs(
+                query(collection(db, COL_BANCO_S13),
+                    where('numero', '==', tNumStr),
+                    where('fecha_entrega', '==', null))
+            );
+
+            if (!asignacionActiva.empty) {
+                const docExistente = asignacionActiva.docs[0].data();
+                // Si es de otra semana, registramos advertencia
+                if (docExistente.weekId !== weekId) {
+                    console.warn(`[Formalizar] Territorio ${tNumStr} ya asignado en semana ${docExistente.weekId} por ${docExistente.conductor}`);
+                    warnings.push({
+                        territorio: tNumStr,
+                        semanaExistente: docExistente.weekId,
+                        conductor: docExistente.conductor
+                    });
+                }
+            }
+            // Continúa la formalización (overwrite) de todas formas por regla de autoridad del programa
+
             // a) Escribir en Live Pool (ID DETERMINISTA + Sobre-escritura total)
-            // Estructura: weekId_territorioId_turno (Seguriza contra duplicados y es reactivo)
+            const timestampActual = new Date().toISOString();
             const docId = `${weekId}_${tNumStr.replace(/[/ \s]/g, '_')}_${turno}`;
             const refS13 = doc(db, COL_BANCO_S13, docId);
             
@@ -377,7 +620,7 @@ export const formalizeWeek = async (weekId, assignments) => {
                 territorio_id: tNumStr,
                 numero: tNumStr,
                 conductor: asig.conductor || '',
-                fecha_asignacion: asig.fecha_asignacion || weekId,
+                fecha_asignacion: timestampActual,
                 fecha_entrega: null,
                 estado: 'Asignado',
                 turno: turno,
@@ -396,12 +639,12 @@ export const formalizeWeek = async (weekId, assignments) => {
                 batch.update(doc(db, "territorios", tInfo.id), {
                     status: 'Asignado',
                     currentAssignee: asig.conductor || '',
-                    assignmentDate: asig.fecha_asignacion || weekId,
+                    assignmentDate: timestampActual,
                     lastUpdated: serverTimestamp(),
                     // Compatibilidad
                     estado: 'Asignado',
                     asignado_a: asig.conductor || '',
-                    fecha_asignacion: asig.fecha_asignacion || weekId,
+                    fecha_asignacion: timestampActual,
                     turno: turno
                 });
             }
@@ -414,13 +657,25 @@ export const formalizeWeek = async (weekId, assignments) => {
         ServiceCache.clear('territorios_combined');
         ServiceCache.clear('territorios');
         
-        return true;
+        return { success: true, warnings };
     } catch (e) {
         console.error("❌ Error en formalizeWeek Atómico/Idempotente:", e);
         throw e;
     }
 };
 
+// ═══════════════════════════════════════════════════════════
+// IMPORTACIÓN DESDE NEXO AI
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Importa un programa semanal desde los datos extraídos por Nexo Vision AI.
+ * Mapea los datos del objeto JSON al formato interno del Visor, con soporte
+ * para múltiples turnos por día (manana_2, tarde_2, etc.).
+ * @param {string} weekId - ID de la semana destino
+ * @param {object} aiData - Mapa { NombreDia: [{ turno, conductor, lugar, ... }] }
+ * @returns {Promise<boolean>} `true` si la importación fue exitosa
+ */
 export const importProgramFromJSON = async (weekId, aiData) => {
     try {
         if (!weekId || !aiData) throw new Error("Parámetros insuficientes");

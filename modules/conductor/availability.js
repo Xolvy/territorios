@@ -50,8 +50,10 @@ export const renderAvailabilitySection = async (container, currentUserName) => {
             const isChecked = dayDisp.includes(turno);
             return `
                                         <div class="flex justify-center">
-                                            <input type="checkbox" data-dia="${dia}" data-turno="${turno}" ${isChecked ? 'checked' : ''} 
-                                                class="w-6 h-6 rounded-lg border-2 border-slate-200 dark:border-white/10 text-emerald-500 focus:ring-emerald-500 transition-all cursor-pointer bg-white dark:bg-slate-900">
+                                            <label class="relative inline-flex items-center cursor-pointer group">
+                                                <input type="checkbox" data-dia="${dia}" data-turno="${turno}" ${isChecked ? 'checked' : ''} class="peer sr-only">
+                                                <div class="w-10 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-emerald-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                                            </label>
                                         </div>
                                     `;
         }).join('')}

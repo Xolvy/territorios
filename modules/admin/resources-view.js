@@ -4,7 +4,7 @@ import {
 import { showNotification } from '../utils/helpers.js';
 import { showModal, showCustomConfirm } from '../services/ui-helpers.js';
 
-export const renderRecursosTab = async (container) => {
+export const renderRecursosTab = async (container, configData = null, appVersion = null) => {
     const recursos = await getRecursos();
 
     container.innerHTML = `

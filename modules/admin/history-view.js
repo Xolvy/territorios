@@ -9,12 +9,14 @@ export const renderHistorialView = async (container) => {
     const monday = UIHelpers.getMonday(new Date());
     const weekId = UIHelpers.formatDateId(monday);
 
-    const [history, tRaw, allPublicadores, currentProg] = await Promise.all([
+    const [history, tRaw, publicadoresRaw, currentProg] = await Promise.all([
         getHistorialReport(),
         getTerritorios(),
         getPublicadores(),
         getProgramaSemanal(weekId).catch(() => null)
     ]);
+
+    const allPublicadores = publicadoresRaw.filter(p => p.es_conductor || p.privilegios?.includes('Conductor'));
 
     // Extract territory numbers from the current program to ensure they appear in Historial
     const programTerritories = new Set();
@@ -336,15 +338,15 @@ export const renderHistorialView = async (container) => {
 
                             <div class="grid grid-cols-2 gap-8 pt-4 border-t border-slate-50 dark:border-white/5">
                                 <div class="space-y-1">
-                                    <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest block">Fecha Salida</span>
+                                    <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest block">FECHA EN QUE SE ASIGNÓ</span>
                                     <span class="text-[11px] font-bold text-slate-600 dark:text-slate-300 flex items-center gap-2">
                                         <i class="far fa-calendar-alt opacity-40"></i> ${dateAsig}
                                     </span>
                                 </div>
                                 <div class="space-y-1">
-                                    <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest block">Fecha Llegada</span>
+                                    <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest block">FECHA EN QUE SE COMPLETÓ</span>
                                     <span class="text-[11px] font-black ${isEnCurso ? 'text-amber-500 italic opacity-60' : 'text-emerald-500'} flex items-center gap-2">
-                                        <i class="fas fa-flag-checkered opacity-40"></i> ${dateEntr || 'Pendiente...'}
+                                        <i class="fas fa-flag-checkered opacity-40"></i> ${dateEntr || '---'}
                                     </span>
                                 </div>
                             </div>
@@ -391,7 +393,13 @@ export const renderHistorialView = async (container) => {
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="space-y-2">
                         <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Conductor</label>
-                        <input type="text" id="edit-surgery-cond" value="${h.conductor || ''}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-xs font-bold outline-none focus:border-primary transition-all uppercase">
+                        <select id="edit-surgery-cond" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-xs font-bold outline-none focus:border-primary transition-all uppercase cursor-pointer">
+                            <option value="">Seleccionar responsable...</option>
+                            ${allPublicadores.map(p => `
+                                <option value="${p.nombre}" ${h.conductor === p.nombre ? 'selected' : ''}>${p.nombre}</option>
+                            `).join('')}
+                            ${(!allPublicadores.find(p => p.nombre === h.conductor) && h.conductor) ? `<option value="${h.conductor}" selected>${h.conductor}</option>` : ''}
+                        </select>
                     </div>
                     <div class="space-y-2">
                         <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Turno</label>
@@ -406,11 +414,11 @@ export const renderHistorialView = async (container) => {
 
                 <div class="grid grid-cols-2 gap-4">
                     <div class="space-y-2">
-                        <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Fecha Salida</label>
+                        <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">FECHA EN QUE SE ASIGNÓ</label>
                         <input type="date" id="edit-surgery-asig" value="${dateAsigVal}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-xs font-bold outline-none text-blue-500">
                     </div>
                     <div class="space-y-2">
-                        <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Fecha Llegada</label>
+                        <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">FECHA EN QUE SE COMPLETÓ</label>
                         <input type="date" id="edit-surgery-entr" value="${dateEntrVal}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-xs font-bold outline-none text-emerald-500">
                     </div>
                 </div>
@@ -533,7 +541,7 @@ export const renderHistorialView = async (container) => {
                     <div class="space-y-3">
                         <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Publicador</label>
                         <select id="asig-cond" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all uppercase cursor-pointer appearance-none shadow-inner">
-                            <option value="">Seleccionar...</option>
+                            <option value="">Seleccionar responsable...</option>
                             ${allPublicadores.map(p => `<option value="${p.nombre}">${p.nombre}</option>`).join('')}
                         </select>
                     </div>
@@ -597,6 +605,7 @@ export const renderHistorialView = async (container) => {
                         <div class="space-y-3">
                             <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Conductor</label>
                             <select id="manual-h-conductor" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all uppercase appearance-none cursor-pointer">
+                                <option value="">Seleccionar responsable...</option>
                                 ${allPublicadores.map(p => `<option value="${p.nombre}">${p.nombre}</option>`).join('')}
                             </select>
                         </div>

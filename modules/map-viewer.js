@@ -5,6 +5,13 @@ export const MapViewer = {
     render: (container, territory) => {
         const { numero, manzanas, imagen } = territory;
 
+        const modal = document.getElementById('modal-container');
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            modal.style.zIndex = '10001'; // Superior al ReceptionHub (9999)
+        }
+
         container.innerHTML = `
             <div class="flex flex-col h-full w-full animate-fade-in bg-white dark:bg-slate-900 rounded-[2.5rem] overflow-hidden shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)] border border-white/10 relative">
                 
@@ -34,11 +41,13 @@ export const MapViewer = {
                     
                     <!-- STATIC IMAGE VIEW (PNG VISOR) -->
                     <div id="static-image-viewer" class="absolute inset-0 w-full h-full flex items-center justify-center p-6 transition-opacity duration-500 opacity-100 overflow-hidden bg-slate-200 dark:bg-slate-700/40 z-30 touch-none">
-                        ${imagen ? `
-                        <div class="relative max-w-full max-h-full flex items-center justify-center bg-white rounded-2xl shadow-2xl overflow-hidden" style="max-height:100%;">
-                            <img id="map-img-element" src="${imagen}" class="block max-w-full max-h-full object-contain transition-all duration-200 ease-out origin-center" style="transform: scale(1) translate(0px, 0px); background:#fff;">
-                        </div>` 
-                        : `<div class="flex flex-col items-center gap-4 opacity-50"><i class="fas fa-image text-6xl shadow-inner text-slate-400"></i><p class="font-black tracking-[0.2em] uppercase text-xs text-slate-500">Sin Imagen Disponible</p></div>`}
+                        <div id="map-img-container" class="relative w-full h-full max-w-full max-h-full flex items-center justify-center bg-white rounded-2xl shadow-2xl overflow-hidden" style="max-height:100%;">
+                            <!-- Spinner/Skeleton state -->
+                            <div id="map-loader-ui" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-800 z-10 transition-opacity duration-300">
+                                <div class="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mb-4 shadow-sm"></div>
+                                <p class="font-black tracking-[0.2em] uppercase text-[10px] text-slate-500 animate-pulse">Descargando mapa estático...</p>
+                            </div>
+                        </div>
                     </div>
 
                 </div>
@@ -46,6 +55,26 @@ export const MapViewer = {
         `;
 
         const btnToggle = container.querySelector('#btn-toggle-view');
+
+        const mapContainer = container.querySelector('#map-img-container');
+        const loaderUi = container.querySelector('#map-loader-ui');
+        const mapUrl = imagen || `./assets/maps/T-${numero}.png`;
+        const img = new Image();
+        img.onload = () => {
+            img.id = 'map-img-element';
+            img.className = "block max-w-full max-h-full object-contain transition-all duration-200 ease-out origin-center animate-fade-in";
+            img.style.transform = "scale(1) translate(0px, 0px)";
+            img.style.background = "#fff";
+            mapContainer.appendChild(img);
+            if (loaderUi) {
+                loaderUi.style.opacity = '0';
+                setTimeout(() => loaderUi.remove(), 300);
+            }
+        };
+        img.onerror = () => {
+            mapContainer.innerHTML = '<div class="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-800"><i class="fas fa-image text-6xl shadow-inner text-slate-400 mb-4"></i><p class="font-black tracking-[0.2em] uppercase text-xs text-slate-500">Sin Imagen Disponible</p></div>';
+        };
+        img.src = mapUrl;
 
         if (btnToggle) {
             btnToggle.onclick = () => {
@@ -56,6 +85,7 @@ export const MapViewer = {
         document.getElementById('close-map').onclick = () => {
             const modal = document.getElementById('modal-container');
             if (modal) {
+                modal.style.zIndex = '';
                 modal.classList.add('hidden');
                 modal.classList.remove('flex');
             }
@@ -63,6 +93,12 @@ export const MapViewer = {
         };
     },
     renderGlobal: (container, allTerritorios) => {
+        const modal = document.getElementById('modal-container');
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            modal.style.zIndex = '10001';
+        }
         container.innerHTML = `
             <div class="flex flex-col h-full w-full animate-fade-in bg-white dark:bg-slate-900 rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/10 relative">
                 <div class="absolute top-6 left-6 right-6 z-40 flex justify-between items-center p-4 bg-white/70 dark:bg-gray-900/60 backdrop-blur-2xl rounded-3xl border border-white/20 dark:border-white/5 shadow-2xl">
@@ -101,7 +137,10 @@ export const MapViewer = {
 
         document.getElementById('close-global-map').onclick = () => {
             const modal = document.getElementById('modal-container');
-            if (modal) modal.classList.add('hidden');
+            if (modal) {
+                modal.style.zIndex = '';
+                modal.classList.add('hidden');
+            }
             container.innerHTML = '';
         };
 

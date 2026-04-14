@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Programa de Predicación - Publicadores</title>
+    <style>
+        /* Reset para evitar márgenes extraños en la captura */
+        * { box-sizing: border-box; }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #ffffff;
+            margin: 0;
+            padding: 0;
+            width: 1220px; /* Ancho exacto A4 Horizontal */
+            color: #000;
+        }
+
+        .table-container {
+            width: 1220px;
+            
+            padding: 20px;
+            background: white;
+        }
+
+        .main-title {
+            font-size: 22px;
+            font-weight: bold;
+            text-transform: uppercase;
+            text-align: center;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+
+        table {
+            width: 100%; /* Ocupa todo el contenedor de 1120px */
+            border-collapse: collapse;
+            table-layout: fixed; /* CRUCIAL: Fuerza el ancho de las columnas */
+        }
+
+        /* Definición de anchos de columnas para llenar los 1120px */
+        .col-detalle { width: 110px; }
+        .col-dia { width: 138px; } /* (1120 - 110 - 85 - márgenes) / 7 días */
+        .col-grupos { width: 110px; padding-right: 15px; }
+
+        th, td {
+            /* height: 32px; */
+            padding: 4px;
+            vertical-align: middle;
+            text-align: center;
+            font-size: 13px;
+            border: none;
+            overflow: visible;
+            word-wrap: break-word;
+        }
+
+        .h-cyan { 
+            background-color: #B5E1DC; 
+            font-family: "Arial Black", Arial, sans-serif;
+            font-weight: 900;
+            text-transform: uppercase;
+            border: 1px solid #fff; /* Separador sutil */
+        }
+
+        .col-detalle-label {
+            font-family: "Arial Black", Arial, sans-serif;
+            font-weight: 900;
+            text-align: left;
+            padding-left: 8px;
+        }
+
+        .bold { font-weight: bold; }
+
+        /* Colores de bloques */
+        .det-1 { background-color: #FFE599; } .dat-1 { background-color: #FFF2CC; }
+        .det-2 { background-color: #F9CB9C; } .dat-2 { background-color: #FBE4CD; }
+        .det-3 { background-color: #A4C2F4; } .dat-3 { background-color: #CFE2F3; }
+        .det-4 { background-color: #B6D7A8; } .dat-4 { background-color: #D9EAD3; }
+        
+        .dat-grp { background-color: #FFF2CC; font-size: 16px; vertical-align: top; padding-top: 15px; }
+
+        /* Triangulito verde */
+        .note-tl { position: relative; }
+        .note-tl::after { display: none !important; /* 
+            content: ''; position: absolute; top: 0; left: 0; 
+            border-top: 8px solid #2E7D32; border-right: 8px solid transparent; */ }
+
+        .spacer td { height: 12px; background-color: #ffffff; }
+    
+        /* Ampliar el alto vertical de la fila FACETAS */
+        tr:has(> td[id$="-faceta"]), [id$="-faceta"] {
+            padding-top: 18px !important;
+            padding-bottom: 18px !important;
+        }
+        
+        /* Asegurarse que grupos alinee hacia arriba */
+        .dat-grp {
+            vertical-align: top !important;
+            padding-top: 15px !important;
+        }
+    </style>
+</head>
+<body>
+
+<div class="table-container" id="export-container">
+    <div class="main-title">
+        PROGRAMA DE PREDICACIÓN<br>
+        CONGREGACIÓN "NUEVE DE OCTUBRE" 14282<br>
+        <span id="rango-fechas" style="font-size: 17px; font-weight: normal;"></span>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th class="h-cyan col-detalle">DETALLE</th>
+                <th class="h-cyan col-dia" id="th-dia-1">LUNES</th>
+                <th class="h-cyan col-dia" id="th-dia-2">MARTES</th>
+                <th class="h-cyan col-dia" id="th-dia-3">MIÉRCOLES</th>
+                <th class="h-cyan col-dia" id="th-dia-4">JUEVES</th>
+                <th class="h-cyan col-dia" id="th-dia-5">VIERNES</th>
+                <th class="h-cyan col-dia" id="th-dia-6">SÁBADO</th>
+                <th class="h-cyan col-dia" id="th-dia-7">DOMINGO</th>
+                <th class="h-cyan col-grupos">GRUPOS</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr class="spacer"><td colspan="9"></td></tr>
+            
+            <tr>
+                <td class="col-detalle-label det-1">LUGAR</td>
+                <td class="bold dat-1" id="m-1-lugar"></td>
+                <td class="bold dat-1" id="m-2-lugar"></td>
+                <td class="bold dat-1" id="m-3-lugar"></td>
+                <td class="bold dat-1" id="m-4-lugar"></td>
+                <td class="bold dat-1" id="m-5-lugar"></td>
+                <td class="bold dat-1" id="m-6-lugar"></td>
+                <td class="bold dat-1" id="m-7-lugar"></td>
+                <td rowspan="5" class="dat-grp note-tl" id="m-grupos"></td>
+            </tr>
+            <tr>
+                <td class="col-detalle-label det-1">HORA</td>
+                <td class="bold dat-1" id="m-1-hora"></td>
+                <td class="bold dat-1" id="m-2-hora"></td>
+                <td class="bold dat-1" id="m-3-hora"></td>
+                <td class="bold dat-1" id="m-4-hora"></td>
+                <td class="bold dat-1" id="m-5-hora"></td>
+                <td class="bold dat-1" id="m-6-hora"></td>
+                <td class="bold dat-1" id="m-7-hora"></td>
+            </tr>
+            <tr>
+                <td class="col-detalle-label det-1">CONDUCTOR</td>
+                <td class="dat-1" id="m-1-conductor"></td>
+                <td class="dat-1" id="m-2-conductor"></td>
+                <td class="dat-1" id="m-3-conductor"></td>
+                <td class="dat-1" id="m-4-conductor"></td>
+                <td class="dat-1" id="m-5-conductor"></td>
+                <td class="dat-1" id="m-6-conductor"></td>
+                <td class="dat-1" id="m-7-conductor"></td>
+            </tr>
+            <tr>
+                <td class="col-detalle-label det-1">AUXILIAR</td>
+                <td class="dat-1" id="m-1-auxiliar"></td>
+                <td class="dat-1" id="m-2-auxiliar"></td>
+                <td class="dat-1" id="m-3-auxiliar"></td>
+                <td class="dat-1" id="m-4-auxiliar"></td>
+                <td class="dat-1" id="m-5-auxiliar"></td>
+                <td class="dat-1" id="m-6-auxiliar"></td>
+                <td class="dat-1" id="m-7-auxiliar"></td>
+            </tr>
+            <tr>
+                <td class="col-detalle-label det-1">FACETA</td>
+                <td class="dat-1" id="m-1-faceta"></td>
+                <td class="dat-1" id="m-2-faceta"></td>
+                <td class="dat-1" id="m-3-faceta"></td>
+                <td class="dat-1" id="m-4-faceta"></td>
+                <td class="dat-1" id="m-5-faceta"></td>
+                <td class="dat-1" id="m-6-faceta"></td>
+                <td class="dat-1" id="m-7-faceta"></td>
+            </tr>
+
+            <tr class="spacer"><td colspan="9"></td></tr>
+
+            <tr>
+                <td class="col-detalle-label det-2">LUGAR</td>
+                <td class="bold dat-2" id="t-1-lugar"></td>
+                <td class="bold dat-2" id="t-2-lugar"></td>
+                <td class="bold dat-2" id="t-3-lugar"></td>
+                <td class="bold dat-2" id="t-4-lugar"></td>
+                <td class="bold dat-2" id="t-5-lugar"></td>
+                <td class="bold dat-2" id="t-6-lugar"></td>
+                <td class="bold dat-1" id="t-7-lugar"></td>
+                <td rowspan="5" class="dat-grp note-tl" id="t-grupos"></td>
+            </tr>
+            <tr>
+                <td class="col-detalle-label det-2">HORA</td>
+                <td class="bold dat-2" id="t-1-hora"></td>
+                <td class="bold dat-2" id="t-2-hora"></td>
+                <td class="bold dat-2" id="t-3-hora"></td>
+                <td class="bold dat-2" id="t-4-hora"></td>
+                <td class="bold dat-2" id="t-5-hora"></td>
+                <td class="bold dat-2" id="t-6-hora"></td>
+                <td class="bold dat-1" id="t-7-hora"></td>
+            </tr>
+            <tr>
+                <td class="col-detalle-label det-2">CONDUCTOR</td>
+                <td class="dat-2" id="t-1-conductor"></td>
+                <td class="dat-2" id="t-2-conductor"></td>
+                <td class="dat-2" id="t-3-conductor"></td>
+                <td class="dat-2" id="t-4-conductor"></td>
+                <td class="dat-2" id="t-5-conductor"></td>
+                <td class="dat-2" id="t-6-conductor"></td>
+                <td class="dat-1" id="t-7-conductor"></td>
+            </tr>
+            <tr>
+                <td class="col-detalle-label det-2">AUXILIAR</td>
+                <td class="dat-2" id="t-1-auxiliar"></td>
+                <td class="dat-2" id="t-2-auxiliar"></td>
+                <td class="dat-2" id="t-3-auxiliar"></td>
+                <td class="dat-2" id="t-4-auxiliar"></td>
+                <td class="dat-2" id="t-5-auxiliar"></td>
+                <td class="dat-2" id="t-6-auxiliar"></td>
+                <td class="dat-1" id="t-7-auxiliar"></td>
+            </tr>
+            <tr>
+                <td class="col-detalle-label det-2">FACETA</td>
+                <td class="dat-2" id="t-1-faceta"></td>
+                <td class="dat-2" id="t-2-faceta"></td>
+                <td class="dat-2" id="t-3-faceta"></td>
+                <td class="dat-2" id="t-4-faceta"></td>
+                <td class="dat-2" id="t-5-faceta"></td>
+                <td class="dat-2" id="t-6-faceta"></td>
+                <td class="dat-1" id="t-7-faceta"></td>
+            </tr>
+
+            <tr class="spacer"><td colspan="9"></td></tr>
+
+            <tr>
+                <td class="col-detalle-label det-3">LUGAR</td>
+                <td class="bold dat-3" id="n-1-lugar"></td>
+                <td class="bold dat-3" id="n-2-lugar"></td>
+                <td class="bold dat-3" id="n-3-lugar"></td>
+                <td class="bold dat-3" id="n-4-lugar"></td>
+                <td class="bold dat-3" id="n-5-lugar"></td>
+                <td class="bold dat-3" id="n-6-lugar"></td>
+                <td class="bold dat-1" id="n-7-lugar"></td>
+                <td rowspan="5" class="dat-grp note-tl" id="n-grupos"></td>
+            </tr>
+            <tr>
+                <td class="col-detalle-label det-3">HORA</td>
+                <td class="bold dat-3" id="n-1-hora"></td>
+                <td class="bold dat-3" id="n-2-hora"></td>
+                <td class="bold dat-3" id="n-3-hora"></td>
+                <td class="bold dat-3" id="n-4-hora"></td>
+                <td class="bold dat-3" id="n-5-hora"></td>
+                <td class="bold dat-3" id="n-6-hora"></td>
+                <td class="bold dat-1" id="n-7-hora"></td>
+            </tr>
+            <tr>
+                <td class="col-detalle-label det-3">CONDUCTOR</td>
+                <td class="dat-3" id="n-1-conductor"></td>
+                <td class="dat-3" id="n-2-conductor"></td>
+                <td class="dat-3" id="n-3-conductor"></td>
+                <td class="dat-3" id="n-4-conductor"></td>
+                <td class="dat-3" id="n-5-conductor"></td>
+                <td class="dat-3" id="n-6-conductor"></td>
+                <td class="dat-1" id="n-7-conductor"></td>
+            </tr>
+            <tr>
+                <td class="col-detalle-label det-3">AUXILIAR</td>
+                <td class="dat-3" id="n-1-auxiliar"></td>
+                <td class="dat-3" id="n-2-auxiliar"></td>
+                <td class="dat-3" id="n-3-auxiliar"></td>
+                <td class="dat-3" id="n-4-auxiliar"></td>
+                <td class="dat-3" id="n-5-auxiliar"></td>
+                <td class="dat-3" id="n-6-auxiliar"></td>
+                <td class="dat-1" id="n-7-auxiliar"></td>
+            </tr>
+            <tr>
+                <td class="col-detalle-label det-3">FACETA</td>
+                <td class="dat-3" id="n-1-faceta"></td>
+                <td class="dat-3" id="n-2-faceta"></td>
+                <td class="dat-3" id="n-3-faceta"></td>
+                <td class="dat-3" id="n-4-faceta"></td>
+                <td class="dat-3" id="n-5-faceta"></td>
+                <td class="dat-3" id="n-6-faceta"></td>
+                <td class="dat-1" id="n-7-faceta"></td>
+            <tr class="spacer"><td colspan="9"></td></tr>
+
+            <tr>
+                <td class="col-detalle-label det-4">LUGAR</td>
+                <td class="bold dat-4" id="z-1-lugar"></td>
+                <td class="bold dat-4" id="z-2-lugar"></td>
+                <td class="bold dat-4" id="z-3-lugar"></td>
+                <td class="bold dat-4" id="z-4-lugar"></td>
+                <td class="bold dat-4" id="z-5-lugar"></td>
+                <td class="bold dat-4" id="z-6-lugar"></td>
+                <td class="bold dat-1" id="z-7-lugar"></td>
+                <td rowspan="5" class="dat-grp note-tl" id="z-grupos"></td>
+            </tr>
+            <tr>
+                <td class="col-detalle-label det-4">HORA</td>
+                <td class="bold dat-4" id="z-1-hora"></td>
+                <td class="bold dat-4" id="z-2-hora"></td>
+                <td class="bold dat-4" id="z-3-hora"></td>
+                <td class="bold dat-4" id="z-4-hora"></td>
+                <td class="bold dat-4" id="z-5-hora"></td>
+                <td class="bold dat-4" id="z-6-hora"></td>
+                <td class="bold dat-1" id="z-7-hora"></td>
+            </tr>
+            <tr>
+                <td class="col-detalle-label det-4">CONDUCTOR</td>
+                <td class="dat-4" id="z-1-conductor"></td>
+                <td class="dat-4" id="z-2-conductor"></td>
+                <td class="dat-4" id="z-3-conductor"></td>
+                <td class="dat-4" id="z-4-conductor"></td>
+                <td class="dat-4" id="z-5-conductor"></td>
+                <td class="dat-4" id="z-6-conductor"></td>
+                <td class="dat-1" id="z-7-conductor"></td>
+            </tr>
+            <tr>
+                <td class="col-detalle-label det-4">AUXILIAR</td>
+                <td class="dat-4" id="z-1-auxiliar"></td>
+                <td class="dat-4" id="z-2-auxiliar"></td>
+                <td class="dat-4" id="z-3-auxiliar"></td>
+                <td class="dat-4" id="z-4-auxiliar"></td>
+                <td class="dat-4" id="z-5-auxiliar"></td>
+                <td class="dat-4" id="z-6-auxiliar"></td>
+                <td class="dat-1" id="z-7-auxiliar"></td>
+            </tr>
+            <tr>
+                <td class="col-detalle-label det-4">FACETA</td>
+                <td class="dat-4" id="z-1-faceta"></td>
+                <td class="dat-4" id="z-2-faceta"></td>
+                <td class="dat-4" id="z-3-faceta"></td>
+                <td class="dat-4" id="z-4-faceta"></td>
+                <td class="dat-4" id="z-5-faceta"></td>
+                <td class="dat-4" id="z-6-faceta"></td>
+                <td class="dat-1" id="z-7-faceta"></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+</body>
+</html>

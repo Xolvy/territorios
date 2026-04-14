@@ -8,16 +8,18 @@ export const renderFullProgramaCards = (programa, container, territoryMap = {}, 
     const shiftColors = { 'manana': 'text-amber-500', 'tarde': 'text-orange-500', 'noche': 'text-indigo-400', 'zoom': 'text-emerald-500' };
 
     if (!programa || !programa.dias || programa.dias.length === 0) {
-        container.innerHTML = `
-            <div class="col-span-full py-20 flex flex-col items-center justify-center text-center space-y-5 animate-fade-in opacity-30 group">
-                <div class="w-24 h-24 bg-slate-100 dark:bg-white/5 rounded-[3rem] flex items-center justify-center text-4xl mb-2 transition-transform group-hover:scale-110 duration-700">
-                    <i class="fas fa-calendar-day"></i>
-                </div>
-                <div class="space-y-2">
-                    <p class="text-xs font-black text-slate-400 uppercase tracking-[0.4em]">No hay actividades para esta semana</p>
-                    <p class="text-[10px] text-slate-400 italic font-bold uppercase tracking-widest">Consulta con el responsable del grupo</p>
-                </div>
-            </div > `;
+        if (container) {
+            container.innerHTML = `
+                <div class="col-span-full py-20 flex flex-col items-center justify-center text-center space-y-5 animate-fade-in opacity-30 group">
+                    <div class="w-24 h-24 bg-slate-100 dark:bg-white/5 rounded-[3rem] flex items-center justify-center text-4xl mb-2 transition-transform group-hover:scale-110 duration-700">
+                        <i class="fas fa-calendar-day"></i>
+                    </div>
+                    <div class="space-y-2">
+                        <p class="text-xs font-black text-slate-400 uppercase tracking-[0.4em]">No hay actividades para esta semana</p>
+                        <p class="text-[10px] text-slate-400 italic font-bold uppercase tracking-widest">Consulta con el responsable del grupo</p>
+                    </div>
+                </div > `;
+        }
         return;
     }
 
@@ -108,17 +110,23 @@ export const renderFullProgramaCards = (programa, container, territoryMap = {}, 
                                         <div class="mt-2 pt-2 border-t border-black/5 dark:border-white/5 space-y-2">
                                             <div class="flex flex-wrap gap-1">
                                                 ${isConductor ? `
-                                                    <button onclick="window.openTerritorySelector(${dayIdx}, '${shift}', this)" 
-                                                            data-current="${sData.territorio || ''}"
-                                                            class="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-white/10 hover:border-primary/50 transition-all group/tbtn shadow-sm">
-                                                        <i class="fas fa-map-location-dot text-[10px] text-primary/40 group-hover/tbtn:text-primary transition-colors"></i>
-                                                        <span class="text-[10px] font-black ${sData.territorio ? 'text-primary' : 'text-slate-400 opacity-40'} truncate max-w-[100px] uppercase">
-                                                            ${sData.territorio || 'Seleccionar...'}
-                                                        </span>
-                                                    </button>
+                                                    <div class="flex items-center gap-1">
+                                                        <button onclick="window.openTerritorySelector(${dayIdx}, '${shift}', this)" 
+                                                                data-current="${sData.territorio || ''}"
+                                                                class="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-white/10 hover:border-primary/50 transition-all group/tbtn shadow-sm">
+                                                            <i class="fas fa-map-location-dot text-[10px] text-primary/40 group-hover/tbtn:text-primary transition-colors"></i>
+                                                            <span class="text-[10px] font-black ${sData.territorio ? 'text-primary' : 'text-slate-400 opacity-40'} truncate max-w-[100px] uppercase">
+                                                                ${sData.territorio || 'Seleccionar...'}
+                                                            </span>
+                                                        </button>
+                                                        ${sData.territorio ? `<button onclick="window.abrirMapaTerritorio('${String(sData.territorio).split(/[,;/]/)[0].trim()}')" class="p-1 text-blue-600 hover:bg-blue-100 rounded ml-2" title="Ver mapa"><i class="fas fa-map-marked-alt"></i></button>` : ''}
+                                                    </div>
                                                 ` : `
                                                     ${sData.territorio ? Array.from(new Set(String(sData.territorio).split(/[,;/]/).map(t => t.trim()).filter(Boolean))).map(t => `
-                                                        <span class="px-2 py-1 bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400 rounded-lg text-[10px] font-black border border-slate-200 dark:border-white/10 uppercase">${t}</span>
+                                                        <span class="flex items-center gap-1.5 px-2 py-1 bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400 rounded-lg border border-slate-200 dark:border-white/10">
+                                                            <span class="text-[10px] font-black uppercase">${t}</span>
+                                                            <button onclick="window.abrirMapaTerritorio('${t}')" class="p-1 text-blue-600 hover:bg-blue-100 rounded ml-2" title="Ver mapa"><i class="fas fa-map-marked-alt"></i></button>
+                                                        </span>
                                                     `).join('') : '<span class="text-[9px] font-black text-slate-300 uppercase italic opacity-40">Libre</span>'}
                                                 `}
                                             </div>
@@ -139,7 +147,11 @@ export const renderFullProgramaCards = (programa, container, territoryMap = {}, 
     </div>
     `;
 
-    container.innerHTML = html;
+    if (container) {
+        container.innerHTML = html;
+    } else {
+        console.warn('[ProgramViews] container no encontrado para renderFullProgramaCards');
+    }
 };
 
 export const generateLandscapePreviewHTML = (programa) => {

@@ -8,6 +8,7 @@ import { initUpdateManager } from './modules/utils/update-manager.js';
 import { moduleRegistry } from './modules/utils/module-registry.js';
 import { XolvyAdaptive } from './modules/utils/adaptive.js';
 import { VisualEngine } from './modules/utils/visual-engine.js';
+import { IdentityShield } from './data/services/identity-service.js';
 
 // Initialize Visual Ecosystem
 VisualEngine.applyGlobalEcosystem();
@@ -16,7 +17,8 @@ VisualEngine.applyGlobalEcosystem();
 moduleRegistry.init();
 
 // The version is injected by Vite at build time (Core Shell Version)
-const APP_VERSION = "2.9.5";
+const APP_VERSION = "3.0.0";
+window.XolvyApp = { user: null, version: APP_VERSION };
 
 // --- XOLVY MODULAR: MICRO-MODULE ENGINE ---
 const dynamicModules = import.meta.glob('./modules/**/*.js');
@@ -28,7 +30,24 @@ async function loadModule(moduleName, basePath) {
 // Shell View Accessors
 const loadLogin = async () => (await loadModule('login', './modules/login.js')).renderLogin;
 const loadAdmin = async () => (await loadModule('admin', './modules/admin-dashboard.js')).renderAdminDashboard;
-const loadConductor = async () => (await loadModule('conductor', './modules/conductor-dashboard.js')).renderConductorDashboard;
+const loadConductor = async () => {
+    // ERROR 2 — Esperar a que Firebase Auth tenga usuario antes de cargar módulos
+    await new Promise((resolve) => {
+        if (auth.currentUser) { resolve(); return; }
+        const timeout = setTimeout(() => {
+            console.warn("⚠️ [Auth] Timeout en loadConductor — procediendo sin usuario");
+            resolve();
+        }, 3500);
+        const unsub = onAuthStateChanged(auth, (u) => {
+            if (u) {
+                clearTimeout(timeout);
+                unsub();
+                resolve();
+            }
+        });
+    });
+    return (await loadModule('conductor', './modules/conductor-dashboard.js')).renderConductorDashboard;
+};
 
 
 // --- DIFFUSION LISTENER ---
@@ -57,7 +76,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 1. App Loading State: Prevenir renderizado errático durante inicialización y checkeo asíncrono
     appContainer.innerHTML = `
-        <div class="flex flex-col items-center justify-center min-h-screen bg-slate-50 animate-fade-in">
+        <div class="flex flex-col items-center justify-center min-h-screen bg-slate-50 animate-fade-in" style="min-height: 100vh; min-height: 100dvh;">
             <div class="w-10 h-10 border-4 border-indigo-500/10 border-t-indigo-500 rounded-full animate-spin mx-auto mb-6 shadow-sm"></div>
             <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 animate-pulse">Verificando credenciales...</p>
         </div>
@@ -80,59 +99,137 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     const handleAuthChange = async (user) => {
+        // [FastBoot] Zero-Bounce Guard: Blindaje total contra rebotes al login selector.
+        const tieneSesionLocal = !!localStorage.getItem('xolvy_session');
+        const tieneSesionAdmin = localStorage.getItem('demo_role') === 'Administrador';
+
+        // CASE 1: No Authenticated User (Identity Shield Return Guard)
+        if (!user) {
+            if (window._authSuspended || window._adminAuthSuspended) return;
+
+            // Protection for Conductors
+            if (tieneSesionLocal) {
+                console.log("🚀 [FastBoot] Detectada sesión local de Conductor. Bloqueando redirección.");
+                if (!window.location.pathname.startsWith('/conductores') && !tieneSesionAdmin) {
+                    window.history.pushState({}, '', '/conductores');
+                    const session = JSON.parse(localStorage.getItem('xolvy_session'));
+                    
+                    // Identity Shield: Resolve identity before rendering content
+                    IdentityShield.resolveAndBindIdentity(session?.nombre || session?.email || 'Usuario').then(async (identity) => {
+                        const render = await loadConductor();
+                        render(appContainer, identity.nombreCanonico, APP_VERSION, 'Conductor');
+                    });
+                }
+                return; // CRITICAL: Stop execution here
+            }
+
+            // Protection for Admins (Correction 1)
+            if (tieneSesionAdmin) {
+                console.log("🛡️ [AdminGuard] Detectada intención Admin. Esperando inicialización de Auth...");
+                setTimeout(() => {
+                    if (!auth.currentUser) {
+                        console.log("⚠️ [AdminGuard] Sesión Admin no confirmada tras delay. Redirigiendo a Login.");
+                        localStorage.removeItem('demo_role');
+                        window.history.replaceState({}, '', '/login');
+                        loadLogin().then(render => render(appContainer, APP_VERSION));
+                    }
+                }, 1200); // 1.2s delay for safer initialization
+                return; // CRITICAL: Stop execution here
+            }
+
+            // Standard Login Fallback
+            window.XolvyApp.user = null;
+            const render = await loadLogin();
+            render(appContainer, APP_VERSION);
+            return; // CRITICAL: Stop execution here
+        }
+
+        // CASE 2: User exists
+        if (window._authSuspended || window._adminAuthSuspended) return;
+
         try {
             const contextPath = window.location.pathname;
             
-            if (user) {
-                console.log("💎 [Auth] Active User Session:", user.email);
-                
-                if (user.isAnonymous) {
-                    const storedRole = localStorage.getItem('demo_role');
-                    const storedName = localStorage.getItem('selected_conductor_name');
-                    if (storedRole === 'Conductor') {
-                        if (!contextPath.startsWith('/conductores')) window.history.replaceState({}, '', '/conductores');
-                        const render = await loadConductor();
-                        render(appContainer, storedName || 'Conductor', APP_VERSION, storedRole);
-                        return;
-                    }
-                }
-
-                const permisos = await getPermisosUsuario(user.email);
-                let role = permisos?.role || localStorage.getItem('demo_role');
-
-                if (!role) {
-                    appContainer.innerHTML = `
-                        <div class="flex flex-col items-center justify-center min-h-screen p-8 text-center animate-fade-in bg-gradient-to-br from-slate-50 via-white to-rose-50/30">
-                            <div class="w-20 h-20 bg-rose-500/10 text-rose-500 rounded-3xl flex items-center justify-center text-3xl mb-8 shadow-xl"><i class="fas fa-shield-alt"></i></div>
-                            <h2 class="text-2xl font-black text-slate-800 uppercase tracking-tight">Acceso Bloqueado</h2>
-                            <p class="text-slate-500 max-w-sm mt-4 font-bold text-sm">Tu cuenta no tiene permisos asignados.</p>
-                            <button onclick="location.href='/'" class="mt-10 bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black uppercase text-[10px]">Volver</button>
-                        </div>
-                    `;
+            console.log("💎 [Auth] Active User Session:", user.email);
+            
+            // 2.1 Anonymous Sessions (Conductor Demo)
+            if (user.isAnonymous) {
+                if (window._fastBootRendered) return;
+                const storedRole = localStorage.getItem('demo_role');
+                const storedName = localStorage.getItem('selected_conductor_name');
+                if (storedRole === 'Conductor') {
+                    if (!contextPath.startsWith('/conductores')) window.history.replaceState({}, '', '/conductores');
+                    
+                    // Identity Shield: Bind current UID with found profile
+                    await IdentityShield.resolveAndBindIdentity(storedName || 'Conductor');
+                    
+                    const render = await loadConductor();
+                    render(appContainer, window.XolvyApp.identity.nombreCanonico, APP_VERSION, storedRole);
+                    return;
+                } else {
+                    // Anonymous but no conductor role? Something is wrong, back to login.
+                    console.warn("⚠️ [Auth] Sesión anónima sin rol de Conductor. Redirigiendo.");
+                    await auth.signOut();
                     return;
                 }
+            }
 
-                const isAdmin = (role === 'Administrador' || role === 'SuperAdmin');
-                if (isAdmin && !window.location.pathname.startsWith('/conductores')) {
-                    const path = window.location.pathname;
-                    const subPath = path.split('/')[2] || 'dashboard';
-                    const urlToTab = { 'territorios': 'casa-en-casa', 'predicacion': 'predicacion', 'telefonos': 'telefonos', 'config': 'config' };
-                    const tabId = urlToTab[subPath] || 'dashboard';
-                    const render = await loadAdmin();
-                    render(appContainer, APP_VERSION, tabId);
-                } else {
-                    if (!window.location.pathname.startsWith('/conductores')) window.history.pushState({}, '', '/conductores');
-                    const render = await loadConductor();
-                    render(appContainer, user.email || 'Usuario', APP_VERSION, role);
+            // 2.2 Global Authorization (Firestore Gated)
+            // SIEMPRE verificar en Firestore — nunca confiar solo en el localStorage para Admin
+            const permisos = await getPermisosUsuario(user.email);
+            let role = permisos?.role; 
+
+            // Actualizar estado global
+            window.XolvyApp.user = {
+                uid: user.uid,
+                email: user.email,
+                nombre: permisos?.nombre || user.displayName || user.email,
+                role: role || 'Visitante'
+            };
+
+            if (!role) {
+                appContainer.innerHTML = `
+                    <div class="flex flex-col items-center justify-center min-h-screen p-8 text-center animate-fade-in bg-gradient-to-br from-slate-50 via-white to-rose-50/30" style="min-height: 100vh; min-height: 100dvh;">
+                        <div class="w-20 h-20 bg-rose-500/10 text-rose-500 rounded-3xl flex items-center justify-center text-3xl mb-8 shadow-xl"><i class="fas fa-shield-alt"></i></div>
+                        <h2 class="text-2xl font-black text-slate-800 uppercase tracking-tight">Acceso Bloqueado</h2>
+                        <p class="text-slate-500 max-w-sm mt-4 font-bold text-sm">Tu cuenta (${user.email}) no tiene permisos asignados.</p>
+                        <button onclick="localStorage.clear(); location.href='/'" class="mt-10 bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black uppercase text-[10px]">Cerrar Sesión</button>
+                    </div>
+                `;
+                return;
+            }
+
+            // 2.3 Dashboard Routing
+            const isAdmin = (role === 'Administrador' || role === 'SuperAdmin');
+            if (isAdmin) {
+                // CAMBIO 2: Limpiar sesión de Conductor al detectar Admin
+                localStorage.removeItem('xolvy_session');
+                localStorage.removeItem('selected_conductor_name');
+                localStorage.setItem('demo_role', 'Administrador');
+                
+                // CAMBIO 1: Eliminar "punto de fuga". Un Admin NUNCA ve el dashboard del Conductor.
+                if (window.location.pathname.startsWith('/conductores')) {
+                    console.log("🛡️ [Security] Admin intentó acceder a vista Conductor. Redirigiendo a raíz.");
+                    window.history.replaceState({}, '', '/'); 
                 }
+
+                const path = window.location.pathname;
+                const subPath = path.split('/')[2] || 'dashboard';
+                const urlToTab = { 'territorios': 'casa-en-casa', 'predicacion': 'predicacion', 'telefonos': 'telefonos', 'config': 'config' };
+                const tabId = urlToTab[subPath] || 'dashboard';
+                const render = await loadAdmin();
+                render(appContainer, APP_VERSION, tabId);
             } else {
-                const render = await loadLogin();
-                render(appContainer, APP_VERSION);
+                // Publicadores / Otros
+                if (!window.location.pathname.startsWith('/conductores')) window.history.pushState({}, '', '/conductores');
+                const render = await loadConductor();
+                render(appContainer, user.email || 'Usuario', APP_VERSION, role);
             }
         } catch (e) {
             console.error("🚀 [Boot] Error:", e);
         }
     };
+
 
     // Expose for seamless transitions
     window.switchToConductorView = () => {
@@ -242,8 +339,34 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.addEventListener('demo-login', async (e) => {
         const { email, role } = e.detail;
+        
         localStorage.setItem('demo_role', role);
         localStorage.setItem('selected_conductor_name', email);
-        await signInAnonymously(auth);
+        
+        // Identity Shield: Secure identity before rendering heavy modules
+        const identity = await IdentityShield.resolveAndBindIdentity(email);
+        
+        // Zero-Latency Execution: Enrutamiento en milisegundos ignorando latencia de red
+        window._fastBootRendered = true;
+        window.XolvyApp.user = { nombre: identity.nombreCanonico, email: email, role: 'Conductor' };
+        if (!window.location.pathname.startsWith('/conductores')) window.history.pushState({}, '', '/conductores');
+        
+        const render = await loadConductor();
+        render(appContainer, identity.nombreCanonico, APP_VERSION, role);
+    });
+
+    // CAMBIO 3: Listener Delegado Global para Logout de Conductor
+    document.addEventListener('click', async (e) => {
+        const btn = e.target.closest('#logout-btn');
+        if (btn && window.location.pathname.startsWith('/conductores')) {
+            console.log("👋 [Logout] Cerrando sesión de Conductor...");
+            localStorage.removeItem('xolvy_session');
+            localStorage.removeItem('selected_conductor_name');
+            localStorage.removeItem('demo_role');
+            
+            // Limpiar la URL y recargar para volver al Login puro
+            window.history.replaceState({}, '', '/conductores'); 
+            window.location.reload();
+        }
     });
 });

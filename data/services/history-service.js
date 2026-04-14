@@ -1,12 +1,36 @@
+/**
+ * @module history-service
+ * @description Servicio de historial de territorios (banco S-13 cronológico).
+ *              Gestiona el registro de asignaciones (logAssignment), entregas (logReturn),
+ *              edición/borrado de registros históricos, y consultas de reporte.
+ *              Fuente autoritativa: `banco_s13`.
+ *
+ * @layer Backend / Data Layer
+ * @depends firebase-config.js, base-service.js, audit-service.js, program-service.js
+ *
+ * @exports
+ *  - logAssignment()       → Registrar asignación en banco_s13 (con dedup)
+ *  - logReturn()           → Cerrar ciclo S-13 (fecha_entrega + bitacora)
+ *  - getHistorialReport()  → Todos los registros del banco S-13 (con caché)
+ *  - getTerritoryHistory() → Historial de un territorio específico
+ *  - addHistoryRecord()    → Agregar registro manual con sincronización al Visor
+ *  - updateHistoryRecord() → Editar registro con sincronización bidireccional al Maestro
+ *  - deleteHistoryRecord() → Borrar registro en banco_s13
+ */
 import { db } from '../../firebase-config.js';
 import { collection, query, where, getDocs, addDoc, getDoc, doc, writeBatch, orderBy, limit, Timestamp, runTransaction, deleteDoc } from "firebase/firestore";
 import { ServiceCache, fetchCached } from './base-service.js';
 import { saveAuditLog } from './audit-service.js';
 import { syncAssignmentToWeeklyProgram } from './program-service.js';
 
-const COL_BANCO_S13 = "banco_s13";
-const COL_BITACORA_OBS = "bitacora_observaciones";
-const COL_TERRITORIOS = "territorios";
+// ═══════════════════════════════════════════════════════════
+const COL_BANCO_S13    = "banco_s13";            // Fuente autoritativa S-13
+const COL_BITACORA_OBS = "bitacora_observaciones"; // Notas/observaciones de campo
+const COL_TERRITORIOS  = "territorios";           // Maestro de territorios
+
+// ═══════════════════════════════════════════════════════════
+// REGISTRO DE ASIGNACIÓN (Escritura S-13)
+// ═══════════════════════════════════════════════════════════
 
 export const logAssignment = async (territorioData, conductorName, details = {}) => {
     try {
