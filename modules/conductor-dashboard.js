@@ -8,7 +8,8 @@ import {
     getProgramaSemanal, saveProgramaSemanal, syncSlotWithTerritories, getTerritoryHistory,
     addPublicador,
     releaseUnusedTelefonos, solicitarNumeros, updateTelefonoStatus, logSessionSummary, releaseTelefonosById,
-    transferTerritory, takeTerritoryPartial, assignFreeTerritory,
+    finalizarSesionConCrm, getTelemetriaTelefonia,
+    transferTerritory, takeTerritoryPartial, assignFreeTerritory, admissionsToConductor,
     startLivePool, returnTerritorio, updateTerritorio, logReturn
 } from '../data/firestore-services.js';
 import { 
@@ -26,6 +27,7 @@ import { AppConfig } from './utils/config.js';
 
 import { UIHelpers, showModal, showCustomPrompt } from './services/ui-helpers.js';
 import { VisualEngine } from './utils/visual-engine.js';
+import { createAdaptiveLogo } from './utils/AdaptiveLogo.js';
 window.AppConfig = AppConfig;
 
 import { moduleRegistry } from './utils/module-registry.js';
@@ -41,6 +43,37 @@ async function loadSubModule(name, path) {
 
 
 // --- UTILS ---
+window.finalizarPredicacionTelefonia = async () => {
+    const changes = window.pendingPhoneChanges || {};
+    const ids = Object.keys(changes);
+    
+    try {
+        showNotification('Procesando Ciclo de Vida CRM...', 'info');
+        
+        const name = localStorage.getItem('selected_conductor_name');
+        
+        // Phase 1: Batch CRM Finalization
+        // This handles: Purgas, Enfriamiento, 3 Strikes, Masive Recycling and Session Reports
+        await finalizarSesionConCrm(name, changes);
+        
+        // Phase 2: Cleanup session owners for unused numbers
+        await releaseUnusedTelefonos(name, false, true);
+        
+        // 3. Clear memory local
+        window.pendingPhoneChanges = {};
+        
+        showNotification('Predicación finalizada y procesada por CRM', 'success');
+        
+        // 4. Refrescar vista
+        if (typeof window.refreshConductorView === 'function') {
+            await window.refreshConductorView(true);
+        }
+    } catch (e) {
+        console.error("Error al finalizar predicación CRM:", e);
+        showNotification('Error en procesamiento CRM', 'error');
+    }
+};
+
 window.viewMapFromReport = async (id) => {
     if (!id) return;
     showNotification("Cargando mapa interactivo...", "info");
@@ -386,7 +419,13 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 }
 
                 // ══════════════ MARQUESINA BANNER ══════════════
-                const bannerContainer = container.querySelector('#dynamic-banner-container');
+                // Inject Adaptive Logo
+        const logoContainer = container.querySelector('#conductor-logo-container');
+        if (logoContainer) {
+            logoContainer.appendChild(createAdaptiveLogo('h-8 w-auto md:h-12'));
+        }
+
+        const bannerContainer = container.querySelector('#dynamic-banner-container');
                 const bannerContent   = container.querySelector('#dynamic-banner-content');
 
                 if (bannerContainer && bannerContent) {
@@ -758,35 +797,32 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
         // UI Shell Injection (RESTAURACIÓN PREMIUM V2.5 - ORDEN ESTRICTO)
         container.innerHTML = `
-        <div class="h-screen w-full overflow-hidden p-3 md:p-6 lg:p-8 bg-slate-100 dark:bg-[#05070a] flex flex-col animate-fade-in" data-adaptive-container="true">
+        <div class="h-screen w-full overflow-hidden p-3 md:p-6 lg:p-8 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] bg-slate-100 dark:bg-[#05070a] flex flex-col animate-fade-in" data-adaptive-container="true">
             <!-- Xolvy Premium Shell 2027 -->
             <div id="main-conductor-shell" class="flex-1 w-full max-w-[1700px] mx-auto bg-white/80 dark:bg-[#0a0f18]/90 backdrop-blur-3xl rounded-[2.5rem] border border-white/10 shadow-2xl flex flex-col overflow-hidden relative floating-panel-shell">
                 
                 <!-- Deep Ambient Glows -->
                 <div class="absolute -top-24 -left-24 w-96 h-96 bg-indigo-500/15 blur-[120px] rounded-full pointer-events-none glow-ambient"></div>
                 <div class="absolute -bottom-24 -right-24 w-96 h-96 bg-teal-500/10 blur-[120px] rounded-full pointer-events-none glow-ambient"></div>
-
-                <!-- Main Scroll Container -->
-                <div class="flex-1 overflow-y-auto custom-scrollbar relative z-10">
                     
-                    <!-- 1. HEADER (Inside Shell) -->
-                    <header class="sticky top-0 z-50 bg-white/40 dark:bg-black/40 backdrop-blur-2xl border-b border-slate-200/50 dark:border-white/5 px-6 md:px-12 py-6 md:py-8 flex flex-col md:flex-row items-center justify-between gap-6">
-                        <div class="flex items-center gap-4 md:gap-6 relative z-10 w-full md:w-auto">
-                            <div class="w-14 h-14 md:w-18 md:h-18 bg-gradient-to-br from-indigo-600 to-teal-500 rounded-[2rem] flex items-center justify-center text-white shadow-2xl shadow-indigo-500/30 transform hover:rotate-3 transition-transform duration-500">
-                                <i class="fas fa-id-card text-2xl"></i>
-                            </div>
-                            <div>
-                                <h2 class="text-2xl md:text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter leading-none">
-                                    Hola, ${displayName.split(' ')[0]}
-                                </h2>
-                                <div class="flex items-center gap-2 mt-2">
-                                     <div class="px-3 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-lg text-[9px] font-black uppercase tracking-widest flex items-center gap-2">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                        Conectado
-                                     </div>
-                                </div>
+                <!-- 1. HEADER (Outside Scroll Container) -->
+                <header class="shrink-0 z-50 bg-white/40 dark:bg-[#0a0f18]/80 backdrop-blur-2xl border-b border-slate-200/50 dark:border-white/5 px-6 md:px-12 py-6 md:py-8 flex flex-col md:flex-row items-center justify-between gap-6 relative">
+                    <div class="flex items-center gap-4 md:gap-6 relative z-10 w-full md:w-auto">
+                        <div id="conductor-logo-container" class="w-14 h-14 md:w-18 md:h-18 bg-white dark:bg-white/5 rounded-[2rem] flex items-center justify-center shadow-2xl transition-transform duration-500 hover:rotate-3 overflow-hidden">
+                            <!-- Logo will be injected here -->
+                        </div>
+                        <div>
+                            <h2 class="text-2xl md:text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter leading-none">
+                                Hola, ${displayName.split(' ')[0]}
+                            </h2>
+                            <div class="flex items-center gap-2 mt-2">
+                                 <div class="px-3 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-lg text-[9px] font-black uppercase tracking-widest flex items-center gap-2">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    Conectado
+                                 </div>
                             </div>
                         </div>
+                    </div>
 
                         <!-- Dynamic Banner (Diffusion) -->
                         <div id="dynamic-banner-container" class="hidden lg:flex flex-1 justify-center items-center px-8 overflow-hidden pointer-events-none min-w-0">
@@ -799,10 +835,11 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                         </div>
 
                         <div class="flex items-center justify-end gap-3 w-full md:w-auto relative">
-                            <div class="hidden sm:flex flex-col items-center bg-white/50 dark:bg-white/5 px-6 py-2 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm shrink-0">
-                                <span class="text-[7px] font-black text-slate-400 uppercase tracking-[0.2em] mb-0.5">Versión</span>
-                                <span class="text-[9px] font-black text-slate-800 dark:text-white tracking-widest uppercase tabular-nums">${appVersion}</span>
-                            </div>
+                            ${['Administrador', 'SuperAdmin'].includes(window.XolvyApp?.user?.role) ? `
+                                <button onclick="window.history.pushState({}, '', '/'); location.reload();" class="flex items-center gap-2 bg-slate-800 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-700 transition-all shadow-lg active:scale-95">
+                                    <i class="fas fa-shield-alt"></i> Volver a Admin
+                                </button>
+                            ` : ''}
 
                             <div class="flex items-center gap-4 bg-white/50 dark:bg-white/5 px-5 py-3 rounded-2xl border border-slate-200 dark:border-white/10 shadow-inner">
                                 <button onclick="window.toggleTheme(); window.refreshConductorView();" class="text-slate-500 hover:text-indigo-500 transition-all active:scale-75 outline-none">
@@ -811,11 +848,14 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                 </button>
                             </div>
 
-                            <button id="logout-btn" class="flex-1 lg:flex-none bg-rose-500/10 hover:bg-rose-600 text-rose-600 hover:text-white px-8 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest border border-rose-500/20 shadow-xl shadow-rose-500/5 transition-all active:scale-95 flex items-center gap-3">
+                            <button id="logout-btn" class="btn-pro flex-1 lg:flex-none bg-rose-500/10 hover:bg-rose-600 text-rose-600 hover:text-white px-8 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest border border-rose-500/20 shadow-xl shadow-rose-500/5 transition-all active:scale-95 flex items-center justify-center gap-3">
                                 <i class="fas fa-power-off"></i> Salir
                             </button>
                         </div>
                     </header>
+
+                <!-- Main Scroll Container -->
+                <div class="flex-1 overflow-y-auto custom-scrollbar relative z-10">
 
                     <!-- Page Content Wrapper -->
                     <div class="flex flex-col gap-24 px-6 md:px-12 py-12 pb-48">
@@ -828,7 +868,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                         <i class="fas fa-bolt"></i>
                                     </div>
                                     <div>
-                                        <h3 class="text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Mi Agenda S-13</h3>
+                                        <h3 class="text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Agenda Inteligente</h3>
                                         <p class="text-[11px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1.5 opacity-80">Asignaciones prioritarias de la semana</p>
                                     </div>
                                 </div>
@@ -839,7 +879,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                         </div>
 
                         <!-- 3. PROGRAMA SEMANAL -->
-                        <div id="programa-semanal-section" class="premium-card !p-0 overflow-hidden">
+                        <div id="programa-semanal-section" class="modern-card !p-0 overflow-hidden">
                             <details id="details-programa" class="group/prog-details">
                                 <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-10 cursor-pointer list-none select-none hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors border-b border-transparent group-open/prog-details:border-slate-100 dark:group-open/prog-details:border-white/5 relative">
                                     <div class="flex items-start gap-8 relative z-10 w-full md:w-auto">
@@ -854,8 +894,13 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                             <p class="text-[11px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1.5 opacity-80">Puntos de reunión y roles generales</p>
                                         </div>
                                     </div>
-                                    <div id="prog-week-range" class="mt-4 md:mt-0 px-6 py-2 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl text-[10px] font-black uppercase tracking-widest border border-indigo-500/10">
-                                        Cargando...
+                                    <div class="flex items-center gap-2 mt-4 md:mt-0">
+                                        <div id="prog-week-range" class="px-6 py-2 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl text-[10px] font-black uppercase tracking-widest border border-indigo-500/10">
+                                            Cargando...
+                                        </div>
+                                        <button id="prog-btn-today" class="px-5 py-2 bg-emerald-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 active:scale-95 transition-all hover:bg-emerald-600">
+                                            HOY
+                                        </button>
                                     </div>
                                 </summary>
                                 <div class="p-8 space-y-10 animate-fade-in group-open/prog-details:block hidden">
@@ -868,19 +913,10 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                             </details>
                         </div>
 
-                        <!-- 4. MISIONES DE RESCATE -->
-                        <div id="rescue-module-section" class="premium-card p-10">
-                            <div class="flex items-center gap-6 mb-8 px-2">
-                                 <div class="w-14 h-14 rounded-2xl bg-indigo-600/10 flex items-center justify-center text-2xl text-indigo-600">
-                                     <i class="fas fa-rocket"></i>
-                                 </div>
-                                 <h3 class="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Misiones de Rescate</h3>
-                            </div>
-                            <div id="ayudas-container"></div>
-                        </div>
+                        <!-- 4. MISIONES DE RESCATE (REMOVED) -->
 
                         <!-- 5. MI DISPONIBILIDAD -->
-                        <div id="availability-section" class="premium-card !p-0 overflow-hidden">
+                        <div id="availability-section" class="modern-card !p-0 overflow-hidden">
                              <details id="details-availability" class="group/avail-details">
                                  <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-10 cursor-pointer list-none select-none hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors border-b border-transparent group-open/avail-details:border-slate-100 dark:group-open/avail-details:border-white/5 relative">
                                     <div class="flex items-start gap-8 relative z-10 w-full md:w-auto">
@@ -901,13 +937,13 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                         </div>
 
                         <!-- 6. PREDICACIÓN TELEFÓNICA -->
-                        <div id="phone-module-card" class="premium-card p-10">
+                        <div id="phone-module-card" class="modern-card p-6 md:p-10">
                             <div class="flex flex-col lg:flex-row justify-between items-center gap-6 mb-8">
                                 <div class="flex items-center gap-4">
                                     <div class="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg text-2xl">
                                         <i class="fas fa-phone-alt"></i>
                                     </div>
-                                    <h3 class="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Campaña Telefónica</h3>
+                                    <h3 class="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Predicación Telefónica</h3>
                                 </div>
                             </div>
 
@@ -919,7 +955,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                    <h3 class="text-2xl font-black text-slate-800 dark:text-white mb-4 uppercase tracking-tighter">¿Listo para Predicar?</h3>
                                    <p class="text-slate-500 dark:text-slate-400 max-w-md mx-auto mb-10 font-bold text-xs uppercase tracking-widest opacity-60">Inicia tu sesión de hoy para ver tus números asignados.</p>
                                    <div class="flex flex-wrap justify-center gap-4" id="phone-actions-container">
-                                       <button id="btn-solicitar" class="bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white px-8 py-4 rounded-2xl font-black shadow-lg shadow-indigo-600/20 transition-all active:scale-95 flex items-center gap-3 uppercase tracking-widest text-[10px]">
+                                       <button id="btn-solicitar" class="btn-pro bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white px-8 py-4 rounded-2xl font-black shadow-lg shadow-indigo-600/20 transition-all active:scale-95 flex items-center gap-3 uppercase tracking-widest text-[10px]">
                                            <i class="fas fa-rocket text-base"></i> Solicitar Números
                                        </button>
                                    </div>
@@ -942,36 +978,50 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                         <tbody id="phone-tbody" class="divide-y divide-slate-50 dark:divide-white/5"></tbody>
                                     </table>
                                 </div>
+
+                                <div class="mt-10 pt-10 border-t border-slate-100 dark:border-white/5 flex justify-end">
+                                    <button id="btn-finalizar-telefonos" onclick="window.finalizarPredicacionTelefonia()" class="btn-pro bg-emerald-500 hover:bg-emerald-600 text-white px-10 py-5 rounded-[2rem] font-black text-[12px] uppercase tracking-[0.2em] shadow-2xl shadow-emerald-500/30 transition-all active:scale-95 flex items-center gap-4 group">
+                                        <i class="fas fa-check-double text-lg group-hover:rotate-12 transition-transform"></i>
+                                        Finalizar Predicación
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
                         <!-- 7. EXPLORADOR DE MAPAS -->
-                        <div id="interactive-maps-module" class="premium-card p-10">
-                            <div class="flex flex-col md:flex-row justify-between items-center gap-8 mb-10">
-                                <div class="flex items-center gap-4">
-                                    <div class="w-14 h-14 bg-emerald-500 rounded-2xl flex items-center justify-center text-white shadow-lg text-2xl">
-                                        <i class="fas fa-map-marked-alt"></i>
+                        <div id="interactive-maps-module" class="modern-card !p-0 overflow-hidden">
+                             <details id="details-maps" class="group/maps-details">
+                                 <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-10 cursor-pointer list-none select-none hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors border-b border-transparent group-open/maps-details:border-slate-100 dark:group-open/maps-details:border-white/5 relative">
+                                    <div class="flex items-start gap-8 relative z-10 w-full md:w-auto">
+                                        <div class="w-16 h-16 rounded-[1.5rem] bg-emerald-500/10 flex items-center justify-center text-3xl text-emerald-500 shadow-inner border border-emerald-500/10 group-open/maps-details:rotate-6 transition-transform">
+                                            <i class="fas fa-map-marked-alt"></i>
+                                        </div>
+                                        <div class="flex-1">
+                                            <div class="flex items-center gap-4">
+                                                <h3 class="text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Explorador de Mapas</h3>
+                                                <i class="fas fa-chevron-down text-sm text-slate-400 group-open/maps-details:rotate-180 transition-transform"></i>
+                                            </div>
+                                            <p class="text-[11px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1.5 opacity-80">Busca cualquier sector al instante</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h3 class="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Explorador de Mapas</h3>
-                                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Busca cualquier sector al instante</p>
-                                    </div>
-                                </div>
-                                <div class="w-full md:w-auto relative">
-                                    <i class="fas fa-search absolute left-6 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                                    <input type="text" id="search-explorer-maps" placeholder="BUSCAR TERRITORIO..." class="w-full md:w-80 bg-slate-100 dark:bg-white/5 border-none rounded-2xl py-4 pl-14 pr-6 text-[11px] font-black uppercase tracking-widest outline-none focus:ring-2 focus:ring-emerald-500 transition-all">
-                                </div>
-                            </div>
-                            <div id="conductor-maps-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+                                 </summary>
+                                 <div class="p-8 animate-fade-in group-open/maps-details:block hidden space-y-8">
+                                     <div class="w-full relative">
+                                         <i class="fas fa-search absolute left-6 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                         <input type="text" id="search-explorer-maps" placeholder="BUSCAR TERRITORIO..." class="input-premium !py-4 !pl-14 !pr-6 text-[11px] uppercase tracking-widest bg-white dark:bg-slate-900 dark:text-white dark:border-white/10 w-full">
+                                     </div>
+                                     <div id="conductor-maps-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+                                 </div>
+                             </details>
                         </div>
 
                         <!-- 8. AYUDAS MINISTERIO -->
-                        <div id="recursos-container-section" class="premium-card p-10">
+                        <div id="recursos-container-section" class="modern-card p-6 md:p-10">
                             <div class="flex items-center gap-6 mb-8 px-2">
                                  <div class="w-14 h-14 rounded-2xl bg-amber-500/10 flex items-center justify-center text-2xl text-amber-500">
                                      <i class="fas fa-hands-helping"></i>
                                  </div>
-                                 <h3 class="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Ayudas para el Ministerio</h3>
+                                 <h3 class="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Recursos del Ministerio</h3>
                             </div>
                             <div id="recursos-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
                         </div>
@@ -979,11 +1029,15 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 </div>
 
                 <div id="phone-floating-actions" class="absolute bottom-10 right-10 hidden flex-col gap-3 z-[99999] animate-slide-up pointer-events-none">
-                    <button id="btn-solicitar-more-float" class="w-12 h-12 bg-emerald-500 hover:bg-emerald-400 text-white rounded-2xl shadow-xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all outline-none border-2 border-white dark:border-slate-900 pointer-events-auto text-sm" title="Solicitar más"><i class="fas fa-plus"></i></button>
-                    <button id="btn-finalizar-float" class="w-12 h-12 bg-rose-500 hover:bg-rose-400 text-white rounded-2xl shadow-xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all outline-none border-2 border-white dark:border-slate-900 pointer-events-auto text-sm" title="Finalizar Sesión"><i class="fas fa-power-off"></i></button>
+                    <button id="btn-solicitar-more-float" class="btn-pro w-12 h-12 bg-emerald-500 hover:bg-emerald-400 text-white rounded-2xl shadow-xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all outline-none border-2 border-white dark:border-slate-900 pointer-events-auto text-sm" title="Solicitar más"><i class="fas fa-plus"></i></button>
+                    <button id="btn-finalizar-float" class="btn-pro w-12 h-12 bg-rose-500 hover:bg-rose-400 text-white rounded-2xl shadow-xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all outline-none border-2 border-white dark:border-slate-900 pointer-events-auto text-sm" title="Finalizar Sesión"><i class="fas fa-power-off"></i></button>
                 </div>
             </div>
         </div>
+
+        <!-- Global Modal Containers -->
+        <div id="modal-container" class="fixed inset-0 bg-slate-950/40 backdrop-blur-sm hidden overflow-y-auto z-[100] p-4 flex justify-center items-center transition-all duration-300"></div>
+        <div id="modal-container-nested" class="fixed inset-0 bg-slate-950/60 backdrop-blur-md hidden overflow-y-auto z-[500] p-4 flex justify-center items-center transition-all duration-300"></div>
         `;
 
         // UI Initialization (Synchronous DOM guarantee)
@@ -1054,7 +1108,10 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
             };
         }
         
-        console.log("🎨 [Dashboard] Lifecycle: loadUnifiedDashboard rendering...");
+        // OPTIMIZACIÓN: Si el esqueleto ya está inyectado, no lo borres todo.
+        const isShellInjected = !!container.querySelector('#conductor-shell-root');
+        
+        console.log(`🎨 [Dashboard] Lifecycle: loadUnifiedDashboard ${isShellInjected ? 'updating data only' : 'rendering full shell'}...`);
 
         try {
             const allTerritorios = poolData?.territorios || [];
@@ -1264,13 +1321,13 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                             </button>
                                         </div>
                                     ` : `
-                                        <div class="px-5 py-8 bg-slate-50 dark:bg-white/[0.03] rounded-3xl border-2 border-dashed border-slate-200 dark:border-white/10 text-center space-y-3">
-                                            <div class="w-16 h-16 rounded-2xl bg-white dark:bg-slate-800 mx-auto flex items-center justify-center text-primary text-2xl shadow-sm">
+                                        <div class="px-5 py-8 bg-slate-50 dark:bg-slate-900 rounded-3xl border-2 border-dashed border-slate-200 dark:border-white/10 text-center space-y-3">
+                                            <div class="w-16 h-16 rounded-2xl bg-white dark:bg-[#0a0f18] mx-auto flex items-center justify-center text-primary text-2xl shadow-sm border border-transparent dark:border-white/5">
                                                 <i class="fas ${a.faceta === 'Telefónica' ? 'fa-phone-alt' : (a.faceta === 'Cartas' ? 'fa-envelope-open-text' : 'fa-bullhorn')}"></i>
                                             </div>
                                             <div>
                                                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 opacity-60">Actividad Especial</p>
-                                                <p class="text-xl font-black text-primary uppercase tracking-tighter">${a.faceta}</p>
+                                                <p class="text-xl font-black text-primary dark:text-indigo-400 uppercase tracking-tighter">${a.faceta}</p>
                                             </div>
                                         </div>
                                     `}
@@ -1336,25 +1393,9 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
             if (userModsEffectivos.disponibilidad !== false && mAvail?.renderAvailabilitySection) {
                 mAvail.renderAvailabilitySection(document.getElementById('availability-container'), name);
             }
-            if (userModsEffectivos.rescue !== false && mRescue?.renderRescueMissions) {
-                mRescue.renderRescueMissions(allTerritorios, normalizedName, myExtraMissions, rescueCandidates, totalMissionCount); 
-                const rescueContainer = document.getElementById('ayudas-container');
-                if (rescueContainer) {
-                    rescueContainer.innerHTML = `
-                        <div class="flex flex-col md:flex-row items-center justify-between p-8 bg-slate-50 dark:bg-black/20 rounded-2xl gap-6 border border-slate-100 dark:border-white/5">
-                            <div class="text-center md:text-left">
-                                <h4 class="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">Territorios Pendientes</h4>
-                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Colabora con otros grupos de predicación</p>
-                            </div>
-                            <button onclick="window.showRescueMissionsModal()" class="px-8 py-4 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-600/20 active:scale-95 transition-all flex items-center gap-3">
-                                <i class="fas fa-rocket"></i> Ver Disponibles ${totalMissionCount > 0 ? `<span class="bg-white/20 px-2 py-0.5 rounded-lg ml-1 font-black">${totalMissionCount}</span>` : ''}
-                            </button>
-                        </div>
-                    `;
-                }
-            }
-            // Teléfono logic removed from here to fix ReferenceError: myPhones is not defined.
-            // Initialization is now handled in refreshConductorView.
+            // 6. AYUDAS & RELEVOS (Removido por solicitud del usuario)
+            
+            // 8. RECURSOS DEL MINISTERIO
             if (userModsEffectivos.ayudas !== false && mRec?.renderRecursosSection) {
                 mRec.renderRecursosSection(document.getElementById('recursos-container'));
             }
@@ -1390,4 +1431,3 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
 
 // End of conductor-dashboard.js
-

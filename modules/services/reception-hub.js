@@ -1,4 +1,4 @@
-import { startLivePool, returnTerritorio, updateTerritorio } from '../../data/firestore-services.js';
+import { startLivePool, returnTerritorio, updateTerritorio, returnTerritorioParcial } from '../../data/firestore-services.js';
 import { showNotification } from '../utils/helpers.js';
 import { where } from "firebase/firestore";
 
@@ -22,7 +22,7 @@ export class ReceptionHub {
 
         this.unsubscribe = null;
         this.territories = [];
-        this.selections = {}; // Estado temporal: { [tId]: { isFull: bool, manzanas: [], notes: '', conductorFinal: string } }
+        this.selections = {}; // Estado temporal: { [tId]: { mode: 'full'|'partial'|'return', manzanas: [], notes: '', conductorFinal: string } }
         this.conductores = [];
     }
 
@@ -92,14 +92,14 @@ export class ReceptionHub {
 
         modal.innerHTML = `
             <div class="bg-white dark:bg-[#0b0e14] rounded-[20px] w-full max-w-[500px] max-h-[88vh] flex flex-col shadow-2xl overflow-hidden animate-slide-up border border-slate-200 dark:border-white/10">
-                <header class="p-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between shrink-0 bg-white dark:bg-slate-900">
+                <header class="p-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between shrink-0 bg-slate-50 dark:bg-slate-900">
                     <div class="flex items-center gap-4">
                         <div class="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-500 text-lg">
                             <i class="fas ${this.viewMode === 'admin' ? 'fa-id-card' : 'fa-truck-active'}"></i>
                         </div>
                         <div>
                             <h3 class="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter leading-none">${this.viewMode === 'admin' ? 'Gestión HUB' : 'Mis Entregas'}</h3>
-                            <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">Live Pool S-13</p>
+                            <p class="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mt-1">Live Pool S-13</p>
                         </div>
                     </div>
                     <button onclick="ReceptionHub.closeModal()" class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 text-slate-400 transition-all active:scale-90">
@@ -111,17 +111,13 @@ export class ReceptionHub {
                     <!-- Contenido dinámico -->
                 </div>
 
-                <footer class="p-6 border-t border-slate-100 dark:border-white/5 flex gap-4 shrink-0 bg-white dark:bg-slate-900">
-                    <button onclick="ReceptionHub.closeModal()" class="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-rose-500 transition-all">Regresar</button>
-                    <button id="reception-hub-confirm" class="flex-[3] py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-500/20 transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none">
-                        Finalizar Actividad
-                    </button>
+                <footer class="p-6 border-t border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-slate-900 flex justify-center">
+                    <button onclick="ReceptionHub.closeModal()" class="w-full py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:text-rose-500 transition-all">Regresar al Panel</button>
                 </footer>
             </div>
         `;
 
         document.body.appendChild(modal);
-        modal.querySelector('#reception-hub-confirm').onclick = () => this.confirmar();
     }
 
     /**
@@ -195,7 +191,7 @@ export class ReceptionHub {
     renderCard(t, preSelectedId) {
         if (!this.selections[t.id]) {
             this.selections[t.id] = {
-                isFull: t.id === preSelectedId,
+                mode: t.id === preSelectedId ? 'full' : 'partial',
                 manzanas: [],
                 notes: '',
                 conductorFinal: t.asignado_a || ''
@@ -207,7 +203,7 @@ export class ReceptionHub {
         const isAdminMode = this.viewMode === 'admin';
 
         return `
-            <div class="modern-card p-6 border-slate-200 dark:border-white/10 space-y-5 bg-white dark:bg-white/[0.03] animate-fade-in" data-id="${t.id}">
+            <div class="modern-card territory-item-card p-6 border-slate-200 dark:border-white/10 space-y-5 bg-white dark:bg-white/[0.03] animate-fade-in" data-id="${t.id}" data-manzanas="${t.manzanas || ''}">
                 <div class="flex items-center gap-4">
                     <div class="w-10 h-10 bg-emerald-500 text-white rounded-xl flex items-center justify-center font-black text-xs shadow-lg shadow-emerald-500/20 shrink-0">
                         ${t.numero}
@@ -218,21 +214,24 @@ export class ReceptionHub {
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-2">
-                    <button class="mode-btn flex items-center justify-center gap-2 py-3 px-1 rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all ${sel.isFull ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/10' : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-400'}" data-mode="full">
-                        <i class="fas fa-check-double rotate-3 transition-transform"></i> Entrega Total
+                <div class="grid grid-cols-3 gap-2">
+                    <button class="mode-btn flex flex-col items-center justify-center gap-1 py-3 px-1 rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all ${sel.mode === 'full' ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400'}" data-mode="full">
+                        <i class="fas fa-check-double"></i> Total
                     </button>
-                    <button class="mode-btn flex items-center justify-center gap-2 py-3 px-1 rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all ${!sel.isFull ? 'bg-amber-500 border-amber-500 text-white shadow-lg shadow-amber-500/10' : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-400'}" data-mode="partial">
-                        <i class="fas fa-scissors -rotate-3 transition-transform"></i> Parcial
+                    <button class="mode-btn flex flex-col items-center justify-center gap-1 py-3 px-1 rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all ${sel.mode === 'partial' ? 'bg-amber-500 border-amber-500 text-white shadow-lg shadow-amber-500/20' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400'}" data-mode="partial">
+                        <i class="fas fa-scissors"></i> Parcial
+                    </button>
+                    <button class="mode-btn flex flex-col items-center justify-center gap-1 py-3 px-1 rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all ${sel.mode === 'return' ? 'bg-rose-500 border-rose-500 text-white shadow-lg shadow-rose-500/20' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400'}" data-mode="return">
+                        <i class="fas fa-undo"></i> Devolver
                     </button>
                 </div>
 
-                ${!sel.isFull ? `
+                ${sel.mode === 'partial' ? `
                     <div class="animate-fade-in space-y-3">
-                        <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Manzanas cerradas:</label>
+                        <label class="text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Manzanas cerradas:</label>
                         <div class="flex flex-wrap gap-2">
                             ${mzs.map(m => `
-                                <button class="mz-chip px-3 py-2 rounded-lg border text-[10px] font-bold ${sel.manzanas.includes(m) ? 'bg-amber-500 border-amber-500 text-white' : 'bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/5 text-slate-500'}" data-val="${m}">
+                                <button class="mz-chip px-3 py-2 rounded-lg border text-[10px] font-bold ${sel.manzanas.includes(m) ? 'bg-amber-500 border-amber-500 text-white' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/5 text-slate-600 dark:text-slate-400'}" data-val="${m}">
                                     ${m}
                                 </button>
                             `).join('')}
@@ -241,9 +240,15 @@ export class ReceptionHub {
                 ` : ''}
 
                 <div class="space-y-4 pt-1">
+                    ${sel.mode === 'return' ? `
+                    <div class="bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-xl px-4 py-3 flex items-center gap-3">
+                        <i class="fas fa-info-circle text-rose-500 text-sm shrink-0"></i>
+                        <p class="text-[9px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest leading-relaxed">El territorio volverá al pozo sin actualizar fechas de predicación.</p>
+                    </div>
+                    ` : ''}
                     <div class="space-y-2">
-                        <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Responsable de Entrega (S-13)</label>
-                        <select class="conductor-final w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 p-4 rounded-xl text-[11px] font-bold text-slate-700 dark:text-white outline-none focus:border-emerald-500/40 transition-all ${isAdminMode ? 'cursor-pointer' : 'opacity-60 bg-slate-100 cursor-not-allowed'}" 
+                        <label class="text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 block">Responsable de Entrega (S-13)</label>
+                        <select class="conductor-final w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 p-4 rounded-xl text-[11px] font-bold text-slate-700 dark:text-white outline-none focus:border-emerald-500/40 transition-all ${isAdminMode ? 'cursor-pointer' : 'opacity-60 bg-slate-100 dark:bg-white/5 cursor-not-allowed'}" 
                                 ${isAdminMode ? '' : 'disabled'}>
                             <option value="">Seleccionar...</option>
                             ${this.conductores.map(c => `
@@ -254,9 +259,13 @@ export class ReceptionHub {
                     </div>
 
                     <div class="space-y-2">
-                        <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Notas / Observaciones</label>
-                        <textarea class="note-input w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 p-4 rounded-2xl text-[11px] font-medium text-slate-700 dark:text-white outline-none focus:border-emerald-500/40 transition-all resize-none" rows="2" placeholder="Escribe aquí novedades relevantes...">${sel.notes}</textarea>
+                        <label class="text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 block">Notas / Observaciones</label>
+                        <textarea class="note-input w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 p-4 rounded-2xl text-[11px] font-medium text-slate-700 dark:text-white outline-none focus:border-emerald-500/40 transition-all resize-none" rows="2" placeholder="Escribe aquí novedades relevantes...">${sel.notes}</textarea>
                     </div>
+
+                    <button class="btn-process-single w-full mt-5 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-500/20 transition-all active:scale-95 flex items-center justify-center gap-2" data-tid="${t.id}">
+                        <i class="fas fa-check-circle"></i> Confirmar T-${t.numero}
+                    </button>
                 </div>
             </div>
         `;
@@ -269,16 +278,18 @@ export class ReceptionHub {
         const list = document.getElementById('reception-hub-list');
         if (!list) return;
 
-        list.querySelectorAll('.modern-card').forEach(card => {
+        list.querySelectorAll('.territory-item-card').forEach(card => {
             const id = card.dataset.id;
 
+            // --- 1. SELECCIÓN DE MODO ---
             card.querySelectorAll('.mode-btn').forEach(btn => {
                 btn.onclick = () => {
-                    this.selections[id].isFull = btn.dataset.mode === 'full';
+                    this.selections[id].mode = btn.dataset.mode;
                     this.renderList();
                 };
             });
 
+            // --- 2. SELECCIÓN DE MANZANAS (MODO PARCIAL) ---
             card.querySelectorAll('.mz-chip').forEach(chip => {
                 chip.onclick = () => {
                     const val = chip.dataset.val;
@@ -289,14 +300,72 @@ export class ReceptionHub {
                 };
             });
 
+            // --- 3. INPUTS DE TEXTO ---
             const textarea = card.querySelector('.note-input');
             textarea.oninput = (e) => {
                 this.selections[id].notes = e.target.value;
             };
 
             const inputConductor = card.querySelector('.conductor-final');
-            inputConductor.onchange = (e) => {
-                this.selections[id].conductorFinal = e.target.value;
+            if (inputConductor) {
+                inputConductor.onchange = (e) => {
+                    this.selections[id].conductorFinal = e.target.value;
+                };
+            }
+
+            // --- 4. PROCESAMIENTO INDIVIDUAL (Optimistic UI) ---
+            const processBtn = card.querySelector('.btn-process-single');
+            processBtn.onclick = async () => {
+                const tid = processBtn.dataset.tid;
+                processBtn.disabled = true;
+                processBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> PROCESANDO...';
+
+                try {
+                    const sel = this.selections[tid];
+                    const t = this.territories.find(x => x.id === tid);
+                    if (!t) return;
+
+                    const mode = sel.mode;
+                    const notas = sel.notes || '';
+                    const responsable = sel.conductorFinal || window.XolvyApp?.identity?.nombreCanonico || 'Anónimo';
+                    const date = new Date().toISOString().split('T')[0];
+
+                    if (mode === 'partial') {
+                        const checksMz = sel.manzanas;
+                        const originalMzs = card.dataset.manzanas ? card.dataset.manzanas.split(',').map(m => m.trim()) : [];
+                        const remaining = originalMzs.filter(x => !checksMz.includes(x));
+                        
+                        if (checksMz.length === 0) throw new Error("Selecciona al menos una manzana.");
+                        await returnTerritorioParcial(tid, checksMz, remaining, true, notas || 'Avance parcial', date, null, responsable);
+                        window.dispatchEvent(new CustomEvent('territorio-actualizado', { detail: { id: tid, numero: t.numero } }));
+                    } else if (mode === 'return') {
+                        await returnTerritorio(tid, notas || 'Devuelto sin predicar', null, 'Disponible');
+                        window.dispatchEvent(new CustomEvent('territorio-liberado', { detail: { id: tid, numero: t.numero } }));
+                    } else {
+                        await returnTerritorio(tid, notas || 'Completado', date, 'Completado', null, responsable);
+                        window.dispatchEvent(new CustomEvent('territorio-liberado', { detail: { id: tid, numero: t.numero } }));
+                    }
+
+                    // Optimistic UI: Desaparecer la tarjeta con animación
+                    card.style.transition = 'all 0.4s ease';
+                    card.style.opacity = '0';
+                    card.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        card.remove();
+                        showNotification('Territorio actualizado correctamente', 'success');
+                        
+                        // Si ya no hay tarjetas, cerrar el modal automáticamente
+                        if (document.querySelectorAll('.territory-item-card').length === 0) {
+                            this.closeModal();
+                        }
+                    }, 400);
+
+                } catch (error) {
+                    console.error(error);
+                    showNotification(error.message || "Error al procesar", "error");
+                    processBtn.disabled = false;
+                    processBtn.innerHTML = '<i class="fas fa-check-circle"></i> REINTENTAR';
+                }
             };
         });
     }
@@ -321,51 +390,7 @@ export class ReceptionHub {
         if (runningHubInstance) runningHubInstance.closeModal();
     }
 
-    /**
-     * Ejecuta la confirmación atómica.
-     */
-    async confirmar() {
-        const idsToProcess = Object.keys(this.selections).filter(id => {
-            const s = this.selections[id];
-            return s.isFull || s.manzanas.length > 0 || s.notes.trim().length > 0;
-        });
 
-        if (idsToProcess.length === 0) return showNotification("No has seleccionado ninguna acción", "warning");
-
-        const btn = document.getElementById('reception-hub-confirm');
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Procesando S-13...';
-
-        try {
-            for (const id of idsToProcess) {
-                const sel = this.selections[id];
-                const t = this.territories.find(x => x.id === id);
-                if (!t) continue;
-
-                if (sel.isFull) {
-                    await returnTerritorio(id, sel.notes || "Entrega de territorio informada", null, 'Completado', null, sel.conductorFinal);
-                    window.dispatchEvent(new CustomEvent('territorio-liberado', { detail: { id, numero: t.numero } }));
-                } else {
-                    await updateTerritorio(id, {
-                        manzanas_trabajadas: sel.manzanas,
-                        notas_parciales: sel.notes,
-                        ultima_actualizacion: new Date().toISOString()
-                    });
-                }
-            }
-
-            showNotification(`¡Todo listo! Se informaron ${idsToProcess.length} actividades correctamente.`, "success");
-            this.closeModal();
-            if (window.refreshConductorView) window.refreshConductorView(true);
-            if (window.renderTableCallback) window.renderTableCallback();
-
-        } catch (e) {
-            console.error("ReceptionHub Error:", e);
-            showNotification("Error al procesar: " + e.message, "error");
-            btn.disabled = false;
-            btn.innerHTML = 'Finalizar Actividad';
-        }
-    }
 }
 
 // Exponer al scope global

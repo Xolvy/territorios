@@ -39,6 +39,19 @@ const animateValue = (id, start, end, duration) => {
 };
 
 const initMainCharts = (total, assigned, late, freqMap, coverage) => {
+    // --- XOLVY DARK MODE ADAPTATION ---
+    const isDark = document.documentElement.classList.contains('dark');
+    const textColor = isDark ? '#94a3b8' : '#64748b'; // slate-400 / slate-500
+    const gridColor = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)';
+    const trackColor = isDark ? 'rgba(255, 255, 255, 0.05)' : '#f1f5f9'; // slate-100
+    const strokeColor = isDark ? '#0f172a' : '#ffffff'; // slate-900 / white
+
+    // Prevenir superposición de instancias de Chart.js al cambiar de tema (Hot Reload)
+    ['chart-status', 'chart-territories', 'chart-s13-mini'].forEach(id => {
+        const existingChart = Chart.getChart(id);
+        if (existingChart) existingChart.destroy();
+    });
+
     // Doughnut: Status
     const ctxStatus = document.getElementById('chart-status')?.getContext('2d');
     if (ctxStatus) {
@@ -48,16 +61,16 @@ const initMainCharts = (total, assigned, late, freqMap, coverage) => {
                 labels: ['Disponibles', 'En Tiempo', 'Vencidos'],
                 datasets: [{
                     data: [total - assigned, assigned - late, late],
-                    backgroundColor: ['#e2e8f0', '#3b82f6', '#ef4444'],
-                    hoverOffset: 15,
-                    borderWidth: 0,
-                    borderRadius: 8,
-                    spacing: 4
+                    backgroundColor: [trackColor, '#3b82f6', '#f43f5e'],
+                    borderColor: strokeColor,
+                    borderWidth: 2,
+                    hoverOffset: 10,
+                    borderRadius: 4
                 }]
             },
             options: {
                 responsive: true, maintainAspectRatio: false, cutout: '82%',
-                plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 25, font: { weight: 'bold', size: 10 } } } }
+                plugins: { legend: { position: 'bottom', labels: { color: textColor, usePointStyle: true, padding: 25, font: { weight: 'bold', size: 10 } } } }
             }
         });
     }
@@ -76,14 +89,14 @@ const initMainCharts = (total, assigned, late, freqMap, coverage) => {
                     backgroundColor: '#3b82f6',
                     borderRadius: 6,
                     maxBarThickness: 32,
-                    hoverBackgroundColor: '#059669'
+                    hoverBackgroundColor: '#10b981' // emerald-500
                 }]
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
                 scales: {
-                    y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.03)' }, ticks: { font: { size: window.innerWidth < 768 ? 8 : 9 } } },
-                    x: { grid: { display: false }, ticks: { font: { size: window.innerWidth < 768 ? 8 : 10, weight: 'bold' } } }
+                    y: { beginAtZero: true, border: { display: false }, grid: { color: gridColor }, ticks: { color: textColor, font: { size: window.innerWidth < 768 ? 8 : 9 } } },
+                    x: { grid: { display: false }, border: { display: false }, ticks: { color: textColor, font: { size: window.innerWidth < 768 ? 8 : 10, weight: 'bold' } } }
                 },
                 plugins: { legend: { display: false } }
             }
@@ -98,7 +111,7 @@ const initMainCharts = (total, assigned, late, freqMap, coverage) => {
             data: {
                 datasets: [{
                     data: [coverage, 100 - coverage],
-                    backgroundColor: ['#3b82f6', 'rgba(0,0,0,0.05)'],
+                    backgroundColor: ['#3b82f6', trackColor],
                     borderWidth: 0,
                     circumference: 270,
                     rotation: 225
@@ -134,14 +147,14 @@ const renderLateTable = (list, now, exp) => {
                         <div class="flex flex-col min-w-0">
                             <span class="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase truncate max-w-[150px] font-sans">${t.localidad || 'Congregación'}</span>
                             ${(() => {
-                                const todas = t.manzanas ? t.manzanas.split(',').map(m => m.trim()).filter(Boolean) : [];
-                                const faltantes = todas.filter(m => !t.manzanas_trabajadas?.includes(m));
-                                if (t.manzanas_trabajadas?.length > 0 && faltantes.length > 0) {
-                                    const label = faltantes.length === 1 ? 'Falta Mz' : 'Faltan Mz';
-                                    return `<span class="text-[8px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest mt-0.5">Territorio incompleto: ${label} ${faltantes.join(', ')}</span>`;
-                                }
-                                return '';
-                            })()}
+                const todas = t.manzanas ? t.manzanas.split(',').map(m => m.trim()).filter(Boolean) : [];
+                const faltantes = todas.filter(m => !t.manzanas_trabajadas?.includes(m));
+                if (t.manzanas_trabajadas?.length > 0 && faltantes.length > 0) {
+                    const label = faltantes.length === 1 ? 'Falta Mz' : 'Faltan Mz';
+                    return `<span class="text-[8px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest mt-0.5">Territorio incompleto: ${label} ${faltantes.join(', ')}</span>`;
+                }
+                return '';
+            })()}
                         </div>
                     </div>
                 </td>
@@ -338,9 +351,9 @@ export const renderAnalyticsView = async (container, appVersion, configData = nu
 
             // PASO 2: Logs de diagnóstico temporales
             console.log('[Analytics Debug] Total territorios obtenidos:', territorios.length);
-            console.log('[Analytics Debug] Estados únicos encontrados:', 
+            console.log('[Analytics Debug] Estados únicos encontrados:',
                 [...new Set(territorios.map(t => t.estado))]);
-            console.log('[Analytics Debug] Territorios con estado Asignado:', 
+            console.log('[Analytics Debug] Territorios con estado Asignado:',
                 territorios.filter(t => t.estado === 'Asignado').map(t => ({ id: t.id, numero: t.numero, estado: t.estado, asignado_a: t.asignado_a })));
 
 

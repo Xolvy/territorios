@@ -190,76 +190,82 @@ export const renderPersonalTab = async (container, configData = null, appVersion
         const shifts = [{ id: 'manana', label: 'Mañ.', color: 'text-yellow-500' }, { id: 'tarde', label: 'Tar.', color: 'text-orange-500' }, { id: 'noche', label: 'Noc.', color: 'text-blue-500' }];
 
         showModal(`
-            <div class="flex flex-col h-full bg-white dark:bg-slate-950 rounded-[2.5rem] overflow-hidden">
-                <header class="shrink-0 p-8 flex items-center gap-6 border-b border-slate-100 dark:border-white/5">
+            <div class="flex flex-col h-full bg-white dark:bg-slate-950 rounded-[2.5rem] overflow-hidden animate-scale-in">
+                <header class="shrink-0 p-8 flex items-center gap-6 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-black/20">
                         <div class="w-14 h-14 bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400 rounded-2xl flex items-center justify-center text-2xl border border-indigo-100 dark:border-indigo-400/20">
                             <i class="fas fa-user-plus"></i>
                         </div>
                         <div>
                             <h3 class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">${isEdit ? 'Editar Registro' : 'Nuevo Registro'}</h3>
-                            <p class="text-xs text-slate-500 font-medium mt-0.5 uppercase tracking-widest">Información del Publicador</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5 uppercase tracking-widest">Información del Publicador</p>
                         </div>
                 </header>
 
-                <div class="flex-1 p-5 md:p-8 space-y-6 md:space-y-8 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-black/20 pb-8">
+                <div class="flex-1 p-5 md:p-8 space-y-6 md:space-y-8 overflow-y-auto custom-scrollbar bg-slate-50/50 dark:bg-black/20 pb-8">
                     <div class="space-y-6 md:space-y-8">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                            <div class="space-y-3">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nombre Completo</label>
-                                <input type="text" id="p-name" value="${toTitleCase(person?.nombre || '')}" placeholder="Ej: Juan Pérez" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-sm font-bold focus:border-blue-600 outline-none shadow-sm transition-all text-slate-700 dark:text-white capitalize shadow-inner">
+                            <div class="space-y-2 group/input">
+                                <label class="label-premium">Nombre Completo</label>
+                                <input type="text" id="p-name" value="${toTitleCase(person?.nombre || '')}" placeholder="Ej: Juan Pérez" class="input-premium capitalize">
                             </div>
-                            <div class="space-y-3">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">WhatsApp / Teléfono</label>
-                                <input type="text" id="p-phone" value="${person?.telefono || ''}" placeholder="+593..." class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-sm font-bold focus:border-blue-600 outline-none shadow-sm transition-all text-slate-700 dark:text-white font-mono">
+                            <div class="space-y-2 group/input">
+                                <label class="label-premium">WhatsApp / Teléfono</label>
+                                <input type="text" id="p-phone" value="${person?.telefono || ''}" placeholder="+593..." class="input-premium font-mono">
                             </div>
                         </div>
 
                         <div class="grid grid-cols-2 gap-4 md:gap-6">
-                            <div class="space-y-3">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Género</label>
-                                <select id="p-gender" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-sm font-bold focus:border-blue-600 outline-none shadow-sm transition-all text-slate-700 dark:text-white appearance-none cursor-pointer">
-                                    <option value="Hombre" ${person?.genero === 'Hombre' ? 'selected' : ''}>Hombre</option>
-                                    <option value="Mujer" ${person?.genero === 'Mujer' ? 'selected' : ''}>Mujer</option>
-                                </select>
+                            <div class="space-y-2 group/input">
+                                <label class="label-premium">Género</label>
+                                <div class="relative">
+                                    <select id="p-gender" class="input-premium appearance-none cursor-pointer pr-10">
+                                        <option value="Hombre" ${person?.genero === 'Hombre' ? 'selected' : ''}>Hombre</option>
+                                        <option value="Mujer" ${person?.genero === 'Mujer' ? 'selected' : ''}>Mujer</option>
+                                    </select>
+                                    <i class="fas fa-chevron-down absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 text-[10px] pointer-events-none"></i>
+                                </div>
                             </div>
-                            <div class="space-y-3">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Grupo Asignado</label>
-                                <select id="p-group" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-sm font-bold focus:border-blue-600 outline-none shadow-sm transition-all text-slate-700 dark:text-white appearance-none cursor-pointer">
-                                    <option value="0" ${!person?.grupo || person?.grupo === 0 ? 'selected' : ''}>Sin asignar</option>
-                                    ${(groups || []).map(g => `<option value="${g.id}" ${person?.grupo == g.id ? 'selected' : ''}>${g.numero_nombre || `Grupo ${g.id}`} - ${g.lugar || 'Sin ubicación'}</option>`).join('')}
-                                </select>
+                            <div class="space-y-2 group/input">
+                                <label class="label-premium">Grupo Asignado</label>
+                                <div class="relative">
+                                    <select id="p-group" class="input-premium appearance-none cursor-pointer pr-10">
+                                        <option value="0" ${!person?.grupo || person?.grupo === 0 ? 'selected' : ''}>Sin asignar</option>
+                                        ${(groups || []).map(g => `<option value="${g.id}" ${person?.grupo == g.id ? 'selected' : ''}>${g.numero_nombre || `Grupo ${g.id}`} - ${g.lugar || 'Sin ubicación'}</option>`).join('')}
+                                    </select>
+                                    <i class="fas fa-chevron-down absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 text-[10px] pointer-events-none"></i>
+                                </div>
                             </div>
                         </div>
 
-                        <div id="p-email-container" class="${person?.privilegios?.includes('Administrador') ? '' : 'hidden'} animate-fade-in space-y-3">
-                            <label class="text-[10px] font-black text-blue-600 uppercase tracking-widest ml-1">Acceso Google (Email)</label>
-                            <input type="email" id="p-email" value="${person?.email || ''}" placeholder="usuario@gmail.com" class="w-full bg-blue-600/5 border border-blue-600/20 rounded-2xl p-4 text-sm font-bold focus:border-blue-600 outline-none shadow-inner transition-all text-blue-600">
-                            <p class="text-[9px] text-slate-400 ml-1 italic font-bold uppercase tracking-tighter">Requerido para administradores y accesos de nube.</p>
+                        <div id="p-email-container" class="${person?.privilegios?.includes('Administrador') ? '' : 'hidden'} animate-fade-in space-y-2 group/input">
+                            <label class="label-premium !text-blue-600 dark:!text-blue-400">Acceso Google (Email)</label>
+                            <input type="email" id="p-email" value="${person?.email || ''}" placeholder="usuario@gmail.com" class="input-premium !bg-blue-600/5 !border-blue-600/20 !text-blue-600 dark:!text-blue-400">
+                            <p class="text-[9px] text-slate-400 ml-2 italic font-medium">Requerido para administradores y accesos de nube.</p>
                         </div>
 
                         <div class="space-y-4">
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Privilegios y Roles</label>
+                            <label class="label-premium">Privilegios y Roles</label>
                             <div id="privs-container" class="flex flex-wrap gap-3"></div>
                         </div>
 
-                        <div class="bg-blue-600/5 rounded-[2rem] border border-blue-600/10 overflow-hidden">
-                            <div class="p-6 border-b border-blue-600/10 flex items-center justify-between cursor-pointer hover:bg-blue-600/10 transition-colors group/avail-header" id="header-toggle-avail">
+                        <div class="enterprise-card !p-0 overflow-hidden">
+                            <div class="p-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between cursor-pointer hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors group/avail-header" id="header-toggle-avail">
                                 <div class="flex items-center gap-3">
                                     <i class="fas fa-calendar-check text-blue-600 group-hover/avail-header:rotate-12 transition-transform"></i>
                                     <span class="text-[10px] font-black uppercase text-blue-600 tracking-widest">Disponibilidad de Conductor</span>
                                 </div>
-                                <button type="button" id="btn-toggle-avail" class="w-8 h-8 rounded-lg bg-blue-600/10 text-blue-600 flex items-center justify-center hover:bg-blue-600/20 transition-all">
+                                <button type="button" id="btn-toggle-avail" class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/5 text-slate-400 flex items-center justify-center hover:bg-slate-200 transition-all">
                                     <i class="fas fa-chevron-down transition-transform duration-300" id="avail-chevron"></i>
                                 </button>
                             </div>
-                            <div id="p-avail-grid" class="p-6 hidden transition-all duration-500 bg-white/40 dark:bg-black/20">
+                            <div id="p-avail-grid" class="p-6 hidden transition-all duration-500 bg-slate-50/50 dark:bg-black/20">
                                  <div class="grid grid-cols-4 gap-2 mb-4 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                      <div class="text-left pl-2">Día</div>
                                      ${shifts.map(s => `<div>${s.label}</div>`).join('')}
                                  </div>
                                  <div class="space-y-2">
                                      ${days.map(day => `
-                                         <div class="grid grid-cols-4 gap-2 items-center modern-card !p-3">
+                                         <div class="grid grid-cols-4 gap-2 items-center bg-white dark:bg-white/5 p-3 rounded-2xl border border-slate-100 dark:border-white/5">
                                              <div class="text-[10px] font-black text-slate-600 dark:text-slate-300 pl-2 uppercase">${day.slice(0, 3)}</div>
                                               ${shifts.map(sh => `
                                                 <div class="flex justify-center">
@@ -274,8 +280,8 @@ export const renderPersonalTab = async (container, configData = null, appVersion
                             </div>
                         </div>
 
-                        <div id="p-modules-section" class="bg-indigo-500/5 rounded-[2rem] border border-indigo-500/10 overflow-hidden transition-all duration-500">
-                            <div class="p-6 border-b border-indigo-500/10 flex items-center justify-between">
+                        <div id="p-modules-section" class="enterprise-card !p-0 overflow-hidden transition-all duration-500">
+                            <div class="p-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
                                 <div class="flex items-center gap-3">
                                     <i class="fas fa-th-large text-indigo-600"></i>
                                     <label class="text-[10px] font-black uppercase text-indigo-600 tracking-widest">Módulos Habilitados</label>
@@ -294,7 +300,7 @@ export const renderPersonalTab = async (container, configData = null, appVersion
                 { id: 'mod-mapas', label: 'Explorador de Mapas', icon: 'fa-map-marked-alt', checked: person?.modulos?.mapas !== false },
                 { id: 'mod-ayudas', label: 'Recursos del Ministerio', icon: 'fa-book', checked: person?.modulos?.ayudas !== false }
             ].map(mod => `
-                                    <div class="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10">
+                                    <div class="flex items-center justify-between p-4 bg-white dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/10">
                                         <div class="flex items-center gap-3">
                                             <div class="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500 text-xs">
                                                 <i class="fas ${mod.icon}"></i>
@@ -312,9 +318,9 @@ export const renderPersonalTab = async (container, configData = null, appVersion
                     </div>
                 </div>
 
-                <div class="shrink-0 p-6 bg-white dark:bg-black/40 border-t border-slate-100 dark:border-white/5 flex items-center justify-end gap-4 pt-6 mt-6 w-full">
-                    <button type="button" onclick="window.closeModal()" class="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition-colors">Cancelar</button>
-                    <button id="save-person" class="w-full sm:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2">
+                <div class="shrink-0 p-6 bg-white/50 dark:bg-black/40 backdrop-blur-sm border-t border-slate-100 dark:border-white/5 flex items-center justify-end gap-4 pt-6 mt-6 w-full">
+                    <button type="button" onclick="window.closeModal()" class="btn-pro px-6 py-3 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 font-bold rounded-xl transition-colors">Cancelar</button>
+                    <button id="save-person" class="btn-pro w-full sm:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2">
                         <i class="fas fa-save text-xs opacity-70"></i> ${isEdit ? 'Guardar Cambios' : 'Crear Registro'}
                     </button>
                 </div>
@@ -381,11 +387,11 @@ export const renderPersonalTab = async (container, configData = null, appVersion
                 const list = gender === 'Hombre' ? malePrivs : femalePrivs;
 
                 privsContainer.innerHTML = list.map(pr => `
-                    <label class="modern-card p-5 border-slate-200 dark:border-white/10 flex items-center justify-between cursor-pointer group transition-all hover:border-primary/50">
+                    <label class="enterprise-card p-5 flex items-center justify-between cursor-pointer group transition-all hover:border-primary/50">
                         <div class="flex items-center gap-4">
                             <div class="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary group-hover:scale-110 transition-transform"><i class="fas fa-shield-alt"></i></div>
                             <div>
-                                <h5 class="text-xs font-black text-slate-800 dark:text-white uppercase leading-none mb-1">${pr}</h5>
+                                <h5 class="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none mb-1">${pr}</h5>
                                 <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Nivel de Acceso</p>
                             </div>
                         </div>
@@ -489,7 +495,7 @@ export const renderPersonalTab = async (container, configData = null, appVersion
                             <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Superintendente</label>
                             <select data-field="superintendente" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-xl p-3 text-[11px] font-bold outline-none focus:border-indigo-500/50 appearance-none group-input">
                                 <option value="">— Sin asignar —</option>
-                                ${personnel.filter(p => p.genero === 'Hombre').map(p => `<option value="${p.nombre}" ${ (g.superintendente || g.lider) === p.nombre ? 'selected' : ''}>${toTitleCase(p.nombre)}</option>`).join('')}
+                                ${personnel.filter(p => p.genero === 'Hombre').map(p => `<option value="${p.nombre}" ${(g.superintendente || g.lider) === p.nombre ? 'selected' : ''}>${toTitleCase(p.nombre)}</option>`).join('')}
                             </select>
                         </div>
                         <div class="space-y-1.5">
@@ -504,9 +510,9 @@ export const renderPersonalTab = async (container, configData = null, appVersion
             `).join('');
         };
 
-        window.removeGroupConfig = (idx) => { 
-            localGroups.splice(idx, 1); 
-            renderGroupsList(document.getElementById('modal-container')); 
+        window.removeGroupConfig = (idx) => {
+            localGroups.splice(idx, 1);
+            renderGroupsList(document.getElementById('modal-container'));
         };
 
         showModal(`
@@ -546,7 +552,7 @@ export const renderPersonalTab = async (container, configData = null, appVersion
                 const btn = modal.querySelector('#save-groups-btn');
                 btn.disabled = true;
                 btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Guardando...';
-                
+
                 // Recolección manual del DOM para asegurar integridad absoluta
                 const groupBlocks = modal.querySelectorAll('.group-item-block');
                 const finalGroups = Array.from(groupBlocks).map(block => {
@@ -565,7 +571,7 @@ export const renderPersonalTab = async (container, configData = null, appVersion
                     // Actualizamos caché local para el closure de Personal
                     groups.length = 0;
                     groups.push(...finalGroups);
-                    
+
                     showNotification("Configuración de grupos guardada exitosamente");
                     modal.classList.add('hidden');
                     modal.innerHTML = '';

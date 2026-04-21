@@ -35,21 +35,17 @@ export const renderRecursosSection = (container) => {
         }
     ];
 
-    container.innerHTML = `
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-in mb-24">
-            ${resources.map((r, i) => `
-                <div onclick="window.handleRecursoBtn(${i})" class="modern-card p-6 border-slate-100 dark:border-white/5 flex items-center gap-6 group hover:translate-y-[-4px] transition-all cursor-pointer bg-white dark:bg-slate-900/40">
-                    <div class="w-14 h-14 ${r.bg} ${r.color} rounded-2xl flex items-center justify-center text-xl shadow-inner group-hover:scale-110 transition-transform">
-                        <i class="fas ${r.icon}"></i>
-                    </div>
-                    <div>
-                        <h4 class="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-tight group-hover:text-primary transition-colors">${r.title}</h4>
-                        <p class="text-[8px] text-slate-400 font-bold uppercase tracking-widest mt-1 opacity-60">Recurso de Ayuda</p>
-                    </div>
-                </div>
-            `).join('')}
+    container.innerHTML = resources.map((r, i) => `
+        <div onclick="window.handleRecursoBtn(${i})" class="modern-card p-6 border-slate-100 dark:border-white/5 flex items-center gap-6 group hover:translate-y-[-4px] transition-all cursor-pointer bg-white dark:bg-slate-900/40 w-full mb-4 md:mb-0">
+            <div class="w-14 h-14 ${r.bg} ${r.color} rounded-2xl flex items-center justify-center text-xl shadow-inner group-hover:scale-110 transition-transform shrink-0">
+                <i class="fas ${r.icon}"></i>
+            </div>
+            <div class="flex-1">
+                <h4 class="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-tight group-hover:text-primary transition-colors line-clamp-2">${r.title}</h4>
+                <p class="text-[8px] text-slate-400 font-bold uppercase tracking-widest mt-1 opacity-80">Recurso de Ayuda</p>
+            </div>
         </div>
-    `;
+    `).join('');
 
     window.handleRecursoBtn = (index) => {
         resources[index].action();

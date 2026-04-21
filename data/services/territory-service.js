@@ -264,7 +264,7 @@ export const assignTerritorio = async (id, conductorName, details = {}) => {
     }
 };
 
-export const returnTerritorio = async (id, notes, customDate, status = 'Completado', fotos = null) => {
+export const returnTerritorio = async (id, notes, customDate, status = 'Completado', fotos = null, conductorOverride = null) => {
     try {
         const dateToUse = customDate ? new Date(customDate).toISOString() : new Date().toISOString();
         const conductorName = await runTransaction(db, async (transaction) => {
@@ -294,7 +294,8 @@ export const returnTerritorio = async (id, notes, customDate, status = 'Completa
             return prevConductor;
         });
 
-        await logReturn(id, dateToUse, status, notes, fotos, conductorName);
+        const finalConductor = conductorOverride || conductorName;
+        await logReturn(id, dateToUse, status, notes, fotos, finalConductor);
         ServiceCache.clear('territorios');
         ServiceCache.clear('territorios_combined');
         ServiceCache.clear('historial');
@@ -505,7 +506,7 @@ export const returnTerritorioMultiple = async (ids, notes, customDate, status = 
     }
 };
 
-export const returnTerritorioParcial = async (originalId, completedManzanas, remainingManzanas, unassignRemaining = false, notes = null, customDate = null, fotos = null) => {
+export const returnTerritorioParcial = async (originalId, completedManzanas, remainingManzanas, unassignRemaining = false, notes = null, customDate = null, fotos = null, conductorName = null) => {
     const dateToUse = customDate ? new Date(customDate).toISOString() : new Date().toISOString();
     const territoryRef = doc(db, COL_TERRITORIOS, originalId);
     const territorySnap = await getDoc(territoryRef);
@@ -533,7 +534,7 @@ export const returnTerritorioParcial = async (originalId, completedManzanas, rem
     updateData.is_incomplete = remainingManzanas.length > 0;
 
     await updateDoc(territoryRef, updateData);
-    await logReturn(originalId, dateToUse, 'Predicado Parcial', notes, fotos);
+    await logReturn(originalId, dateToUse, 'Predicado Parcial', notes, fotos, conductorName);
 };
 
 export const assignTerritorioParcial = async (originalId, manzanasToAssign, conductorName, details = {}) => {

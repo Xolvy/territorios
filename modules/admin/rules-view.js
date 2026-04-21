@@ -23,7 +23,7 @@ const sortChronologically = (times) => {
         if (mod === 'am' && h === 12) h = 0;
         // Inferencia: Si es < 8 y no tiene AM/PM, probablemente es de la mañana para JW (ej. 9:00), 
         // pero si es < 8 y es tarde escolar/reunión, asumimos coherencia 24h o PM.
-        if (!mod && h > 0 && h < 7) h += 12; 
+        if (!mod && h > 0 && h < 7) h += 12;
         return h * 60 + (m || 0);
     };
     return [...times].sort((a, b) => parse(a) - parse(b));
@@ -100,7 +100,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                 </label>
                                 <div class="relative">
                                     <textarea id="conf-tema-mes" rows="2" 
-                                        class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 pr-12 text-xs font-bold shadow-inner outline-none focus:border-blue-500 transition-all text-slate-800 dark:text-white"
+                                        class="input-premium pr-12 text-sm"
                                         placeholder="Escribe el tema de conversación sugerido o enfoque semanal...">${config.tema_mes || ''}</textarea>
                                     <div class="led-status-container hidden" style="bottom: 2.5rem;"></div>
                                 </div>
@@ -144,7 +144,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                 <label class="label-premium">Nombre de la Congregación</label>
                                 <div class="relative">
                                     <input type="text" id="conf-nombre" value="${config.congregacion?.nombre || ''}" 
-                                        class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 pr-12 text-sm font-bold shadow-inner outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all text-slate-800 dark:text-white"
+                                        class="input-premium pr-12"
                                         placeholder="Ej. Nueve de Octubre">
                                     <div class="led-status-container hidden"></div>
                                 </div>
@@ -154,7 +154,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                 <label class="label-premium">Número de Congregación</label>
                                 <div class="relative">
                                     <input type="text" id="conf-numero" value="${config.congregacion?.numero || ''}" 
-                                        class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 pr-12 text-sm font-bold shadow-inner outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all text-slate-800 dark:text-white"
+                                        class="input-premium pr-12"
                                         placeholder="Ej. 14282">
                                     <div class="led-status-container hidden"></div>
                                 </div>
@@ -313,7 +313,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                             </label>
                             <div class="relative">
                                 <input type="password" id="gemini-key" value="${config.gemini_key || ''}" 
-                                    class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 pr-20 text-xs font-mono shadow-inner outline-none focus:border-blue-500 transition-all text-slate-800 dark:text-white"
+                                    class="input-premium pr-20 font-mono"
                                     placeholder="AIzaSy...">
                                 <div class="led-status-container hidden" style="right: 3.5rem;"></div>
                                 <button class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-indigo-500 transition-colors" onclick="const p=this.parentElement.querySelector('input'); p.type=p.type==='password'?'text':'password'">
@@ -391,7 +391,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
     let saveTimeout;
     const performSave = async (id = null) => {
         if (saveTimeout) clearTimeout(saveTimeout);
-        
+
         const inputEl = id ? container.querySelector(`#${id}`) : null;
         const statusEl = inputEl?.parentElement?.querySelector('.led-status-container');
 
@@ -433,10 +433,10 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                     }, 500);
                 }, 1500);
             }
-            
+
             // Si es un cambio mayor, notificar brevemente
             if (!id || id === 'conf-nombre') showNotification("Ajustes guardados", "success");
-            
+
         } catch (e) {
             console.error("Auto-save error:", e);
             if (statusEl) statusEl.innerHTML = '<i class="fas fa-exclamation-circle text-red-500 text-[10px]"></i>';
@@ -461,12 +461,12 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
     // Helper functions for dynamic lists (modified to save immediately)
     // --- OPTIMISTIC LIST RENDERING ---
     const renderListItems = (type) => {
-        const containerId = type === 'horarios' ? 'list-horarios' : 
-                          type === 'lugares' ? 'list-lugares' :
-                          type === 'facetas' ? 'list-facetas' : 
-                          type === 'tipos_t' ? 'list-tipos-t' : null;
+        const containerId = type === 'horarios' ? 'list-horarios' :
+            type === 'lugares' ? 'list-lugares' :
+                type === 'facetas' ? 'list-facetas' :
+                    type === 'tipos_t' ? 'list-tipos-t' : null;
         if (!containerId) return;
-        
+
         const listEl = container.querySelector(`#${containerId}`);
         if (!listEl) return;
 
@@ -498,17 +498,17 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
     });
 
     const addConfigItem = (type) => {
-        const labels = { 
-            horarios: 'Horario (ej. 09:00AM)', 
-            lugares: 'Lugar de Reunión', 
-            facetas: 'Faceta de Servicio', 
-            tipos_t: 'Tipo de Territorio' 
+        const labels = {
+            horarios: 'Horario (ej. 09:00AM)',
+            lugares: 'Lugar de Reunión',
+            facetas: 'Faceta de Servicio',
+            tipos_t: 'Tipo de Territorio'
         };
-        
+
         showCustomPrompt(`Añadir ${labels[type]}:`, "", async (val) => {
             if (!val || val.trim() === "") return;
             const text = val.trim();
-            
+
             // 1. Optimistic Update (UI)
             if (type === 'horarios') {
                 config.horarios_programa = [...(config.horarios_programa || []), text];
@@ -519,7 +519,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
             } else if (type === 'tipos_t') {
                 config.tipos_territorio = [...(config.tipos_territorio || ['Casa en Casa', 'Negocios', 'Pública']), text];
             }
-            
+
             renderListItems(type);
             showNotification("Añadido localmente", "success");
 
@@ -538,7 +538,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
 
     window.removeConfigItem = async (type, index) => {
         const finishLED = await triggerManualLED(type);
-        
+
         // Optimistic UI
         if (type === 'horarios') config.horarios_programa.splice(index, 1);
         if (type === 'lugares') config.lugares.splice(index, 1);
@@ -547,7 +547,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
             if (!config.tipos_territorio) config.tipos_territorio = ['Casa en Casa', 'Negocios', 'Pública'];
             config.tipos_territorio.splice(index, 1);
         }
-        
+
         renderListItems(type);
 
         try {
@@ -571,43 +571,49 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                 </header>
 
                 <div class="space-y-5">
-                    <div class="space-y-1.5">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nombre de la Zona</label>
-                        <input type="text" id="poi-name" value="${poi?.nombre || ''}" class="w-full px-4 py-3 border border-slate-200 dark:border-white/10 rounded-xl bg-white dark:bg-[#0f172a] focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-white outline-none transition-all shadow-inner font-bold" placeholder="P. ej: Parada de Taxis Central">
+                    <div class="space-y-2 group/input">
+                        <label class="label-premium">Nombre de la Zona</label>
+                        <input type="text" id="poi-name" value="${poi?.nombre || ''}" class="input-premium" placeholder="P. ej: Parada de Taxis Central">
                     </div>
                     
                     <div class="grid grid-cols-2 gap-4">
-                        <div class="space-y-1.5">
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Tipo</label>
-                            <select id="poi-type" class="w-full px-4 py-3 border border-slate-200 dark:border-white/10 rounded-xl bg-white dark:bg-[#0f172a] focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-white outline-none transition-all appearance-none cursor-pointer font-bold">
-                                <option value="Taxi" ${poi?.tipo === 'Taxi' ? 'selected' : ''}>🚕 Taxis</option>
-                                <option value="Bus" ${poi?.tipo === 'Bus' ? 'selected' : ''}>🚌 Bus</option>
-                                <option value="Parque" ${poi?.tipo === 'Parque' ? 'selected' : ''}>🌳 Parque</option>
-                                <option value="Comercial" ${poi?.tipo === 'Comercial' ? 'selected' : ''}>🏪 Tiendas</option>
-                            </select>
+                        <div class="space-y-2 group/input">
+                            <label class="label-premium">Tipo</label>
+                            <div class="relative">
+                                <select id="poi-type" class="input-premium appearance-none cursor-pointer pr-10">
+                                    <option value="Taxi" ${poi?.tipo === 'Taxi' ? 'selected' : ''}>🚕 Taxis</option>
+                                    <option value="Bus" ${poi?.tipo === 'Bus' ? 'selected' : ''}>🚌 Bus</option>
+                                    <option value="Parque" ${poi?.tipo === 'Parque' ? 'selected' : ''}>🌳 Parque</option>
+                                    <option value="Comercial" ${poi?.tipo === 'Comercial' ? 'selected' : ''}>🏪 Tiendas</option>
+                                </select>
+                                <i class="fas fa-chevron-down absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 text-[10px] pointer-events-none"></i>
+                            </div>
                         </div>
-                        <div class="space-y-1.5">
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Territorio</label>
-                            <select id="poi-terr" class="w-full px-4 py-3 border border-slate-200 dark:border-white/10 rounded-xl bg-white dark:bg-[#0f172a] focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-white outline-none transition-all appearance-none cursor-pointer font-bold">
-                                <option value="">Buscar T...</option>
-                                ${territorios.sort((a, b) => String(a.numero || '').localeCompare(String(b.numero || ''), undefined, { numeric: true })).map(t => `
-                                    <option value="${t.id}" data-num="${t.numero}" ${poi?.territorio_id === t.id ? 'selected' : ''}>T-${t.numero}</option>
-                                `).join('')}
-                            </select>
+                        <div class="space-y-2 group/input">
+                            <label class="label-premium">Territorio</label>
+                            <div class="relative">
+                                <select id="poi-terr" class="input-premium appearance-none cursor-pointer pr-10">
+                                    <option value="">Buscar T...</option>
+                                    ${territorios.sort((a, b) => String(a.numero || '').localeCompare(String(b.numero || ''), undefined, { numeric: true })).map(t => `
+                                        <option value="${t.id}" data-num="${t.numero}" ${poi?.territorio_id === t.id ? 'selected' : ''}>T-${t.numero}</option>
+                                    `).join('')}
+                                </select>
+                                <i class="fas fa-chevron-down absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 text-[10px] pointer-events-none"></i>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="space-y-1.5">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Instrucciones / Ubicación</label>
-                        <textarea id="poi-desc" rows="2" class="w-full px-4 py-3 border border-slate-200 dark:border-white/10 rounded-xl bg-white dark:bg-[#0f172a] focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-white outline-none transition-all resize-none shadow-inner font-bold" placeholder="Ubicación exacta...">${poi?.descripcion || ''}</textarea>
+                    <div class="space-y-2 group/input">
+                        <label class="label-premium">Instrucciones / Ubicación</label>
+                        <textarea id="poi-desc" rows="2" class="input-premium resize-none" placeholder="Ubicación exacta...">${poi?.descripcion || ''}</textarea>
                     </div>
                 </div>
 
                 <footer class="mt-8 flex gap-3">
-                    <button type="button" id="btn-cancel-poi" class="flex-1 px-5 py-3.5 text-slate-500 dark:text-slate-400 font-black text-[10px] uppercase tracking-widest bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl transition-colors">
+                    <button type="button" id="btn-cancel-poi" class="btn-pro flex-1 px-5 py-3.5 text-slate-500 dark:text-slate-400 font-black text-[10px] uppercase tracking-widest bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl transition-colors">
                         Omitir
                     </button>
-                    <button type="button" id="save-poi-btn" class="flex-[2] px-5 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-[10px] uppercase tracking-widest rounded-xl shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-3">
+                    <button type="button" id="save-poi-btn" class="btn-pro flex-[2] px-5 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-[10px] uppercase tracking-widest rounded-xl shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-3">
                         <i class="fas fa-save opacity-70"></i> ${isEdit ? 'Actualizar' : 'Guardar Zona'}
                     </button>
                 </footer>
@@ -679,21 +685,21 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
             showCustomPrompt("Contenido del Anuncio:", "", async (val) => {
                 if (!val) return;
                 const finishLED = await triggerManualLED('diffusion');
-                
+
                 try {
                     // Carga fresca para evitar machacar cambios en paralelo
                     const freshConfig = await import('../../data/firestore-services.js').then(m => m.getConfiguracion());
                     const currentMsgs = Array.isArray(freshConfig.diffusion_messages) ? freshConfig.diffusion_messages : [];
-                    
+
                     // Solo añadir si no existe ya exactamente igual (opcional pero recomendado)
                     // if (currentMsgs.includes(val)) return showNotification("Mensaje ya existe", "warning");
 
                     freshConfig.diffusion_messages = [...currentMsgs, val];
                     await saveConfiguracion(freshConfig);
-                    
+
                     // Limpieza de caché local para asegurar que el re-render use datos nuevos
                     ServiceCache.clear('configuracion');
-                    
+
                     if (window.XolvyAlert) {
                         window.XolvyAlert.fire({
                             title: 'Anuncio Publicado',
@@ -736,7 +742,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
         const finishLED = await triggerManualLED('diffusion');
         config.diffusion_messages.splice(index, 1);
         await saveConfiguracion(config);
-        
+
         // Sincronización Suave: Limpiar caché y re-renderizar sin skeleton
         ServiceCache.clear('configuracion');
         await finishLED();
@@ -745,4 +751,3 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
 };
 
 export const renderSettingsView = renderConfigTab;
-

@@ -1,6 +1,8 @@
 {
   "name": "app-territorios",
-  "version": "3.0.0",
+  "private": true,
+  "version": "3.0.4",
+  "type": "module",
   "description": "[![Deploy to Firebase](https://github.com/Xolvy/conductores/actions/workflows/firebase-deploy.yml/badge.svg)](https://github.com/Xolvy/conductores/actions/workflows/firebase-deploy.yml)",
   "main": "app.js",
   "scripts": {
@@ -19,7 +21,6 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "module",
   "bugs": {
     "url": "https://github.com/Xolvy/conductores/issues"
   },

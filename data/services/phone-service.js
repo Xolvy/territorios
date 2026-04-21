@@ -19,8 +19,13 @@
  *  - checkAndResetTelephoneCycle()→ Reinicia el ciclo de números agotados
  */
 import { db } from '../../firebase-config.js';
-import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc, query, where, getDoc, setDoc, orderBy, limit, Timestamp, writeBatch, runTransaction, arrayUnion } from "firebase/firestore";
+import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc, query, where, getDoc, setDoc, orderBy, limit, Timestamp, writeBatch, runTransaction, arrayUnion, getCountFromServer } from "firebase/firestore";
 import { ServiceCache } from './base-service.js';
+
+const toTitleCase = (str) => {
+    if (!str) return '';
+    return str.trim().toLowerCase().replace(/\b\w/g, s => s.toUpperCase());
+};
 
 // ═══════════════════════════════════════════════════════════
 const COL_TELEFONOS = "telefonos"; // Colección de números de teléfono
@@ -41,7 +46,7 @@ export const getTelefonosParaSesion = async (conductorName) => {
 
         // Identity Shield: Prefer the global canonical identity if available
         const identity = window.XolvyApp?.identity;
-        const canonicalName = identity?.nombreCanonico || conductorName;
+        const canonicalName = toTitleCase(identity?.nombreCanonico || conductorName);
         const authUid = identity?.uid || null;
 
         const phoneCol = collection(db, COL_TELEFONOS);
@@ -95,64 +100,73 @@ export const addTelefono = async (telefono) => {
 // SOLICITUD DE NÚMEROS (Sesión Atómica)
 // ═══════════════════════════════════════════════════════════
 
-/**
- * Solicita un lote de números libres para la sesión del conductor.
- * Usa una transacción atómica para marcarlos como 'En Sesión'.
- * Si no hay números disponibles, intenta reiniciar el ciclo.
- * @param {number} [cantidad=30] - Número de teléfonos a solicitar
- * @param {string|null} [conductorName=null] - Nombre del conductor que solicita
- * @returns {Promise<number>} Cantidad de números asignados
- */
 export const solicitarNumeros = async (cantidad = 30, conductorName = null) => {
     if (!conductorName) return 0;
     try {
-        const canonicalName = window.XolvyApp?.identity?.nombreCanonico || conductorName;
+        const canonicalName = toTitleCase(window.XolvyApp?.identity?.nombreCanonico || conductorName);
+        
+        // 1. Fase de búsqueda: Encontrar candidatos antes de entrar a la transacción
+        // Filtramos por registros que NO tengan solicitado_por y tengan un estado de 'libre'
+        const q = query(
+            collection(db, COL_TELEFONOS), 
+            where("solicitado_por", "==", null),
+            limit(cantidad * 3) 
+        );
 
+        const snapshot = await getDocs(q);
+        if (snapshot.empty) return 0;
+
+        // 2. Fase Atómica: Intentar asignar los candidatos encontrados
         const result = await runTransaction(db, async (transaction) => {
             const now = new Date();
             const sixMonthsAgo = new Date();
             sixMonthsAgo.setMonth(now.getMonth() - 6);
+            
+            let assignedCount = 0;
+            const selectedRefs = [];
 
-            const q = query(collection(db, COL_TELEFONOS),
-                where("estado", "==", "Sin asignar"),
-                limit(cantidad * 10)
-            );
-
-            const snapshot = await getDocs(q);
-            const selectedDocs = [];
-            let count = 0;
-
+            // Nota: En transacciones de Firestore Web, debemos usar transaction.get(ref)
+            // para asegurar la atomicidad del lote.
             for (const d of snapshot.docs) {
-                if (count >= cantidad) break;
-                const data = d.data();
-                if (data.publicador_asignado || data.asignado_a || data.estado === 'En Sesión') continue;
+                if (assignedCount >= cantidad) break;
+                
+                // Re-verificar estado dentro de la transacción para evitar colisiones
+                const docSnap = await transaction.get(d.ref);
+                if (!docSnap.exists()) continue;
+                
+                const data = docSnap.data();
+                
+                // Verificaciones de disponibilidad
+                const currentSol = data.solicitado_por;
+                if (currentSol && currentSol !== null && currentSol !== "null" && currentSol !== "") continue;
+                
+                const rawEstado = (data.estado || '').trim().toLowerCase();
+                const isLibre = ['sin asignar', 'no asignado', 'disponible', '', 'ninguno'].includes(rawEstado);
+                if (!isLibre || data.estado === 'En Sesión') continue;
+
                 if (data.ultimo_estado === 'No llamar') {
                     const lastDate = data.fecha_ultimo_estado ? new Date(data.fecha_ultimo_estado) : new Date(0);
                     if (lastDate > sixMonthsAgo) continue;
                 }
-                selectedDocs.push(d);
-                count++;
-            }
 
-            if (selectedDocs.length === 0) return 0;
-
-            selectedDocs.forEach(d => {
                 transaction.update(d.ref, {
                     estado: 'En Sesión',
                     publicador_asignado: null,
                     asignado_a: null,
                     fecha_asignacion: now.toISOString(),
-                    solicitado_por: canonicalName // Usar el nombre canónico purificado por IdentityShield
+                    solicitado_por: canonicalName
                 });
-            });
+                
+                assignedCount++;
+            }
 
-            return selectedDocs.length;
+            return assignedCount;
         });
 
         ServiceCache.clear("telefonos");
         return result;
     } catch (error) {
-        console.error("Error in solicitarNumeros transaction:", error);
+        console.error("Error in solicitarNumeros optimized flow:", error);
         throw error;
     }
 };
@@ -170,72 +184,64 @@ export const solicitarNumeros = async (cantidad = 30, conductorName = null) => {
  */
 export const checkAndResetTelephoneCycle = async (forceRequested = false) => {
     try {
-        const snapshot = await getDocs(collection(db, COL_TELEFONOS));
-        const total = snapshot.docs.length;
-        if (total === 0) return false;
+        // Optimización: No leer toda la colección. Primero ver si quedan números libres.
+        const qLibres = query(collection(db, COL_TELEFONOS), where("solicitado_por", "==", null), limit(10));
+        const snapLibres = await getDocs(qLibres);
+        
+        const hayLibres = !snapLibres.empty;
 
-        const processedRecords = snapshot.docs.filter(d => {
-            const data = d.data();
-            const hasStatus = data.estado && !['Sin asignar', 'En Sesión'].includes(data.estado);
-            const isRequested = !!data.solicitado_por;
-            return hasStatus || isRequested;
-        });
-
-        if (processedRecords.length >= total || forceRequested) {
-            if (forceRequested) {
-                const anyAvailable = snapshot.docs.some(d => {
-                    const data = d.data();
-                    return data.estado === 'Sin asignar' && (data.solicitado_por === null || data.solicitado_por === undefined);
-                });
-                if (anyAvailable) return false;
-            }
-
-            let batch = writeBatch(db);
-            let operationCount = 0;
-            const now = new Date().toISOString();
-
-            for (const d of snapshot.docs) {
-                const data = d.data();
-                const currentStatus = data.estado;
-                let updateData = null;
-
-                if (!currentStatus || ['Contestaron', 'No contestan', 'Colgaron', 'Sin asignar'].includes(currentStatus)) {
-                    updateData = {
-                        estado: 'Sin asignar',
-                        publicador_asignado: null,
-                        asignado_a: null,
-                        solicitado_por: null,
-                        fecha_asignacion: null,
-                        comentario: '',
-                        ultima_observacion_ciclo: data.comentario || '',
-                        fecha_ultimo_ciclo: now
-                    };
-                } else if (currentStatus === 'No llamar') {
-                    updateData = {
-                        ultimo_estado: 'No llamar',
-                        estado: 'Sin asignar',
-                        fecha_ultimo_estado: now,
-                        publicador_asignado: null,
-                        asignado_a: null,
-                        solicitado_por: null
-                    };
-                }
-
-                if (updateData) {
-                    batch.update(doc(db, COL_TELEFONOS, d.id), updateData);
-                    operationCount++;
-                    if (operationCount >= 450) {
-                        await batch.commit();
-                        batch = writeBatch(db);
-                        operationCount = 0;
-                    }
-                }
-            }
-
-            if (operationCount > 0) await batch.commit();
-            return true;
+        if (hayLibres && !forceRequested) {
+            console.log("[Cycle] Aún hay números libres disponibles. No es necesario reiniciar.");
+            return false;
         }
-        return false;
+
+        // Si entramos aquí, es porque realmente no hay libres o se forzó el reinicio.
+        // Solo ahora leemos la colección completa para el batch update.
+        const snapshot = await getDocs(collection(db, COL_TELEFONOS));
+        let batch = writeBatch(db);
+        let operationCount = 0;
+        const now = new Date().toISOString();
+
+        for (const d of snapshot.docs) {
+            const data = d.data();
+            const currentStatus = data.estado;
+            let updateData = null;
+
+            if (!currentStatus || ['Contestaron', 'No contestan', 'Colgaron', 'Sin asignar'].includes(currentStatus)) {
+                updateData = {
+                    estado: 'Sin asignar',
+                    publicador_asignado: null,
+                    asignado_a: null,
+                    solicitado_por: null,
+                    fecha_asignacion: null,
+                    comentario: '',
+                    ultima_observacion_ciclo: data.comentario || '',
+                    fecha_ultimo_cycle: now
+                };
+            } else if (currentStatus === 'No llamar') {
+                updateData = {
+                    ultimo_estado: 'No llamar',
+                    estado: 'Sin asignar',
+                    fecha_ultimo_estado: now,
+                    publicador_asignado: null,
+                    asignado_a: null,
+                    solicitado_por: null
+                };
+            }
+
+            if (updateData) {
+                batch.update(d.ref, updateData);
+                operationCount++;
+                if (operationCount >= 450) {
+                    await batch.commit();
+                    batch = writeBatch(db);
+                    operationCount = 0;
+                }
+            }
+        }
+
+        if (operationCount > 0) await batch.commit();
+        return true;
     } catch (e) {
         console.error("Error in cycle reset:", e);
         return false;
@@ -244,13 +250,164 @@ export const checkAndResetTelephoneCycle = async (forceRequested = false) => {
 
 export const logSessionSummary = async (summary) => {
     try {
-        await addDoc(collection(db, "resumenes_sesion_telefonia"), {
+        await addDoc(collection(db, "reportes_telefonicos"), {
             ...summary,
             timestamp: Timestamp.now(),
             fecha: new Date().toISOString()
         });
     } catch (e) {
         console.error("Error logging session summary:", e);
+    }
+};
+
+/**
+ * Xolvy CRM Smart Lifecycle: Finaliza la sesión con lógica de purga, 
+ * enfriamiento y reciclaje automático.
+ */
+export const finalizarSesionConCrm = async (conductorName, pendingChanges = {}) => {
+    try {
+        const canonicalName = toTitleCase(window.XolvyApp?.identity?.nombreCanonico || conductorName);
+        const batch = writeBatch(db);
+        const now = new Date();
+        const ids = Object.keys(pendingChanges);
+        
+        const summary = {
+            conductor: canonicalName,
+            total_procesados: ids.length,
+            contestaron: 0,
+            no_contestan: 0,
+            revisitas: 0,
+            no_llamar: 0,
+            purgados: 0,
+            inactivos: 0
+        };
+
+        for (const id of ids) {
+            const change = pendingChanges[id];
+            const docRef = doc(db, COL_TELEFONOS, id);
+            const docSnap = await getDoc(docRef);
+            if (!docSnap.exists()) continue;
+            
+            const data = docSnap.data();
+            let finalState = change.estado || data.estado;
+            let finalData = {
+                estado: finalState,
+                comentario: change.notas !== undefined ? change.notas : (data.comentario || ''),
+                fecha_ultima_actividad: now.toISOString()
+            };
+
+            // Phase 2: Sistema de 3 Strikes
+            let fallidos = data.intentos_fallidos || 0;
+            const esFallido = ['No contestan', 'Colgaron', 'Equivocado'].includes(finalState);
+            const esPositivo = ['Contestaron', 'Revisita'].includes(finalState);
+
+            if (esFallido) {
+                fallidos++;
+                summary.no_contestan++;
+            } else if (esPositivo) {
+                fallidos = 0;
+                if (finalState === 'Contestaron') summary.contestaron++;
+                if (finalState === 'Revisita') summary.revisitas++;
+            }
+            
+            finalData.intentos_fallidos = fallidos;
+
+            if (fallidos >= 3) {
+                finalData.estado = 'Inactivo';
+                const libDate = new Date();
+                libDate.setMonth(libDate.getMonth() + 1);
+                finalData.fecha_liberacion = libDate.toISOString();
+                summary.inactivos++;
+            }
+
+            // Phase 1: Purga y Enfriamiento
+            if (['Suspendido', 'Testigo'].includes(finalState)) {
+                batch.delete(docRef);
+                summary.purgados++;
+                continue; // Saltar actualización si se borra
+            }
+
+            if (finalState === 'No llamar') {
+                const libDate = new Date();
+                libDate.setMonth(libDate.getMonth() + 6);
+                finalData.fecha_liberacion = libDate.toISOString();
+                summary.no_llamar++;
+            }
+
+            // Revisita: Se queda con el conductor (se mantiene solicitado_por)
+            if (finalState === 'Revisita') {
+                finalData.solicitado_por = canonicalName;
+                finalData.asignado_a = canonicalName;
+            } else {
+                // Si no es revisita, al finalizar liberamos la propiedad de la sesión
+                finalData.solicitado_por = null;
+                finalData.fecha_asignacion = null;
+            }
+
+            batch.update(docRef, finalData);
+        }
+
+        // Phase 1.5: Auto-Reciclaje por Umbral (Pool < 100)
+        const qLibres = query(collection(db, COL_TELEFONOS), where("solicitado_por", "==", null));
+        const countSnap = await getCountFromServer(qLibres);
+        const poolCount = countSnap.data().count;
+        
+        if (poolCount <= 100) {
+            console.log("♻️ [CRM] Pool agotado (<=100). Iniciando reciclaje masivo...");
+            const qRecycle = query(collection(db, COL_TELEFONOS), 
+                where("estado", "in", ["Contestaron", "No contestan", "Colgaron"])
+            );
+            const snapRecycle = await getDocs(qRecycle);
+            snapRecycle.docs.forEach(d => {
+                batch.update(d.ref, {
+                    estado: '',
+                    solicitado_por: null,
+                    fecha_asignacion: null,
+                    intentos_fallidos: 0
+                });
+            });
+        }
+
+        await batch.commit();
+        await logSessionSummary(summary);
+        ServiceCache.clear("telefonos");
+        return true;
+    } catch (e) {
+        console.error("Error en finalizarSesionConCrm:", e);
+        throw e;
+    }
+};
+
+export const getTelemetriaTelefonia = async () => {
+    try {
+        const snap = await getDocs(collection(db, COL_TELEFONOS));
+        const now = new Date();
+        
+        const stats = {
+            disponibles: 0,
+            revisitas: 0,
+            enfriamiento: 0,
+            purgados: 0 // Usaremos el reporte histórico para esto en una fase posterior si se requiere
+        };
+
+        snap.docs.forEach(d => {
+            const data = d.data();
+            const state = data.estado || '';
+            const inCooling = data.fecha_liberacion && new Date(data.fecha_liberacion) > now;
+
+            if (inCooling || state === 'Inactivo' || state === 'No llamar') {
+                stats.enfriamiento++;
+            } else if (state === 'Revisita') {
+                stats.revisitas++;
+            } else if (!data.solicitado_por && (['', 'Sin asignar', 'No asignado'].includes(state))) {
+                stats.disponibles++;
+            }
+        });
+
+        return stats;
+    } catch (e) {
+        console.error("Error fetching telemetry:", e);
+        return { disponibles: 0, revisitas: 0, enfriamiento: 0, purgados: 0 };
     }
 };
 

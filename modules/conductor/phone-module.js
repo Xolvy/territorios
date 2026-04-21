@@ -5,6 +5,10 @@ import { showModal, showCustomPrompt } from '../services/ui-helpers.js';
 export const initializePhoneModule = (initialPhones, publicadores, displayName, tbody, onRefresh) => {
     // Xolvy Data Shield: Clean and filter phone records
     const normalize = (val) => String(val || '').replace(/[\s()-]/g, '').trim();
+    
+    // Xolvy Batch Engine: Memory storage for pending changes
+    if (!window.pendingPhoneChanges) window.pendingPhoneChanges = {};
+
     const myPhones = (initialPhones || [])
         .filter(p => (p.telefono || p.phone || p.numero) && String(p.telefono || p.phone || p.numero).trim().length > 0)
         .map(p => ({
@@ -15,13 +19,30 @@ export const initializePhoneModule = (initialPhones, publicadores, displayName, 
     const render = () => {
         if (!tbody) return;
 
-        tbody.innerHTML = myPhones.map(p => `
+        // Xolvy Merge Logic: Display pending changes before they hit Firestore
+        const displayPhones = myPhones.map(p => {
+            const pending = window.pendingPhoneChanges[p.id] || {};
+            // If it was deleted (Suspendido/Testigo), we could hide it, but the request says 
+            // "El registro NO debe desaparecer de la tabla al cambiar el select".
+            return {
+                ...p,
+                estado: pending.estado || p.estado,
+                publicador_asignado: pending.publicador_asignado || p.publicador_asignado,
+                notas: pending.notas !== undefined ? pending.notas : p.notas
+            };
+        });
+
+        tbody.innerHTML = displayPhones.map(p => `
             <tr class="flex flex-col sm:table-row hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors group border-b border-black/5 dark:border-white/5 p-4 sm:p-0 gap-4 sm:gap-0">
                 <!-- Col 1: Telefono (Desktop) / Header (Mobile) -->
                 <td class="p-0 sm:p-4 block sm:table-cell align-middle">
                     <div class="flex flex-col">
                         <div class="flex items-center justify-between sm:justify-start gap-4">
-                            <span class="text-[14px] sm:text-[13px] font-black text-slate-800 dark:text-white tabular-nums tracking-tight">${formatPhoneNumber(p.telefono)}</span>
+                            <span class="text-[14px] sm:text-[13px] font-black text-slate-800 dark:text-white tabular-nums tracking-tight">
+                                <a href="tel:07${p.telefono}" class="md:pointer-events-none md:text-inherit text-primary hover:underline decoration-2 underline-offset-4">
+                                    ${formatPhoneNumber(p.telefono)}
+                                </a>
+                            </span>
                             <!-- Mobile Status Badge (Only Mobile) -->
                             <div class="sm:hidden px-2 py-0.5 ${p.estado && !['Sin asignar', 'En Sesión'].includes(p.estado) ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/10' : 'hidden'} rounded-lg text-[8px] font-black uppercase tracking-widest border">
                                 ${p.estado}
@@ -83,6 +104,11 @@ export const initializePhoneModule = (initialPhones, publicadores, displayName, 
                 ? `<i class="fas fa-check-circle"></i> ${p.estado}`
                 : `<i class="fas fa-plus-circle opacity-50"></i>`}
                     </button>
+                    ${p.estado === 'Revisita' ? `
+                        <button onclick="window.devolverRevisita('${p.id}')" class="mt-2 block w-full text-[8px] font-black text-rose-500 uppercase tracking-widest hover:underline whitespace-nowrap text-center">
+                            <i class="fas fa-undo mr-1"></i> Devolver
+                        </button>
+                    ` : ''}
                 </td>
 
                 <!-- Col 6: Notas (Desktop Only Icon) -->
@@ -95,14 +121,13 @@ export const initializePhoneModule = (initialPhones, publicadores, displayName, 
         `).join('');
     };
 
-    window.updatePhoneStaff = async (id, staff) => {
-        try {
-            // Xolvy Data Shield: Garante de integridad en la firma (ID, Estado, Publicador, Notas)
-            await updateTelefonoStatus(id, null, staff, null);
-            showNotification(`Asignado a ${staff}`, 'success');
-        } catch (e) {
-            showNotification('Error al asignar publicador', 'error');
-        }
+    window.updatePhoneStaff = (id, staff) => {
+        // Xolvy Batch: Store change in memory, don't hit Firestore yet
+        if (!window.pendingPhoneChanges[id]) window.pendingPhoneChanges[id] = {};
+        window.pendingPhoneChanges[id].publicador_asignado = staff;
+        
+        // Visual Feedback only, no notification yet as per request
+        render(); 
     };
 
     window.openPhoneStatusSelector = (id, phone) => {
@@ -121,26 +146,54 @@ export const initializePhoneModule = (initialPhones, publicadores, displayName, 
         `, null, 'max-w-md');
     };
 
-    window.setPhoneStatus = async (id, status) => {
-        try {
-            if (status === 'Suspendido' || status === 'Testigo') {
-                await deleteTelefono(id);
-                showNotification(`Registro eliminado de la BD: ${status}`, 'success');
-            } else {
-                await updateTelefonoStatus(id, status, null, null);
-                showNotification(`Estado actualizado: ${status}`, 'success');
-            }
+    window.setPhoneStatus = (id, status) => {
+        const executeUpdate = () => {
+             // Xolvy Batch: Store change in memory
+            if (!window.pendingPhoneChanges[id]) window.pendingPhoneChanges[id] = {};
+            window.pendingPhoneChanges[id].estado = status;
+            
             window.closeModal();
-            onRefresh(id);
-        } catch (e) {
-            showNotification('Error al actualizar estado', 'error');
+            render(); // Refresh UI to show new status button
+        };
+
+        if (status === 'Suspendido' || status === 'Testigo') {
+            showModal(`
+                <div class="p-10 space-y-8 text-center">
+                    <div class="w-20 h-20 bg-rose-500/10 text-rose-500 rounded-[2.5rem] flex items-center justify-center text-3xl mx-auto shadow-xl shadow-rose-500/5">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="space-y-3">
+                        <h3 class="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">¿Confirmar ${status}?</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase leading-relaxed px-4 italic">Se recomienda volver a marcar para confirmar que está ${status === 'Suspendido' ? 'suspendido' : 'una dirección de testigo'}.</p>
+                    </div>
+                    <div class="flex gap-4 pt-4">
+                        <button onclick="window.closeModal()" class="flex-1 px-8 py-4 bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all">Cancelar</button>
+                        <button id="btn-confirm-purge" class="flex-1 px-8 py-4 bg-rose-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-rose-500/20 hover:bg-rose-600 transition-all">Confirmar</button>
+                    </div>
+                </div>
+            `, null, 'max-w-sm');
+            
+            document.getElementById('btn-confirm-purge').onclick = executeUpdate;
+        } else {
+            executeUpdate();
         }
     };
 
+    window.devolverRevisita = (id) => {
+        if (!window.pendingPhoneChanges[id]) window.pendingPhoneChanges[id] = {};
+        window.pendingPhoneChanges[id].estado = ''; // Volver al estado inicial
+        render();
+        showNotification('Revisita devuelta al pool central', 'info');
+    };
+
     window.openPhoneNotes = (id, phone, currentNotes) => {
-        showCustomPrompt(`Notas para ${phone}`, currentNotes, async (newNotes) => {
-            await updateTelefono(id, { notas: newNotes });
-            onRefresh();
+        const pending = window.pendingPhoneChanges[id]?.notas;
+        const notesToDisplay = pending !== undefined ? pending : currentNotes;
+
+        showCustomPrompt(`Notas para ${phone}`, notesToDisplay, (newNotes) => {
+            if (!window.pendingPhoneChanges[id]) window.pendingPhoneChanges[id] = {};
+            window.pendingPhoneChanges[id].notas = newNotes;
+            render();
         });
     };
 

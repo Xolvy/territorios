@@ -1,6 +1,7 @@
 import { auth } from '../firebase-config.js';
 import { GoogleAuthProvider, signInWithRedirect, getRedirectResult } from "firebase/auth";
 import { getPublicadores } from '../data/firestore-services.js';
+import { createAdaptiveLogo } from './utils/AdaptiveLogo.js';
 
 
 export const renderLogin = (container) => {
@@ -19,7 +20,10 @@ export const renderLogin = (container) => {
             <!-- Professional Deep Glow -->
             <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1200px] h-[1200px] bg-blue-900/20 rounded-full blur-[160px] pointer-events-none"></div>
 
-            <div class="z-10 w-full max-w-4xl bg-white dark:bg-slate-900 enterprise-card p-4 sm:p-6 lg:p-8 shadow-2xl rounded-[2.5rem] grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-6">
+            <div class="z-10 w-full max-w-4xl flex flex-col items-center gap-8">
+                <div id="login-logo-container" class="animate-fade-in transition-all duration-700 hover:scale-110"></div>
+                
+                <div class="w-full bg-white dark:bg-slate-900 enterprise-card p-4 sm:p-6 lg:p-8 shadow-2xl rounded-[2.5rem] grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-6">
                 
                 <!-- Panel Administrador -->
                 <button id="btn-google-login" class="group flex flex-col items-center px-4 py-4 sm:p-5 bg-slate-50 dark:bg-white/5 rounded-2xl border-2 border-slate-100 dark:border-white/5 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-blue-500 w-full max-w-sm mx-auto text-sm sm:text-base text-center cursor-pointer relative z-[9999]">
@@ -36,7 +40,7 @@ export const renderLogin = (container) => {
                 </button>
 
                 <!-- Panel Conductor -->
-                <button id="btn-conductor-trigger" class="group flex flex-col items-center px-4 py-4 sm:p-5 bg-slate-50 dark:bg-white/5 rounded-2xl border-2 border-slate-100 dark:border-white/5 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-slate-900 dark:hover:border-white/10 w-full max-w-sm mx-auto text-sm sm:text-base text-center cursor-pointer">
+                    <button id="btn-conductor-trigger" class="btn-pro group flex flex-col items-center px-4 py-6 sm:p-8 bg-white dark:bg-white/5 rounded-[2rem] border-2 border-slate-100 dark:border-white/5 transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:border-slate-900 dark:hover:border-white/10 w-full max-w-sm mx-auto text-sm sm:text-base text-center cursor-pointer">
                     <div class="p-3 bg-slate-900 dark:bg-white/10 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-slate-900/20 mb-3 transition-transform group-hover:scale-105 duration-500">
                         <i class="fas fa-map-marked-alt text-2xl h-8 w-8 flex items-center justify-center"></i>
                     </div>
@@ -89,6 +93,12 @@ export const renderLogin = (container) => {
         if (btnConductorTrigger) {
             btnConductorTrigger.addEventListener('click', () => renderConductorSelection());
         }
+
+        // Inject Adaptive Logo
+        const logoContainer = container.querySelector('#login-logo-container');
+        if (logoContainer) {
+            logoContainer.appendChild(createAdaptiveLogo('h-16 w-auto drop-shadow-2xl'));
+        }
     }, 0);
 };
 
@@ -99,25 +109,25 @@ export const renderConductorSelection = async () => {
     modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 animate-fade-in';
     
     modal.innerHTML = `
-        <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
+        <div class="bg-white dark:bg-[#0a0f18] w-full max-w-lg rounded-3xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden border border-transparent dark:border-white/10">
             <!-- Header Modal -->
-            <div class="p-8 border-b border-slate-100 flex items-center justify-between shrink-0">
+            <div class="p-8 border-b border-slate-100 dark:border-white/5 flex items-center justify-between shrink-0">
                 <div>
-                    <h2 class="text-xl font-black text-slate-800 uppercase tracking-tight">Directorio</h2>
-                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1.5">Busca tu nombre en el listado</p>
+                    <h2 class="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Directorio</h2>
+                    <p class="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-[0.2em] mt-1.5">Busca tu nombre en el listado</p>
                 </div>
-                <button id="btn-close-modal-c" class="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-300 hover:text-rose-500 transition-all border border-slate-100 shadow-inner group">
+                <button id="btn-close-modal-c" class="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-white/5 flex items-center justify-center text-slate-300 dark:text-slate-400 hover:text-rose-500 transition-all border border-slate-100 dark:border-white/10 shadow-inner group">
                      <i class="fas fa-times group-hover:rotate-90 transition-transform"></i>
                 </button>
             </div>
             
-            <div class="p-8 space-y-8 flex-1 overflow-hidden flex flex-col bg-slate-50/30">
+            <div class="p-8 space-y-8 flex-1 overflow-hidden flex flex-col bg-slate-50/30 dark:bg-black/20">
                 <div class="relative flex items-center w-full mb-4">
                     <div class="absolute inset-y-0 left-0 flex items-center pl-5 pointer-events-none">
                         <i class="fas fa-search text-slate-400 text-lg"></i>
                     </div>
                     <input type="text" id="conductor-search" placeholder="Escribe tu nombre..." 
-                        class="w-full py-4 bg-white border-2 border-slate-100 rounded-2xl shadow-sm focus:ring-0 focus:border-indigo-400 transition-all font-bold text-base text-slate-800 placeholder:text-slate-300 outline-none"
+                        class="w-full py-4 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-white/10 rounded-2xl shadow-sm focus:ring-0 focus:border-indigo-400 transition-all font-bold text-base text-slate-800 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-600 outline-none"
                         style="padding-left: 3.5rem !important;">
                 </div>
 
@@ -130,6 +140,7 @@ export const renderConductorSelection = async () => {
                         </div>
                     </div>
                 </div>
+            </div>
             </div>
         </div>
     `;
@@ -182,13 +193,13 @@ export const renderConductorSelection = async () => {
 
                 return `
                     <button data-id="${c.id}" data-name="${c.nombre}" data-phone="${c.telefono || ''}"
-                        class="conductor-btn group w-full p-5 bg-white border border-slate-100 rounded-2xl shadow-sm flex items-center justify-between transition-all hover:border-indigo-100 hover:shadow-md active:scale-[0.98] text-left">
+                        class="conductor-btn group w-full p-5 bg-white dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-2xl shadow-sm flex items-center justify-between transition-all hover:border-indigo-200 dark:hover:border-indigo-500/50 hover:shadow-md active:scale-[0.98] text-left">
                         <div class="flex items-center gap-5">
-                            <div class="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-indigo-500 font-black text-base border border-slate-100 group-hover:bg-indigo-500 group-hover:text-white transition-all duration-300">
+                            <div class="w-12 h-12 rounded-xl bg-slate-50 dark:bg-black/20 flex items-center justify-center text-indigo-500 font-black text-base border border-slate-100 dark:border-white/5 group-hover:bg-indigo-500 group-hover:text-white transition-all duration-300">
                                 ${c.nombre.charAt(0)}
                             </div>
                             <div>
-                                <h4 class="font-black text-slate-800 group-hover:text-indigo-600 transition-colors uppercase tracking-tight text-sm">${c.nombre}</h4>
+                                <h4 class="font-black text-slate-800 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors uppercase tracking-tight text-sm">${c.nombre}</h4>
                                 <p class="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1">${roleLabel}</p>
                             </div>
                         </div>

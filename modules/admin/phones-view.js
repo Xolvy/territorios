@@ -1,6 +1,7 @@
 import {
     getPublicadores, startLivePool,
-    updateTelefono, addTelefono, deleteTelefono, autoCleanTelefonosData
+    updateTelefono, addTelefono, deleteTelefono, autoCleanTelefonosData,
+    getTelemetriaTelefonia
 } from '../../data/firestore-services.js';
 import { formatPhoneNumber, getStatusColor, showNotification } from '../utils/helpers.js';
 import { showModal, showCustomConfirm } from '../services/ui-helpers.js';
@@ -48,6 +49,15 @@ export const renderTelefonosTab = async (container, configData = null) => {
                     </label>
                 </div>
             </header>
+
+            <!-- Xolvy Telemetry Card S-13 -->
+            <div id="telemetry-card-container" class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+                <!-- Skeleton while loading -->
+                <div class="animate-pulse bg-white dark:bg-white/5 p-6 rounded-[2rem] border border-slate-100 dark:border-white/5 h-32"></div>
+                <div class="animate-pulse bg-white dark:bg-white/5 p-6 rounded-[2rem] border border-slate-100 dark:border-white/5 h-32"></div>
+                <div class="animate-pulse bg-white dark:bg-white/5 p-6 rounded-[2rem] border border-slate-100 dark:border-white/5 h-32"></div>
+                <div class="animate-pulse bg-white dark:bg-white/5 p-6 rounded-[2rem] border border-slate-100 dark:border-white/5 h-32"></div>
+            </div>
 
             <div class="hidden lg:block enterprise-card overflow-hidden border-slate-200 dark:border-white/5 shadow-sm relative">
                     <table class="w-full text-left border-collapse table-fixed">
@@ -300,8 +310,8 @@ export const renderTelefonosTab = async (container, configData = null) => {
                 </div>
 
                 <footer class="shrink-0 p-8 bg-white dark:bg-black/40 border-t border-slate-100 dark:border-white/5 flex gap-4">
-                    <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest transition-all">Cancelar</button>
-                    <button id="m-save-phone" class="flex-[2] py-5 bg-primary text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20 transition-all hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-2">
+                    <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="btn-pro flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-white/10 transition-all">Cancelar</button>
+                    <button id="m-save-phone" class="btn-pro flex-[2] py-5 bg-primary text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20 transition-all hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-2">
                         <i class="fas fa-save"></i> ${isEdit ? 'Guardar Cambios' : 'Crear Registro'}
                     </button>
                 </footer>
@@ -360,6 +370,37 @@ export const renderTelefonosTab = async (container, configData = null) => {
     container.querySelector('#show-hidden-phones').onchange = (e) => renderData(searchInput.value, e.target.checked);
     container.querySelector('#add-phone-btn').onclick = () => openModalPhone();
 
+    // Telemetry Sync
+    const updateTelemetry = async () => {
+        const stats = await getTelemetriaTelefonia();
+        const telemetryContainer = container.querySelector('#telemetry-card-container');
+        if (!telemetryContainer) return;
+
+        telemetryContainer.innerHTML = `
+            <div class="bg-white dark:bg-[#0a0f18] p-6 rounded-[2.5rem] border border-slate-100 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.02)] flex flex-col items-center justify-center text-center group hover:scale-[1.02] transition-all duration-500">
+                <div class="w-10 h-10 bg-emerald-500/10 text-emerald-500 rounded-2xl flex items-center justify-center mb-3 group-hover:rotate-12 transition-transform"><i class="fas fa-check-circle"></i></div>
+                <span class="text-[8px] font-black uppercase text-slate-400 tracking-[0.2em] mb-1">Disponibles</span>
+                <span class="text-2xl font-black text-slate-800 dark:text-white tabular-nums tracking-tighter">${stats.disponibles}</span>
+            </div>
+            <div class="bg-white dark:bg-[#0a0f18] p-6 rounded-[2.5rem] border border-slate-100 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.02)] flex flex-col items-center justify-center text-center group hover:scale-[1.02] transition-all duration-500">
+                <div class="w-10 h-10 bg-blue-500/10 text-blue-500 rounded-2xl flex items-center justify-center mb-3 group-hover:rotate-12 transition-transform"><i class="fas fa-history"></i></div>
+                <span class="text-[8px] font-black uppercase text-slate-400 tracking-[0.2em] mb-1">En Revisita</span>
+                <span class="text-2xl font-black text-slate-800 dark:text-white tabular-nums tracking-tighter">${stats.revisitas}</span>
+            </div>
+            <div class="bg-white dark:bg-[#0a0f18] p-6 rounded-[2.5rem] border border-slate-100 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.02)] flex flex-col items-center justify-center text-center group hover:scale-[1.02] transition-all duration-500">
+                <div class="w-10 h-10 bg-amber-500/10 text-amber-500 rounded-2xl flex items-center justify-center mb-3 group-hover:rotate-12 transition-transform"><i class="fas fa-snowflake"></i></div>
+                <span class="text-[8px] font-black uppercase text-slate-400 tracking-[0.2em] mb-1">Enfriamiento</span>
+                <span class="text-2xl font-black text-slate-800 dark:text-white tabular-nums tracking-tighter">${stats.enfriamiento}</span>
+            </div>
+            <div class="bg-white dark:bg-[#0a0f18] p-6 rounded-[2.5rem] border border-slate-100 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.02)] flex flex-col items-center justify-center text-center group hover:scale-[1.02] transition-all duration-500">
+                <div class="w-10 h-10 bg-rose-500/10 text-rose-500 rounded-2xl flex items-center justify-center mb-3 group-hover:rotate-12 transition-transform"><i class="fas fa-trash-alt"></i></div>
+                <span class="text-[8px] font-black uppercase text-slate-400 tracking-[0.2em] mb-1">Purgas</span>
+                <span class="text-2xl font-black text-slate-800 dark:text-white tabular-nums tracking-tighter">${stats.purgados}</span>
+            </div>
+        `;
+    };
+
     // Initial load
     renderData();
+    updateTelemetry();
 };

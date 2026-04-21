@@ -44,12 +44,17 @@ export const showNotification = (message, type = 'success', duration = 5000, wor
     // Fallback truncation for very long ad-hoc messages
     if (displayMessage.length > 50) displayMessage = displayMessage.substring(0, 47) + '...';
 
-    // 2. HUD Container (Bottom Right)
-    let hud = document.getElementById('xolvy-notifications-hud');
+    // 2. HUD Containers
+    const containerClass = (type === 'sync' || type === 'pwa') 
+        ? 'fixed top-4 left-1/2 -translate-x-1/2 z-[10001] flex flex-col items-center gap-3 pointer-events-none w-full max-w-sm'
+        : 'fixed bottom-6 right-6 z-[10000] flex flex-col items-end gap-3 pointer-events-none';
+    const hudId = (type === 'sync' || type === 'pwa') ? 'xolvy-notifications-top' : 'xolvy-notifications-hud';
+
+    let hud = document.getElementById(hudId);
     if (!hud) {
         hud = document.createElement('div');
-        hud.id = 'xolvy-notifications-hud';
-        hud.className = 'fixed bottom-6 right-6 z-[10000] flex flex-col items-end gap-3 pointer-events-none';
+        hud.id = hudId;
+        hud.className = containerClass;
         document.body.appendChild(hud);
     }
 
@@ -64,11 +69,13 @@ export const showNotification = (message, type = 'success', duration = 5000, wor
         error: { bg: 'bg-white/95 dark:bg-[#1a0f12]/95 border-rose-200/50 dark:border-rose-500/20', text: 'text-rose-600 dark:text-rose-400', icon: 'fa-triangle-exclamation', label: 'ERROR' },
         warning: { bg: 'bg-white/95 dark:bg-[#1a150f]/95 border-amber-200/50 dark:border-amber-500/20', text: 'text-amber-600 dark:text-amber-400', icon: 'fa-circle-exclamation', label: 'AVISO' },
         info: { bg: 'bg-white/95 dark:bg-[#0f111a]/95 border-indigo-200/50 dark:border-indigo-500/20', text: 'text-indigo-600 dark:text-indigo-400', icon: 'fa-circle-info', label: 'INFO' },
-        sync: { bg: 'bg-white/95 dark:bg-[#0b0f1a] border-indigo-200/50 dark:border-indigo-500/30', text: 'text-indigo-600 dark:text-indigo-400', icon: 'fa-sync-alt fa-spin-slow', label: 'WORKFLOW' }
+        sync: { bg: 'bg-white/95 dark:bg-[#0b0f1a] border-indigo-200/50 dark:border-indigo-500/30', text: 'text-indigo-600 dark:text-indigo-400', icon: 'fa-sync-alt fa-spin-slow', label: 'WORKFLOW' },
+        pwa: { bg: 'bg-indigo-600 dark:bg-indigo-500 shadow-[0_10px_30px_rgba(79,70,229,0.4)]', text: 'text-white', icon: 'fa-cloud-download-alt', label: 'PWA READY' }
     };
 
     const isSync = type === 'sync' || message.includes('Sincronizando');
-    const s = styles[isSync ? 'sync' : type] || styles.success;
+    const isPwa = type === 'pwa';
+    const s = styles[isPwa ? 'pwa' : (isSync ? 'sync' : type)] || styles.success;
 
     // Workflow log rendering
     const workflowHTML = workflow.length > 0
@@ -96,7 +103,8 @@ export const showNotification = (message, type = 'success', duration = 5000, wor
         </div>
     ` : '';
 
-    card.className = `${s.bg} border backdrop-blur-xl px-5 py-3.5 rounded-2xl shadow-2xl flex flex-col gap-1 animate-slide-left pointer-events-auto transform transition-all duration-500 hover:scale-[1.02] group min-w-[280px] max-w-[340px]`;
+    const animationClass = (isSync || isPwa) ? 'animate-slide-down' : 'animate-slide-left';
+    card.className = `${s.bg} border backdrop-blur-xl px-5 py-3.5 rounded-full shadow-2xl flex flex-col gap-1 ${animationClass} pointer-events-auto transform transition-all duration-500 hover:scale-[1.02] group min-w-[280px] max-w-[340px]`;
     card.innerHTML = `
         <div class="flex items-center gap-4 w-full">
             <div class="w-10 h-10 ${isSync ? 'bg-indigo-500/10 dark:bg-indigo-500/20' : 'bg-white/50 dark:bg-white/5'} rounded-xl flex items-center justify-center ${s.text} shadow-inner shrink-0 group-hover:scale-110 transition-transform">

@@ -189,7 +189,7 @@ export const renderHistorialView = async (container) => {
         }
         grid.innerHTML = displayList.map(t => {
             const isFree = t.estado === 'Libre' || t.estado === 'Disponible' || t.estado === 'Sin asignar';
-            
+
             return `
                 <div class="flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm hover:shadow-md transition-all group overflow-hidden h-full"> 
                     <div class="flex flex-col p-6 gap-5 flex-1">
@@ -263,7 +263,7 @@ export const renderHistorialView = async (container) => {
             // Suscripción Live Pool para el territorio específico
             const { startLivePool } = await import('../../data/firestore-services.js');
             const { where } = await import('firebase/firestore');
-            
+
             const unsub = startLivePool('banco_s13', [where('territorio_id', '==', String(num))], (data) => {
                 const sorted = data.sort((a, b) => {
                     const getMs = (h) => {
@@ -303,15 +303,15 @@ export const renderHistorialView = async (container) => {
         container.innerHTML = `
             <div class="relative space-y-12 before:absolute before:left-[21px] before:top-4 before:bottom-4 before:w-1 before:bg-gradient-to-b before:from-primary/30 before:via-slate-200 dark:before:via-white/5 before:to-transparent">
                 ${history.map((h) => {
-                    const isEnCurso = !h.fecha_entrega;
-                    const dateAsig = UIHelpers.fmtDate(h.fecha_asignacion || h.timestamp);
-                    const dateEntr = h.fecha_entrega ? UIHelpers.fmtDate(h.fecha_entrega) : null;
-                    const badgeClass = isEnCurso 
-                        ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' 
-                        : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
-                    const dotClass = isEnCurso ? 'bg-amber-500 shadow-amber-500/40 animate-pulse' : 'bg-emerald-500 shadow-emerald-500/40';
+            const isEnCurso = !h.fecha_entrega;
+            const dateAsig = UIHelpers.fmtDate(h.fecha_asignacion || h.timestamp);
+            const dateEntr = h.fecha_entrega ? UIHelpers.fmtDate(h.fecha_entrega) : null;
+            const badgeClass = isEnCurso
+                ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
+            const dotClass = isEnCurso ? 'bg-amber-500 shadow-amber-500/40 animate-pulse' : 'bg-emerald-500 shadow-emerald-500/40';
 
-                    return `
+            return `
                     <div class="relative pl-14 group/item">
                         <!-- Conector Dot -->
                         <div class="absolute left-0 top-1.5 w-11 h-11 flex items-center justify-center z-10 bg-slate-50 dark:bg-[#0a0f18] rounded-full">
@@ -358,7 +358,7 @@ export const renderHistorialView = async (container) => {
                         </div>
                     </div>
                     `;
-                }).join('')}
+        }).join('')}
             </div>
         `;
     };
@@ -386,14 +386,14 @@ export const renderHistorialView = async (container) => {
                     </div>
                     <div>
                         <h5 class="text-xs font-black uppercase tracking-tight text-primary">Modo Cirugía de Datos</h5>
-                        <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Ajustando S-13 · T-${tNum}</p>
+                        <p class="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest">Ajustando S-13 · T-${tNum}</p>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="space-y-2">
-                        <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Conductor</label>
-                        <select id="edit-surgery-cond" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-xs font-bold outline-none focus:border-primary transition-all uppercase cursor-pointer">
+                        <label class="text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Conductor</label>
+                        <select id="edit-surgery-cond" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-xs font-bold text-slate-700 dark:text-white outline-none focus:border-primary transition-all uppercase cursor-pointer">
                             <option value="">Seleccionar responsable...</option>
                             ${allPublicadores.map(p => `
                                 <option value="${p.nombre}" ${h.conductor === p.nombre ? 'selected' : ''}>${p.nombre}</option>
@@ -402,8 +402,8 @@ export const renderHistorialView = async (container) => {
                         </select>
                     </div>
                     <div class="space-y-2">
-                        <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Turno</label>
-                        <select id="edit-surgery-turno" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-xs font-bold outline-none cursor-pointer">
+                        <label class="text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Turno</label>
+                        <select id="edit-surgery-turno" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-xs font-bold text-slate-700 dark:text-white outline-none cursor-pointer">
                             <option value="manana" ${h.turno === 'manana' ? 'selected' : ''}>MAÑANA</option>
                             <option value="tarde" ${h.turno === 'tarde' ? 'selected' : ''}>TARDE</option>
                             <option value="noche" ${h.turno === 'noche' ? 'selected' : ''}>NOCHE</option>
@@ -414,18 +414,18 @@ export const renderHistorialView = async (container) => {
 
                 <div class="grid grid-cols-2 gap-4">
                     <div class="space-y-2">
-                        <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">FECHA EN QUE SE ASIGNÓ</label>
-                        <input type="date" id="edit-surgery-asig" value="${dateAsigVal}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-xs font-bold outline-none text-blue-500">
+                        <label class="text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">FECHA EN QUE SE ASIGNÓ</label>
+                        <input type="date" id="edit-surgery-asig" value="${dateAsigVal}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-xs font-bold text-blue-500 outline-none">
                     </div>
                     <div class="space-y-2">
-                        <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">FECHA EN QUE SE COMPLETÓ</label>
-                        <input type="date" id="edit-surgery-entr" value="${dateEntrVal}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-xs font-bold outline-none text-emerald-500">
+                        <label class="text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">FECHA EN QUE SE COMPLETÓ</label>
+                        <input type="date" id="edit-surgery-entr" value="${dateEntrVal}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-xs font-bold text-emerald-500 outline-none">
                     </div>
                 </div>
 
                 <div class="flex gap-2 pt-2">
-                    <button id="btn-surgery-cancel" class="flex-1 py-3 bg-slate-100 dark:bg-white/5 text-slate-500 font-black rounded-xl text-[9px] uppercase tracking-widest transition-all">Cancelar</button>
-                    <button id="btn-surgery-save" class="flex-[2] py-3 bg-primary text-white font-black rounded-xl text-[9px] uppercase tracking-widest shadow-lg shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-2">
+                    <button id="btn-surgery-cancel" class="btn-pro flex-1 py-3 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-500 dark:text-slate-400 font-black rounded-xl text-[9px] uppercase tracking-widest transition-all">Cancelar</button>
+                    <button id="btn-surgery-save" class="btn-pro flex-[2] py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-xl text-[9px] uppercase tracking-widest shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-2">
                          <i class="fas fa-save"></i> Aplicar Cambios
                     </button>
                 </div>
@@ -589,8 +589,8 @@ export const renderHistorialView = async (container) => {
                         <i class="fas fa-file-signature"></i>
                     </div>
                     <div>
-                        <h3 class="text-2xl font-black uppercase tracking-tighter">Cargar Registro Manual</h3>
-                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em] mt-1">Saturación Histórica S-13</p>
+                        <h3 class="text-2xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">Cargar Registro Manual</h3>
+                        <p class="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-[0.3em] mt-1">Saturación Histórica S-13</p>
                     </div>
                 </header>
 
@@ -636,8 +636,8 @@ export const renderHistorialView = async (container) => {
                 </div>
 
                 <div class="flex gap-4 pt-6 border-t border-slate-50 dark:border-white/5">
-                    <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest">Cerrar</button>
-                    <button id="confirm-manual-h" class="flex-[2] py-5 bg-teal-600 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-teal-500/20 transition-all active:scale-95">Guardar Registro</button>
+                    <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="btn-pro flex-1 py-5 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest transition-all">Cerrar</button>
+                    <button id="confirm-manual-h" class="btn-pro flex-[2] py-5 bg-teal-600 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-teal-500/20 transition-all active:scale-95">Guardar Registro</button>
                 </div>
             </div>
         `, (modal) => {
@@ -682,4 +682,3 @@ export const renderHistorialView = async (container) => {
     if (btnManual) btnManual.onclick = () => window.showManualLogModal();
     renderGrid();
 };
-

@@ -17,7 +17,7 @@ VisualEngine.applyGlobalEcosystem();
 moduleRegistry.init();
 
 // The version is injected by Vite at build time (Core Shell Version)
-const APP_VERSION = "3.0.0";
+const APP_VERSION = "3.0.4";
 window.XolvyApp = { user: null, version: APP_VERSION };
 
 // --- XOLVY MODULAR: MICRO-MODULE ENGINE ---
@@ -191,12 +191,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             const permisos = await getPermisosUsuario(user.email);
             let role = permisos?.role; 
 
+            // Integración de Identity Shield para Admins/Usuarios Autenticados
+            try {
+                const IdentityService = await import('./data/services/identity-service.js');
+                // IMPORTANTE: Resolvemos preferentemente por el nombre en los permisos, ya que es el enlace con publicadores
+                const identitySearchKey = permisos?.nombre || user.email;
+                window.XolvyApp.identity = await IdentityService.IdentityShield.resolveAndBindIdentity(identitySearchKey);
+            } catch (identityError) {
+                console.warn("[Identity] Shield fallback activo", identityError);
+            }
+
             // Actualizar estado global
             window.XolvyApp.user = {
                 uid: user.uid,
                 email: user.email,
-                nombre: permisos?.nombre || user.displayName || user.email,
-                role: role || 'Visitante'
+                nombre: window.XolvyApp.identity?.nombreCanonico || permisos?.nombre || user.displayName || user.email,
+                role: role || window.XolvyApp.identity?.rol || 'Visitante'
             };
 
             if (!role) {
@@ -213,19 +223,33 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // 2.3 Dashboard Routing
             const isAdmin = (role === 'Administrador' || role === 'SuperAdmin');
-            if (isAdmin) {
+            const path = window.location.pathname;
+
+            if (isAdmin && path.startsWith('/conductores')) {
+                // Modo Simulacro: Si un administrador navega a /conductores, se le permite.
+                console.log("🛡️ [Security] Admin entrando a vista Conductor (Modo Simulacro/Supervisión).");
+                
+                let storedName = localStorage.getItem('selected_conductor_name');
+                if (!storedName && window.XolvyApp?.identity?.nombreCanonico) {
+                    storedName = window.XolvyApp.identity.nombreCanonico;
+                    localStorage.setItem('selected_conductor_name', storedName);
+                    localStorage.setItem('demo_role', 'Conductor');
+                }
+
+                if (!storedName) {
+                    appContainer.innerHTML = '';
+                    const mLogin = await loadModule('login', './modules/login.js');
+                    mLogin.renderConductorSelection();
+                    return;
+                }
+                const render = await loadConductor();
+                render(appContainer, storedName, APP_VERSION, role);
+            } else if (isAdmin) {
                 // CAMBIO 2: Limpiar sesión de Conductor al detectar Admin
                 localStorage.removeItem('xolvy_session');
                 localStorage.removeItem('selected_conductor_name');
                 localStorage.setItem('demo_role', 'Administrador');
-                
-                // CAMBIO 1: Eliminar "punto de fuga". Un Admin NUNCA ve el dashboard del Conductor.
-                if (window.location.pathname.startsWith('/conductores')) {
-                    console.log("🛡️ [Security] Admin intentó acceder a vista Conductor. Redirigiendo a raíz.");
-                    window.history.replaceState({}, '', '/'); 
-                }
 
-                const path = window.location.pathname;
                 const subPath = path.split('/')[2] || 'dashboard';
                 const urlToTab = { 'territorios': 'casa-en-casa', 'predicacion': 'predicacion', 'telefonos': 'telefonos', 'config': 'config' };
                 const tabId = urlToTab[subPath] || 'dashboard';
