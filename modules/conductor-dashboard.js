@@ -822,20 +822,12 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                         </div>
                     </div>
 
-                        <!-- Dynamic Banner (Diffusion) -->
-                        <div id="dynamic-banner-container" class="hidden lg:flex flex-1 justify-center items-center px-8 overflow-hidden pointer-events-none min-w-0">
-                            <div class="flex items-center gap-3">
-                                <i class="fas fa-bullhorn text-indigo-500 text-lg animate-pulse shrink-0 drop-shadow-md"></i>
-                                <div class="bg-indigo-50/50 dark:bg-indigo-500/5 px-6 py-2.5 rounded-[1.5rem] border border-indigo-100/50 dark:border-indigo-500/10 shadow-sm flex items-center max-w-xl w-full">
-                                    <p id="dynamic-banner-content" class="text-[10px] font-black text-indigo-600/80 dark:text-indigo-300/90 uppercase tracking-[0.25em] animate-fade-in transition-all duration-700 truncate min-w-0">Sincronizando últimas actualizaciones...</p>
-                                </div>
-                            </div>
-                        </div>
+
 
                         <div class="flex items-center justify-end gap-3 w-full md:w-auto relative">
                             ${['Administrador', 'SuperAdmin'].includes(window.XolvyApp?.user?.role) ? `
-                                <div class="flex-1 lg:flex-none flex items-center justify-center gap-4 bg-slate-100 dark:bg-white/5 px-4 md:px-6 py-2.5 rounded-2xl border border-slate-200/50 dark:border-white/10 shadow-inner min-w-fit shrink-0">
-                                     <button onclick="window.history.pushState({}, '', '/'); location.reload();" class="text-[8px] md:text-[9px] font-black text-slate-500 hover:text-indigo-600 uppercase tracking-widest transition-colors flex items-center gap-2 whitespace-nowrap group/switch shrink-0 px-1">
+                                <div class="flex-1 lg:flex-none flex items-center justify-center gap-4 bg-slate-100 dark:bg-white/5 px-4 md:px-6 h-12 rounded-2xl border border-slate-200/50 dark:border-white/10 shadow-inner min-w-fit shrink-0">
+                                     <button onclick="window.history.pushState({}, '', '/'); location.reload();" class="text-[8px] md:text-[9px] font-black text-slate-500 hover:text-indigo-600 uppercase tracking-widest transition-colors flex items-center gap-2 whitespace-nowrap group/switch shrink-0 h-full px-1">
                                          <i class="fas fa-shield-alt text-[10px] group-hover:scale-110 transition-transform duration-500"></i> Vista Admin
                                      </button>
                                      <div class="w-px h-3 bg-slate-300 dark:bg-white/10 mx-0.5"></div>
@@ -846,18 +838,27 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                 </div>
                             ` : ''}
 
-                            <div class="flex items-center gap-4 bg-white/50 dark:bg-white/5 px-5 py-3 rounded-2xl border border-slate-200 dark:border-white/10 shadow-inner">
-                                <button onclick="window.toggleTheme(); window.refreshConductorView();" class="text-slate-500 hover:text-indigo-500 transition-all active:scale-75 outline-none">
-                                    <i class="fas fa-moon dark:hidden"></i>
-                                    <i class="fas fa-sun hidden dark:block text-yellow-500 animate-pulse"></i>
-                                </button>
-                            </div>
+                            <button onclick="window.toggleTheme(); window.refreshConductorView();" class="w-12 h-12 flex items-center justify-center bg-white/50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-inner text-slate-500 hover:text-indigo-500 transition-all active:scale-75 outline-none shrink-0">
+                                <i class="fas fa-moon dark:hidden"></i>
+                                <i class="fas fa-sun hidden dark:block text-yellow-500 animate-pulse"></i>
+                            </button>
 
-                            <button id="logout-btn" class="btn-pro flex-1 lg:flex-none bg-rose-500/10 hover:bg-rose-600 text-rose-600 hover:text-white px-8 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest border border-rose-500/20 shadow-xl shadow-rose-500/5 transition-all active:scale-95 flex items-center justify-center gap-3">
+                            <button id="logout-btn" class="btn-pro flex-1 lg:flex-none bg-rose-500/10 hover:bg-rose-600 text-rose-600 hover:text-white px-8 h-12 rounded-2xl font-black text-[10px] uppercase tracking-widest border border-rose-500/20 shadow-xl shadow-rose-500/5 transition-all active:scale-95 flex items-center justify-center gap-3">
                                 <i class="fas fa-power-off"></i> Salir
                             </button>
                         </div>
                     </header>
+
+                    <!-- Dynamic Banner (Diffused to Title Bar Underneath) -->
+                    <div id="dynamic-banner-container" class="hidden lg:flex w-full items-center px-6 md:px-12 py-3 bg-white/20 dark:bg-black/10 border-b border-slate-200/50 dark:border-white/5 relative z-40 overflow-hidden min-w-0">
+                        <div class="flex items-center gap-3 w-full">
+                            <i class="fas fa-bullhorn text-indigo-500 text-sm animate-pulse shrink-0 drop-shadow-md"></i>
+                            <div class="bg-indigo-50/50 dark:bg-indigo-500/5 px-6 py-2 rounded-xl border border-indigo-100/50 dark:border-indigo-500/10 shadow-sm flex items-center w-full max-w-full">
+                                <!-- Remove truncate to let marquee flow if needed, but the user wants "en otra línea, porque se corta". We can also make it a clean marquee -->
+                                <p id="dynamic-banner-content" class="text-[10px] font-black text-indigo-600/80 dark:text-indigo-300/90 uppercase tracking-[0.25em] animate-fade-in transition-all duration-700 w-full">Sincronizando últimas actualizaciones...</p>
+                            </div>
+                        </div>
+                    </div>
 
                 <!-- Main Scroll Container -->
                 <div class="flex-1 overflow-y-auto custom-scrollbar relative z-10">

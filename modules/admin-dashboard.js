@@ -272,23 +272,19 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
                 </div>
                 
                 <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-                    <div class="hidden sm:flex flex-col items-center bg-slate-50 dark:bg-white/5 px-6 py-2.5 rounded-2xl border border-slate-200/50 dark:border-white/10 shadow-sm">
-                        <span class="text-[7px] font-black text-slate-400 uppercase tracking-[0.3em] mb-0.5">Versión del Sistema</span>
-                        <span class="text-[10px] font-black text-slate-800 dark:text-white tracking-widest uppercase">Build v${appVersion}</span>
-                    </div>
 
-                    <div class="flex-1 lg:flex-none flex items-center justify-center gap-4 bg-slate-100 dark:bg-white/5 px-4 md:px-6 py-2.5 rounded-2xl border border-slate-200/50 dark:border-white/10 shadow-inner min-w-fit shrink-0">
+                    <div class="flex-1 lg:flex-none flex items-center justify-center gap-4 bg-slate-100 dark:bg-white/5 px-4 md:px-6 h-12 rounded-2xl border border-slate-200/50 dark:border-white/10 shadow-inner min-w-fit shrink-0">
                          <div class="flex items-center gap-2">
                              <div class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></div>
                              <span class="text-[8px] md:text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest whitespace-nowrap">Vista Admin</span>
                          </div>
                          <div class="w-px h-3 bg-slate-300 dark:bg-white/10 mx-0.5"></div>
-                         <button onclick="if(window.XolvyApp?.identity?.nombreCanonico){ localStorage.setItem('selected_conductor_name', window.XolvyApp.identity.nombreCanonico); localStorage.setItem('demo_role', 'Conductor'); } else { localStorage.removeItem('selected_conductor_name'); localStorage.removeItem('demo_role'); } localStorage.removeItem('xolvy_session'); window.history.pushState({}, '', '/conductores'); location.reload();" class="text-[8px] md:text-[9px] font-black text-primary hover:text-indigo-600 uppercase tracking-widest transition-colors flex items-center gap-2 whitespace-nowrap group/switch shrink-0 px-1">
+                         <button onclick="if(window.XolvyApp?.identity?.nombreCanonico){ localStorage.setItem('selected_conductor_name', window.XolvyApp.identity.nombreCanonico); localStorage.setItem('demo_role', 'Conductor'); } else { localStorage.removeItem('selected_conductor_name'); localStorage.removeItem('demo_role'); } localStorage.removeItem('xolvy_session'); window.history.pushState({}, '', '/conductores'); location.reload();" class="text-[8px] md:text-[9px] font-black text-primary hover:text-indigo-600 uppercase tracking-widest transition-colors flex items-center gap-2 whitespace-nowrap group/switch shrink-0 h-full px-1">
                              <i class="fas fa-random text-[10px] group-hover:rotate-180 transition-transform duration-500"></i> Conductor
                          </button>
                     </div>
                     
-                    <button id="logout-btn" class="flex-1 lg:flex-none btn-pro bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white px-8 py-3.5 rounded-2xl border border-rose-500/20 transition-all font-black text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-rose-500/5 active:scale-95">
+                    <button id="logout-btn" class="flex-1 lg:flex-none btn-pro bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white px-8 h-12 rounded-2xl border border-rose-500/20 transition-all font-black text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-rose-500/5 active:scale-95 flex items-center justify-center gap-2">
                         <i class="fas fa-sign-out-alt"></i> Salir
                     </button>
                 </div>
