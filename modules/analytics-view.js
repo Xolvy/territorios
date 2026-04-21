@@ -361,10 +361,12 @@ export const renderAnalyticsView = async (container, appVersion, configData = nu
 
             const expDays = settings?.expiration_days || 120;
 
-            // Xolvy Intelligence: Use aggregated stats for primary metrics, fallback to calculated if needed
-            const total = globalStats.total_territorios || territorios.length;
-            const assignedCount = globalStats.territorios_asignados !== undefined ? globalStats.territorios_asignados : territorios.filter(t => t.estado === 'Asignado').length;
-            const assigned = territorios.filter(t => t.estado === 'Asignado');
+            // Xolvy Intelligence: Absolute consistency. Calculate EVERYTHING from the real documents.
+            // Avoid globalStats for primary counters to prevent desync.
+            const realAssigned = territorios.filter(t => t.estado === 'Asignado' || t.status === 'Asignado');
+            const total = territorios.length;
+            const assignedCount = realAssigned.length;
+            const assigned = realAssigned;
 
             const now = new Date();
             const lateTerritories = assigned.filter(t => {
@@ -434,7 +436,14 @@ export const renderAnalyticsView = async (container, appVersion, configData = nu
             animateValue('stat-conductors', 0, conductores.length, 1000);
             animateValue('stat-late', 0, lateTerritories.length, 1000);
 
-            document.getElementById('stat-s13-coverage').innerText = `${s13CoveragePercent}%`;
+            // S-13 Visual Shield: If coverage is 100% but late is high, highlight the bottleneck
+            const s13Label = document.getElementById('stat-s13-coverage');
+            s13Label.innerText = `${s13CoveragePercent}%`;
+            if(lateTerritories.length > total * 0.5) {
+                s13Label.classList.add('text-rose-500');
+            } else {
+                s13Label.classList.remove('text-rose-500');
+            }
             document.getElementById('stat-s13-progress-bar').style.width = `${s13CoveragePercent}%`;
             document.getElementById('stat-s13-coverage-info').innerText = `${uniqueWorkedCount} de ${total} territorios cubiertos en este ciclo • ${workRounds} vueltas al catálogo`;
 
@@ -475,9 +484,13 @@ export const renderAnalyticsView = async (container, appVersion, configData = nu
             icon.classList.add('fa-spin');
             resyncBtn.disabled = true;
 
-            await resyncGlobalStats();
-
-            showNotification("Estadísticas sincronizadas con el Banco Común", "success");
+            const result = await resyncGlobalStats();
+            
+            if (result && result.healed > 0) {
+                showNotification(`Sincronización completa. Se sanaron ${result.healed} estados desfasados.`, "success");
+            } else {
+                showNotification("Estadísticas sincronizadas con el Banco Común", "success");
+            }
             renderAnalyticsView(container, appVersion);
         };
     }

@@ -307,19 +307,62 @@ export const returnTerritorio = async (id, notes, customDate, status = 'Completa
 
 export const resyncGlobalStats = async () => {
     try {
-        const all = await getDocs(collection(db, COL_TERRITORIOS));
-        const assigned = all.docs.filter(d => d.data().estado === 'Asignado').length;
-        const available = all.docs.length - assigned;
+        const [allTerrs, bancoSnap] = await Promise.all([
+            getDocs(collection(db, COL_TERRITORIOS)),
+            getDocs(query(collection(db, COL_BANCO_S13), where("estado", "==", "Asignado")))
+        ]);
+
+        const activeNums = new Set(bancoSnap.docs.map(d => {
+            const data = d.data();
+            return String(data.territorio_id || '').trim();
+        }));
+
+        const batch = writeBatch(db);
+        let correctedCount = 0;
+        let finalAssigned = 0;
+
+        allTerrs.docs.forEach(docSnap => {
+            const data = docSnap.data();
+            const tNum = String(data.numero || '').trim();
+            const isAssignedInMaster = data.estado === 'Asignado' || data.status === 'Asignado';
+            const hasActiveAssignment = activeNums.has(tNum);
+
+            if (isAssignedInMaster && !hasActiveAssignment) {
+                // Healer Logic: Si el maestro dice asignado pero no hay registro en el pool S-13, liberar.
+                batch.update(docSnap.ref, {
+                    estado: 'Disponible',
+                    status: 'Disponible',
+                    asignado_a: null,
+                    currentAssignee: null,
+                    fecha_asignacion: null,
+                    assignmentDate: null
+                });
+                correctedCount++;
+            } else if (hasActiveAssignment) {
+                finalAssigned++;
+            }
+        });
+
+        if (correctedCount > 0) {
+            await batch.commit();
+            console.log(`🛡️ [S-13 Healer] Se corrigieron ${correctedCount} estados huérfanos.`);
+        }
+
+        const available = allTerrs.docs.length - finalAssigned;
         await setDoc(doc(db, "configuracion", "stats_globales"), {
-            territorios_asignados: assigned,
+            territorios_asignados: finalAssigned,
             territorios_disponibles: available,
-            total_territorios: all.docs.length,
-            last_sync: Timestamp.now()
+            total_territorios: allTerrs.docs.length,
+            last_sync: Timestamp.now(),
+            healed_count: correctedCount
         }, { merge: true });
+
         ServiceCache.clear('stats_globales');
-        return { assigned, available };
+        ServiceCache.clear('territorios_combined');
+        return { assigned: finalAssigned, available, healed: correctedCount };
     } catch (e) {
         console.error("Error resyncing global stats:", e);
+        throw e;
     }
 };
 

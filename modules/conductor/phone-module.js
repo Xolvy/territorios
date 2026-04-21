@@ -187,10 +187,7 @@ export const initializePhoneModule = (initialPhones, publicadores, displayName, 
     };
 
     window.openPhoneNotes = (id, phone, currentNotes) => {
-        const pending = window.pendingPhoneChanges[id]?.notas;
-        const notesToDisplay = pending !== undefined ? pending : currentNotes;
-
-        showCustomPrompt(`Notas para ${phone}`, notesToDisplay, (newNotes) => {
+        showCustomPrompt(`Notas para ${phone}`, "", (newNotes) => {
             if (!window.pendingPhoneChanges[id]) window.pendingPhoneChanges[id] = {};
             window.pendingPhoneChanges[id].notas = newNotes;
             render();

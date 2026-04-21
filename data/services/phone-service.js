@@ -123,15 +123,17 @@ export const solicitarNumeros = async (cantidad = 30, conductorName = null) => {
             sixMonthsAgo.setMonth(now.getMonth() - 6);
             
             let assignedCount = 0;
-            const selectedRefs = [];
 
-            // Nota: En transacciones de Firestore Web, debemos usar transaction.get(ref)
-            // para asegurar la atomicidad del lote.
-            for (const d of snapshot.docs) {
+            // Nota: En transacciones de Firestore Web, debemos realizar TODAS las lecturas
+            // (transaction.get) antes de realizar cualquier escritura (transaction.update).
+            // Paso 2.1: Leer todos los documentos candidatos
+            const docSnaps = await Promise.all(
+                snapshot.docs.map(d => transaction.get(d.ref))
+            );
+
+            // Paso 2.2: Evaluar y escribir
+            for (const docSnap of docSnaps) {
                 if (assignedCount >= cantidad) break;
-                
-                // Re-verificar estado dentro de la transacción para evitar colisiones
-                const docSnap = await transaction.get(d.ref);
                 if (!docSnap.exists()) continue;
                 
                 const data = docSnap.data();
@@ -149,7 +151,7 @@ export const solicitarNumeros = async (cantidad = 30, conductorName = null) => {
                     if (lastDate > sixMonthsAgo) continue;
                 }
 
-                transaction.update(d.ref, {
+                transaction.update(docSnap.ref, {
                     estado: 'En Sesión',
                     publicador_asignado: null,
                     asignado_a: null,

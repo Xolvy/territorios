@@ -203,9 +203,10 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
         let currentSystemConfig = null;
         let poolData = {
             territorios: allT,
-            programa: null,
+            programa: initialProg,
+            configuracion: null,
             s13: [],
-            banco_s13: [] // FIX-A: Track active assignments from the S-13 live pool
+            banco_s13: []
         };
 
         // Al final de renderConductorDashboard, levantar la cortina (dentro del try antes de salir)
@@ -256,6 +257,28 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
         }
         window.__territoryReleasedHandler = _onTerritorioLiberado;
         window.addEventListener('territorio-liberado', _onTerritorioLiberado);
+
+        // XOLVY LIVE POOL: Real-time synchronization engine
+        // This ensures Admin changes are visible to conductors instantly without refresh
+        territoriesLivePoolUnsubscribe = startLivePool('territorios', [], (data) => {
+            poolData.territorios = data;
+            if (container && container.isConnected) refreshConductorView(true);
+        });
+
+        programLivePoolUnsubscribe = startLivePool('programa_semanal', [where(documentId(), '==', currentWeekId)], (data) => {
+            poolData.programa = data[0] || null;
+            if (container && container.isConnected) refreshConductorView(true);
+        });
+
+        s13LivePoolUnsubscribe = startLivePool('banco_s13', [where('fecha_entrega', '==', null)], (data) => {
+            poolData.banco_s13 = data;
+            if (container && container.isConnected) refreshConductorView(true);
+        });
+
+        configLivePoolUnsubscribe = startLivePool('configuracion', [where(documentId(), '==', 'general')], (data) => {
+            poolData.configuracion = data[0] || null;
+            if (container && container.isConnected) refreshConductorView(true);
+        });
 
         // FIX-D: Exponer forcePoolRefresh como red de seguridad para módulos externos
         window.__forcePoolRefresh = async () => {
@@ -897,24 +920,26 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                                 <h3 class="text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Cronograma de Salidas</h3>
                                                 <i class="fas fa-chevron-down text-sm text-slate-400 group-open/prog-details:rotate-180 transition-transform"></i>
                                             </div>
-                                            <p class="text-[11px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1.5 opacity-80">Puntos de reunión y roles generales</p>
+                                            <p class="text-[11px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1.5 opacity-80">Organización semanal de predicación</p>
                                         </div>
                                     </div>
-                                    <div class="flex items-center gap-2 mt-4 md:mt-0">
+                                </summary>
+                                <div class="p-8 space-y-10 animate-fade-in group-open/prog-details:block hidden">
+                                    <!-- Selectores de semana y hoy movidos aquí para estar dentro del contenedor -->
+                                    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50 dark:bg-white/[0.02] p-4 rounded-3xl border border-slate-100 dark:border-white/5">
                                         <div id="prog-week-range" class="px-6 py-2 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl text-[10px] font-black uppercase tracking-widest border border-indigo-500/10">
                                             Cargando...
                                         </div>
                                         <button id="prog-btn-today" class="px-5 py-2 bg-emerald-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 active:scale-95 transition-all hover:bg-emerald-600">
-                                            HOY
+                                            MOSTRAR HOY
                                         </button>
                                     </div>
-                                </summary>
-                                <div class="p-8 space-y-10 animate-fade-in group-open/prog-details:block hidden">
+                                    
                                     <div class="flex flex-col xl:flex-row items-center justify-between gap-6 pb-6 border-b border-slate-100 dark:border-white/5">
                                         <div id="prog-day-selector" class="flex gap-2 overflow-x-auto no-scrollbar w-full xl:w-auto"></div>
                                         <div id="prog-turn-filters" class="flex flex-wrap items-center gap-2"></div>
                                     </div>
-                                    <div id="weekly-program-cards" class="flex flex-col gap-8"></div>
+                                    <div id="weekly-program-cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
                                 </div>
                             </details>
                         </div>
@@ -1106,7 +1131,6 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
         }
 
         if (!conductorData) {
-            console.warn('[Dashboard] conductorData es null — usando fallback para render');
             conductorData = { 
                 nombre: name, 
                 modulos: { agenda: true, programa: true, disponibilidad: true, telefonos: true, mapas: true, ayudas: true }, 
@@ -1137,7 +1161,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
             if (programa && programa.dias) {
                 programa.dias.forEach((d, idx) => {
-                    const mondayDate = new Date(programa.id + 'T12:00:00Z');
+                    const mondayDate = new Date(programa.id + 'T12:00:00');
                     if (!d.fecha) {
                         const dayDate = new Date(mondayDate);
                         dayDate.setDate(dayDate.getDate() + idx);

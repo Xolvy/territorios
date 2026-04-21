@@ -20,7 +20,10 @@ export const initializeWeeklyProgram = (container, userMods, allTerritorios, ter
         { id: 'noche', label: 'Noc', full: 'Noche', icon: 'fa-moon', bg: 'bg-slate-800', color: 'text-white' },
         { id: 'zoom', label: 'Zoo', full: 'Zoom', icon: 'fa-video', bg: 'bg-blue-500', color: 'text-white' }
     ];
-    let _currentWeek = new Date(currentWeekStart);
+    // Xolvy Anti-TZ Shield: Ensure YYYY-MM-DD strings are parsed as local time to avoid previous-day shifts
+    let _currentWeek = typeof currentWeekStart === 'string' && currentWeekStart.includes('-')
+        ? new Date(currentWeekStart + 'T12:00:00')
+        : new Date(currentWeekStart);
 
     const loadWeekData = async () => {
         const weekId = getSafeDateId(_currentWeek);
