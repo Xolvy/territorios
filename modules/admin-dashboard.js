@@ -179,9 +179,13 @@ const setupNavigation = (appVersion, configData) => {
                 const isActive = t.dataset.tab === currentTab;
                 
                 if (isActive) {
-                    t.className = `nav-item active flex-1 lg:flex-initial flex items-center justify-center lg:justify-start gap-4 p-5 rounded-2xl transition-all group bg-primary text-white shadow-xl shadow-primary/20`;
+                    t.className = `nav-item active flex-1 lg:flex-initial flex items-center justify-center lg:justify-start gap-4 p-5 rounded-2xl transition-all group border border-transparent bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xl shadow-slate-900/20 dark:shadow-white/20 dark:border-white/20`;
+                    const icon = t.querySelector('i');
+                    if (icon) icon.className = icon.className.replace(/text-slate-500|text-slate-400/g, '') + ' text-indigo-400 dark:text-indigo-600';
                 } else {
-                    t.className = `nav-item flex-1 lg:flex-initial flex items-center justify-center lg:justify-start gap-4 p-5 rounded-2xl transition-all group hover:bg-primary/5 text-slate-500 dark:text-gray-400`;
+                    t.className = `nav-item flex-1 lg:flex-initial flex items-center justify-center lg:justify-start gap-4 p-5 rounded-2xl transition-all group border border-transparent hover:bg-slate-100 dark:hover:bg-white/5 text-slate-500 dark:text-slate-400`;
+                    const icon = t.querySelector('i');
+                    if (icon) icon.className = icon.className.replace(/text-indigo-400|dark:text-indigo-600/g, '');
                 }
             });
 
