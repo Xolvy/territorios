@@ -136,8 +136,10 @@ const renderLateTable = (list, now, exp) => {
     tbody.innerHTML = list.map(t => {
         const date = UIHelpers.parseFirebaseDate(t.fecha_asignacion) || new Date();
         const diff = Math.ceil(Math.abs(now - date) / (1000 * 60 * 60 * 24));
-        const gravity = diff > 2 ? 'CRÍTICO' : 'PRECAUCIÓN';
-        const color = diff > 2 ? 'red' : 'yellow';
+        const threshold = exp || 120;
+        const isCritical = diff >= threshold;
+        const gravity = isCritical ? 'CRÍTICO' : 'PRECAUCIÓN';
+        const color = isCritical ? 'red' : 'yellow';
 
         return `
             <tr class="hover:bg-slate-50 dark:hover:bg-white/[0.01] transition-colors group">
@@ -369,7 +371,7 @@ export const renderAnalyticsView = async (container, appVersion, configData = nu
                 if (!t.fecha_asignacion) return false;
                 const d = UIHelpers.parseFirebaseDate(t.fecha_asignacion) || new Date();
                 const diffDays = Math.ceil(Math.abs(now - d) / (1000 * 60 * 60 * 24));
-                return diffDays >= 2;
+                return diffDays >= Math.floor(expDays * 0.8);
             }).sort((a, b) => {
                 const dA = UIHelpers.parseFirebaseDate(a.fecha_asignacion) || new Date();
                 const dB = UIHelpers.parseFirebaseDate(b.fecha_asignacion) || new Date();
