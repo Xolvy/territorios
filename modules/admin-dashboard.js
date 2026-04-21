@@ -55,8 +55,8 @@ const renderSkeleton = (container) => {
 };
 
 const renderNavItem = (id, icon, label, active) => `
-    <button class="nav-item ${active ? 'active' : ''} flex-1 lg:flex-initial flex items-center justify-center lg:justify-start gap-4 p-5 rounded-2xl transition-all group ${active ? 'bg-gradient-to-r from-primary to-indigo-600 text-white shadow-xl shadow-primary/30' : 'hover:bg-primary/5 text-slate-500 dark:text-gray-400'}" data-tab="${id}">
-        <i class="${icon} text-lg transition-transform group-hover:scale-125 shrink-0"></i>
+    <button class="nav-item ${active ? 'active' : ''} flex-1 lg:flex-initial flex items-center justify-center lg:justify-start gap-4 p-5 rounded-2xl transition-all group border border-transparent ${active ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xl shadow-slate-900/20 dark:shadow-white/20 dark:border-white/20' : 'hover:bg-slate-100 dark:hover:bg-white/5 text-slate-500 dark:text-slate-400'}" data-tab="${id}">
+        <i class="${icon} text-lg transition-transform group-hover:scale-125 shrink-0 ${active ? 'text-indigo-400 dark:text-indigo-600' : ''}"></i>
         <span class="text-[11px] font-black uppercase tracking-widest hidden lg:block whitespace-nowrap">${label}</span>
         ${active ? '<div class="hidden lg:block ml-auto w-1.5 h-1.5 rounded-full bg-white opacity-50"></div>' : ''}
     </button>

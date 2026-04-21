@@ -21,7 +21,9 @@ export const renderLogin = (container) => {
             <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1200px] h-[1200px] bg-blue-900/20 rounded-full blur-[160px] pointer-events-none"></div>
 
             <div class="z-10 w-full max-w-4xl flex flex-col items-center gap-8">
-                <div id="login-logo-container" class="animate-fade-in transition-all duration-700 hover:scale-110"></div>
+                <div id="login-logo-container" class="animate-fade-in transition-all duration-700 text-center">
+                    <h1 class="text-3xl md:text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Sistema de Gestión de Territorios</h1>
+                </div>
                 
                 <div class="w-full bg-white dark:bg-slate-900 enterprise-card p-4 sm:p-6 lg:p-8 shadow-2xl rounded-[2.5rem] grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-6">
                 
@@ -55,7 +57,6 @@ export const renderLogin = (container) => {
                 <div id="auth-error" class="hidden col-span-full mt-2 text-rose-600 text-[8px] font-bold uppercase tracking-widest text-center"></div>
             </div>
             
-            <p class="absolute bottom-10 text-[10px] font-bold text-slate-600 uppercase tracking-[0.5em]">OPERATIONAL LEVEL &bull; XOLVY CORE</p>
         </div>
     `;
 
@@ -94,11 +95,7 @@ export const renderLogin = (container) => {
             btnConductorTrigger.addEventListener('click', () => renderConductorSelection());
         }
 
-        // Inject Adaptive Logo
-        const logoContainer = container.querySelector('#login-logo-container');
-        if (logoContainer) {
-            logoContainer.appendChild(createAdaptiveLogo('h-16 w-auto drop-shadow-2xl'));
-        }
+        // Ya no se inyecta el logo verde debido a la solicitud de UI
     }, 0);
 };
 
@@ -254,7 +251,6 @@ export const renderConductorSelection = async () => {
                                 </div>
                             </div>
                             
-                            <p class="absolute bottom-12 text-[9px] font-black text-slate-400 uppercase tracking-[0.4em] opacity-40">Operational Level &bull; Xolvy Hub 2027</p>
                         </div>
                     `;
                     modal.className = 'fixed inset-0 z-[99999] flex items-center justify-center p-0';
