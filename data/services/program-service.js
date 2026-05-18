@@ -272,22 +272,20 @@ export const sincronizarAsignacionesSalida = async (salida, weekId, fechaSalida)
                 continue;
             }
 
-            // 3. Verificar si ya tiene asignación activa (anti-duplicado)
-            const q = query(collection(db, COL_BANCO_S13),
-                where('territorio_id', '==', maestro.id), 
+            // 3. Verificar si ya tiene asignación activa (anti-duplicado) en la misma semana
+            const qSameWeek = query(collection(db, COL_BANCO_S13),
+                where('territorio_id', 'in', [String(maestro.numero).trim(), maestro.id]),
+                where('weekId', '==', weekId),
                 where('fecha_entrega', '==', null)
             );
-            const existente = await getDocs(q);
+            const existente = await getDocs(qSameWeek);
 
             if (!existente.empty) {
                 const docRef = existente.docs[0].ref;
-                const data = existente.docs[0].data();
-                
-                if (data.programa_id && data.programa_id !== programa_id) {
-                    console.warn(`[AutoAsign] T#${numero} ya asignado a ${data.conductor} (semana ${data.weekId})`);
-                }
-
                 await updateDoc(docRef, {
+                    territorio_id: String(maestro.numero).trim(),
+                    territorio_numero: String(maestro.numero).trim(),
+                    numero: String(maestro.numero).trim(),
                     conductor,
                     conductor_normalized: normalizeName(conductor),
                     auxiliar,
@@ -297,11 +295,34 @@ export const sincronizarAsignacionesSalida = async (salida, weekId, fechaSalida)
                     updatedAt: serverTimestamp()
                 });
             } else {
-                // 4. Crear nueva asignación en banco_s13
+                // 4. Auto-cerrar cualquier asignación abierta del pasado para este territorio (autocuración)
+                try {
+                    const qPastOpen = query(collection(db, COL_BANCO_S13),
+                        where('territorio_id', 'in', [String(maestro.numero).trim(), maestro.id]),
+                        where('fecha_entrega', '==', null)
+                    );
+                    const pastSnap = await getDocs(qPastOpen);
+                    if (!pastSnap.empty) {
+                        const batchClose = writeBatch(db);
+                        pastSnap.docs.forEach(d => {
+                            batchClose.update(d.ref, {
+                                fecha_entrega: fechaSalida,
+                                estado: 'Completado',
+                                timestamp: Timestamp.now()
+                            });
+                            console.log(`🧹 [AutoClose] Cerrando asignación antigua de T#${maestro.numero} para ${d.data().conductor}`);
+                        });
+                        await batchClose.commit();
+                    }
+                } catch (e) {
+                    console.error("Error auto-closing past assignments:", e);
+                }
+
+                // 5. Crear nueva asignación en banco_s13
                 await addDoc(collection(db, COL_BANCO_S13), {
-                    territorio_id:     maestro.id,
-                    territorio_numero: numero,
-                    numero:            numero,
+                    territorio_id:     String(maestro.numero).trim(),
+                    territorio_numero: String(maestro.numero).trim(),
+                    numero:            String(maestro.numero).trim(),
                     conductor,
                     conductor_normalized: normalizeName(conductor),
                     auxiliar,
