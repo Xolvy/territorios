@@ -1350,7 +1350,7 @@ export const renderProgramaTab = async (container, configData = null) => {
                                    ${isChecked ? 'checked' : ''} 
                                    ${isFullyOccupied ? 'disabled' : ''}
                                    class="absolute opacity-0 w-6 h-6 z-10 cursor-pointer">
-                            <div class="w-5 h-5 rounded border-2 border-slate-300 dark:border-white/20 ${isChecked ? 'bg-blue-600 border-blue-600' : ''} flex items-center justify-center peer-ui ${isFullyOccupied ? 'opacity-30 cursor-not-allowed' : ''}">
+                            <div class="w-5 h-5 rounded border-2 border-slate-300 dark:border-white/20 ${isChecked ? 'bg-blue-600 border-blue-600' : ''} flex items-center justify-center transition-all peer-ui peer-disabled:opacity-30 ${isFullyOccupied ? 'opacity-30 cursor-not-allowed' : ''}">
                                 <i class="fas fa-check text-[10px] text-slate-800 dark:text-slate-100 transition-opacity" style="opacity: ${isChecked ? '1' : '0'};"></i>
                             </div>
                             <div class="flex flex-col">
