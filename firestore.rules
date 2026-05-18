@@ -39,6 +39,18 @@ service cloud.firestore {
       allow read, write: if isAuthenticated();
     }
 
+    match /programa_semanal/{docId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /recursos/{docId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /predicacion_publica/{docId} {
+      allow read, write: if isAuthenticated();
+    }
+
     match /banco_s13/{docId} {
       allow read, write: if isAuthenticated();
     }
