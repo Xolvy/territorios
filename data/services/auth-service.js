@@ -17,12 +17,6 @@ export const getPermisosUsuario = async (email) => {
                 return { role: isAdmin ? 'Administrador' : 'Conductor', ...data, id: snap.docs[0].id };
             }
         }
-        const qLegacy = query(collection(db, "conductores"), where("email", "==", email));
-        const snapLegacy = await getDocs(qLegacy);
-        if (!snapLegacy.empty) {
-            const data = snapLegacy.docs[0].data();
-            return { role: data.role || 'Conductor', ...data };
-        }
         return null;
     } catch (e) {
         console.error("Error getting permissions:", e);

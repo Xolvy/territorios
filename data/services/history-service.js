@@ -257,7 +257,7 @@ export const deleteHistoryRecord = async (id) => {
 export const getAssignmentsByDate = async (startDate, endDate) => {
     try {
         const q = query(
-            collection(db, "historial_territorios"),
+            collection(db, COL_BANCO_S13),
             where("fecha_asignacion", ">=", startDate),
             where("fecha_asignacion", "<=", endDate)
         );

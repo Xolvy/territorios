@@ -74,7 +74,7 @@ export const saveDiffusionMessage = async (message, type = 'info') => {
                 type: type,
                 timestamp: Timestamp.now(),
                 active: true
-            });
+            }, { merge: true });
         } else {
             await updateDoc(docRef, { active: false });
         }
@@ -115,7 +115,7 @@ export const getGroupsConfig = async () => {
 export const saveGroupsConfig = async (grupos) => {
     try {
         const docRef = doc(db, "configuracion", "grupos_config");
-        await setDoc(docRef, { grupos });
+        await setDoc(docRef, { grupos }, { merge: true });
         return true;
     } catch (e) {
         console.error("Error saving groups config:", e);

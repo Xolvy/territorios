@@ -153,7 +153,7 @@ export const deleteTerritorio = async (id) => {
         const batch = writeBatch(db);
         batch.delete(doc(db, COL_TERRITORIOS, id));
 
-        const histQuery = query(collection(db, "historial_territorios"), where("territorio_id", "==", id));
+        const histQuery = query(collection(db, COL_BANCO_S13), where("territorio_id", "==", tNum));
         const histSnap = await getDocs(histQuery);
         histSnap.forEach(d => batch.delete(d.ref));
 
@@ -547,24 +547,29 @@ export const updateAssignmentData = async (id, updates = {}) => {
     await updateDoc(doc(db, COL_TERRITORIOS, id), territoryUpdate);
 
     try {
-        const q = query(collection(db, "historial_territorios"), where("territorio_id", "==", id), where("estado", "==", "Asignado"), orderBy("timestamp", "desc"), limit(1));
-        const snapshot = await getDocs(q);
-        if (!snapshot.empty) {
-            const histUpdate = {};
-            fields.forEach(f => {
-                const target = f === 'asignado_a' ? 'conductor' : f;
-                if (updates[f] !== undefined) histUpdate[target] = updates[f];
-            });
-            if (updates.asignado_a !== undefined) {
-                histUpdate.conductor_normalized = updates.asignado_a ? normalizeName(updates.asignado_a) : null;
+        const tSnapForNum = await getDoc(doc(db, COL_TERRITORIOS, id));
+        if (tSnapForNum.exists()) {
+            const tNum = String(tSnapForNum.data().numero || '').trim();
+            const q = query(collection(db, COL_BANCO_S13), where("territorio_id", "==", tNum), where("estado", "==", "Asignado"), orderBy("timestamp", "desc"), limit(1));
+            const snapshot = await getDocs(q);
+            if (!snapshot.empty) {
+                const histUpdate = {};
+                fields.forEach(f => {
+                    const target = f === 'asignado_a' ? 'conductor' : f;
+                    if (updates[f] !== undefined) histUpdate[target] = updates[f];
+                });
+                if (updates.asignado_a !== undefined) {
+                    histUpdate.conductor_normalized = updates.asignado_a ? normalizeName(updates.asignado_a) : null;
+                }
+                if (updates.auxiliar !== undefined) {
+                    histUpdate.auxiliar_normalized = updates.auxiliar ? normalizeName(updates.auxiliar) : null;
+                }
+                histUpdate.updatedAt = serverTimestamp();
+                await updateDoc(doc(db, COL_BANCO_S13, snapshot.docs[0].id), histUpdate);
             }
-            if (updates.auxiliar !== undefined) {
-                histUpdate.auxiliar_normalized = updates.auxiliar ? normalizeName(updates.auxiliar) : null;
-            }
-            await updateDoc(doc(db, "historial_territorios", snapshot.docs[0].id), histUpdate);
         }
     } catch (e) {
-        console.error("Error updating history:", e);
+        console.error("Error updating history in banco_s13:", e);
     }
 
     const tSnap = await getDoc(doc(db, COL_TERRITORIOS, id));
@@ -655,61 +660,90 @@ export const returnTerritorioMultiple = async (ids, notes, customDate, status = 
 
 export const returnTerritorioParcial = async (originalId, completedManzanas, remainingManzanas, unassignRemaining = false, notes = null, customDate = null, fotos = null, conductorName = null) => {
     const dateToUse = customDate ? new Date(customDate).toISOString() : new Date().toISOString();
+    
     const territoryRef = doc(db, COL_TERRITORIOS, originalId);
     const territorySnap = await getDoc(territoryRef);
     if (!territorySnap.exists()) throw new Error("Territorio no encontrado");
     const tData = territorySnap.data();
     const tNum = String(tData.numero || '');
 
+    const batch = writeBatch(db);
+
+    // A) Si hay manzanas completadas, crear el sub-territorio completado disponible
     if (completedManzanas && completedManzanas.length > 0) {
-        await addDoc(collection(db, COL_TERRITORIOS), {
+        const newTerrRef = doc(collection(db, COL_TERRITORIOS));
+        batch.set(newTerrRef, {
             ...tData,
             manzanas: completedManzanas.join(', '),
             estado: 'Disponible',
             asignado_a: null,
+            asignado_a_normalized: null,
+            currentAssignee: null,
+            auxiliar: null,
+            auxiliar_normalized: null,
             fecha_asignacion: null,
+            assignmentDate: null,
             ultima_fecha: dateToUse,
             origen_id: originalId
         });
     }
 
+    // B) Actualizar el territorio original con las manzanas restantes
     const updateData = { manzanas: remainingManzanas.join(', ') };
     if (unassignRemaining) {
         updateData.asignado_a = null;
+        updateData.asignado_a_normalized = null;
+        updateData.currentAssignee = null;
+        updateData.auxiliar = null;
+        updateData.auxiliar_normalized = null;
         updateData.fecha_asignacion = null;
+        updateData.assignmentDate = null;
         updateData.estado = 'Disponible';
     }
     updateData.is_incomplete = remainingManzanas.length > 0;
 
-    await updateDoc(territoryRef, updateData);
+    batch.update(territoryRef, updateData);
 
-    // CAMBIO E: Cerrar el registro activo en banco_s13 para entregas parciales
-    if (unassignRemaining && tNum) {
-        try {
-            const bancoQ = query(collection(db, COL_BANCO_S13),
-                where('territorio_id', '==', tNum),
-                where('estado', '==', 'Asignado')
-            );
-            const bancoSnap = await getDocs(bancoQ);
-            if (!bancoSnap.empty) {
-                const batchS13 = writeBatch(db);
-                bancoSnap.docs.forEach(d => batchS13.update(d.ref, {
-                    estado: 'Completado Parcial',
+    // C) Cerrar registro activo en banco_s13
+    if (tNum) {
+        const qActive = query(collection(db, COL_BANCO_S13),
+            where('territorio_id', '==', tNum),
+            where('estado', '==', 'Asignado')
+        );
+        const bancoSnap = await getDocs(qActive);
+        if (!bancoSnap.empty) {
+            bancoSnap.docs.forEach(d => {
+                batch.update(d.ref, {
                     fecha_entrega: dateToUse,
-                    timestamp_entrega: serverTimestamp()
-                }));
-                await batchS13.commit();
-                console.log(`✅ [returnTerritorioParcial] banco_s13 cerrado para territorio ${tNum}`);
-            }
-        } catch (bancoError) {
-            console.error(`🔴 [returnTerritorioParcial] Error cerrando banco_s13 para ${tNum}:`, bancoError);
+                    estado: 'Predicado Parcial',
+                    observaciones: notes || d.data().observaciones || null,
+                    timestamp: Timestamp.now(),
+                    fotos: fotos || null
+                });
+            });
         }
     }
 
+    // D) Registro en bitácora de observaciones si hay notas
+    if (notes && notes.trim().length > 0) {
+        const obsRef = doc(collection(db, "bitacora_observaciones"));
+        batch.set(obsRef, {
+            territorio_id: tNum,
+            conductor: conductorName || tData.asignado_a || 'Anónimo',
+            nota: notes,
+            fecha: dateToUse,
+            timestamp: Timestamp.now()
+        });
+    }
+
+    // 2. Commit atómico del lote completo
+    await batch.commit();
+
+    // 3. Notificación de auditoría
     try {
-        await logReturn(originalId, dateToUse, 'Predicado Parcial', notes, fotos, conductorName);
-    } catch (logError) {
-        console.error(`🟡 [returnTerritorioParcial] logReturn falló para territorio ${tNum}:`, logError);
+        await saveAuditLog('ENTREGA_TERRITORIO', { territorio: tNum, detalles: 'Devolución Parcial' });
+    } catch (e) {
+        console.error("Error saving audit log in returnTerritorioParcial:", e);
     }
 
     ServiceCache.clear('territorios');
