@@ -35,7 +35,7 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
                     <div class="flex justify-between items-start mb-4 relative z-10">
                         <span class="px-3 py-1 bg-primary/10 text-primary text-[10px] font-black rounded-lg uppercase tracking-widest">T-${t.numero}</span>
                         <div class="flex items-center gap-2">
-                             <div class="w-8 h-8 rounded-lg bg-slate-50 dark:bg-white/10 flex items-center justify-center group-hover/card:bg-primary group-hover/card:text-white transition-all text-slate-400 border border-slate-100 dark:border-white/5">
+                             <div class="w-8 h-8 rounded-lg bg-slate-50 dark:bg-white/10 flex items-center justify-center group-hover/card:bg-primary group-hover/card:text-white transition-all text-slate-600 dark:text-slate-400 border border-slate-100 dark:border-white/5">
                                  <i class="fas fa-location-arrow text-[10px]"></i>
                              </div>
                         </div>

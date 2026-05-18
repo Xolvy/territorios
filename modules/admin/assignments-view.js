@@ -2,7 +2,7 @@ import {
     getTerritorios, getConductores, getHistorialReport, getConfiguracion,
     assignTerritorio, returnTerritorio, getCampanas
 } from '../../data/firestore-services.js';
-import { showNotification } from '../utils/helpers.js';
+import { showNotification, toTitleCase } from '../utils/helpers.js';
 import { UIHelpers, showModal, showCustomConfirm, showTerritorySelectionModal } from '../services/ui-helpers.js';
 
 const { fmtDate } = UIHelpers;
@@ -72,11 +72,11 @@ export const renderAsignacionesView = async (container, configData = null) => {
                         <div class="modern-card p-6 border-slate-100 dark:border-white/5 shadow-xl ${isAssigned ? 'bg-primary/5' : ''}">
                             <div class="flex justify-between items-start mb-4">
                                 <span class="bg-primary/10 text-primary text-[10px] font-black px-2 py-1 rounded-lg uppercase tracking-widest">#${t.numero}</span>
-                                <span class="text-[9px] font-black uppercase tracking-widest ${isAssigned ? 'text-primary' : 'text-slate-400 opacity-40'}">${t.estado}</span>
+                                <span class="text-[9px] font-black uppercase tracking-widest ${isAssigned ? 'text-primary' : 'text-slate-600 dark:text-slate-400 opacity-40'}">${t.estado}</span>
                             </div>
-                            <h4 class="font-black text-lg text-slate-800 dark:text-white uppercase truncate mb-6">${t.asignado_a || 'Disponible'}</h4>
+                            <h4 class="font-black text-lg text-slate-800 dark:text-white uppercase truncate mb-6">${t.asignado_a ? toTitleCase(t.asignado_a) : 'Disponible'}</h4>
                             <div class="flex gap-2">
-                                <button onclick="window.handleNewAssignment('${t.id}')" class="flex-1 py-3 bg-slate-100 dark:bg-white/5 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all">Gestionar</button>
+                                <button onclick="window.handleNewAssignment('${t.id}')" class="flex-1 min-w-0 py-3 bg-slate-100 dark:bg-white/5 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all">Gestionar</button>
                             </div>
                         </div>`;
         }).join('')}
@@ -95,14 +95,14 @@ export const renderAsignacionesView = async (container, configData = null) => {
                 <h3 class="text-xl font-black uppercase">Asignar Territorio</h3>
                 <div class="space-y-4">
                     <div class="space-y-2">
-                        <label class="text-[10px] font-black uppercase text-slate-400">Territorio(s)</label>
+                        <label class="text-[10px] font-black uppercase text-slate-600 dark:text-slate-400">Territorio(s)</label>
                         <input type="text" id="asig-terr-raw" value="${item ? item.numero : ''}" class="w-full p-4 bg-slate-100 dark:bg-white/5 rounded-xl font-bold" placeholder="Ejem: 10, 15, 20">
                     </div>
                     <div class="space-y-2">
-                        <label class="text-[10px] font-black uppercase text-slate-400">Conductor</label>
+                        <label class="text-[10px] font-black uppercase text-slate-600 dark:text-slate-400">Conductor</label>
                         <select id="asig-cond" class="w-full p-4 bg-slate-100 dark:bg-white/5 rounded-xl font-bold">
                             <option value="">Seleccionar Conductor...</option>
-                            ${_globalConductores.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('')}
+                            ${_globalConductores.map(c => `<option value="${c.nombre}">${toTitleCase(c.nombre)}</option>`).join('')}
                         </select>
                     </div>
                     <button id="btn-confirm-asig" class="w-full py-4 bg-primary text-white rounded-xl font-black uppercase tracking-widest">Confirmar</button>
@@ -138,7 +138,7 @@ export const renderAsignacionesView = async (container, configData = null) => {
                         <label class="flex items-center gap-4 p-4 bg-slate-50 dark:bg-white/5 rounded-xl cursor-pointer group hover:bg-white dark:hover:bg-white/10 transition-all border border-transparent hover:border-slate-100 dark:hover:border-white/5">
                             <input type="checkbox" class="ret-check peer sr-only" value="${t.id}">
                             <div class="relative w-10 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-emerald-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all shrink-0"></div>
-                            <span class="text-sm font-bold uppercase text-slate-700 dark:text-white">#${t.numero} - ${t.asignado_a}</span>
+                            <span class="text-sm font-bold uppercase text-slate-700 dark:text-white">#${t.numero} - ${t.asignado_a ? toTitleCase(t.asignado_a) : ''}</span>
                         </label>
                     `).join('')}
                 </div>

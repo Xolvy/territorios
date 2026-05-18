@@ -28,7 +28,7 @@ export const renderAdminAI = async (container, configData = null, appVersion = n
                             <button id="ai-btn-audit" class="w-full flex items-center justify-between p-5 bg-white dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/10 hover:border-emerald-500/50 transition-all text-left shadow-sm group/btn">
                                 <div>
                                     <p class="text-[11px] font-black text-slate-700 dark:text-white uppercase tracking-widest">Auditoría Global</p>
-                                    <p class="text-[9px] text-slate-400 font-bold mt-1">Detección de discrepancias en S-13</p>
+                                    <p class="text-[9px] text-slate-600 dark:text-slate-400 font-bold mt-1">Detección de discrepancias en S-13</p>
                                 </div>
                                 <i class="fas fa-microchip text-emerald-500 opacity-30 group-hover/btn:opacity-100 transition-opacity"></i>
                             </button>
@@ -36,7 +36,7 @@ export const renderAdminAI = async (container, configData = null, appVersion = n
                             <button id="ai-btn-predict" class="w-full flex items-center justify-between p-5 bg-white dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/10 hover:border-emerald-500/50 transition-all text-left shadow-sm group/btn">
                                 <div>
                                     <p class="text-[11px] font-black text-slate-700 dark:text-white uppercase tracking-widest">Predicción de Flujo</p>
-                                    <p class="text-[9px] text-slate-400 font-bold mt-1">Sugerencias inteligentes de asignación</p>
+                                    <p class="text-[9px] text-slate-600 dark:text-slate-400 font-bold mt-1">Sugerencias inteligentes de asignación</p>
                                 </div>
                                 <i class="fas fa-wand-magic-sparkles text-emerald-500 opacity-30 group-hover/btn:opacity-100 transition-opacity"></i>
                             </button>
@@ -45,7 +45,7 @@ export const renderAdminAI = async (container, configData = null, appVersion = n
                 </div>
 
                 <div class="flex flex-col gap-6">
-                    <div class="bg-slate-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden flex-1 shadow-2xl min-h-[300px] flex flex-col">
+                    <div class="bg-slate-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden flex-1 min-w-0 shadow-2xl min-h-[300px] flex flex-col">
                         <div class="absolute inset-0 opacity-10 pointer-events-none">
                             <div class="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(16,185,129,0.2),transparent_70%)]"></div>
                         </div>
@@ -56,7 +56,7 @@ export const renderAdminAI = async (container, configData = null, appVersion = n
                                 <span class="text-[9px] font-black uppercase tracking-[0.4em] text-emerald-500/80">Terminal de Inteligencia</span>
                             </div>
                             
-                            <div id="ai-response-stream" class="flex-1 font-mono text-xs leading-relaxed text-emerald-400/90 overflow-y-auto custom-scrollbar-dark pr-4 space-y-4">
+                            <div id="ai-response-stream" class="flex-1 min-w-0 font-mono text-xs leading-relaxed text-emerald-400/90 overflow-y-auto custom-scrollbar-dark pr-4 space-y-4">
                                 <p class="animate-pulse">_ Esperando instrucción estratégica...</p>
                             </div>
                             

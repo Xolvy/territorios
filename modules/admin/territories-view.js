@@ -7,7 +7,7 @@ export const renderCasaEnCasaTab = async (container, config, appVersion) => {
         <div class="space-y-12 animate-fade-in" data-adaptive-container="true">
             <header class="flex flex-row flex-wrap justify-start items-start lg:items-center gap-4 md:gap-6 w-full" data-mobile-order="1" data-desktop-order="1">
                 <div class="flex items-center gap-4 md:gap-6">
-                    <div class="w-12 h-12 md:w-16 md:h-16 bg-slate-100 dark:bg-white/5 text-slate-400 rounded-2xl flex items-center justify-center text-xl md:text-2xl border border-slate-200 dark:border-white/5 shrink-0">
+                    <div class="w-12 h-12 md:w-16 md:h-16 bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 rounded-2xl flex items-center justify-center text-xl md:text-2xl border border-slate-200 dark:border-white/5 shrink-0">
                         <i class="fas fa-home"></i>
                     </div>
                     <div>

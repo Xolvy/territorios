@@ -1,6 +1,7 @@
 // Xolvy Data Shield: Centrally defined normalization rule
 export const normalize = (val) => String(val || '').trim().toLowerCase();
-export const normalizeRobust = (val) => String(val || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+export const normalizeName = (val) => String(val || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, ' ').trim().toLowerCase();
+export const normalizeRobust = normalizeName;
 export const toTitleCase = (str) => {
     if (!str) return '';
     return str.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
@@ -26,7 +27,7 @@ export const getStatusColor = (status) => {
     if (s === 'Testigo') return 'text-purple-600 dark:text-purple-400';
     if (s === 'Asignado') return 'text-teal-600 dark:text-teal-400';
     if (s === 'Pendiente' || s === 'Sin asignar') return 'text-gray-500 dark:text-gray-500';
-    return 'text-gray-500';
+    return 'text-slate-600 dark:text-slate-400';
 };
 
 
@@ -94,7 +95,7 @@ export const showNotification = (message, type = 'success', duration = 5000, wor
     const activeBarClass = barClass || s.text.replace('text-', 'bg-');
     const undoHTML = onUndo || onComplete ? `
         <div class="mt-4 flex items-center justify-between gap-4">
-             <div class="flex-1 h-1.5 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden">
+             <div class="flex-1 min-w-0 h-1.5 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden">
                  <div id="notif-progress-${id}" class="h-full ${activeBarClass} w-full transition-all ease-linear" style="transition-duration: ${duration}ms"></div>
              </div>
              <button id="notif-undo-${id}" class="px-5 py-2 rounded-xl bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 text-[9px] font-black uppercase tracking-widest ${s.text} shadow-sm hover:scale-105 active:scale-95 transition-all">
@@ -110,14 +111,14 @@ export const showNotification = (message, type = 'success', duration = 5000, wor
             <div class="w-10 h-10 ${isSync ? 'bg-indigo-500/10 dark:bg-indigo-500/20' : 'bg-white/50 dark:bg-white/5'} rounded-xl flex items-center justify-center ${s.text} shadow-inner shrink-0 group-hover:scale-110 transition-transform">
                  <i class="fas ${s.icon} text-lg"></i>
             </div>
-            <div class="flex flex-col flex-1">
+            <div class="flex flex-col flex-1 min-w-0">
                 <div class="flex items-center gap-2 mb-0.5">
                     <span class="text-[8px] font-black ${s.text} uppercase tracking-[0.25em]">${s.label}</span>
                     <span class="w-1 h-1 ${s.text.replace('text-', 'bg-')} rounded-full animate-pulse"></span>
                 </div>
                 <h4 class="text-[11px] font-black ${isSync ? 'text-indigo-900 dark:text-indigo-100' : 'text-slate-800 dark:text-white'} uppercase tracking-tight leading-none">${displayMessage}</h4>
             </div>
-            <button id="notif-close-${id}" class="ml-2 text-slate-400 hover:text-rose-500 transition-colors opacity-40 hover:opacity-100">
+            <button id="notif-close-${id}" class="ml-2 text-slate-600 dark:text-slate-400 hover:text-rose-500 transition-colors opacity-40 hover:opacity-100">
                 <i class="fas fa-times text-[10px]"></i>
             </button>
         </div>
@@ -202,7 +203,7 @@ export const updateNotificationWorkflow = (id, step) => {
     stepEl.className = 'flex items-center gap-1.5 animate-fade-in';
     stepEl.innerHTML = `
         <i class="fas fa-caret-right text-[6px] text-indigo-500"></i>
-        <span class="text-[7px] font-bold text-slate-400 uppercase tracking-widest">${step}</span>
+        <span class="text-[7px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest">${step}</span>
     `;
     container.appendChild(stepEl);
 };
@@ -414,7 +415,7 @@ export const renderSkeleton = (container) => {
         </div>
         
         <!-- Main Content Skeleton -->
-        <div class="flex-1 min-h-[400px] bg-slate-200 dark:bg-white/5 rounded-[3rem] border border-slate-100 dark:border-white/[0.05] shadow-inner"></div>
+        <div class="flex-1 min-w-0 min-h-[400px] bg-slate-200 dark:bg-white/5 rounded-[3rem] border border-slate-100 dark:border-white/[0.05] shadow-inner"></div>
     </div>
     `;
 };

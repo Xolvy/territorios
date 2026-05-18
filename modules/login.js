@@ -6,26 +6,36 @@ import { createAdaptiveLogo } from './utils/AdaptiveLogo.js';
 
 export const renderLogin = (container) => {
     // --- XOLVY REDIRECT CAPTURE (PWA SILENT LOGIN) ---
+    // SECURITY v4.0: No role check from localStorage.
+    // Post-redirect, onAuthStateChanged in app.js will fire,
+    // which calls getPermisosUsuario() to verify role from Firestore.
     getRedirectResult(auth).then((result) => {
         if (result && result.user) {
             console.log("💎 [Auth] Redirect Login Exitosa:", result.user.email);
-            // No es necesario redirigir manualmente aquí porque onAuthStateChanged en app.js lo capturará
+            // Clean stale navigation caches
+            localStorage.removeItem('lastPath');
+            localStorage.removeItem('lastRoute');
+            localStorage.removeItem('redirectUrl');
+            sessionStorage.removeItem('lastPath');
+            sessionStorage.removeItem('lastRoute');
+            sessionStorage.removeItem('redirectUrl');
+            // Role routing is handled by onAuthStateChanged → handleAuthChange in app.js
         }
     }).catch((error) => {
         console.error("❌ [Auth] Error en Redirect Login:", error);
     });
 
     container.innerHTML = `
-        <div class="bg-slate-50 dark:bg-slate-950 min-h-screen flex items-center justify-center p-6 font-sans animate-fade-in relative overflow-hidden" style="min-height: 100vh; min-height: 100dvh;">
+        <div class="bg-slate-50 dark:bg-slate-950 min-h-screen flex items-center justify-center p-4 sm:p-6 font-sans animate-fade-in relative overflow-hidden w-full max-w-[100vw]" style="min-height: 100vh; min-height: 100dvh;">
             <!-- Professional Deep Glow -->
             <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1200px] h-[1200px] bg-blue-900/20 rounded-full blur-[160px] pointer-events-none"></div>
 
-            <div class="z-10 w-full max-w-4xl flex flex-col items-center gap-8">
+            <div class="z-10 w-full max-w-4xl flex flex-col items-center gap-6 md:gap-8 px-2">
                 <div id="login-logo-container" class="animate-fade-in transition-all duration-700 text-center">
                     <h1 class="text-3xl md:text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Sistema de Gestión de Territorios</h1>
                 </div>
                 
-                <div class="w-full bg-white dark:bg-slate-900 enterprise-card p-4 sm:p-6 lg:p-8 shadow-2xl rounded-[2.5rem] grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-6">
+                <div class="w-full bg-white dark:bg-slate-900 enterprise-card p-4 sm:p-6 lg:p-8 shadow-2xl rounded-[2.5rem] grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 box-border">
                 
                 <!-- Panel Administrador -->
                 <button id="btn-google-login" class="group flex flex-col items-center px-4 py-4 sm:p-5 bg-slate-50 dark:bg-white/5 rounded-2xl border-2 border-slate-100 dark:border-white/5 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-blue-500 w-full max-w-sm mx-auto text-sm sm:text-base text-center cursor-pointer relative z-[9999]">
@@ -35,7 +45,7 @@ export const renderLogin = (container) => {
                     <h2 class="text-xl lg:text-2xl font-extrabold text-slate-950 dark:text-white tracking-tight mb-1 text-center">Administrador</h2>
                     <p class="text-slate-600 dark:text-slate-400 mb-4 text-[10px] lg:text-xs leading-relaxed max-w-[240px]">Gestión total de datos, reportes estratégicos S-13 y analíticas avanzadas.</p>
                     
-                    <div id="google-status-wrapper" class="mt-auto pt-2 flex items-center justify-center gap-2 text-[10px] lg:text-xs font-bold text-slate-400 group-hover:text-blue-600 transition-colors">
+                    <div id="google-status-wrapper" class="mt-auto pt-2 flex items-center justify-center gap-2 text-[10px] lg:text-xs font-bold text-slate-600 dark:text-slate-400 group-hover:text-blue-600 transition-colors">
                         <img src="https://www.google.com/images/branding/product/2x/googleg_32dp.png" class="w-4 h-4 grayscale group-hover:grayscale-0 transition-all" alt="G">
                         <span>ACCEDER CON GOOGLE &rarr;</span>
                     </div>
@@ -49,7 +59,7 @@ export const renderLogin = (container) => {
                     <h2 class="text-xl lg:text-2xl font-extrabold text-slate-950 dark:text-white tracking-tight mb-1 text-center">Conductor</h2>
                     <p class="text-slate-600 dark:text-slate-400 mb-4 text-[10px] lg:text-xs leading-relaxed max-w-[240px]">Terminal de campo optimizada para la predicación y gestión de territorios.</p>
                     
-                    <div class="mt-auto pt-2 flex items-center justify-center gap-2 text-[10px] lg:text-xs font-bold text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
+                    <div class="mt-auto pt-2 flex items-center justify-center gap-2 text-[10px] lg:text-xs font-bold text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
                         <span>ENTRAR AL TERMINAL &rarr;</span>
                     </div>
                 </button>
@@ -71,12 +81,23 @@ export const renderLogin = (container) => {
             btnGoogle.addEventListener('click', async () => {
                 btnGoogle.disabled = true;
                 googleStatusWrapper.innerHTML = `<i class="fas fa-circle-notch animate-spin mr-2"></i> Redirigiendo...`;
+                
+                // FASE 1: Limpieza estricta de rutas previas e ignorar caché de navegación
+                localStorage.removeItem('lastPath');
+                localStorage.removeItem('lastRoute');
+                localStorage.removeItem('redirectUrl');
+                localStorage.removeItem('redirectPath');
+                sessionStorage.removeItem('lastPath');
+                sessionStorage.removeItem('lastRoute');
+                sessionStorage.removeItem('redirectUrl');
+                sessionStorage.removeItem('redirectPath');
+                localStorage.removeItem('xolvy_session'); 
+                
                 try {
                     const provider = new GoogleAuthProvider();
                     provider.setCustomParameters({ prompt: 'select_account' });
-                    localStorage.setItem('demo_role', 'Administrador');
+                    // SECURITY v4.0: NO demo_role stored. Role verified from Firestore post-redirect.
                     await signInWithRedirect(auth, provider);
-                    // Aquí el navegador redirige, no hay retorno inmediato.
                 } catch (error) {
                     console.error("Error en Auth:", error);
                     errorEl.textContent = "Error de Servidor: " + error.message;
@@ -118,10 +139,10 @@ export const renderConductorSelection = async () => {
                 </button>
             </div>
             
-            <div class="p-8 space-y-8 flex-1 overflow-hidden flex flex-col bg-slate-50/30 dark:bg-black/20">
+            <div class="p-8 space-y-8 flex-1 min-w-0 overflow-hidden flex flex-col bg-slate-50/30 dark:bg-black/20">
                 <div class="relative flex items-center w-full mb-4">
                     <div class="absolute inset-y-0 left-0 flex items-center pl-5 pointer-events-none">
-                        <i class="fas fa-search text-slate-400 text-lg"></i>
+                        <i class="fas fa-search text-slate-600 dark:text-slate-400 text-lg"></i>
                     </div>
                     <input type="text" id="conductor-search" placeholder="Escribe tu nombre..." 
                         class="w-full py-4 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-white/10 rounded-2xl shadow-sm focus:ring-0 focus:border-indigo-400 transition-all font-bold text-base text-slate-800 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-600 outline-none"
@@ -129,11 +150,11 @@ export const renderConductorSelection = async () => {
                 </div>
 
                 <!-- Scrollable People List -->
-                <div class="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                <div class="flex-1 min-w-0 overflow-y-auto pr-2 custom-scrollbar">
                     <div id="conductores-list" class="grid grid-cols-1 gap-4 py-2">
                         <div class="text-center py-20 space-y-6">
                             <div class="w-8 h-8 border-2 border-indigo-500/10 border-t-indigo-500 rounded-full animate-spin mx-auto"></div>
-                            <p class="text-slate-400 font-bold uppercase tracking-widest text-[9px]">Sincronizando Directorio...</p>
+                            <p class="text-slate-600 dark:text-slate-400 font-bold uppercase tracking-widest text-[9px]">Sincronizando Directorio...</p>
                         </div>
                     </div>
                 </div>
@@ -160,7 +181,7 @@ export const renderConductorSelection = async () => {
                     <div class="text-center py-10 opacity-60">
                         <i class="fas fa-exclamation-triangle mb-3 text-amber-500"></i>
                         <p class="text-[9px] font-black uppercase tracking-widest text-slate-500">Error de Sincronización</p>
-                        <p class="text-[8px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">Reintenta en unos segundos</p>
+                        <p class="text-[8px] font-bold text-slate-600 dark:text-slate-400 mt-1 uppercase tracking-tighter">Reintenta en unos segundos</p>
                     </div>
                 `;
             }
@@ -178,7 +199,7 @@ export const renderConductorSelection = async () => {
             if (filtered.length === 0) {
                 list.innerHTML = `
                     <div class="text-center py-24 space-y-4 animate-fade-in opacity-80">
-                        <p class="text-slate-400 font-bold text-[10px] uppercase tracking-widest">No hay resultados para "${filter}"</p>
+                        <p class="text-slate-600 dark:text-slate-400 font-bold text-[10px] uppercase tracking-widest">No hay resultados para "${filter}"</p>
                     </div>
                 `;
                 return;
@@ -197,10 +218,10 @@ export const renderConductorSelection = async () => {
                             </div>
                             <div>
                                 <h4 class="font-black text-slate-800 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors uppercase tracking-tight text-sm">${c.nombre}</h4>
-                                <p class="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1">${roleLabel}</p>
+                                <p class="text-[8px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest mt-1">${roleLabel}</p>
                             </div>
                         </div>
-                        <i class="fas fa-chevron-right text-[10px] text-slate-200 group-hover:text-indigo-400"></i>
+                        <i class="fas fa-chevron-right text-[10px] text-slate-800 dark:text-slate-200 group-hover:text-indigo-400"></i>
                     </button>
                 `;
             }).join('');
@@ -222,8 +243,8 @@ export const renderConductorSelection = async () => {
                     
                     const nombreCapitalizado = toTitleCase(name);
                     
-                    // 2. State mutations (IdentityShield already handles resolution in app.js via demo-login)
-                    localStorage.setItem('demo_role', 'Conductor');
+                    // 2. State mutations (IdentityShield handles resolution in app.js via demo-login)
+                    // SECURITY v4.0: NO demo_role stored. Role verified from Firestore via IdentityShield.
                     localStorage.setItem('selected_conductor_name', phone || name);
                     
                     const sessionData = { nombre: nombreCapitalizado, email: phone || name, rol: 'Conductor' };
@@ -247,7 +268,7 @@ export const renderConductorSelection = async () => {
                                 </div>
                                 <div class="text-center">
                                     <h3 class="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Sincronizando Perfil</h3>
-                                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-3">Iniciando terminal para <span class="text-indigo-500">${name}</span></p>
+                                    <p class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.3em] mt-3">Iniciando terminal para <span class="text-indigo-500">${name}</span></p>
                                 </div>
                             </div>
                             

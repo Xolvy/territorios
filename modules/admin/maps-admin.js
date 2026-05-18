@@ -10,7 +10,7 @@ export const renderMapsAdmin = async (container, config) => {
                 </div>
                 <div>
                     <h3 class="text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Administrador de Mapas</h3>
-                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em] mt-1">Sincronización Premium de Polígonos KML</p>
+                    <p class="text-[10px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-[0.3em] mt-1">Sincronización Premium de Polígonos KML</p>
                 </div>
             </header>
 
@@ -34,7 +34,7 @@ export const renderMapsAdmin = async (container, config) => {
                     <button id="btn-process-kml" class="flex-[2] py-5 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-indigo-600/20 transition-all active:scale-95 flex items-center justify-center gap-3">
                         <i class="fas fa-magic"></i> Procesar e Importar Todo
                     </button>
-                    <button id="btn-clear-kml" class="flex-1 py-5 bg-slate-100 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] border border-slate-200 dark:border-white/10 hover:bg-rose-500/10 hover:text-rose-500 transition-all">
+                    <button id="btn-clear-kml" class="flex-1 min-w-0 py-5 bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] border border-slate-200 dark:border-white/10 hover:bg-rose-500/10 hover:text-rose-500 transition-all">
                         Limpiar
                     </button>
                 </div>
@@ -42,7 +42,7 @@ export const renderMapsAdmin = async (container, config) => {
                 <div id="import-progress" class="hidden space-y-4 pt-4 border-t border-slate-100 dark:border-white/5 animate-fade-in">
                     <div class="flex justify-between items-center px-2">
                         <span id="progress-status" class="text-[9px] font-black text-indigo-500 uppercase tracking-widest">Sincronizando polígonos...</span>
-                        <span id="progress-count" class="text-[9px] font-black text-slate-400 uppercase">0 / 0</span>
+                        <span id="progress-count" class="text-[9px] font-black text-slate-600 dark:text-slate-400 uppercase">0 / 0</span>
                     </div>
                     <div class="w-full h-2 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden shadow-inner font-black">
                         <div id="progress-bar" class="h-full bg-indigo-500 w-0 transition-all duration-300"></div>

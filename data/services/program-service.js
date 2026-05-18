@@ -23,6 +23,7 @@ import { db } from '../../firebase-config.js';
 import { collection, query, where, getDocs, addDoc, getDoc, doc, writeBatch, orderBy, setDoc, Timestamp, serverTimestamp, deleteDoc, updateDoc } from "firebase/firestore";
 import { ServiceCache } from './base-service.js';
 import { saveAuditLog } from './audit-service.js';
+import { normalizeName } from '../../modules/utils/helpers.js';
 
 // ═══════════════════════════════════════════════════════════
 const COL_VISOR    = "programa_semanal"; // Colección del Visor (borrador + formalizado)
@@ -184,6 +185,7 @@ export const syncSlotWithTerritories = async (weekId, dayIdx, turno, tData, date
         for (const num of uiTerrs) {
             const timestampActual = new Date().toISOString();
             const existingDoc = snapPrev.docs.find(d => d.data().territorio_id === num);
+            const condNameNormalized = conductor ? normalizeName(conductor) : null;
             if (!existingDoc) {
                 const ref = doc(collection(db, COL_BANCO_S13));
                 const tNumStr = String(num).trim();
@@ -191,6 +193,7 @@ export const syncSlotWithTerritories = async (weekId, dayIdx, turno, tData, date
                     territorio_id: tNumStr,
                     numero: tNumStr,
                     conductor: conductor,
+                    conductor_normalized: condNameNormalized,
                     fecha_asignacion: timestampActual,
                     fecha_entrega: null,
                     estado: 'Asignado',
@@ -203,6 +206,7 @@ export const syncSlotWithTerritories = async (weekId, dayIdx, turno, tData, date
             } else if (existingDoc.data().conductor !== conductor) {
                 batch.update(existingDoc.ref, {
                     conductor: conductor,
+                    conductor_normalized: condNameNormalized,
                     timestamp: Timestamp.now()
                 });
             }
@@ -212,8 +216,12 @@ export const syncSlotWithTerritories = async (weekId, dayIdx, turno, tData, date
             if (tId) {
                 batch.update(doc(db, "territorios", tId), {
                     estado: 'Asignado',
+                    status: 'Asignado',
                     asignado_a: conductor,
+                    asignado_a_normalized: condNameNormalized,
+                    currentAssignee: conductor,
                     fecha_asignacion: timestampActual,
+                    assignmentDate: timestampActual,
                     turno: turno
                 });
             }
@@ -281,7 +289,9 @@ export const sincronizarAsignacionesSalida = async (salida, weekId, fechaSalida)
 
                 await updateDoc(docRef, {
                     conductor,
+                    conductor_normalized: normalizeName(conductor),
                     auxiliar,
+                    auxiliar_normalized: auxiliar ? normalizeName(auxiliar) : null,
                     fecha_asignacion: fechaSalida,
                     programa_id,
                     updatedAt: serverTimestamp()
@@ -293,7 +303,9 @@ export const sincronizarAsignacionesSalida = async (salida, weekId, fechaSalida)
                     territorio_numero: numero,
                     numero:            numero,
                     conductor,
+                    conductor_normalized: normalizeName(conductor),
                     auxiliar,
+                    auxiliar_normalized: auxiliar ? normalizeName(auxiliar) : null,
                     fecha_asignacion:  fechaSalida,
                     fecha_entrega:     null,
                     estado:            'Asignado',
@@ -306,9 +318,14 @@ export const sincronizarAsignacionesSalida = async (salida, weekId, fechaSalida)
             // 5. Actualizar Maestro
             await updateDoc(doc(db, 'territorios', maestro.id), {
                 estado:           'Asignado',
+                status:           'Asignado',
                 asignado_a:       conductor,
+                asignado_a_normalized: normalizeName(conductor),
+                currentAssignee:  conductor,
                 auxiliar:         auxiliar,
-                fecha_asignacion: fechaSalida
+                auxiliar_normalized: auxiliar ? normalizeName(auxiliar) : null,
+                fecha_asignacion: fechaSalida,
+                assignmentDate:   fechaSalida
             });
 
             // 6. Notificar al sistema
@@ -360,8 +377,14 @@ export const liberarAsignacionesDeSalida = async (numerosALiberar, weekId) => {
                     // Liberar en Maestro
                     await updateDoc(doc(db, 'territorios', tId), {
                         estado: 'Disponible',
+                        status: 'Disponible',
                         asignado_a: null,
-                        fecha_asignacion: null
+                        asignado_a_normalized: null,
+                        currentAssignee: null,
+                        auxiliar: null,
+                        auxiliar_normalized: null,
+                        fecha_asignacion: null,
+                        assignmentDate: null
                     });
                     
                     window.dispatchEvent(new CustomEvent('territorio-liberado', {
@@ -616,10 +639,16 @@ export const formalizeWeek = async (weekId, assignments) => {
             const docId = `${weekId}_${tNumStr.replace(/[/ \s]/g, '_')}_${turno}`;
             const refS13 = doc(db, COL_BANCO_S13, docId);
             
+            const condNameNormalized = asig.conductor ? normalizeName(asig.conductor) : null;
+            const auxNameNormalized = asig.auxiliar ? normalizeName(asig.auxiliar) : null;
+
             const s13Data = {
                 territorio_id: tNumStr,
                 numero: tNumStr,
                 conductor: asig.conductor || '',
+                conductor_normalized: condNameNormalized,
+                auxiliar: asig.auxiliar || null,
+                auxiliar_normalized: auxNameNormalized,
                 fecha_asignacion: timestampActual,
                 fecha_entrega: null,
                 estado: 'Asignado',
@@ -639,6 +668,9 @@ export const formalizeWeek = async (weekId, assignments) => {
                 batch.update(doc(db, "territorios", tInfo.id), {
                     status: 'Asignado',
                     currentAssignee: asig.conductor || '',
+                    asignado_a_normalized: condNameNormalized,
+                    auxiliar: asig.auxiliar || null,
+                    auxiliar_normalized: auxNameNormalized,
                     assignmentDate: timestampActual,
                     lastUpdated: serverTimestamp(),
                     // Compatibilidad

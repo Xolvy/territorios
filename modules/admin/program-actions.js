@@ -44,7 +44,7 @@ window.openPartialReceptionBulk = async (id, numero, asignado_a, manzanasRaw) =>
                 </div>
                 <div>
                     <h3 class="text-2xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">Devolución Parcial</h3>
-                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em] mt-1">#${numero} • ${asignado_a}</p>
+                    <p class="text-[10px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-[0.3em] mt-1">#${numero} • ${asignado_a}</p>
                 </div>
             </header>
 
@@ -60,7 +60,7 @@ window.openPartialReceptionBulk = async (id, numero, asignado_a, manzanasRaw) =>
             </div>
 
             <div class="space-y-4">
-                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Acción con el resto</label>
+                <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Acción con el resto</label>
                 <select id="partial-unassign" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-xs font-bold uppercase tracking-widest text-slate-700 dark:text-white outline-none">
                     <option value="true">Devolver resto al inventario</option>
                     <option value="false">Mantener resto asignado a ${asignado_a}</option>
@@ -68,8 +68,8 @@ window.openPartialReceptionBulk = async (id, numero, asignado_a, manzanasRaw) =>
             </div>
 
             <div class="pt-6 border-t border-slate-50 dark:border-white/5 flex gap-4">
-                <button id="cancel-partial" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest transition-all">Cancelar</button>
-                <button id="confirm-partial" class="flex-[2] py-5 bg-amber-500 hover:bg-amber-400 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-amber-500/20 active:scale-95 transition-all">PROCESAR DEVOLUCIÓN</button>
+                <button id="cancel-partial" class="flex-1 min-w-0 py-5 bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest transition-all">Cancelar</button>
+                <button id="confirm-partial" class="flex-[2] py-5 bg-amber-500 hover:bg-amber-400 text-slate-800 dark:text-slate-100 font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-amber-500/20 active:scale-95 transition-all">PROCESAR DEVOLUCIÓN</button>
             </div>
         </div>
     `, (modal) => {
@@ -170,7 +170,7 @@ export const openFormalizeModal = async (programa, territorios, loadWeekDataCall
                 </div>
                 <div>
                     <h3 class="text-2xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">Asignación de Territorios (S-13)</h3>
-                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em] mt-1">Sincronización masiva automática</p>
+                    <p class="text-[10px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-[0.3em] mt-1">Sincronización masiva automática</p>
                 </div>
             </header>
 
@@ -178,7 +178,7 @@ export const openFormalizeModal = async (programa, territorios, loadWeekDataCall
                 <p class="text-[11px] font-bold text-slate-500 uppercase px-1">Seleccione las asignaciones:</p>
                 <button id="sync-select-all" class="px-6 py-3 bg-slate-100 dark:bg-white/5 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 hover:text-primary transition-all border border-slate-200/50">Deseleccionar Todo</button>
             </div>
-            <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
+            <div class="flex-1 min-w-0 overflow-y-auto custom-scrollbar pr-2 space-y-2">
                     ${toSync.map((item, idx) => {
         const exists = !!item.tInfo;
         const hasConductor = !!item.data.conductor;
@@ -194,7 +194,7 @@ export const openFormalizeModal = async (programa, territorios, loadWeekDataCall
                             <div class="flex flex-col">
                                 <span class="text-[11px] font-black text-slate-800 dark:text-white uppercase leading-tight">${item.data.conductor || 'Sin Conductor'}</span>
                                 <div class="flex items-center gap-2">
-                                    <span class="text-[7px] font-bold text-slate-400 uppercase tracking-widest">${item.dia.nombre} • <span class="text-blue-500">${item.turnoId}</span></span>
+                                    <span class="text-[7px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest">${item.dia.nombre} • <span class="text-blue-500">${item.turnoId}</span></span>
                                     ${item.isAlreadySync ? '<span class="text-[7px] font-black text-emerald-500 uppercase bg-emerald-500/10 px-1 py-0.5 rounded">Ya Sincronizado</span>' : ''}
                                     ${isConflicted ? `<span class="text-[7px] font-black text-rose-500 uppercase bg-rose-500/10 px-1 py-0.5 rounded font-black border border-rose-500/20"><i class="fas fa-ban mr-1"></i> No disponible / Ocupado por ${item.conflictOwner}</span>` : ''}
                                     ${!exists ? '<span class="text-[7px] font-black text-amber-500 uppercase bg-amber-500/10 px-1 py-0.5 rounded">No en Inventario</span>' : ''}
@@ -206,7 +206,7 @@ export const openFormalizeModal = async (programa, territorios, loadWeekDataCall
                             <span class="text-[9px] font-black uppercase" style="color:${isConflicted ? '#f43f5e' : (item.isAlreadySync ? '#10b981' : '#cbd5e1')}">
                                 ${isConflicted ? '×' : (item.isAlreadySync ? '✓' : '—')}
                             </span>
-                            <i class="fas ${item.isAlreadySync ? 'fa-check-circle text-emerald-500/30' : (canSync ? 'fa-arrow-right text-slate-200' : (isConflicted ? 'fa-ban text-rose-500/30' : 'fa-exclamation-triangle text-amber-500'))} text-[10px]"></i>
+                            <i class="fas ${item.isAlreadySync ? 'fa-check-circle text-emerald-500/30' : (canSync ? 'fa-arrow-right text-slate-800 dark:text-slate-200' : (isConflicted ? 'fa-ban text-rose-500/30' : 'fa-exclamation-triangle text-amber-500'))} text-[10px]"></i>
                         </div>
                     </label>
                 `}).join('')}
@@ -227,10 +227,10 @@ export const openFormalizeModal = async (programa, territorios, loadWeekDataCall
             <div class="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-white/5 shrink-0">
                 <div class="flex items-center gap-2 opacity-20 hover:opacity-100 transition-opacity">
                     <i class="fas fa-shield-alt text-[8px] text-emerald-500"></i>
-                    <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest">Sincronización Bilateral Activa</span>
+                    <span class="text-[7px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">Sincronización Bilateral Activa</span>
                 </div>
                 <div class="flex gap-4">
-                    <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="px-6 py-4 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-lg text-[10px] uppercase tracking-widest">Cerrar</button>
+                    <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="px-6 py-4 bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-400 font-black rounded-lg text-[10px] uppercase tracking-widest">Cerrar</button>
                     <button id="confirm-sync-all" class="px-8 py-4 bg-emerald-500 text-white font-black rounded-lg text-[10px] uppercase tracking-widest shadow-xl shadow-emerald-500/20 hover:scale-[1.02] transition-all">Confirmar Asignaciones</button>
                 </div>
             </div>

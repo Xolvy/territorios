@@ -76,15 +76,15 @@ export class S13Exporter {
 
             rowsHtml += `
                 <tr class="h-[8.5mm]">
-                    <td class="border border-black text-center font-bold text-xs bg-white w-[12mm]">${key || ''}</td>
-                    <td class="border border-black bg-white w-[25mm] text-center text-[8px] font-bold">${lastCompletionDate}</td>
+                    <td class="border border-black text-center font-bold text-xs bg-white dark:bg-slate-900 w-[12mm]">${key || ''}</td>
+                    <td class="border border-black bg-white dark:bg-slate-900 w-[25mm] text-center text-[8px] font-bold">${lastCompletionDate}</td>
                     ${colsHtml}
                 </tr>
             `;
         }
 
         return `
-            <div class="s13-page bg-white text-black w-[210mm] h-[297mm] p-[10mm] mx-auto flex flex-col mb-10 shrink-0 font-sans box-border relative overflow-hidden">
+            <div class="s13-page bg-white dark:bg-slate-900 text-black w-[210mm] h-[297mm] p-[10mm] mx-auto flex flex-col mb-10 shrink-0 font-sans box-border relative overflow-hidden">
                 <div class="text-center mb-4">
                     <h1 class="text-xl font-bold uppercase tracking-tight" style="font-family: 'Arial', sans-serif;">REGISTRO DE ASIGNACIÓN DE TERRITORIO</h1>
                 </div>
@@ -94,7 +94,7 @@ export class S13Exporter {
                         ${year}
                     </div>
                 </div>
-                <div class="w-full flex-1 border-[1.5px] border-black">
+                <div class="w-full flex-1 min-w-0 border-[1.5px] border-black">
                     <table class="w-full border-collapse border-hidden table-fixed">
                         <colgroup>
                             <col style="width: 12mm;">
@@ -112,7 +112,7 @@ export class S13Exporter {
                                     <td class="border border-black p-0 align-top">
                                         <div class="flex flex-col h-full">
                                             <div class="border-b border-black py-1 bg-gray-100/50">Asignado a</div>
-                                            <div class="flex flex-1 h-full">
+                                            <div class="flex flex-1 min-w-0 h-full">
                                                 <div class="w-1/2 border-r border-black flex items-center justify-center px-0.5 leading-[1] py-1 h-full text-[6px]">
                                                     Fecha en que<br> se asignó
                                                 </div>
@@ -135,7 +135,7 @@ export class S13Exporter {
                 </div>
                 <div class="mt-4 flex justify-between items-end px-1">
                      <div class="text-[9px] font-bold text-black">S-13-S 1/22</div>
-                     <div class="text-[7.5px] font-bold text-gray-400 uppercase tracking-widest">${congregation}</div>
+                     <div class="text-[7.5px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest">${congregation}</div>
                 </div>
             </div>
         `;

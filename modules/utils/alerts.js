@@ -15,15 +15,15 @@ const BASE_CLASSES = {
         '!p-0',
         '!overflow-hidden',
         '!border',
-        isDark() ? '!border-white/10' : '!border-slate-200',
+        isDark() ? '!border-white/10' : '!border-slate-200 dark:border-slate-700',
         '!shadow-[0_60px_120px_-20px_rgba(0,0,0,0.6)]',
         '!backdrop-blur-3xl',
         isDark() ? '!bg-slate-900/90' : '!bg-white/95',
     ].join(' '),
-    htmlContainer: '!px-8 !pb-0 !text-slate-700 dark:!text-slate-200',
-    title: '!px-8 !pt-8 !pb-3 !font-black !text-slate-800 dark:!text-white !tracking-tighter !text-xl !uppercase',
+    htmlContainer: '!px-8 !pb-0 !text-slate-700 dark:!text-slate-800 dark:text-slate-200',
+    title: '!px-8 !pt-8 !pb-3 !font-black !text-slate-800 dark:!text-slate-800 dark:text-slate-100 !tracking-tighter !text-xl !uppercase',
     confirmButton: 'btn-primary !px-8 !py-4 !text-[10px] !font-black !uppercase !tracking-widest !rounded-2xl !shadow-xl !shadow-primary/20',
-    cancelButton: '!px-8 !py-4 !text-[10px] !font-black !uppercase !tracking-widest !rounded-2xl !bg-slate-100 dark:!bg-white/5 !text-slate-600 dark:!text-slate-300 !shadow-none hover:!bg-slate-200 dark:hover:!bg-white/10',
+    cancelButton: '!px-8 !py-4 !text-[10px] !font-black !uppercase !tracking-widest !rounded-2xl !bg-slate-100 dark:!bg-white/5 !text-slate-600 dark:!text-slate-700 dark:text-slate-300 !shadow-none hover:!bg-slate-200 dark:hover:!bg-white/10',
     actions: '!px-8 !pb-8 !pt-4 !gap-3 !flex-row-reverse',
     icon: '!border-0 !mb-0 !mt-8 !mx-auto',
 };
@@ -88,7 +88,7 @@ export const xPrompt = async (title, placeholder = '', defaultValue = '') => {
         inputAttributes: { autocomplete: 'off' },
         customClass: {
             ...BASE_CLASSES,
-            input: '!rounded-2xl !border !border-slate-200 dark:!border-white/10 !bg-slate-50 dark:!bg-white/5 !text-slate-800 dark:!text-white !font-bold !text-sm !px-5 !py-4 focus:!border-primary focus:!ring-2 focus:!ring-primary/20 !shadow-inner !mt-4',
+            input: '!rounded-2xl !border !border-slate-200 dark:border-slate-700 dark:!border-white/10 !bg-slate-50 dark:bg-slate-800 dark:!bg-white/5 !text-slate-800 dark:!text-white !font-bold !text-sm !px-5 !py-4 focus:!border-primary focus:!ring-2 focus:!ring-primary/20 !shadow-inner !mt-4',
         },
         inputValidator: (value) => {
             if (!value?.trim()) return 'Este campo es requerido.';
@@ -125,8 +125,8 @@ export const xToast = (message, type = 'success') => {
         },
         html: `
             <div class="flex items-center gap-4 px-5 py-4">
-                <div class="w-9 h-9 rounded-xl bg-gradient-to-br ${colorMap[type] || colorMap.info} flex items-center justify-center text-white font-black text-sm shadow-lg flex-shrink-0">${iconMap[type] || iconMap.info}</div>
-                <p class="text-sm font-bold text-white leading-tight text-left">${message}</p>
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-br ${colorMap[type] || colorMap.info} flex items-center justify-center text-slate-800 dark:text-slate-100 font-black text-sm shadow-lg flex-shrink-0">${iconMap[type] || iconMap.info}</div>
+                <p class="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight text-left">${message}</p>
             </div>
         `,
         showClass: { popup: 'animate-fade-in' },

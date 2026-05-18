@@ -66,6 +66,14 @@ export const NexoManifest = {
             },
             required: ["numero_territorio"]
           }
+        },
+        {
+          name: "informar_territorios_vencidos",
+          description: "Consulta el banco S-13 para identificar territorios que ya superaron su fecha de vencimiento y no han sido entregados.",
+          parameters: {
+            type: "OBJECT",
+            properties: {}
+          }
         }
       ]
     }

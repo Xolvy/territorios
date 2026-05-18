@@ -378,3 +378,90 @@ exports.limpiarSesionesHuerfanas = onSchedule(
         });
     }
 );
+
+// ─── CLOUD FUNCTION: askNexoAI (AI Proxy) ───────────────────────────────────
+
+/**
+ * Nexo AI Assistant — Proxy seguro para Google Gemini API.
+ * Protege la API Key ocultándola en el servidor.
+ */
+exports.askNexoAI = onCall(
+    { 
+        region: "us-central1", 
+        timeoutSeconds: 60,
+        // En producción se recomienda usar: secrets: ["GEMINI_KEY"]
+    },
+    async (request) => {
+        // 1. Auth Guard: Solo usuarios logueados pueden usar la IA
+        if (!request.auth) {
+            throw new HttpsError(
+                "unauthenticated",
+                "Debes estar autenticado para usar el asistente Nexo."
+            );
+        }
+
+        const { prompt, systemInstruction, history = [], generationConfig = {} } = request.data;
+        
+        // Priorizar variable de entorno (Configurable vía Firebase CLI)
+        const apiKey = process.env.GEMINI_KEY;
+
+        if (!apiKey) {
+            console.error("[askNexoAI] CRÍTICO: API Key no configurada en process.env.GEMINI_KEY");
+            throw new HttpsError("failed-precondition", "El servicio de IA no está configurado en el servidor.");
+        }
+
+        console.log(`[askNexoAI] Procesando solicitud para UID: ${request.auth.uid}`);
+
+        try {
+            // Usamos Gemini 1.5 Flash (o 2.5 si está disponible en v1beta)
+            const model = "gemini-1.5-flash"; 
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+            
+            // Construir el payload compatible con Gemini API
+            const body = {
+                contents: history.length > 0 ? history : [],
+                generationConfig: {
+                    temperature: generationConfig.temperature || 0.1,
+                    topP: generationConfig.topP || 0.8,
+                    responseMimeType: generationConfig.responseMimeType || "application/json"
+                }
+            };
+
+            // Inyectar el system instruction si existe
+            if (systemInstruction) {
+                body.system_instruction = systemInstruction;
+            }
+
+            // Agregar el prompt actual del usuario
+            body.contents.push({
+                role: "user",
+                parts: [{ text: prompt }]
+            });
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error("[askNexoAI] Gemini API Error:", JSON.stringify(errorData));
+                throw new HttpsError("internal", "Error en el cerebro de la IA.");
+            }
+
+            const result = await response.json();
+            
+            // Devolver la respuesta cruda para que el cliente la procese
+            return {
+                candidates: result.candidates,
+                usageMetadata: result.usageMetadata
+            };
+
+        } catch (error) {
+            console.error("[askNexoAI] Fallo en la comunicación:", error);
+            if (error instanceof HttpsError) throw error;
+            throw new HttpsError("internal", "Error de red al conectar con Nexo.");
+        }
+    }
+);

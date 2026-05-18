@@ -71,8 +71,8 @@ export const showCustomConfirm = (message, onConfirm) => {
                 <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-2 font-black uppercase tracking-[0.3em] opacity-60">Confirmación de Sistema</p>
             </div>
             <div class="flex gap-4 w-full mt-4">
-                <button id="confirm-cancel" class="flex-1 py-5 rounded-2xl bg-slate-100 dark:bg-white/5 text-slate-500 font-black hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-[10px] uppercase tracking-widest">Cancelar</button>
-                <button id="confirm-ok" class="flex-[1.5] px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all">Confirmar</button>
+                <button id="confirm-cancel" class="flex-1 min-w-0 py-5 rounded-2xl bg-slate-100 dark:bg-white/5 text-slate-500 font-black hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-[10px] uppercase tracking-widest">Cancelar</button>
+                <button id="confirm-ok" class="flex-[1.5] px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all min-h-[44px]">Confirmar</button>
             </div>
         </div>
     `, (modal) => {
@@ -100,7 +100,7 @@ export const showCustomPrompt = (message, defaultValue, onConfirm) => {
                 class="w-full px-6 py-4 border border-slate-200 dark:border-white/10 rounded-2xl bg-slate-50 dark:bg-white/5 focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-white text-center outline-none transition-all font-bold">
             
             <div class="flex gap-4 w-full">
-                <button id="prompt-cancel" class="flex-1 py-4 text-slate-500 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 font-black rounded-xl transition-all text-[10px] uppercase tracking-widest">Omitir</button>
+                <button id="prompt-cancel" class="flex-1 min-w-0 py-4 text-slate-500 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 font-black rounded-xl transition-all text-[10px] uppercase tracking-widest">Omitir</button>
                 <button id="prompt-ok" class="flex-[1.5] py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 transition-all text-[10px] uppercase tracking-widest">Confirmar</button>
             </div>
         </div>
@@ -279,13 +279,13 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
                 <span class="text-[9px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-[0.2em]">En Programa Semanal:</span>
                 <div class="flex flex-wrap gap-1.5">
                     ${Array.from(new Set(weekAssignments)).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).map(num => `
-                        <span class="px-2.5 py-1 bg-orange-500 text-white text-[10px] font-black rounded-lg shadow-sm shadow-orange-500/20">#${num}</span>
+                        <span class="px-2.5 py-1 bg-orange-500 text-slate-800 dark:text-slate-100 text-[10px] font-black rounded-lg shadow-sm shadow-orange-500/20">#${num}</span>
                     `).join('')}
                 </div>
             </div>
             ` : ''}
             
-            <div class="flex-1 p-6 space-y-8 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-black/20">
+            <div class="flex-1 min-w-0 p-6 space-y-8 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-black/20">
                 <!-- Power Up: Smart Suggestions Section -->
                 <div id="modal-suggestions" class="space-y-4">
                      ${(() => {
@@ -362,14 +362,14 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
                 </div>
 
                 <div class="flex flex-col md:flex-row gap-4">
-                    <div class="relative group flex-1">
+                    <div class="relative group flex-1 min-w-0">
                         <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 group-focus-within:text-primary transition-colors">
                             <i class="fas fa-search"></i>
                         </span>
                         <input type="text" id="modal-terr-search" placeholder="Buscar por número o manzana..." class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 focus:border-primary rounded-2xl !pl-12 pr-4 py-4 text-sm font-bold shadow-sm outline-none transition-all">
                     </div>
                     <div class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm">
-                        <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Saturación:</span>
+                        <span class="text-[9px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">Saturación:</span>
                         <div class="flex gap-1">
                             <div class="w-2 h-2 rounded-full bg-emerald-500" title="Baja"></div>
                             <div class="w-2 h-2 rounded-full bg-amber-500" title="Media"></div>
@@ -466,17 +466,17 @@ export const showTerritorySelectionModal = (current, territorios, onSelect, cont
                                   </div>
                                   <div class="flex items-center gap-2">
                                      <div class="w-1.5 h-1.5 rounded-full ${freqColor} shadow-lg shadow-${freqColor.split('-')[1]}-500/50"></div>
-                                     <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest">${tStats.count} veces</span>
+                                     <span class="text-[8px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">${tStats.count} veces</span>
                                  </div>
                              </div>
 
                              <div class="grid grid-cols-2 gap-2 border-t border-slate-100 dark:border-white/5 pt-3">
                                  <div class="flex flex-col">
-                                     <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest">Últ. Asignación</span>
+                                     <span class="text-[7px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">Últ. Asignación</span>
                                      <span class="text-[10px] font-bold text-slate-600 dark:text-slate-300">${fmtShortDate(tStats.lastAsig)}</span>
                                  </div>
                                  <div class="flex flex-col border-l border-slate-100 dark:border-white/5 pl-2">
-                                     <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest">Últ. Entrega</span>
+                                     <span class="text-[7px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">Últ. Entrega</span>
                                      <span class="text-[10px] font-bold text-emerald-500">${fmtShortDate(tStats.lastEntrega)}</span>
                                  </div>
                              </div>

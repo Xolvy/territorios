@@ -25,23 +25,23 @@ export const renderS12CommandCenter = async (container) => {
             <div class="flex justify-between items-center bg-slate-50 dark:bg-white/5 p-6 rounded-3xl border border-slate-100 dark:border-white/5">
                 <div>
                     <h4 class="text-sm font-black text-slate-800 dark:text-white uppercase">Generar Reporte PDF S-12</h4>
-                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Documento oficial para el tablero</p>
+                    <p class="text-[10px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-widest mt-1">Documento oficial para el tablero</p>
                 </div>
                 <button id="btn-generate-s12-pdf" class="bg-primary hover:bg-primary-light text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20 transition-all active:scale-95 flex items-center gap-3">
                     <i class="fas fa-file-pdf"></i> Descargar PDF
                 </button>
             </div>
 
-            <div class="modern-card !p-0 overflow-hidden border-slate-100 dark:border-white/5 shadow-2xl bg-white dark:bg-slate-900" id="s12-preview-container">
+            <div class="modern-card !p-0 overflow-x-auto custom-scrollbar border-slate-100 dark:border-white/5 shadow-2xl bg-white dark:bg-slate-900" id="s12-preview-container">
                 <div class="p-10" id="s12-pdf-body">
-                    <header class="text-center mb-10 pb-10 border-b-2 border-slate-100">
+                    <header class="text-center mb-10 pb-10 border-b-2 border-slate-100 dark:border-white/5">
                         <h2 class="text-2xl font-black uppercase tracking-tighter text-slate-900">Registro de Territorios de la Congregación</h2>
                         <p class="text-xs font-bold text-slate-500 uppercase tracking-[0.3em] mt-2">Formulario S-12</p>
                     </header>
                     
                     <table class="w-full text-left border-collapse">
                         <thead>
-                            <tr class="bg-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-200">
+                            <tr class="bg-slate-50 dark:bg-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
                                 <th class="p-4">Nº</th>
                                 <th class="p-4">Nombre / Ubicación</th>
                                 <th class="p-4">Última Predicación</th>
@@ -52,7 +52,7 @@ export const renderS12CommandCenter = async (container) => {
                             ${territorios.map(t => {
         const lastDate = t.ultima_fecha ? new Date(t.ultima_fecha).toLocaleDateString() : '—';
         return `
-                                    <tr class="border-b border-slate-100 text-xs font-bold text-slate-700">
+                                    <tr class="border-b border-slate-100 dark:border-white/5 text-xs font-bold text-slate-700">
                                         <td class="p-4 font-black text-primary">${t.numero}</td>
                                         <td class="p-4 uppercase">${t.nombre || '—'}</td>
                                         <td class="p-4">${lastDate}</td>

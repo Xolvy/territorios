@@ -1,7 +1,10 @@
+import { functions } from '../../firebase-config.js';
+import { httpsCallable } from "firebase/functions";
+
 export class NexoAgent {
-    constructor(apiKey, manifest) {
-        this.apiKey = apiKey;
+    constructor(manifest) {
         this.manifest = manifest;
+
         this.actions = {};
         this.recognition = null;
         this.isListening = false;
@@ -186,12 +189,8 @@ export class NexoAgent {
     }
 
     async processCommand(textoUsuario, contextoDinamico = {}) {
-        if (!this.apiKey) {
-            console.error("Nexo: API Key no configurada.");
-            return;
-        }
-
         if (this.flujo && this.flujo.paso) {
+
             await this.manejarFlujoLocal(textoUsuario);
             return;
         }
@@ -244,37 +243,42 @@ export class NexoAgent {
         this.ui.showTyping();
         this.ui.updateStatus('Procesando...');
         try {
-            const bodyPayload = {
-                system_instruction: { parts: [{ text: systemPrompt }] },
-                contents: [{ role: "user", parts: [{ text: textoUsuario }] }],
+            const askNexoAI = httpsCallable(functions, 'askNexoAI');
+            const result = await askNexoAI({
+                prompt: textoUsuario,
+                systemInstruction: { parts: [{ text: systemPrompt }] },
                 generationConfig: {
                     temperature: 0.1,
                     topP: 0.8,
                     responseMimeType: "application/json"
                 }
-            };
-
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${this.apiKey}`;
-            console.log("📡 NEXO FETCH URL: ", url);
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(bodyPayload)
             });
 
-            const data = await response.json();
+            const data = result.data;
             
-            if (!response.ok || data.error) {
-                console.error('Nexo API Error:', data.error);
-                throw new Error("Pérdida de conexión con el cerebro de Gemini.");
+            if (data.error) {
+                console.error('Nexo Cloud Function Error:', data.error);
+                throw new Error("Pérdida de conexión con el cerebro de Nexo.");
             }
+
 
             let rawJson = data.candidates[0].content.parts[0].text.trim();
-            if (rawJson.startsWith('```json')) {
-                rawJson = rawJson.replace(/```json/g, '').replace(/```/g, '').trim();
+            let decision;
+            try {
+                // Limpiar posibles backticks de markdown que Gemini a veces añade
+                const cleanJson = rawJson
+                    .replace(/```json\n?/g, '')
+                    .replace(/```\n?/g, '')
+                    .trim();
+                decision = JSON.parse(cleanJson);
+            } catch (parseErr) {
+                console.warn('[Nexo] Error parseando respuesta de Gemini:', rawJson);
+                // Respuesta de fallback para no dejar a Nexo congelado
+                decision = {
+                    respuesta_hablada: 'Disculpa, no entendí bien. ¿Puedes repetirlo?',
+                    accion: null
+                };
             }
-
-            const decision = JSON.parse(rawJson);
             console.log('Nexo Decisión:', decision);
 
             // 0. Memoria de territorio para seguimiento
@@ -377,43 +381,24 @@ export class NexoAgent {
     }
 
     async analyzeImage(base64Data, mimeType = 'image/jpeg') {
-        if (!this.apiKey) {
-            throw new Error("Nexo: API Key no configurada.");
-        }
-
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${this.apiKey}`;
-        
-        const bodyPayload = {
-            contents: [{
-                parts: [
-                    { text: "Eres un asistente visual. Analiza la imagen de esta tarjeta de territorio. Extrae en formato JSON el 'territorio_id' (el número del territorio) y un array 'manzanas_trabajadas' con los números de las manzanas que veas marcadas, tachadas o pintadas. Responde únicamente el JSON." },
-                    {
-                        inline_data: {
-                            mime_type: mimeType,
-                            data: base64Data
-                        }
-                    }
-                ]
-            }],
-            generationConfig: {
-                temperature: 0.1,
-                responseMimeType: "application/json"
-            }
-        };
-
-
         try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(bodyPayload)
+            const askNexoAI = httpsCallable(functions, 'askNexoAI');
+            const result = await askNexoAI({
+                prompt: "Eres un asistente visual. Analiza la imagen de esta tarjeta de territorio. Extrae en formato JSON el 'territorio_id' (el número del territorio) y un array 'manzanas_trabajadas' con los números de las manzanas que veas marcadas, tachadas o pintadas. Responde únicamente el JSON.",
+                image: {
+                    inline_data: {
+                        mime_type: mimeType,
+                        data: base64Data
+                    }
+                }
             });
 
-            const data = await response.json();
-            if (!response.ok || data.error) {
-                console.error('Nexo Vision Error:', data.error);
-                throw new Error("Error en el análisis visual de Gemini.");
+            const data = result.data;
+            if (data.error) {
+                console.error('Nexo Vision Cloud Function Error:', data.error);
+                throw new Error("Error en el análisis visual de Nexo.");
             }
+
 
             let rawJson = data.candidates[0].content.parts[0].text.trim();
             if (rawJson.startsWith('```json')) {
@@ -460,7 +445,7 @@ class NexoUI {
 
         const styles = `
             #nexo-widget {
-                position: fixed; bottom: 20px; right: 20px; z-index: 9999;
+                position: fixed; bottom: 20px; right: 20px; z-index: 9998; /* Justo debajo de modales z-9999 */
                 display: flex; flex-direction: column; align-items: flex-end; gap: 0;
                 font-family: 'Outfit', sans-serif;
                 transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);

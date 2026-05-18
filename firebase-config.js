@@ -24,6 +24,8 @@ import {
   persistentMultipleTabManager
 } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
+import { getFunctions } from "firebase/functions";
+
 
 // ═══════════════════════════════════════════════════════════
 // CREDENCIALES Y PROYECTO
@@ -122,7 +124,7 @@ const triggerEmergencyRecovery = () => {
 
   // Force reload with cache busting
   setTimeout(() => {
-    window.location.href = `${window.location.pathname}?rescue=${Date.now()}`;
+    window.location.href = window.location.pathname;
   }, 1000);
 };
 
@@ -158,3 +160,5 @@ window.addEventListener('error', event => {
 
 export const db = firestoreDb;
 export const storage = getStorage(app);
+export const functions = getFunctions(app, "us-central1");
+

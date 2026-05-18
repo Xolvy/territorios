@@ -143,7 +143,9 @@ export const initUpdateManager = () => {
             // No reload needed, HMS or next fetch will pick up changes
         } else if (isNewer(APP_VERSION, serverVersion)) {
             // TELEMETRY: If I am an Admin and my version is newer, I should auto-sync the server
-            const isAdmin = localStorage.getItem('demo_role') === 'Administrador';
+            // TELEMETRY: If I am an Admin and my version is newer, I should auto-sync the server
+            const currentRole = window.XolvyApp?.user?.role;
+            const isAdmin = (currentRole === 'Administrador' || currentRole === 'SuperAdmin');
             if (isAdmin) {
                 console.log("📡 [Telemetry] Admin detected with newer version. Auto-syncing Firestore...");
                 broadcastCurrentVersion().catch(err => console.warn("Telemetry sync failed:", err));
@@ -172,7 +174,7 @@ const startBackgroundUpdate = async (newVersion, forceTimestamp = 0) => {
     const currentState = {
         path: window.location.pathname,
         timestamp: Date.now(),
-        role: localStorage.getItem('demo_role'),
+        role: window.XolvyApp?.user?.role || null,
         user: localStorage.getItem('selected_conductor_name')
     };
     sessionStorage.setItem('xolvy_pre_update_state', JSON.stringify(currentState));
@@ -197,7 +199,7 @@ const startBackgroundUpdate = async (newVersion, forceTimestamp = 0) => {
         completeXolvyUpdate("Núcleo", newVersion);
 
         setTimeout(() => {
-            window.location.href = `${window.location.pathname}?updated=true&v=${Date.now()}`;
+            window.location.href = `${window.location.pathname}?updated=true`;
         }, 1500);
 
     } catch (err) {
@@ -361,6 +363,6 @@ const showRescuePill = (targetVersion) => {
         await performRadicalCachePurge(true);
 
         // Add a parameter to force network reload
-        window.location.href = window.location.pathname + '?rescue=' + Date.now();
+        window.location.href = window.location.pathname;
     };
 };

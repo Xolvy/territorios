@@ -182,6 +182,22 @@ export const addHistoryRecord = async (data) => {
 
 export const updateHistoryRecord = async (id, data) => {
     try {
+        // CAMBIO D: Pre-resolver el documento del territorio FUERA de la transacción
+        // getDocs no puede usarse dentro de runTransaction (viola reglas de Firestore)
+        const histPreSnap = await getDoc(doc(db, COL_BANCO_S13, id));
+        let territoryDocId = null;
+
+        if (histPreSnap.exists()) {
+            const oldData = histPreSnap.data();
+            if (oldData.estado === 'Asignado') {
+                const tQuery = query(collection(db, COL_TERRITORIOS), where("numero", "==", String(oldData.numero)));
+                const tSnap = await getDocs(tQuery);
+                if (!tSnap.empty) {
+                    territoryDocId = tSnap.docs[0].id;
+                }
+            }
+        }
+
         await runTransaction(db, async (transaction) => {
             const histRef = doc(db, COL_BANCO_S13, id);
             const oldSnap = await transaction.get(histRef);
@@ -189,15 +205,11 @@ export const updateHistoryRecord = async (id, data) => {
             const old = oldSnap.data();
 
             // Sincronización Bidireccional con Maestro (territorios)
-            // Solo sincronizamos si es el registro más reciente (el que está marcado como 'Asignado')
-            if (old.estado === 'Asignado') {
-                const tQuery = query(collection(db, COL_TERRITORIOS), where("numero", "==", String(old.numero)));
-                const tSnap = await getDocs(tQuery);
-                
-                if (!tSnap.empty) {
-                    const tDoc = tSnap.docs[0];
-                    const tId = tDoc.id;
-                    const territory = tDoc.data();
+            if (old.estado === 'Asignado' && territoryDocId) {
+                const tRef = doc(db, COL_TERRITORIOS, territoryDocId);
+                const tDocSnap = await transaction.get(tRef);
+
+                if (tDocSnap.exists()) {
                     const tUpdate = {};
 
                     // Si el usuario añadió una fecha de entrega manual desde el historial, liberamos el territorio
@@ -216,7 +228,7 @@ export const updateHistoryRecord = async (id, data) => {
                     }
 
                     if (Object.keys(tUpdate).length > 0) {
-                        transaction.update(doc(db, COL_TERRITORIOS, tId), tUpdate);
+                        transaction.update(tRef, tUpdate);
                     }
                 }
             }

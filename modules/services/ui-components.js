@@ -29,7 +29,7 @@ export const GlassButton = (text, icon = '', variant = 'primary', className = ''
 
 export const GlassInput = (label, id, type = 'text', value = '', placeholder = '') => `
     <div class="space-y-2 group">
-        <label class="block text-[10px] uppercase text-slate-400 font-black tracking-widest ml-1 transition-colors group-focus-within:text-primary">${label}</label>
+        <label class="block text-[10px] uppercase text-slate-600 dark:text-slate-400 font-black tracking-widest ml-1 transition-colors group-focus-within:text-primary">${label}</label>
         <input type="${type}" id="${id}" value="${value}" placeholder="${placeholder}" 
             class="w-full bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-xs text-slate-700 dark:text-slate-200 focus:border-primary outline-none font-bold transition-all shadow-sm focus:shadow-lg focus:shadow-primary/10">
     </div>

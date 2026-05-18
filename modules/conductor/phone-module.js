@@ -69,8 +69,8 @@ export const initializePhoneModule = (initialPhones, publicadores, displayName, 
                 <!-- Col 4: Publicador (Both) -->
                 <td class="p-0 sm:p-4 block sm:table-cell align-middle">
                     <div class="flex flex-row items-center gap-2 sm:gap-4">
-                        <div class="flex-1">
-                            <p class="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 sm:hidden ml-1">Asignar Publicador</p>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-[7px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-1 sm:hidden ml-1">Asignar Publicador</p>
                             <select onchange="window.updatePhoneStaff('${p.id}', this.value)" class="w-full sm:w-auto bg-slate-100 dark:bg-white/5 border-none rounded-xl sm:rounded-lg px-3 py-2.5 sm:py-1.5 text-[10px] font-black uppercase tracking-widest outline-none focus:ring-1 focus:ring-primary transition-all">
                                 <option value=""></option>
                                 ${publicadores.map(pub => {
@@ -85,7 +85,7 @@ export const initializePhoneModule = (initialPhones, publicadores, displayName, 
                              <button onclick="window.openPhoneStatusSelector('${p.id}', '${p.telefono}')" class="px-5 py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest bg-primary/10 text-primary border border-primary/20 shadow-lg shadow-primary/5 whitespace-nowrap flex items-center gap-2 active:scale-95 transition-all">
                                 <i class="fas fa-tag"></i> ESTADO
                             </button>
-                            <button onclick="window.openPhoneNotes('${p.id}', '${p.telefono}', '${(p.notas || '').replace(/'/g, "\\'")}')" class="w-12 h-12 flex items-center justify-center text-slate-400 hover:text-primary transition-colors bg-slate-100 dark:bg-white/5 rounded-xl border border-black/5">
+                            <button onclick="window.openPhoneNotes('${p.id}', '${p.telefono}', '${(p.notas || '').replace(/'/g, "\\'")}')" class="w-12 h-12 flex items-center justify-center text-slate-600 dark:text-slate-400 hover:text-primary transition-colors bg-slate-100 dark:bg-white/5 rounded-xl border border-black/5">
                                 <i class="fas fa-sticky-note"></i>
                             </button>
                         </div>
@@ -113,7 +113,7 @@ export const initializePhoneModule = (initialPhones, publicadores, displayName, 
 
                 <!-- Col 6: Notas (Desktop Only Icon) -->
                 <td class="p-4 hidden sm:table-cell align-middle">
-                    <button onclick="window.openPhoneNotes('${p.id}', '${p.telefono}', '${(p.notas || '').replace(/'/g, "\\'")}')" class="text-slate-400 hover:text-indigo-500 transition-colors">
+                    <button onclick="window.openPhoneNotes('${p.id}', '${p.telefono}', '${(p.notas || '').replace(/'/g, "\\'")}')" class="text-slate-600 dark:text-slate-400 hover:text-indigo-500 transition-colors">
                         <i class="fas fa-sticky-note"></i>
                     </button>
                 </td>
@@ -167,8 +167,8 @@ export const initializePhoneModule = (initialPhones, publicadores, displayName, 
                         <p class="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase leading-relaxed px-4 italic">Se recomienda volver a marcar para confirmar que está ${status === 'Suspendido' ? 'suspendido' : 'una dirección de testigo'}.</p>
                     </div>
                     <div class="flex gap-4 pt-4">
-                        <button onclick="window.closeModal()" class="flex-1 px-8 py-4 bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all">Cancelar</button>
-                        <button id="btn-confirm-purge" class="flex-1 px-8 py-4 bg-rose-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-rose-500/20 hover:bg-rose-600 transition-all">Confirmar</button>
+                        <button onclick="window.closeModal()" class="flex-1 min-w-0 px-8 py-4 bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all">Cancelar</button>
+                        <button id="btn-confirm-purge" class="flex-1 min-w-0 px-8 py-4 bg-rose-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-rose-500/20 hover:bg-rose-600 transition-all">Confirmar</button>
                     </div>
                 </div>
             `, null, 'max-w-sm');

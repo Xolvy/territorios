@@ -13,13 +13,13 @@ export const MapViewer = {
         }
 
         container.innerHTML = `
-            <div class="flex flex-col h-full w-full animate-fade-in bg-white dark:bg-slate-900 rounded-[2.5rem] overflow-hidden shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)] border border-white/10 relative">
+            <div class="absolute inset-0 z-[9999] flex flex-col h-full w-full animate-fade-in bg-white dark:bg-slate-900 rounded-[2.5rem] overflow-hidden shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)] border border-white/10">
                 
                 <!-- GLASS HEADER -->
                 <div class="z-40 flex justify-between items-center p-4 m-6 bg-white/70 dark:bg-gray-900/60 backdrop-blur-2xl rounded-3xl border border-white/20 dark:border-white/5 shadow-2xl absolute top-0 left-0 right-0">
                     <div class="flex items-center gap-4">
                         <div class="w-12 h-12 bg-indigo-500 rounded-2xl flex items-center justify-center text-2xl shadow-[0_0_20px_rgba(79,70,229,0.4)] border border-white/20">
-                            <i class="fas fa-map-marked-alt text-white text-xl"></i>
+                            <i class="fas fa-map-marked-alt text-slate-800 dark:text-slate-100 text-xl"></i>
                         </div>
                         <div>
                             <h3 class="font-black text-slate-800 dark:text-white tracking-tighter leading-none mb-1 text-lg">Territorio ${numero}</h3>
@@ -37,11 +37,11 @@ export const MapViewer = {
                     </div>
                 </div>
 
-                <div class="flex-1 w-full relative overflow-hidden bg-[#0f172a]">
+                <div class="flex-1 min-w-0 w-full relative overflow-hidden bg-[#0f172a]">
                     
                     <!-- STATIC IMAGE VIEW (PNG VISOR) -->
                     <div id="static-image-viewer" class="absolute inset-0 w-full h-full flex items-center justify-center p-6 transition-opacity duration-500 opacity-100 overflow-hidden bg-slate-200 dark:bg-slate-700/40 z-30 touch-none">
-                        <div id="map-img-container" class="relative w-full h-full max-w-full max-h-full flex items-center justify-center bg-white rounded-2xl shadow-2xl overflow-hidden" style="max-height:100%;">
+                        <div id="map-img-container" class="relative w-full h-full max-w-full max-h-full flex items-center justify-center bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden" style="max-height:100%;">
                             <!-- Spinner/Skeleton state -->
                             <div id="map-loader-ui" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-800 z-10 transition-opacity duration-300">
                                 <div class="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mb-4 shadow-sm"></div>
@@ -72,7 +72,7 @@ export const MapViewer = {
             }
         };
         img.onerror = () => {
-            mapContainer.innerHTML = '<div class="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-800"><i class="fas fa-image text-6xl shadow-inner text-slate-400 mb-4"></i><p class="font-black tracking-[0.2em] uppercase text-xs text-slate-500">Sin Imagen Disponible</p></div>';
+            mapContainer.innerHTML = '<div class="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-800"><i class="fas fa-image text-6xl shadow-inner text-slate-600 dark:text-slate-400 mb-4"></i><p class="font-black tracking-[0.2em] uppercase text-xs text-slate-500">Sin Imagen Disponible</p></div>';
         };
         img.src = mapUrl;
 
@@ -100,11 +100,11 @@ export const MapViewer = {
             modal.style.zIndex = '10001';
         }
         container.innerHTML = `
-            <div class="flex flex-col h-full w-full animate-fade-in bg-white dark:bg-slate-900 rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/10 relative">
+            <div class="absolute inset-0 z-[9999] flex flex-col h-full w-full animate-fade-in bg-white dark:bg-slate-900 rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/10">
                 <div class="absolute top-6 left-6 right-6 z-40 flex justify-between items-center p-4 bg-white/70 dark:bg-gray-900/60 backdrop-blur-2xl rounded-3xl border border-white/20 dark:border-white/5 shadow-2xl">
                     <div class="flex items-center gap-4">
                         <div class="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center text-2xl shadow-lg border border-white/20">
-                            <i class="fas fa-satellite text-white text-xl"></i>
+                            <i class="fas fa-satellite text-slate-800 dark:text-slate-100 text-xl"></i>
                         </div>
                         <div>
                             <h3 class="font-black text-slate-800 dark:text-white tracking-tighter leading-none mb-1 text-lg">Explorador Global</h3>
@@ -116,7 +116,7 @@ export const MapViewer = {
                     </button>
                 </div>
 
-                <div id="global-map-container" class="flex-1 w-full bg-[#0f172a] relative">
+                <div id="global-map-container" class="flex-1 min-w-0 w-full bg-[#0f172a] relative">
                      <div id="global-map-loader" class="absolute inset-0 z-[1000] bg-gray-950 flex items-center justify-center">
                         <div class="flex flex-col items-center gap-6">
                             <div class="w-16 h-16 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>

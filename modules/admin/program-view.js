@@ -6,7 +6,7 @@ import {
     sincronizarAsignacionesSalida, liberarAsignacionesDeSalida
 } from '../../data/firestore-services.js';
 import { extractProgramFromImage } from '../services/ai-vision-service.js';
-import { showNotification, formatGroups, getBaseTerritoryNumber, normalize, splitTerritories } from '../utils/helpers.js';
+import { showNotification, formatGroups, getBaseTerritoryNumber, normalize, normalizeName, splitTerritories } from '../utils/helpers.js';
 import { UIHelpers, showModal, showTerritorySelectionModal, showCustomConfirm } from '../services/ui-helpers.js';
 import { generateProgramPNG } from './program-generator.js';
 import { db } from '../../firebase-config.js';
@@ -878,15 +878,15 @@ export const renderProgramaTab = async (container, configData = null) => {
                     Object.keys(currentDia).filter(k => k !== 'nombre' && k !== 'fecha' && k !== turnoId).forEach(otherTurnoId => {
                         const otherData = currentDia[otherTurnoId];
                         if (otherData) {
-                            if (otherData.conductor) busyPersonnel.add(otherData.conductor.trim().toLowerCase());
-                            if (otherData.auxiliar) busyPersonnel.add(otherData.auxiliar.trim().toLowerCase());
+                            if (otherData.conductor) busyPersonnel.add(normalizeName(otherData.conductor));
+                            if (otherData.auxiliar) busyPersonnel.add(normalizeName(otherData.auxiliar));
                         }
                     });
                 }
 
                 const finalOpts = [
-                    ...available.map(c => ({ name: c.nombre, isAvail: true, isBusy: busyPersonnel.has(c.nombre.trim().toLowerCase()) })),
-                    ...nonAvailable.map(c => ({ name: c.nombre, isAvail: false, isBusy: busyPersonnel.has(c.nombre.trim().toLowerCase()) }))
+                    ...available.map(c => ({ name: c.nombre, isAvail: true, isBusy: busyPersonnel.has(normalizeName(c.nombre)) })),
+                    ...nonAvailable.map(c => ({ name: c.nombre, isAvail: false, isBusy: busyPersonnel.has(normalizeName(c.nombre)) }))
                 ];
 
                 const currentPels = (val || '').split(',').map(p => p.trim()).filter(Boolean);

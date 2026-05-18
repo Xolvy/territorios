@@ -35,17 +35,17 @@ export const renderTelefonosTab = async (container, configData = null) => {
                 </div>
                 
                 <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
-                    <div class="relative flex-1 md:flex-none md:w-64 group">
-                        <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors"><i class="fas fa-search"></i></span>
+                    <div class="relative flex-1 min-w-0 md:flex-none md:w-64 group">
+                        <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400 group-focus-within:text-blue-600 transition-colors"><i class="fas fa-search"></i></span>
                         <input type="text" id="phone-search" placeholder="Número o nombre..." class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl !pl-14 pr-4 py-4 text-sm font-bold shadow-sm outline-none focus:border-blue-600 transition-all text-slate-700 dark:text-white">
                     </div>
-                    <button id="add-phone-btn" class="flex-1 md:flex-none px-8 py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-sm transition-all active:scale-95 flex items-center justify-center gap-3">
+                    <button id="add-phone-btn" class="flex-1 min-w-0 md:flex-none px-8 py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-sm transition-all active:scale-95 flex items-center justify-center gap-3">
                         <i class="fas fa-plus-circle"></i> Agregar Registro
                     </button>
                     <label class="relative inline-flex items-center cursor-pointer group px-5 py-3.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl transition-all hover:border-slate-300 dark:hover:border-white/20 whitespace-nowrap">
                         <input type="checkbox" id="show-hidden-phones" class="peer sr-only">
                         <div class="relative w-10 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all shrink-0"></div>
-                        <span class="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-3">Ver Ocultos</span>
+                        <span class="text-[9px] font-black uppercase text-slate-600 dark:text-slate-400 tracking-widest ml-3">Ver Ocultos</span>
                     </label>
                 </div>
             </header>
@@ -59,9 +59,9 @@ export const renderTelefonosTab = async (container, configData = null) => {
                 <div class="animate-pulse bg-white dark:bg-white/5 p-6 rounded-[2rem] border border-slate-100 dark:border-white/5 h-32"></div>
             </div>
 
-            <div class="hidden lg:block enterprise-card overflow-hidden border-slate-200 dark:border-white/5 shadow-sm relative">
+            <div class="hidden lg:block enterprise-card overflow-x-auto custom-scrollbar border-slate-200 dark:border-white/5 shadow-sm relative">
                     <table class="w-full text-left border-collapse table-fixed">
-                        <thead class="bg-slate-50 dark:bg-black/40 text-slate-400 text-[9px] font-black uppercase tracking-[0.2em] border-b border-slate-200 dark:border-white/5">
+                        <thead class="bg-slate-50 dark:bg-black/40 text-slate-600 dark:text-slate-400 text-[9px] font-black uppercase tracking-[0.2em] border-b border-slate-200 dark:border-white/5">
                             <tr>
                                 <th class="p-4 md:p-6 w-[40%] cursor-pointer hover:bg-slate-100 dark:hover:bg-white/5 transition-colors group/th text-blue-600" data-sort="propietario">
                                     Información de Contacto <i class="fas fa-sort-up ml-2 transition-all"></i>
@@ -171,7 +171,7 @@ export const renderTelefonosTab = async (container, configData = null) => {
                         </div>
                         <div class="min-w-0">
                             <p class="text-xs md:text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight truncate">${t.propietario || t.nombre || 'Desconocido'}</p>
-                            <p class="text-[10px] md:text-[11px] text-slate-400 font-mono font-bold">${formatPhoneNumber(t.numero)}</p>
+                            <p class="text-[10px] md:text-[11px] text-slate-600 dark:text-slate-400 font-mono font-bold">${formatPhoneNumber(t.numero)}</p>
                         </div>
                     </div>
                 </td>
@@ -187,7 +187,7 @@ export const renderTelefonosTab = async (container, configData = null) => {
                                 <span class="text-[8px] font-bold text-slate-400/70 uppercase tracking-tighter">${t.fecha_asignacion ? new Date(t.fecha_asignacion).toLocaleDateString() : ''}</span>
                             </div>
                         </div>
-                    ` : '<span class="text-[10px] text-slate-300 uppercase font-bold italic">No asignado</span>'}
+                    ` : '<span class="text-[10px] text-slate-700 dark:text-slate-300 uppercase font-bold italic">No asignado</span>'}
                 </td>
                 <td class="p-4 md:p-6 w-[10%] text-right">
                     <div class="flex items-center justify-end gap-2 opacity-10 md:opacity-0 group-hover:opacity-100 transition-opacity">
@@ -216,17 +216,17 @@ export const renderTelefonosTab = async (container, configData = null) => {
                         </div>
                         <div>
                             <p class="text-xs font-black text-slate-800 dark:text-white uppercase">${t.propietario || t.nombre || 'Desconocido'}</p>
-                            <p class="text-[10px] text-slate-400 font-mono">${formatPhoneNumber(t.numero)}</p>
+                            <p class="text-[10px] text-slate-600 dark:text-slate-400 font-mono">${formatPhoneNumber(t.numero)}</p>
                         </div>
                     </div>
                     ${estado ? `<span class="${getStatusColor(estado)} text-[8px] font-black uppercase px-2 py-1 rounded-md border border-current/20">${estado}</span>` : ''}
                 </div>
                 <div class="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-white/5">
-                    <div class="text-[9px] font-black text-slate-400 uppercase">
+                    <div class="text-[9px] font-black text-slate-600 dark:text-slate-400 uppercase">
                         ${asignadoA ? `Asig: <span class="text-slate-600 dark:text-slate-300 ml-1">${asignadoA}</span>` : 'Sin asignar'}
                     </div>
                     <div class="flex gap-2">
-                        <button onclick="window.editPhone('${t.id}')" class="w-8 h-8 flex items-center justify-center bg-slate-50 dark:bg-white/5 rounded-lg text-slate-400"><i class="fas fa-edit text-[10px]"></i></button>
+                        <button onclick="window.editPhone('${t.id}')" class="w-8 h-8 flex items-center justify-center bg-slate-50 dark:bg-white/5 rounded-lg text-slate-600 dark:text-slate-400"><i class="fas fa-edit text-[10px]"></i></button>
                         <button onclick="window.deletePhone('${t.id}')" class="w-8 h-8 flex items-center justify-center bg-slate-50 dark:bg-white/5 rounded-lg text-rose-400"><i class="fas fa-trash-alt text-[10px]"></i></button>
                     </div>
                 </div>
@@ -278,29 +278,29 @@ export const renderTelefonosTab = async (container, configData = null) => {
                     </div>
                 </header>
 
-                <div class="flex-1 overflow-y-auto custom-scrollbar p-10 space-y-8 bg-slate-50 dark:bg-black/20">
+                <div class="flex-1 min-w-0 overflow-y-auto custom-scrollbar p-10 space-y-8 bg-slate-50 dark:bg-black/20">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div class="space-y-3">
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Número de Teléfono</label>
+                            <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Número de Teléfono</label>
                             <input type="text" id="m-phone-num" value="${phone?.numero || ''}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all shadow-inner" placeholder="0987654321">
                         </div>
                         <div class="space-y-3">
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Nombre / Propietario</label>
+                            <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Nombre / Propietario</label>
                             <input type="text" id="m-phone-name" value="${phone?.propietario || phone?.nombre || ''}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all shadow-inner uppercase" placeholder="EJ: JUAN PEREZ">
                         </div>
                         <div class="space-y-3">
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Dirección / Referencia</label>
+                            <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Dirección / Referencia</label>
                             <input type="text" id="m-phone-address" value="${phone?.direccion || ''}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all shadow-inner uppercase" placeholder="EJ: CALLE 1 Y CALLE 2">
                         </div>
                         <div class="space-y-3">
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Estado</label>
+                            <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Estado</label>
                             <select id="m-phone-state" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all appearance-none cursor-pointer shadow-inner">
                                 <option value="" ${(!phone?.estado || phone?.estado === 'Sin asignar' || phone?.estado === 'Disponible') ? 'selected' : ''}></option>
                                 ${estados.map(s => `<option value="${s}" ${phone?.estado === s ? 'selected' : ''}>${s}</option>`).join('')}
                             </select>
                         </div>
                         <div class="space-y-3">
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Responsable Actual</label>
+                            <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Responsable Actual</label>
                             <select id="m-phone-asig" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all appearance-none cursor-pointer shadow-inner">
                                 <option value=""></option>
                                 ${publicadores.map(p => `<option value="${p.nombre}" ${(phone?.solicitado_por === p.nombre || phone?.asignado_a === p.nombre) ? 'selected' : ''}>${p.nombre}</option>`).join('')}
@@ -310,7 +310,7 @@ export const renderTelefonosTab = async (container, configData = null) => {
                 </div>
 
                 <footer class="shrink-0 p-8 bg-white dark:bg-black/40 border-t border-slate-100 dark:border-white/5 flex gap-4">
-                    <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="btn-pro flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-white/10 transition-all">Cancelar</button>
+                    <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="btn-pro flex-1 min-w-0 py-5 bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-white/10 transition-all">Cancelar</button>
                     <button id="m-save-phone" class="btn-pro flex-[2] py-5 bg-primary text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20 transition-all hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-2">
                         <i class="fas fa-save"></i> ${isEdit ? 'Guardar Cambios' : 'Crear Registro'}
                     </button>
@@ -379,22 +379,22 @@ export const renderTelefonosTab = async (container, configData = null) => {
         telemetryContainer.innerHTML = `
             <div class="bg-white dark:bg-[#0a0f18] p-6 rounded-[2.5rem] border border-slate-100 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.02)] flex flex-col items-center justify-center text-center group hover:scale-[1.02] transition-all duration-500">
                 <div class="w-10 h-10 bg-emerald-500/10 text-emerald-500 rounded-2xl flex items-center justify-center mb-3 group-hover:rotate-12 transition-transform"><i class="fas fa-check-circle"></i></div>
-                <span class="text-[8px] font-black uppercase text-slate-400 tracking-[0.2em] mb-1">Disponibles</span>
+                <span class="text-[8px] font-black uppercase text-slate-600 dark:text-slate-400 tracking-[0.2em] mb-1">Disponibles</span>
                 <span class="text-2xl font-black text-slate-800 dark:text-white tabular-nums tracking-tighter">${stats.disponibles}</span>
             </div>
             <div class="bg-white dark:bg-[#0a0f18] p-6 rounded-[2.5rem] border border-slate-100 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.02)] flex flex-col items-center justify-center text-center group hover:scale-[1.02] transition-all duration-500">
                 <div class="w-10 h-10 bg-blue-500/10 text-blue-500 rounded-2xl flex items-center justify-center mb-3 group-hover:rotate-12 transition-transform"><i class="fas fa-history"></i></div>
-                <span class="text-[8px] font-black uppercase text-slate-400 tracking-[0.2em] mb-1">En Revisita</span>
+                <span class="text-[8px] font-black uppercase text-slate-600 dark:text-slate-400 tracking-[0.2em] mb-1">En Revisita</span>
                 <span class="text-2xl font-black text-slate-800 dark:text-white tabular-nums tracking-tighter">${stats.revisitas}</span>
             </div>
             <div class="bg-white dark:bg-[#0a0f18] p-6 rounded-[2.5rem] border border-slate-100 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.02)] flex flex-col items-center justify-center text-center group hover:scale-[1.02] transition-all duration-500">
                 <div class="w-10 h-10 bg-amber-500/10 text-amber-500 rounded-2xl flex items-center justify-center mb-3 group-hover:rotate-12 transition-transform"><i class="fas fa-snowflake"></i></div>
-                <span class="text-[8px] font-black uppercase text-slate-400 tracking-[0.2em] mb-1">Enfriamiento</span>
+                <span class="text-[8px] font-black uppercase text-slate-600 dark:text-slate-400 tracking-[0.2em] mb-1">Enfriamiento</span>
                 <span class="text-2xl font-black text-slate-800 dark:text-white tabular-nums tracking-tighter">${stats.enfriamiento}</span>
             </div>
             <div class="bg-white dark:bg-[#0a0f18] p-6 rounded-[2.5rem] border border-slate-100 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.02)] flex flex-col items-center justify-center text-center group hover:scale-[1.02] transition-all duration-500">
                 <div class="w-10 h-10 bg-rose-500/10 text-rose-500 rounded-2xl flex items-center justify-center mb-3 group-hover:rotate-12 transition-transform"><i class="fas fa-trash-alt"></i></div>
-                <span class="text-[8px] font-black uppercase text-slate-400 tracking-[0.2em] mb-1">Purgas</span>
+                <span class="text-[8px] font-black uppercase text-slate-600 dark:text-slate-400 tracking-[0.2em] mb-1">Purgas</span>
                 <span class="text-2xl font-black text-slate-800 dark:text-white tabular-nums tracking-tighter">${stats.purgados}</span>
             </div>
         `;

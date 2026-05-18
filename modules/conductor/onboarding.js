@@ -55,14 +55,14 @@ export const startOnboarding = () => {
                 <div class="w-20 h-20 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-3xl mb-6 mx-auto shadow-inner border border-indigo-500/20 text-indigo-600">
                     <i class="${s.icon} animate-float"></i>
                 </div>
-                <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em] mb-3">Tutorial Paso ${stepIndex + 1} de ${steps.length}</h3>
+                <h3 class="text-[9px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.4em] mb-3">Tutorial Paso ${stepIndex + 1} de ${steps.length}</h3>
                 <h2 class="text-2xl font-black text-slate-800 dark:text-white mb-3 tracking-tighter uppercase tabular-nums">${s.title}</h2>
                 <p class="text-slate-500 dark:text-slate-400 mb-8 font-bold leading-relaxed text-xs">${s.msg}</p>
                 <div class="flex flex-col gap-2.5">
                     <button id="next-guide" class="w-full py-4.5 bg-indigo-600 text-white rounded-xl font-black shadow-xl shadow-indigo-500/20 hover:bg-indigo-500 active:scale-95 transition-all uppercase tracking-widest text-[10px]">
                         ${stepIndex === steps.length - 1 ? '¡Comenzar ahora!' : 'Siguiente Paso'}
                     </button>
-                    <button id="skip-guide" class="w-full py-2 text-slate-400 font-black text-[9px] uppercase tracking-widest hover:text-indigo-600 transition-colors">Saltar Tutorial</button>
+                    <button id="skip-guide" class="w-full py-2 text-slate-600 dark:text-slate-400 font-black text-[9px] uppercase tracking-widest hover:text-indigo-600 transition-colors">Saltar Tutorial</button>
                 </div>
                 <div class="flex justify-center gap-1.5 mt-8">
                     ${steps.map((_, i) => `<div class="h-1 rounded-full ${i === stepIndex ? 'bg-indigo-600 w-6' : 'bg-slate-200 dark:bg-white/10 w-2'} transition-all duration-500"></div>`).join('')}

@@ -44,26 +44,36 @@ window.promptReturnTerritorio = async (id, numero) => {
 
 export async function showUnifiedTerritoryHistory(territoryId, territoryNum) {
     try {
+        const modalContainer = document.getElementById('modal-container');
+        const previousHTML = modalContainer.innerHTML;
+
         const history = await getTerritoryHistory(territoryId);
         showModal(`
             <div class="flex flex-col h-full bg-slate-50 dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden shadow-2xl">
-                <header class="p-8 bg-amber-500 text-white flex items-center gap-6">
+                <header class="p-8 bg-amber-500 text-slate-800 dark:text-slate-100 flex items-center gap-6">
                     <div class="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-2xl shadow-lg shadow-amber-500/20"><i class="fas fa-history"></i></div>
                     <div><h3 class="text-xl font-black uppercase tracking-tight leading-none mb-1">Historial T-${territoryNum}</h3></div>
                 </header>
-                <div class="flex-1 p-8 overflow-y-auto custom-scrollbar space-y-4">
+                <div class="flex-1 min-w-0 p-8 overflow-y-auto custom-scrollbar space-y-4">
                     ${history.map(rec => `
                         <div class="modern-card p-6 border-slate-200 dark:border-white/5">
-                            <p class="text-[10px] text-slate-400 font-bold uppercase mb-2">${new Date(rec.fecha_entrega || rec.fecha).toLocaleDateString()}</p>
+                            <p class="text-[10px] text-slate-600 dark:text-slate-400 font-bold uppercase mb-2">${new Date(rec.fecha_entrega || rec.fecha).toLocaleDateString()}</p>
                             <p class="text-sm font-bold text-slate-800 dark:text-slate-200">"${rec.notas || rec.observaciones || 'Sin notas'}"</p>
                         </div>
                     `).join('')}
                 </div>
                 <footer class="p-8 bg-white dark:bg-black/40 border-t border-slate-100 dark:border-white/5">
-                    <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="w-full py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-primary transition-all">Cerrar</button>
+                    <button id="btn-back-history" class="w-full py-5 text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest hover:text-primary transition-all">Regresar</button>
                 </footer>
             </div>
-        `, null, 'max-w-2xl');
+        `, (modal) => {
+            const btn = modal.querySelector('#btn-back-history');
+            if (btn) {
+                btn.onclick = () => {
+                    modalContainer.innerHTML = previousHTML;
+                };
+            }
+        }, 'max-w-2xl');
     } catch (e) { showNotification("Error al cargar historial", "error"); }
 }
 
@@ -82,7 +92,7 @@ export async function handleRescueTerritory(id, num, newConductor, manzanasStr, 
                     <p class="text-[10px] text-slate-500 text-center mb-8 font-black uppercase italic">T-${num}: ${manzanas.length} Manzanas</p>
                     <div class="space-y-3 mb-8 px-2">
                         ${manzanas.map(m => `
-                            <label class="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 cursor-pointer">
+                            <label class="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-slate-700 cursor-pointer">
                                 <span class="text-sm font-bold">Manzana ${m}</span>
                                 <input type="checkbox" checked value="${m}" class="rescue-mz-check w-5 h-5 rounded-lg text-primary">
                             </label>
@@ -90,7 +100,7 @@ export async function handleRescueTerritory(id, num, newConductor, manzanasStr, 
                     </div>
                     <div class="flex flex-col gap-3">
                         <button id="rescue-confirm-partial" class="btn-pro bg-primary text-white py-5 rounded-[2rem]">Tomar Selección</button>
-                        <button id="rescue-cancel-partial" class="w-full py-4 text-[9px] font-black uppercase text-slate-400">Regresar</button>
+                        <button id="rescue-cancel-partial" class="w-full py-4 text-[9px] font-black uppercase text-slate-600 dark:text-slate-400">Regresar</button>
                     </div>
                 </div>
             `;
@@ -163,7 +173,7 @@ export async function openRevisitasModal(displayName) {
                 <div class="flex justify-between items-start mb-4">
                     <div>
                         <h4 class="text-lg font-black text-slate-800 dark:text-white tabular-nums">${formatPhoneNumber(r.telefono)}</h4>
-                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">${r.nombre || ''}</p>
+                        <p class="text-[9px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest mt-1">${r.nombre || ''}</p>
                     </div>
                     <div class="px-3 py-1 bg-amber-500/10 text-amber-500 rounded-lg text-[8px] font-black uppercase tracking-widest">Revisita</div>
                 </div>
@@ -172,8 +182,8 @@ export async function openRevisitasModal(displayName) {
                     <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary text-xs">
                         <i class="fas fa-user-edit"></i>
                     </div>
-                    <div class="flex-1">
-                        <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Responsable</p>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-[8px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-0.5">Responsable</p>
                         <p class="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase">${resolveName(r.asignado_a || r.publicador_asignado)}</p>
                     </div>
                 </div>
@@ -193,7 +203,7 @@ export async function openRevisitasModal(displayName) {
         `).join('')}
     </div>
     
-    <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="w-full py-4 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] hover:text-primary transition-colors">Cerrar Ventana</button>
+    <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="w-full py-4 text-[9px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.3em] hover:text-primary transition-colors">Cerrar Ventana</button>
 </div>
 `, null, 'max-w-2xl');
 
@@ -237,18 +247,18 @@ export async function openAddPublicadorModal() {
             <i class="fas fa-user-plus"></i>
         </div>
         <h3 class="text-2xl font-black text-slate-800 dark:text-white mb-2 uppercase tracking-tighter text-center">Nuevo Publicador</h3>
-        <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-8 text-center">Registrar nuevo integrante</p>
+        <p class="text-[10px] text-slate-600 dark:text-slate-400 font-black uppercase tracking-[0.2em] mb-8 text-center">Registrar nuevo integrante</p>
         
         <div class="space-y-6">
             <div class="space-y-2">
-                 <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Nombre Completo</label>
+                 <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-4">Nombre Completo</label>
                  <input type="text" id="new-pub-name-input" placeholder="Ej: Juan Pérez" class="w-full bg-slate-50 dark:bg-white/5 border border-transparent focus:border-primary/30 rounded-2xl px-6 py-4 text-slate-800 dark:text-white focus:bg-white dark:focus:bg-white/10 outline-none transition-all placeholder:text-slate-400 font-bold shadow-inner">
             </div>
         </div>
 
         <div class="flex gap-4 mt-10">
-            <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="flex-1 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-100 dark:bg-white/5 rounded-2xl hover:bg-slate-200 transition-colors">Cancelar</button>
-            <button id="confirm-add-pub" class="flex-1 py-5 text-[10px] font-black uppercase tracking-widest text-white bg-primary rounded-2xl shadow-xl shadow-primary/30 hover:bg-primary-dark transition-all hover:scale-105 active:scale-95">Agregar</button>
+            <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="flex-1 min-w-0 py-5 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-white/5 rounded-2xl hover:bg-slate-200 transition-colors">Cancelar</button>
+            <button id="confirm-add-pub" class="flex-1 min-w-0 py-5 text-[10px] font-black uppercase tracking-widest text-white bg-primary rounded-2xl shadow-xl shadow-primary/30 hover:bg-primary-dark transition-all hover:scale-105 active:scale-95">Agregar</button>
         </div>
     </div>
 `;
@@ -291,7 +301,7 @@ export function openGlobalMapModal(type, allTerritorios) {
     </div>
     <div>
         <h4 class="font-black text-slate-800 dark:text-white uppercase tracking-widest text-[11px]">Cartografía General</h4>
-        <p class="text-[9px] text-slate-400 font-black uppercase tracking-[0.2em] mt-0.5">Mapa Estático de la Congregación</p>
+        <p class="text-[9px] text-slate-600 dark:text-slate-400 font-black uppercase tracking-[0.2em] mt-0.5">Mapa Estático de la Congregación</p>
     </div>
 </div>
 <button onclick="document.getElementById('modal-container').classList.add('hidden'); document.getElementById('modal-container').classList.remove('flex');" class="w-12 h-12 bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white rounded-2xl transition-all flex items-center justify-center text-lg active:scale-95">
@@ -300,7 +310,7 @@ export function openGlobalMapModal(type, allTerritorios) {
 </div>
         </div>
 
-<div class="flex-1 overflow-hidden rounded-[2.5rem] bg-slate-100 dark:bg-black/40 border border-slate-200 dark:border-white/5 flex items-center justify-center relative touch-none shadow-inner" id="png-zoom-container">
+<div class="flex-1 min-w-0 overflow-hidden rounded-[2.5rem] bg-slate-100 dark:bg-black/40 border border-slate-200 dark:border-white/5 flex items-center justify-center relative touch-none shadow-inner" id="png-zoom-container">
 <img id="global-png-map" src="assets/mapa-general.jpg" class="max-w-full max-h-full object-contain transition-all duration-200 ease-out shadow-2xl origin-center" style="transform: scale(1) translate(0px, 0px);">
 
 <!-- Dynamic Controls -->

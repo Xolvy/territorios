@@ -5,21 +5,14 @@ import { ServiceCache, fetchCached } from './base-service.js';
 import { logReturn, logAssignment } from './history-service.js';
 import { saveAuditLog } from './audit-service.js';
 import { syncAssignmentToWeeklyProgram } from './program-service.js';
+import { normalizeName } from '../../modules/utils/helpers.js';
 
 const COL_TERRITORIOS = "territorios";
 const COL_BANCO_S13 = "banco_s13";
 
-// --- XOLVY SHIELD: GLOBAL AGGREGATIONS ---
-export const updateGlobalStats = async (transaction, field, diff) => {
-    const statsRef = doc(db, "configuracion", "stats_globales");
-    const snap = await transaction.get(statsRef);
-    if (snap.exists()) {
-        const val = (snap.data()[field] || 0) + diff;
-        transaction.update(statsRef, { [field]: Math.max(0, val) });
-    } else {
-        transaction.set(statsRef, { [field]: Math.max(0, diff) }, { merge: true });
-    }
-};
+// --- XOLVY SHIELD: GLOBAL AGGREGATIONS (Moved to internal transaction logic) ---
+// updateGlobalStats removed to prevent Firestore transaction violations (Reads before Writes)
+
 
 export const getGlobalStats = async () => {
     return fetchCached('stats_globales', async () => {
@@ -40,6 +33,9 @@ const normalizeTerritorioData = (id, data, latestAssignment = null) => {
     const estado = latestAssignment ? latestAssignment.estado : (data.status || data.estado || 'Disponible');
     const asignado_a = latestAssignment ? latestAssignment.conductor : (data.currentAssignee || data.asignado_a || null);
     const fecha_asignacion = latestAssignment ? latestAssignment.fecha_asignacion : (data.assignmentDate || data.fecha_asignacion || null);
+    const auxiliar = latestAssignment ? (latestAssignment.auxiliar || null) : (data.auxiliar || null);
+    const asignado_a_normalized = asignado_a ? normalizeName(asignado_a) : null;
+    const auxiliar_normalized = auxiliar ? normalizeName(auxiliar) : null;
 
     return {
         id,
@@ -51,6 +47,9 @@ const normalizeTerritorioData = (id, data, latestAssignment = null) => {
         imagen: data.imagen || null,
         estado: estado,
         asignado_a: asignado_a,
+        asignado_a_normalized: asignado_a_normalized,
+        auxiliar: auxiliar,
+        auxiliar_normalized: auxiliar_normalized,
         fecha_asignacion: fecha_asignacion,
         last_assignment: latestAssignment,
         // Alisos para nuevos nombres
@@ -243,6 +242,7 @@ export const assignTerritorio = async (id, conductorName, details = {}) => {
         const assignmentData = {
             territorio_id: String(tData.numero),
             conductor: conductorName,
+            conductor_normalized: normalizeName(conductorName),
             fecha_asignacion: details.fecha_asignacion || new Date().toISOString(),
             fecha_entrega: null,
             estado: 'Asignado',
@@ -252,9 +252,28 @@ export const assignTerritorio = async (id, conductorName, details = {}) => {
             weekId: details.weekId || null,
             timestamp: Timestamp.now()
         };
+        if (details.auxiliar) {
+            assignmentData.auxiliar = details.auxiliar;
+            assignmentData.auxiliar_normalized = normalizeName(details.auxiliar);
+        }
 
         const docRef = await addDoc(collection(db, COL_BANCO_S13), assignmentData);
         await saveAuditLog('ASIGNACION_MANUAL', { territorio: tData.numero, conductor: conductorName });
+
+        // Update Maestro
+        await updateDoc(tRef, {
+            estado: 'Asignado',
+            status: 'Asignado',
+            asignado_a: conductorName,
+            asignado_a_normalized: normalizeName(conductorName),
+            currentAssignee: conductorName,
+            fecha_asignacion: assignmentData.fecha_asignacion,
+            assignmentDate: assignmentData.fecha_asignacion,
+            auxiliar: details.auxiliar || null,
+            auxiliar_normalized: details.auxiliar ? normalizeName(details.auxiliar) : null,
+            turno: details.turno || 'Sin turno',
+            lastUpdated: serverTimestamp()
+        });
 
         ServiceCache.clear('territorios_combined');
         return docRef.id;
@@ -267,41 +286,96 @@ export const assignTerritorio = async (id, conductorName, details = {}) => {
 export const returnTerritorio = async (id, notes, customDate, status = 'Completado', fotos = null, conductorOverride = null) => {
     try {
         const dateToUse = customDate ? new Date(customDate).toISOString() : new Date().toISOString();
+        let tNumero = null;
         const conductorName = await runTransaction(db, async (transaction) => {
             const tRef = doc(db, COL_TERRITORIOS, id);
-            const tSnap = await transaction.get(tRef);
+            const statsRef = doc(db, "configuracion", "stats_globales");
+            
+            // --- FASE 1: LECTURAS (Strictly first) ---
+            const [tSnap, statsSnap] = await Promise.all([
+                transaction.get(tRef),
+                transaction.get(statsRef)
+            ]);
+
             if (!tSnap.exists()) return null;
             const tData = tSnap.data();
+            tNumero = String(tData.numero || '');
             const prevConductor = tData.asignado_a || null;
 
+            // --- FASE 2: ESCRITURAS (Strictly last) ---
+            // CAMBIO A: Estado siempre 'Disponible' para entregas normales (consistencia con returnTerritorioMultiple)
             transaction.update(tRef, {
                 asignado_a: null,
+                asignado_a_normalized: null,
                 fecha_asignacion: null,
                 auxiliar: null,
+                auxiliar_normalized: null,
                 lugar: null,
                 hora: null,
                 faceta: null,
                 turno: null,
                 ultima_fecha: dateToUse,
-                estado: status === 'Perdido' ? 'Extraviado' : (status === 'Disponible' ? 'Sin asignar' : 'Predicado'),
+                estado: status === 'Perdido' ? 'Extraviado' : 'Disponible',
                 prog_sync: null
             });
 
+            // Update Global Stats atomicity
             if (tData.estado === 'Asignado') {
-                await updateGlobalStats(transaction, 'territorios_disponibles', 1);
-                await updateGlobalStats(transaction, 'territorios_asignados', -1);
+                if (statsSnap.exists()) {
+                    const statsData = statsSnap.data();
+                    transaction.update(statsRef, {
+                        territorios_disponibles: (statsData.territorios_disponibles || 0) + 1,
+                        territorios_asignados: Math.max(0, (statsData.territorios_asignados || 0) - 1)
+                    });
+                } else {
+                    transaction.set(statsRef, {
+                        territorios_disponibles: 1,
+                        territorios_asignados: 0,
+                        total_territorios: 0
+                    }, { merge: true });
+                }
             }
             return prevConductor;
         });
 
+        // CAMBIO A: Cierre activo de banco_s13 — fuera de la transacción pero con manejo de error explícito
+        if (tNumero) {
+            try {
+                const bancoQuery = query(collection(db, COL_BANCO_S13),
+                    where('territorio_id', '==', tNumero),
+                    where('estado', '==', 'Asignado')
+                );
+                const bancoSnap = await getDocs(bancoQuery);
+                if (!bancoSnap.empty) {
+                    const batchS13 = writeBatch(db);
+                    bancoSnap.docs.forEach(d => batchS13.update(d.ref, {
+                        estado: status === 'Completado' ? 'Completado' : (status === 'Perdido' ? 'Extraviado' : 'Disponible'),
+                        fecha_entrega: dateToUse,
+                        timestamp_entrega: serverTimestamp()
+                    }));
+                    await batchS13.commit();
+                    console.log(`✅ [returnTerritorio] banco_s13 cerrado para territorio ${tNumero} (${bancoSnap.size} registro(s))`);
+                }
+            } catch (bancoError) {
+                // CAMBIO A: Error NO silencioso — se loguea con severidad y se propaga
+                console.error(`🔴 [returnTerritorio] FALLO CRÍTICO cerrando banco_s13 para territorio ${tNumero}:`, bancoError);
+                // No hacemos throw aquí para no romper el flujo principal, pero el error queda visible
+            }
+        }
+
         const finalConductor = conductorOverride || conductorName;
-        await logReturn(id, dateToUse, status, notes, fotos, finalConductor);
+        try {
+            await logReturn(id, dateToUse, status, notes, fotos, finalConductor);
+        } catch (logError) {
+            console.error(`🟡 [returnTerritorio] logReturn falló para territorio ${tNumero}:`, logError);
+        }
         ServiceCache.clear('territorios');
         ServiceCache.clear('territorios_combined');
         ServiceCache.clear('historial');
         ServiceCache.clear('stats_globales');
     } catch (e) {
         console.error("Atomic transaction failed in returnTerritorio:", e);
+        throw e; // Propagar el error para que el llamador sepa que la entrega falló
     }
 };
 
@@ -384,6 +458,7 @@ export const takeTerritoryPartial = async (originalId, userId, takenManzanas, re
         manzanas: takenManzanas.join(', '),
         estado: 'Asignado',
         asignado_a: userId,
+        asignado_a_normalized: normalizeName(userId),
         fecha_asignacion: new Date().toISOString(),
         origen_id: originalId
     };
@@ -402,6 +477,7 @@ export const takeTerritoryPartial = async (originalId, userId, takenManzanas, re
         await updateDoc(territoryRef, {
             estado: 'Asignado',
             asignado_a: userId,
+            asignado_a_normalized: normalizeName(userId),
             fecha_asignacion: new Date().toISOString(),
             is_incomplete: false
         });
@@ -413,6 +489,7 @@ export const takeTerritoryPartial = async (originalId, userId, takenManzanas, re
 export const assignFreeTerritory = async (id, userId, num, manzanasStr) => {
     await updateDoc(doc(db, COL_TERRITORIOS, id), {
         asignado_a: userId,
+        asignado_a_normalized: normalizeName(userId),
         fecha_asignacion: new Date().toISOString(),
         estado: 'Asignado',
         is_incomplete: false
@@ -421,30 +498,51 @@ export const assignFreeTerritory = async (id, userId, num, manzanasStr) => {
 };
 
 export const cancelarAsignacion = async (id) => {
+    // Obtener el número del territorio ANTES de limpiarlo para buscar en banco_s13
+    const tSnap = await getDoc(doc(db, COL_TERRITORIOS, id));
+    const tNum = tSnap.exists() ? String(tSnap.data().numero || '') : '';
 
     await updateDoc(doc(db, COL_TERRITORIOS, id), {
         asignado_a: null,
+        asignado_a_normalized: null,
+        auxiliar: null,
+        auxiliar_normalized: null,
         fecha_asignacion: null,
         estado: 'Disponible'
     });
+
+    // CAMBIO C: Apuntar a banco_s13 (colección autoritativa) en lugar de historial_territorios
     try {
-        const q = query(collection(db, "historial_territorios"), where("territorio_id", "==", id), where("estado", "==", "Asignado"), orderBy("timestamp", "desc"), limit(1));
-        const snapshot = await getDocs(q);
+        const bancoQuery = query(collection(db, COL_BANCO_S13), where("territorio_id", "==", tNum), where("estado", "==", "Asignado"), orderBy("timestamp", "desc"), limit(1));
+        const snapshot = await getDocs(bancoQuery);
         if (!snapshot.empty) {
-            await updateDoc(doc(db, "historial_territorios", snapshot.docs[0].id), {
+            await updateDoc(doc(db, COL_BANCO_S13, snapshot.docs[0].id), {
                 estado: 'Cancelado',
-                fecha_entrega: new Date().toISOString()
+                fecha_entrega: new Date().toISOString(),
+                timestamp_entrega: serverTimestamp()
             });
+            console.log(`✅ [cancelarAsignacion] banco_s13 cerrado para territorio ${tNum}`);
         }
     } catch (e) {
-        console.error("Error cancelling history:", e);
+        console.error("Error cancelling assignment in banco_s13:", e);
     }
+
+    ServiceCache.clear('territorios');
+    ServiceCache.clear('territorios_combined');
+    ServiceCache.clear('historial');
 };
 
 export const updateAssignmentData = async (id, updates = {}) => {
     const territoryUpdate = {};
     const fields = ['fecha_asignacion', 'fecha_salida', 'asignado_a', 'estado', 'auxiliar', 'faceta', 'hora', 'turno', 'lugar', 'campana', 'grupos'];
     fields.forEach(f => { if (updates[f] !== undefined) territoryUpdate[f] = updates[f]; });
+
+    if (updates.asignado_a !== undefined) {
+        territoryUpdate.asignado_a_normalized = updates.asignado_a ? normalizeName(updates.asignado_a) : null;
+    }
+    if (updates.auxiliar !== undefined) {
+        territoryUpdate.auxiliar_normalized = updates.auxiliar ? normalizeName(updates.auxiliar) : null;
+    }
 
     await updateDoc(doc(db, COL_TERRITORIOS, id), territoryUpdate);
 
@@ -457,6 +555,12 @@ export const updateAssignmentData = async (id, updates = {}) => {
                 const target = f === 'asignado_a' ? 'conductor' : f;
                 if (updates[f] !== undefined) histUpdate[target] = updates[f];
             });
+            if (updates.asignado_a !== undefined) {
+                histUpdate.conductor_normalized = updates.asignado_a ? normalizeName(updates.asignado_a) : null;
+            }
+            if (updates.auxiliar !== undefined) {
+                histUpdate.auxiliar_normalized = updates.auxiliar ? normalizeName(updates.auxiliar) : null;
+            }
             await updateDoc(doc(db, "historial_territorios", snapshot.docs[0].id), histUpdate);
         }
     } catch (e) {
@@ -555,12 +659,13 @@ export const returnTerritorioParcial = async (originalId, completedManzanas, rem
     const territorySnap = await getDoc(territoryRef);
     if (!territorySnap.exists()) throw new Error("Territorio no encontrado");
     const tData = territorySnap.data();
+    const tNum = String(tData.numero || '');
 
     if (completedManzanas && completedManzanas.length > 0) {
         await addDoc(collection(db, COL_TERRITORIOS), {
             ...tData,
             manzanas: completedManzanas.join(', '),
-            estado: 'Predicado',
+            estado: 'Disponible',
             asignado_a: null,
             fecha_asignacion: null,
             ultima_fecha: dateToUse,
@@ -572,12 +677,44 @@ export const returnTerritorioParcial = async (originalId, completedManzanas, rem
     if (unassignRemaining) {
         updateData.asignado_a = null;
         updateData.fecha_asignacion = null;
-        updateData.estado = 'Libre';
+        updateData.estado = 'Disponible';
     }
     updateData.is_incomplete = remainingManzanas.length > 0;
 
     await updateDoc(territoryRef, updateData);
-    await logReturn(originalId, dateToUse, 'Predicado Parcial', notes, fotos, conductorName);
+
+    // CAMBIO E: Cerrar el registro activo en banco_s13 para entregas parciales
+    if (unassignRemaining && tNum) {
+        try {
+            const bancoQ = query(collection(db, COL_BANCO_S13),
+                where('territorio_id', '==', tNum),
+                where('estado', '==', 'Asignado')
+            );
+            const bancoSnap = await getDocs(bancoQ);
+            if (!bancoSnap.empty) {
+                const batchS13 = writeBatch(db);
+                bancoSnap.docs.forEach(d => batchS13.update(d.ref, {
+                    estado: 'Completado Parcial',
+                    fecha_entrega: dateToUse,
+                    timestamp_entrega: serverTimestamp()
+                }));
+                await batchS13.commit();
+                console.log(`✅ [returnTerritorioParcial] banco_s13 cerrado para territorio ${tNum}`);
+            }
+        } catch (bancoError) {
+            console.error(`🔴 [returnTerritorioParcial] Error cerrando banco_s13 para ${tNum}:`, bancoError);
+        }
+    }
+
+    try {
+        await logReturn(originalId, dateToUse, 'Predicado Parcial', notes, fotos, conductorName);
+    } catch (logError) {
+        console.error(`🟡 [returnTerritorioParcial] logReturn falló para territorio ${tNum}:`, logError);
+    }
+
+    ServiceCache.clear('territorios');
+    ServiceCache.clear('territorios_combined');
+    ServiceCache.clear('historial');
 };
 
 export const assignTerritorioParcial = async (originalId, manzanasToAssign, conductorName, details = {}) => {
@@ -593,10 +730,12 @@ export const assignTerritorioParcial = async (originalId, manzanasToAssign, cond
 
         const assignmentData = {
             asignado_a: conductorName,
+            asignado_a_normalized: normalizeName(conductorName),
             fecha_asignacion: details.fecha_asignacion || new Date().toISOString(),
             fecha_salida: details.fecha_salida || null,
             estado: 'Asignado',
             auxiliar: details.auxiliar || null,
+            auxiliar_normalized: details.auxiliar ? normalizeName(details.auxiliar) : null,
             lugar: details.lugar || null,
             hora: details.hora || null,
             faceta: details.faceta || null,
@@ -633,10 +772,15 @@ export const transferTerritorio = async (id, newConductor, manzanasToTransfer, d
 
         const updateData = {
             asignado_a: newConductor,
+            asignado_a_normalized: normalizeName(newConductor),
             fecha_asignacion: new Date().toISOString(),
             estado: 'Asignado',
             manzanas: manzanasToTransfer || tData.manzanas
         };
+        if (details.auxiliar) {
+            updateData.auxiliar = details.auxiliar;
+            updateData.auxiliar_normalized = normalizeName(details.auxiliar);
+        }
 
         await updateDoc(territoryRef, updateData);
 

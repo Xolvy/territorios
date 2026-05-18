@@ -12,10 +12,14 @@ export const initializeWeeklyProgram = (container, userMods, allTerritorios, ter
     const weekRangeLabel = container.querySelector('#prog-week-range');
     const daySelector = container.querySelector('#prog-day-selector');
     const turnFilters = container.querySelector('#prog-turn-filters');
+    if (!turnFilters) {
+        console.warn('[WeeklyProgram] turnFilters no encontrado — abortando inicialización');
+        return;
+    }
 
     // Internal State
     const turnosArr = [
-        { id: 'manana', label: 'Mañ', full: 'Mañana', icon: 'fa-sun', bg: 'bg-orange-500', color: 'text-white' },
+        { id: 'manana', label: 'Mañ', full: 'Mañana', icon: 'fa-sun', bg: 'bg-orange-500', color: 'text-slate-800 dark:text-slate-100' },
         { id: 'tarde', label: 'Tar', full: 'Tarde', icon: 'fa-cloud-sun', bg: 'bg-indigo-500', color: 'text-white' },
         { id: 'noche', label: 'Noc', full: 'Noche', icon: 'fa-moon', bg: 'bg-slate-800', color: 'text-white' },
         { id: 'zoom', label: 'Zoo', full: 'Zoom', icon: 'fa-video', bg: 'bg-blue-500', color: 'text-white' }
@@ -39,8 +43,8 @@ export const initializeWeeklyProgram = (container, userMods, allTerritorios, ter
         if (programCardsContainer) {
             programCardsContainer.innerHTML = `
                 <div class="col-span-full py-20 flex flex-col items-center justify-center text-center space-y-4 opacity-30">
-                    <div class="w-16 h-16 border-4 border-slate-200 border-t-indigo-500 rounded-full animate-spin"></div>
-                    <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Cargando programación...</p>
+                    <div class="w-16 h-16 border-4 border-slate-200 dark:border-slate-700 border-t-indigo-500 rounded-full animate-spin"></div>
+                    <p class="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">Cargando programación...</p>
                 </div>`;
         } else {
             console.warn('[WeeklyProgram] programCardsContainer no encontrado');
@@ -95,7 +99,7 @@ export const initializeWeeklyProgram = (container, userMods, allTerritorios, ter
         turnFilters.innerHTML = turnosArr.map(t => {
             const isActive = activeTurns.has(t.id);
             return `
-                <button onclick="window.toggleProgTurn('${t.id}')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all text-[9px] font-black uppercase tracking-wider ${isActive ? t.bg + ' ' + t.color : 'text-slate-400 opacity-40 hover:opacity-100'}">
+                <button onclick="window.toggleProgTurn('${t.id}')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all text-[9px] font-black uppercase tracking-wider ${isActive ? t.bg + ' ' + t.color : 'text-slate-600 dark:text-slate-400 opacity-40 hover:opacity-100'}">
                     <i class="fas ${t.icon}"></i>
                     <span class="hidden sm:inline">${t.full}</span>
                     <span class="inline sm:hidden">${t.label}</span>

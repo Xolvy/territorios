@@ -19,12 +19,12 @@ export const renderDiffusionTab = async (container, config, appVersion, reloadTa
 
             <div class="space-y-8 relative z-10">
                 <div class="space-y-3">
-                    <label class="block text-[10px] font-black uppercase text-slate-400 mb-2 ml-1 tracking-[0.2em]">Contenido del Mensaje</label>
+                    <label class="block text-[10px] font-black uppercase text-slate-600 dark:text-slate-400 mb-2 ml-1 tracking-[0.2em]">Contenido del Mensaje</label>
                     <textarea id="diff-content" placeholder="Escribe el anuncio para todos los conductores..." class="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-[2rem] p-6 text-sm font-bold min-h-[140px] outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/30 transition-all shadow-inner dark:text-white">${diffusion?.content || ''}</textarea>
                 </div>
 
                 <div class="space-y-4">
-                    <label class="block text-[10px] font-black uppercase text-slate-400 mb-2 ml-1 tracking-[0.2em]">Prioridad del Anuncio</label>
+                    <label class="block text-[10px] font-black uppercase text-slate-600 dark:text-slate-400 mb-2 ml-1 tracking-[0.2em]">Prioridad del Anuncio</label>
                     <div class="grid grid-cols-2 gap-4 md:gap-6">
                         <button class="diff-type-btn p-4 md:p-6 rounded-2xl border-2 transition-all font-black uppercase tracking-widest flex flex-col items-center gap-3 ${diffusion?.type !== 'urgent' ? 'border-primary/50 bg-primary/10 text-primary shadow-lg shadow-primary/10' : 'border-slate-100 dark:border-white/5 opacity-40 hover:opacity-70'}" data-type="info">
                             <i class="fas fa-info-circle text-xl md:text-2xl"></i>
@@ -38,7 +38,7 @@ export const renderDiffusionTab = async (container, config, appVersion, reloadTa
                 </div>
 
                 <div class="pt-8 border-t border-slate-100 dark:border-white/5 flex gap-4">
-                    <button id="btn-save-diffusion" class="flex-1 bg-primary hover:bg-primary-light text-white font-black py-5 rounded-2xl shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.99] transition-all uppercase tracking-[0.25em] text-[11px] flex items-center justify-center gap-3">
+                    <button id="btn-save-diffusion" class="flex-1 min-w-0 bg-primary hover:bg-primary-light text-white font-black py-5 rounded-2xl shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.99] transition-all uppercase tracking-[0.25em] text-[11px] flex items-center justify-center gap-3">
                         <i class="fas fa-broadcast-tower"></i> Publicar Anuncio
                     </button>
                     ${diffusion?.active ? `

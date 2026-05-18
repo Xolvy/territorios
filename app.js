@@ -10,6 +10,53 @@ import { XolvyAdaptive } from './modules/utils/adaptive.js';
 import { VisualEngine } from './modules/utils/visual-engine.js';
 import { IdentityShield } from './data/services/identity-service.js';
 
+// --- MOBILE MENU LOGIC ---
+// Deterministic open/close (never toggle) to survive dashboard re-renders
+function closeMobileMenu() {
+    const s = document.getElementById('main-sidebar');
+    const o = document.getElementById('mobile-overlay');
+    if (s) s.classList.add('-translate-x-full');
+    if (o) o.classList.add('hidden');
+}
+function openMobileMenu() {
+    const s = document.getElementById('main-sidebar');
+    const o = document.getElementById('mobile-overlay');
+    if (s) s.classList.remove('-translate-x-full');
+    if (o) o.classList.remove('hidden');
+}
+window.closeMobileMenu = closeMobileMenu;
+
+export function initMobileMenu() {
+    const sidebar = document.getElementById('main-sidebar');
+    const toggleBtn = document.getElementById('menu-toggle-btn');
+    if (!sidebar || !toggleBtn) return;
+
+    // Hamburger → open
+    toggleBtn.onclick = (e) => { e.stopPropagation(); openMobileMenu(); };
+
+    // X button inside sidebar → close
+    const closeBtn = document.getElementById('btn-close-sidebar');
+    if (closeBtn) closeBtn.onclick = () => closeMobileMenu();
+
+    // Overlay backdrop → close
+    const overlay = document.getElementById('mobile-overlay');
+    if (overlay) overlay.onclick = () => closeMobileMenu();
+
+    // Nav items inside sidebar → close on mobile after selection
+    sidebar.querySelectorAll('.nav-item').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (window.innerWidth < 1024) closeMobileMenu();
+        });
+    });
+}
+window.initMobileMenu = initMobileMenu;
+
+
+// FASE 1: Clean dirty rescue URLs left by old update loops
+if (window.location.search.includes('rescue')) {
+    window.history.replaceState({}, document.title, window.location.pathname);
+}
+
 // Initialize Visual Ecosystem
 VisualEngine.applyGlobalEcosystem();
 
@@ -17,7 +64,7 @@ VisualEngine.applyGlobalEcosystem();
 moduleRegistry.init();
 
 // The version is injected by Vite at build time (Core Shell Version)
-const APP_VERSION = "3.0.6";
+const APP_VERSION = "3.1.0";
 window.XolvyApp = { user: null, version: APP_VERSION };
 
 // --- XOLVY MODULAR: MICRO-MODULE ENGINE ---
@@ -88,7 +135,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 1. App Loading State: Prevenir renderizado errático durante inicialización y checkeo asíncrono
     appContainer.innerHTML = `
-        <div class="flex flex-col items-center justify-center min-h-screen bg-slate-50 animate-fade-in" style="min-height: 100vh; min-height: 100dvh;">
+        <div class="flex flex-col items-center justify-center min-h-screen bg-slate-50 animate-fade-in w-full max-w-[100vw] px-4 box-border" style="min-height: 100vh; min-height: 100dvh;">
             <div class="w-10 h-10 border-4 border-indigo-500/10 border-t-indigo-500 rounded-full animate-spin mx-auto mb-6 shadow-sm"></div>
             <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 animate-pulse">Verificando credenciales...</p>
         </div>
@@ -111,52 +158,55 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     const handleAuthChange = async (user) => {
-        // [FastBoot] Zero-Bounce Guard: Blindaje total contra rebotes al login selector.
-        const tieneSesionLocal = !!localStorage.getItem('xolvy_session');
-        const tieneSesionAdmin = localStorage.getItem('demo_role') === 'Administrador';
+        // ═══════════════════════════════════════════════════════════
+        // XOLVY SECURITY v4.0 — ZERO TRUST AUTH HANDLER
+        // ═══════════════════════════════════════════════════════════
+        // POLICY: Role is NEVER determined by localStorage.
+        // Role is ALWAYS resolved from Firestore (getPermisosUsuario)
+        // or from the resolved IdentityShield profile.
+        // localStorage is used ONLY as a UX hint for conductor session
+        // persistence (xolvy_session), never for authorization.
+        // ═══════════════════════════════════════════════════════════
 
-        // CASE 1: No Authenticated User (Identity Shield Return Guard)
+        const tieneSesionLocal = !!localStorage.getItem('xolvy_session');
+
+        // CASE 1: No Authenticated User
         if (!user) {
             if (window._authSuspended || window._adminAuthSuspended) return;
 
-            // Protection for Conductors
+            // Protection for Conductors: If there's a local session hint, 
+            // trigger anonymous auth + Firestore validation (NOT localStorage role check)
             if (tieneSesionLocal) {
-                console.log("🚀 [FastBoot] Detectada sesión local de Conductor. Bloqueando redirección.");
-                if (!window.location.pathname.startsWith('/conductores') && !tieneSesionAdmin) {
-                    window.history.pushState({}, '', '/conductores');
+                console.log("🚀 [FastBoot] Detectada sesión local de Conductor. Iniciando validación...");
+
+                if (window.location.pathname.startsWith('/conductores')) {
                     const session = JSON.parse(localStorage.getItem('xolvy_session'));
-                    
-                    // Identity Shield: Resolve identity before rendering content
-                    IdentityShield.resolveAndBindIdentity(session?.nombre || session?.email || 'Usuario').then(async (identity) => {
-                        const render = await loadConductor();
-                        render(appContainer, identity.nombreCanonico, APP_VERSION, 'Conductor');
-                    });
-                }
-                return; // CRITICAL: Stop execution here
-            }
-
-            // Protection for Admins (Correction 1)
-            if (tieneSesionAdmin) {
-                console.log("🛡️ [AdminGuard] Detectada intención Admin. Esperando inicialización de Auth...");
-                setTimeout(() => {
-                    if (!auth.currentUser) {
-                        console.log("⚠️ [AdminGuard] Sesión Admin no confirmada tras delay. Redirigiendo a Login.");
-                        localStorage.removeItem('demo_role');
-                        window.history.replaceState({}, '', '/login');
-                        loadLogin().then(render => render(appContainer, APP_VERSION));
+                    // Identity Shield: Resolve identity via Firestore before rendering
+                    try {
+                        const identity = await IdentityShield.resolveAndBindIdentity(session?.nombre || session?.email || 'Usuario');
+                        if (identity.docId) {
+                            // Validated against Firestore — safe to render
+                            const render = await loadConductor();
+                            render(appContainer, identity.nombreCanonico, APP_VERSION, identity.rol || 'Conductor');
+                            return; // CRITICAL: Stop execution here
+                        }
+                    } catch (e) {
+                        console.warn("🛡️ [FastBoot] Identity validation failed, redirecting to login:", e);
                     }
-                }, 1200); // 1.2s delay for safer initialization
-                return; // CRITICAL: Stop execution here
+                }
+                // If we reach here, the local session is invalid — purge and show login
+                localStorage.removeItem('xolvy_session');
+                localStorage.removeItem('selected_conductor_name');
             }
 
-            // Standard Login Fallback
+            // Standard Login Fallback (no more admin guard via localStorage)
             window.XolvyApp.user = null;
             const render = await loadLogin();
             render(appContainer, APP_VERSION);
             return; // CRITICAL: Stop execution here
         }
 
-        // CASE 2: User exists
+        // CASE 2: User exists (Firebase Auth confirmed)
         if (window._authSuspended || window._adminAuthSuspended) return;
 
         try {
@@ -164,44 +214,60 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             console.log("💎 [Auth] Active User Session:", user.email);
             
-            // 2.1 Anonymous Sessions (Conductor Demo)
+            // 2.1 Anonymous Sessions (Conductor)
             if (user.isAnonymous) {
                 if (window._fastBootRendered) return;
-                const storedRole = localStorage.getItem('demo_role');
                 const storedName = localStorage.getItem('selected_conductor_name');
-                if (storedRole === 'Conductor') {
+                const session = localStorage.getItem('xolvy_session');
+
+                if (storedName || session) {
+                    const nameToResolve = storedName || (session ? JSON.parse(session)?.nombre : null);
+                    if (!nameToResolve) {
+                        console.warn("⚠️ [Auth] Sesión anónima sin identificador válido. Cerrando.");
+                        await auth.signOut();
+                        return;
+                    }
+
                     if (!contextPath.startsWith('/conductores')) window.history.replaceState({}, '', '/conductores');
                     
-                    // Identity Shield: Bind current UID with found profile
-                    await IdentityShield.resolveAndBindIdentity(storedName || 'Conductor');
+                    // Identity Shield: Validate against Firestore — the ONLY source of truth
+                    const identity = await IdentityShield.resolveAndBindIdentity(nameToResolve);
                     
+                    if (!identity.docId) {
+                        // User not found in Firestore — reject
+                        console.warn("⚠️ [Auth] Conductor no encontrado en Firestore. Cerrando sesión.");
+                        localStorage.removeItem('xolvy_session');
+                        localStorage.removeItem('selected_conductor_name');
+                        await auth.signOut();
+                        return;
+                    }
+
                     const render = await loadConductor();
-                    render(appContainer, window.XolvyApp.identity.nombreCanonico, APP_VERSION, storedRole);
+                    render(appContainer, identity.nombreCanonico, APP_VERSION, identity.rol || 'Conductor');
                     return;
                 } else {
-                    // Anonymous but no conductor role? Something is wrong, back to login.
+                    // Anonymous but no conductor session? Something is wrong, back to login.
                     console.warn("⚠️ [Auth] Sesión anónima sin rol de Conductor. Redirigiendo.");
                     await auth.signOut();
                     return;
                 }
             }
 
-            // 2.2 Global Authorization (Firestore Gated)
-            // SIEMPRE verificar en Firestore — nunca confiar solo en el localStorage para Admin
+            // 2.2 Global Authorization (Firestore Gated — ZERO TRUST)
+            // ALWAYS verify role in Firestore — NEVER trust localStorage
             const permisos = await getPermisosUsuario(user.email);
             let role = permisos?.role; 
 
             // Integración de Identity Shield para Admins/Usuarios Autenticados
             try {
                 const IdentityService = await import('./data/services/identity-service.js');
-                // IMPORTANTE: Resolvemos preferentemente por el nombre en los permisos, ya que es el enlace con publicadores
                 const identitySearchKey = permisos?.nombre || user.email;
                 window.XolvyApp.identity = await IdentityService.IdentityShield.resolveAndBindIdentity(identitySearchKey);
             } catch (identityError) {
                 console.warn("[Identity] Shield fallback activo", identityError);
             }
 
-            // Actualizar estado global
+            // Actualizar estado global (from Firestore, not localStorage)
             window.XolvyApp.user = {
                 uid: user.uid,
                 email: user.email,
@@ -221,9 +287,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            // 2.3 Dashboard Routing
+            // 2.3 Dashboard Routing (role from Firestore ONLY)
             const isAdmin = (role === 'Administrador' || role === 'SuperAdmin');
             const path = window.location.pathname;
+
+            // FASE 1: Redirect duro y limpio en raíz o login
+            if (path === '/' || path === '/login' || path.includes('index.html')) {
+                if (isAdmin) {
+                    window.location.href = '/administrador';
+                } else {
+                    window.location.href = '/conductores';
+                }
+                return;
+            }
 
             if (isAdmin && path.startsWith('/conductores')) {
                 // Modo Simulacro: Si un administrador navega a /conductores, se le permite.
@@ -233,7 +309,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (!storedName && window.XolvyApp?.identity?.nombreCanonico) {
                     storedName = window.XolvyApp.identity.nombreCanonico;
                     localStorage.setItem('selected_conductor_name', storedName);
-                    localStorage.setItem('demo_role', 'Conductor');
                 }
 
                 if (!storedName) {
@@ -245,10 +320,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const render = await loadConductor();
                 render(appContainer, storedName, APP_VERSION, role);
             } else if (isAdmin) {
-                // CAMBIO 2: Limpiar sesión de Conductor al detectar Admin
+                // Admin route: Clear conductor session artifacts
                 localStorage.removeItem('xolvy_session');
                 localStorage.removeItem('selected_conductor_name');
-                localStorage.setItem('demo_role', 'Administrador');
 
                 const subPath = path.split('/')[2] || 'dashboard';
                 const urlToTab = { 'territorios': 'casa-en-casa', 'predicacion': 'predicacion', 'telefonos': 'telefonos', 'config': 'config' };
@@ -290,9 +364,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         const conductorSubModules = ['availability', 'recursos', 'maps_explorer', 'rescue', 'phone_module', 'onboarding', 'weekly_program', 'program_views'];
         const adminSubModules = ['territories_view', 'public_view', 'phones_view', 'rules_view', 'analytics_view', 'reports_view'];
 
-        // Determine if we should re-render
+        // Determine if we should re-render (use path + XolvyApp.user.role, NOT localStorage)
         const isConductorView = path.startsWith('/conductores');
-        const isAdminView = !isConductorView && (localStorage.getItem('demo_role') === 'Administrador' || localStorage.getItem('demo_role') === 'SuperAdmin');
+        const currentRole = window.XolvyApp?.user?.role;
+        const isAdminView = !isConductorView && (currentRole === 'Administrador' || currentRole === 'SuperAdmin');
 
         const shouldRefreshConductor = isConductorView && (moduleName === 'conductor' || conductorSubModules.includes(moduleName));
         const shouldRefreshAdmin = isAdminView && (moduleName === 'admin' || adminSubModules.includes(moduleName));
@@ -376,19 +451,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.addEventListener('demo-login', async (e) => {
         const { email, role } = e.detail;
         
-        localStorage.setItem('demo_role', role);
+        // SECURITY v4.0: We store conductor name for session persistence ONLY.
+        // No 'demo_role' is stored — role comes from Firestore exclusively.
         localStorage.setItem('selected_conductor_name', email);
         
         // Identity Shield: Secure identity before rendering heavy modules
         const identity = await IdentityShield.resolveAndBindIdentity(email);
         
+        // Validate identity was found in Firestore
+        if (!identity.docId) {
+            console.error("🛡️ [Security] Conductor identity not found in Firestore. Blocking access.");
+            const render = await loadLogin();
+            render(appContainer, APP_VERSION);
+            return;
+        }
+        
         // Zero-Latency Execution: Enrutamiento en milisegundos ignorando latencia de red
         window._fastBootRendered = true;
-        window.XolvyApp.user = { nombre: identity.nombreCanonico, email: email, role: 'Conductor' };
+        window.XolvyApp.user = { nombre: identity.nombreCanonico, email: email, role: identity.rol || 'Conductor' };
         if (!window.location.pathname.startsWith('/conductores')) window.history.pushState({}, '', '/conductores');
         
         const render = await loadConductor();
-        render(appContainer, identity.nombreCanonico, APP_VERSION, role);
+        render(appContainer, identity.nombreCanonico, APP_VERSION, identity.rol || role);
     });
 
     // CAMBIO 3: Listener Delegado Global para Logout de Conductor
@@ -398,7 +482,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.log("👋 [Logout] Cerrando sesión de Conductor...");
             localStorage.removeItem('xolvy_session');
             localStorage.removeItem('selected_conductor_name');
-            localStorage.removeItem('demo_role');
             
             // Limpiar la URL y recargar para volver al Login puro
             window.history.replaceState({}, '', '/conductores'); 

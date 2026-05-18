@@ -36,7 +36,7 @@ export const renderReportsTab = async (container, config, appVersion) => {
                 const isActive = (btn.id === 'main-btn-historial' && _activeMainTab === 'historial') ||
                     (btn.id === 'main-btn-reportes' && _activeMainTab === 'reportes') ||
                     (btn.id === 'main-btn-telefonia' && _activeMainTab === 'telefonia');
-                btn.className = `px-10 py-4 rounded-[1.8rem] text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 ${isActive ? 'bg-slate-900 dark:bg-white/10 text-white shadow-xl shadow-slate-900/20 md:scale-105' : 'text-slate-400 hover:text-slate-600 dark:hover:text-white'}`;
+                btn.className = `px-10 py-4 rounded-[1.8rem] text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 ${isActive ? 'bg-slate-900 dark:bg-white/10 text-white shadow-xl shadow-slate-900/20 md:scale-105' : 'text-slate-600 dark:text-slate-400 hover:text-slate-600 dark:hover:text-white'}`;
             });
         };
 
@@ -97,7 +97,7 @@ export const renderReportsTab = async (container, config, appVersion) => {
 
             target.querySelectorAll('nav button').forEach(btn => {
                 const isActive = (btn.id === 'sub-btn-s13' && type === 's13') || (btn.id === 'sub-btn-s12' && type === 's12');
-                btn.className = `px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${isActive ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`;
+                btn.className = `px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${isActive ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-600 dark:text-slate-400 hover:text-slate-600'}`;
             });
 
             if (type === 's13') renderS13Print(printArea, history);
@@ -122,17 +122,17 @@ export const renderReportsTab = async (container, config, appVersion) => {
                         </div>
                         <div>
                             <h4 class="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Reporte S-13 de Actividad</h4>
-                            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em] mt-1">Registro Oficial de Territorios</p>
+                            <p class="text-[10px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-[0.3em] mt-1">Registro Oficial de Territorios</p>
                         </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div class="space-y-3">
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Desde</label>
+                            <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Desde</label>
                             <input type="date" id="print-s13-from" value="${new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0]}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-emerald-500 transition-all shadow-inner">
                         </div>
                         <div class="space-y-3">
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Hasta</label>
+                            <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Hasta</label>
                             <input type="date" id="print-s13-to" value="${new Date().toISOString().split('T')[0]}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-emerald-500 transition-all shadow-inner">
                         </div>
                     </div>
@@ -215,7 +215,7 @@ export const renderReportsTab = async (container, config, appVersion) => {
                             <i class="fas fa-check-double"></i>
                         </div>
                         <div>
-                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Territorios Seleccionados</p>
+                            <p class="text-[9px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">Territorios Seleccionados</p>
                             <p id="sel-count-print" class="text-xl font-black text-slate-800 dark:text-white">0 / ${terrs.length}</p>
                         </div>
                     </div>
@@ -279,33 +279,33 @@ export const renderReportsTab = async (container, config, appVersion) => {
                 </header>
 
                 <!-- Preview scrollable area -->
-                <div class="flex-1 overflow-y-auto p-6 md:p-8 bg-slate-100 dark:bg-black/30" id="s12-preview-scroll">
+                <div class="flex-1 min-w-0 overflow-y-auto p-6 md:p-8 bg-slate-100 dark:bg-black/30" id="s12-preview-scroll">
                     <div class="text-center mb-6">
-                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Así se verán sus tarjetas al imprimir</p>
+                        <p class="text-[9px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.3em]">Así se verán sus tarjetas al imprimir</p>
                     </div>
                     <div class="grid ${previewCols} gap-4" id="s12-preview-cards">
                         ${selected.map(t => {
                             const mapImg = t.imagen || t.imagen_url || t.mapa_url || '';
                             return `
-                            <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden flex flex-col">
+                            <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col">
                                 <!-- Card header -->
-                                <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                                <div class="px-4 py-3 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-slate-50 dark:bg-slate-800">
                                     <div class="flex items-center gap-3">
                                         <div class="w-8 h-8 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-600 font-black text-sm">${t.numero}</div>
                                         <div>
                                             <p class="text-[10px] font-black text-slate-800 uppercase tracking-tight leading-none">${t.localidad || t.nombre || '—'}</p>
-                                            <p class="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">${t.manzanas ? t.manzanas.split(',').filter(Boolean).length + ' manzanas' : 'S-12'}</p>
+                                            <p class="text-[8px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest mt-0.5">${t.manzanas ? t.manzanas.split(',').filter(Boolean).length + ' manzanas' : 'S-12'}</p>
                                         </div>
                                     </div>
                                     <span class="text-[8px] font-black px-2 py-0.5 rounded-full ${t.estado === 'Asignado' ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600'} uppercase">${t.estado || 'Disponible'}</span>
                                 </div>
                                 <!-- Map area -->
-                                <div class="relative flex-1 bg-white flex items-center justify-center" style="min-height:140px; max-height:${layout === 1 ? '260px' : '160px'}">
+                                <div class="relative flex-1 min-w-0 bg-white dark:bg-slate-900 flex items-center justify-center" style="min-height:140px; max-height:${layout === 1 ? '260px' : '160px'}">
                                     ${mapImg
                                         ? `<img src="${mapImg}" alt="Mapa T-${t.numero}" class="w-full h-full object-contain p-2" style="background:#fff;">`
                                         : `<div class="flex flex-col items-center gap-2 opacity-20 py-6">
-                                               <i class="fas fa-map text-3xl text-slate-400"></i>
-                                               <p class="text-[8px] font-black uppercase tracking-widest text-slate-400">Sin mapa</p>
+                                               <i class="fas fa-map text-3xl text-slate-600 dark:text-slate-400"></i>
+                                               <p class="text-[8px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">Sin mapa</p>
                                            </div>`
                                     }
                                 </div>
@@ -316,10 +316,10 @@ export const renderReportsTab = async (container, config, appVersion) => {
 
                 <!-- Footer actions -->
                 <footer class="shrink-0 p-5 md:p-6 border-t border-slate-100 dark:border-white/5 bg-white dark:bg-black/40 flex flex-wrap gap-3">
-                    <button onclick="this.closest('.fixed').classList.add('hidden')" class="flex-1 py-4 bg-slate-100 dark:bg-white/5 text-slate-500 font-black rounded-xl text-[9px] uppercase tracking-widest transition-all active:scale-95">
+                    <button onclick="this.closest('.fixed').classList.add('hidden')" class="flex-1 min-w-0 py-4 bg-slate-100 dark:bg-white/5 text-slate-500 font-black rounded-xl text-[9px] uppercase tracking-widest transition-all active:scale-95">
                         <i class="fas fa-arrow-left mr-2"></i> Atrás
                     </button>
-                    <button id="btn-print-s12-direct" class="flex-1 py-4 bg-slate-800 hover:bg-slate-700 text-white font-black rounded-xl text-[9px] uppercase tracking-widest transition-all active:scale-95 shadow-lg">
+                    <button id="btn-print-s12-direct" class="flex-1 min-w-0 py-4 bg-slate-800 hover:bg-slate-700 text-white font-black rounded-xl text-[9px] uppercase tracking-widest transition-all active:scale-95 shadow-lg">
                         <i class="fas fa-print mr-2"></i> Imprimir
                     </button>
                     <button id="btn-final-s12" class="flex-[1.5] py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-xl text-[9px] uppercase tracking-widest shadow-xl shadow-indigo-600/20 transition-all active:scale-95">
@@ -424,7 +424,7 @@ export const renderReportsTab = async (container, config, appVersion) => {
                             </div>
                             <div>
                                 <h3 class="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Reportes de Telefonía</h3>
-                                <p class="text-[9px] text-slate-400 font-bold uppercase tracking-[0.3em] mt-1">Sesiones agrupadas por semana</p>
+                                <p class="text-[9px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-[0.3em] mt-1">Sesiones agrupadas por semana</p>
                             </div>
                         </div>
                     </div>
@@ -445,12 +445,12 @@ export const renderReportsTab = async (container, config, appVersion) => {
                                     <div class="modern-card p-6 bg-white dark:bg-white/[0.03] border-slate-100 dark:border-white/5 hover:border-primary/30 transition-all group shadow-sm">
                                         <div class="flex flex-col md:flex-row justify-between gap-6">
                                             <div class="flex items-start gap-4">
-                                                <div class="w-12 h-12 bg-slate-50 dark:bg-white/5 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-primary/10 group-hover:text-primary transition-all shrink-0">
+                                                <div class="w-12 h-12 bg-slate-50 dark:bg-white/5 rounded-xl flex items-center justify-center text-slate-600 dark:text-slate-400 group-hover:bg-primary/10 group-hover:text-primary transition-all shrink-0">
                                                     <i class="fas fa-user-circle text-xl"></i>
                                                 </div>
                                                 <div>
                                                     <h4 class="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">${s.conductor_id || 'Conductor Desconocido'}</h4>
-                                                    <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">
+                                                    <p class="text-[9px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-widest mt-1">
                                                         ${date.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} • 
                                                         ${date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
                                                     </p>
@@ -464,7 +464,7 @@ export const renderReportsTab = async (container, config, appVersion) => {
                                                 <button onclick="window.viewSessionDetail('${s.id}')" class="px-5 py-2 bg-slate-900 dark:bg-white/10 text-white rounded-lg text-[9px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg shadow-black/10">
                                                     Ver Detalles
                                                 </button>
-                                                <button onclick="window.deleteTelefoniaReport('${s.id}')" class="w-9 h-9 bg-slate-100 dark:bg-white/5 hover:bg-rose-500 hover:text-white text-slate-400 rounded-lg transition-all flex items-center justify-center border border-slate-200 dark:border-white/10" title="Eliminar Reporte">
+                                                <button onclick="window.deleteTelefoniaReport('${s.id}')" class="w-9 h-9 bg-slate-100 dark:bg-white/5 hover:bg-rose-500 hover:text-white text-slate-600 dark:text-slate-400 rounded-lg transition-all flex items-center justify-center border border-slate-200 dark:border-white/10" title="Eliminar Reporte">
                                                     <i class="fas fa-trash-alt text-[10px]"></i>
                                                 </button>
                                             </div>
@@ -479,7 +479,7 @@ export const renderReportsTab = async (container, config, appVersion) => {
                                     <div class="space-y-4">
                                         <div class="flex items-center gap-4 px-4 font-black">
                                             <span class="text-[10px] text-primary uppercase tracking-[0.3em]">Esta Semana</span>
-                                            <div class="h-px bg-primary/20 flex-1"></div>
+                                            <div class="h-px bg-primary/20 flex-1 min-w-0"></div>
                                         </div>
                                         ${renderList(thisWeek)}
                                     </div>
@@ -487,8 +487,8 @@ export const renderReportsTab = async (container, config, appVersion) => {
                                 ${older.length > 0 ? `
                                     <div class="space-y-4">
                                         <div class="flex items-center gap-4 px-4 font-black">
-                                            <span class="text-[10px] text-slate-400 uppercase tracking-[0.3em]">Anteriores</span>
-                                            <div class="h-px bg-slate-200 dark:bg-white/10 flex-1"></div>
+                                            <span class="text-[10px] text-slate-600 dark:text-slate-400 uppercase tracking-[0.3em]">Anteriores</span>
+                                            <div class="h-px bg-slate-200 dark:bg-white/10 flex-1 min-w-0"></div>
                                         </div>
                                         ${renderList(older)}
                                     </div>
@@ -507,7 +507,7 @@ export const renderReportsTab = async (container, config, appVersion) => {
                     .filter(([key, val]) => val > 0 && key)
                     .map(([key, val]) => `
                         <div class="p-5 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/5 flex flex-col items-center text-center">
-                            <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">${key}</p>
+                            <p class="text-[8px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-1">${key}</p>
                             <p class="text-2xl font-black text-slate-800 dark:text-white tabular-nums">${val}</p>
                         </div>
                     `).join('');
@@ -518,7 +518,7 @@ export const renderReportsTab = async (container, config, appVersion) => {
                             <div class="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-3xl text-primary shadow-inner">
                                 <i class="fas fa-clipboard-check"></i>
                             </div>
-                            <div class="flex-1">
+                            <div class="flex-1 min-w-0">
                                 <h3 class="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Resumen de Sesión</h3>
                                 <p class="text-[8px] text-primary font-black uppercase tracking-[0.3em] mt-1">${s.conductor_id}</p>
                             </div>
@@ -530,7 +530,7 @@ export const renderReportsTab = async (container, config, appVersion) => {
 
                         ${s.notas ? `
                             <div class="space-y-3">
-                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Notas del Conductor</p>
+                                <p class="text-[9px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1">Notas del Conductor</p>
                                 <div class="p-6 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10">
                                     <p class="text-xs text-slate-600 dark:text-gray-300 leading-relaxed font-medium">"${s.notas}"</p>
                                 </div>
@@ -553,7 +553,7 @@ export const renderReportsTab = async (container, config, appVersion) => {
                         <h2 class="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Eliminar Reporte</h2>
                         <p class="text-slate-500 dark:text-slate-400 font-bold text-sm max-w-sm mx-auto">¿Estás seguro de que deseas eliminar este reporte de sesión permanentemente?</p>
                         <div class="flex gap-4">
-                            <button id="cancel-del-tel" class="flex-1 py-4 bg-slate-100 dark:bg-white/5 text-slate-500 rounded-2xl font-black uppercase tracking-widest text-[10px] active:scale-95 transition-all">Cancelar</button>
+                            <button id="cancel-del-tel" class="flex-1 min-w-0 py-4 bg-slate-100 dark:bg-white/5 text-slate-500 rounded-2xl font-black uppercase tracking-widest text-[10px] active:scale-95 transition-all">Cancelar</button>
                             <button id="confirm-del-tel" class="flex-[1.5] py-4 bg-rose-500 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] active:scale-95 transition-all shadow-xl shadow-rose-500/20">Eliminar Permanente</button>
                         </div>
                     </div>

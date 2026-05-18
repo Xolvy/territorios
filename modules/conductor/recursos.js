@@ -40,9 +40,9 @@ export const renderRecursosSection = (container) => {
             <div class="w-14 h-14 ${r.bg} ${r.color} rounded-2xl flex items-center justify-center text-xl shadow-inner group-hover:scale-110 transition-transform shrink-0">
                 <i class="fas ${r.icon}"></i>
             </div>
-            <div class="flex-1">
+            <div class="flex-1 min-w-0">
                 <h4 class="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-tight group-hover:text-primary transition-colors line-clamp-2">${r.title}</h4>
-                <p class="text-[8px] text-slate-400 font-bold uppercase tracking-widest mt-1 opacity-80">Recurso de Ayuda</p>
+                <p class="text-[8px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-widest mt-1 opacity-80">Recurso de Ayuda</p>
             </div>
         </div>
     `).join('');
@@ -69,7 +69,7 @@ export const renderRecursosSection = (container) => {
                         </div>
                     </div>
                 </header>
-                <div class="flex-1 overflow-y-auto custom-scrollbar p-8 bg-white dark:bg-black/20">
+                <div class="flex-1 min-w-0 overflow-y-auto custom-scrollbar p-8 bg-white dark:bg-black/20">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         ${data.length === 0 ? `
                             <div class="col-span-full py-20 text-center opacity-30">
@@ -85,11 +85,11 @@ export const renderRecursosSection = (container) => {
                 `<i class="fas fa-file-pdf"></i>`
             }
                                     </div>
-                                    <div class="flex-1">
+                                    <div class="flex-1 min-w-0">
                                         <h4 class="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight">${r.titulo}</h4>
-                                        <p class="text-[9px] text-slate-400 font-bold uppercase mt-1 line-clamp-1">${r.descripcion || 'Click para abrir recurso'}</p>
+                                        <p class="text-[9px] text-slate-600 dark:text-slate-400 font-bold uppercase mt-1 line-clamp-1">${r.descripcion || 'Click para abrir recurso'}</p>
                                     </div>
-                                    <i class="fas fa-chevron-right text-slate-300 text-xs"></i>
+                                    <i class="fas fa-chevron-right text-slate-700 dark:text-slate-300 text-xs"></i>
                                 </div>
                             </div>
                         `).join('')}
@@ -124,12 +124,12 @@ export const renderRecursosSection = (container) => {
                         </div>
                     </div>
                 </header>
-                <div class="flex-1 overflow-y-auto custom-scrollbar p-8 space-y-4 bg-white dark:bg-black/20">
+                <div class="flex-1 min-w-0 overflow-y-auto custom-scrollbar p-8 space-y-4 bg-white dark:bg-black/20">
                     ${faqs.map(f => `
                         <details class="modern-card p-6 bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/5 group">
                             <summary class="list-none cursor-pointer flex justify-between items-center outline-none">
                                 <h4 class="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight pr-6">${f.q}</h4>
-                                <i class="fas fa-chevron-down text-slate-300 group-open:rotate-180 transition-transform"></i>
+                                <i class="fas fa-chevron-down text-slate-700 dark:text-slate-300 group-open:rotate-180 transition-transform"></i>
                             </summary>
                             <div class="mt-4 pt-4 border-t border-slate-200 dark:border-white/5">
                                 <p class="text-[13px] text-slate-600 dark:text-slate-400 leading-relaxed font-bold">${f.a}</p>
@@ -158,7 +158,7 @@ export const renderRecursosSection = (container) => {
                         </div>
                     </div>
                 </header>
-                <div class="flex-1 overflow-y-auto custom-scrollbar p-8 space-y-8 bg-white dark:bg-black/20">
+                <div class="flex-1 min-w-0 overflow-y-auto custom-scrollbar p-8 space-y-8 bg-white dark:bg-black/20">
                     <div class="space-y-6">
                         <div class="flex gap-4">
                             <div class="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0 font-black">1</div>

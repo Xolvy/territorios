@@ -1,6 +1,7 @@
 import { db } from '../../firebase-config.js';
 import { collection, query, where, getDocs, doc, writeBatch, deleteDoc, setDoc, Timestamp } from "firebase/firestore";
 import { ServiceCache } from './base-service.js';
+import { normalizeName } from '../../modules/utils/helpers.js';
 
 export const runSystemDiagnosticsAndRepair = async (onProgress) => {
     const report = {
@@ -18,16 +19,57 @@ export const runSystemDiagnosticsAndRepair = async (onProgress) => {
         let updates = {};
         let dirty = false;
 
+        // Propagación de identidad canónica en Maestro
+        if (t.asignado_a) {
+            const normalized = normalizeName(t.asignado_a);
+            if (t.asignado_a_normalized !== normalized) {
+                updates.asignado_a_normalized = normalized;
+                dirty = true;
+            }
+        } else {
+            if (t.asignado_a_normalized !== null && t.asignado_a_normalized !== undefined) {
+                updates.asignado_a_normalized = null;
+                dirty = true;
+            }
+        }
+
+        if (t.auxiliar) {
+            const normalized = normalizeName(t.auxiliar);
+            if (t.auxiliar_normalized !== normalized) {
+                updates.auxiliar_normalized = normalized;
+                dirty = true;
+            }
+        } else {
+            if (t.auxiliar_normalized !== null && t.auxiliar_normalized !== undefined) {
+                updates.auxiliar_normalized = null;
+                dirty = true;
+            }
+        }
+
+        // Espejo de compatibilidad robusta
+        if (t.estado && t.status !== t.estado) {
+            updates.status = t.estado;
+            dirty = true;
+        }
+        if (t.asignado_a && t.currentAssignee !== t.asignado_a) {
+            updates.currentAssignee = t.asignado_a;
+            dirty = true;
+        }
+        if (t.fecha_asignacion && t.assignmentDate !== t.fecha_asignacion) {
+            updates.assignmentDate = t.fecha_asignacion;
+            dirty = true;
+        }
+
         if (t.estado === 'Asignado' && !t.asignado_a) {
-            updates.estado = 'Disponible'; updates.fecha_asignacion = null; updates.turno = null; dirty = true;
+            updates.estado = 'Disponible'; updates.status = 'Disponible'; updates.asignado_a = null; updates.asignado_a_normalized = null; updates.currentAssignee = null; updates.fecha_asignacion = null; updates.assignmentDate = null; updates.turno = null; dirty = true;
             report.details.push(`Territorio ${t.numero}: Corregido estado 'Asignado' sin conductor -> Disponible`);
         }
         if (t.estado === 'Disponible' && (t.asignado_a || t.fecha_asignacion)) {
-            updates.asignado_a = null; updates.fecha_asignacion = null; updates.turno = null; dirty = true;
+            updates.asignado_a = null; updates.asignado_a_normalized = null; updates.currentAssignee = null; updates.fecha_asignacion = null; updates.assignmentDate = null; updates.turno = null; updates.status = 'Disponible'; dirty = true;
             report.details.push(`Territorio ${t.numero}: Limpiado conductor en territorio 'Disponible'`);
         }
         if (!['Disponible', 'Asignado', 'Extraviado', 'Predicado', 'Pendiente'].includes(t.estado)) {
-            updates.estado = 'Disponible'; dirty = true;
+            updates.estado = 'Disponible'; updates.status = 'Disponible'; dirty = true;
             report.details.push(`Territorio ${t.numero}: Estado inválido '${t.estado}' -> Disponible`);
         }
         if (String(t.numero) !== String(t.numero).trim()) {
@@ -42,6 +84,42 @@ export const runSystemDiagnosticsAndRepair = async (onProgress) => {
         }
     }
     if (terrBatchCount > 0) await terrBatch.commit();
+
+    reportProgress("📡 Escaneando y normalizando S-13 Live Pool...", 75);
+    const s13Snap = await getDocs(collection(db, "banco_s13"));
+    const s13Batch = writeBatch(db);
+    let s13BatchCount = 0;
+
+    for (const d of s13Snap.docs) {
+        const r = d.data();
+        let updates = {};
+        let dirty = false;
+
+        if (r.conductor) {
+            const normalized = normalizeName(r.conductor);
+            if (r.conductor_normalized !== normalized) {
+                updates.conductor_normalized = normalized;
+                dirty = true;
+            }
+        }
+        if (r.auxiliar) {
+            const normalized = normalizeName(r.auxiliar);
+            if (r.auxiliar_normalized !== normalized) {
+                updates.auxiliar_normalized = normalized;
+                dirty = true;
+            }
+        }
+
+        if (dirty) {
+            s13Batch.update(d.ref, updates);
+            report.rebuiltHistory++; s13BatchCount++;
+            if (s13BatchCount >= 500) {
+                await s13Batch.commit();
+                s13BatchCount = 0;
+            }
+        }
+    }
+    if (s13BatchCount > 0) await s13Batch.commit();
 
     reportProgress("📡 Escaneo profundo de base de datos telefónica...", 45);
     const allPhones = await getDocs(collection(db, "telefonos"));

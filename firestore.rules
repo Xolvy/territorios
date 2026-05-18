@@ -1,52 +1,81 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Helper function to check if user is authenticated
+
+    // ═══════════════════════════════════════════════════════════
+    // XOLVY SECURITY v4.0 — ZERO TRUST FIRESTORE RULES
+    // ═══════════════════════════════════════════════════════════
+    //
+    // POLICY: No unauthenticated reads. No wildcard writes.
+    // Every collection is explicitly gated behind request.auth != null.
+    //
+    // PHASE 2 (future): Migrate to Custom Claims for role-based 
+    // read/write separation (Admin vs Conductor vs Publicador).
+    // ═══════════════════════════════════════════════════════════
+
     function isAuthenticated() {
       return request.auth != null;
     }
-    
-    // Helper function to check if user is Admin
-    // WARNING: This depends on client-side logic in the current implementation (demo mode).
-    // In a real secure app, Custom Claims or a secure user collection read is required.
-    // For this MVP/Demo, we will allow authenticated users to read/write but ideally restrictive.
-    
-    // Public read access for login dependencies
-    match /conductores/{document=**} {
-      allow read: if true;
-      allow write: if isAuthenticated();
-    }
-    
-    match /configuracion/{document=**} {
-      allow read: if true;
-      allow write: if isAuthenticated();
-    }
 
-    // Reglas abiertas para lectura para evitar bloqueos en Demo/Dashboard
-    match /programas/{document=**} {
-      allow read: if true;
-      allow write: if isAuthenticated();
-    }
-    
-    match /publicadores/{document=**} {
-      allow read: if true;
-      allow write: if isAuthenticated();
-    }
+    // --- CORE DATA COLLECTIONS ---
 
-    match /territorios/{document=**} {
-      allow read: if true;
-      allow write: if isAuthenticated();
-    }
-    
-    match /telefonos/{document=**} {
-      allow read: if true; // Permite ver la lista sin bloqueo estricto de Auth
-      allow write: if isAuthenticated();
-    }
-
-    // Default rule for other collections
-    match /{document=**} {
+    match /publicadores/{docId} {
       allow read, write: if isAuthenticated();
     }
+
+    match /territorios/{docId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /telefonos/{docId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /configuracion/{docId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /programas/{docId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /banco_s13/{docId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // --- OPERATIONAL COLLECTIONS ---
+
+    match /bitacora_auditoria/{docId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /bitacora_observaciones/{docId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /reportes_telefonicos/{docId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /resumenes_sesion_telefonia/{docId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // --- LEGACY (scheduled for removal in Phase 2) ---
+
+    match /conductores/{docId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /historial_territorios/{docId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // DEFAULT DENY — No wildcard catch-all.
+    // Any collection NOT explicitly listed above is DENIED.
+    // This closes the previous vulnerability where ANY 
+    // authenticated user could read/write ANY collection.
+    // ═══════════════════════════════════════════════════════════
   }
 }

@@ -44,7 +44,7 @@ export const renderMapsView = async (container, config, appVersion) => {
         const statusColors = {
             'Asignado':   { bg: 'bg-amber-500/10',   text: 'text-amber-500',   dot: 'bg-amber-400',   label: 'Asignado' },
             'Completado': { bg: 'bg-emerald-500/10', text: 'text-emerald-500', dot: 'bg-emerald-400', label: 'Completado' },
-            'Disponible': { bg: 'bg-slate-100 dark:bg-white/5', text: 'text-slate-400', dot: 'bg-slate-300', label: 'Disponible' },
+            'Disponible': { bg: 'bg-slate-100 dark:bg-white/5', text: 'text-slate-600 dark:text-slate-400', dot: 'bg-slate-300', label: 'Disponible' },
         };
 
         grid.innerHTML = filtered.map(t => {
@@ -62,7 +62,7 @@ export const renderMapsView = async (container, config, appVersion) => {
                 <div class="flex items-start justify-between p-5 pb-3">
                     <div class="flex items-center gap-3">
                         <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center shadow-lg shadow-primary/25 shrink-0">
-                            <span class="text-white font-black text-sm leading-none">${t.numero}</span>
+                            <span class="text-slate-800 dark:text-slate-100 font-black text-sm leading-none">${t.numero}</span>
                         </div>
                         <div class="flex flex-col min-w-0">
                             <span class="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] leading-none mb-1">Territorio</span>
@@ -96,17 +96,17 @@ export const renderMapsView = async (container, config, appVersion) => {
 
                 <div class="flex items-center gap-2 p-4 mt-auto bg-slate-50/50 dark:bg-black/10">
                     <button onclick="window.viewMapFromBaseS12('${t.id}')"
-                        class="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-primary/10 hover:bg-primary text-primary hover:text-white text-[9px] font-black uppercase tracking-wider transition-all duration-200 active:scale-95 group/btn">
+                        class="flex-1 min-w-0 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-primary/10 hover:bg-primary text-primary hover:text-white text-[9px] font-black uppercase tracking-wider transition-all duration-200 active:scale-95 group/btn">
                         <i class="fas fa-map-marked-alt text-[10px] group-hover/btn:scale-110 transition-transform"></i>
                         <span>Mapa</span>
                     </button>
                     <button onclick="window.editTerritorioS12('${t.id}')"
-                        class="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-indigo-500 text-slate-400 hover:text-white text-[9px] font-black uppercase tracking-wider transition-all duration-200 active:scale-95 group/btn">
+                        class="flex-1 min-w-0 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-indigo-500 text-slate-600 dark:text-slate-400 hover:text-white text-[9px] font-black uppercase tracking-wider transition-all duration-200 active:scale-95 group/btn">
                         <i class="fas fa-pen text-[10px] group-hover/btn:scale-110 transition-transform"></i>
                         <span>Editar</span>
                     </button>
                     <button onclick="window.deleteTerritorioS12('${t.id}')"
-                        class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-rose-500 text-slate-400 hover:text-white transition-all duration-200 active:scale-95 group/btn shrink-0">
+                        class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-rose-500 text-slate-600 dark:text-slate-400 hover:text-white transition-all duration-200 active:scale-95 group/btn shrink-0">
                         <i class="fas fa-trash text-[10px] group-hover/btn:scale-110 transition-transform"></i>
                     </button>
                 </div>
@@ -124,13 +124,13 @@ export const renderMapsView = async (container, config, appVersion) => {
                         </div>
                         Gestión de Territorios
                     </h3>
-                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.4em] mt-3 ml-1">Visor y gestión de polígonos satelitales</p>
+                    <p class="text-[10px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-[0.4em] mt-3 ml-1">Visor y gestión de polígonos satelitales</p>
                 </div>
                 <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full lg:w-auto">
                     <button id="btn-open-kml-mgr" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-600/20 active:scale-95 flex items-center justify-center gap-3 transition-all shrink-0">
                         <i class="fas fa-file-import"></i> <span>Importar KML</span>
                     </button>
-                    <div class="search-wrapper-v3 flex-1 lg:w-72">
+                    <div class="search-wrapper-v3 flex-1 min-w-0 lg:w-72">
                         <i class="fas fa-search"></i>
                         <input type="text" id="maps-search" placeholder="Buscar número o localidad..." class="search-input-v3 py-4 text-sm font-bold outline-none">
                     </div>
@@ -167,7 +167,7 @@ export const renderMapsView = async (container, config, appVersion) => {
                     </div>
                 </header>
 
-                <div class="flex-1 overflow-y-auto custom-scrollbar p-10 space-y-8 bg-slate-50 dark:bg-black/20">
+                <div class="flex-1 min-w-0 overflow-y-auto custom-scrollbar p-10 space-y-8 bg-slate-50 dark:bg-black/20">
                     <div class="space-y-4">
                         <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-bold">
                             Pega el contenido del archivo KML exportado. El sistema buscará etiquetas como <span class="text-indigo-500">(T1), (T2)</span> para asignar los polígonos.
@@ -178,7 +178,7 @@ export const renderMapsView = async (container, config, appVersion) => {
                     <div id="kml-progress-box" class="hidden space-y-4">
                         <div class="flex justify-between items-center px-2">
                              <span id="kml-status" class="text-[9px] font-black text-indigo-500 uppercase tracking-widest">Iniciando...</span>
-                             <span id="kml-count" class="text-[9px] font-black text-slate-400 uppercase">0/0</span>
+                             <span id="kml-count" class="text-[9px] font-black text-slate-600 dark:text-slate-400 uppercase">0/0</span>
                         </div>
                         <div class="w-full h-2 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden shadow-inner">
                             <div id="kml-bar" class="h-full bg-indigo-500 w-0 transition-all duration-300"></div>
@@ -187,7 +187,7 @@ export const renderMapsView = async (container, config, appVersion) => {
                 </div>
 
                 <footer class="shrink-0 p-8 bg-white dark:bg-black/40 border-t border-slate-100 dark:border-white/5 flex gap-4">
-                    <button onclick="this.closest('.fixed').classList.add('hidden')" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] transition-all">
+                    <button onclick="this.closest('.fixed').classList.add('hidden')" class="flex-1 min-w-0 py-5 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-slate-600 dark:text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] transition-all">
                         Cerrar
                     </button>
                     <button id="btn-start-import" class="flex-[1.5] py-5 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-indigo-600/20 transition-all active:scale-95 flex items-center justify-center gap-2">
@@ -336,35 +336,35 @@ export const renderMapsView = async (container, config, appVersion) => {
                     </div>
                 </header>
 
-                <div class="flex-1 overflow-y-auto custom-scrollbar p-10 space-y-8 bg-slate-50 dark:bg-black/20">
+                <div class="flex-1 min-w-0 overflow-y-auto custom-scrollbar p-10 space-y-8 bg-slate-50 dark:bg-black/20">
                     <div class="grid grid-cols-1 gap-8">
                          <div class="space-y-3">
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Localidad</label>
+                            <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Localidad</label>
                             <input type="text" id="edit-t-localidad" value="${t.localidad || t.nombre || ''}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all uppercase shadow-inner">
                         </div>
                         <div class="grid grid-cols-2 gap-6">
                             <div class="space-y-3">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Número</label>
+                                <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Número</label>
                                 <input type="text" id="edit-t-numero" value="${t.numero || ''}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all uppercase shadow-inner">
                             </div>
                             <div class="space-y-3">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Tipo</label>
+                                <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Tipo</label>
                                 <select id="edit-t-tipo" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary cursor-pointer appearance-none shadow-inner">
                                     ${tipos.map(ti => `<option value="${ti}" ${t.tipo === ti ? 'selected' : ''}>${ti}</option>`).join('')}
                                 </select>
                             </div>
                         </div>
                         <div class="space-y-3">
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Manzanas (Separadas por coma)</label>
+                            <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Manzanas (Separadas por coma)</label>
                             <textarea id="edit-t-mzs" rows="3" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-bold text-slate-700 dark:text-white outline-none focus:border-primary resize-none shadow-inner">${t.manzanas || ''}</textarea>
                         </div>
                         <div class="space-y-3 mt-2">
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block flex justify-between items-center">
+                            <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block flex justify-between items-center">
                                 <span>Subir Mapa (PNG/JPG)</span>
                                 ${t.imagen ? `<a href="${t.imagen}" target="_blank" class="text-[8px] text-indigo-500 hover:underline">Ver actual</a>` : `<span class="text-[8px] opacity-70">Opcional</span>`}
                             </label>
                             <div class="relative">
-                                <i class="fas fa-upload absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
+                                <i class="fas fa-upload absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400 pointer-events-none"></i>
                                 <input type="file" id="edit-t-imagen-file" accept="image/png, image/jpeg" class="pl-12 w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-2.5 rounded-2xl text-[11px] font-bold text-slate-700 dark:text-white outline-none focus:border-primary transition-all shadow-inner file:mr-4 file:py-1.5 file:px-4 file:rounded-xl file:border-0 file:text-[9px] file:uppercase file:tracking-widest file:font-black file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100 dark:file:bg-indigo-900/30 dark:file:text-indigo-300 cursor-pointer">
                             </div>
                         </div>
@@ -372,7 +372,7 @@ export const renderMapsView = async (container, config, appVersion) => {
                 </div>
 
                 <footer class="shrink-0 p-8 bg-white dark:bg-black/40 border-t border-slate-100 dark:border-white/5 flex gap-4">
-                    <button onclick="this.closest('.fixed').classList.add('hidden')" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] transition-all">
+                    <button onclick="this.closest('.fixed').classList.add('hidden')" class="flex-1 min-w-0 py-5 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-slate-600 dark:text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] transition-all">
                         Cancelar
                     </button>
                     <button id="btn-save-t-edit" class="flex-[1.5] py-5 bg-primary hover:bg-primary-light text-white font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-primary/20 transition-all active:scale-95 flex items-center justify-center gap-2">

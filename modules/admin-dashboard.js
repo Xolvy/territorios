@@ -55,10 +55,9 @@ const renderSkeleton = (container) => {
 };
 
 const renderNavItem = (id, icon, label, active) => `
-    <button class="nav-item ${active ? 'active' : ''} flex-1 lg:flex-initial flex items-center justify-center lg:justify-start gap-4 p-5 rounded-2xl transition-all group border border-transparent ${active ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xl shadow-slate-900/20 dark:shadow-white/20 dark:border-white/20' : 'hover:bg-slate-100 dark:hover:bg-white/5 text-slate-500 dark:text-slate-400'}" data-tab="${id}">
-        <i class="${icon} text-lg transition-transform group-hover:scale-125 shrink-0 ${active ? 'text-indigo-400 dark:text-indigo-600' : ''}"></i>
-        <span class="text-[11px] font-black uppercase tracking-widest hidden lg:block whitespace-nowrap">${label}</span>
-        ${active ? '<div class="hidden lg:block ml-auto w-1.5 h-1.5 rounded-full bg-white opacity-50"></div>' : ''}
+    <button class="nav-item ${active ? 'active' : ''} flex-1 min-w-0 lg:flex-initial flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-1 lg:gap-4 p-3 lg:p-4 rounded-xl transition-all group border ${active ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-transparent border-r-2 !border-r-amber-400' : 'border-transparent text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium'}" data-tab="${id}">
+        <i class="${icon} stroke-1.5 text-lg transition-transform group-hover:scale-110 shrink-0 ${active ? 'text-emerald-600 dark:text-emerald-400' : ''}"></i>
+        <span class="sidebar-text text-[8px] lg:text-[10px] font-bold uppercase tracking-widest whitespace-nowrap overflow-hidden text-ellipsis max-w-full">${label}</span>
     </button>
 `;
 
@@ -126,7 +125,7 @@ const loadTab = async (tabName, appVersion, configData = null) => {
             <div class="flex flex-col items-center justify-center py-32 text-center space-y-4">
                 <div class="w-16 h-16 bg-rose-500/10 text-rose-500 rounded-2xl flex items-center justify-center text-2xl"><i class="fas fa-triangle-exclamation"></i></div>
                 <h4 class="text-sm font-black uppercase text-slate-800 dark:text-white">Error de Carga</h4>
-                <p class="text-xs text-slate-400 max-w-xs">${e.message}</p>
+                <p class="text-xs text-slate-600 dark:text-slate-400 max-w-xs">${e.message}</p>
                 <div class="flex flex-wrap justify-center gap-3 mt-4">
                     <button onclick="location.reload()" class="bg-primary px-8 py-3 rounded-xl text-[10px] font-black uppercase text-white tracking-widest shadow-lg shadow-primary/20 transition-all active:scale-95">
                         <i class="fas fa-sync-alt mr-2"></i> Reintentar
@@ -156,7 +155,6 @@ const setupNavigation = (appVersion, configData) => {
             }
 
             // 2. Limpieza profunda de LocalStorage
-            localStorage.removeItem('demo_role');
             localStorage.removeItem('xolvy_session');
             localStorage.removeItem('phone_session_active');
             localStorage.removeItem('selected_conductor_name');
@@ -179,13 +177,13 @@ const setupNavigation = (appVersion, configData) => {
                 const isActive = t.dataset.tab === currentTab;
                 
                 if (isActive) {
-                    t.className = `nav-item active flex-1 lg:flex-initial flex items-center justify-center lg:justify-start gap-4 p-5 rounded-2xl transition-all group border border-transparent bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xl shadow-slate-900/20 dark:shadow-white/20 dark:border-white/20`;
+                    t.className = `nav-item active flex-1 min-w-0 lg:flex-initial flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-1 lg:gap-4 p-3 lg:p-4 rounded-xl transition-all group border bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-transparent border-r-2 !border-r-amber-400`;
                     const icon = t.querySelector('i');
-                    if (icon) icon.className = icon.className.replace(/text-slate-500|text-slate-400/g, '') + ' text-indigo-400 dark:text-indigo-600';
+                    if (icon) icon.className = icon.className.replace(/text-slate-500/g, '').replace(/dark:text-slate-400/g, '') + ' text-emerald-600 dark:text-emerald-400';
                 } else {
-                    t.className = `nav-item flex-1 lg:flex-initial flex items-center justify-center lg:justify-start gap-4 p-5 rounded-2xl transition-all group border border-transparent hover:bg-slate-100 dark:hover:bg-white/5 text-slate-500 dark:text-slate-400`;
+                    t.className = `nav-item flex-1 min-w-0 lg:flex-initial flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-1 lg:gap-4 p-3 lg:p-4 rounded-xl transition-all group border border-transparent text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium`;
                     const icon = t.querySelector('i');
-                    if (icon) icon.className = icon.className.replace(/text-indigo-400|dark:text-indigo-600/g, '');
+                    if (icon) icon.className = icon.className.replace(/text-emerald-600/g, '').replace(/dark:text-emerald-400/g, '');
                 }
             });
 
@@ -251,85 +249,64 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
 
         // --- MAIN SHELL RENDER ---
         container.innerHTML = `
-    <div class="h-screen w-full p-4 md:p-6 lg:p-8 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] bg-slate-100 dark:bg-[#05070a] flex flex-col overflow-hidden animate-fade-in" data-adaptive-container="true">
-
-        <div class="flex-1 w-full max-w-[1700px] mx-auto bg-white/80 dark:bg-[#0a0f18]/80 backdrop-blur-3xl rounded-[2.5rem] md:rounded-[3rem] border border-slate-200/70 dark:border-white/10 shadow-[0_32px_128px_-16px_rgba(0,0,0,0.1)] flex flex-col overflow-hidden relative group">
-
-            <div class="absolute -top-24 -left-24 w-96 h-96 bg-primary/10 blur-[120px] rounded-full pointer-events-none z-0"></div>
-            <div class="absolute -bottom-24 -right-24 w-96 h-96 bg-emerald-500/10 blur-[120px] rounded-full pointer-events-none z-0"></div>
-
-            <header class="flex flex-col lg:flex-row justify-between items-start lg:items-center p-6 md:p-8 lg:px-10 border-b border-slate-200/50 dark:border-white/5 relative z-10 shrink-0 gap-6">
-                <div class="flex items-center gap-4 md:gap-6">
-                    <div id="admin-logo-container" class="w-12 h-12 md:w-16 md:h-16 bg-white dark:bg-white/5 rounded-2xl flex items-center justify-center shadow-xl transition-transform hover:scale-105 duration-500 shrink-0 overflow-hidden">
-                        <!-- Logo will be injected here -->
-                    </div>
-                    <div>
-                        <h1 class="text-xl md:text-3xl font-black text-slate-900 dark:text-white leading-tight uppercase tracking-tighter">Panel de Gestión</h1>
-                        <div class="flex items-center gap-2 mt-1">
-                            <span class="relative flex h-2 w-2">
-                               <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                               <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                            </span>
-                            <p class="text-[9px] md:text-[10px] text-slate-500 font-black uppercase tracking-widest">Sincronizado • v${appVersion}</p>
-                        </div>
+    <div class="flex flex-col w-full overflow-hidden bg-slate-50 dark:bg-[#05070a] animate-fade-in" style="height:100vh;height:100dvh;" data-adaptive-container="true">
+        <header class="flex items-center justify-between bg-emerald-900/70 backdrop-blur-md border-b border-amber-400/50 sticky top-0 z-40 shadow-sm p-4 lg:hidden flex-none">
+            <button id="menu-toggle-btn" class="p-2 text-emerald-400 focus:outline-none active:scale-95 transition-transform">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+            </button>
+            <div class="text-emerald-400 font-black text-lg tracking-tighter uppercase">Territorios</div>
+            <div class="w-6"></div>
+        </header>
+        <div class="flex flex-col lg:flex-row flex-1 min-h-0 overflow-hidden relative">
+            <aside id="main-sidebar" class="fixed inset-y-0 left-0 z-50 w-56 bg-white/40 dark:bg-slate-800/40 backdrop-blur-2xl border-r border-slate-200/50 dark:border-emerald-900/30 transform -translate-x-full transition-transform duration-300 lg:static lg:translate-x-0 lg:flex lg:w-64 flex-col h-full shadow-2xl lg:shadow-none">
+                <button id="btn-close-sidebar" class="absolute top-4 right-4 p-2 text-slate-400 hover:text-emerald-500 lg:hidden focus:outline-none"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                <div class="p-6 border-b border-slate-200/50 dark:border-emerald-900/30 flex items-center justify-between gap-4 mt-8 lg:mt-0">
+                    <div class="font-bold text-xl tracking-wide text-emerald-700 dark:text-emerald-400 flex items-center gap-3 transition-opacity">
+                        <span class="text-amber-400">❖</span> <span class="sidebar-text">Territorios</span>
                     </div>
                 </div>
-                
-                <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-
-                    <div class="flex-1 lg:flex-none flex items-center justify-center gap-4 bg-slate-100 dark:bg-white/5 px-4 md:px-6 h-12 rounded-2xl border border-slate-200/50 dark:border-white/10 shadow-inner min-w-fit shrink-0">
-                         <div class="flex items-center gap-2">
-                             <div class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></div>
-                             <span class="text-[8px] md:text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest whitespace-nowrap">Vista Admin</span>
-                         </div>
-                         <div class="w-px h-3 bg-slate-300 dark:bg-white/10 mx-0.5"></div>
-                         <button onclick="if(window.XolvyApp?.identity?.nombreCanonico){ localStorage.setItem('selected_conductor_name', window.XolvyApp.identity.nombreCanonico); localStorage.setItem('demo_role', 'Conductor'); } else { localStorage.removeItem('selected_conductor_name'); localStorage.removeItem('demo_role'); } localStorage.removeItem('xolvy_session'); window.history.pushState({}, '', '/conductores'); location.reload();" class="text-[8px] md:text-[9px] font-black text-primary hover:text-indigo-600 uppercase tracking-widest transition-colors flex items-center gap-2 whitespace-nowrap group/switch shrink-0 h-full px-1">
-                             <i class="fas fa-random text-[10px] group-hover:rotate-180 transition-transform duration-500"></i> Conductor
-                         </button>
-                    </div>
-                    
-                    <button id="logout-btn" class="flex-1 lg:flex-none btn-pro bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white px-8 h-12 rounded-2xl border border-rose-500/20 transition-all font-black text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-rose-500/5 active:scale-95 flex items-center justify-center gap-2">
-                        <i class="fas fa-sign-out-alt"></i> Salir
+                <nav class="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
+                    ${renderNavItem('dashboard', 'fas fa-chart-line', 'Estadísticas', initialTab === 'dashboard')}
+                    ${renderNavItem('casa-en-casa', 'fas fa-map-location-dot', 'Territorios', initialTab === 'casa-en-casa')}
+                    ${renderNavItem('predicacion', 'fas fa-bullhorn', 'P. Pública', initialTab === 'predicacion')}
+                    ${renderNavItem('telefonos', 'fas fa-phone-volume', 'Telefonía', initialTab === 'telefonos')}
+                    ${renderNavItem('reportes', 'fas fa-file-invoice', 'Reportes', initialTab === 'reportes')}
+                    ${renderNavItem('personal', 'fas fa-users', 'Publicadores', initialTab === 'personal')}
+                    ${renderNavItem('recursos', 'fas fa-book-open', 'Recursos', initialTab === 'recursos')}
+                    <div class="h-px bg-slate-200/50 dark:bg-emerald-900/30 my-4 mx-2"></div>
+                    ${renderNavItem('config', 'fas fa-sliders', 'Ajustes', initialTab === 'config')}
+                </nav>
+                <div class="p-4 border-t border-slate-200/50 dark:border-emerald-900/30 space-y-2">
+                    <button onclick="if(window.XolvyApp?.identity?.nombreCanonico){ localStorage.setItem('selected_conductor_name', window.XolvyApp.identity.nombreCanonico); } else { localStorage.removeItem('selected_conductor_name'); } localStorage.removeItem('xolvy_session'); window.location.href = '/conductores';" class="w-full flex items-center gap-3 p-4 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 text-[9px] font-medium uppercase tracking-widest transition-all">
+                        <i class="fas fa-random stroke-1.5" stroke-width="1.5"></i> <span class="sidebar-text">Modo Conductor</span>
+                    </button>
+                    <button id="logout-btn" class="w-full flex items-center gap-3 p-4 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-rose-500/10 hover:text-rose-500 text-[9px] font-medium uppercase tracking-widest transition-all">
+                        <i class="fas fa-sign-out-alt stroke-1.5" stroke-width="1.5"></i> <span class="sidebar-text">Salir</span>
                     </button>
                 </div>
-            </header>
-
-            <div class="flex flex-col lg:flex-row flex-1 overflow-hidden relative z-10">
-                
-                <aside class="w-full lg:w-72 border-b lg:border-b-0 lg:border-r border-slate-200/50 dark:border-white/5 overflow-y-auto custom-scrollbar shrink-0 p-4 lg:p-6 bg-white/30 dark:bg-transparent">
-                    <nav class="flex flex-row lg:flex-col gap-2 overflow-x-auto scrollbar-hide lg:overflow-visible">
-                        ${renderNavItem('dashboard', 'fas fa-chart-line', 'Estadísticas', initialTab === 'dashboard')}
-                        ${renderNavItem('casa-en-casa', 'fas fa-map-location-dot', 'Territorios', initialTab === 'casa-en-casa')}
-                        ${renderNavItem('predicacion', 'fas fa-bullhorn', 'P. Pública', initialTab === 'predicacion')}
-                        ${renderNavItem('telefonos', 'fas fa-phone-volume', 'Telefonía', initialTab === 'telefonos')}
-                        ${renderNavItem('reportes', 'fas fa-file-invoice', 'Reportes', initialTab === 'reportes')}
-                        ${renderNavItem('personal', 'fas fa-users', 'Publicadores', initialTab === 'personal')}
-                        ${renderNavItem('recursos', 'fas fa-book-open', 'Recursos', initialTab === 'recursos')}
-                        <div class="hidden lg:block h-px bg-slate-200 dark:bg-white/10 my-4 mx-4"></div>
-                        ${renderNavItem('config', 'fas fa-sliders', 'Ajustes', initialTab === 'config')}
-                    </nav>
-                </aside>
-
-                <main id="admin-content" class="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-8 lg:p-10 bg-slate-50/50 dark:bg-black/10">
-                    </main>
-            </div>
+            </aside>
+            <main class="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-slate-50 dark:bg-[#0a0f18] relative">
+                <header class="hidden lg:flex justify-between items-center p-6 border-b border-slate-100 dark:border-white/5 shrink-0">
+                    <h2 class="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Panel de Gestión</h2>
+                    <div class="flex items-center gap-2">
+                        <span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span></span>
+                        <p class="text-[9px] text-slate-500 font-black uppercase tracking-widest">En línea • v${appVersion}</p>
+                    </div>
+                </header>
+                <div id="admin-content" class="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8 pb-32 bg-slate-50/50 dark:bg-black/10"></div>
+            </main>
         </div>
     </div>
-    
     <div id="modal-container" class="fixed inset-0 bg-slate-950/40 backdrop-blur-sm hidden overflow-y-auto z-[100] p-4 flex justify-center items-center transition-all duration-300"></div>
     <div id="modal-container-nested" class="fixed inset-0 bg-slate-950/60 backdrop-blur-md hidden overflow-y-auto z-[500] p-4 flex justify-center items-center transition-all duration-300"></div>
 `;
 
-        // Inject Adaptive Logo
-        const logoContainer = container.querySelector('#admin-logo-container');
-        if (logoContainer) {
-            logoContainer.appendChild(createAdaptiveLogo('h-7 w-auto md:h-10'));
-        }
-
+        // (Logo removed per FASE 2)
+        
         setupNavigation(appVersion, configData);
         loadTab(initialTab, appVersion, configData);
-
         XolvyAdaptive.refresh();
+        window.initMobileMenu();
 
     } catch (e) {
         console.error("Admin Boot Error:", e);

@@ -3,7 +3,7 @@ import {
     getProgramaSemanal, getGlobalObservations, getTerritorios, assignTerritorio
 } from '../../data/firestore-services.js';
 import { UIHelpers, showModal, showCustomConfirm } from '../services/ui-helpers.js';
-import { showNotification } from '../utils/helpers.js';
+import { showNotification, toTitleCase } from '../utils/helpers.js';
 
 export const renderHistorialView = async (container) => {
     const monday = UIHelpers.getMonday(new Date());
@@ -101,22 +101,22 @@ export const renderHistorialView = async (container) => {
 
             <header class="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
                 <div class="relative group w-full md:w-96">
-                    <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors cursor-default"><i class="fas fa-search text-xs"></i></span>
+                    <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400 group-focus-within:text-primary transition-colors cursor-default"><i class="fas fa-search text-xs"></i></span>
                     <input type="text" id="hist-search" placeholder="Filtrar actividad..." class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl !pl-12 pr-6 py-3.5 text-[12px] font-bold shadow-sm outline-none focus:border-primary transition-all text-slate-700 dark:text-white">
                 </div>
                 <div class="flex items-center gap-3 w-full md:w-auto">
-                    <button id="btn-global-obs" class="flex-1 md:flex-none h-12 px-6 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-95 flex items-center justify-center gap-3">
+                    <button id="btn-global-obs" class="flex-1 min-w-0 md:flex-none h-12 px-6 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-95 flex items-center justify-center gap-3">
                         <i class="fas fa-comment-alt"></i> Bitácora
                     </button>
-                    <button id="btn-manual-log" class="flex-1 md:flex-none h-12 px-6 bg-teal-600 hover:bg-teal-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-95 flex items-center justify-center gap-3">
+                    <button id="btn-manual-log" class="flex-1 min-w-0 md:flex-none h-12 px-6 bg-teal-600 hover:bg-teal-500 text-slate-800 dark:text-slate-100 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-95 flex items-center justify-center gap-3">
                         <i class="fas fa-file-signature"></i> Cargar Manual
                     </button>
-                    <select id="hist-filter-status" class="flex-1 md:flex-none h-12 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 text-[9px] font-black uppercase text-slate-500 outline-none focus:border-primary transition-all cursor-pointer">
+                    <select id="hist-filter-status" class="flex-1 min-w-0 md:flex-none h-12 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 text-[9px] font-black uppercase text-slate-500 outline-none focus:border-primary transition-all cursor-pointer">
                         <option value="">TODOS</option>
                         <option value="Asignado">Asignados</option>
                         <option value="Disponible">Libres</option>
                     </select>
-                    <button id="btn-sync-history" class="w-12 h-12 bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-emerald-500 rounded-xl border border-slate-200 dark:border-white/10 transition-all flex items-center justify-center group" title="Sincronizar todo el historial">
+                    <button id="btn-sync-history" class="w-12 h-12 bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-emerald-500 rounded-xl border border-slate-200 dark:border-white/10 transition-all flex items-center justify-center group" title="Sincronizar todo el historial">
                         <i class="fas fa-sync-alt group-hover:rotate-180 transition-transform duration-700"></i>
                     </button>
                 </div>
@@ -192,24 +192,24 @@ export const renderHistorialView = async (container) => {
 
             return `
                 <div class="flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm hover:shadow-md transition-all group overflow-hidden h-full"> 
-                    <div class="flex flex-col p-6 gap-5 flex-1">
+                    <div class="flex flex-col p-6 gap-5 flex-1 min-w-0">
                         <div class="flex items-center justify-between gap-4">
                             <div class="w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg shadow-sm border ${isFree ? 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-400/20' : 'bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-400/20'}">
                                 ${t.numero}
                             </div>
                             <div class="flex flex-col items-end">
                                 <span class="text-[9px] font-bold ${isFree ? 'text-emerald-600' : 'text-rose-600'} uppercase tracking-widest mb-1">${t.estado}</span>
-                                ${t.asignado_a ? `<span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase truncate max-w-[110px] bg-slate-50 dark:bg-white/5 px-2.5 py-1.5 rounded-lg border border-slate-100 dark:border-white/5">${t.asignado_a}</span>` : ''}
+                                ${t.asignado_a ? `<span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase truncate max-w-[110px] bg-slate-50 dark:bg-white/5 px-2.5 py-1.5 rounded-lg border border-slate-100 dark:border-white/5">${toTitleCase(t.asignado_a)}</span>` : ''}
                             </div>
                         </div>
 
                         <div class="space-y-4">
                             <div class="flex flex-col">
-                                <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Localidad</span>
+                                <span class="text-[9px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-1">Localidad</span>
                                 <span class="text-xs font-bold text-slate-900 dark:text-white truncate uppercase tracking-tight">${t.localidad || 'Mi Ciudad'}</span>
                             </div>
                             <div class="flex flex-col">
-                                <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Área Geográfica</span>
+                                <span class="text-[9px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-1">Área Geográfica</span>
                                 <span class="text-[10px] font-medium text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">${t.manzanas || 'Sin manzanas'}</span>
                             </div>
                         </div>
@@ -239,19 +239,19 @@ export const renderHistorialView = async (container) => {
                                 <p class="text-xs text-slate-500 font-medium mt-0.5 uppercase tracking-widest">Territorio #${num}</p>
                             </div>
                         </div>
-                        <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="w-10 h-10 rounded-full hover:bg-slate-50 dark:hover:bg-white/5 flex items-center justify-center transition-all text-slate-400">
+                        <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="w-10 h-10 rounded-full hover:bg-slate-50 dark:hover:bg-white/5 flex items-center justify-center transition-all text-slate-600 dark:text-slate-400">
                             <i class="fas fa-times"></i>
                         </button>
                 </header>
 
-                <div id="timeline-view-content" class="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-12 space-y-10 bg-slate-50/50 dark:bg-black/20">
+                <div id="timeline-view-content" class="flex-1 min-w-0 overflow-y-auto custom-scrollbar p-6 md:p-12 space-y-10 bg-slate-50/50 dark:bg-black/20">
                     <div class="flex items-center gap-4 animate-pulse">
                         <div class="w-2 h-2 rounded-full bg-primary mb-1"></div>
-                        <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">Cargando línea de tiempo...</span>
+                        <span class="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">Cargando línea de tiempo...</span>
                     </div>
                 </div>
 
-                <footer class="p-6 border-t border-slate-100 dark:border-white/5 bg-white dark:bg-black/40 flex justify-between items-center text-[9px] font-black text-slate-400 uppercase tracking-widest italic">
+                <footer class="p-6 border-t border-slate-100 dark:border-white/5 bg-white dark:bg-black/40 flex justify-between items-center text-[9px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest italic">
                     <div><i class="fas fa-info-circle mr-2"></i> Orden cronológico descendente</div>
                     <div id="timeline-total-count">...</div>
                 </footer>
@@ -322,29 +322,29 @@ export const renderHistorialView = async (container) => {
                         <div id="card-h-${h.id}" class="bg-white dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/[0.07] rounded-3xl p-6 shadow-sm hover:shadow-xl hover:border-primary/20 transition-all duration-500 group-hover/item:-translate-y-1">
                             <div class="flex justify-between items-start mb-4">
                                 <div>
-                                    <h4 class="text-base font-black text-slate-800 dark:text-white uppercase tracking-tight">${h.conductor || 'Sin asignar'}</h4>
+                                    <h4 class="text-base font-black text-slate-800 dark:text-white uppercase tracking-tight">${h.conductor ? toTitleCase(h.conductor) : 'Sin asignar'}</h4>
                                     <div class="flex items-center gap-3 mt-1.5">
                                         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[8px] font-black uppercase border ${badgeClass}">
                                             <span class="w-1 h-1 rounded-full bg-current"></span>
                                             ${isEnCurso ? '🟠 En Curso' : '🟢 Completado'}
                                         </span>
-                                        ${h.turno ? `<span class="text-[8px] font-bold text-slate-400 uppercase bg-slate-100 dark:bg-white/5 px-2 py-1 rounded-lg">${h.turno}</span>` : ''}
+                                        ${h.turno ? `<span class="text-[8px] font-bold text-slate-600 dark:text-slate-400 uppercase bg-slate-100 dark:bg-white/5 px-2 py-1 rounded-lg">${h.turno}</span>` : ''}
                                     </div>
                                 </div>
-                                <button onclick="window.surgicalEditS13('${h.id}', '${num}')" class="w-10 h-10 bg-slate-50 dark:bg-white/5 hover:bg-primary hover:text-white rounded-xl flex items-center justify-center text-slate-400 transition-all active:scale-90 shadow-inner">
+                                <button onclick="window.surgicalEditS13('${h.id}', '${num}')" class="w-10 h-10 bg-slate-50 dark:bg-white/5 hover:bg-primary hover:text-white rounded-xl flex items-center justify-center text-slate-600 dark:text-slate-400 transition-all active:scale-90 shadow-inner">
                                     <i class="fas fa-pencil-alt text-xs"></i>
                                 </button>
                             </div>
 
                             <div class="grid grid-cols-2 gap-8 pt-4 border-t border-slate-50 dark:border-white/5">
                                 <div class="space-y-1">
-                                    <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest block">FECHA EN QUE SE ASIGNÓ</span>
+                                    <span class="text-[7px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest block">FECHA EN QUE SE ASIGNÓ</span>
                                     <span class="text-[11px] font-bold text-slate-600 dark:text-slate-300 flex items-center gap-2">
                                         <i class="far fa-calendar-alt opacity-40"></i> ${dateAsig}
                                     </span>
                                 </div>
                                 <div class="space-y-1">
-                                    <span class="text-[7px] font-black text-slate-400 uppercase tracking-widest block">FECHA EN QUE SE COMPLETÓ</span>
+                                    <span class="text-[7px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest block">FECHA EN QUE SE COMPLETÓ</span>
                                     <span class="text-[11px] font-black ${isEnCurso ? 'text-amber-500 italic opacity-60' : 'text-emerald-500'} flex items-center gap-2">
                                         <i class="fas fa-flag-checkered opacity-40"></i> ${dateEntr || '---'}
                                     </span>
@@ -396,9 +396,9 @@ export const renderHistorialView = async (container) => {
                         <select id="edit-surgery-cond" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-xs font-bold text-slate-700 dark:text-white outline-none focus:border-primary transition-all uppercase cursor-pointer">
                             <option value="">Seleccionar responsable...</option>
                             ${allPublicadores.map(p => `
-                                <option value="${p.nombre}" ${h.conductor === p.nombre ? 'selected' : ''}>${p.nombre}</option>
+                                <option value="${p.nombre}" ${h.conductor === p.nombre ? 'selected' : ''}>${toTitleCase(p.nombre)}</option>
                             `).join('')}
-                            ${(!allPublicadores.find(p => p.nombre === h.conductor) && h.conductor) ? `<option value="${h.conductor}" selected>${h.conductor}</option>` : ''}
+                            ${(!allPublicadores.find(p => p.nombre === h.conductor) && h.conductor) ? `<option value="${h.conductor}" selected>${toTitleCase(h.conductor)}</option>` : ''}
                         </select>
                     </div>
                     <div class="space-y-2">
@@ -424,7 +424,7 @@ export const renderHistorialView = async (container) => {
                 </div>
 
                 <div class="flex gap-2 pt-2">
-                    <button id="btn-surgery-cancel" class="btn-pro flex-1 py-3 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-500 dark:text-slate-400 font-black rounded-xl text-[9px] uppercase tracking-widest transition-all">Cancelar</button>
+                    <button id="btn-surgery-cancel" class="btn-pro flex-1 min-w-0 py-3 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-500 dark:text-slate-400 font-black rounded-xl text-[9px] uppercase tracking-widest transition-all">Cancelar</button>
                     <button id="btn-surgery-save" class="btn-pro flex-[2] py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-xl text-[9px] uppercase tracking-widest shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-2">
                          <i class="fas fa-save"></i> Aplicar Cambios
                     </button>
@@ -495,7 +495,7 @@ export const renderHistorialView = async (container) => {
                     </div>
                 </header>
 
-                <div class="flex-1 overflow-y-auto custom-scrollbar p-10 space-y-6 bg-slate-50 dark:bg-black/20">
+                <div class="flex-1 min-w-0 overflow-y-auto custom-scrollbar p-10 space-y-6 bg-slate-50 dark:bg-black/20">
                     ${obs.length === 0 ? `
                         <div class="py-20 text-center opacity-40">
                             <p class="text-xs font-black uppercase tracking-widest">No hay observaciones registradas aún.</p>
@@ -505,11 +505,11 @@ export const renderHistorialView = async (container) => {
                             <div class="w-12 h-12 bg-slate-900 text-white rounded-xl flex items-center justify-center font-black text-sm shrink-0">
                                 ${h.territorio_id || h.numero}
                             </div>
-                            <div class="flex-1 space-y-1">
+                            <div class="flex-1 min-w-0 space-y-1">
                                 <div class="flex items-center gap-3">
-                                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">${h.conductor}</span>
+                                    <span class="text-[9px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">${toTitleCase(h.conductor)}</span>
                                     <span class="w-1 h-1 bg-slate-200 dark:bg-white/10 rounded-full"></span>
-                                    <span class="text-[9px] font-bold text-slate-400">${UIHelpers.fmtDateAt(h.timestamp || h.fecha)}</span>
+                                    <span class="text-[9px] font-bold text-slate-600 dark:text-slate-400">${UIHelpers.fmtDateAt(h.timestamp || h.fecha)}</span>
                                 </div>
                                 <p class="text-[13px] font-bold text-slate-700 dark:text-white leading-relaxed italic">"${h.nota || h.observaciones}"</p>
                             </div>
@@ -533,26 +533,26 @@ export const renderHistorialView = async (container) => {
                     </div>
                     <div>
                         <h3 class="text-2xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">Nueva Asignación #${num}</h3>
-                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em] mt-1">Control de Registro S-13</p>
+                        <p class="text-[10px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-[0.3em] mt-1">Control de Registro S-13</p>
                     </div>
                 </header>
 
                 <div class="space-y-6">
                     <div class="space-y-3">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Publicador</label>
+                        <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Publicador</label>
                         <select id="asig-cond" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all uppercase cursor-pointer appearance-none shadow-inner">
                             <option value="">Seleccionar responsable...</option>
-                            ${allPublicadores.map(p => `<option value="${p.nombre}">${p.nombre}</option>`).join('')}
+                            ${allPublicadores.map(p => `<option value="${p.nombre}">${toTitleCase(p.nombre)}</option>`).join('')}
                         </select>
                     </div>
                     <div class="space-y-3">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Fecha</label>
+                        <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Fecha</label>
                         <input type="date" id="asig-date" value="${new Date().toISOString().split('T')[0]}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-primary outline-none focus:border-primary transition-all uppercase shadow-inner">
                     </div>
                 </div>
 
                 <div class="flex gap-4 pt-6 border-t border-slate-50 dark:border-white/5">
-                    <button id="cancel-asig" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest transition-all">Cerrar</button>
+                    <button id="cancel-asig" class="flex-1 min-w-0 py-5 bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest transition-all">Cerrar</button>
                     <button id="confirm-asig" class="flex-[2] py-5 bg-primary text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all">Registrar S-13</button>
                 </div>
             </div>
@@ -597,26 +597,26 @@ export const renderHistorialView = async (container) => {
                 <div class="space-y-6">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="space-y-3">
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Territorio</label>
+                            <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Territorio</label>
                             <select id="manual-h-num" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all uppercase appearance-none cursor-pointer">
                                 ${allTerritorios.map(t => `<option value="${t.numero}">${t.numero} - ${t.localidad}</option>`).join('')}
                             </select>
                         </div>
                         <div class="space-y-3">
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Conductor</label>
+                            <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Conductor</label>
                             <select id="manual-h-conductor" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all uppercase appearance-none cursor-pointer">
                                 <option value="">Seleccionar responsable...</option>
-                                ${allPublicadores.map(p => `<option value="${p.nombre}">${p.nombre}</option>`).join('')}
+                                ${allPublicadores.map(p => `<option value="${p.nombre}">${toTitleCase(p.nombre)}</option>`).join('')}
                             </select>
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div class="space-y-3">
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Fecha Asignación</label>
+                            <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Fecha Asignación</label>
                             <input type="date" id="manual-h-date-asig" value="${new Date().toISOString().split('T')[0]}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-blue-500 outline-none">
                         </div>
                         <div class="space-y-3">
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Turno</label>
+                            <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Turno</label>
                             <select id="manual-h-turno" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none">
                                 <option value="manana">MAÑANA</option>
                                 <option value="tarde">TARDE</option>
@@ -625,18 +625,18 @@ export const renderHistorialView = async (container) => {
                             </select>
                         </div>
                         <div class="space-y-3">
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Fecha Entrega (Opt)</label>
+                            <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Fecha Entrega (Opt)</label>
                             <input type="date" id="manual-h-date-ent" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-emerald-500 outline-none">
                         </div>
                     </div>
                     <div class="space-y-3">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Notas / Observaciones</label>
+                        <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Notas / Observaciones</label>
                         <textarea id="manual-h-notes" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[12px] font-bold text-slate-700 dark:text-white outline-none focus:border-primary h-24" placeholder="Cargado manualmente para S-13..."></textarea>
                     </div>
                 </div>
 
                 <div class="flex gap-4 pt-6 border-t border-slate-50 dark:border-white/5">
-                    <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="btn-pro flex-1 py-5 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest transition-all">Cerrar</button>
+                    <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="btn-pro flex-1 min-w-0 py-5 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-slate-600 dark:text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest transition-all">Cerrar</button>
                     <button id="confirm-manual-h" class="btn-pro flex-[2] py-5 bg-teal-600 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-teal-500/20 transition-all active:scale-95">Guardar Registro</button>
                 </div>
             </div>

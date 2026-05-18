@@ -102,12 +102,12 @@ export class ReceptionHub {
                             <p class="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mt-1">Live Pool S-13</p>
                         </div>
                     </div>
-                    <button onclick="ReceptionHub.closeModal()" class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 text-slate-400 transition-all active:scale-90">
+                    <button onclick="ReceptionHub.closeModal()" class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 text-slate-600 dark:text-slate-400 transition-all active:scale-90">
                         <i class="fas fa-times"></i>
                     </button>
                 </header>
                 
-                <div id="reception-hub-list" class="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-slate-50/50 dark:bg-black/10">
+                <div id="reception-hub-list" class="flex-1 min-w-0 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-slate-50/50 dark:bg-black/10">
                     <!-- Contenido dinámico -->
                 </div>
 
@@ -129,7 +129,9 @@ export class ReceptionHub {
 
         // --- 2. INTERCEPTAR LOS DATOS Y APLICAR FILTRO ---
         const data = this.territories || [];
-        let territoriosParaMostrar = data.filter(t => t.estado !== 'Disponible' && t.status !== 'Disponible');
+        // CAMBIO B: Filtro ampliado — ocultar TODOS los estados inactivos, no solo 'Disponible'
+        const INACTIVE_STATES = ['Disponible', 'Predicado', 'Sin asignar', 'Extraviado', 'Libre'];
+        let territoriosParaMostrar = data.filter(t => !INACTIVE_STATES.includes(t.estado) && !INACTIVE_STATES.includes(t.status));
 
         // REGLA DE ORO: Si estoy en modo conductor (o no soy admin), solo veo LO MÍO.
         if (this.viewMode === 'conductor' || !this.isAdmin) {
@@ -148,7 +150,7 @@ export class ReceptionHub {
             const emptyMsg = (this.viewMode === 'conductor') ? "No tienes asignaciones pendientes de informar" : "No hay territorios asignados en este momento";
             list.innerHTML = `
                 <div class="py-20 text-center space-y-4 animate-fade-in opacity-50">
-                    <div class="w-16 h-16 bg-slate-200 dark:bg-white/5 rounded-full flex items-center justify-center mx-auto text-slate-400">
+                    <div class="w-16 h-16 bg-slate-200 dark:bg-white/5 rounded-full flex items-center justify-center mx-auto text-slate-600 dark:text-slate-400">
                         <i class="fas fa-check-circle text-2xl"></i>
                     </div>
                     <p class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 px-8">${emptyMsg}</p>
@@ -170,9 +172,9 @@ export class ReceptionHub {
             html = Object.keys(groups).sort().map(conductor => {
                 const groupHeader = `
                 <div class="flex items-center gap-3 mb-4 mt-10 first:mt-0">
-                    <div class="h-px bg-slate-200 dark:bg-white/5 flex-1"></div>
-                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">${conductor}</span>
-                    <div class="h-px bg-slate-200 dark:bg-white/5 flex-1"></div>
+                    <div class="h-px bg-slate-200 dark:bg-white/5 flex-1 min-w-0"></div>
+                    <span class="text-[9px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest whitespace-nowrap">${conductor}</span>
+                    <div class="h-px bg-slate-200 dark:bg-white/5 flex-1 min-w-0"></div>
                 </div>`;
                 const groupCards = groups[conductor].map(t => this.renderCard(t, preSelectedId)).join('');
                 return groupHeader + groupCards;
@@ -210,7 +212,7 @@ export class ReceptionHub {
                     </div>
                     <div class="flex-1 min-w-0">
                         <h4 class="text-[13px] font-black text-slate-800 dark:text-white uppercase truncate">${t.localidad || 'Territorio'}</h4>
-                        <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">${mzs.length} Manzanas</p>
+                        <p class="text-[9px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-widest mt-0.5">${mzs.length} Manzanas</p>
                     </div>
                 </div>
 

@@ -57,14 +57,14 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
         puntosInteres.push(...freshPuntos);
         const listZ = container.querySelector('#list-zonas');
         if (listZ) {
-            listZ.innerHTML = puntosInteres.length === 0 ? '<p class="text-[10px] text-slate-400 text-center py-4 italic w-full">Sin zonas registradas</p>' : puntosInteres.map((p) => `
+            listZ.innerHTML = puntosInteres.length === 0 ? '<p class="text-[10px] text-slate-600 dark:text-slate-400 text-center py-4 italic w-full">Sin zonas registradas</p>' : puntosInteres.map((p) => `
                 <div class="bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-bold flex items-center gap-2 shadow-sm animate-scale-in cursor-move group/tag" data-id="${p.id}">
-                    <i class="fas fa-grip-vertical text-slate-300 text-[8px]"></i>
+                    <i class="fas fa-grip-vertical text-slate-700 dark:text-slate-300 text-[8px]"></i>
                     <div class="flex flex-col cursor-pointer" onclick="window.editPOI_Rules('${p.id}')">
                         <span class="leading-none text-[11px]">${p.nombre}</span>
-                        <span class="text-[7px] text-slate-400 uppercase tracking-tighter">T-${p.territorio_numero || '??'}</span>
+                        <span class="text-[7px] text-slate-600 dark:text-slate-400 uppercase tracking-tighter">T-${p.territorio_numero || '??'}</span>
                     </div>
-                    <button onclick="window.deletePOI_Rules('${p.id}')" class="text-slate-300 hover:text-red-500 transition-colors ml-1"><i class="fas fa-times"></i></button>
+                    <button onclick="window.deletePOI_Rules('${p.id}')" class="text-slate-700 dark:text-slate-300 hover:text-red-500 transition-colors ml-1"><i class="fas fa-times"></i></button>
                 </div>
             `).join('');
         }
@@ -74,7 +74,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
         <div class="max-w-4xl mx-auto space-y-12 animate-fade-in pb-32 w-full overflow-x-hidden">
                 <!--Header Section-->
                 <div class="flex items-center gap-6 mb-10">
-                    <div class="w-16 h-16 bg-slate-100 dark:bg-white/5 rounded-2xl flex items-center justify-center text-2xl text-slate-400 border border-slate-200 dark:border-white/5 transform -rotate-3 transition-transform hover:rotate-0">
+                    <div class="w-16 h-16 bg-slate-100 dark:bg-white/5 rounded-2xl flex items-center justify-center text-2xl text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-white/5 transform -rotate-3 transition-transform hover:rotate-0">
                         <i class="fas fa-cog"></i>
                     </div>
                     <div>
@@ -89,7 +89,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                     <section class="enterprise-card p-8 relative overflow-hidden">
                         <header class="flex items-center gap-3 mb-6">
                             <i class="fas fa-broadcast-tower text-blue-600 text-sm"></i>
-                            <h4 class="text-[11px] font-black uppercase tracking-widest text-slate-400">1. Comunicación y Difusión Dinámica</h4>
+                            <h4 class="text-[11px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">1. Comunicación y Difusión Dinámica</h4>
                         </header>
 
                         <div class="space-y-6">
@@ -120,14 +120,14 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                             <div class="w-7 h-7 bg-blue-500/10 rounded-lg flex items-center justify-center text-blue-600 shrink-0 mt-0.5 transition-transform group-hover/msg:rotate-12">
                                                 <i class="fas fa-grip-vertical text-[10px]"></i>
                                             </div>
-                                            <div class="flex-1 text-slate-600 dark:text-slate-300 leading-relaxed pt-1">${msg}</div>
-                                            <button onclick="window.removeDiffusionMessage(${i})" class="text-slate-300 hover:text-red-500 transition-colors shrink-0 pt-1">
+                                            <div class="flex-1 min-w-0 text-slate-600 dark:text-slate-300 leading-relaxed pt-1">${msg}</div>
+                                            <button onclick="window.removeDiffusionMessage(${i})" class="text-slate-700 dark:text-slate-300 hover:text-red-500 transition-colors shrink-0 pt-1">
                                                 <i class="fas fa-trash-alt"></i>
                                             </button>
                                         </div>
-                                    `).join('') || '<p class="text-[10px] text-slate-400 text-center py-6 italic">No hay anuncios de difusión activos. El banner solo mostrará el TEMA DE LA SEMANA.</p>'}
+                                    `).join('') || '<p class="text-[10px] text-slate-600 dark:text-slate-400 text-center py-6 italic">No hay anuncios de difusión activos. El banner solo mostrará el TEMA DE LA SEMANA.</p>'}
                                 </div>
-                                <p class="text-[9px] text-slate-400 mt-3 ml-1 italic leading-relaxed">Todo será visible en el banner dinámico del Modo Conductor cada 3 segundos.</p>
+                                <p class="text-[9px] text-slate-600 dark:text-slate-400 mt-3 ml-1 italic leading-relaxed">Todo será visible en el banner dinámico del Modo Conductor cada 3 segundos.</p>
                             </div>
                         </div>
                     </section>
@@ -136,7 +136,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                     <section class="enterprise-card p-8 relative overflow-hidden">
                         <header class="flex items-center gap-3 mb-6">
                             <i class="fas fa-id-card text-blue-600 text-sm"></i>
-                            <h4 class="text-[11px] font-black uppercase tracking-widest text-slate-400">2. Identidad Local</h4>
+                            <h4 class="text-[11px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">2. Identidad Local</h4>
                         </header>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -166,7 +166,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                     <section class="enterprise-card p-8 relative overflow-hidden">
                         <header class="flex items-center gap-3 mb-6">
                             <i class="fas fa-calendar-check text-blue-600 text-sm"></i>
-                            <h4 class="text-[11px] font-black uppercase tracking-widest text-slate-400">3. Planificación de Servicios</h4>
+                            <h4 class="text-[11px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">3. Planificación de Servicios</h4>
                         </header>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -182,9 +182,9 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                 <div id="list-horarios" class="flex flex-wrap gap-2 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 min-h-[60px]">
                                     ${(sortChronologically(config.horarios_programa || [])).map((h, i) => `
                                             <div class="bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-bold flex items-center gap-2 shadow-sm animate-scale-in cursor-move">
-                                                <i class="fas fa-grip-vertical text-slate-300 text-[8px]"></i>
-                                                <span class="flex-1">${h}</span>
-                                                <button data-action="remove-item" data-type="horarios" data-index="${i}" class="text-slate-400 hover:text-red-500 transition-colors">
+                                                <i class="fas fa-grip-vertical text-slate-700 dark:text-slate-300 text-[8px]"></i>
+                                                <span class="flex-1 min-w-0">${h}</span>
+                                                <button data-action="remove-item" data-type="horarios" data-index="${i}" class="text-slate-600 dark:text-slate-400 hover:text-red-500 transition-colors">
                                                     <i class="fas fa-times"></i>
                                                 </button>
                                             </div>
@@ -204,9 +204,9 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                  <div id="list-lugares" class="flex flex-wrap gap-2 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 min-h-[60px]">
                                     ${(config.lugares || []).map((l, i) => `
                                             <div class="bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-bold flex items-center gap-2 shadow-sm animate-scale-in cursor-move">
-                                                <i class="fas fa-grip-vertical text-slate-300 text-[8px]"></i>
-                                                <span class="flex-1">${l}</span>
-                                                <button data-action="remove-item" data-type="lugares" data-index="${i}" class="text-slate-400 hover:text-red-500 transition-colors">
+                                                <i class="fas fa-grip-vertical text-slate-700 dark:text-slate-300 text-[8px]"></i>
+                                                <span class="flex-1 min-w-0">${l}</span>
+                                                <button data-action="remove-item" data-type="lugares" data-index="${i}" class="text-slate-600 dark:text-slate-400 hover:text-red-500 transition-colors">
                                                     <i class="fas fa-times"></i>
                                                 </button>
                                             </div>
@@ -220,7 +220,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                     <section class="enterprise-card p-8 relative overflow-hidden">
                         <header class="flex items-center gap-3 mb-6">
                             <i class="fas fa-tags text-blue-600 text-sm"></i>
-                            <h4 class="text-[11px] font-black uppercase tracking-widest text-slate-400">4. Gestión de Categorías y Zonas</h4>
+                            <h4 class="text-[11px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">4. Gestión de Categorías y Zonas</h4>
                         </header>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start w-full mb-12">
@@ -236,9 +236,9 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                 <div id="list-facetas" class="flex flex-wrap gap-2 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 min-h-[60px]">
                                     ${(config.facetas || []).map((f, i) => `
                                         <div class="bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-bold flex items-center gap-2 shadow-sm animate-scale-in cursor-move">
-                                            <i class="fas fa-grip-vertical text-slate-300 text-[8px]"></i>
-                                            <span class="flex-1">${f}</span>
-                                            <button data-action="remove-item" data-type="facetas" data-index="${i}" class="text-slate-400 hover:text-red-500 transition-colors">
+                                            <i class="fas fa-grip-vertical text-slate-700 dark:text-slate-300 text-[8px]"></i>
+                                            <span class="flex-1 min-w-0">${f}</span>
+                                            <button data-action="remove-item" data-type="facetas" data-index="${i}" class="text-slate-600 dark:text-slate-400 hover:text-red-500 transition-colors">
                                                 <i class="fas fa-times"></i>
                                             </button>
                                         </div>
@@ -258,9 +258,9 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                 <div id="list-tipos-t" class="flex flex-wrap gap-2 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 min-h-[60px]">
                                     ${(config.tipos_territorio || ['Casa en Casa', 'Negocios', 'Pública']).map((t, i) => `
                                         <div class="bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-bold flex items-center gap-2 shadow-sm animate-scale-in cursor-move">
-                                            <i class="fas fa-grip-vertical text-slate-300 text-[8px]"></i>
-                                            <span class="flex-1">${t}</span>
-                                            <button data-action="remove-item" data-type="tipos_t" data-index="${i}" class="text-slate-400 hover:text-red-500 transition-colors">
+                                            <i class="fas fa-grip-vertical text-slate-700 dark:text-slate-300 text-[8px]"></i>
+                                            <span class="flex-1 min-w-0">${t}</span>
+                                            <button data-action="remove-item" data-type="tipos_t" data-index="${i}" class="text-slate-600 dark:text-slate-400 hover:text-red-500 transition-colors">
                                                 <i class="fas fa-times"></i>
                                             </button>
                                         </div>
@@ -284,15 +284,15 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
 
                             <div id="list-zonas" class="flex flex-wrap gap-2 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 min-h-[60px]">
                                 ${puntosInteres.length === 0 ? `
-                                    <p class="text-[10px] text-slate-400 text-center py-4 italic w-full">Sin zonas registradas</p>
+                                    <p class="text-[10px] text-slate-600 dark:text-slate-400 text-center py-4 italic w-full">Sin zonas registradas</p>
                                 ` : puntosInteres.map((p) => `
                                     <div class="bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-bold flex items-center gap-2 shadow-sm animate-scale-in cursor-move group/tag" data-id="${p.id}">
-                                        <i class="fas fa-grip-vertical text-slate-300 text-[8px]"></i>
+                                        <i class="fas fa-grip-vertical text-slate-700 dark:text-slate-300 text-[8px]"></i>
                                         <div class="flex flex-col cursor-pointer" onclick="window.editPOI_Rules('${p.id}')">
                                             <span class="leading-none text-[11px]">${p.nombre}</span>
-                                            <span class="text-[7px] text-slate-400 uppercase tracking-tighter">T-${p.territorio_numero || '??'}</span>
+                                            <span class="text-[7px] text-slate-600 dark:text-slate-400 uppercase tracking-tighter">T-${p.territorio_numero || '??'}</span>
                                         </div>
-                                        <button onclick="window.deletePOI_Rules('${p.id}')" class="text-slate-300 hover:text-red-500 transition-colors ml-1"><i class="fas fa-times"></i></button>
+                                        <button onclick="window.deletePOI_Rules('${p.id}')" class="text-slate-700 dark:text-slate-300 hover:text-red-500 transition-colors ml-1"><i class="fas fa-times"></i></button>
                                     </div>
                                 `).join('')}
                             </div>
@@ -303,7 +303,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                     <section class="enterprise-card p-8 relative overflow-hidden">
                         <header class="flex items-center gap-3 mb-6">
                             <i class="fas fa-brain text-blue-600 text-sm"></i>
-                            <h4 class="text-[11px] font-black uppercase tracking-widest text-slate-400">5. Inteligencia Artificial</h4>
+                            <h4 class="text-[11px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">5. Inteligencia Artificial</h4>
                         </header>
 
                         <div class="relative group/input">
@@ -316,11 +316,11 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                     class="input-premium pr-20 font-mono"
                                     placeholder="AIzaSy...">
                                 <div class="led-status-container hidden" style="right: 3.5rem;"></div>
-                                <button class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-indigo-500 transition-colors" onclick="const p=this.parentElement.querySelector('input'); p.type=p.type==='password'?'text':'password'">
+                                <button class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-700 dark:text-slate-300 hover:text-indigo-500 transition-colors" onclick="const p=this.parentElement.querySelector('input'); p.type=p.type==='password'?'text':'password'">
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </div>
-                            <p class="text-[9px] text-slate-400 mt-3 ml-1 leading-relaxed italic">Habilita el asistente virtual para análisis predictivo y sugerencias inteligentes.</p>
+                            <p class="text-[9px] text-slate-600 dark:text-slate-400 mt-3 ml-1 leading-relaxed italic">Habilita el asistente virtual para análisis predictivo y sugerencias inteligentes.</p>
                         </div>
                     </section>
                 </div>
@@ -480,9 +480,9 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
 
         listEl.innerHTML = items.map((val, i) => `
             <div class="bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-bold flex items-center gap-2 shadow-sm animate-scale-in cursor-move">
-                <i class="fas fa-grip-vertical text-slate-300 text-[8px]"></i>
-                <span class="flex-1">${val}</span>
-                <button data-action="remove-item" data-type="${type}" data-index="${i}" class="text-slate-400 hover:text-red-500 transition-colors">
+                <i class="fas fa-grip-vertical text-slate-700 dark:text-slate-300 text-[8px]"></i>
+                <span class="flex-1 min-w-0">${val}</span>
+                <button data-action="remove-item" data-type="${type}" data-index="${i}" class="text-slate-600 dark:text-slate-400 hover:text-red-500 transition-colors">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
@@ -586,7 +586,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                     <option value="Parque" ${poi?.tipo === 'Parque' ? 'selected' : ''}>🌳 Parque</option>
                                     <option value="Comercial" ${poi?.tipo === 'Comercial' ? 'selected' : ''}>🏪 Tiendas</option>
                                 </select>
-                                <i class="fas fa-chevron-down absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 text-[10px] pointer-events-none"></i>
+                                <i class="fas fa-chevron-down absolute right-5 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400 text-[10px] pointer-events-none"></i>
                             </div>
                         </div>
                         <div class="space-y-2 group/input">
@@ -598,7 +598,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                         <option value="${t.id}" data-num="${t.numero}" ${poi?.territorio_id === t.id ? 'selected' : ''}>T-${t.numero}</option>
                                     `).join('')}
                                 </select>
-                                <i class="fas fa-chevron-down absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 text-[10px] pointer-events-none"></i>
+                                <i class="fas fa-chevron-down absolute right-5 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400 text-[10px] pointer-events-none"></i>
                             </div>
                         </div>
                     </div>
@@ -610,7 +610,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                 </div>
 
                 <footer class="mt-8 flex gap-3">
-                    <button type="button" id="btn-cancel-poi" class="btn-pro flex-1 px-5 py-3.5 text-slate-500 dark:text-slate-400 font-black text-[10px] uppercase tracking-widest bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl transition-colors">
+                    <button type="button" id="btn-cancel-poi" class="btn-pro flex-1 min-w-0 px-5 py-3.5 text-slate-500 dark:text-slate-400 font-black text-[10px] uppercase tracking-widest bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl transition-colors">
                         Omitir
                     </button>
                     <button type="button" id="save-poi-btn" class="btn-pro flex-[2] px-5 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-[10px] uppercase tracking-widest rounded-xl shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-3">

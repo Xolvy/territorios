@@ -23,11 +23,11 @@ export const renderRescueMissions = (allTerritorios, normalizedName, myExtraMiss
                     </div>
                 </header>
     
-                <div class="flex-1 overflow-y-auto custom-scrollbar p-10 space-y-10 bg-slate-50 dark:bg-black/20">
+                <div class="flex-1 min-w-0 overflow-y-auto custom-scrollbar p-10 space-y-10 bg-slate-50 dark:bg-black/20">
                     <!-- Mis Misiones Actuales -->
                     ${myExtraMissions.length > 0 ? `
                     <section class="space-y-4">
-                        <h4 class="text-[10px] font-black uppercase text-slate-400 tracking-[0.4em] ml-2">Mis Asignaciones Ad-Hoc</h4>
+                        <h4 class="text-[10px] font-black uppercase text-slate-600 dark:text-slate-400 tracking-[0.4em] ml-2">Mis Asignaciones Ad-Hoc</h4>
                         <div class="grid grid-cols-1 gap-4">
                             ${myExtraMissions.map(t => `
                                 <div class="modern-card !p-5 bg-white dark:bg-white/5 border-l-4 border-indigo-500 shadow-sm flex justify-between items-center group">
@@ -35,13 +35,13 @@ export const renderRescueMissions = (allTerritorios, normalizedName, myExtraMiss
                                         <span class="w-12 h-12 bg-indigo-500/10 text-indigo-600 rounded-xl flex items-center justify-center font-black text-lg">T${t.numero}</span>
                                         <div>
                                             <p class="text-[10px] font-black text-slate-800 dark:text-white uppercase">${t.localidad || 'General'}</p>
-                                            <p class="text-[8px] font-bold text-slate-400 uppercase truncate max-w-[150px]">
+                                            <p class="text-[8px] font-bold text-slate-600 dark:text-slate-400 uppercase truncate max-w-[150px]">
                                                 ${formatManzanas(t.manzanas)}
                                                 ${t.manzanas_trabajadas && t.manzanas_trabajadas.length > 0 ? `<span class="text-emerald-500 font-extrabold ml-1">(${t.manzanas_trabajadas.length} marcadas)</span>` : ''}
                                             </p>
                                         </div>
                                     </div>
-                                    <button onclick="window.viewMapFromReport('${t.id}')" class="w-10 h-10 bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-indigo-500 rounded-xl transition-colors">
+                                    <button onclick="window.viewMapFromReport('${t.id}')" class="w-10 h-10 bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-indigo-500 rounded-xl transition-colors">
                                         <i class="fas fa-map-marked-alt"></i>
                                     </button>
                                 </div>
@@ -52,11 +52,11 @@ export const renderRescueMissions = (allTerritorios, normalizedName, myExtraMiss
 
                     <!-- Oportunidades -->
                     <section class="space-y-4">
-                        <h4 class="text-[10px] font-black uppercase text-slate-400 tracking-[0.4em] ml-2">Lista de Trabajo</h4>
+                        <h4 class="text-[10px] font-black uppercase text-slate-600 dark:text-slate-400 tracking-[0.4em] ml-2">Lista de Trabajo</h4>
                         ${rescueCandidates.length === 0 ? `
                         <div class="text-center py-12 px-8 bg-white dark:bg-white/5 rounded-[2.5rem] border-2 border-dashed border-slate-200 dark:border-white/10 opacity-60">
                             <i class="fas fa-check-circle text-4xl text-emerald-500 mb-4"></i>
-                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">No hay territorios adicionales disponibles en este momento.</p>
+                            <p class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest leading-relaxed">No hay territorios adicionales disponibles en este momento.</p>
                         </div>
                         ` : `
                             <div class="grid grid-cols-1 gap-6">
@@ -78,7 +78,7 @@ export const renderRescueMissions = (allTerritorios, normalizedName, myExtraMiss
                                                     T${t.numero}
                                                 </div>
                                                 <div class="space-y-1">
-                                                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">LOCALIDAD</p>
+                                                    <p class="text-[9px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">LOCALIDAD</p>
                                                     <p class="text-sm font-black text-slate-800 dark:text-white uppercase truncate">${t.localidad || 'General'}</p>
                                                 </div>
                                             </div>
@@ -110,7 +110,7 @@ export const renderRescueMissions = (allTerritorios, normalizedName, myExtraMiss
                     </section>
                 </div>
                 <footer class="p-8 border-t border-slate-100 dark:border-white/10 text-center">
-                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest italic leading-relaxed">
+                    <p class="text-[9px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest italic leading-relaxed">
                         * Los territorios tomados desde aquí aparecerán directamente en tu agenda inteligente.
                     </p>
                 </footer>

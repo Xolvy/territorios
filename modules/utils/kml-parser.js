@@ -216,7 +216,7 @@ export const showKmlMapModal = async (territorio, options = {}) => {
         <div class="relative flex flex-col w-full h-full md:max-w-[96vw] md:max-h-[92vh] md:m-auto md:rounded-[2rem] overflow-hidden shadow-[0_40px_100px_-20px_rgba(0,0,0,0.7)] border border-white/10">
 
             <!-- MAP CONTAINER -->
-            <div id="xolvy-leaflet-map" class="flex-1 w-full" style="min-height: 0;"></div>
+            <div id="xolvy-leaflet-map" class="flex-1 min-w-0 w-full" style="min-height: 0;"></div>
 
             <!-- GLASS HEADER (absolute, sobre el mapa) -->
             <div class="absolute top-4 left-4 right-4 z-[1000] flex items-center justify-between gap-3 px-4 py-3 rounded-2xl border border-white/20 shadow-2xl"
@@ -224,11 +224,11 @@ export const showKmlMapModal = async (territorio, options = {}) => {
                 <div class="flex items-center gap-3 min-w-0">
                     <div class="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shrink-0"
                          style="background: linear-gradient(135deg,#4f46e5,#6366f1); box-shadow: 0 4px 20px rgba(79,70,229,0.5);">
-                        <i class="fas fa-map-marked-alt text-white text-sm"></i>
+                        <i class="fas fa-map-marked-alt text-slate-800 dark:text-slate-100 text-sm"></i>
                     </div>
                     <div class="min-w-0">
                         <p class="text-[9px] font-black text-indigo-300 uppercase tracking-[0.25em] leading-none mb-0.5">Localizador Satelital</p>
-                        <h3 class="text-sm font-black text-white leading-none truncate">Territorio ${territorio.numero || ''}</h3>
+                        <h3 class="text-sm font-black text-slate-800 dark:text-slate-100 leading-none truncate">Territorio ${territorio.numero || ''}</h3>
                     </div>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
@@ -237,7 +237,7 @@ export const showKmlMapModal = async (territorio, options = {}) => {
                         <i class="fas fa-satellite-dish text-[8px] animate-pulse"></i> Satelital
                     </span>
                     <button id="kml-modal-close"
-                        class="w-9 h-9 rounded-xl flex items-center justify-center text-slate-300 hover:text-white transition-all hover:scale-110 active:scale-95 border border-white/10"
+                        class="w-9 h-9 rounded-xl flex items-center justify-center text-slate-700 dark:text-slate-300 hover:text-white transition-all hover:scale-110 active:scale-95 border border-white/10"
                         style="background: rgba(239,68,68,0.15);">
                         <i class="fas fa-times text-sm"></i>
                     </button>
@@ -250,12 +250,12 @@ export const showKmlMapModal = async (territorio, options = {}) => {
                 <div class="flex flex-col rounded-2xl overflow-hidden shadow-2xl border border-white/15"
                      style="background: rgba(10,15,30,0.65); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);">
                     <button id="xolvy-zoom-in"
-                        class="w-11 h-11 flex items-center justify-center text-white hover:text-indigo-300 transition-all hover:bg-white/10 active:scale-90 border-b border-white/10"
+                        class="w-11 h-11 flex items-center justify-center text-slate-800 dark:text-slate-100 hover:text-indigo-300 transition-all hover:bg-white/10 active:scale-90 border-b border-white/10"
                         title="Acercar">
                         <i class="fas fa-plus text-sm font-black"></i>
                     </button>
                     <button id="xolvy-zoom-out"
-                        class="w-11 h-11 flex items-center justify-center text-white hover:text-indigo-300 transition-all hover:bg-white/10 active:scale-90"
+                        class="w-11 h-11 flex items-center justify-center text-slate-800 dark:text-slate-100 hover:text-indigo-300 transition-all hover:bg-white/10 active:scale-90"
                         title="Alejar">
                         <i class="fas fa-minus text-sm font-black"></i>
                     </button>
@@ -263,7 +263,7 @@ export const showKmlMapModal = async (territorio, options = {}) => {
 
                 <!-- Recentrar -->
                 <button id="xolvy-recenter"
-                    class="w-11 h-11 rounded-2xl flex items-center justify-center text-white transition-all hover:bg-white/10 active:scale-90 shadow-2xl border border-white/15"
+                    class="w-11 h-11 rounded-2xl flex items-center justify-center text-slate-800 dark:text-slate-100 transition-all hover:bg-white/10 active:scale-90 shadow-2xl border border-white/15"
                     style="background: rgba(10,15,30,0.65); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);"
                     title="Recentrar mapa">
                     <i class="fas fa-compress-arrows-alt text-sm"></i>
@@ -271,7 +271,7 @@ export const showKmlMapModal = async (territorio, options = {}) => {
 
                 <!-- Mi ubicación -->
                 <button id="xolvy-locate"
-                    class="w-11 h-11 rounded-2xl flex items-center justify-center text-white transition-all active:scale-90 shadow-2xl border border-indigo-400/30 hover:scale-110"
+                    class="w-11 h-11 rounded-2xl flex items-center justify-center text-slate-800 dark:text-slate-100 transition-all active:scale-90 shadow-2xl border border-indigo-400/30 hover:scale-110"
                     style="background: linear-gradient(135deg,#4f46e5,#6366f1); box-shadow: 0 4px 20px rgba(79,70,229,0.45);"
                     title="Mi Ubicación">
                     <i class="fas fa-location-arrow text-sm"></i>

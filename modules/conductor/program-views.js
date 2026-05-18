@@ -15,8 +15,8 @@ export const renderFullProgramaCards = (programa, container, territoryMap = {}, 
                         <i class="fas fa-calendar-day"></i>
                     </div>
                     <div class="space-y-2">
-                        <p class="text-xs font-black text-slate-400 uppercase tracking-[0.4em]">No hay actividades para esta semana</p>
-                        <p class="text-[10px] text-slate-400 italic font-bold uppercase tracking-widest">Consulta con el responsable del grupo</p>
+                        <p class="text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.4em]">No hay actividades para esta semana</p>
+                        <p class="text-[10px] text-slate-600 dark:text-slate-400 italic font-bold uppercase tracking-widest">Consulta con el responsable del grupo</p>
                     </div>
                 </div > `;
         }
@@ -57,7 +57,7 @@ export const renderFullProgramaCards = (programa, container, territoryMap = {}, 
                         <div class="flex justify-between items-center border-b border-slate-100 dark:border-white/5 pb-4">
                             <div>
                                 <h3 class="font-black text-xl text-slate-800 dark:text-white tracking-tighter uppercase leading-none mb-1">${dayName}</h3>
-                                <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">${d?.fecha ? d.fecha.split('-').reverse().join('/') : '-'}</span>
+                                <span class="text-[8px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest mt-1">${d?.fecha ? d.fecha.split('-').reverse().join('/') : '-'}</span>
                             </div>
                             <div class="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-500">
                                 <i class="fas fa-calendar-day"></i>
@@ -79,11 +79,11 @@ export const renderFullProgramaCards = (programa, container, territoryMap = {}, 
                                     <div class="flex items-center justify-between gap-2 mb-3">
                                         <div class="flex items-center gap-2">
                                             <i class="fas ${shiftIcons[shift]} ${shiftColors[shift]} text-[10px]"></i>
-                                            <span class="text-[9px] font-black uppercase tracking-widest text-slate-400">${shiftLabels[shift]}</span>
+                                            <span class="text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">${shiftLabels[shift]}</span>
                                         </div>
                                         ${sData.hora ? `
                                         <div class="flex items-center gap-1.5 px-2 py-0.5 bg-slate-100 dark:bg-white/5 rounded-full border border-slate-200/50 dark:border-white/5">
-                                            <i class="far fa-clock text-[8px] text-slate-400"></i>
+                                            <i class="far fa-clock text-[8px] text-slate-600 dark:text-slate-400"></i>
                                             <span class="text-[9px] font-black text-slate-600 dark:text-slate-400 tabular-nums">${sData.hora}</span>
                                         </div>` : ''}
                                     </div>
@@ -91,7 +91,7 @@ export const renderFullProgramaCards = (programa, container, territoryMap = {}, 
                                     <div class="space-y-3">
                                         ${sData.lugar ? `
                                             <div class="flex items-start gap-2">
-                                                <i class="fas fa-map-marker-alt text-slate-300 mt-1 text-[8px]"></i>
+                                                <i class="fas fa-map-marker-alt text-slate-700 dark:text-slate-300 mt-1 text-[8px]"></i>
                                                 <p class="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase leading-snug">${sData.lugar}</p>
                                             </div>` : ''}
 
@@ -103,7 +103,7 @@ export const renderFullProgramaCards = (programa, container, territoryMap = {}, 
                                             ${sData.auxiliar ? `
                                             <div class="flex items-center gap-2">
                                                 <div class="w-1 h-2 ${isAuxiliar ? 'bg-indigo-400' : 'bg-slate-200'} rounded-full"></div>
-                                                <span class="text-[8px] font-bold ${isAuxiliar ? 'text-indigo-500' : 'text-slate-400'} truncate uppercase">${sData.auxiliar}</span>
+                                                <span class="text-[8px] font-bold ${isAuxiliar ? 'text-indigo-500' : 'text-slate-600 dark:text-slate-400'} truncate uppercase">${sData.auxiliar}</span>
                                             </div>` : ''}
                                         </div>
 
@@ -115,7 +115,7 @@ export const renderFullProgramaCards = (programa, container, territoryMap = {}, 
                                                                 data-current="${sData.territorio || ''}"
                                                                 class="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-white/10 hover:border-primary/50 transition-all group/tbtn shadow-sm">
                                                             <i class="fas fa-map-location-dot text-[10px] text-primary/40 group-hover/tbtn:text-primary transition-colors"></i>
-                                                            <span class="text-[10px] font-black ${sData.territorio ? 'text-primary' : 'text-slate-400 opacity-40'} truncate max-w-[100px] uppercase">
+                                                            <span class="text-[10px] font-black ${sData.territorio ? 'text-primary' : 'text-slate-600 dark:text-slate-400 opacity-40'} truncate max-w-[100px] uppercase">
                                                                 ${sData.territorio || 'Seleccionar...'}
                                                             </span>
                                                         </button>
@@ -127,7 +127,7 @@ export const renderFullProgramaCards = (programa, container, territoryMap = {}, 
                                                             <span class="text-[10px] font-black uppercase">${t}</span>
                                                             <button onclick="window.abrirMapaTerritorio('${t}')" class="p-1 text-blue-600 hover:bg-blue-100 rounded ml-2" title="Ver mapa"><i class="fas fa-map-marked-alt"></i></button>
                                                         </span>
-                                                    `).join('') : '<span class="text-[9px] font-black text-slate-300 uppercase italic opacity-40">Libre</span>'}
+                                                    `).join('') : '<span class="text-[9px] font-black text-slate-700 dark:text-slate-300 uppercase italic opacity-40">Libre</span>'}
                                                 `}
                                             </div>
                                             ${sData.faceta ? `
@@ -182,7 +182,7 @@ export const generateLandscapePreviewHTML = (programa) => {
             <div class="w-full h-1 bg-[#1e293b] rounded-full opacity-100"></div>
         </header>
 
-        <div class="relative z-10 grid grid-cols-7 gap-5 flex-1">
+        <div class="relative z-10 grid grid-cols-7 gap-5 flex-1 min-w-0">
             ${days.map(dayName => {
         const dia = (programa.dias || []).find(d => d.nombre === dayName) || { nombre: dayName, fecha: '' };
         const activeTurns = turnosArr.filter(t => {
@@ -191,7 +191,7 @@ export const generateLandscapePreviewHTML = (programa) => {
         });
 
         return `
-                <div class="bg-white rounded-[40px] flex flex-col shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] border border-slate-100/50 overflow-hidden h-full">
+                <div class="bg-white dark:bg-slate-900 rounded-[40px] flex flex-col shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] border border-slate-100/50 overflow-hidden h-full">
                     <!-- Day Header -->
                     <div class="px-8 py-10 border-b border-slate-50 bg-[#f8fafc]/50 text-center shrink-0">
                         <h2 class="text-[32px] font-black uppercase tracking-tight text-[#1e293b] leading-none mb-2">${dayName}</h2>
@@ -199,7 +199,7 @@ export const generateLandscapePreviewHTML = (programa) => {
                     </div>
                     
                     <!-- Content -->
-                    <div class="p-8 space-y-12 flex-1">
+                    <div class="p-8 space-y-12 flex-1 min-w-0">
                         ${activeTurns.map(t => {
             const data = dia[t.id];
             const fields = [

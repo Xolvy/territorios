@@ -15,9 +15,9 @@ export const renderCampaignsTab = async (container, config, appVersion, reloadTa
                         </div>
                         Gestión de Campañas
                     </h3>
-                    <p class="text-[10px] text-slate-400 uppercase tracking-[0.4em] font-black mt-2 ml-1">Eventos especiales y ministerio intensivo</p>
+                    <p class="text-[10px] text-slate-600 dark:text-slate-400 uppercase tracking-[0.4em] font-black mt-2 ml-1">Eventos especiales y ministerio intensivo</p>
                 </div>
-                <button id="add-campana" class="w-full sm:w-auto bg-red-600 hover:bg-red-500 text-white px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-red-500/20 transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-3">
+                <button id="add-campana" class="w-full sm:w-auto bg-red-600 hover:bg-red-500 text-slate-800 dark:text-slate-100 px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-red-500/20 transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-3">
                     <i class="fas fa-plus-circle"></i> Nueva Campaña
                 </button>
             </div>

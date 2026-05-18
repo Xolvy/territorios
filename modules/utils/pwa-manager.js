@@ -89,13 +89,13 @@ const showUpdateBanner = () => {
     toast.id = 'pwa-update-toast';
     toast.className = 'fixed top-32 left-0 right-0 mx-auto w-max z-[10001] animate-bounce-in';
     toast.innerHTML = `
-        <div class="glass-morphism bg-teal-600/90 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 border border-white/20 backdrop-blur-xl">
+        <div class="glass-morphism bg-teal-600/90 text-slate-800 dark:text-slate-100 px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 border border-white/20 backdrop-blur-xl">
             <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-xl">🚀</div>
             <div>
                 <h4 class="text-[10px] font-black uppercase tracking-[0.2em]">Nueva Versión</h4>
                 <p class="text-[9px] font-bold opacity-80 uppercase tracking-wider">Actualización lista para instalar</p>
             </div>
-            <button id="btn-pwa-update-now" class="bg-white text-teal-700 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-tight hover:bg-teal-50 transition-colors shadow-lg active:scale-95">
+            <button id="btn-pwa-update-now" class="bg-white dark:bg-slate-900 text-teal-700 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-tight hover:bg-teal-50 transition-colors shadow-lg active:scale-95">
                 Actualizar
             </button>
         </div>
@@ -130,7 +130,7 @@ const ensureInstallUI = () => {
                     <img src="/icon-192.svg" class="w-10 h-10 rounded-xl transition-transform group-hover:scale-110" alt="App Icon">
                     <div class="absolute -top-1 -right-1 w-4 h-4 bg-teal-500 rounded-full border-2 border-white dark:border-slate-900 animate-pulse"></div>
                 </div>
-                <div class="flex-1">
+                <div class="flex-1 min-w-0">
                     <h4 class="text-sm font-black dark:text-white uppercase tracking-tight">Gestión de Territorios</h4>
                     <p class="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest leading-none mt-1">Uso Offline & Notificaciones</p>
                 </div>
@@ -148,7 +148,7 @@ const ensureInstallUI = () => {
                     </button>
                 `}
                 
-                <button id="btn-pwa-later" class="w-full py-2 text-[10px] font-black text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 uppercase tracking-[0.15em] transition-colors">
+                <button id="btn-pwa-later" class="w-full py-2 text-[10px] font-black text-slate-600 dark:text-slate-400 hover:text-gray-600 dark:hover:text-gray-300 uppercase tracking-[0.15em] transition-colors">
                     Continuar en el navegador
                 </button>
             </div>
@@ -224,14 +224,14 @@ const showNotificationRationale = () => {
         <div class="flex flex-col gap-4">
             <div class="flex items-center gap-4">
                 <div class="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center text-2xl animate-pulse">🔔</div>
-                <div class="flex-1">
+                <div class="flex-1 min-w-0">
                     <h4 class="text-xs font-black dark:text-white uppercase tracking-tight">Activar Avisos</h4>
                     <p class="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest">Para recordatorios de territorios</p>
                 </div>
             </div>
             <div class="flex gap-2">
-                <button id="btn-notif-grant" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl text-xs font-black uppercase tracking-widest shadow-lg transition-all active:scale-95">Permitir</button>
-                <button id="btn-notif-ignore" class="px-4 py-3 text-[10px] font-black text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 uppercase tracking-widest transition-colors">Luego</button>
+                <button id="btn-notif-grant" class="flex-1 min-w-0 bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl text-xs font-black uppercase tracking-widest shadow-lg transition-all active:scale-95">Permitir</button>
+                <button id="btn-notif-ignore" class="px-4 py-3 text-[10px] font-black text-slate-600 dark:text-slate-400 hover:text-gray-600 dark:hover:text-gray-300 uppercase tracking-widest transition-colors">Luego</button>
             </div>
         </div>
     `;

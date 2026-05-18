@@ -16,7 +16,7 @@ export const renderGruposTab = async (container) => {
                 </div>
                 Configuración de Grupos
             </h3>
-            <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] mt-2 ml-1">Liderazgo y Puntos de Salida</p>
+            <p class="text-[10px] text-slate-600 dark:text-slate-400 font-black uppercase tracking-[0.3em] mt-2 ml-1">Liderazgo y Puntos de Salida</p>
         </div>
         
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 p-4">
@@ -32,29 +32,29 @@ export const renderGruposTab = async (container) => {
 
                         <div class="space-y-4">
                             <div class="space-y-2">
-                                <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Superintendente</label>
+                                <label class="text-[9px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1">Superintendente</label>
                                 <div class="relative">
                                     <select id="leader-${g.id}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-xs font-bold text-slate-700 dark:text-slate-200 focus:border-teal-500 outline-none shadow-sm appearance-none cursor-pointer">
                                         <option value="">Sin asignar</option>
                                         ${publicadores.map(p => `<option value="${p.nombre}" ${g.lider === p.nombre ? 'selected' : ''}>${toTitleCase(p.nombre)}</option>`).join('')}
                                     </select>
-                                    <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-[10px] pointer-events-none"></i>
+                                    <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400 text-[10px] pointer-events-none"></i>
                                 </div>
                             </div>
 
                             <div class="space-y-2">
-                                <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Auxiliar</label>
+                                <label class="text-[9px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1">Auxiliar</label>
                                 <div class="relative">
                                     <select id="assistant-${g.id}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-xs font-bold text-slate-700 dark:text-slate-200 focus:border-teal-500 outline-none shadow-sm appearance-none cursor-pointer">
                                         <option value="">Sin asignar</option>
                                         ${publicadores.map(p => `<option value="${p.nombre}" ${g.asistente === p.nombre ? 'selected' : ''}>${toTitleCase(p.nombre)}</option>`).join('')}
                                     </select>
-                                    <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-[10px] pointer-events-none"></i>
+                                    <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400 text-[10px] pointer-events-none"></i>
                                 </div>
                             </div>
 
                             <div class="space-y-2">
-                                <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Punto de Salida</label>
+                                <label class="text-[9px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1">Punto de Salida</label>
                                 <div class="relative">
                                     <input type="text" id="house-${g.id}" value="${g.casa_salida || ''}" placeholder="Ej. Calle 123..." class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-xs font-bold text-slate-700 dark:text-slate-200 focus:border-teal-500 outline-none shadow-sm">
                                     <i class="fas fa-home absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 dark:text-white/10"></i>
@@ -70,7 +70,7 @@ export const renderGruposTab = async (container) => {
             <button id="add-group-btn" class="w-full md:w-auto px-10 py-5 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-white/10 text-slate-500 dark:text-slate-400 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] hover:border-teal-500 hover:text-teal-600 transition-all shadow-xl active:scale-95 group">
                 <i class="fas fa-plus-circle mr-2 group-hover:rotate-90 transition-transform"></i> Agregar Grupo
             </button>
-            <button id="save-groups" class="w-full md:w-auto px-12 py-5 bg-teal-600 hover:bg-teal-500 text-white rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-teal-500/30 flex items-center justify-center gap-4 transition-all hover:-translate-y-1 active:scale-95">
+            <button id="save-groups" class="w-full md:w-auto px-12 py-5 bg-teal-600 hover:bg-teal-500 text-slate-800 dark:text-slate-100 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-teal-500/30 flex items-center justify-center gap-4 transition-all hover:-translate-y-1 active:scale-95">
                 <i class="fas fa-cloud-upload-alt text-lg"></i> Guardar Cambios Globales
             </button>
         </div>

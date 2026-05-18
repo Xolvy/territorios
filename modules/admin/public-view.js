@@ -43,7 +43,7 @@ export const renderPredicacionTab = async (container, configData = null) => {
                 <!-- Executive Header -->
                 <header class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 bg-white dark:bg-slate-900 p-6 lg:p-8 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm">
                     <div class="flex items-center gap-6">
-                        <div class="w-16 h-16 bg-slate-50 dark:bg-white/5 rounded-2xl flex items-center justify-center text-3xl text-slate-400 border border-slate-100 dark:border-white/5">
+                        <div class="w-16 h-16 bg-slate-50 dark:bg-white/5 rounded-2xl flex items-center justify-center text-3xl text-slate-600 dark:text-slate-400 border border-slate-100 dark:border-white/5">
                             <i class="fas fa-street-view"></i>
                         </div>
                         <div>
@@ -53,12 +53,12 @@ export const renderPredicacionTab = async (container, configData = null) => {
                     </div>
                     
                     <div class="flex flex-wrap items-center gap-4 w-full lg:w-auto">
-                        <div class="relative flex-1 lg:min-w-[400px] group no-print">
-                            <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors"><i class="fas fa-search text-xs"></i></span>
+                        <div class="relative flex-1 min-w-0 lg:min-w-[400px] group no-print">
+                            <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400 group-focus-within:text-blue-600 transition-colors"><i class="fas fa-search text-xs"></i></span>
                             <input type="text" id="public-search" placeholder="Filtrar día o publicador..." value="${currentSearchQuery}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl !pl-12 pr-4 py-4 text-xs font-black shadow-inner outline-none focus:border-blue-500 transition-all uppercase">
                         </div>
                         
-                        <div class="grid grid-cols-3 gap-3 w-full lg:w-auto no-print">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full lg:w-auto no-print">
                             <button id="toggle-view-btn" class="bg-slate-900 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-800 transition-all flex items-center justify-center gap-3 shadow-lg active:scale-95">
                                 <i class="fas ${currentView === 'table' ? 'fa-th-large' : 'fa-list'}"></i> ${currentView === 'table' ? 'Matriz' : 'Lista'}
                             </button>
@@ -161,9 +161,9 @@ export const renderPredicacionTab = async (container, configData = null) => {
         const filtered = filterData();
 
         viewCont.innerHTML = `
-            <div class="table-container p-4 lg:p-0">
+            <div class="table-container p-4 lg:p-0 overflow-x-auto custom-scrollbar">
                 <table class="w-full text-left border-collapse block lg:table">
-                    <thead class="hidden lg:table-header-group bg-slate-50/50 dark:bg-white/[0.02] text-slate-400 text-[9px] font-black uppercase tracking-[0.3em] border-b border-slate-100 dark:border-white/5">
+                    <thead class="hidden lg:table-header-group bg-slate-50/50 dark:bg-white/[0.02] text-slate-600 dark:text-slate-400 text-[9px] font-black uppercase tracking-[0.3em] border-b border-slate-100 dark:border-white/5">
                         <tr>
                             <th class="px-6 py-8 w-[140px] rounded-tl-[2.5rem]">Día</th>
                             <th class="px-4 py-8 text-center w-[250px]">Horario Estipulado</th>
@@ -180,7 +180,7 @@ export const renderPredicacionTab = async (container, configData = null) => {
                             <tr class="block lg:table-row bg-white dark:bg-white/[0.02] lg:bg-transparent lg:dark:bg-transparent border lg:border-none border-slate-100 dark:border-white/5 rounded-[2rem] lg:rounded-none p-5 lg:p-0 shadow-xl lg:shadow-none hover:bg-slate-50/50 lg:hover:bg-slate-50/50 dark:hover:bg-white/[0.03] transition-all group relative">
                                 <td class="block lg:table-cell px-2 py-3 lg:px-6 lg:py-5 border-b lg:border-none border-slate-50 dark:border-white/5 last:border-none">
                                     <div class="flex flex-col lg:block gap-2">
-                                        <span class="lg:hidden text-[9px] font-black uppercase tracking-widest text-slate-400">Día</span>
+                                        <span class="lg:hidden text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">Día</span>
                                         <div class="relative w-full">
                                             <select class="w-full bg-slate-50 lg:bg-slate-100/50 dark:bg-black/20 lg:dark:bg-white/5 border border-slate-200/50 lg:border-transparent rounded-2xl px-4 lg:px-3 py-3 lg:py-3.5 text-[11px] font-black text-slate-700 dark:text-slate-200 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer uppercase tracking-tight appearance-none"
                                                 onchange="window.updatePublicRow(${originalIndex}, 'dia', this.value)">
@@ -195,15 +195,15 @@ export const renderPredicacionTab = async (container, configData = null) => {
                                 </td>
                                 <td class="block lg:table-cell px-2 py-3 lg:px-4 lg:py-5 border-b lg:border-none border-slate-50 dark:border-white/5 last:border-none">
                                     <div class="flex flex-col lg:block gap-2">
-                                        <span class="lg:hidden text-[9px] font-black uppercase tracking-widest text-slate-400">Horario Estipulado</span>
+                                        <span class="lg:hidden text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">Horario Estipulado</span>
                                         <div class="flex items-center gap-1 justify-center w-full lg:w-auto">
-                                            <div class="relative group/time flex-1">
+                                            <div class="relative group/time flex-1 min-w-0">
                                                 <input type="time" class="w-full bg-slate-50 lg:bg-slate-100/50 dark:bg-black/20 lg:dark:bg-white/5 border border-slate-200/50 lg:border-transparent rounded-2xl px-2 py-3 lg:py-3.5 text-[11px] font-black text-center text-primary outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer appearance-none"
                                                     value="${formatTimeDisplay(row.hora)}"
                                                     onchange="window.updatePublicRow(${originalIndex}, 'hora', this.value)">
                                             </div>
                                             <span class="text-slate-300 dark:text-white/10 font-bold px-1">—</span>
-                                            <div class="relative group/time flex-1">
+                                            <div class="relative group/time flex-1 min-w-0">
                                                 <input type="time" class="w-full bg-slate-50 lg:bg-slate-100/50 dark:bg-black/20 lg:dark:bg-white/5 border border-slate-200/50 lg:border-transparent rounded-2xl px-2 py-3 lg:py-3.5 text-[11px] font-black text-center text-primary outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer appearance-none"
                                                     value="${formatTimeDisplay(row.hora_fin)}"
                                                     onchange="window.updatePublicRow(${originalIndex}, 'hora_fin', this.value)">
@@ -213,7 +213,7 @@ export const renderPredicacionTab = async (container, configData = null) => {
                                 </td>
                                 <td class="block lg:table-cell px-2 py-3 lg:px-4 lg:py-5 border-b lg:border-none border-slate-50 dark:border-white/5 last:border-none">
                                     <div class="flex flex-col lg:block gap-2">
-                                        <span class="lg:hidden text-[9px] font-black uppercase tracking-widest text-slate-400">Punto de Predicación</span>
+                                        <span class="lg:hidden text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">Punto de Predicación</span>
                                         <div class="relative w-full">
                                             <select class="w-full bg-slate-50 lg:bg-slate-100/50 dark:bg-black/20 lg:dark:bg-white/5 border border-slate-200/50 lg:border-transparent rounded-2xl px-4 py-3.5 text-[11px] font-black text-slate-700 dark:text-slate-200 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer appearance-none uppercase"
                                                 onchange="window.updatePublicRow(${originalIndex}, 'lugar', this.value)">
@@ -228,7 +228,7 @@ export const renderPredicacionTab = async (container, configData = null) => {
                                 </td>
                                 <td class="block lg:table-cell px-2 py-3 lg:px-4 lg:py-5 border-b lg:border-none border-slate-50 dark:border-white/5 last:border-none">
                                     <div class="flex flex-col lg:block gap-2">
-                                        <span class="lg:hidden text-[9px] font-black uppercase tracking-widest text-slate-400">Publicador Principal</span>
+                                        <span class="lg:hidden text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">Publicador Principal</span>
                                         <div class="relative group/input flex justify-center w-full">
                                             <input list="list-publicadores" type="text"
                                                 class="w-full bg-slate-50 lg:bg-slate-100/50 dark:bg-black/20 lg:dark:bg-white/5 border border-slate-200/50 lg:border-transparent rounded-2xl px-4 py-3.5 text-[11px] font-black text-center text-slate-700 dark:text-white outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-slate-400/70 dark:placeholder:text-white/20 uppercase"
@@ -240,7 +240,7 @@ export const renderPredicacionTab = async (container, configData = null) => {
                                 </td>
                                 <td class="block lg:table-cell px-2 py-3 lg:px-4 lg:py-5 border-b lg:border-none border-slate-50 dark:border-white/5 last:border-none">
                                     <div class="flex flex-col lg:block gap-2">
-                                        <span class="lg:hidden text-[9px] font-black uppercase tracking-widest text-slate-400">Acompañante</span>
+                                        <span class="lg:hidden text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">Acompañante</span>
                                         <div class="relative group/input flex justify-center w-full">
                                             <input list="list-publicadores" type="text"
                                                 class="w-full bg-slate-50 lg:bg-slate-100/50 dark:bg-black/20 lg:dark:bg-white/5 border border-slate-200/50 lg:border-transparent rounded-2xl px-4 py-3.5 text-[11px] font-black text-center text-slate-700 dark:text-white outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-slate-400/70 dark:placeholder:text-white/20 uppercase"
@@ -289,7 +289,7 @@ export const renderPredicacionTab = async (container, configData = null) => {
 
         if (filteredAsignaciones.length === 0) {
             viewCont.innerHTML = `<div class="flex flex-col items-center justify-center py-24 gap-4 opacity-40">
-                <i class="fas fa-calendar-alt text-5xl text-slate-400"></i>
+                <i class="fas fa-calendar-alt text-5xl text-slate-600 dark:text-slate-400"></i>
                 <p class="text-[11px] font-black uppercase tracking-[0.4em] text-slate-500">Sin turnos planificados</p>
             </div>`;
             return;
@@ -312,7 +312,7 @@ export const renderPredicacionTab = async (container, configData = null) => {
             'Viernes':   { accent: 'text-amber-500',  bg: 'bg-amber-500/10',  border: 'border-amber-500/20',  dot: 'bg-amber-500' },
             'Sábado':    { accent: 'text-rose-500',   bg: 'bg-rose-500/10',   border: 'border-rose-500/20',   dot: 'bg-rose-500' },
             'Domingo':   { accent: 'text-orange-500', bg: 'bg-orange-500/10', border: 'border-orange-500/20', dot: 'bg-orange-500' },
-            'Sin Día':   { accent: 'text-slate-400',  bg: 'bg-slate-200/60 dark:bg-white/5', border: 'border-slate-200 dark:border-white/10', dot: 'bg-slate-400' },
+            'Sin Día':   { accent: 'text-slate-600 dark:text-slate-400',  bg: 'bg-slate-200/60 dark:bg-white/5', border: 'border-slate-200 dark:border-white/10', dot: 'bg-slate-400' },
         };
 
         const allDays = [...dias, 'Sin Día'].filter(d => porDia[d]?.length > 0);
@@ -336,7 +336,7 @@ export const renderPredicacionTab = async (container, configData = null) => {
                             </div>
                             <div class="flex items-center gap-3">
                                 <span class="hidden sm:block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">${turnos.length} turno${turnos.length !== 1 ? 's' : ''}</span>
-                                <i class="acc-arrow fas fa-chevron-down text-[10px] text-slate-400 transition-transform duration-300"></i>
+                                <i class="acc-arrow fas fa-chevron-down text-[10px] text-slate-600 dark:text-slate-400 transition-transform duration-300"></i>
                             </div>
                         </button>
 
@@ -371,25 +371,25 @@ export const renderPredicacionTab = async (container, configData = null) => {
                                     <div id="${cardId}" class="hidden px-5 pb-4 pt-1 bg-slate-50/50 dark:bg-black/10 animate-fade-in">
                                         <div class="grid grid-cols-2 gap-3 mb-4">
                                             <div class="space-y-1">
-                                                <p class="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em]">Lugar</p>
+                                                <p class="text-[8px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em]">Lugar</p>
                                                 <p class="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase">${lugar}</p>
                                             </div>
                                             <div class="space-y-1">
-                                                <p class="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em]">Horario</p>
+                                                <p class="text-[8px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em]">Horario</p>
                                                 <p class="text-[11px] font-black ${c.accent}">${timeStr}</p>
                                             </div>
                                             <div class="space-y-1">
-                                                <p class="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em]">Publicador Principal</p>
+                                                <p class="text-[8px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em]">Publicador Principal</p>
                                                 <p class="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase">${a.publicador || '—'}</p>
                                             </div>
                                             <div class="space-y-1">
-                                                <p class="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em]">Acompañante</p>
+                                                <p class="text-[8px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em]">Acompañante</p>
                                                 <p class="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase">${a.companero || '—'}</p>
                                             </div>
                                         </div>
                                         <div class="flex items-center gap-2">
                                             <button onclick="window.editPublicRowModal(${idx})"
-                                                class="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-primary/10 hover:bg-primary text-primary hover:text-white text-[9px] font-black uppercase tracking-wider transition-all active:scale-95">
+                                                class="flex-1 min-w-0 flex items-center justify-center gap-2 py-2 rounded-xl bg-primary/10 hover:bg-primary text-primary hover:text-white text-[9px] font-black uppercase tracking-wider transition-all active:scale-95">
                                                 <i class="fas fa-pen text-[9px]"></i> Editar
                                             </button>
                                             <button onclick="window.deletePublicRow(${idx})"
@@ -446,40 +446,40 @@ export const renderPredicacionTab = async (container, configData = null) => {
                     </div>
                     <div>
                         <h3 class="text-2xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">${idx === (data.asignaciones.length - 1) && !row.dia ? 'Nuevo Turno' : 'Editar Turno'}</h3>
-                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em] mt-1">Modificar registro S-13</p>
+                        <p class="text-[10px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-[0.3em] mt-1">Modificar registro S-13</p>
                     </div>
                 </header>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="space-y-2">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Día</label>
+                        <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1">Día</label>
                         <select id="edit-p-dia" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-xs font-bold uppercase text-slate-700 dark:text-white outline-none">
                             ${['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(d => `<option value="${d}" ${row.dia === d ? 'selected' : ''}>${d}</option>`).join('')}
                         </select>
                     </div>
                     <div class="space-y-2">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Horario</label>
+                        <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1">Horario</label>
                         <div class="flex items-center gap-2">
                             <input type="time" id="edit-p-hora" value="${row.hora || ''}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-xs font-bold text-primary outline-none text-center">
-                            <span class="text-slate-300">—</span>
+                            <span class="text-slate-700 dark:text-slate-300">—</span>
                             <input type="time" id="edit-p-hora-fin" value="${row.hora_fin || ''}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-xs font-bold text-primary outline-none text-center">
                         </div>
                     </div>
                     <div class="space-y-2 md:col-span-2">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Lugar de Predicación</label>
+                        <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1">Lugar de Predicación</label>
                         <select id="edit-p-lugar" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-xs font-bold uppercase text-slate-700 dark:text-white outline-none">
                             ${(config.lugares || []).map(l => `<option value="${l}" ${row.lugar === l ? 'selected' : ''}>${l}</option>`).join('')}
                         </select>
                     </div>
                     <div class="space-y-2">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Publicador Principal</label>
+                        <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1">Publicador Principal</label>
                         <select id="edit-p-pub" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-xs font-bold uppercase text-slate-700 dark:text-white outline-none">
                             <option value="">— Seleccionar —</option>
                             ${pubOpts}
                         </select>
                     </div>
                     <div class="space-y-2">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Acompañante</label>
+                        <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1">Acompañante</label>
                         <select id="edit-p-soc" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4 rounded-xl text-xs font-bold uppercase text-slate-700 dark:text-white outline-none">
                             <option value="">— Ninguno —</option>
                             ${socOpts}
@@ -488,7 +488,7 @@ export const renderPredicacionTab = async (container, configData = null) => {
                 </div>
 
                 <div class="pt-6 border-t border-slate-50 dark:border-white/5 flex gap-4">
-                    <button id="btn-cancel-edit-p" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest transition-all">Cancelar</button>
+                    <button id="btn-cancel-edit-p" class="flex-1 min-w-0 py-5 bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest transition-all">Cancelar</button>
                     <button id="save-edit-public" class="flex-[2] py-5 bg-primary hover:bg-primary-light text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20 active:scale-95 transition-all">GUARDAR CAMBIOS</button>
                 </div>
             </div>
@@ -560,14 +560,14 @@ export const renderPredicacionTab = async (container, configData = null) => {
                                  </div>
                                  <div>
                                      <h3 class="text-xl font-black uppercase tracking-tight text-slate-800 dark:text-white">Centro de Exportación S-13</h3>
-                                     <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em]">Generación de Reportes Oficiales</p>
+                                     <p class="text-[10px] text-slate-600 dark:text-slate-400 font-black uppercase tracking-[0.2em]">Generación de Reportes Oficiales</p>
                                  </div>
                             </div>
                             <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="w-10 h-10 bg-slate-100 dark:bg-white/5 rounded-xl flex items-center justify-center hover:bg-rose-500/10 hover:text-rose-500 transition-all">
                                 <i class="fas fa-times"></i>
                             </button>
                         </header>
-                        <div id="s13-modal-content" class="flex-1 overflow-y-auto p-10 custom-scrollbar"></div>
+                        <div id="s13-modal-content" class="flex-1 min-w-0 overflow-y-auto p-10 custom-scrollbar"></div>
                     </div>
                 </div>
             `;

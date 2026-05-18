@@ -23,11 +23,11 @@ export const renderPersonalTab = async (container, configData = null, appVersion
                         <p class="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">Gestión estratégica de la congregación</p>
                     </div>
 
-                    <div class="flex items-center gap-3 w-full md:w-auto">
+                    <div class="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
                         <button id="btn-manage-groups" class="px-5 py-3.5 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 rounded-xl border border-slate-200 dark:border-white/10 hover:border-indigo-500 hover:text-indigo-600 transition-all font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 shadow-sm active:scale-95 group">
                             <i class="fas fa-users opacity-40 group-hover:opacity-100"></i> Roles y Grupos
                         </button>
-                        <button id="btn-add-person" class="flex-1 md:flex-none px-6 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 shadow-sm shadow-indigo-200 active:scale-95 group">
+                        <button id="btn-add-person" class="flex-1 min-w-0 md:flex-none px-6 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 shadow-sm shadow-indigo-200 active:scale-95 group">
                             <i class="fas fa-plus opacity-70"></i> Nuevo Registro
                         </button>
                     </div>
@@ -37,7 +37,7 @@ export const renderPersonalTab = async (container, configData = null, appVersion
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse">
                         <thead>
-                            <tr class="bg-slate-50/50 dark:bg-black/20 text-slate-400 text-[10px] font-bold uppercase tracking-widest border-b border-slate-100 dark:border-white/5">
+                            <tr class="bg-slate-50/50 dark:bg-black/20 text-slate-600 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest border-b border-slate-100 dark:border-white/5">
                                 <th class="px-8 py-6">Nombre y Apellido</th>
                                 <th class="px-8 py-6 text-center">Grupo</th>
                                 <th class="px-8 py-6 text-center">Rol / Estado</th>
@@ -54,7 +54,7 @@ export const renderPersonalTab = async (container, configData = null, appVersion
                                             </div>
                                             <div>
                                                 <p class="text-sm font-bold text-slate-900 dark:text-white tracking-tight">${toTitleCase(p.nombre)}</p>
-                                                <p class="text-[10px] text-slate-400 font-medium">${p.telefono || 'Sin teléfono'}</p>
+                                                <p class="text-[10px] text-slate-600 dark:text-slate-400 font-medium">${p.telefono || 'Sin teléfono'}</p>
                                             </div>
                                         </div>
                                     </td>
@@ -73,16 +73,16 @@ export const renderPersonalTab = async (container, configData = null, appVersion
                                                     Conductor
                                                 </button>
                                             ` : `
-                                                ${!p.privilegios?.includes('Superintendente de Circuito') ? `<span class="text-[9px] font-bold uppercase tracking-widest text-slate-400 opacity-40">Publicador</span>` : ''}
+                                                ${!p.privilegios?.includes('Superintendente de Circuito') ? `<span class="text-[9px] font-bold uppercase tracking-widest text-slate-600 dark:text-slate-400 opacity-40">Publicador</span>` : ''}
                                             `}
                                         </div>
                                     </td>
                                     <td class="px-8 py-5">
                                         <div class="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button onclick="window.editPerson('${p.id}')" class="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all">
+                                            <button onclick="window.editPerson('${p.id}')" class="w-9 h-9 flex items-center justify-center text-slate-600 dark:text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all">
                                                 <i class="fas fa-edit text-xs"></i>
                                             </button>
-                                            <button onclick="window.deletePerson('${p.id}')" class="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all">
+                                            <button onclick="window.deletePerson('${p.id}')" class="w-9 h-9 flex items-center justify-center text-slate-600 dark:text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all">
                                                 <i class="fas fa-trash-alt text-xs"></i>
                                             </button>
                                         </div>
@@ -104,7 +104,7 @@ export const renderPersonalTab = async (container, configData = null, appVersion
                                 </div>
                                 <div class="min-w-0">
                                     <p class="text-sm font-bold text-slate-900 dark:text-white tracking-tight truncate">${toTitleCase(p.nombre)}</p>
-                                    <p class="text-[11px] text-slate-400 font-medium">${p.telefono || 'Sin teléfono'}</p>
+                                    <p class="text-[11px] text-slate-600 dark:text-slate-400 font-medium">${p.telefono || 'Sin teléfono'}</p>
                                 </div>
                             </div>
                             <div class="flex-shrink-0">
@@ -175,7 +175,7 @@ export const renderPersonalTab = async (container, configData = null, appVersion
                         </div>
                     </div>
                 </header>
-                <div class="flex-1 p-6 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-black/20">
+                <div class="flex-1 min-w-0 p-6 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-black/20">
                     <div class="modern-card !p-0 overflow-hidden shadow-xl border-slate-200 dark:border-white/5">
                         ${listHtml}
                     </div>
@@ -201,7 +201,7 @@ export const renderPersonalTab = async (container, configData = null, appVersion
                         </div>
                 </header>
 
-                <div class="flex-1 p-5 md:p-8 space-y-6 md:space-y-8 overflow-y-auto custom-scrollbar bg-slate-50/50 dark:bg-black/20 pb-8">
+                <div class="flex-1 min-w-0 p-5 md:p-8 space-y-6 md:space-y-8 overflow-y-auto custom-scrollbar bg-slate-50/50 dark:bg-black/20 pb-8">
                     <div class="space-y-6 md:space-y-8">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                             <div class="space-y-2 group/input">
@@ -222,7 +222,7 @@ export const renderPersonalTab = async (container, configData = null, appVersion
                                         <option value="Hombre" ${person?.genero === 'Hombre' ? 'selected' : ''}>Hombre</option>
                                         <option value="Mujer" ${person?.genero === 'Mujer' ? 'selected' : ''}>Mujer</option>
                                     </select>
-                                    <i class="fas fa-chevron-down absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 text-[10px] pointer-events-none"></i>
+                                    <i class="fas fa-chevron-down absolute right-5 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400 text-[10px] pointer-events-none"></i>
                                 </div>
                             </div>
                             <div class="space-y-2 group/input">
@@ -232,7 +232,7 @@ export const renderPersonalTab = async (container, configData = null, appVersion
                                         <option value="0" ${!person?.grupo || person?.grupo === 0 ? 'selected' : ''}>Sin asignar</option>
                                         ${(groups || []).map(g => `<option value="${g.id}" ${person?.grupo == g.id ? 'selected' : ''}>${g.numero_nombre || `Grupo ${g.id}`} - ${g.lugar || 'Sin ubicación'}</option>`).join('')}
                                     </select>
-                                    <i class="fas fa-chevron-down absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 text-[10px] pointer-events-none"></i>
+                                    <i class="fas fa-chevron-down absolute right-5 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400 text-[10px] pointer-events-none"></i>
                                 </div>
                             </div>
                         </div>
@@ -240,7 +240,7 @@ export const renderPersonalTab = async (container, configData = null, appVersion
                         <div id="p-email-container" class="${person?.privilegios?.includes('Administrador') ? '' : 'hidden'} animate-fade-in space-y-2 group/input">
                             <label class="label-premium !text-blue-600 dark:!text-blue-400">Acceso Google (Email)</label>
                             <input type="email" id="p-email" value="${person?.email || ''}" placeholder="usuario@gmail.com" class="input-premium !bg-blue-600/5 !border-blue-600/20 !text-blue-600 dark:!text-blue-400">
-                            <p class="text-[9px] text-slate-400 ml-2 italic font-medium">Requerido para administradores y accesos de nube.</p>
+                            <p class="text-[9px] text-slate-600 dark:text-slate-400 ml-2 italic font-medium">Requerido para administradores y accesos de nube.</p>
                         </div>
 
                         <div class="space-y-4">
@@ -254,12 +254,12 @@ export const renderPersonalTab = async (container, configData = null, appVersion
                                     <i class="fas fa-calendar-check text-blue-600 group-hover/avail-header:rotate-12 transition-transform"></i>
                                     <span class="text-[10px] font-black uppercase text-blue-600 tracking-widest">Disponibilidad de Conductor</span>
                                 </div>
-                                <button type="button" id="btn-toggle-avail" class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/5 text-slate-400 flex items-center justify-center hover:bg-slate-200 transition-all">
+                                <button type="button" id="btn-toggle-avail" class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 flex items-center justify-center hover:bg-slate-200 transition-all">
                                     <i class="fas fa-chevron-down transition-transform duration-300" id="avail-chevron"></i>
                                 </button>
                             </div>
                             <div id="p-avail-grid" class="p-6 hidden transition-all duration-500 bg-slate-50/50 dark:bg-black/20">
-                                 <div class="grid grid-cols-4 gap-2 mb-4 text-center text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                 <div class="grid grid-cols-4 gap-2 mb-4 text-center text-[9px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">
                                      <div class="text-left pl-2">Día</div>
                                      ${shifts.map(s => `<div>${s.label}</div>`).join('')}
                                  </div>
@@ -392,7 +392,7 @@ export const renderPersonalTab = async (container, configData = null, appVersion
                             <div class="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary group-hover:scale-110 transition-transform"><i class="fas fa-shield-alt"></i></div>
                             <div>
                                 <h5 class="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none mb-1">${pr}</h5>
-                                <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Nivel de Acceso</p>
+                                <p class="text-[9px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-widest">Nivel de Acceso</p>
                             </div>
                         </div>
                         <label class="relative inline-flex items-center cursor-pointer shrink-0">
@@ -479,27 +479,27 @@ export const renderPersonalTab = async (container, configData = null, appVersion
                     <div class="flex justify-between items-center">
                         <div class="flex items-center gap-3">
                             <span class="w-8 h-8 rounded-lg bg-indigo-500 text-white flex items-center justify-center font-black text-xs">#${g.id}</span>
-                            <input type="text" value="${toTitleCase(g.numero_nombre || g.nombre || `Grupo ${g.id}`)}" data-field="numero_nombre" placeholder="Nombre del Grupo" class="bg-transparent border-b border-dashed border-slate-200 focus:border-indigo-500 outline-none font-black text-sm capitalize tracking-tight text-slate-800 dark:text-white group-input">
+                            <input type="text" value="${toTitleCase(g.numero_nombre || g.nombre || `Grupo ${g.id}`)}" data-field="numero_nombre" placeholder="Nombre del Grupo" class="bg-transparent border-b border-dashed border-slate-200 dark:border-slate-700 focus:border-indigo-500 outline-none font-black text-sm capitalize tracking-tight text-slate-800 dark:text-white group-input">
                         </div>
-                        <button onclick="window.removeGroupConfig(${idx})" class="w-8 h-8 rounded-lg hover:bg-rose-500/10 text-slate-300 hover:text-rose-500 transition-all">
+                        <button onclick="window.removeGroupConfig(${idx})" class="w-8 h-8 rounded-lg hover:bg-rose-500/10 text-slate-700 dark:text-slate-300 hover:text-rose-500 transition-all">
                             <i class="fas fa-trash-alt text-xs"></i>
                         </button>
                     </div>
                     
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div class="space-y-1.5">
-                            <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Lugar de Salida</label>
+                            <label class="text-[8px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1">Lugar de Salida</label>
                             <input type="text" value="${toTitleCase(g.lugar || g.casa_salida || '')}" data-field="lugar" placeholder="Ej: Familia Barrera" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-xl p-3 text-[11px] font-bold outline-none focus:border-indigo-500/50 group-input capitalize shadow-inner">
                         </div>
                         <div class="space-y-1.5">
-                            <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Superintendente</label>
+                            <label class="text-[8px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1">Superintendente</label>
                             <select data-field="superintendente" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-xl p-3 text-[11px] font-bold outline-none focus:border-indigo-500/50 appearance-none group-input">
                                 <option value="">— Sin asignar —</option>
                                 ${personnel.filter(p => p.genero === 'Hombre').map(p => `<option value="${p.nombre}" ${(g.superintendente || g.lider) === p.nombre ? 'selected' : ''}>${toTitleCase(p.nombre)}</option>`).join('')}
                             </select>
                         </div>
                         <div class="space-y-1.5">
-                            <label class="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Auxiliar</label>
+                            <label class="text-[8px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1">Auxiliar</label>
                             <select data-field="auxiliar" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-xl p-3 text-[11px] font-bold outline-none focus:border-indigo-500/50 appearance-none group-input">
                                 <option value="">— Sin asignar —</option>
                                 ${personnel.filter(p => p.genero === 'Hombre').map(p => `<option value="${p.nombre}" ${(g.auxiliar || g.asistente) === p.nombre ? 'selected' : ''}>${toTitleCase(p.nombre)}</option>`).join('')}
@@ -528,14 +528,14 @@ export const renderPersonalTab = async (container, configData = null, appVersion
                             </div>
                         </div>
                 </header>
-                <div class="flex-1 p-6 space-y-6 overflow-y-auto custom-scrollbar bg-slate-50/50 dark:bg-black/20 pb-12">
+                <div class="flex-1 min-w-0 p-6 space-y-6 overflow-y-auto custom-scrollbar bg-slate-50/50 dark:bg-black/20 pb-12">
                     <div id="groups-config-list" class="space-y-4"></div>
-                    <button id="add-new-group-btn" class="w-full py-4 border-2 border-dashed border-slate-200 dark:border-white/10 rounded-2xl text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-indigo-600 hover:border-indigo-400 transition-all flex items-center justify-center gap-3">
+                    <button id="add-new-group-btn" class="w-full py-4 border-2 border-dashed border-slate-200 dark:border-white/10 rounded-2xl text-[10px] font-bold uppercase tracking-widest text-slate-600 dark:text-slate-400 hover:text-indigo-600 hover:border-indigo-400 transition-all flex items-center justify-center gap-3">
                         <i class="fas fa-plus-circle"></i> Añadir Nuevo Grupo
                     </button>
                 </div>
                 <div class="shrink-0 p-8 bg-white dark:bg-black/40 border-t border-slate-100 dark:border-white/5 flex gap-4">
-                    <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="flex-1 py-4 bg-slate-50 dark:bg-white/5 text-slate-500 font-bold rounded-xl text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-colors">Cancelar</button>
+                    <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="flex-1 min-w-0 py-4 bg-slate-50 dark:bg-white/5 text-slate-500 font-bold rounded-xl text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-colors">Cancelar</button>
                     <button id="save-groups-btn" class="flex-[2] bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-xl text-[11px] font-bold uppercase tracking-widest shadow-sm shadow-indigo-200 transition-all active:scale-[0.99]">
                         Guardar Configuración
                     </button>
