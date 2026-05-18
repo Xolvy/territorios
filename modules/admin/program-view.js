@@ -136,13 +136,13 @@ export const renderProgramaTab = async (container, configData = null) => {
         modalDiv.innerHTML = `
             <div class="p-8 space-y-6 bg-white dark:bg-[#0a0f18] rounded-[2.5rem] max-w-sm w-full shadow-2xl animate-scale-in flex flex-col mx-auto my-auto relative">
                 <header class="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-white/5">
-                    <button onclick="window.navPickerMonth(-1)" class="w-10 h-10 rounded-xl bg-slate-50 dark:bg-white/5 text-slate-400 hover:text-primary hover:bg-slate-100 transition-colors flex items-center justify-center">
+                    <button onclick="window.navPickerMonth(-1)" class="w-10 h-10 rounded-xl bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-primary hover:bg-slate-100 transition-colors flex items-center justify-center">
                         <i class="fas fa-chevron-left"></i>
                     </button>
                     <div class="text-center">
                         <h3 class="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-white">${monthName}</h3>
                     </div>
-                    <button onclick="window.navPickerMonth(1)" class="w-10 h-10 rounded-xl bg-slate-50 dark:bg-white/5 text-slate-400 hover:text-primary hover:bg-slate-100 transition-colors flex items-center justify-center">
+                    <button onclick="window.navPickerMonth(1)" class="w-10 h-10 rounded-xl bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-primary hover:bg-slate-100 transition-colors flex items-center justify-center">
                         <i class="fas fa-chevron-right"></i>
                     </button>
                 </header>
@@ -180,16 +180,16 @@ export const renderProgramaTab = async (container, configData = null) => {
 
                 <div class="inline-flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm h-14 overflow-hidden">
                     
-                    <button id="btn-prev-week" class="px-5 h-full text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all hover:bg-slate-50 dark:hover:bg-white/5 active:scale-95">
+                    <button id="btn-prev-week" class="px-5 h-full text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all hover:bg-slate-50 dark:hover:bg-white/5 active:scale-95">
                         <i class="fas fa-arrow-left text-xs"></i>
                     </button>
 
                     <button onclick="window.openWeekSelector()" class="flex flex-col items-center justify-center px-6 min-w-[190px] h-full cursor-pointer group hover:bg-slate-50 dark:hover:bg-white/5 transition-all active:bg-slate-100/50">
                         <span id="week-range-label" class="text-[11px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest group-hover:text-indigo-600 transition-colors">Cargando Semana...</span>
-                        <span class="text-[8px] text-slate-400 font-medium uppercase tracking-tighter">Calendario Maestro <i class="fas fa-chevron-down ml-1 text-[7px] opacity-50"></i></span>
+                        <span class="text-[8px] text-slate-600 dark:text-slate-400 font-medium uppercase tracking-tighter">Calendario Maestro <i class="fas fa-chevron-down ml-1 text-[7px] opacity-50"></i></span>
                     </button>
 
-                    <button id="btn-next-week" class="px-5 h-full text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all hover:bg-slate-50 dark:hover:bg-white/5 active:scale-95">
+                    <button id="btn-next-week" class="px-5 h-full text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all hover:bg-slate-50 dark:hover:bg-white/5 active:scale-95">
                         <i class="fas fa-arrow-right text-xs"></i>
                     </button>
 
@@ -226,12 +226,12 @@ export const renderProgramaTab = async (container, configData = null) => {
                             <i class="fas fa-share-alt"></i> COMPARTIR <i class="fas fa-chevron-down text-xs ml-1"></i>
                           </button>
                           
-                          <div id="share-menu" class="hidden absolute right-0 origin-top-right mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 z-[60] overflow-hidden">
+                          <div id="share-menu" class="hidden absolute right-0 origin-top-right mt-2 w-48 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-100 dark:border-white/5 z-[60] overflow-hidden">
                             <button onclick="generarImagenPrograma('conductor')" class="w-full text-left px-4 py-3 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700 font-semibold transition-colors border-b border-slate-50 flex items-center">
-                              <i class="fas fa-car mr-3 text-slate-400"></i> Programa Conductor
+                              <i class="fas fa-car mr-3 text-slate-600 dark:text-slate-400"></i> Programa Conductor
                             </button>
                             <button onclick="generarImagenPrograma('publicador')" class="w-full text-left px-4 py-3 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700 font-semibold transition-colors flex items-center">
-                              <i class="fas fa-users mr-3 text-slate-400"></i> Programa Publicador
+                              <i class="fas fa-users mr-3 text-slate-600 dark:text-slate-400"></i> Programa Publicador
                             </button>
                           </div>
                         </div>
@@ -249,12 +249,12 @@ export const renderProgramaTab = async (container, configData = null) => {
 
                 <div class="flex flex-col sm:flex-row justify-between items-center px-8 mt-6 gap-4">
                     <div class="flex items-center gap-6">
-                        <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-2">
+                        <p class="text-[9px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-widest flex items-center gap-2">
                             <i class="fas fa-cloud-upload-alt text-emerald-500"></i> Autoguardado inteligente
                         </p>
                     </div>
                     <div id="turn-filters" class="flex items-center gap-2"></div>
-                    <button id="action-formalizar-prog" class="text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 transition-colors flex items-center gap-2 active:scale-95">
+                    <button id="action-formalizar-prog" class="text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 hover:text-indigo-600 transition-colors flex items-center gap-2 active:scale-95">
                         <i class="fas fa-sync-alt text-[8px]"></i> Sincronización manual
                     </button>
                 </div>
@@ -271,7 +271,7 @@ export const renderProgramaTab = async (container, configData = null) => {
             btn.className = "text-[9px] font-black uppercase tracking-widest text-emerald-500 flex items-center gap-2 cursor-default";
         } else {
             btn.innerHTML = '<i class="fas fa-sync-alt text-[8px]"></i> Sincronización manual';
-            btn.className = "text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 transition-colors flex items-center gap-2 active:scale-95";
+            btn.className = "text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 hover:text-indigo-600 transition-colors flex items-center gap-2 active:scale-95";
         }
     };
 
@@ -544,7 +544,7 @@ export const renderProgramaTab = async (container, configData = null) => {
             const isActive = activeTurns.has(t.id);
             return `
                         <button onclick="window.toggleTurnFilter('${t.id}')" 
-                                class="flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all text-[9px] font-black uppercase tracking-wider ${isActive ? t.bg + ' ' + t.color : 'text-slate-400 opacity-40 hover:opacity-100'}">
+                                class="flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all text-[9px] font-black uppercase tracking-wider ${isActive ? t.bg + ' ' + t.color : 'text-slate-600 dark:text-slate-400 opacity-40 hover:opacity-100'}">
                             <i class="fas ${t.icon}"></i>
                             ${t.label}
                         </button>
@@ -555,7 +555,12 @@ export const renderProgramaTab = async (container, configData = null) => {
     };
 
     const renderTable = async () => {
-        const [freshTerritorios, freshPersonnel, freshGroupsCfg] = await Promise.all([getTerritorios(), getPublicadores(), getGroupsConfig()]);
+        const [freshTerritorios, freshPersonnel, freshGroupsCfg, freshHistorial] = await Promise.all([
+            getTerritorios(),
+            getPublicadores(),
+            getGroupsConfig(),
+            getHistorialReport()
+        ]);
         const tableContainer = container.querySelector('#admin-prog-table');
         if (!tableContainer) return;
 
@@ -576,7 +581,7 @@ export const renderProgramaTab = async (container, configData = null) => {
         const activeConductorsFresh = freshPersonnel.filter(p => p.es_conductor && p.nombre).sort((a, b) => String(a.nombre || '').localeCompare(String(b.nombre || '')));
         
         // Cache for modal
-        window._progCache = { activeConductors: activeConductorsFresh, territorios, config, dayNames, grupos: freshGroupsCfg };
+        window._progCache = { activeConductors: activeConductorsFresh, territorios, config, dayNames, grupos: freshGroupsCfg, historial: freshHistorial };
 
         let html = `<div class="flex flex-col gap-8 md:gap-12 pb-24 max-w-4xl mx-auto">`;
         
@@ -608,7 +613,7 @@ export const renderProgramaTab = async (container, configData = null) => {
                             <h4 class="text-xl md:text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">${dia.nombre}</h4>
                             <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none mt-1">${dia.fecha}</p>
                         </div>
-                        <div class="h-px flex-1 bg-gradient-to-r from-slate-200 dark:from-white/10 to-transparent ml-6"></div>
+                        <div class="h-px flex-1 min-w-0 bg-gradient-to-r from-slate-200 dark:from-white/10 to-transparent ml-6"></div>
                     </div>
                     
                     <div class="flex flex-col rounded-2xl md:rounded-3xl border border-slate-200/60 dark:border-white/5 bg-white dark:bg-white/[0.02] shadow-sm overflow-hidden">
@@ -647,11 +652,11 @@ export const renderProgramaTab = async (container, configData = null) => {
                             </div>
                             <div class="flex flex-col">
                                 <span class="text-[11px] font-black tracking-widest uppercase text-slate-800 dark:text-gray-200">${styling.label}</span>
-                                <span class="text-[10px] font-bold text-slate-400 mt-0.5">${data.hora || 'Sin hora'}</span>
+                                <span class="text-[10px] font-bold text-slate-600 dark:text-slate-400 mt-0.5">${data.hora || 'Sin hora'}</span>
                             </div>
                         </div>
 
-                        <div class="flex-1 flex flex-col gap-2 md:gap-1 pl-[56px] sm:pl-0">
+                        <div class="flex-1 min-w-0 flex flex-col gap-2 md:gap-1 pl-[56px] sm:pl-0">
                             ${hasData ? `
                                 <div class="flex flex-wrap items-center gap-2">
                                     <span class="text-sm font-black text-slate-900 dark:text-white capitalize">${data.conductor || 'Sin Asignar'}</span>
@@ -689,12 +694,12 @@ export const renderProgramaTab = async (container, configData = null) => {
                                     })()}</span>` : ''}
                                 </div>
                             ` : `
-                                <span class="text-[11px] font-bold italic text-slate-400 opacity-60">Turno vacío. Toque para asignar.</span>
+                                <span class="text-[11px] font-bold italic text-slate-600 dark:text-slate-400 opacity-60">Turno vacío. Toque para asignar.</span>
                             `}
                         </div>
                         
                         <div class="hidden sm:flex items-center justify-end text-slate-300 dark:text-slate-600 opacity-50 group-hover/row:opacity-100 transition-all gap-4">
-                            <button onclick="event.stopPropagation(); window.clearTurnData(${dayIndex}, '${turnoId}')" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-rose-500 hover:text-white transition-all text-slate-400 md:text-rose-400" title="Eliminar Horario">
+                            <button onclick="event.stopPropagation(); window.clearTurnData(${dayIndex}, '${turnoId}')" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-rose-500 hover:text-white transition-all text-slate-600 dark:text-slate-400 md:text-rose-400" title="Eliminar Horario">
                                 <i class="fas fa-trash-alt text-[11px]"></i>
                             </button>
                             <i class="fas fa-chevron-right text-[10px] group-hover/row:translate-x-1 transition-transform"></i>
@@ -710,7 +715,7 @@ export const renderProgramaTab = async (container, configData = null) => {
                 `;
             });
             html += `
-                <div onclick="window.addNewSlot(${dayIndex})" class="flex items-center justify-center p-4 min-h-[56px] cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 transition-all text-slate-400 hover:text-indigo-500 border-t border-slate-100 dark:border-white/5 border-dashed m-1.5 rounded-[1.5rem]">
+                <div onclick="window.addNewSlot(${dayIndex})" class="flex items-center justify-center p-4 min-h-[56px] cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 transition-all text-slate-600 dark:text-slate-400 hover:text-indigo-500 border-t border-slate-100 dark:border-white/5 border-dashed m-1.5 rounded-[1.5rem]">
                     <div class="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl bg-slate-100 dark:bg-white/5 group">
                         <i class="fas fa-plus group-hover:scale-125 transition-transform"></i>
                         <span>Agregar Horario</span>
@@ -745,98 +750,43 @@ export const renderProgramaTab = async (container, configData = null) => {
             const icon = getFieldIcon(field);
             
             if (field === 'Territorio') {
-                const currentSelection = parseTerritorioSelection(val);
-                // SORT MASTER LIST NUMERICALLY
-                const baseTs = [...(window._progCache.territorios || [])].sort((a,b) => {
-                    const na = parseInt(String(a.numero).match(/\d+/)) || 0;
-                    const nb = parseInt(String(b.numero).match(/\d+/)) || 0;
-                    return na - nb;
-                });
-                const occupancy = getWeekOccupancy(programa, dayIdx, turnoId);
                 const displayText = val || '-';
-                
-                const dropsHtml = baseTs.map((t) => {
-                    const tNum = String(t.numero);
-                    const manzanas = getEffectiveManzanas(t);
-                    const sel = currentSelection[tNum] || { blocks: new Set(), isFull: false };
-                    const occ = occupancy[tNum] || { blocks: new Set(), isFull: false };
-                    
-                    // Determine Status Badge
-                    let badgeClass = 'bg-emerald-100 text-emerald-700';
-                    let badgeText = 'Libre';
-                    
-                    if (occ.isFull) {
-                        badgeClass = 'bg-rose-100 text-rose-700';
-                        badgeText = 'Ocupado';
-                    } else if (occ.blocks.size > 0) {
-                        if (manzanas.length > 0 && manzanas.every(m => occ.blocks.has(m))) {
-                            badgeClass = 'bg-rose-100 text-rose-700';
-                            badgeText = 'Ocupado';
-                        } else {
-                            badgeClass = 'bg-amber-100 text-amber-700';
-                            badgeText = 'Parcial';
-                        }
-                    }
-
-                    const isChecked = sel.isFull || (manzanas.length > 0 && manzanas.every(m => sel.blocks.has(m)));
-                    const isFullyOccupied = badgeText === 'Ocupado';
-
-                    return `
-                        <div class="territorio-group p-3 border-b border-slate-50 dark:border-white/5 last:border-0">
-                            <div class="flex items-center justify-between mb-2">
-                                <label class="flex items-center gap-3 cursor-pointer group/selector relative">
-                                    <input type="checkbox" 
-                                           onchange="window.handleHierarchicalToggle(this, '${tNum}', true, null, '${turnoId}')"
-                                           ${isChecked ? 'checked' : ''} 
-                                           ${isFullyOccupied ? 'disabled' : ''}
-                                           class="absolute opacity-0 w-6 h-6 z-10 cursor-pointer">
-                                    <div class="w-5 h-5 rounded border-2 border-slate-300 dark:border-white/20 ${isChecked ? 'bg-blue-600 border-blue-600' : ''} flex items-center justify-center transition-all peer-ui ${isFullyOccupied ? 'opacity-30 cursor-not-allowed' : ''}">
-                                        <i class="fas fa-check text-[10px] text-white transition-opacity" style="opacity: ${isChecked ? '1' : '0'};"></i>
-                                    </div>
-                                    <div class="flex flex-col">
-                                        <span class="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300 group-hover:text-primary transition-colors">Territorio ${tNum}</span>
-                                        <span class="text-[7px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                                            Última vez: ${t.ultima_fecha ? UIHelpers.fmtDateAt(t.ultima_fecha) : 'Nunca'}
-                                        </span>
-                                    </div>
-                                </label>
-                                <span class="px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${badgeClass}">${badgeText}</span>
-                            </div>
-                            
-                            <div class="grid grid-cols-3 sm:grid-cols-4 gap-1.5 ml-8">
-                                ${manzanas.map(m => {
-                                    const isMSelected = sel.isFull || sel.blocks.has(m);
-                                    const isMOccupied = occ.isFull || occ.blocks.has(m);
-                                    
-                                    if (isMOccupied) {
-                                        return `<div class="px-3 py-1 bg-slate-100 border border-slate-200 rounded-lg text-[9px] font-semibold text-slate-400 opacity-50 cursor-not-allowed line-through text-center">${m}</div>`;
-                                    }
-                                    
-                                    return `
-                                        <div onclick="window.handleHierarchicalToggle(this, '${tNum}', false, '${m}', '${turnoId}')" 
-                                             class="block-chip px-3 py-1 ${isMSelected ? 'bg-blue-600 border-blue-600 text-white shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-blue-50 hover:border-blue-300'} border rounded-lg text-[9px] font-semibold cursor-pointer transition-all text-center select-none"
-                                             data-selected="${isMSelected}">
-                                            ${m}
-                                        </div>`;
-                                }).join('')}
-                            </div>
-                        </div>`;
-                }).join('');
+                // Trigger rendering and sorting of the list container once modal is placed in DOM
+                setTimeout(() => {
+                    window.changeTerritorySort(null, dayIdx, turnoId, window._progCache.territorySortOrder || 'numero');
+                }, 10);
 
                 return `
                     <div class="space-y-2">
-                        <label class="text-[10px] font-black text-slate-400 tracking-[0.2em] uppercase ml-1 flex items-center justify-between">
+                        <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 tracking-[0.2em] uppercase ml-1 flex items-center justify-between">
                             <span><i class="fas fa-map-marked-alt opacity-30 mr-1"></i> ${field}</span>
                         </label>
                         <div class="custom-multiselect relative" id="sheet-territorio-container">
                             <div onclick="window.toggleSheetDropdown(event, 'sheet-territorio-dropdown', 'territorio-dropdown-icon')" class="w-full text-left bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-4 rounded-xl hover:border-primary transition-all flex items-center justify-between shadow-sm cursor-pointer block-scale-click min-h-[52px]">
-                                <span id="selected-territorio-text" class="text-[12px] font-black truncate pr-4 ${val ? 'text-primary' : 'text-slate-400 opacity-40'}">${displayText}</span>
-                                <i class="fas fa-chevron-down text-[10px] text-slate-400 opacity-50 transition-transform duration-300 pointer-events-none dropdown-chevron-icon" id="territorio-dropdown-icon"></i>
+                                <span id="selected-territorio-text" class="text-[12px] font-black truncate pr-4 ${val ? 'text-primary' : 'text-slate-600 dark:text-slate-400 opacity-40'}">${displayText}</span>
+                                <i class="fas fa-chevron-down text-[10px] text-slate-600 dark:text-slate-400 opacity-50 transition-transform duration-300 pointer-events-none dropdown-chevron-icon" id="territorio-dropdown-icon"></i>
                             </div>
                             <div id="sheet-territorio-dropdown" class="custom-dropdown-content hidden absolute left-0 right-0 bottom-full mb-1 bg-white dark:bg-[#151a26] border border-slate-200 dark:border-white/10 rounded-2xl shadow-[0_-15px_35px_-10px_rgba(0,0,0,0.3)] z-50 max-h-80 overflow-y-auto custom-scrollbar p-0 animate-scale-in origin-bottom">
-                                <div class="p-2 space-y-1">
-                                    ${dropsHtml}
+                                <!-- Cabecera de Ordenamiento -->
+                                <div class="px-4 py-3 bg-slate-50 dark:bg-[#0e1320] border-b border-slate-100 dark:border-white/5 flex items-center justify-between sticky top-0 z-10">
+                                    <span class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">Ordenar por:</span>
+                                    <div class="flex items-center gap-1.5 p-0.5 bg-slate-200/60 dark:bg-white/5 rounded-lg border border-slate-300/40 dark:border-white/5">
+                                        <button type="button" onclick="window.changeTerritorySort(event, ${dayIdx}, '${turnoId}', 'numero')" 
+                                                id="sort-btn-numero"
+                                                class="px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-wider transition-all duration-200 bg-white dark:bg-[#1a202c] text-slate-800 dark:text-white shadow-sm">
+                                            Número
+                                        </button>
+                                        <button type="button" onclick="window.changeTerritorySort(event, ${dayIdx}, '${turnoId}', 'antiguos')" 
+                                                id="sort-btn-antiguos"
+                                                class="px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-wider transition-all duration-200 text-slate-500 hover:text-slate-800 dark:hover:text-white">
+                                            Antiguos
+                                        </button>
+                                    </div>
                                 </div>
+                                
+                                <!-- Contenedor de la Lista -->
+                                <div id="territorios-list-container" class="p-2 space-y-1"></div>
+
                                 <div class="border-t border-slate-100 dark:border-white/5 p-2 bg-slate-50 dark:bg-[#0a0f18] rounded-b-xl flex justify-center sticky bottom-0 z-10">
                                     <button onclick="window.limpiarTerritorio()" class="text-[10px] font-black text-slate-500 hover:text-rose-600 transition-colors py-1 px-4 tracking-widest uppercase">
                                         LIMPIAR
@@ -855,37 +805,56 @@ export const renderProgramaTab = async (container, configData = null) => {
                 const baseGrupos = window._progCache.grupos || [];
                 const gList = [{nombre:'Todos'}].concat(baseGrupos);
                 const displayText = currentGroups.length > 0 ? currentGroups.join(', ') : '-';
+
+                // PARCHE 4: Collision Detection — collect groups already assigned in this day/shift (other slots)
+                const occupiedGroups = new Set();
+                const currentDia = programa.dias[dayIdx];
+                if (currentDia) {
+                    Object.keys(currentDia).filter(k => k !== 'nombre' && k !== 'fecha' && k !== turnoId).forEach(otherTurnoId => {
+                        const otherData = currentDia[otherTurnoId];
+                        if (otherData && otherData.grupos) {
+                            otherData.grupos.split(',').map(g => g.trim()).filter(Boolean).forEach(g => occupiedGroups.add(g.toLowerCase()));
+                        }
+                    });
+                }
                 
                 const dropHtml = gList.map((g) => {
                     const groupStr = g?.nombre || g?.numero_nombre || (g?.id ? `Grupo ${g.id}` : '');
                     if (!groupStr || groupStr === 'Grupo ') return '';
                     const isChecked = currentGroups.some(c => (c || '').toLowerCase() === (groupStr || '').toLowerCase() || c === groupStr);
+                    // A group is occupied if another slot on the same day already uses it (and it's not currently selected here)
+                    const isOccupied = !isChecked && occupiedGroups.has(groupStr.toLowerCase());
                     
                     return `
-                        <label class="flex items-center p-3 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl cursor-pointer transition-colors group/chk">
+                        <label class="flex items-center p-3 ${isOccupied ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-100 dark:hover:bg-white/5 cursor-pointer'} rounded-xl transition-colors group/chk">
                             <div class="relative w-5 h-5 flex items-center justify-center shrink-0">
-                                <input type="checkbox" value="${groupStr}" ${isChecked?'checked':''} onchange="window.handleSheetMultiSelectToggle(this, 'select-grupos', 'selected-groups-text', 'sheet-groups-dropdown')" class="group-checkbox absolute opacity-0 inset-0 z-10 cursor-pointer w-full h-full">
+                                <input type="checkbox" value="${groupStr}" ${isChecked?'checked':''} ${isOccupied?'disabled':''}
+                                    onchange="window.handleSheetGroupToggle(this, 'select-grupos', 'selected-groups-text', 'sheet-groups-dropdown')"
+                                    class="group-checkbox absolute opacity-0 inset-0 z-10 ${isOccupied ? 'cursor-not-allowed' : 'cursor-pointer'} w-full h-full">
                                 <div class="w-4 h-4 rounded border-2 border-slate-300 dark:border-white/20 ${isChecked ? 'bg-blue-600 border-blue-600' : ''} flex items-center justify-center transition-all peer-ui">
-                                    <i class="fas fa-check text-[8px] text-white transition-opacity" style="opacity: ${isChecked ? '1' : '0'};"></i>
+                                    <i class="fas fa-check text-[8px] text-slate-800 dark:text-slate-100 transition-opacity" style="opacity: ${isChecked ? '1' : '0'};"></i>
                                 </div>
                             </div>
-                            <span class="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300 ml-3 group-hover/chk:text-primary transition-colors">${groupStr}</span>
+                            <div class="flex flex-col ml-3">
+                                <span class="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300 ${isOccupied ? '' : 'group-hover/chk:text-primary'} transition-colors">${groupStr}</span>
+                                ${isOccupied ? '<span class="text-[8px] font-bold text-rose-500 uppercase tracking-widest">Ya asignado</span>' : ''}
+                            </div>
                         </label>`;
                 }).join('');
 
                 return `
                     <div class="space-y-2">
-                        <label class="text-[10px] font-black text-slate-400 tracking-[0.2em] uppercase ml-1 flex items-center justify-between">
+                        <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 tracking-[0.2em] uppercase ml-1 flex items-center justify-between">
                             <span><i class="fas fa-users-cog opacity-30 mr-1"></i> ${field}</span>
                         </label>
                         <div class="custom-multiselect relative" id="sheet-groups-container">
                             <div onclick="window.toggleSheetDropdown(event, 'sheet-groups-dropdown', 'groups-dropdown-icon')" class="w-full text-left bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-4 rounded-xl hover:border-primary transition-all flex items-center justify-between shadow-sm cursor-pointer block-scale-click min-h-[52px]">
-                                <span id="selected-groups-text" class="text-[12px] font-black truncate pr-4 ${currentGroups.length ? 'text-primary' : 'text-slate-400 opacity-40'}">${displayText}</span>
-                                <i class="fas fa-chevron-down text-[10px] text-slate-400 opacity-50 transition-transform duration-300 pointer-events-none dropdown-chevron-icon" id="groups-dropdown-icon"></i>
+                                <span id="selected-groups-text" class="text-[12px] font-black truncate pr-4 ${currentGroups.length ? 'text-primary' : 'text-slate-600 dark:text-slate-400 opacity-40'}">${displayText}</span>
+                                <i class="fas fa-chevron-down text-[10px] text-slate-600 dark:text-slate-400 opacity-50 transition-transform duration-300 pointer-events-none dropdown-chevron-icon" id="groups-dropdown-icon"></i>
                             </div>
                             <div id="sheet-groups-dropdown" class="custom-dropdown-content hidden absolute left-0 right-0 bottom-full mb-1 bg-white dark:bg-[#151a26] border border-slate-200 dark:border-white/10 rounded-2xl shadow-[0_-15px_35px_-10px_rgba(0,0,0,0.3)] dark:shadow-none z-50 max-h-56 overflow-y-auto custom-scrollbar p-2 animate-scale-in origin-bottom">
                                 ${dropHtml}
-                                <div class="border-t border-slate-100 p-2 bg-slate-50 rounded-b-xl flex justify-center mt-2 sticky bottom-0">
+                                <div class="border-t border-slate-100 dark:border-white/5 p-2 bg-slate-50 dark:bg-slate-800 rounded-b-xl flex justify-center mt-2 sticky bottom-0">
                                     <button onclick="window.cerrarMenuDesplegable(event, 'sheet-groups-dropdown')" class="text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors py-1 px-4">
                                         CERRAR
                                     </button>
@@ -901,9 +870,23 @@ export const renderProgramaTab = async (container, configData = null) => {
                 const safeCheck = (disp) => (Array.isArray(disp) ? disp : []).includes(availKey);
                 const available = window._progCache.activeConductors.filter(e => safeCheck(e.disponibilidad));
                 const nonAvailable = window._progCache.activeConductors.filter(e => !safeCheck(e.disponibilidad));
+
+                // PARCHE 5: Collision Detection — find conductors/auxiliares already busy in other slots this same day
+                const busyPersonnel = new Set();
+                const currentDia = programa.dias[dayIdx];
+                if (currentDia) {
+                    Object.keys(currentDia).filter(k => k !== 'nombre' && k !== 'fecha' && k !== turnoId).forEach(otherTurnoId => {
+                        const otherData = currentDia[otherTurnoId];
+                        if (otherData) {
+                            if (otherData.conductor) busyPersonnel.add(otherData.conductor.trim().toLowerCase());
+                            if (otherData.auxiliar) busyPersonnel.add(otherData.auxiliar.trim().toLowerCase());
+                        }
+                    });
+                }
+
                 const finalOpts = [
-                    ...available.map(c => ({ name: c.nombre, isAvail: true })),
-                    ...nonAvailable.map(c => ({ name: c.nombre, isAvail: false }))
+                    ...available.map(c => ({ name: c.nombre, isAvail: true, isBusy: busyPersonnel.has(c.nombre.trim().toLowerCase()) })),
+                    ...nonAvailable.map(c => ({ name: c.nombre, isAvail: false, isBusy: busyPersonnel.has(c.nombre.trim().toLowerCase()) }))
                 ];
 
                 const currentPels = (val || '').split(',').map(p => p.trim()).filter(Boolean);
@@ -916,37 +899,38 @@ export const renderProgramaTab = async (container, configData = null) => {
                         ? `window.handleSheetSingleSelectToggle(this, '${o.name}', 'select-${fieldId}', 'selected-${fieldId}-text', 'sheet-${fieldId}-dropdown')`
                         : `const cb = this.querySelector('input'); cb.checked = !cb.checked; cb.dispatchEvent(new Event('change'));`;
 
+                    const isBusy = o.isBusy && !isChecked;
                     return `
-                        <label onclick="${handler}" class="flex items-center p-3 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl cursor-pointer transition-colors group/chk relative">
+                        <label onclick="${isBusy ? '' : handler}" class="flex items-center p-3 ${isBusy ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-100 dark:hover:bg-white/5 cursor-pointer'} rounded-xl transition-colors group/chk relative">
                             <div class="relative w-5 h-5 flex items-center justify-center shrink-0">
-                                <input type="${isSingle ? 'radio' : 'checkbox'}" name="group-${fieldId}" value="${o.name}" ${isChecked?'checked':''} 
+                                <input type="${isSingle ? 'radio' : 'checkbox'}" name="group-${fieldId}" value="${o.name}" ${isChecked?'checked':''} ${isBusy?'disabled':''}
                                        onclick="event.stopPropagation()"
                                        onchange="${!isSingle ? `window.handleSheetMultiSelectToggle(this, 'select-${fieldId}', 'selected-${fieldId}-text', 'sheet-${fieldId}-dropdown')` : ''}"
-                                       class="group-checkbox absolute opacity-0 inset-0 z-10 cursor-pointer w-full h-full">
+                                       class="group-checkbox absolute opacity-0 inset-0 z-10 ${isBusy ? 'cursor-not-allowed' : 'cursor-pointer'} w-full h-full">
                                 <div class="w-4 h-4 rounded border-2 border-slate-300 dark:border-white/20 ${isChecked ? 'bg-blue-600 border-blue-600' : ''} flex items-center justify-center transition-all peer-ui">
-                                    <i class="fas fa-check text-[8px] text-white transition-opacity" style="opacity: ${isChecked ? '1' : '0'};"></i>
+                                    <i class="fas fa-check text-[8px] text-slate-800 dark:text-slate-100 transition-opacity" style="opacity: ${isChecked ? '1' : '0'};"></i>
                                 </div>
                             </div>
                             <div class="ml-3 flex flex-col pointer-events-none">
-                                <span class="text-[11px] font-black tracking-tight text-slate-700 dark:text-slate-300 group-hover/chk:text-primary transition-colors capitalize">${o.name}</span>
-                                ${o.isAvail ? `<span class="text-[8px] font-bold text-emerald-500 uppercase tracking-widest mt-0.5">Disponible</span>` : ''}
+                                <span class="text-[11px] font-black tracking-tight text-slate-700 dark:text-slate-300 ${isBusy ? '' : 'group-hover/chk:text-primary'} transition-colors capitalize">${o.name}</span>
+                                ${isBusy ? '<span class="text-[8px] font-bold text-rose-500 uppercase tracking-widest mt-0.5">Ya asignado hoy</span>' : (o.isAvail ? '<span class="text-[8px] font-bold text-emerald-500 uppercase tracking-widest mt-0.5">Disponible</span>' : '')}
                             </div>
                         </label>`;
                 }).join('');
 
                 return `
                     <div class="space-y-2">
-                        <label class="text-[10px] font-black text-slate-400 tracking-[0.2em] uppercase ml-1 flex items-center gap-2">
+                        <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 tracking-[0.2em] uppercase ml-1 flex items-center gap-2">
                             <i class="fas ${icon} opacity-30"></i> ${field}
                         </label>
                         <div class="custom-multiselect relative" id="sheet-${fieldId}-container">
                             <div onclick="window.toggleSheetDropdown(event, 'sheet-${fieldId}-dropdown', '${fieldId}-dropdown-icon')" class="w-full text-left bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-4 rounded-xl hover:border-primary transition-all flex items-center justify-between shadow-sm cursor-pointer block-scale-click min-h-[52px]">
-                                <span id="selected-${fieldId}-text" class="text-[12px] font-black truncate pr-4 capitalize ${currentPels.length ? 'text-primary' : 'text-slate-400 opacity-40'}">${displayText}</span>
-                                <i class="fas fa-chevron-down text-[10px] text-slate-400 opacity-50 transition-transform duration-300 pointer-events-none dropdown-chevron-icon" id="${fieldId}-dropdown-icon"></i>
+                                <span id="selected-${fieldId}-text" class="text-[12px] font-black truncate pr-4 capitalize ${currentPels.length ? 'text-primary' : 'text-slate-600 dark:text-slate-400 opacity-40'}">${displayText}</span>
+                                <i class="fas fa-chevron-down text-[10px] text-slate-600 dark:text-slate-400 opacity-50 transition-transform duration-300 pointer-events-none dropdown-chevron-icon" id="${fieldId}-dropdown-icon"></i>
                             </div>
                             <div id="sheet-${fieldId}-dropdown" class="custom-dropdown-content hidden absolute left-0 right-0 bottom-full mb-1 bg-white dark:bg-[#151a26] border border-slate-200 dark:border-white/10 rounded-2xl shadow-[0_-15px_35px_-10px_rgba(0,0,0,0.3)] z-50 max-h-56 overflow-y-auto custom-scrollbar p-2 animate-scale-in origin-bottom">
                                 ${dropHtml}
-                                <div class="border-t border-slate-100 p-2 bg-slate-50 rounded-b-xl flex justify-center mt-2 sticky bottom-0">
+                                <div class="border-t border-slate-100 dark:border-white/5 p-2 bg-slate-50 dark:bg-slate-800 rounded-b-xl flex justify-center mt-2 sticky bottom-0">
                                     <button onclick="window.cerrarMenuDesplegable(event, 'sheet-${fieldId}-dropdown')" class="text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors py-1 px-4">
                                         CERRAR
                                     </button>
@@ -958,7 +942,7 @@ export const renderProgramaTab = async (container, configData = null) => {
             } else {
                 return `
                     <div class="space-y-2">
-                        <label class="text-[10px] font-black text-slate-400 tracking-[0.2em] uppercase ml-1 flex items-center gap-2">
+                        <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 tracking-[0.2em] uppercase ml-1 flex items-center gap-2">
                             <i class="fas ${icon} opacity-30"></i> ${field}
                         </label>
                         <div class="relative">
@@ -993,7 +977,7 @@ export const renderProgramaTab = async (container, configData = null) => {
                             </div>
                             <div>
                                 <div class="flex items-center gap-2">
-                                    <h3 class="text-[10px] font-black uppercase text-slate-400 tracking-widest">${dia.nombre}</h3>
+                                    <h3 class="text-[10px] font-black uppercase text-slate-600 dark:text-slate-400 tracking-widest">${dia.nombre}</h3>
                                     <span class="text-xs opacity-20">•</span>
                                     
                                     <!-- Custom Premium Dropdown -->
@@ -1023,7 +1007,7 @@ export const renderProgramaTab = async (container, configData = null) => {
                                         <input type="hidden" id="select-turno-id" value="${turnoId.includes('zoom') ? 'zoom' : (turnoId.includes('noche') ? 'noche' : (turnoId.includes('tarde') ? 'tarde' : 'manana'))}">
                                     </div>
                                 </div>
-                                <p class="text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-0.5">${dia.fecha}</p>
+                                <p class="text-[9px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-[0.2em] mt-0.5">${dia.fecha}</p>
                             </div>
                         </div>
                         
@@ -1031,7 +1015,7 @@ export const renderProgramaTab = async (container, configData = null) => {
                             <button onclick="window.clearTurnData(${dayIdx}, '${turnoId}'); document.getElementById('modal-sheet-close').click();" class="w-10 h-10 min-h-[44px] rounded-xl bg-rose-50 dark:bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white flex items-center justify-center transition-all">
                                 <i class="fas fa-trash-alt text-[12px]"></i>
                             </button>
-                            <button id="modal-sheet-close" class="w-10 h-10 min-h-[44px] rounded-xl bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-slate-600 dark:hover:text-white flex items-center justify-center transition-all">
+                            <button id="modal-sheet-close" class="w-10 h-10 min-h-[44px] rounded-xl bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-slate-600 dark:hover:text-white flex items-center justify-center transition-all">
                                 <i class="fas fa-times text-[14px]"></i>
                             </button>
                         </div>
@@ -1048,7 +1032,7 @@ export const renderProgramaTab = async (container, configData = null) => {
                     ` : ''}
                 </header>
 
-                <div class="px-6 md:px-8 py-6 space-y-6 form-scroller flex-1 overflow-y-auto custom-scrollbar pr-3 pb-10">
+                <div class="px-6 md:px-8 py-6 space-y-6 form-scroller flex-1 min-w-0 overflow-y-auto custom-scrollbar pr-3 pb-10">
                     ${fieldsHTML}
                 </div>
                 
@@ -1156,7 +1140,57 @@ export const renderProgramaTab = async (container, configData = null) => {
         const textSpan = document.getElementById(textId);
         if (textSpan) {
             textSpan.innerText = finalStr || '—';
-            textSpan.className = `text-[12px] font-black truncate pr-4 ${finalStr ? 'text-primary' : 'text-slate-400 opacity-40'}`;
+            textSpan.className = `text-[12px] font-black truncate pr-4 ${finalStr ? 'text-primary' : 'text-slate-600 dark:text-slate-400 opacity-40'}`;
+        }
+    };
+
+    // PARCHE 3: Mutual Exclusion handler for Groups (Todos ↔ specific groups)
+    window.handleSheetGroupToggle = (checkbox, hiddenId, textId, dropdownId) => {
+        const container = document.getElementById(dropdownId);
+        if (!container) return;
+
+        const isTodos = checkbox.value === 'Todos';
+
+        if (isTodos && checkbox.checked) {
+            // Uncheck all specific group checkboxes
+            container.querySelectorAll('.group-checkbox').forEach(cb => {
+                if (cb.value !== 'Todos' && !cb.disabled) {
+                    cb.checked = false;
+                }
+            });
+        } else if (!isTodos && checkbox.checked) {
+            // Uncheck "Todos" if a specific group is selected
+            const todosCb = container.querySelector('.group-checkbox[value="Todos"]');
+            if (todosCb) todosCb.checked = false;
+        }
+
+        // Update all visual peer-ui tokens
+        container.querySelectorAll('label.group\\/chk').forEach(label => {
+            const cb = label.querySelector('input');
+            const peerUi = label.querySelector('.peer-ui');
+            const icon = peerUi?.querySelector('i');
+            if (cb && peerUi && icon) {
+                if (cb.checked) {
+                    peerUi.classList.add('bg-blue-600', 'border-blue-600');
+                    icon.style.opacity = '1';
+                } else {
+                    peerUi.classList.remove('bg-blue-600', 'border-blue-600');
+                    icon.style.opacity = '0';
+                }
+            }
+        });
+
+        const checkedBoxes = Array.from(container.querySelectorAll('.group-checkbox:checked'));
+        const checkedVals = checkedBoxes.map(cb => cb.value);
+        const finalStr = checkedVals.includes('Todos') ? 'Todos' : checkedVals.join(', ');
+
+        const hidden = document.getElementById(hiddenId);
+        if (hidden) hidden.value = finalStr;
+
+        const textSpan = document.getElementById(textId);
+        if (textSpan) {
+            textSpan.innerText = finalStr || '—';
+            textSpan.className = `text-[12px] font-black truncate pr-4 ${finalStr ? 'text-primary' : 'text-slate-600 dark:text-slate-400 opacity-40'}`;
         }
     };
 
@@ -1192,11 +1226,164 @@ export const renderProgramaTab = async (container, configData = null) => {
         const textSpan = document.getElementById(textId);
         if (textSpan) {
             textSpan.innerText = val || '—';
-            textSpan.className = `text-[12px] font-black truncate pr-4 ${val ? 'text-primary' : 'text-slate-400 opacity-40'}`;
+            textSpan.className = `text-[12px] font-black truncate pr-4 ${val ? 'text-primary' : 'text-slate-600 dark:text-slate-400 opacity-40'}`;
         }
 
         // Auto-close for single select UX
         setTimeout(() => window.cerrarMenuDesplegable(null, dropdownId), 180);
+    };
+
+    window.changeTerritorySort = (e, dayIdx, turnoId, criteria) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        window._progCache.territorySortOrder = criteria;
+
+        const btnNumero = document.getElementById('sort-btn-numero');
+        const btnAntiguos = document.getElementById('sort-btn-antiguos');
+
+        if (btnNumero && btnAntiguos) {
+            if (criteria === 'numero') {
+                btnNumero.className = "px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-wider transition-all duration-200 bg-white dark:bg-[#1a202c] text-slate-800 dark:text-white shadow-sm";
+                btnAntiguos.className = "px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-wider transition-all duration-200 text-slate-500 hover:text-slate-800 dark:hover:text-white";
+            } else {
+                btnNumero.className = "px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-wider transition-all duration-200 text-slate-500 hover:text-slate-800 dark:hover:text-white";
+                btnAntiguos.className = "px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-wider transition-all duration-200 bg-white dark:bg-[#1a202c] text-slate-800 dark:text-white shadow-sm";
+            }
+        }
+
+        window.renderTerritoriosDropdownList(dayIdx, turnoId);
+    };
+
+    window.renderTerritoriosDropdownList = (dayIdx, turnoId) => {
+        const listContainer = document.getElementById('territorios-list-container');
+        if (!listContainer) return;
+
+        const hiddenInput = document.getElementById('select-territorio');
+        const currentVal = hiddenInput ? hiddenInput.value : '';
+        const currentSelection = parseTerritorioSelection(currentVal);
+
+        const sortCriteria = window._progCache.territorySortOrder || 'numero';
+
+        const processedTs = (window._progCache.territorios || []).map(t => {
+            const tNum = String(t.numero).trim();
+            const s13Records = (window._progCache.historial || []).filter(h => {
+                const histNum = String(h.territorio_id || h.numero || '').trim();
+                const hasFecha = h.fecha_entrega && String(h.fecha_entrega).trim() !== '';
+                const isCompleted = h.estado === 'Completado' || hasFecha;
+                return histNum === tNum && isCompleted;
+            });
+
+            let latestFechaFormatted = 'NUNCA';
+            let timestamp_ultima_fecha = 0;
+
+            if (s13Records.length > 0) {
+                s13Records.sort((a, b) => {
+                    const dateA = Date.parse(a.fecha_entrega) || 0;
+                    const dateB = Date.parse(b.fecha_entrega) || 0;
+                    return dateB - dateA;
+                });
+                const latestRecord = s13Records[0];
+                const dateObj = UIHelpers.parseFirebaseDate(latestRecord.fecha_entrega);
+                if (dateObj) {
+                    timestamp_ultima_fecha = dateObj.getTime();
+                    const day = String(dateObj.getDate()).padStart(2, '0');
+                    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                    const year = dateObj.getFullYear();
+                    latestFechaFormatted = `${day}/${month}/${year}`;
+                }
+            }
+
+            const labelUltimaVez = latestFechaFormatted === 'NUNCA' ? 'ÚLTIMA VEZ: NUNCA' : `Última vez: ${latestFechaFormatted}`;
+
+            return {
+                ...t,
+                timestamp_ultima_fecha,
+                labelUltimaVez
+            };
+        });
+
+        if (sortCriteria === 'antiguos') {
+            processedTs.sort((a, b) => a.timestamp_ultima_fecha - b.timestamp_ultima_fecha);
+        } else {
+            processedTs.sort((a, b) => {
+                const na = parseInt(String(a.numero).match(/\d+/)) || 0;
+                const nb = parseInt(String(b.numero).match(/\d+/)) || 0;
+                return na - nb;
+            });
+        }
+
+        const occupancy = getWeekOccupancy(programa, dayIdx, turnoId);
+
+        const dropsHtml = processedTs.map((t) => {
+            const tNum = String(t.numero);
+            const manzanas = getEffectiveManzanas(t);
+            const sel = currentSelection[tNum] || { blocks: new Set(), isFull: false };
+            const occ = occupancy[tNum] || { blocks: new Set(), isFull: false };
+            
+            let badgeClass = 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400';
+            let badgeText = 'Libre';
+            
+            if (occ.isFull) {
+                badgeClass = 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400';
+                badgeText = 'Ocupado';
+            } else if (occ.blocks.size > 0) {
+                if (manzanas.length > 0 && manzanas.every(m => occ.blocks.has(m))) {
+                    badgeClass = 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400';
+                    badgeText = 'Ocupado';
+                } else {
+                    badgeClass = 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400';
+                    badgeText = 'Parcial';
+                }
+            }
+
+            const isChecked = sel.isFull || (manzanas.length > 0 && manzanas.every(m => sel.blocks.has(m)));
+            const isFullyOccupied = badgeText === 'Ocupado';
+
+            return `
+                <div class="territorio-group p-3 border-b border-slate-50 dark:border-white/5 last:border-0">
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="flex items-center gap-3 cursor-pointer group/selector relative">
+                            <input type="checkbox" 
+                                   onchange="window.handleHierarchicalToggle(this, '${tNum}', true, null, '${turnoId}')"
+                                   ${isChecked ? 'checked' : ''} 
+                                   ${isFullyOccupied ? 'disabled' : ''}
+                                   class="absolute opacity-0 w-6 h-6 z-10 cursor-pointer">
+                            <div class="w-5 h-5 rounded border-2 border-slate-300 dark:border-white/20 ${isChecked ? 'bg-blue-600 border-blue-600' : ''} flex items-center justify-center peer-ui ${isFullyOccupied ? 'opacity-30 cursor-not-allowed' : ''}">
+                                <i class="fas fa-check text-[10px] text-slate-800 dark:text-slate-100 transition-opacity" style="opacity: ${isChecked ? '1' : '0'};"></i>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300 group-hover:text-primary transition-colors">Territorio ${tNum}</span>
+                                <span class="text-[7.5px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest mt-0.5">
+                                    ${t.labelUltimaVez}
+                                </span>
+                            </div>
+                        </label>
+                        <span class="px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${badgeClass}">${badgeText}</span>
+                    </div>
+                    
+                    <div class="grid grid-cols-3 sm:grid-cols-4 gap-1.5 ml-8">
+                        ${manzanas.map(m => {
+                            const isMSelected = sel.isFull || sel.blocks.has(m);
+                            const isMOccupied = occ.isFull || occ.blocks.has(m);
+                            
+                            if (isMOccupied) {
+                                return `<div class="px-3 py-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[9px] font-semibold text-slate-600 dark:text-slate-400 opacity-50 cursor-not-allowed line-through text-center">${m}</div>`;
+                            }
+                            
+                            return `
+                                <div onclick="window.handleHierarchicalToggle(this, '${tNum}', false, '${m}', '${turnoId}')" 
+                                     class="block-chip px-3 py-1 ${isMSelected ? 'bg-blue-600 border-blue-600 text-white shadow-sm' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 hover:bg-blue-50 hover:border-blue-300'} border rounded-lg text-[9px] font-semibold cursor-pointer transition-all text-center select-none"
+                                     data-selected="${isMSelected}">
+                                    ${m}
+                                </div>`;
+                        }).join('')}
+                    </div>
+                </div>`;
+        }).join('');
+
+        listContainer.innerHTML = dropsHtml;
     };
 
     window.handleHierarchicalToggle = (el, tNum, isHeader, blockName, currentTurnId) => {
@@ -1235,14 +1422,16 @@ export const renderProgramaTab = async (container, configData = null) => {
                 delete selection[tNum];
             }
         } else {
-            const dataSelected = el.dataset.selected === 'true';
-            if (dataSelected) {
+            // PARCHE 1: Pure toggle — always derive truth from selection Set, never from stale dataset
+            const isCurrentlySelected = selection[tNum] && (selection[tNum].isFull || selection[tNum].blocks.has(blockName));
+            if (isCurrentlySelected) {
                 selection[tNum].blocks.delete(blockName);
                 selection[tNum].isFull = false;
                 if (selection[tNum].blocks.size === 0) delete selection[tNum];
             } else {
+                if (!selection[tNum]) selection[tNum] = { blocks: new Set(), isFull: false };
                 selection[tNum].blocks.add(blockName);
-                // If all manzanas selected and none occupied, could mark as full
+                // If all manzanas are now selected, mark as full
                 if (manzanas.length > 0 && manzanas.every(m => selection[tNum].blocks.has(m))) {
                     selection[tNum].isFull = true;
                 }
@@ -1253,7 +1442,7 @@ export const renderProgramaTab = async (container, configData = null) => {
         hiddenInput.value = finalVal;
         if (textDisplay) {
             textDisplay.innerText = finalVal || '—';
-            textDisplay.className = `text-[12px] font-black truncate pr-4 ${finalVal ? 'text-primary' : 'text-slate-400 opacity-40'}`;
+            textDisplay.className = `text-[12px] font-black truncate pr-4 ${finalVal ? 'text-primary' : 'text-slate-600 dark:text-slate-400 opacity-40'}`;
         }
 
         // Re-render the dropdown content to reflect changes immediately
@@ -1284,7 +1473,7 @@ export const renderProgramaTab = async (container, configData = null) => {
                         const mName = chip.innerText.trim();
                         const isSelected = selection[tNum] && (selection[tNum].isFull || selection[tNum].blocks.has(mName));
                         chip.dataset.selected = !!isSelected;
-                        chip.className = `block-chip px-3 py-1 ${isSelected ? 'bg-blue-600 border-blue-600 text-white shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-blue-50 hover:border-blue-300'} border rounded-lg text-[9px] font-semibold cursor-pointer transition-all text-center select-none`;
+                        chip.className = `block-chip px-3 py-1 ${isSelected ? 'bg-blue-600 border-blue-600 text-white shadow-sm' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 hover:bg-blue-50 hover:border-blue-300'} border rounded-lg text-[9px] font-semibold cursor-pointer transition-all text-center select-none`;
                     });
                 }
             });
@@ -1297,7 +1486,7 @@ export const renderProgramaTab = async (container, configData = null) => {
         if (hiddenInput) hiddenInput.value = "";
         if (textDisplay) {
             textDisplay.innerText = "—";
-            textDisplay.className = "text-[12px] font-black truncate pr-4 text-slate-400 opacity-40";
+            textDisplay.className = "text-[12px] font-black truncate pr-4 text-slate-600 dark:text-slate-400 opacity-40";
         }
         
         const dropdown = document.getElementById('sheet-territorio-dropdown');
@@ -1314,7 +1503,7 @@ export const renderProgramaTab = async (container, configData = null) => {
             });
             dropdown.querySelectorAll('.block-chip').forEach(chip => {
                 chip.dataset.selected = 'false';
-                chip.className = "block-chip px-3 py-1 bg-slate-50 border-slate-200 text-slate-600 hover:bg-blue-50 hover:border-blue-300 border rounded-lg text-[9px] font-semibold cursor-pointer transition-all text-center select-none";
+                chip.className = "block-chip px-3 py-1 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 hover:bg-blue-50 hover:border-blue-300 border rounded-lg text-[9px] font-semibold cursor-pointer transition-all text-center select-none";
             });
         }
         showNotification("Selección de territorio limpia.");
@@ -1490,7 +1679,7 @@ export const renderProgramaTab = async (container, configData = null) => {
         const valEl = container.querySelector(`#val-${fieldId}-${dayIdx}-${turnoId}`);
         if (valEl) {
             valEl.innerText = val || '—';
-            valEl.className = `text-[11px] font-black truncate ${val ? 'text-primary' : 'text-slate-400 opacity-40'}`;
+            valEl.className = `text-[11px] font-black truncate ${val ? 'text-primary' : 'text-slate-600 dark:text-slate-400 opacity-40'}`;
             if (fieldId === 'territorio') {
                 valEl.parentElement.dataset.current = val || '';
             }
@@ -1597,7 +1786,7 @@ export const renderProgramaTab = async (container, configData = null) => {
                     </div>
                     <div>
                         <h3 class="text-xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">Nuevo Horario</h3>
-                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-0.5">Selecciona el tipo de salida</p>
+                        <p class="text-[10px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-[0.2em] mt-0.5">Selecciona el tipo de salida</p>
                     </div>
                 </header>
                 <div class="grid grid-cols-2 gap-3">
@@ -1681,7 +1870,7 @@ export const renderProgramaTab = async (container, configData = null) => {
                                     <div class="w-10 h-10 bg-rose-500 text-white flex items-center justify-center rounded-xl font-black text-xs shadow-lg shadow-rose-500/20">#${c.numero}</div>
                                     <div class="flex flex-col">
                                         <span class="text-xs font-black text-slate-800 dark:text-white uppercase leading-tight">${c.details.conductor}</span>
-                                        <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">${UIHelpers.fmtDateAt(c.details.fecha)} • ${c.details.turno || 'Sin Turno'}</span>
+                                        <span class="text-[9px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest mt-0.5">${UIHelpers.fmtDateAt(c.details.fecha)} • ${c.details.turno || 'Sin Turno'}</span>
                                     </div>
                                 </div>
                                 <div class="flex items-center gap-2">
@@ -1694,7 +1883,7 @@ export const renderProgramaTab = async (container, configData = null) => {
 
                 <div class="p-6 bg-slate-50 dark:bg-white/5 rounded-[2.5rem] border border-slate-200 dark:border-white/10 relative overflow-hidden group">
                     <div class="absolute -right-4 -top-4 w-20 h-20 bg-rose-500/5 rotate-12 rounded-3xl group-hover:scale-110 transition-transform"></div>
-                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                    <p class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                         <i class="fas fa-shield-alt text-rose-500"></i> ¿Deseas corregir el S-13?
                     </p>
                     <p class="text-[11px] text-slate-600 dark:text-slate-300 font-medium leading-relaxed italic">
@@ -1703,7 +1892,7 @@ export const renderProgramaTab = async (container, configData = null) => {
                 </div>
 
                 <div class="flex gap-4 pt-4 shrink-0">
-                    <button onclick="window.hideModal('modal-container')" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all">Ignorar</button>
+                    <button onclick="window.hideModal('modal-container')" class="flex-1 min-w-0 py-5 bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all">Ignorar</button>
                     <button id="confirm-force-sync" class="flex-[2.5] py-5 bg-rose-500 hover:bg-rose-600 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-rose-500/20 active:scale-95 transition-all group">
                         <i class="fas fa-bolt mr-2 group-hover:animate-bounce"></i> FORZAR ASIGNACIÓN
                     </button>
@@ -1748,30 +1937,30 @@ export const renderProgramaTab = async (container, configData = null) => {
                     </div>
                     <div>
                         <h3 class="text-2xl font-black uppercase tracking-tighter text-slate-800 dark:text-white">Formalizar Asignación</h3>
-                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em] mt-1">Sincronización Inteligente de S-13</p>
+                        <p class="text-[10px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-[0.3em] mt-1">Sincronización Inteligente de S-13</p>
                     </div>
                 </header>
 
                 <div class="bg-slate-50 dark:bg-white/5 p-6 rounded-[2rem] border border-slate-200 dark:border-white/10 space-y-4">
                     <div class="flex justify-between items-center text-xs">
-                        <span class="text-slate-400 font-bold uppercase tracking-widest">Publicador</span>
+                        <span class="text-slate-600 dark:text-slate-400 font-bold uppercase tracking-widest">Publicador</span>
                         <span class="font-black text-slate-800 dark:text-white uppercase">${cond}</span>
                     </div>
                     <div class="flex justify-between items-center text-xs">
-                        <span class="text-slate-400 font-bold uppercase tracking-widest">Territorios</span>
+                        <span class="text-slate-600 dark:text-slate-400 font-bold uppercase tracking-widest">Territorios</span>
                         <div class="flex gap-2">
                             ${foundTs.map(t => `<span class="px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-black rounded-lg">#${t.numero}</span>`).join('')}
                         </div>
                     </div>
                     <div class="flex justify-between items-center text-xs">
-                        <span class="text-slate-400 font-bold uppercase tracking-widest">Salida Programada</span>
+                        <span class="text-slate-600 dark:text-slate-400 font-bold uppercase tracking-widest">Salida Programada</span>
                         <span class="font-black text-slate-600 dark:text-gray-300 uppercase">${dia.nombre} (${dia.fecha})</span>
                     </div>
                 </div>
 
                 <div class="space-y-4">
                     <div class="flex items-center justify-between">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">¿Cuándo se asignó físicamente?</label>
+                        <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">¿Cuándo se asignó físicamente?</label>
                         <span class="text-[9px] font-bold text-primary uppercase bg-primary/5 px-2 py-0.5 rounded">Sugerencia S-13: Domingo anterior</span>
                     </div>
                     <input type="date" id="sync-asig-date" value="${(() => {
@@ -1782,7 +1971,7 @@ export const renderProgramaTab = async (container, configData = null) => {
                 </div>
 
                 <div class="flex gap-4 pt-6 border-t border-slate-50 dark:border-white/5">
-                    <button onclick="window.hideModal('modal-container')" class="flex-1 py-5 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest">Cancelar</button>
+                    <button onclick="window.hideModal('modal-container')" class="flex-1 min-w-0 py-5 bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest">Cancelar</button>
                     <button id="confirm-sync-asig" class="flex-[2] py-5 bg-blue-600 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-blue-500/20 hover:scale-[1.02] active:scale-95 transition-all">ASIGNAR FORMALMENTE</button>
                 </div>
             </div>
@@ -1841,7 +2030,7 @@ export const renderProgramaTab = async (container, configData = null) => {
             const displaySpan = document.getElementById('val-territorio-modal');
             if (displaySpan) {
                 displaySpan.innerText = res || '—';
-                displaySpan.className = `text-[12px] font-black truncate ${res ? 'text-primary' : 'text-slate-400 opacity-40'}`;
+                displaySpan.className = `text-[12px] font-black truncate ${res ? 'text-primary' : 'text-slate-600 dark:text-slate-400 opacity-40'}`;
             }
             // Actualizar data-current del div clickeable para próximas aperturas
             if (btn) btn.dataset.current = res || '';
@@ -2093,18 +2282,18 @@ export const renderProgramaTab = async (container, configData = null) => {
                     </div>
                 </header>
 
-                <div class="flex-1 overflow-y-auto custom-scrollbar px-5 py-2">
+                <div class="flex-1 min-w-0 overflow-y-auto custom-scrollbar px-5 py-2">
                     <div class="grid grid-cols-1 gap-1.5" id="group-selection-grid">
                         <label class="group-item p-2.5 modern-card border-slate-100 dark:border-white/5 hover:border-indigo-500 transition-all cursor-pointer flex items-center gap-3 ${selected.has('Todos') ? 'bg-indigo-500/5 border-indigo-500/50' : ''}">
                             <div class="relative w-4 h-4 shrink-0">
                                 <input type="checkbox" class="group-checkbox absolute inset-0 opacity-0 cursor-pointer z-10" value="Todos" ${selected.has('Todos') ? 'checked' : ''}>
                                 <div class="check-box-ui w-4 h-4 border-2 border-slate-200 dark:border-white/10 rounded flex items-center justify-center transition-all ${selected.has('Todos') ? 'bg-indigo-500 border-indigo-500' : ''}">
-                                    <i class="fas fa-check text-[7px] text-white ${selected.has('Todos') ? 'opacity-100' : 'opacity-0'} transition-opacity"></i>
+                                    <i class="fas fa-check text-[7px] text-slate-800 dark:text-slate-100 ${selected.has('Todos') ? 'opacity-100' : 'opacity-0'} transition-opacity"></i>
                                 </div>
                             </div>
-                            <div class="flex-1">
+                            <div class="flex-1 min-w-0">
                                 <p class="text-[11px] font-black text-slate-800 dark:text-white uppercase leading-none mb-0.5">Todos</p>
-                                <p class="text-[7px] text-slate-400 font-medium uppercase tracking-widest leading-none">Salida General</p>
+                                <p class="text-[7px] text-slate-600 dark:text-slate-400 font-medium uppercase tracking-widest leading-none">Salida General</p>
                             </div>
                         </label>
 
@@ -2116,12 +2305,12 @@ export const renderProgramaTab = async (container, configData = null) => {
                                 <div class="relative w-4 h-4 shrink-0">
                                     <input type="checkbox" class="group-checkbox absolute inset-0 opacity-0 cursor-pointer z-10" value="${groupStr}" ${isSel ? 'checked' : ''}>
                                     <div class="check-box-ui w-4 h-4 border-2 border-slate-200 dark:border-white/10 rounded flex items-center justify-center transition-all ${isSel ? 'bg-indigo-500 border-indigo-500' : ''}">
-                                        <i class="fas fa-check text-[7px] text-white ${isSel ? 'opacity-100' : 'opacity-0'} transition-opacity"></i>
+                                        <i class="fas fa-check text-[7px] text-slate-800 dark:text-slate-100 ${isSel ? 'opacity-100' : 'opacity-0'} transition-opacity"></i>
                                     </div>
                                 </div>
-                                <div class="flex-1">
+                                <div class="flex-1 min-w-0">
                                     <p class="text-[11px] font-black text-slate-800 dark:text-white uppercase leading-none mb-0.5">${groupStr}</p>
-                                    <p class="text-[7px] text-slate-400 font-medium uppercase tracking-widest leading-none truncate max-w-[150px]">${g.casa_salida || '—'}</p>
+                                    <p class="text-[7px] text-slate-600 dark:text-slate-400 font-medium uppercase tracking-widest leading-none truncate max-w-[150px]">${g.casa_salida || '—'}</p>
                                 </div>
                             </label>
                         `;
@@ -2130,7 +2319,7 @@ export const renderProgramaTab = async (container, configData = null) => {
                 </div>
 
                 <div class="p-5 pt-3 border-t border-slate-50 dark:border-white/5 flex gap-2 shrink-0">
-                    <button onclick="window.hideModal('modal-container-nested')" class="flex-1 py-3 bg-slate-50 dark:bg-white/5 text-slate-400 font-black rounded-lg text-[8px] uppercase tracking-widest hover:bg-slate-100 transition-all">Cancelar</button>
+                    <button onclick="window.hideModal('modal-container-nested')" class="flex-1 min-w-0 py-3 bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-400 font-black rounded-lg text-[8px] uppercase tracking-widest hover:bg-slate-100 transition-all">Cancelar</button>
                     <button id="confirm-groups" class="flex-[2] py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-lg text-[8px] uppercase tracking-widest shadow-xl shadow-indigo-600/20 active:scale-95 transition-all">Asignar Grupos</button>
                 </div>
             </div>
@@ -2171,7 +2360,7 @@ export const renderProgramaTab = async (container, configData = null) => {
             const spanVisual = document.getElementById('val-grupos-modal');
             if (spanVisual) {
                 spanVisual.innerText = val || '—';
-                spanVisual.className = `text-[12px] font-black truncate ${val ? 'text-primary' : 'text-slate-400 opacity-40'}`;
+                spanVisual.className = `text-[12px] font-black truncate ${val ? 'text-primary' : 'text-slate-600 dark:text-slate-400 opacity-40'}`;
             }
             console.log("✅ Hidden input 'select-grupos' updated");
         } else {
@@ -2227,24 +2416,29 @@ export const renderProgramaTab = async (container, configData = null) => {
 
                 if (!oldProg.id || oldProg.id === 'default') return showNotification("No hay datos en la semana anterior para copiar", "warning");
 
-                // Duplicate keeping conductors and places, clearing territories
+                // PARCHE 2: Dynamic REPLICAR — copies ALL turno keys from previous week (manana_2, noche_2, zoom, etc.)
+                const cloneTurn = (turn) => {
+                    if (!turn) return null;
+                    return { hora: turn.hora || '', lugar: turn.lugar || '', conductor: turn.conductor || '', auxiliar: turn.auxiliar || '', faceta: turn.faceta || '', grupos: turn.grupos || '', enabled: turn.enabled };
+                };
+
                 const newDias = oldProg.dias.map((d, i) => {
                     const nd = new Date(currentWeekStart);
                     nd.setDate(nd.getDate() + i);
 
-                    const cloneTurn = (turn) => {
-                        if (!turn) return {};
-                        return { hora: turn.hora || '', lugar: turn.lugar || '', conductor: turn.conductor || '', auxiliar: turn.auxiliar || '', faceta: turn.faceta || '', grupos: turn.grupos || '', enabled: turn.enabled };
-                    };
+                    const cloned = { nombre: d.nombre, fecha: formatDateId(nd) };
 
-                    return {
-                        nombre: d.nombre,
-                        fecha: formatDateId(nd),
-                        manana: cloneTurn(d.manana),
-                        tarde: cloneTurn(d.tarde),
-                        noche: cloneTurn(d.noche),
-                        zoom: cloneTurn(d.zoom)
-                    };
+                    // Dynamically copy every turno key found in the old day (manana, tarde, noche, zoom, manana_2, etc.)
+                    const turnoKeys = Object.keys(d).filter(k => k !== 'nombre' && k !== 'fecha');
+                    turnoKeys.forEach(key => {
+                        const ct = cloneTurn(d[key]);
+                        // Only copy if the turn has actual data
+                        if (ct && Object.values(ct).some(v => v !== '' && v !== null && v !== undefined && v !== false)) {
+                            cloned[key] = ct;
+                        }
+                    });
+
+                    return cloned;
                 });
 
                 programa.dias = newDias;
