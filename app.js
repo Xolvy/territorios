@@ -291,7 +291,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             const isAdmin = (role === 'Administrador' || role === 'SuperAdmin');
             const path = window.location.pathname;
 
-            // FASE 1: Redirect duro y limpio en raíz o login
+            // FASE 1: Hard-Gated Admin Route Guard (Unbypassable P0 Shield)
+            if (path.startsWith('/administrador')) {
+                if (!isAdmin) {
+                    console.error("🛡️ [Security Shield] Intento de acceso no autorizado a Administrador detectado. Forzando redirección.");
+                    window.history.replaceState({}, '', '/conductores');
+                    const render = await loadConductor();
+                    render(appContainer, user.email || 'Usuario', APP_VERSION, role);
+                    return;
+                }
+            }
+
+            // FASE 2: Redirect duro y limpio en raíz o login
             if (path === '/' || path === '/login' || path.includes('index.html')) {
                 if (isAdmin) {
                     window.location.href = '/administrador';
