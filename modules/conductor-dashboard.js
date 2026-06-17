@@ -689,14 +689,42 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                         // Function to handle the collaborative solicitar/join flow
                         async function iniciarSolicitudNumerosFlow(btnToDisable, oldHtml) {
                             const identity = window.XolvyApp?.identity;
-                            const solicitante = identity?.nombreCanonico || displayName;
+                            let solicitante = identity?.nombreCanonico || displayName;
+                            
+                            // Look up in publicadores to get canonical database spelling (with correct accents)
+                            if (publicadores && publicadores.length > 0) {
+                                const matched = publicadores.find(p => normalizeRobust(p.nombre) === normalizeRobust(solicitante));
+                                if (matched && matched.nombre) {
+                                    solicitante = matched.nombre;
+                                }
+                            }
                             
                             try {
                                 // 1. Check if there is an unfinalized session in Firestore
                                 const existingPhones = await getTelefonosParaSesion(solicitante);
                                 const unfinalized = existingPhones.filter(p => p.solicitado_por && normalizeRobust(p.solicitado_por) === normalizeRobust(solicitante));
                                 
-                                if (unfinalized.length > 0) {
+                                // Clean up stale unfinalized phones automatically (older than 24 hours)
+                                const nowTime = Date.now();
+                                const staleThresholdMs = 24 * 60 * 60 * 1000; // 24 hours
+                                const recentUnfinalized = [];
+                                const staleUnfinalized = [];
+                                
+                                unfinalized.forEach(p => {
+                                    const assignDate = p.fecha_asignacion ? new Date(p.fecha_asignacion) : null;
+                                    if (!assignDate || (nowTime - assignDate.getTime() > staleThresholdMs)) {
+                                        staleUnfinalized.push(p);
+                                    } else {
+                                        recentUnfinalized.push(p);
+                                    }
+                                });
+                                
+                                if (staleUnfinalized.length > 0) {
+                                    console.log(`[Telefonía] 🧹 Limpiando automáticamente ${staleUnfinalized.length} números expirados de la sesión previa de ${solicitante}`);
+                                    await releaseUnusedTelefonos(solicitante, false, true, staleUnfinalized.map(p => p.id));
+                                }
+                                
+                                if (recentUnfinalized.length > 0) {
                                     // Temporarily restore the button so the user can interact
                                     if (btnToDisable) {
                                         btnToDisable.disabled = false;
@@ -736,7 +764,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                             btnToDisable.disabled = true;
                                             btnToDisable.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Solicitando...';
                                         }
-                                        await releaseUnusedTelefonos(solicitante, false, true, existingPhones.map(p => p.id));
+                                        await releaseUnusedTelefonos(solicitante, false, true, recentUnfinalized.map(p => p.id));
                                     } else {
                                         // Cancelar
                                         return;

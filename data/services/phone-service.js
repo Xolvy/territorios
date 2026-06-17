@@ -36,6 +36,15 @@ const getVariations = (name) => {
     set.add(clean.toLowerCase());
     set.add(clean.toUpperCase());
     
+    // Add accent-free variations
+    const noAccents = clean.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (noAccents !== clean) {
+        set.add(noAccents);
+        set.add(toTitleCase(noAccents));
+        set.add(noAccents.toLowerCase());
+        set.add(noAccents.toUpperCase());
+    }
+    
     // Support historical/buggy variations
     if (clean.toLowerCase().includes('marquez')) {
         set.add("Hugo MáRquez");

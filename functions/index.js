@@ -337,43 +337,57 @@ exports.limpiarSesionesHuerfanas = onSchedule(
         const ORPHAN_THRESHOLD_HOURS = 48;
         const cutoff = new Date();
         cutoff.setHours(cutoff.getHours() - ORPHAN_THRESHOLD_HOURS);
-        const cutoffTimestamp = Timestamp.fromDate(cutoff);
 
-        console.log(`[limpiarHuerfanas] Buscando sesiones anteriores a: ${cutoff.toISOString()}`);
+        console.log(`[limpiarHuerfanas] Buscando sesiones En Sesión para limpiar (umbral: ${ORPHAN_THRESHOLD_HOURS}h, anterior a ${cutoff.toISOString()})`);
 
         const orphanQuery = db.collection("telefonos")
-            .where("estado", "==", "En Sesión")
-            .where("solicitado_en", "<", cutoffTimestamp);
+            .where("estado", "==", "En Sesión");
 
         const orphanSnap = await orphanQuery.get();
 
         if (orphanSnap.empty) {
-            console.log("[limpiarHuerfanas] No se encontraron sesiones huérfanas.");
+            console.log("[limpiarHuerfanas] No se encontraron teléfonos En Sesión.");
             return;
         }
 
         const batch = db.batch();
+        let releasedCount = 0;
+
         orphanSnap.docs.forEach(doc => {
-            batch.update(doc.ref, {
-                estado: "Sin asignar",
-                solicitado_por_id: null,
-                solicitado_por: null,
-                solicitado_en: null,
-                disponible_desde: Timestamp.now(),
-                requiere_seguimiento_personal: false,
-                liberado_por_cron: true,
-                fecha_liberacion_cron: FieldValue.serverTimestamp(),
-            });
+            const data = doc.data();
+            // Soporta fecha_asignacion (ISO String) y solicitado_en (Timestamp/ISO String)
+            const dateVal = data.fecha_asignacion || data.solicitado_en;
+            const reqDate = dateVal ? (typeof dateVal.toDate === 'function' ? dateVal.toDate() : new Date(dateVal)) : null;
+
+            // Si no tiene fecha, o la fecha es anterior al límite, es considerada huérfana
+            if (!reqDate || reqDate < cutoff) {
+                batch.update(doc.ref, {
+                    estado: "Sin asignar",
+                    solicitado_por_id: null,
+                    solicitado_por: null,
+                    solicitado_en: null,
+                    fecha_asignacion: null,
+                    disponible_desde: Timestamp.now(),
+                    requiere_seguimiento_personal: false,
+                    liberado_por_cron: true,
+                    fecha_liberacion_cron: FieldValue.serverTimestamp(),
+                });
+                releasedCount++;
+            }
         });
 
-        await batch.commit();
-        console.log(`[limpiarHuerfanas] ✅ ${orphanSnap.size} sesiones huérfanas liberadas.`);
+        if (releasedCount > 0) {
+            await batch.commit();
+            console.log(`[limpiarHuerfanas] ✅ ${releasedCount} sesiones huérfanas liberadas automáticamente.`);
+        } else {
+            console.log("[limpiarHuerfanas] No se encontraron sesiones huérfanas que superen el umbral de tiempo.");
+        }
 
         // Registrar en auditoría
         await db.collection("reportes_sesiones").add({
             tipo: "limpieza_automatica_cron",
             fecha: Timestamp.now(),
-            numeros_liberados: orphanSnap.size,
+            numeros_liberados: releasedCount,
             umbral_horas: ORPHAN_THRESHOLD_HOURS,
         });
     }
