@@ -24,7 +24,25 @@ import { ServiceCache } from './base-service.js';
 
 const toTitleCase = (str) => {
     if (!str) return '';
-    return str.trim().toLowerCase().replace(/\b\w/g, s => s.toUpperCase());
+    return str.trim().toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+};
+
+const getVariations = (name) => {
+    if (!name) return [];
+    const set = new Set();
+    const clean = name.trim();
+    set.add(clean);
+    set.add(toTitleCase(clean));
+    set.add(clean.toLowerCase());
+    set.add(clean.toUpperCase());
+    
+    // Support historical/buggy variations
+    if (clean.toLowerCase().includes('marquez')) {
+        set.add("Hugo MáRquez");
+        set.add("Hugo Marquez");
+        set.add("HUGO MARQUEZ");
+    }
+    return Array.from(set);
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -44,21 +62,17 @@ export const getTelefonosParaSesion = async (conductorName) => {
     try {
         if (!conductorName) return [];
 
-        // Identity Shield: Prefer the global canonical identity if available
-        const identity = window.XolvyApp?.identity;
-        const canonicalName = toTitleCase(identity?.nombreCanonico || conductorName);
-        const authUid = identity?.uid || null;
-
+        const variations = getVariations(conductorName);
         const phoneCol = collection(db, COL_TELEFONOS);
 
-        // Fetch phones where solicitado_por matches the canonical identity
-        const qSession = query(phoneCol, where("solicitado_por", "==", canonicalName));
+        // Fetch phones where solicitado_por matches the canonical identity variations
+        const qSession = query(phoneCol, where("solicitado_por", "in", variations));
         const snap = await getDocs(qSession);
         const dataSession = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         let finalData = [...dataSession];
 
-        const qAssigned = query(phoneCol, where("asignado_a", "==", canonicalName));
+        const qAssigned = query(phoneCol, where("asignado_a", "in", variations));
         const snapAssigned = await getDocs(qAssigned);
         snapAssigned.forEach(d => {
             const docData = { id: d.id, ...d.data() };
@@ -69,7 +83,7 @@ export const getTelefonosParaSesion = async (conductorName) => {
 
         // Search by legacy email/phone match if no direct hits (fallback)
         if (finalData.length === 0 && conductorName) {
-            const qLegacy = query(phoneCol, where("publicador_asignado", "==", conductorName));
+            const qLegacy = query(phoneCol, where("publicador_asignado", "in", variations));
             const snapLegacy = await getDocs(qLegacy);
             snapLegacy.forEach(d => {
                 const docData = { id: d.id, ...d.data() };
@@ -79,8 +93,14 @@ export const getTelefonosParaSesion = async (conductorName) => {
             });
         }
 
-        // Return only relevant statuses
-        return finalData.filter(d => d.estado !== 'Revisita');
+        // B7 fix: filtrar números 'En Sesión' que pertenecen a otro conductor (sesiones zombi)
+        // y Revisitas que no sean del conductor actual
+        return finalData.filter(d => {
+            const hasMatch = d.solicitado_por && variations.some(v => v.toLowerCase() === d.solicitado_por.toLowerCase());
+            if (d.estado === 'Revisita' && !hasMatch) return false;
+            if (d.estado === 'En Sesión' && d.solicitado_por && !hasMatch) return false;
+            return true;
+        });
     } catch (e) {
         console.error("Error fetching session phones:", e);
         return [];
@@ -106,15 +126,104 @@ export const solicitarNumeros = async (cantidad = 30, conductorName = null) => {
         const canonicalName = toTitleCase(window.XolvyApp?.identity?.nombreCanonico || conductorName);
         
         // 1. Fase de búsqueda: Encontrar candidatos antes de entrar a la transacción
-        // Filtramos por registros que NO tengan solicitado_por y tengan un estado de 'libre'
-        const q = query(
+        // Prioridad 1: Completamente Libres
+        const qEmpty = query(
             collection(db, COL_TELEFONOS), 
             where("solicitado_por", "==", null),
+            where("estado", "==", ""),
+            limit(cantidad * 3) 
+        );
+        const qSinAsignar = query(
+            collection(db, COL_TELEFONOS), 
+            where("solicitado_por", "==", null),
+            where("estado", "==", "Sin asignar"),
+            limit(cantidad * 3) 
+        );
+        const qNull = query(
+            collection(db, COL_TELEFONOS), 
+            where("solicitado_por", "==", null),
+            where("estado", "==", null),
             limit(cantidad * 3) 
         );
 
-        const snapshot = await getDocs(q);
-        if (snapshot.empty) return 0;
+        const [snapEmpty, snapSinAsignar, snapNull] = await Promise.all([
+            getDocs(qEmpty),
+            getDocs(qSinAsignar),
+            getDocs(qNull)
+        ]);
+
+        let candidateDocs = [];
+        const seenIds = new Set();
+        [...snapEmpty.docs, ...snapSinAsignar.docs, ...snapNull.docs].forEach(doc => {
+            if (!seenIds.has(doc.id)) {
+                seenIds.add(doc.id);
+                candidateDocs.push(doc);
+            }
+        });
+
+        // Fisher-Yates Shuffle for Priority 1
+        for (let i = candidateDocs.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [candidateDocs[i], candidateDocs[j]] = [candidateDocs[j], candidateDocs[i]];
+        }
+
+        // Prioridad 2: Contestaron (si faltan números)
+        if (candidateDocs.length < cantidad) {
+            const qContestaron = query(
+                collection(db, COL_TELEFONOS),
+                where("solicitado_por", "==", null),
+                where("estado", "==", "Contestaron"),
+                limit(cantidad * 3)
+            );
+            const snapContestaron = await getDocs(qContestaron);
+            const contestaronDocs = snapContestaron.docs.filter(doc => !seenIds.has(doc.id));
+            
+            // Fisher-Yates Shuffle for Priority 2
+            for (let i = contestaronDocs.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [contestaronDocs[i], contestaronDocs[j]] = [contestaronDocs[j], contestaronDocs[i]];
+            }
+            
+            contestaronDocs.forEach(doc => {
+                seenIds.add(doc.id);
+                candidateDocs.push(doc);
+            });
+        }
+
+        // Prioridad 3: No contestan / Colgaron (si aún faltan números)
+        if (candidateDocs.length < cantidad) {
+            const qNoContestan = query(
+                collection(db, COL_TELEFONOS),
+                where("solicitado_por", "==", null),
+                where("estado", "==", "No contestan"),
+                limit(cantidad * 3)
+            );
+            const qColgaron = query(
+                collection(db, COL_TELEFONOS),
+                where("solicitado_por", "==", null),
+                where("estado", "==", "Colgaron"),
+                limit(cantidad * 3)
+            );
+            const [snapNoContestan, snapColgaron] = await Promise.all([
+                getDocs(qNoContestan),
+                getDocs(qColgaron)
+            ]);
+            
+            const otherDocs = [...snapNoContestan.docs, ...snapColgaron.docs].filter(doc => !seenIds.has(doc.id));
+            
+            // Fisher-Yates Shuffle for Priority 3
+            for (let i = otherDocs.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [otherDocs[i], otherDocs[j]] = [otherDocs[j], otherDocs[i]];
+            }
+            
+            otherDocs.forEach(doc => {
+                seenIds.add(doc.id);
+                candidateDocs.push(doc);
+            });
+        }
+
+        if (candidateDocs.length === 0) return 0;
 
         // 2. Fase Atómica: Intentar asignar los candidatos encontrados
         const result = await runTransaction(db, async (transaction) => {
@@ -124,11 +233,9 @@ export const solicitarNumeros = async (cantidad = 30, conductorName = null) => {
             
             let assignedCount = 0;
 
-            // Nota: En transacciones de Firestore Web, debemos realizar TODAS las lecturas
-            // (transaction.get) antes de realizar cualquier escritura (transaction.update).
             // Paso 2.1: Leer todos los documentos candidatos
             const docSnaps = await Promise.all(
-                snapshot.docs.map(d => transaction.get(d.ref))
+                candidateDocs.map(d => transaction.get(d.ref))
             );
 
             // Paso 2.2: Evaluar y escribir
@@ -143,7 +250,7 @@ export const solicitarNumeros = async (cantidad = 30, conductorName = null) => {
                 if (currentSol && currentSol !== null && currentSol !== "null" && currentSol !== "") continue;
                 
                 const rawEstado = (data.estado || '').trim().toLowerCase();
-                const isLibre = ['sin asignar', 'no asignado', 'disponible', '', 'ninguno'].includes(rawEstado);
+                const isLibre = ['sin asignar', 'no asignado', 'disponible', '', 'ninguno', 'contestaron', 'no contestan', 'colgaron'].includes(rawEstado);
                 if (!isLibre || data.estado === 'En Sesión') continue;
 
                 if (data.ultimo_estado === 'No llamar') {
@@ -151,12 +258,18 @@ export const solicitarNumeros = async (cantidad = 30, conductorName = null) => {
                     if (lastDate > sixMonthsAgo) continue;
                 }
 
+                // Si es un número reciclado (Contestaron/No contestan/Colgaron), limpiar observaciones e intentos fallidos
+                const isRecycled = ['contestaron', 'no contestan', 'colgaron'].includes(rawEstado);
+
                 transaction.update(docSnap.ref, {
                     estado: 'En Sesión',
                     publicador_asignado: null,
                     asignado_a: null,
                     fecha_asignacion: now.toISOString(),
-                    solicitado_por: canonicalName
+                    solicitado_por: canonicalName,
+                    comentario: isRecycled ? '' : (data.comentario || ''),
+                    notas: isRecycled ? '' : (data.notas || ''),
+                    intentos_fallidos: isRecycled ? 0 : (data.intentos_fallidos || 0)
                 });
                 
                 assignedCount++;
@@ -187,13 +300,27 @@ export const solicitarNumeros = async (cantidad = 30, conductorName = null) => {
 export const checkAndResetTelephoneCycle = async (forceRequested = false) => {
     try {
         // Optimización: No leer toda la colección. Primero ver si quedan números libres.
-        const qLibres = query(collection(db, COL_TELEFONOS), where("solicitado_por", "==", null), limit(10));
-        const snapLibres = await getDocs(qLibres);
+        // Consultamos en paralelo por los estados libres reales
+        const qEmpty = query(collection(db, COL_TELEFONOS), where("solicitado_por", "==", null), where("estado", "==", ""), limit(5));
+        const qSinAsignar = query(collection(db, COL_TELEFONOS), where("solicitado_por", "==", null), where("estado", "==", "Sin asignar"), limit(5));
+        const qNull = query(collection(db, COL_TELEFONOS), where("solicitado_por", "==", null), where("estado", "==", null), limit(5));
+        const qContestaron = query(collection(db, COL_TELEFONOS), where("solicitado_por", "==", null), where("estado", "==", "Contestaron"), limit(5));
+        const qNoContestan = query(collection(db, COL_TELEFONOS), where("solicitado_por", "==", null), where("estado", "==", "No contestan"), limit(5));
+        const qColgaron = query(collection(db, COL_TELEFONOS), where("solicitado_por", "==", null), where("estado", "==", "Colgaron"), limit(5));
+
+        const [snapEmpty, snapSinAsignar, snapNull, snapContestaron, snapNoContestan, snapColgaron] = await Promise.all([
+            getDocs(qEmpty),
+            getDocs(qSinAsignar),
+            getDocs(qNull),
+            getDocs(qContestaron),
+            getDocs(qNoContestan),
+            getDocs(qColgaron)
+        ]);
         
-        const hayLibres = !snapLibres.empty;
+        const hayLibres = !snapEmpty.empty || !snapSinAsignar.empty || !snapNull.empty || !snapContestaron.empty || !snapNoContestan.empty || !snapColgaron.empty;
 
         if (hayLibres && !forceRequested) {
-            console.log("[Cycle] Aún hay números libres disponibles. No es necesario reiniciar.");
+            console.log("[Cycle] Aún hay números libres o asignables disponibles. No es necesario reiniciar.");
             return false;
         }
 
@@ -210,20 +337,26 @@ export const checkAndResetTelephoneCycle = async (forceRequested = false) => {
             let updateData = null;
 
             if (!currentStatus || ['Contestaron', 'No contestan', 'Colgaron', 'Sin asignar'].includes(currentStatus)) {
+                // Safeguard active sessions: Skip if currently in use
+                if (data.solicitado_por && data.solicitado_por !== null && data.solicitado_por !== "null" && data.solicitado_por !== "") {
+                    continue;
+                }
+
                 updateData = {
-                    estado: 'Sin asignar',
+                    estado: '',
                     publicador_asignado: null,
                     asignado_a: null,
                     solicitado_por: null,
                     fecha_asignacion: null,
                     comentario: '',
-                    ultima_observacion_ciclo: data.comentario || '',
+                    notas: '', // Keep in sync
+                    ultima_observacion_ciclo: data.notas || data.comentario || '',
                     fecha_ultimo_cycle: now
                 };
             } else if (currentStatus === 'No llamar') {
                 updateData = {
                     ultimo_estado: 'No llamar',
-                    estado: 'Sin asignar',
+                    estado: '',
                     fecha_ultimo_estado: now,
                     publicador_asignado: null,
                     asignado_a: null,
@@ -284,23 +417,33 @@ export const finalizarSesionConCrm = async (conductorName, pendingChanges = {}) 
             inactivos: 0
         };
 
+        // B6 fix: Lectura paralela de todos los documentos (Promise.all en vez de getDoc secuencial)
+        // Antes: ~30 roundtrips en serie → ~10s de espera
+        // Ahora: todos en paralelo → ~1s de espera
+        const docRefs = ids.map(id => doc(db, COL_TELEFONOS, id));
+        const docSnaps = await Promise.all(docRefs.map(ref => getDoc(ref)));
+        const docsMap = {};
+        docSnaps.forEach((snap, i) => { if (snap.exists()) docsMap[ids[i]] = snap; });
+
         for (const id of ids) {
             const change = pendingChanges[id];
             const docRef = doc(db, COL_TELEFONOS, id);
-            const docSnap = await getDoc(docRef);
-            if (!docSnap.exists()) continue;
+            const docSnap = docsMap[id];
+            if (!docSnap) continue;
             
             const data = docSnap.data();
-            let finalState = change.estado || data.estado;
+            let finalState = change.estado !== undefined ? change.estado : data.estado;
+            let finalNotas = change.notas !== undefined ? change.notas : (data.notas || data.comentario || '');
             let finalData = {
                 estado: finalState,
-                comentario: change.notas !== undefined ? change.notas : (data.comentario || ''),
+                comentario: finalNotas,
+                notas: finalNotas, // Keep in sync
                 fecha_ultima_actividad: now.toISOString()
             };
 
-            // Phase 2: Sistema de 3 Strikes
+            // Phase 2: Sistema de 3 Strikes (3 veces marcado "No contestan" -> Borrado de BD)
             let fallidos = data.intentos_fallidos || 0;
-            const esFallido = ['No contestan', 'Colgaron', 'Equivocado'].includes(finalState);
+            const esFallido = finalState === 'No contestan';
             const esPositivo = ['Contestaron', 'Revisita'].includes(finalState);
 
             if (esFallido) {
@@ -315,11 +458,9 @@ export const finalizarSesionConCrm = async (conductorName, pendingChanges = {}) 
             finalData.intentos_fallidos = fallidos;
 
             if (fallidos >= 3) {
-                finalData.estado = 'Inactivo';
-                const libDate = new Date();
-                libDate.setMonth(libDate.getMonth() + 1);
-                finalData.fecha_liberacion = libDate.toISOString();
-                summary.inactivos++;
+                batch.delete(docRef);
+                summary.purgados++;
+                continue; // Saltar actualización si se borra
             }
 
             // Phase 1: Purga y Enfriamiento
@@ -341,34 +482,17 @@ export const finalizarSesionConCrm = async (conductorName, pendingChanges = {}) 
                 finalData.solicitado_por = canonicalName;
                 finalData.asignado_a = canonicalName;
             } else {
-                // Si no es revisita, al finalizar liberamos la propiedad de la sesión
+                // Si no es revisita, al finalizar liberamos la propiedad de la sesión y la asignación
                 finalData.solicitado_por = null;
                 finalData.fecha_asignacion = null;
+                finalData.publicador_asignado = null;
+                finalData.asignado_a = null;
             }
 
             batch.update(docRef, finalData);
         }
 
-        // Phase 1.5: Auto-Reciclaje por Umbral (Pool < 100)
-        const qLibres = query(collection(db, COL_TELEFONOS), where("solicitado_por", "==", null));
-        const countSnap = await getCountFromServer(qLibres);
-        const poolCount = countSnap.data().count;
-        
-        if (poolCount <= 100) {
-            console.log("♻️ [CRM] Pool agotado (<=100). Iniciando reciclaje masivo...");
-            const qRecycle = query(collection(db, COL_TELEFONOS), 
-                where("estado", "in", ["Contestaron", "No contestan", "Colgaron"])
-            );
-            const snapRecycle = await getDocs(qRecycle);
-            snapRecycle.docs.forEach(d => {
-                batch.update(d.ref, {
-                    estado: '',
-                    solicitado_por: null,
-                    fecha_asignacion: null,
-                    intentos_fallidos: 0
-                });
-            });
-        }
+        // Phase 1.5: Auto-Reciclaje por Umbral (Pool < 100) -> Desactivado a favor del reciclaje en cascada "on-the-fly".
 
         await batch.commit();
         await logSessionSummary(summary);
@@ -445,7 +569,7 @@ export const deleteSessionSummary = async (id) => {
  * @param {boolean} [globalCleanup=false] - Si `true`, limpia también números huerfanos globales
  * @param {boolean} [force=false] - Si `true`, libera sin verificar umbral de tiempo
  */
-export const releaseUnusedTelefonos = async (userId, globalCleanup = false, force = false) => {
+export const releaseUnusedTelefonos = async (userId, globalCleanup = false, force = false, explicitIds = []) => {
     try {
         const phoneCol = collection(db, COL_TELEFONOS);
         const now = new Date();
@@ -478,8 +602,9 @@ export const releaseUnusedTelefonos = async (userId, globalCleanup = false, forc
 
         // Cleanup the specific user's session if it's stale or called explicitly
         if (userId) {
+            const variations = getVariations(userId);
             const sessionQ = query(phoneCol,
-                where("solicitado_por", "==", userId)
+                where("solicitado_por", "in", variations)
             );
             const sessionSnap = await getDocs(sessionQ);
 
@@ -509,6 +634,42 @@ export const releaseUnusedTelefonos = async (userId, globalCleanup = false, forc
             });
             if (releasePromises.length > 0) await Promise.all(releasePromises);
         }
+
+        // FIX HUGO: Red de seguridad — liberación forzada por ID explícito.
+        // Si la query por nombre no encontró los documentos (por diferencia de acentos/capitalización),
+        // forzamos la liberación directamente usando los IDs de los documentos conocidos.
+        if (force && explicitIds.length > 0) {
+            const explicitRefs = explicitIds.map(id => doc(db, COL_TELEFONOS, id));
+            const explicitSnaps = await Promise.all(explicitRefs.map(ref => getDoc(ref)));
+            const forceReleasePromises = [];
+            explicitSnaps.forEach(snap => {
+                if (!snap.exists()) return;
+                const data = snap.data();
+                // Solo liberar si aún tiene solicitado_por (no fue liberado ya por la query anterior)
+                if (data.solicitado_por) {
+                    if (data.estado === 'En Sesión') {
+                        forceReleasePromises.push(updateDoc(snap.ref, {
+                            estado: '',
+                            solicitado_por: null,
+                            fecha_asignacion: null,
+                            publicador_asignado: null,
+                            asignado_a: null
+                        }));
+                    } else {
+                        // Estado procesado (Revisita, No contestan, etc.) — preservar pero liberar ownership
+                        forceReleasePromises.push(updateDoc(snap.ref, {
+                            solicitado_por: null,
+                            fecha_asignacion: null
+                        }));
+                    }
+                }
+            });
+            if (forceReleasePromises.length > 0) {
+                await Promise.all(forceReleasePromises);
+                console.log(`[Phone Service] 🔓 Red de seguridad: ${forceReleasePromises.length} números liberados por ID explícito.`);
+            }
+        }
+
 
         // --- TAREAS DE MANTENIMIENTO AL FINALIZAR SESIÓN ---
         // Se ejecutan en segundo plano para preparar el pozo sin bloquear la interfaz del conductor
@@ -722,6 +883,7 @@ export const updateTelefonoStatus = async (id, estado, publicadorName, comentari
 
     if (comentario !== null && comentario.trim().length > 0) {
         data.comentario = comentario;
+        data.notas = comentario; // Keep in sync
         data.comentarios_historial = arrayUnion({
             nota: comentario,
             fecha: new Date().toISOString(),
@@ -729,10 +891,7 @@ export const updateTelefonoStatus = async (id, estado, publicadorName, comentari
         });
     }
 
-    if (estado === 'Suspendido' || estado === 'Testigo') {
-        await deleteDoc(doc(db, COL_TELEFONOS, id));
-        return;
-    }
+
 
     if (estado === 'Sin asignar' || data.estado === 'Sin asignar') {
         data.publicador_asignado = null;

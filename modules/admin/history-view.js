@@ -5,6 +5,8 @@ import {
 import { UIHelpers, showModal, showCustomConfirm } from '../services/ui-helpers.js';
 import { showNotification, toTitleCase } from '../utils/helpers.js';
 
+let activeTimelineUnsubs = [];
+
 export const renderHistorialView = async (container) => {
     const monday = UIHelpers.getMonday(new Date());
     const weekId = UIHelpers.formatDateId(monday);
@@ -229,19 +231,24 @@ export const renderHistorialView = async (container) => {
     window.viewTimeline = async (num) => {
         showModal(`
             <div class="flex flex-col h-full bg-white dark:bg-slate-950 rounded-[2.5rem] overflow-hidden shadow-2xl">
-                <header class="shrink-0 p-8 flex items-center justify-between border-b border-slate-100 dark:border-white/5">
-                        <div class="flex items-center gap-6">
-                            <div class="w-14 h-14 bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400 rounded-2xl flex items-center justify-center text-2xl border border-indigo-100 dark:border-indigo-400/20">
+                <header class="shrink-0 p-8 flex items-center justify-between border-b border-slate-100 dark:border-white/5 gap-4">
+                        <div class="flex items-center gap-6 flex-1 min-w-0">
+                            <div class="w-14 h-14 bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400 rounded-2xl flex items-center justify-center text-2xl border border-indigo-100 dark:border-indigo-400/20 shrink-0">
                                 <i class="fas fa-history"></i>
                             </div>
-                            <div>
-                                <h3 class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Registro S-13</h3>
+                            <div class="min-w-0">
+                                <h3 class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight truncate">Registro S-13</h3>
                                 <p class="text-xs text-slate-500 font-medium mt-0.5 uppercase tracking-widest">Territorio #${num}</p>
                             </div>
                         </div>
-                        <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="w-10 h-10 rounded-full hover:bg-slate-50 dark:hover:bg-white/5 flex items-center justify-center transition-all text-slate-600 dark:text-slate-400">
-                            <i class="fas fa-times"></i>
-                        </button>
+                        <div class="flex items-center gap-3 shrink-0">
+                            <button onclick="window.showManualLogModal('${num}')" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 flex items-center gap-1.5 shadow-md shadow-indigo-600/15">
+                                <i class="fas fa-plus"></i> Asignar S-13
+                            </button>
+                            <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="w-10 h-10 rounded-full hover:bg-slate-50 dark:hover:bg-white/5 flex items-center justify-center transition-all text-slate-600 dark:text-slate-400">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
                 </header>
 
                 <div id="timeline-view-content" class="flex-1 min-w-0 overflow-y-auto custom-scrollbar p-6 md:p-12 space-y-10 bg-slate-50/50 dark:bg-black/20">
@@ -278,17 +285,29 @@ export const renderHistorialView = async (container) => {
                 renderTimelineUI(content, sorted, num);
             });
 
+            // Registrar en el array de seguimiento global del módulo
+            activeTimelineUnsubs.push(unsub);
+
             // Limpieza al cerrar modal
             const closeBtn = modal.querySelector('button[onclick]');
             const oldOnClick = closeBtn.onclick;
             closeBtn.onclick = () => {
                 unsub();
+                const idx = activeTimelineUnsubs.indexOf(unsub);
+                if (idx !== -1) activeTimelineUnsubs.splice(idx, 1);
                 if (oldOnClick) oldOnClick.call(closeBtn);
             };
         }, 'max-w-3xl');
     };
 
     const renderTimelineUI = (container, history, num) => {
+        window._activeTimelineRecords = window._activeTimelineRecords || {};
+        history.forEach(h => {
+            if (h && h.id) {
+                window._activeTimelineRecords[h.id] = h;
+            }
+        });
+
         if (history.length === 0) {
             container.innerHTML = `
                 <div class="h-64 flex flex-col items-center justify-center opacity-30 gap-5 text-center">
@@ -363,11 +382,20 @@ export const renderHistorialView = async (container) => {
         `;
     };
 
-    // --- CIRUGÍA DE DATOS (SURGICAL INLINE EDITING) ---
     window.surgicalEditS13 = async (hId, tNum) => {
-        // Encontrar el registro en el cache local de la vista
-        const h = historyByNum[tNum].find(x => x.id === hId);
-        if (!h) return;
+        // Encontrar el registro en el cache local con máxima resiliencia (activo, agrupado, o general)
+        let h = window._activeTimelineRecords?.[hId];
+        if (!h) {
+            const list = historyByNum[tNum] || [];
+            h = list.find(x => x.id === hId);
+        }
+        if (!h) {
+            h = history.find(x => x.id === hId);
+        }
+        if (!h) {
+            showNotification("No se encontró el registro para editar", "error");
+            return;
+        }
 
         const dateAsigVal = (h.fecha_asignacion || h.timestamp || new Date().toISOString()).split('T')[0];
         const dateEntrVal = h.fecha_entrega ? h.fecha_entrega.split('T')[0] : '';
@@ -473,7 +501,15 @@ export const renderHistorialView = async (container) => {
     };
 
     window._stopAllTimelineLivePools = () => {
-        // Obsoleto pero mantenido por compatibilidad
+        console.log(`⚡ [History View] Limpiando ${activeTimelineUnsubs.length} suscripciones activas del timeline.`);
+        activeTimelineUnsubs.forEach(unsub => {
+            try {
+                unsub?.();
+            } catch (err) {
+                console.warn("Error deteniendo timeline unsub:", err);
+            }
+        });
+        activeTimelineUnsubs = [];
     };
 
     window.showGlobalObservations = async () => {
@@ -547,7 +583,7 @@ export const renderHistorialView = async (container) => {
                     </div>
                     <div class="space-y-3">
                         <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Fecha</label>
-                        <input type="date" id="asig-date" value="${new Date().toISOString().split('T')[0]}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-primary outline-none focus:border-primary transition-all uppercase shadow-inner">
+                        <input type="date" id="asig-date" value="${UIHelpers.formatDateId(new Date())}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-primary outline-none focus:border-primary transition-all uppercase shadow-inner">
                     </div>
                 </div>
 
@@ -581,7 +617,7 @@ export const renderHistorialView = async (container) => {
         });
     };
 
-    window.showManualLogModal = () => {
+    window.showManualLogModal = (preSelectedNum = null) => {
         showModal(`
             <div class="p-8 space-y-10">
                 <header class="flex items-center gap-6">
@@ -599,12 +635,12 @@ export const renderHistorialView = async (container) => {
                         <div class="space-y-3">
                             <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Territorio</label>
                             <select id="manual-h-num" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all uppercase appearance-none cursor-pointer">
-                                ${allTerritorios.map(t => `<option value="${t.numero}">${t.numero} - ${t.localidad}</option>`).join('')}
+                                ${allTerritorios.map(t => `<option value="${t.numero}" ${preSelectedNum === t.numero ? 'selected' : ''}>${t.numero} - ${t.localidad}</option>`).join('')}
                             </select>
                         </div>
                         <div class="space-y-3">
                             <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Conductor</label>
-                            <select id="manual-h-conductor" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all uppercase appearance-none cursor-pointer">
+                            <select id="manual-h-conductor" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none appearance-none cursor-pointer">
                                 <option value="">Seleccionar responsable...</option>
                                 ${allPublicadores.map(p => `<option value="${p.nombre}">${toTitleCase(p.nombre)}</option>`).join('')}
                             </select>
@@ -613,7 +649,7 @@ export const renderHistorialView = async (container) => {
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div class="space-y-3">
                             <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Fecha Asignación</label>
-                            <input type="date" id="manual-h-date-asig" value="${new Date().toISOString().split('T')[0]}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-blue-500 outline-none">
+                            <input type="date" id="manual-h-date-asig" value="${UIHelpers.formatDateId(new Date())}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-blue-500 outline-none">
                         </div>
                         <div class="space-y-3">
                             <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Turno</label>
@@ -636,7 +672,7 @@ export const renderHistorialView = async (container) => {
                 </div>
 
                 <div class="flex gap-4 pt-6 border-t border-slate-50 dark:border-white/5">
-                    <button onclick="document.querySelector('#modal-container').classList.add('hidden')" class="btn-pro flex-1 min-w-0 py-5 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-slate-600 dark:text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest transition-all">Cerrar</button>
+                    <button onclick="${preSelectedNum ? `window.viewTimeline('${preSelectedNum}')` : `document.querySelector('#modal-container').classList.add('hidden')`}" class="btn-pro flex-1 min-w-0 py-5 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-slate-600 dark:text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest transition-all">Cerrar</button>
                     <button id="confirm-manual-h" class="btn-pro flex-[2] py-5 bg-teal-600 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-teal-500/20 transition-all active:scale-95">Guardar Registro</button>
                 </div>
             </div>
@@ -669,7 +705,14 @@ export const renderHistorialView = async (container) => {
 
                 showNotification("Registro manual guardado");
                 modal.classList.add('hidden');
-                renderHistorialView(container);
+                
+                if (preSelectedNum) {
+                    setTimeout(() => {
+                        window.viewTimeline(preSelectedNum);
+                    }, 300);
+                } else {
+                    renderHistorialView(container);
+                }
             };
         });
     };

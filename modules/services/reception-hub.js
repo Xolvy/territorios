@@ -1,6 +1,7 @@
-import { startLivePool, returnTerritorio, updateTerritorio, returnTerritorioParcial } from '../../data/firestore-services.js';
+import { startLivePool, returnTerritorio, returnTerritorioParcial } from '../../data/firestore-services.js';
 import { showNotification } from '../utils/helpers.js';
 import { where } from "firebase/firestore";
+import { UIHelpers } from './ui-date-helpers.js';
 
 /**
  * Singleton instance tracker to prevent memory leaks and state contamination.
@@ -17,8 +18,11 @@ export class ReceptionHub {
         // --- 1. PERSISTENCIA ESTRICTA DEL ESTADO ---
         this.viewMode = config.viewMode || 'conductor'; // 'admin' | 'conductor'
         this.displayName = config.displayName || '';
+        this.scheduledConductor = config.scheduledConductor || '';
+        this.scheduledAuxiliar = config.scheduledAuxiliar || '';
         this.isAdmin = config.isAdmin || false;
         this.preSelectedId = config.preSelectedId || null;
+        this.preSelectedIds = config.preSelectedIds || null; // NEW: support multiple IDs
 
         this.unsubscribe = null;
         this.territories = [];
@@ -55,6 +59,7 @@ export class ReceptionHub {
         const { getConductores } = await import('../../data/firestore-services.js');
         getConductores().then(list => {
             this.conductores = list;
+            this.updateConductorSelect();
             this.renderList();
         });
 
@@ -69,6 +74,23 @@ export class ReceptionHub {
 
         this.unsubscribe = startLivePool("territorios", filtros, (data) => {
             this.territories = data;
+
+            // Autoselección del conductor para administradores
+            if (this.isAdmin) {
+                if (this.preSelectedId) {
+                    const target = this.territories.find(t => t.id === this.preSelectedId);
+                    if (target && target.asignado_a) {
+                        this.displayName = target.asignado_a;
+                    }
+                } else if (this.preSelectedIds && this.preSelectedIds.length > 0) {
+                    const target = this.territories.find(t => this.preSelectedIds.includes(t.id));
+                    if (target && target.asignado_a) {
+                        this.displayName = target.asignado_a;
+                    }
+                }
+            }
+
+            this.updateConductorSelect();
             this.renderList();
         });
 
@@ -90,15 +112,37 @@ export class ReceptionHub {
             if (e.target.id === 'reception-hub-modal') this.closeModal();
         };
 
+        const todayId = UIHelpers.formatDateId(new Date());
+
+        let footerHTML = `
+            <div class="p-6 border-t border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-slate-900 space-y-4 shrink-0">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1">
+                        <label class="text-[8px] font-black text-slate-550 dark:text-slate-400 uppercase tracking-widest ml-1 block">Fecha de entrega</label>
+                        <input type="date" id="common-delivery-date" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-3 rounded-xl text-[11px] font-bold text-slate-700 dark:text-white outline-none cursor-pointer" value="${todayId}">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[8px] font-black text-slate-555 dark:text-slate-400 uppercase tracking-widest ml-1 block">Conductor</label>
+                        <select id="common-conductor" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-3 rounded-xl text-[11px] font-bold text-slate-700 dark:text-white outline-none cursor-pointer">
+                            ${this.buildConductorOptions(this.displayName)}
+                        </select>
+                    </div>
+                </div>
+                <button id="btn-submit-all-reports" class="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-500/20 transition-all active:scale-95 flex items-center justify-center gap-2">
+                    <i class="fas fa-check-double"></i> Confirmar y Guardar
+                </button>
+            </div>
+        `;
+
         modal.innerHTML = `
             <div class="bg-white dark:bg-[#0b0e14] rounded-[20px] w-full max-w-[500px] max-h-[88vh] flex flex-col shadow-2xl overflow-hidden animate-slide-up border border-slate-200 dark:border-white/10">
                 <header class="p-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between shrink-0 bg-slate-50 dark:bg-slate-900">
                     <div class="flex items-center gap-4">
                         <div class="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-500 text-lg">
-                            <i class="fas ${this.viewMode === 'admin' ? 'fa-id-card' : 'fa-truck-active'}"></i>
+                            <i class="fas ${this.viewMode === 'admin' ? 'fa-id-card' : 'fa-clipboard-check'}"></i>
                         </div>
                         <div>
-                            <h3 class="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter leading-none">${this.viewMode === 'admin' ? 'Gestión HUB' : 'Mis Entregas'}</h3>
+                            <h3 class="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter leading-none">${this.viewMode === 'admin' ? 'Gestión HUB' : 'Informar Actividad'}</h3>
                             <p class="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mt-1">Live Pool S-13</p>
                         </div>
                     </div>
@@ -111,9 +155,7 @@ export class ReceptionHub {
                     <!-- Contenido dinámico -->
                 </div>
 
-                <footer class="p-6 border-t border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-slate-900 flex justify-center">
-                    <button onclick="ReceptionHub.closeModal()" class="w-full py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:text-rose-500 transition-all">Regresar al Panel</button>
-                </footer>
+                ${footerHTML}
             </div>
         `;
 
@@ -121,7 +163,84 @@ export class ReceptionHub {
     }
 
     /**
-     * Renderiza la lista de tarjetas con filtro RBAC basado en viewMode.
+     * Genera el HTML de las opciones de conductor, priorizando el conductor y auxiliar programados.
+     */
+    buildConductorOptions(selectedValue) {
+        const uniqueNames = new Set();
+        const list = [];
+        const selVal = (selectedValue || '').trim();
+
+        // 1. Conductor programado
+        if (this.scheduledConductor) {
+            const name = this.scheduledConductor.trim();
+            if (name && !uniqueNames.has(name)) {
+                uniqueNames.add(name);
+                list.push({ nombre: name, group: 'Programados' });
+            }
+        }
+
+        // 2. Auxiliar programado
+        if (this.scheduledAuxiliar) {
+            const name = this.scheduledAuxiliar.trim();
+            if (name && !uniqueNames.has(name)) {
+                uniqueNames.add(name);
+                list.push({ nombre: name, group: 'Programados' });
+            }
+        }
+
+        // 3. Todos los demás conductores
+        if (this.conductores) {
+            this.conductores.forEach(c => {
+                const name = (c.nombre || '').trim();
+                if (name && !uniqueNames.has(name)) {
+                    uniqueNames.add(name);
+                    list.push({ nombre: name, group: 'Otros' });
+                }
+            });
+        }
+
+        // Si el valor seleccionado no está en la lista, agregarlo
+        if (selVal && !uniqueNames.has(selVal)) {
+            uniqueNames.add(selVal);
+            list.push({ nombre: selVal, group: 'Otros' });
+        }
+
+        let html = '<option value="">Seleccionar...</option>';
+        const programados = list.filter(item => item.group === 'Programados');
+        const otros = list.filter(item => item.group === 'Otros');
+
+        if (programados.length > 0) {
+            html += `<optgroup label="Programados para hoy">`;
+            programados.forEach(item => {
+                html += `<option value="${item.nombre}" ${item.nombre === selVal ? 'selected' : ''}>${item.nombre}</option>`;
+            });
+            html += `</optgroup>`;
+        }
+
+        if (otros.length > 0) {
+            html += `<optgroup label="Otros Conductores">`;
+            otros.forEach(item => {
+                html += `<option value="${item.nombre}" ${item.nombre === selVal ? 'selected' : ''}>${item.nombre}</option>`;
+            });
+            html += `</optgroup>`;
+        }
+
+        return html;
+    }
+
+    /**
+     * Actualiza dinámicamente el dropdown de conductor.
+     */
+    updateConductorSelect() {
+        const select = document.getElementById('common-conductor');
+        if (select) {
+            const val = select.value || this.displayName;
+            select.innerHTML = this.buildConductorOptions(val);
+        }
+    }
+
+    /**
+     * Renderiza la lista de tarjetas con filtro RBAC unificado.
      */
     renderList() {
         const list = document.getElementById('reception-hub-list');
@@ -129,7 +248,6 @@ export class ReceptionHub {
 
         // --- 2. INTERCEPTAR LOS DATOS Y APLICAR FILTRO ---
         const data = this.territories || [];
-        // CAMBIO B: Filtro ampliado — ocultar TODOS los estados inactivos, no solo 'Disponible'
         const INACTIVE_STATES = ['Disponible', 'Predicado', 'Sin asignar', 'Extraviado', 'Libre'];
         let territoriosParaMostrar = data.filter(t => !INACTIVE_STATES.includes(t.estado) && !INACTIVE_STATES.includes(t.status));
 
@@ -143,14 +261,18 @@ export class ReceptionHub {
             });
         }
 
-        // --- DEPURACIÓN OBLIGATORIA (F12) ---
-        console.log(`[RBAC S-13] Mode: ${this.viewMode} | User: ${this.displayName} | Total: ${data.length} | Mostrando: ${territoriosParaMostrar.length}`);
+        // Filtro por IDs preseleccionados (soporta preSelectedId y preSelectedIds)
+        if (this.preSelectedIds && this.preSelectedIds.length > 0) {
+            territoriosParaMostrar = territoriosParaMostrar.filter(t => this.preSelectedIds.includes(t.id));
+        } else if (this.preSelectedId) {
+            territoriosParaMostrar = territoriosParaMostrar.filter(t => t.id === this.preSelectedId);
+        }
 
         if (territoriosParaMostrar.length === 0) {
             const emptyMsg = (this.viewMode === 'conductor') ? "No tienes asignaciones pendientes de informar" : "No hay territorios asignados en este momento";
             list.innerHTML = `
                 <div class="py-20 text-center space-y-4 animate-fade-in opacity-50">
-                    <div class="w-16 h-16 bg-slate-200 dark:bg-white/5 rounded-full flex items-center justify-center mx-auto text-slate-600 dark:text-slate-400">
+                    <div class="w-16 h-16 bg-slate-200 dark:bg-white/5 rounded-full flex items-center justify-center mx-auto text-slate-500 px-8 dark:text-slate-400">
                         <i class="fas fa-check-circle text-2xl"></i>
                     </div>
                     <p class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 px-8">${emptyMsg}</p>
@@ -158,218 +280,240 @@ export class ReceptionHub {
             return;
         }
 
-        let html = '';
-        const preSelectedId = this.preSelectedId;
+        // --- ORDENAR Y AGRUPAR CRONOLÓGICAMENTE POR DÍA Y CONDUCTOR ---
+        const daysOfWeek = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+        const sortedTerritories = [...territoriosParaMostrar].sort((a, b) => {
+            const dateA = UIHelpers.parseFirebaseDate(a.fecha_salida || a.fecha_asignacion) || new Date(0);
+            const dateB = UIHelpers.parseFirebaseDate(b.fecha_salida || b.fecha_asignacion) || new Date(0);
+            return dateA.getTime() - dateB.getTime();
+        });
 
-        if (this.viewMode === 'admin') {
-            const groups = territoriosParaMostrar.reduce((acc, t) => {
-                const c = t.asignado_a || 'Sin Asignar';
-                if (!acc[c]) acc[c] = [];
-                acc[c].push(t);
-                return acc;
-            }, {});
+        const groups = [];
+        sortedTerritories.forEach(t => {
+            const dateObj = UIHelpers.parseFirebaseDate(t.fecha_salida || t.fecha_asignacion);
+            const dayName = dateObj ? daysOfWeek[dateObj.getDay()] : 'Sin Día';
+            const dateStr = dateObj ? dateObj.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
+            const conductor = t.asignado_a || 'Sin Asignar';
+            
+            const dateKey = dateObj ? dateObj.toISOString().split('T')[0] : 'no-date';
+            const key = `${dateKey}_${conductor}`;
 
-            html = Object.keys(groups).sort().map(conductor => {
-                const groupHeader = `
-                <div class="flex items-center gap-3 mb-4 mt-10 first:mt-0">
-                    <div class="h-px bg-slate-200 dark:bg-white/5 flex-1 min-w-0"></div>
-                    <span class="text-[9px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest whitespace-nowrap">${conductor}</span>
-                    <div class="h-px bg-slate-200 dark:bg-white/5 flex-1 min-w-0"></div>
-                </div>`;
-                const groupCards = groups[conductor].map(t => this.renderCard(t, preSelectedId)).join('');
-                return groupHeader + groupCards;
-            }).join('');
-        } else {
-            html = territoriosParaMostrar.map(t => this.renderCard(t, preSelectedId)).join('');
-        }
+            let existingGroup = groups.find(g => g.key === key);
+            if (!existingGroup) {
+                existingGroup = {
+                    key,
+                    dayName,
+                    dateStr,
+                    conductor,
+                    items: []
+                };
+                groups.push(existingGroup);
+            }
+            existingGroup.items.push(t);
+        });
 
-        list.innerHTML = html;
-        this.attachEvents();
-    }
+        // Rediseño Vista Unificada (Layout de la Imagen 2 para todos)
+        let html = `<div class="space-y-6">`;
+        
+        html += groups.map(group => {
+            const groupHeader = `
+            <div class="flex items-center gap-3 mb-4 mt-6 first:mt-0">
+                <div class="h-px bg-slate-200 dark:bg-white/5 flex-1 min-w-0"></div>
+                <span class="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest whitespace-nowrap">
+                    ${group.conductor} (${group.dayName})
+                </span>
+                <div class="h-px bg-slate-200 dark:bg-white/5 flex-1 min-w-0"></div>
+            </div>`;
+            
+            const groupCards = group.items.map(t => {
+                if (!this.selections[t.id]) {
+                    this.selections[t.id] = {
+                        manzanas: [],
+                        notes: '',
+                        conductorFinal: t.asignado_a || '',
+                        date: UIHelpers.formatDateId(new Date())
+                    };
+                }
+                const sel = this.selections[t.id];
+                const mzs = t.manzanas ? t.manzanas.split(',').map(m => m.trim()).filter(Boolean) : [];
+                
+                const allSelected = mzs.length > 0 && mzs.every(m => sel.manzanas.includes(m));
+                const partialSelected = sel.manzanas.length > 0 && !allSelected;
+                
+                let statusBadge = '';
+                if (allSelected) {
+                    statusBadge = `<span class="px-2.5 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[9px] font-black uppercase tracking-wider rounded-lg">Entrega Total</span>`;
+                } else if (partialSelected) {
+                    statusBadge = `<span class="px-2.5 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[9px] font-black uppercase tracking-wider rounded-lg">Entrega Parcial</span>`;
+                } else {
+                    statusBadge = `<span class="px-2.5 py-1 bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/5 text-[9px] font-black uppercase tracking-wider rounded-lg">Sin entregar</span>`;
+                }
 
-    /**
-     * Genera el HTML de una tarjeta individual.
-     */
-    renderCard(t, preSelectedId) {
-        if (!this.selections[t.id]) {
-            this.selections[t.id] = {
-                mode: t.id === preSelectedId ? 'full' : 'partial',
-                manzanas: [],
-                notes: '',
-                conductorFinal: t.asignado_a || ''
-            };
-        }
+                const parsedAsigDate = UIHelpers.parseFirebaseDate(t.fecha_asignacion);
+                const asigDateStr = parsedAsigDate ? parsedAsigDate.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
 
-        const sel = this.selections[t.id];
-        const mzs = t.manzanas ? t.manzanas.split(',').map(m => m.trim()).filter(Boolean) : [];
-        const isAdminMode = this.viewMode === 'admin';
-
-        return `
-            <div class="modern-card territory-item-card p-6 border-slate-200 dark:border-white/10 space-y-5 bg-white dark:bg-white/[0.03] animate-fade-in" data-id="${t.id}" data-manzanas="${t.manzanas || ''}">
-                <div class="flex items-center gap-4">
-                    <div class="w-10 h-10 bg-emerald-500 text-white rounded-xl flex items-center justify-center font-black text-xs shadow-lg shadow-emerald-500/20 shrink-0">
-                        ${t.numero}
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <h4 class="text-[13px] font-black text-slate-800 dark:text-white uppercase truncate">${t.localidad || 'Territorio'}</h4>
-                        <p class="text-[9px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-widest mt-0.5">${mzs.length} Manzanas</p>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-3 gap-2">
-                    <button class="mode-btn flex flex-col items-center justify-center gap-1 py-3 px-1 rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all ${sel.mode === 'full' ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400'}" data-mode="full">
-                        <i class="fas fa-check-double"></i> Total
-                    </button>
-                    <button class="mode-btn flex flex-col items-center justify-center gap-1 py-3 px-1 rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all ${sel.mode === 'partial' ? 'bg-amber-500 border-amber-500 text-white shadow-lg shadow-amber-500/20' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400'}" data-mode="partial">
-                        <i class="fas fa-scissors"></i> Parcial
-                    </button>
-                    <button class="mode-btn flex flex-col items-center justify-center gap-1 py-3 px-1 rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all ${sel.mode === 'return' ? 'bg-rose-500 border-rose-500 text-white shadow-lg shadow-rose-500/20' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400'}" data-mode="return">
-                        <i class="fas fa-undo"></i> Devolver
-                    </button>
-                </div>
-
-                ${sel.mode === 'partial' ? `
-                    <div class="animate-fade-in space-y-3">
-                        <label class="text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Manzanas cerradas:</label>
-                        <div class="flex flex-wrap gap-2">
-                            ${mzs.map(m => `
-                                <button class="mz-chip px-3 py-2 rounded-lg border text-[10px] font-bold ${sel.manzanas.includes(m) ? 'bg-amber-500 border-amber-500 text-white' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/5 text-slate-600 dark:text-slate-400'}" data-val="${m}">
-                                    ${m}
+                return `
+                    <div class="modern-card territory-report-card p-5 border-slate-200 dark:border-white/10 space-y-4 bg-white dark:bg-white/[0.02] animate-fade-in mb-4" data-id="${t.id}" data-manzanas="${t.manzanas || ''}" data-numero="${t.numero}">
+                        <div class="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 bg-indigo-500 text-white rounded-lg flex items-center justify-center font-black text-xs shadow-md">
+                                    ${t.numero}
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <h4 class="text-[12px] font-black text-slate-800 dark:text-white uppercase truncate max-w-[180px]">${t.localidad || 'Territorio'}</h4>
+                                    <p class="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mt-0.5">${mzs.length} Manzanas • Asignado: ${asigDateStr}</p>
+                                </div>
+                            </div>
+                            <div>
+                                ${statusBadge}
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <div class="flex flex-wrap items-center gap-1.5">
+                                ${mzs.map(m => {
+                                    const isSelected = sel.manzanas.includes(m);
+                                    return `
+                                    <button class="mz-select-btn px-3 py-1.5 rounded-lg border text-[10px] font-black transition-all ${isSelected ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10'}" data-val="${m}">
+                                        ${String(m).trim().toLowerCase().startsWith('mz') ? m : `Mz. ${m}`}
+                                    </button>
+                                    `;
+                                }).join('')}
+                                ${mzs.length > 1 ? `
+                                <button class="btn-mark-all-mzs ml-auto px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all" data-id="${t.id}">
+                                    Marcar todas
                                 </button>
-                            `).join('')}
+                                ` : ''}
+                            </div>
                         </div>
                     </div>
-                ` : ''}
-
-                <div class="space-y-4 pt-1">
-                    ${sel.mode === 'return' ? `
-                    <div class="bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-xl px-4 py-3 flex items-center gap-3">
-                        <i class="fas fa-info-circle text-rose-500 text-sm shrink-0"></i>
-                        <p class="text-[9px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest leading-relaxed">El territorio volverá al pozo sin actualizar fechas de predicación.</p>
-                    </div>
-                    ` : ''}
-                    <div class="space-y-2">
-                        <label class="text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 block">Responsable de Entrega (S-13)</label>
-                        <select class="conductor-final w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 p-4 rounded-xl text-[11px] font-bold text-slate-700 dark:text-white outline-none focus:border-emerald-500/40 transition-all ${isAdminMode ? 'cursor-pointer' : 'opacity-60 bg-slate-100 dark:bg-white/5 cursor-not-allowed'}" 
-                                ${isAdminMode ? '' : 'disabled'}>
-                            <option value="">Seleccionar...</option>
-                            ${this.conductores.map(c => `
-                                <option value="${c.nombre}" ${sel.conductorFinal === c.nombre ? 'selected' : ''}>${c.nombre}</option>
-                            `).join('')}
-                            ${(!this.conductores.find(c => c.nombre === sel.conductorFinal) && sel.conductorFinal) ? `<option value="${sel.conductorFinal}" selected>${sel.conductorFinal}</option>` : ''}
-                        </select>
-                    </div>
-
-                    <div class="space-y-2">
-                        <label class="text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1 block">Notas / Observaciones</label>
-                        <textarea class="note-input w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 p-4 rounded-2xl text-[11px] font-medium text-slate-700 dark:text-white outline-none focus:border-emerald-500/40 transition-all resize-none" rows="2" placeholder="Escribe aquí novedades relevantes...">${sel.notes}</textarea>
-                    </div>
-
-                    <button class="btn-process-single w-full mt-5 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-500/20 transition-all active:scale-95 flex items-center justify-center gap-2" data-tid="${t.id}">
-                        <i class="fas fa-check-circle"></i> Confirmar T-${t.numero}
-                    </button>
-                </div>
-            </div>
-        `;
+                `;
+            }).join('');
+            
+            return groupHeader + groupCards;
+        }).join('');
+        
+        html += `</div>`;
+        list.innerHTML = html;
+        this.attachHubEvents(territoriosParaMostrar);
     }
 
     /**
-     * Vincula los eventos de interacción de la instancia.
+     * Vincula los eventos de interacción de la vista unificada.
      */
-    attachEvents() {
+    attachHubEvents(territoriosParaMostrar) {
         const list = document.getElementById('reception-hub-list');
         if (!list) return;
 
-        list.querySelectorAll('.territory-item-card').forEach(card => {
-            const id = card.dataset.id;
+        territoriosParaMostrar.forEach(t => {
+            const card = list.querySelector(`.territory-report-card[data-id="${t.id}"]`);
+            if (!card) return;
 
-            // --- 1. SELECCIÓN DE MODO ---
-            card.querySelectorAll('.mode-btn').forEach(btn => {
+            const mzs = t.manzanas ? t.manzanas.split(',').map(m => m.trim()).filter(Boolean) : [];
+
+            // 1. Manzanas Select Buttons
+            card.querySelectorAll('.mz-select-btn').forEach(btn => {
                 btn.onclick = () => {
-                    this.selections[id].mode = btn.dataset.mode;
+                    const val = btn.dataset.val;
+                    const sel = this.selections[t.id];
+                    const idx = sel.manzanas.indexOf(val);
+                    if (idx > -1) {
+                        sel.manzanas.splice(idx, 1);
+                    } else {
+                        sel.manzanas.push(val);
+                    }
                     this.renderList();
                 };
             });
 
-            // --- 2. SELECCIÓN DE MANZANAS (MODO PARCIAL) ---
-            card.querySelectorAll('.mz-chip').forEach(chip => {
-                chip.onclick = () => {
-                    const val = chip.dataset.val;
-                    const idx = this.selections[id].manzanas.indexOf(val);
-                    if (idx > -1) this.selections[id].manzanas.splice(idx, 1);
-                    else this.selections[id].manzanas.push(val);
+            // 2. Mark All button
+            const markAllBtn = card.querySelector('.btn-mark-all-mzs');
+            if (markAllBtn) {
+                markAllBtn.onclick = () => {
+                    const sel = this.selections[t.id];
+                    const allSelected = mzs.every(m => sel.manzanas.includes(m));
+                    if (allSelected) {
+                        sel.manzanas = []; // deselect all
+                    } else {
+                        sel.manzanas = [...mzs]; // select all
+                    }
                     this.renderList();
-                };
-            });
-
-            // --- 3. INPUTS DE TEXTO ---
-            const textarea = card.querySelector('.note-input');
-            textarea.oninput = (e) => {
-                this.selections[id].notes = e.target.value;
-            };
-
-            const inputConductor = card.querySelector('.conductor-final');
-            if (inputConductor) {
-                inputConductor.onchange = (e) => {
-                    this.selections[id].conductorFinal = e.target.value;
                 };
             }
+        });
 
-            // --- 4. PROCESAMIENTO INDIVIDUAL (Optimistic UI) ---
-            const processBtn = card.querySelector('.btn-process-single');
-            processBtn.onclick = async () => {
-                const tid = processBtn.dataset.tid;
-                processBtn.disabled = true;
-                processBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> PROCESANDO...';
+        // 3. Submit All reports button
+        const submitBtn = document.getElementById('btn-submit-all-reports');
+        if (submitBtn) {
+            submitBtn.onclick = async () => {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Guardando...';
 
                 try {
-                    const sel = this.selections[tid];
-                    const t = this.territories.find(x => x.id === tid);
-                    if (!t) return;
+                    const dateInput = document.getElementById('common-delivery-date');
+                    const deliveryDate = dateInput ? dateInput.value : UIHelpers.formatDateId(new Date());
+                    const conductorInput = document.getElementById('common-conductor');
+                    const conductor = conductorInput ? conductorInput.value : (this.displayName || 'Conductor');
 
-                    const mode = sel.mode;
-                    const notas = sel.notes || '';
-                    const responsable = sel.conductorFinal || window.XolvyApp?.identity?.nombreCanonico || 'Anónimo';
-                    const date = new Date().toISOString().split('T')[0];
+                    // Check if any territory has zero apples selected (meaning Devolución)
+                    const returningWithoutPreaching = territoriosParaMostrar.filter(t => {
+                        const sel = this.selections[t.id];
+                        return !sel || !sel.manzanas || sel.manzanas.length === 0;
+                    });
 
-                    if (mode === 'partial') {
-                        const checksMz = sel.manzanas;
-                        const originalMzs = card.dataset.manzanas ? card.dataset.manzanas.split(',').map(m => m.trim()) : [];
-                        const remaining = originalMzs.filter(x => !checksMz.includes(x));
-                        
-                        if (checksMz.length === 0) throw new Error("Selecciona al menos una manzana.");
-                        await returnTerritorioParcial(tid, checksMz, remaining, true, notas || 'Avance parcial', date, null, responsable);
-                        window.dispatchEvent(new CustomEvent('territorio-actualizado', { detail: { id: tid, numero: t.numero } }));
-                    } else if (mode === 'return') {
-                        await returnTerritorio(tid, notas || 'Devuelto sin predicar', null, 'Disponible');
-                        window.dispatchEvent(new CustomEvent('territorio-liberado', { detail: { id: tid, numero: t.numero } }));
-                    } else {
-                        await returnTerritorio(tid, notas || 'Completado', date, 'Completado', null, responsable);
-                        window.dispatchEvent(new CustomEvent('territorio-liberado', { detail: { id: tid, numero: t.numero } }));
+                    if (returningWithoutPreaching.length > 0) {
+                        const nums = returningWithoutPreaching.map(t => `T-${t.numero}`).join(', ');
+                        const confirm = await window.Swal.fire({
+                            title: '¿Devolver sin predicar?',
+                            text: `Vas a devolver ${nums} al panel sin registrar actividad (quedarán Disponibles). ¿Confirmar devolución?`,
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonColor: '#3085d6',
+                            cancelButtonColor: '#d33',
+                            confirmButtonText: 'Sí, devolver',
+                            cancelButtonText: 'Cancelar'
+                        });
+                        if (!confirm.isConfirmed) {
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = '<i class="fas fa-check-double"></i> Confirmar y Guardar';
+                            return;
+                        }
                     }
 
-                    // Optimistic UI: Desaparecer la tarjeta con animación
-                    card.style.transition = 'all 0.4s ease';
-                    card.style.opacity = '0';
-                    card.style.transform = 'scale(0.95)';
-                    setTimeout(() => {
-                        card.remove();
-                        showNotification('Territorio actualizado correctamente', 'success');
-                        
-                        // Si ya no hay tarjetas, cerrar el modal automáticamente
-                        if (document.querySelectorAll('.territory-item-card').length === 0) {
-                            this.closeModal();
+                    // Process each territory
+                    for (const t of territoriosParaMostrar) {
+                        const sel = this.selections[t.id];
+                        const mzs = t.manzanas ? t.manzanas.split(',').map(m => m.trim()).filter(Boolean) : [];
+                        const checksMz = sel ? sel.manzanas : [];
+                        const remaining = mzs.filter(x => !checksMz.includes(x));
+
+                        if (checksMz.length === 0) {
+                            // Devolución sin predicar (Disponible)
+                            await returnTerritorio(t.id, "Devolución desde control unificado", null, 'Disponible');
+                            window.dispatchEvent(new CustomEvent('territorio-liberado', { detail: { id: t.id, numero: t.numero } }));
+                        } else if (remaining.length === 0) {
+                            // Entrega Total
+                            await returnTerritorio(t.id, null, deliveryDate, 'Completado', null, conductor);
+                            window.dispatchEvent(new CustomEvent('territorio-liberado', { detail: { id: t.id, numero: t.numero } }));
+                        } else {
+                            // Entrega Parcial
+                            await returnTerritorioParcial(t.id, checksMz, remaining, true, null, deliveryDate, null, conductor);
+                            window.dispatchEvent(new CustomEvent('territorio-actualizado', { detail: { id: t.id, numero: t.numero } }));
                         }
-                    }, 400);
+                    }
+
+                    showNotification("Actividad informada correctamente", "success");
+                    if (window.renderTableCallback) window.renderTableCallback();
+                    this.closeModal();
 
                 } catch (error) {
-                    console.error(error);
-                    showNotification(error.message || "Error al procesar", "error");
-                    processBtn.disabled = false;
-                    processBtn.innerHTML = '<i class="fas fa-check-circle"></i> REINTENTAR';
+                    console.error("Error submitting reports:", error);
+                    showNotification(error.message || "Error al guardar la actividad", "error");
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-check-double"></i> Confirmar y Guardar';
                 }
             };
-        });
+        }
     }
 
     /**
@@ -391,10 +535,24 @@ export class ReceptionHub {
     static closeModal() {
         if (runningHubInstance) runningHubInstance.closeModal();
     }
-
-
 }
 
 // Exponer al scope global
 window.ReceptionHub = ReceptionHub;
 window.closeReceptionHub = () => ReceptionHub.closeModal();
+
+window.promptReturnTerritorio = async (id, numero) => {
+    const user = window.XolvyApp?.user;
+    const authUser = (await import('../../firebase-config.js')).auth.currentUser;
+    
+    const { normalizeRobust } = await import('../utils/helpers.js');
+    const resolvedName = normalizeRobust(user?.nombre || authUser?.displayName || authUser?.email || 'Usuario');
+    const isAdmin = user?.role === 'Administrador' || user?.role === 'SuperAdmin';
+
+    await ReceptionHub.openModal({
+        preSelectedId: id,
+        viewMode: isAdmin ? 'admin' : 'conductor',
+        displayName: resolvedName,
+        isAdmin: isAdmin
+    });
+};

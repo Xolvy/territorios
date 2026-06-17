@@ -57,12 +57,35 @@ export const fetchCached = async (key, fetchFn, customTtl = null) => {
 // ═══════════════════════════════════════════════════════════
 import { collection, query, onSnapshot } from "firebase/firestore";
 
+export const PoolManager = {
+    activePools: [],
+    register(unsub) {
+        if (typeof unsub === 'function') {
+            this.activePools.push(unsub);
+        }
+        return unsub;
+    },
+    stopAll() {
+        console.log(`🛑 [PoolManager] Deteniendo ${this.activePools.length} live pools activos.`);
+        this.activePools.forEach(unsub => {
+            try {
+                if (typeof unsub === 'function') unsub();
+            } catch (err) {
+                console.error("[PoolManager] Error al detener live pool:", err);
+            }
+        });
+        this.activePools = [];
+    }
+};
+
 export const startLivePool = (collectionName, filters, onUpdate) => {
     const q = query(collection(db, collectionName), ...filters);
-    return onSnapshot(q, (snapshot) => {
+    const unsub = onSnapshot(q, (snapshot) => {
         const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         onUpdate(data);
     }, (error) => {
         console.error(`[Live Pool] Error en ${collectionName}:`, error);
     });
+    return PoolManager.register(unsub);
 };
+

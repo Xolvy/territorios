@@ -6,88 +6,140 @@ service cloud.firestore {
     // XOLVY SECURITY v4.0 — ZERO TRUST FIRESTORE RULES
     // ═══════════════════════════════════════════════════════════
     //
-    // POLICY: No unauthenticated reads. No wildcard writes.
-    // Every collection is explicitly gated behind request.auth != null.
-    //
-    // PHASE 2 (future): Migrate to Custom Claims for role-based 
-    // read/write separation (Admin vs Conductor vs Publicador).
+    // POLICY: Zero Trust. Guest searchers can only read /publicadores.
+    // All business data is gated by a secure Session Vault (/auth_binds).
+    // Role consistency is verified on-server to prevent privilege escalation.
     // ═══════════════════════════════════════════════════════════
 
     function isAuthenticated() {
       return request.auth != null;
     }
 
+    function isUserBound() {
+      return exists(/databases/$(database)/documents/auth_binds/$(request.auth.uid));
+    }
+
+    function getUserBind() {
+      return get(/databases/$(database)/documents/auth_binds/$(request.auth.uid)).data;
+    }
+
+    function getPubData(pubId) {
+      return get(/databases/$(database)/documents/publicadores/$(pubId)).data;
+    }
+
+    function getPubRol(pubId) {
+      return ("privilegios" in getPubData(pubId) && getPubData(pubId).privilegios != null && getPubData(pubId).privilegios.size() > 0) ? 
+             ((('Administrador' in getPubData(pubId).privilegios) || ('SuperAdmin' in getPubData(pubId).privilegios)) ? 'Administrador' : 
+              (('Conductor' in getPubData(pubId).privilegios) ? 'Conductor' : 'Publicador')) : 
+             (("es_conductor" in getPubData(pubId) && getPubData(pubId).es_conductor == true) ? 'Conductor' : 'Publicador');
+    }
+
+    function isConductor() {
+      return isAuthenticated() && isUserBound() && (
+        getUserBind().rol == 'Conductor' || 
+        getUserBind().rol == 'Administrador' || 
+        getUserBind().rol == 'SuperAdmin'
+      );
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && isUserBound() && (
+        getUserBind().rol == 'Administrador' || 
+        getUserBind().rol == 'SuperAdmin'
+      );
+    }
+
+    // --- SECURE SESSION VAULT ---
+
+    match /auth_binds/{uid} {
+      allow read: if isAuthenticated() && request.auth.uid == uid;
+      allow create, update: if isAuthenticated() && request.auth.uid == uid 
+                            && request.resource.data.publicadorId != null
+                            && request.resource.data.rol == getPubRol(request.resource.data.publicadorId);
+      allow delete: if isAuthenticated() && request.auth.uid == uid;
+    }
+
     // --- CORE DATA COLLECTIONS ---
 
     match /publicadores/{docId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && (
+        isAdmin() || 
+        isConductor() ||
+        (isUserBound() && getUserBind().publicadorId == docId)
+      );
     }
 
     match /territorios/{docId} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if isConductor() || isAdmin();
+    }
+
+    match /puntos_interes/{docId} {
+      allow read, write: if isConductor() || isAdmin();
     }
 
     match /telefonos/{docId} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if isConductor() || isAdmin();
     }
 
     match /configuracion/{docId} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if isConductor() || isAdmin();
     }
 
     match /programas/{docId} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if isConductor() || isAdmin();
     }
 
     match /programa_semanal/{docId} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if isConductor() || isAdmin();
     }
 
     match /recursos/{docId} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if isConductor() || isAdmin();
     }
 
     match /predicacion_publica/{docId} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if isConductor() || isAdmin();
     }
 
     match /banco_s13/{docId} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if isConductor() || isAdmin();
     }
 
     // --- OPERATIONAL COLLECTIONS ---
 
     match /bitacora_auditoria/{docId} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if isConductor() || isAdmin();
     }
 
     match /bitacora_observaciones/{docId} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if isConductor() || isAdmin();
     }
 
     match /reportes_telefonicos/{docId} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if isConductor() || isAdmin();
     }
 
     match /resumenes_sesion_telefonia/{docId} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if isConductor() || isAdmin();
     }
 
-    // --- LEGACY (scheduled for removal in Phase 2) ---
+    match /presencia_conductores/{docId} {
+      allow read, write: if isConductor() || isAdmin();
+    }
+
+    // --- LEGACY ---
 
     match /conductores/{docId} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if isConductor() || isAdmin();
     }
 
     match /historial_territorios/{docId} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if isConductor() || isAdmin();
     }
 
     // ═══════════════════════════════════════════════════════════
     // DEFAULT DENY — No wildcard catch-all.
-    // Any collection NOT explicitly listed above is DENIED.
-    // This closes the previous vulnerability where ANY 
-    // authenticated user could read/write ANY collection.
     // ═══════════════════════════════════════════════════════════
   }
 }

@@ -64,7 +64,22 @@ const UpdateShield = {
     }
 };
 
+let unsubUpdate = null;
+
+export const stopUpdateManager = () => {
+    if (unsubUpdate) {
+        console.log("🛡️ Update Manager: Stopping version listener...");
+        try {
+            unsubUpdate();
+        } catch (err) {
+            console.warn("⚠️ [UpdateManager] Failed to unsubscribe:", err);
+        }
+        unsubUpdate = null;
+    }
+};
+
 export const initUpdateManager = () => {
+    if (unsubUpdate) return;
     console.log(`🛡️ Update Manager: Active (v${APP_VERSION})`);
 
     // 0. RADICAL PURGE: Verify if we are coming from a "stuck" state
@@ -102,7 +117,7 @@ export const initUpdateManager = () => {
     }
 
     // 2. Listen for Server-Side Force Updates
-    onSnapshot(doc(db, "configuracion", "version_control"), async (docSnap) => {
+    unsubUpdate = onSnapshot(doc(db, "configuracion", "version_control"), async (docSnap) => {
         if (!docSnap.exists()) return;
 
         const data = docSnap.data();
@@ -137,10 +152,11 @@ export const initUpdateManager = () => {
             console.log("🚀 Core Update Required! Starting background sync...");
             startBackgroundUpdate(serverVersion, serverForceTimestamp);
         } else if (forceRequired) {
-            // If it's just a force sync without version change, we can just clear caches silently
-            console.log("⚡ Force Sync requested without version change. Purging background caches.");
+            // Force reload active devices to resolve stuck state or cache issues
+            console.log("⚡ Force Sync/Reload requested. Purging caches and reloading...");
             localStorage.setItem('last_force_timestamp', serverForceTimestamp.toString());
-            // No reload needed, HMS or next fetch will pick up changes
+            await performRadicalCachePurge(false);
+            window.location.reload();
         } else if (isNewer(APP_VERSION, serverVersion)) {
             // TELEMETRY: If I am an Admin and my version is newer, I should auto-sync the server
             // TELEMETRY: If I am an Admin and my version is newer, I should auto-sync the server
@@ -151,6 +167,8 @@ export const initUpdateManager = () => {
                 broadcastCurrentVersion().catch(err => console.warn("Telemetry sync failed:", err));
             }
         }
+    }, (error) => {
+        console.warn("⚠️ [UpdateManager] Error in version control listener:", error);
     });
 
     // 3. Telemetry: If I'm an Admin, I should verify if my version is the "latest"

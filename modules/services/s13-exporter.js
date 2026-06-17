@@ -25,7 +25,7 @@ export class S13Exporter {
 
             if (assignOffset > 0 && assignments[assignOffset - 1]) {
                 const prevAssign = assignments[assignOffset - 1];
-                if (prevAssign.fecha_entrega) {
+                if (prevAssign.fecha_entrega && prevAssign.estado !== 'Predicado Parcial') {
                     lastCompletionDate = this.formatDateShort(prevAssign.fecha_entrega);
                 }
                 foundPrevious = true;
@@ -35,6 +35,7 @@ export class S13Exporter {
                 const previousCompletions = allHistory
                     .filter(h => {
                         if (!h.numero || !h.fecha_entrega) return false;
+                        if (h.estado === 'Predicado Parcial' || h.estado === 'Avance Parcial') return false;
                         const hNums = h.numero.toString().split(/[,/]/).map(n => n.trim().padStart(2, '0'));
                         return hNums.includes(key) && new Date(h.fecha_entrega).getTime() < reportStartMs;
                     })
@@ -51,7 +52,11 @@ export class S13Exporter {
                 const assign = slice[c];
                 const conductor = assign ? (assign.conductor || '') : '';
                 const assignedDate = assign ? this.formatDateShort(assign.fecha_asignacion) : '';
-                const returnedDate = assign ? this.formatDateShort(assign.fecha_entrega) : '';
+                const returnedDate = assign 
+                    ? (assign.estado === 'Predicado Parcial' 
+                        ? this.formatDateShort(assign.fecha_entrega) + ' (P)' 
+                        : this.formatDateShort(assign.fecha_entrega))
+                    : '';
 
                 colsHtml += `
                     <td class="border border-black p-0 align-top w-[38mm]">

@@ -1,6 +1,6 @@
 import { auth, db } from '../../firebase-config.js';
 import { signInAnonymously } from "firebase/auth";
-import { collection, query, where, getDocs, updateDoc, doc } from "firebase/firestore";
+import { collection, query, where, getDocs, updateDoc, doc, setDoc } from "firebase/firestore";
 import { normalizeRobust } from '../../modules/utils/helpers.js';
 
 /**
@@ -10,7 +10,8 @@ import { normalizeRobust } from '../../modules/utils/helpers.js';
 export const IdentityShield = {
     /**
      * Resuelve la identidad del usuario y vincula el UID de Firebase con el documento de Firestore.
-     * @param {string} rawIdentifier - Nombre o teléfono proporcionado en el login local.
+     * Utiliza consultas Firestore direccionadas y eficientes para cumplir con Zero Trust.
+     * @param {string} rawIdentifier - Nombre, correo o teléfono proporcionado.
      * @returns {Promise<Object>} Identidad canónica y blindada.
      */
     resolveAndBindIdentity: async (rawIdentifier) => {
@@ -27,25 +28,59 @@ export const IdentityShield = {
         const uid = currentUser.uid;
         const normalizedInput = normalizeRobust(rawIdentifier);
 
-        // 2. Búsqueda Robusta en Firestore (Publicadores)
+        // 2. Búsqueda Direccionada Segura (Evitamos getDocs() de toda la colección)
         const pubCol = collection(db, "publicadores");
-        const snap = await getDocs(pubCol);
-        
         let targetDoc = null;
         let pData = null;
 
-        // Búsqueda exhaustiva para evitar fallos por tildes/espacios
-        for (const d of snap.docs) {
-            const data = d.data();
-            const nameMatch = normalizeRobust(data.nombre) === normalizedInput;
-            const phoneMatch = data.telefono && String(data.telefono).replace(/\D/g, '') === rawIdentifier.replace(/\D/g, '');
-            const emailMatch = data.email && normalizeRobust(data.email) === normalizedInput;
-
-            if (nameMatch || phoneMatch || emailMatch) {
-                targetDoc = d;
-                pData = data;
-                break;
+        try {
+            // Intento 1: Buscar por correo
+            const qEmail = query(pubCol, where("email", "==", rawIdentifier));
+            const emailSnap = await getDocs(qEmail);
+            if (!emailSnap.empty) {
+                targetDoc = emailSnap.docs[0];
+                pData = targetDoc.data();
+            } else {
+                // Intento 2: Buscar por teléfono
+                const cleanedPhone = rawIdentifier.replace(/\D/g, '');
+                if (cleanedPhone) {
+                    const qPhone = query(pubCol, where("telefono", "==", cleanedPhone));
+                    const phoneSnap = await getDocs(qPhone);
+                    if (!phoneSnap.empty) {
+                        targetDoc = phoneSnap.docs[0];
+                        pData = targetDoc.data();
+                    }
+                }
+                
+                if (!targetDoc) {
+                    // Intento 3: Buscar por nombre exacto
+                    const qName = query(pubCol, where("nombre", "==", rawIdentifier));
+                    const nameSnap = await getDocs(qName);
+                    if (!nameSnap.empty) {
+                        targetDoc = nameSnap.docs[0];
+                        pData = targetDoc.data();
+                    } else {
+                        // Intento 4: Fallback de último recurso (solo si la regla de listado está permitida)
+                        console.log("🛡️ [IdentityShield] Consultas directas sin éxito. Ejecutando búsqueda por barrido...");
+                        const normalizedPhoneInput = cleanedPhone || rawIdentifier.replace(/\D/g, '');
+                        const snap = await getDocs(pubCol);
+                        for (const d of snap.docs) {
+                            const data = d.data();
+                            const nameMatch = normalizeRobust(data.nombre) === normalizedInput;
+                            const emailMatch = data.email && normalizeRobust(data.email) === normalizedInput;
+                            const phoneMatch = normalizedPhoneInput && String(data.telefono || '').replace(/\D/g, '') === normalizedPhoneInput;
+                            
+                            if (nameMatch || emailMatch || phoneMatch) {
+                                targetDoc = d;
+                                pData = data;
+                                break;
+                            }
+                        }
+                    }
+                }
             }
+        } catch (queryError) {
+            console.warn("🛡️ [IdentityShield] Error en consulta de identidad, posible restricción Zero Trust:", queryError);
         }
 
         if (!targetDoc) {
@@ -60,15 +95,36 @@ export const IdentityShield = {
             };
         }
 
-        // 3. THE BINDING: Vincular UID con el documento
+        let identityRol = 'Publicador';
+        if (pData.privilegios && Array.isArray(pData.privilegios) && pData.privilegios.length > 0) {
+            if (pData.privilegios.includes('Administrador') || pData.privilegios.includes('SuperAdmin')) {
+                identityRol = 'Administrador';
+            } else if (pData.privilegios.includes('Conductor')) {
+                identityRol = 'Conductor';
+            }
+        } else if (pData.es_conductor) {
+            identityRol = 'Conductor';
+        }
+        const ultimaConexionStr = new Date().toISOString();
+
+        // 3. THE BINDING: Vincular UID con el documento y escribir en Session Vault
         try {
+            await setDoc(doc(db, "auth_binds", uid), {
+                publicadorId: targetDoc.id,
+                nombre: pData.nombre,
+                rol: identityRol,
+                ultima_conexion: ultimaConexionStr
+            });
+            console.log("🛡️ [IdentityShield] Session Vault (/auth_binds) binding escrito con éxito.");
+
+            // Actualizar documento de publicador
             await updateDoc(doc(db, "publicadores", targetDoc.id), {
                 current_auth_uid: uid,
-                ultima_conexion: new Date().toISOString()
+                ultima_conexion: ultimaConexionStr
             });
             console.log("🛡️ [IdentityShield] Binding exitoso: UID vinculada al perfil.");
         } catch (e) {
-            console.warn("🛡️ [IdentityShield] Error en Binding (posiblemente falta permiso de escritura):", e);
+            console.warn("🛡️ [IdentityShield] Error en Escritura de Binding:", e);
         }
 
         // 4. CANON OPTIMIZER: Retornar objeto inmutable
@@ -78,8 +134,56 @@ export const IdentityShield = {
             nombreCanonico: pData.nombre,
             email: pData.email || '',
             telefono: pData.telefono || '',
-            rol: pData.privilegios || (pData.es_conductor ? 'Conductor' : 'Publicador'),
+            rol: identityRol,
             isAnonymous: currentUser.isAnonymous
+        };
+
+        window.XolvyApp = window.XolvyApp || {};
+        window.XolvyApp.identity = identity;
+        
+        return identity;
+    },
+
+    /**
+     * Vincula de forma directa y blindada una sesión ya validada por getPermisosUsuario.
+     * Evita consultas redundantes y cumple al 100% con las restricciones Zero Trust.
+     * @param {string} uid - Firebase Auth User UID.
+     * @param {string} docId - ID del documento del publicador en Firestore.
+     * @param {string} name - Nombre del publicador.
+     * @param {string} role - Rol asignado.
+     * @returns {Promise<Object>} Identidad canónica vinculada.
+     */
+    bindSessionDirect: async (uid, docId, name, role) => {
+        console.log("🛡️ [IdentityShield] Iniciando Vinculación Directa Blindada para UID:", uid);
+        const ultimaConexionStr = new Date().toISOString();
+
+        try {
+            // 1. Escribir directamente en Session Vault (/auth_binds)
+            await setDoc(doc(db, "auth_binds", uid), {
+                publicadorId: docId,
+                nombre: name,
+                rol: role,
+                ultima_conexion: ultimaConexionStr
+            });
+            console.log("🛡️ [IdentityShield] Session Vault Direct Binding escrito con éxito.");
+
+            // 2. Actualizar el documento de publicadores
+            await updateDoc(doc(db, "publicadores", docId), {
+                current_auth_uid: uid,
+                ultima_conexion: ultimaConexionStr
+            });
+            console.log("🛡️ [IdentityShield] Direct Binding exitoso: UID vinculada al perfil.");
+        } catch (e) {
+            console.error("🛡️ [IdentityShield] Error crítico en Direct Binding (Session Vault):", e);
+            throw e;
+        }
+
+        const identity = {
+            uid: uid,
+            docId: docId,
+            nombreCanonico: name,
+            rol: role,
+            isAnonymous: false
         };
 
         window.XolvyApp = window.XolvyApp || {};

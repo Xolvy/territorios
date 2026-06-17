@@ -1,16 +1,16 @@
 
 import { auth, db } from '../firebase-config.js';
 import { onAuthStateChanged } from "firebase/auth";
-import { where, documentId, arrayUnion, onSnapshot, doc } from "firebase/firestore";
+import { where, documentId, arrayUnion, onSnapshot, doc, setDoc } from "firebase/firestore";
 import {
     getTerritorios, getPublicadores, getTelefonos, getTelefonosParaSesion,
     getConfiguracion,
-    getProgramaSemanal, saveProgramaSemanal, syncSlotWithTerritories, getTerritoryHistory,
+    getProgramaSemanal, saveProgramaSemanal, syncSlotWithTerritories,
     addPublicador,
     releaseUnusedTelefonos, solicitarNumeros, updateTelefonoStatus, logSessionSummary, releaseTelefonosById,
     finalizarSesionConCrm, getTelemetriaTelefonia,
     transferTerritory, takeTerritoryPartial, assignFreeTerritory,
-    startLivePool, returnTerritorio, updateTerritorio, logReturn
+    startLivePool, returnTerritorio, updateTerritorio, logReturn, PoolManager
 } from '../data/firestore-services.js';
 import { 
     renderSkeleton, 
@@ -44,56 +44,90 @@ async function loadSubModule(name, path) {
 
 // --- UTILS ---
 window.finalizarPredicacionTelefonia = async () => {
-    const changes = window.pendingPhoneChanges || {};
-    const ids = Object.keys(changes);
-    
     try {
         showNotification('Procesando Ciclo de Vida CRM...', 'info');
         
         const name = localStorage.getItem('selected_conductor_name');
+        const sessionOwner = localStorage.getItem('phone_session_owner') || name;
         
-        // Phase 1: Batch CRM Finalization
-        // This handles: Purgas, Enfriamiento, 3 Strikes, Masive Recycling and Session Reports
-        await finalizarSesionConCrm(name, changes);
+        // Fetch all phones for the session to see what was modified
+        const allPhones = await getTelefonosParaSesion(sessionOwner);
         
-        // Phase 2: Cleanup session owners for unused numbers
-        await releaseUnusedTelefonos(name, false, true);
+        // FIX HUGO: Extraer el solicitado_por REAL de los documentos de Firestore.
+        // No confiar en el localStorage ya que puede tener acentos/capitalización distinta
+        // a la que se guardó en Firestore cuando se solicitaron los números.
+        const realOwnerFromFirestore = allPhones.length > 0
+            ? (allPhones.find(p => p.solicitado_por)?.solicitado_por || sessionOwner)
+            : sessionOwner;
         
-        // 3. Clear memory local
-        window.pendingPhoneChanges = {};
+        const changes = {};
+        allPhones.forEach(p => {
+            // If the state is not "En Sesión" and not empty/null, or has notes, it was processed!
+            if ((p.estado && p.estado !== 'En Sesión') || p.notas) {
+                changes[p.id] = {
+                    estado: p.estado === 'En Sesión' ? '' : p.estado,
+                    notas: p.notas || ''
+                };
+            }
+        });
+        
+        try {
+            // Phase 1: Batch CRM Finalization
+            // This handles: Purgas, Enfriamiento, 3 Strikes, Masive Recycling and Session Reports
+            await finalizarSesionConCrm(realOwnerFromFirestore, changes);
+        } catch (crmErr) {
+            console.error('Error en CRM Finalization (non-blocking):', crmErr);
+        }
+        
+        try {
+            // Phase 2: Cleanup session owners for unused numbers
+            // Usamos el nombre real de Firestore, y además pasamos los IDs explícitos
+            // para garantizar que todos los números de la sesión se liberen
+            await releaseUnusedTelefonos(realOwnerFromFirestore, false, true, allPhones.map(p => p.id));
+        } catch (releaseErr) {
+            console.error('Error en releaseUnusedTelefonos (non-blocking):', releaseErr);
+        }
         
         showNotification('Predicación finalizada y procesada por CRM', 'success');
+    } catch (e) {
+        console.error('Error al finalizar predicación CRM:', e);
+        showNotification('Error al finalizar predicación, cerrando sesión local...', 'error');
+    } finally {
+        // 3. Clear memory local always to prevent UI lockups
+        window.pendingPhoneChanges = {};
+        window._phoneSessionActive = false;
+        localStorage.removeItem('phone_session_active');
+        localStorage.removeItem('phone_session_owner');
+        sessionStorage.removeItem('phone_session_active_this_tab');
         
         // 4. Refrescar vista
         if (typeof window.refreshConductorView === 'function') {
             await window.refreshConductorView(true);
         }
-    } catch (e) {
-        console.error("Error al finalizar predicación CRM:", e);
-        showNotification('Error en procesamiento CRM', 'error');
     }
 };
 
-window.viewMapFromReport = async (id) => {
+
+window.viewMapFromReport = async (id, mode = 'satelital') => {
     if (!id) return;
-    showNotification("Cargando mapa interactivo...", "info");
+    showNotification("Cargando visor de mapa...", "info");
     const territories = await getTerritorios();
     const t = territories.find(x => x.id === id);
     if (t) {
-        window.openInteractiveMap(t);
+        window.openInteractiveMap(t, { mode });
     } else {
         showNotification("No se encontró la data del territorio para el mapa.", "error");
     }
 };
 
-window.abrirMapaTerritorio = async function(numeroTerritorio) {
+window.abrirMapaTerritorio = async function(numeroTerritorio, mode = 'satelital') {
     if (!numeroTerritorio) return;
-    console.log("Abriendo mapa para territorio:", numeroTerritorio);
+    console.log("Abriendo mapa para territorio:", numeroTerritorio, "modo:", mode);
     try {
         const territories = await getTerritorios();
         const target = territories.find(t => String(t.numero) === String(numeroTerritorio));
         if (target) {
-            window.viewMapFromReport(target.id);
+            window.viewMapFromReport(target.id, mode);
         } else {
             showNotification(`No se encontró el mapa para el territorio ${numeroTerritorio}`, "error");
         }
@@ -178,6 +212,25 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
         const identity = window.XolvyApp?.identity;
         let displayName = identity ? identity.nombreCanonico : nameOrEmail;
 
+        // Tab close detection: if session is active in localStorage but not in sessionStorage,
+        // it means the user closed the tab and opened a new one.
+        const isTabSessionActive = sessionStorage.getItem('phone_session_active_this_tab') === 'true';
+        const isLocalSessionActive = localStorage.getItem('phone_session_active') === 'true';
+        
+        // Siempre iniciar con el módulo de telefonía cerrado en la carga inicial de la aplicación (debe aparecer cerrado).
+        // Si hay una sesión sin finalizar, se le propondrá continuarla o iniciar una nueva.
+        window._phoneSessionActive = false;
+
+        if (isLocalSessionActive && !isTabSessionActive) {
+            // Ya no liberamos automáticamente en segundo plano en la carga inicial,
+            // ya que el flujo de SweetAlert2 le permitirá al usuario elegir "Continuar sesión anterior".
+            localStorage.removeItem('phone_session_active');
+            localStorage.removeItem('phone_session_owner');
+        } else if (isLocalSessionActive && isTabSessionActive) {
+            // Si es un refresco explícito en la misma pestaña con sesión activa, la mantenemos abierta.
+            window._phoneSessionActive = true;
+        }
+
         // Búsqueda hiper-robusta ignorando mayúsculas y tildes
         const normalizar = (txt) => String(txt || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
         const targetName = normalizar(displayName);
@@ -200,6 +253,10 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
         let territoriesLivePoolUnsubscribe = null;
         let s13LivePoolUnsubscribe = null;
         let configLivePoolUnsubscribe = null;
+        let telefonosLivePoolUnsubscribe = null;
+        let presenceLivePoolUnsubscribe = null;
+        let currentSubscribedOwner = null;
+        let currentSubscribedActive = false;
         let currentSystemConfig = null;
         let poolData = {
             territorios: allT,
@@ -208,6 +265,15 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
             s13: [],
             banco_s13: []
         };
+
+        // Debounce Mechanism to prevent Re-render Storms (LP-02, LP-03)
+        let renderDebounceTimer;
+        function safeRenderDashboard() {
+            clearTimeout(renderDebounceTimer);
+            renderDebounceTimer = setTimeout(() => {
+                refreshConductorView(true);
+            }, 300);
+        }
 
         // Al final de renderConductorDashboard, levantar la cortina (dentro del try antes de salir)
         const levantarCortina = () => {
@@ -224,23 +290,67 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
         // Xolvy Modular: Cleanup function for all active Firestore listeners
         window.stopActiveLivePools = () => {
+            if (window._presenceInterval) {
+                clearInterval(window._presenceInterval);
+                window._presenceInterval = null;
+            }
+
             [currentLivePoolUnsubscribe, programLivePoolUnsubscribe,
                 territoriesLivePoolUnsubscribe, s13LivePoolUnsubscribe,
-                configLivePoolUnsubscribe].forEach(unsub => {
-                    if (typeof unsub === 'function') unsub();
+                configLivePoolUnsubscribe, telefonosLivePoolUnsubscribe,
+                presenceLivePoolUnsubscribe].forEach(unsub => {
+                    if (typeof unsub === 'function') {
+                        try {
+                            unsub();
+                        } catch (err) {
+                            console.error("Error stopping unsub:", err);
+                        }
+                    }
                 });
             currentLivePoolUnsubscribe = null;
             programLivePoolUnsubscribe = null;
             territoriesLivePoolUnsubscribe = null;
             s13LivePoolUnsubscribe = null;
             configLivePoolUnsubscribe = null;
+            telefonosLivePoolUnsubscribe = null;
+            presenceLivePoolUnsubscribe = null;
+            currentSubscribedOwner = null;
+            currentSubscribedActive = false;
+
+            // Deep purge via PoolManager (LP-01)
+            if (typeof PoolManager !== 'undefined' && PoolManager.stopAll) {
+                PoolManager.stopAll();
+            }
+
+            // Cleanup window._bannerInterval (LP-04)
+            if (window._bannerInterval) {
+                clearInterval(window._bannerInterval);
+                window._bannerInterval = null;
+            }
+
             // FIX-D: Cleanup global event listener to avoid duplicates on HMS remount
             if (window.__territoryReleasedHandler) {
                 window.removeEventListener('territorio-liberado', window.__territoryReleasedHandler);
                 window.__territoryReleasedHandler = null;
             }
+            if (window._beforeUnloadHandler) {
+                window.removeEventListener('beforeunload', window._beforeUnloadHandler);
+                window._beforeUnloadHandler = null;
+            }
             console.log("🛑 [Live Pool] All conductor pools stopped.");
         };
+
+        if (window._beforeUnloadHandler) {
+            window.removeEventListener('beforeunload', window._beforeUnloadHandler);
+        }
+        window._beforeUnloadHandler = (e) => {
+            if (window._phoneSessionActive) {
+                e.preventDefault();
+                e.returnValue = 'Tienes una sesión de predicación telefónica activa. Por favor, finalízala formalmente antes de salir.';
+                return e.returnValue;
+            }
+        };
+        window.addEventListener('beforeunload', window._beforeUnloadHandler);
 
         // FIX-D + PASO 3: Handler mejorado del evento 'territorio-liberado'.
         const _onTerritorioLiberado = async (e) => {
@@ -249,7 +359,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
             if (window.__forcePoolRefresh) {
                 await window.__forcePoolRefresh();
             } else {
-                refreshConductorView(true);
+                safeRenderDashboard();
             }
         };
         if (window.__territoryReleasedHandler) {
@@ -262,23 +372,169 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
         // This ensures Admin changes are visible to conductors instantly without refresh
         territoriesLivePoolUnsubscribe = startLivePool('territorios', [], (data) => {
             poolData.territorios = data;
-            if (container && container.isConnected) refreshConductorView(true);
+            if (container && container.isConnected) safeRenderDashboard();
         });
 
         programLivePoolUnsubscribe = startLivePool('programa_semanal', [where(documentId(), '==', currentWeekId)], (data) => {
             poolData.programa = data[0] || null;
-            if (container && container.isConnected) refreshConductorView(true);
+            if (container && container.isConnected) safeRenderDashboard();
         });
 
         s13LivePoolUnsubscribe = startLivePool('banco_s13', [where('fecha_entrega', '==', null)], (data) => {
             poolData.banco_s13 = data;
-            if (container && container.isConnected) refreshConductorView(true);
+            if (container && container.isConnected) safeRenderDashboard();
         });
 
         configLivePoolUnsubscribe = startLivePool('configuracion', [where(documentId(), '==', 'general')], (data) => {
             poolData.configuracion = data[0] || null;
-            if (container && container.isConnected) refreshConductorView(true);
+            if (container && container.isConnected) safeRenderDashboard();
         });
+
+        // ══════════════ REGISTRO DE PRESENCIA EN VIVO ══════════════
+        const toTitleCase = (str) => {
+            if (!str) return '';
+            return str.trim().toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+        };
+
+        const registrarPresencia = async () => {
+            const identity = window.XolvyApp?.identity;
+            const myName = identity?.nombreCanonico || displayName;
+            if (!myName || !db) return;
+            
+            try {
+                const pRef = doc(db, "presencia_conductores", myName);
+                await setDoc(pRef, {
+                    nombre: myName,
+                    uid: auth.currentUser?.uid || identity?.uid || '',
+                    email: auth.currentUser?.email || identity?.email || '',
+                    lastActive: Date.now(),
+                    sessionActive: !!window._phoneSessionActive,
+                    solicitado_por: myName
+                }, { merge: true });
+            } catch (err) {
+                console.warn("[Presencia] Error al actualizar presencia:", err);
+            }
+        };
+
+        registrarPresencia();
+        if (window._presenceInterval) clearInterval(window._presenceInterval);
+        window._presenceInterval = setInterval(registrarPresencia, 15000);
+
+        // Helper function to update the presence and session indicators in real-time
+        const updatePresenceAndSessionsUI = () => {
+            const now = Date.now();
+            const identity = window.XolvyApp?.identity;
+            const myUid = auth.currentUser?.uid || identity?.uid;
+            const myEmail = auth.currentUser?.email || identity?.email;
+            const myName = identity?.nombreCanonico || displayName;
+            
+            const activeOthers = (window._activeOthers || []).filter(c => {
+                const isMe = (myUid && c.uid === myUid) || 
+                             (myEmail && c.email && normalizeRobust(c.email) === normalizeRobust(myEmail)) || 
+                             (normalizeRobust(c.nombre) === normalizeRobust(myName));
+                return !isMe && c.lastActive > now - 40000;
+            });
+            const conductorsInSession = activeOthers.filter(c => c.sessionActive);
+
+            // Connected conductors indicator is removed as requested by user
+
+            const sessionsBadge = document.getElementById('active-sessions-badge-container');
+            const sessionsCount = document.getElementById('active-sessions-count');
+            if (sessionsBadge && sessionsCount) {
+                const sessionCountVal = conductorsInSession.length;
+                sessionsCount.innerText = `${sessionCountVal} ${sessionCountVal === 1 ? 'sesión abierta' : 'sesiones abiertas'}`;
+                
+                const myActive = !!(window._phoneSessionActive || localStorage.getItem('phone_session_active') === 'true');
+                if (!myActive && sessionCountVal > 0) {
+                    sessionsBadge.classList.remove('hidden');
+                    sessionsBadge.classList.add('flex');
+                } else {
+                    sessionsBadge.classList.remove('flex');
+                    sessionsBadge.classList.add('hidden');
+                }
+            }
+
+            // Grouped sessions dropdown logic
+            const btnSolicitar = document.getElementById('btn-solicitar');
+            const dropdown = document.getElementById('active-sessions-dropdown');
+            if (btnSolicitar && dropdown) {
+                if (conductorsInSession.length > 0) {
+                    btnSolicitar.innerHTML = `<i class="fas fa-play text-base"></i> Iniciar <i class="fas fa-chevron-down text-[8px] ml-1"></i>`;
+                    btnSolicitar.classList.remove('from-indigo-600', 'to-indigo-700');
+                    btnSolicitar.classList.add('from-indigo-500', 'to-purple-600');
+                    
+                    const sessionItemsHtml = conductorsInSession.map(c => {
+                        const initials = c.nombre.trim().split(/\s+/).map(w => w[0]).join('').substring(0, 2).toUpperCase();
+                        return `
+                            <div class="flex items-center justify-between p-2 hover:bg-slate-50 dark:hover:bg-white/5 rounded-2xl transition-all">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center text-[10px] font-black tracking-wider uppercase">
+                                        ${initials}
+                                    </div>
+                                    <div class="text-left">
+                                        <p class="text-[10px] font-black text-slate-800 dark:text-white uppercase leading-none">${c.nombre}</p>
+                                        <span class="text-[7px] font-bold text-emerald-500 uppercase tracking-widest flex items-center gap-0.5 mt-0.5">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Activo
+                                        </span>
+                                    </div>
+                                </div>
+                                <button onclick="event.stopPropagation(); window._joinSession('${c.nombre.replace(/'/g, "\\'")}')" class="btn-pro px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[8px] font-black uppercase tracking-wider shadow-md active:scale-95 transition-all">
+                                    Unirse
+                                </button>
+                            </div>
+                        `;
+                    }).join('');
+                    
+                    dropdown.innerHTML = `
+                        <div class="space-y-3 text-left">
+                            <div class="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-white/5">
+                                <div class="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center text-xs">
+                                    <i class="fas fa-project-diagram"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-[9px] font-black text-slate-800 dark:text-white uppercase tracking-widest leading-none">Colaboración</h4>
+                                    <span class="text-[7px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-0.5">Sesiones activas</span>
+                                </div>
+                            </div>
+                            <div class="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
+                                ${sessionItemsHtml}
+                            </div>
+                            <div class="border-t border-slate-100 dark:border-white/5 pt-2">
+                                <button onclick="event.stopPropagation(); window._startNewSessionDirect()" class="w-full bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 py-2.5 rounded-xl font-black text-[8px] uppercase tracking-widest border border-slate-200 dark:border-white/10 shadow-sm active:scale-95 transition-all text-center">
+                                    <i class="fas fa-plus mr-1"></i> Iniciar Sesión Nueva
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    btnSolicitar.innerHTML = `<i class="fas fa-play text-base"></i> Iniciar`;
+                    btnSolicitar.classList.remove('from-indigo-500', 'to-purple-600');
+                    btnSolicitar.classList.add('from-indigo-600', 'to-indigo-700');
+                    dropdown.innerHTML = '';
+                    dropdown.classList.add('hidden');
+                }
+            }
+        };
+
+        presenceLivePoolUnsubscribe = startLivePool('presencia_conductores', [], (data) => {
+            const now = Date.now();
+            const identity = window.XolvyApp?.identity;
+            const myUid = auth.currentUser?.uid || identity?.uid;
+            const myEmail = auth.currentUser?.email || identity?.email;
+            const myName = identity?.nombreCanonico || displayName;
+            
+            const activeOthers = (data || []).filter(c => {
+                const isMe = (myUid && c.uid === myUid) || 
+                             (myEmail && c.email && normalizeRobust(c.email) === normalizeRobust(myEmail)) || 
+                             (normalizeRobust(c.nombre) === normalizeRobust(myName));
+                return !isMe && c.lastActive > now - 40000;
+            });
+            window._activeOthers = activeOthers;
+            updatePresenceAndSessionsUI();
+        });
+
+        // ══════════════ TELEFONÍA LIVE POOL ══════════════
+        // (Managed dynamically inside refreshConductorView to support live presence & joining)
 
         // FIX-D: Exponer forcePoolRefresh como red de seguridad para módulos externos
         window.__forcePoolRefresh = async () => {
@@ -289,7 +545,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 poolData.territorios = tSnap.docs.map(d => ({ id: d.id, ...d.data() }));
                 const s13Snap = await getDocs(q(col(_db, 'banco_s13'), wh('fecha_entrega', '==', null)));
                 poolData.banco_s13 = s13Snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                if (container && container.isConnected) refreshConductorView(true);
+                if (container && container.isConnected) safeRenderDashboard();
                 console.log('[Pool] 🔄 Refresh forzado completado');
             } catch (err) {
                 console.warn('[Pool] forcePoolRefresh error:', err);
@@ -342,20 +598,26 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
             const userName = identity?.nombreCanonico || displayName;
             const userEmail = identity?.email || auth.currentUser?.email;
 
+            const joinedOwner = localStorage.getItem('phone_session_owner');
+            const sessionQueryOwner = joinedOwner || userName;
+
             // PASO 3: Normalización estricta para el filtrado del Live Pool
-            const allPhones = await getTelefonosParaSesion(userName);
-            const cleanUserName = normalizeRobust(userName);
+            const allPhones = await getTelefonosParaSesion(sessionQueryOwner);
+            const cleanSessionQueryOwner = normalizeRobust(sessionQueryOwner);
             const cleanUserEmail = normalizeRobust(userEmail);
 
+            const isActive = !!(window._phoneSessionActive || localStorage.getItem('phone_session_active') === 'true');
             return allPhones.filter(t => {
                 const pub = normalizeRobust(t.publicador_asignado);
                 const asg = normalizeRobust(t.asignado_a);
                 const sol = normalizeRobust(t.solicitado_por);
                 
-                const isMine = (t.estado === 'En Sesión' && sol === cleanUserName) || 
-                               (pub === cleanUserName || pub === cleanUserEmail) || 
-                               (asg === cleanUserName || asg === cleanUserEmail);
-                return isMine;
+                if (isActive) {
+                    return sol === cleanSessionQueryOwner;
+                } else {
+                    return (pub === cleanSessionQueryOwner || pub === cleanUserEmail) || 
+                           (asg === cleanSessionQueryOwner || asg === cleanUserEmail);
+                }
             });
         }
 
@@ -379,6 +641,29 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                         await loadUnifiedDashboard(container, displayName, userMods, configData, conductorDataRef, userRole, usePool ? poolData : { ...poolData, programa: initialProg });
 
                         const myPhones = await refreshPhones(true);
+                        
+                        // Auto-recovery of active session if there are assigned phones currently "En Sesión"
+                        // Only recover if we are in the same tab session (sessionStorage is active)
+                        const hasActiveSessionPhones = myPhones.some(p => p.estado === 'En Sesión');
+                        const isTabSessionActive = sessionStorage.getItem('phone_session_active_this_tab') === 'true';
+                        if (hasActiveSessionPhones && !window._phoneSessionActive && isTabSessionActive) {
+                            console.log(`[Telefonía] ♻️ Auto-recuperando sesión activa detectada para ${displayName}`);
+                            window._phoneSessionActive = true;
+                            localStorage.setItem('phone_session_active', 'true');
+                            
+                            const identity = window.XolvyApp?.identity;
+                            const userName = identity?.nombreCanonico || displayName;
+                            if (!localStorage.getItem('phone_session_owner')) {
+                                localStorage.setItem('phone_session_owner', userName);
+                            }
+                        } else if (hasActiveSessionPhones && !window._phoneSessionActive && !isTabSessionActive) {
+                            // FIX: No disparar el diálogo automáticamente al cargar la página.
+                            // El usuario ya cerró la sesión. El diálogo solo aparecerá si el usuario
+                            // presiona "Iniciar" y hay números sin finalizar en Firestore.
+                            // (El flujo ya lo maneja iniciarSolicitudNumerosFlow al hacer clic en #btn-solicitar)
+                            console.log(`[Telefonía] 📋 Hay ${myPhones.length} teléfonos "En Sesión" en Firestore, pero la sesión está cerrada. Esperando acción del usuario.`);
+                        }
+
                         const publicadores = await getPublicadores();
 
                         if (mPhone?.initializePhoneModule) {
@@ -401,137 +686,380 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                         }
 
                         // Bindings for phone buttons
+                        // Function to handle the collaborative solicitar/join flow
+                        async function iniciarSolicitudNumerosFlow(btnToDisable, oldHtml) {
+                            const identity = window.XolvyApp?.identity;
+                            const solicitante = identity?.nombreCanonico || displayName;
+                            
+                            try {
+                                // 1. Check if there is an unfinalized session in Firestore
+                                const existingPhones = await getTelefonosParaSesion(solicitante);
+                                const unfinalized = existingPhones.filter(p => p.solicitado_por && normalizeRobust(p.solicitado_por) === normalizeRobust(solicitante));
+                                
+                                if (unfinalized.length > 0) {
+                                    // Temporarily restore the button so the user can interact
+                                    if (btnToDisable) {
+                                        btnToDisable.disabled = false;
+                                        if (oldHtml) btnToDisable.innerHTML = oldHtml;
+                                    }
+                                    
+                                    const result = await window.Swal.fire({
+                                        title: 'Sesión anterior detectada',
+                                        text: 'Tienes una sesión de predicación telefónica activa sin finalizar. ¿Deseas continuarla o iniciar una nueva?',
+                                        icon: 'question',
+                                        showCancelButton: true,
+                                        confirmButtonText: 'Continuar sesión anterior',
+                                        denyButtonText: 'Iniciar una nueva',
+                                        showDenyButton: true,
+                                        cancelButtonText: 'Cancelar',
+                                        customClass: {
+                                            popup: 'rounded-[2rem] bg-white dark:bg-[#0a0f18]/95 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white',
+                                            confirmButton: 'btn-pro bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all mr-2',
+                                            denyButton: 'btn-pro bg-amber-500 hover:bg-amber-600 text-white px-5 py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all mr-2',
+                                            cancelButton: 'btn-pro bg-slate-100 dark:bg-white/5 text-slate-500 hover:bg-slate-200 px-5 py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all'
+                                        }
+                                    });
+
+                                    if (result.isConfirmed) {
+                                        // Continuar sesión anterior
+                                        window._phoneSessionActive = true;
+                                        localStorage.setItem('phone_session_active', 'true');
+                                        localStorage.setItem('phone_session_owner', solicitante);
+                                        sessionStorage.setItem('phone_session_active_this_tab', 'true');
+                                        showNotification('Sesión anterior restaurada', 'success');
+                                        await refreshConductorView(true);
+                                        return;
+                                    } else if (result.isDenied) {
+                                        // Iniciar una nueva: liberar la anterior primero en la BD
+                                        showNotification('Liberando números de sesión anterior...', 'info');
+                                        if (btnToDisable) {
+                                            btnToDisable.disabled = true;
+                                            btnToDisable.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Solicitando...';
+                                        }
+                                        await releaseUnusedTelefonos(solicitante, false, true, existingPhones.map(p => p.id));
+                                    } else {
+                                        // Cancelar
+                                        return;
+                                    }
+                                } else {
+                                    if (btnToDisable && !btnToDisable.disabled) {
+                                        btnToDisable.disabled = true;
+                                        btnToDisable.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Solicitando...';
+                                    }
+                                }
+                                
+                                // Release any unfinalized numbers from previous sessions before starting a new one (safety net)
+                                const isActive = !!(window._phoneSessionActive || localStorage.getItem('phone_session_active') === 'true');
+                                if (!isActive) {
+                                    console.log(`[Telefonía] 🧹 Limpiando números de sesión previa para: ${solicitante}`);
+                                    await releaseUnusedTelefonos(solicitante, false, true);
+                                }
+                                
+                                console.log(`[Telefonía] 🚀 Solicitando números para: ${solicitante}`);
+                                const count = await solicitarNumeros(30, solicitante);
+                                console.log(`[Telefonía] ✅ Respuesta de solicitarNumeros: ${count} asignados`);
+                                
+                                if (count > 0) {
+                                    window._phoneSessionActive = true;
+                                    localStorage.setItem('phone_session_active', 'true');
+                                    localStorage.setItem('phone_session_owner', solicitante);
+                                    sessionStorage.setItem('phone_session_active_this_tab', 'true');
+                                    showNotification(`Se han asignado ${count} números nuevos.`, 'success');
+                                    await refreshConductorView(true);
+                                } else {
+                                    // U8: Restaurar botón si no hay números disponibles
+                                    showNotification('No hay más números disponibles en este momento.', 'warning');
+                                    if (btnToDisable) {
+                                        btnToDisable.disabled = false;
+                                        if (oldHtml) btnToDisable.innerHTML = oldHtml;
+                                    }
+                                }
+                            } catch (err) {
+                                console.error("[Telefonía] ❌ Error al solicitar números:", err);
+                                showNotification("Error al solicitar números", "error");
+                                if (btnToDisable) {
+                                    btnToDisable.disabled = false;
+                                    if (oldHtml) btnToDisable.innerHTML = oldHtml;
+                                }
+                            }
+                        };
+
                         // PASO 2: Fix del botón "Solicitar Números"
                         const btnSolicitar = container.querySelector('#btn-solicitar');
                         if (btnSolicitar) {
-                            btnSolicitar.onclick = async () => {
-                                try {
-                                    btnSolicitar.disabled = true;
-                                    const oldText = btnSolicitar.innerHTML;
-                                    btnSolicitar.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Solicitando...';
-
-                                    // Asegurarse de usar el nombre oficial del Identity Shield
-                                    const solicitante = window.XolvyApp?.identity?.nombreCanonico || displayName;
-                                    console.log(`[Telefonía] 🚀 Solicitando números para: ${solicitante}`);
-                                    
-                                    const count = await solicitarNumeros(30, solicitante);
-                                    console.log(`[Telefonía] ✅ Respuesta de solicitarNumeros: ${count} asignados`);
-                                    
-                                    if (count > 0) {
-                                        window._phoneSessionActive = true;
-                                        localStorage.setItem('phone_session_active', 'true');
-                                        showNotification(`Se han asignado ${count} números nuevos.`, 'success');
-                                        await refreshConductorView(true);
-                                    } else {
-                                        showNotification("No hay más números disponibles en este momento.", "warning");
-                                        btnSolicitar.disabled = false;
-                                        btnSolicitar.innerHTML = oldText;
+                            btnSolicitar.onclick = async (e) => {
+                                e.stopPropagation();
+                                const now = Date.now();
+                                const conductorsInSession = (window._activeOthers || []).filter(c => c.sessionActive && c.lastActive > now - 40000);
+                                
+                                if (conductorsInSession.length > 0) {
+                                    const dropdown = container.querySelector('#active-sessions-dropdown');
+                                    if (dropdown) {
+                                        dropdown.classList.toggle('hidden');
                                     }
-                                } catch (err) {
-                                    console.error("[Telefonía] ❌ Error en la transacción de solicitar números:", err);
-                                    showNotification("Error al solicitar números", "error");
-                                    btnSolicitar.disabled = false;
+                                } else {
+                                    const oldHtml = btnSolicitar.innerHTML;
+                                    await iniciarSolicitudNumerosFlow(btnSolicitar, oldHtml);
                                 }
                             };
+                        }
+
+                        window._joinSession = async (ownerName) => {
+                            const dropdown = container.querySelector('#active-sessions-dropdown');
+                            if (dropdown) dropdown.classList.add('hidden');
+                            
+                            localStorage.setItem('phone_session_owner', ownerName);
+                            localStorage.setItem('phone_session_active', 'true');
+                            sessionStorage.setItem('phone_session_active_this_tab', 'true');
+                            window._phoneSessionActive = true;
+                            showNotification(`Te has unido a la sesión de ${ownerName}`, 'success');
+                            await refreshConductorView(true);
+                        };
+
+                        window._startNewSessionDirect = async () => {
+                            const dropdown = container.querySelector('#active-sessions-dropdown');
+                            if (dropdown) dropdown.classList.add('hidden');
+                            
+                            const btnSolicitar = container.querySelector('#btn-solicitar');
+                            const oldHtml = btnSolicitar ? btnSolicitar.innerHTML : '';
+                            await iniciarSolicitudNumerosFlow(btnSolicitar, oldHtml);
+                        };
+
+                        // B2/B3 fix: Registrar el listener de 'click outside' UNA SOLA VEZ
+                        // usando un flag en el container para evitar duplicación en cada refresh.
+                        if (!container._dropdownOutsideListenerAttached) {
+                            container._dropdownOutsideListenerAttached = true;
+                            document.addEventListener('click', () => {
+                                const dropdown = container.querySelector('#active-sessions-dropdown');
+                                if (dropdown) dropdown.classList.add('hidden');
+                            });
                         }
 
                         const btnFinalizarFloat = container.querySelector('#btn-finalizar-float');
                         if (btnFinalizarFloat) {
                             btnFinalizarFloat.onclick = async () => {
-                                // TODO: Implementar modal de finalizar sesión si se requiere
-                                window._phoneSessionActive = false;
-                                localStorage.removeItem('phone_session_active');
-                                await releaseUnusedTelefonos(displayName, false, true);
-                                showNotification("Sesión finalizada", "success");
-                                refreshConductorView(true);
+                                const joinedOwner = localStorage.getItem('phone_session_owner');
+                                const currentConductorName = localStorage.getItem('selected_conductor_name') || displayName;
+                                const isOwner = !joinedOwner || normalizeRobust(joinedOwner) === normalizeRobust(currentConductorName);
+
+                                if (isOwner) {
+                                    // U3: Mostrar spinner durante la finalización CRM
+                                    const prevHtml = btnFinalizarFloat.innerHTML;
+                                    btnFinalizarFloat.disabled = true;
+                                    btnFinalizarFloat.innerHTML = '<i class="fas fa-circle-notch fa-spin text-sm"></i>';
+                                    try {
+                                        await window.finalizarPredicacionTelefonia();
+                                    } finally {
+                                        btnFinalizarFloat.disabled = false;
+                                        btnFinalizarFloat.innerHTML = prevHtml;
+                                    }
+                                } else {
+                                    // Non-owner: desconectarse de la sesión compartida
+                                    window._phoneSessionActive = false;
+                                    localStorage.removeItem('phone_session_active');
+                                    localStorage.removeItem('phone_session_owner');
+                                    sessionStorage.removeItem('phone_session_active_this_tab');
+                                    showNotification('Te has desconectado de la sesión', 'info');
+                                    refreshConductorView(true);
+                                }
                             };
                         }
 
-                        // ══════════════ MARQUESINA BANNER ══════════════
-                        // Inject Adaptive Logo
-                // (Logo removed per FASE 2)
-                const bannerContainer = container.querySelector('#dynamic-banner-container');
-                        const bannerContent   = container.querySelector('#dynamic-banner-content');
+                        // ══════════════ AMALGAMA VISCOSA GOOEY MENU ══════════════
+                        const menuWrapper = container.querySelector('#gooey-menu-wrapper');
+                        const labelsContainer = container.querySelector('#gooey-labels-container');
+                        const btnSolicitarFloat = container.querySelector('#btn-solicitar-more-float');
+                        const btnSolicitarNumbersGoo = container.querySelector('#btn-solicitar-more-numbers-goo');
+                        const btnAgregarPublicadorGoo = container.querySelector('#btn-agregar-publicador-goo');
 
-                        if (bannerContainer && bannerContent) {
-                            const messages = [];
+                        if (btnSolicitarFloat && menuWrapper && labelsContainer) {
+                            const closeGooeyMenu = () => {
+                                menuWrapper.classList.remove('open');
+                                labelsContainer.classList.remove('open');
+                            };
 
-                            if (configData?.tema_mes?.trim()) {
-                                messages.push('TEMA DE LA SEMANA: ' + configData.tema_mes.trim().toUpperCase());
+                            btnSolicitarFloat.onclick = (e) => {
+                                e.stopPropagation();
+                                const isOpen = menuWrapper.classList.toggle('open');
+                                labelsContainer.classList.toggle('open', isOpen);
+                            };
+
+                            // Cierra el menú al hacer clic en cualquier otra parte de la pantalla
+                            if (window._closeGooeyMenuHandler) {
+                                document.removeEventListener('click', window._closeGooeyMenuHandler);
                             }
-                            if (Array.isArray(configData?.diffusion_messages)) {
-                                configData.diffusion_messages.forEach(msg => {
-                                    if (msg?.trim()) messages.push('ANUNCIO: ' + msg.trim().toUpperCase());
-                                });
+                            window._closeGooeyMenuHandler = closeGooeyMenu;
+                            document.addEventListener('click', window._closeGooeyMenuHandler);
+
+                            // Evitar que hacer clic dentro del contenedor del menú lo cierre inmediatamente
+                            menuWrapper.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                            });
+
+                            if (btnSolicitarNumbersGoo) {
+                                btnSolicitarNumbersGoo.onclick = async (e) => {
+                                    e.stopPropagation();
+                                    closeGooeyMenu();
+                                    const oldHtml = btnSolicitarNumbersGoo.innerHTML;
+                                    await iniciarSolicitudNumerosFlow(btnSolicitarNumbersGoo, oldHtml);
+                                };
                             }
 
-                            if (messages.length > 0) {
-                                bannerContainer.style.setProperty('display', 'flex', 'important');
-                                const colors = ['#06b6d4', '#f59e0b'];
-                                const bullet = '<span style="color:rgba(148,163,184,0.3)">\u00a0\u00a0|\u00a0\u00a0</span>';
-                                
-                                let htmlContent = '';
-
-                                if (configData?.tema_mes?.trim()) {
-                                    htmlContent += `<span style="color:#3b82f6">TEMA DE LA SEMANA: </span><span class="text-slate-700 dark:text-slate-200">${configData.tema_mes.trim().toUpperCase()}</span>`;
-                                }
-
-                                if (Array.isArray(configData?.diffusion_messages)) {
-                                    configData.diffusion_messages.forEach((msg, idx) => {
-                                        if (!msg?.trim()) return;
-                                        if (htmlContent) htmlContent += bullet;
-                                        const color = colors[idx % colors.length];
-                                        htmlContent += `<span style="color:${color}">ANUNCIO: </span><span class="text-slate-700 dark:text-slate-200">${msg.trim().toUpperCase()}</span>`;
-                                    });
-                                }
-
-                                bannerContent.innerHTML = `<div class="flex whitespace-nowrap gap-8" style="padding-right: 2rem;">${htmlContent}</div>`;
-
-                                const rawTextLength = bannerContent.innerText.length;
-                                const duracion = Math.max(18, Math.round(rawTextLength * 0.16));
-
-                                if (!document.getElementById('marquee-keyframes')) {
-                                    const styleNode = document.createElement('style');
-                                    styleNode.id = 'marquee-keyframes';
-                                    styleNode.innerHTML = `
-                                        @keyframes marquee-scroll {
-                                            0% { transform: translateX(100%); }
-                                            100% { transform: translateX(-100%); }
+                            if (btnAgregarPublicadorGoo) {
+                                btnAgregarPublicadorGoo.onclick = async (e) => {
+                                    e.stopPropagation();
+                                    closeGooeyMenu();
+                                    
+                                    const { value: formValues } = await window.Swal.fire({
+                                        title: 'NUEVO PUBLICADOR',
+                                        html: `
+                                            <div class="space-y-4 text-left p-2">
+                                                <div>
+                                                    <label class="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Nombre y Apellido</label>
+                                                    <input id="swal-pub-nombre" class="input-premium w-full text-xs font-bold" placeholder="EJ. JUAN PÉREZ" style="border: 1px solid rgba(0, 0, 0, 0.1); border-radius: 12px; padding: 12px; font-size: 13px; width: 100%; box-sizing: border-box;">
+                                                </div>
+                                                <div>
+                                                    <label class="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Teléfono</label>
+                                                    <input id="swal-pub-telefono" class="input-premium w-full text-xs font-bold" placeholder="EJ. 0998877665" style="border: 1px solid rgba(0, 0, 0, 0.1); border-radius: 12px; padding: 12px; font-size: 13px; width: 100%; box-sizing: border-box;">
+                                                </div>
+                                                <div class="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label class="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Género</label>
+                                                        <select id="swal-pub-genero" class="input-premium w-full text-xs font-bold" style="border: 1px solid rgba(0, 0, 0, 0.1); border-radius: 12px; padding: 12px; font-size: 13px; width: 100%; box-sizing: border-box; background: white;">
+                                                            <option value="H">MASCULINO</option>
+                                                            <option value="M">FEMENINO</option>
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label class="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Grupo</label>
+                                                        <select id="swal-pub-grupo" class="input-premium w-full text-xs font-bold" style="border: 1px solid rgba(0, 0, 0, 0.1); border-radius: 12px; padding: 12px; font-size: 13px; width: 100%; box-sizing: border-box; background: white;">
+                                                            <option value="1">GRUPO 1</option>
+                                                            <option value="2">GRUPO 2</option>
+                                                            <option value="3">GRUPO 3</option>
+                                                            <option value="4">GRUPO 4</option>
+                                                            <option value="5">GRUPO 5</option>
+                                                            <option value="6">GRUPO 6</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        `,
+                                        focusConfirm: false,
+                                        confirmButtonText: 'GUARDAR',
+                                        showCancelButton: true,
+                                        cancelButtonText: 'CANCELAR',
+                                        customClass: {
+                                            popup: 'rounded-[2rem] bg-white dark:bg-[#0a0f18]/95 border border-slate-200/60 dark:border-white/10',
+                                            confirmButton: 'btn-pro bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all',
+                                            cancelButton: 'btn-pro bg-slate-100 dark:bg-white/5 text-slate-500 hover:bg-slate-200 px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all'
+                                        },
+                                        preConfirm: () => {
+                                            const nombreInput = document.getElementById('swal-pub-nombre');
+                                            const telefonoInput = document.getElementById('swal-pub-telefono');
+                                            const generoInput = document.getElementById('swal-pub-genero');
+                                            const grupoInput = document.getElementById('swal-pub-grupo');
+                                            
+                                            const nombre = nombreInput ? nombreInput.value.trim() : '';
+                                            const telefono = telefonoInput ? telefonoInput.value.trim() : '';
+                                            const genero = generoInput ? generoInput.value : 'H';
+                                            const grupo = grupoInput ? parseInt(grupoInput.value) : 1;
+                                            
+                                            if (!nombre) {
+                                                window.Swal.showValidationMessage('El nombre es obligatorio');
+                                                return false;
+                                            }
+                                            return { nombre, telefono, genero, grupo };
                                         }
-                                    `;
-                                    document.head.appendChild(styleNode);
-                                }
+                                    });
 
-                                Object.assign(bannerContent.style, {
-                                    display:         'inline-flex',
-                                    width:           '100%',
-                                    whiteSpace:      'nowrap',
-                                    willChange:      'transform',
-                                    animation:       `marquee-scroll ${duracion}s linear infinite`
-                                });
-
-                                const wrapper = bannerContent.parentElement;
-                                if (wrapper) {
-                                    wrapper.style.overflow = 'hidden';
-                                    wrapper.style.flex = '1';
-                                }
-
-                            } else {
-                                bannerContainer.style.setProperty('display', 'none', 'important');
+                                    if (formValues) {
+                                        const newPublisher = {
+                                            ...formValues,
+                                            es_conductor: false,
+                                            email: '',
+                                            privilegios: ['Publicador'],
+                                            disponibilidad: [],
+                                            modulos: {
+                                                habilitado: true,
+                                                agenda: false,
+                                                programa: false,
+                                                disponibilidad: false,
+                                                telefonos: true,
+                                                mapas: false,
+                                                ayudas: false,
+                                                cerebro: false,
+                                                rescue: false
+                                            }
+                                        };
+                                        try {
+                                            await addPublicador(newPublisher);
+                                            showNotification('Publicador agregado exitosamente', 'success');
+                                            await refreshConductorView(true);
+                                        } catch (error) {
+                                            console.error('Error al agregar publicador:', error);
+                                            showNotification('Error al guardar el publicador', 'error');
+                                        }
+                                    }
+                                };
                             }
                         }
-                        // ══════════════ FIN MARQUESINA ══════════════
 
-                        if (myPhones.length > 0 && window._phoneSessionActive) {
-                            container.querySelector('#phone-compact-view')?.classList.add('hidden');
-                            container.querySelector('#phone-expanded-view')?.classList.remove('hidden');
-                            container.querySelector('#phone-floating-actions')?.classList.replace('hidden', 'flex');
-                        } else {
-                            container.querySelector('#phone-compact-view')?.classList.remove('hidden');
-                            container.querySelector('#phone-expanded-view')?.classList.add('hidden');
-                            container.querySelector('#phone-floating-actions')?.classList.replace('flex', 'hidden');
+
+
+                        // B8 fix: evaluación de visibilidad ya fue hecha en las líneas 630-642;
+                        // esta segunda evaluación era redundante y podía deshacer la primera.
+                        // Eliminada para evitar condiciones de carrera.
+
+                        // Re-subscribe or update Telefonos Live Pool based on current session owner
+                        const joinedOwner = localStorage.getItem('phone_session_owner');
+                        const sessionQueryOwner = joinedOwner || (window.XolvyApp?.identity?.nombreCanonico || displayName);
+                        const isActive = !!(window._phoneSessionActive || localStorage.getItem('phone_session_active') === 'true');
+                        const cleanQueryOwner = toTitleCase(sessionQueryOwner);
+
+                        if (cleanQueryOwner !== currentSubscribedOwner || isActive !== currentSubscribedActive) {
+                            if (telefonosLivePoolUnsubscribe) {
+                                telefonosLivePoolUnsubscribe();
+                                telefonosLivePoolUnsubscribe = null;
+                            }
+                            
+                            currentSubscribedOwner = cleanQueryOwner;
+                            currentSubscribedActive = isActive;
+                            
+                            if (isActive) {
+                                console.log(`📡 [Live Pool] Subscribing to telefonos for owner: ${cleanQueryOwner}`);
+                                telefonosLivePoolUnsubscribe = startLivePool('telefonos', [where('solicitado_por', '==', cleanQueryOwner)], async (data) => {
+                                    console.log("☎️ [Live Pool] Telephones updated in real-time:", data.length);
+                                    if (!container || !container.isConnected) return;
+                                    // FIX: Actualizar solo el módulo de teléfonos en lugar de re-renderizar todo el dashboard.
+                                    // Esto evita la tormenta de re-renders y las notificaciones duplicadas
+                                    // cuando se asigna un publicador o estado.
+                                    try {
+                                        const updatedPhones = await refreshPhones();
+                                        const publicadoresLive = await getPublicadores();
+                                        if (mPhone?.initializePhoneModule) {
+                                            mPhone.initializePhoneModule(updatedPhones, publicadoresLive, displayName, container.querySelector('#phone-tbody'), () => refreshConductorView(true));
+                                        }
+                                        // Actualizar visibilidad según resultado
+                                        const compactViewLive = container.querySelector('#phone-compact-view');
+                                        const expandedViewLive = container.querySelector('#phone-expanded-view');
+                                        const floatingActionsLive = container.querySelector('#phone-floating-actions');
+                                        if (updatedPhones.length > 0 && window._phoneSessionActive) {
+                                            compactViewLive?.classList.add('hidden');
+                                            expandedViewLive?.classList.remove('hidden');
+                                            floatingActionsLive?.classList.replace('hidden', 'flex');
+                                        } else {
+                                            compactViewLive?.classList.remove('hidden');
+                                            expandedViewLive?.classList.add('hidden');
+                                            floatingActionsLive?.classList.replace('flex', 'hidden');
+                                        }
+                                    } catch (liveErr) {
+                                        console.error('[Live Pool] Error actualizando teléfonos en vivo:', liveErr);
+                                    }
+                                });
+                            }
                         }
 
+                        updatePresenceAndSessionsUI();
                         resolve();
                     } catch (e) {
                         console.error("Refresh error", e);
@@ -617,6 +1145,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
         }
 
         async function initNexoSystem() {
+            if (document.getElementById('nexo-widget')) document.getElementById('nexo-widget').remove();
             if (document.getElementById('nexo-fab')) document.getElementById('nexo-fab').remove();
 
             const nexo = new NexoAgent(NexoManifest);
@@ -654,7 +1183,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
                     if (target) {
                         if (params.tipo_entrega === 'completo') {
-                            await returnTerritorio(target.id, params.notas_novedades || "Entrega completa informada a Nexo AI", null, "Disponible");
+                            await returnTerritorio(target.id, params.notas_novedades || "Entrega completa informada a Nexo AI", null, "Completado");
                             
                             if (!params.es_flujo_interno) {
                                 window.nexoIniciarFlujoAvance(target.id, target.numero);
@@ -732,7 +1261,8 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
             nexo.registerAction('actualizar_estado_telefono', async (params) => {
                 try {
-                    const telefonos = await getTelefonosParaSesion(displayName); 
+                    const activeOwner = localStorage.getItem('phone_session_owner') || displayName;
+                    const telefonos = await getTelefonosParaSesion(activeOwner); 
                     let target = telefonos.find(t => String(t.telefono || t.numero).endsWith(String(params.ultimos_digitos).padStart(4, '0')));
                     
                     if (!target) {
@@ -805,7 +1335,8 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                     let text = "No veo ningún tema especial configurado para esta semana. Sigue preparándote con la Guía de Actividades.";
                     
                     if (temaEl && temaEl.innerText.trim() !== '') {
-                        text = `¡Hola! ${temaEl.innerText}`;
+                        const firstTrack = temaEl.querySelector('.marquee-track-god > div:first-child');
+                        text = `¡Hola! ${firstTrack ? firstTrack.innerText.trim() : temaEl.innerText.trim()}`;
                     } else if (document.querySelector('.barra-notificaciones-dinamica')) {
                         const fallback = document.querySelector('.barra-notificaciones-dinamica').innerText;
                         if (fallback) text = `El tema actual es: ${fallback}`;
@@ -844,101 +1375,107 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
         // UI Shell Injection (RESTAURACIÓN PREMIUM V2.5 - ORDEN ESTRICTO)
         container.innerHTML = `
         <div id="conductor-shell-root" class="flex flex-col w-full overflow-hidden bg-slate-50 dark:bg-[#05070a] animate-fade-in" style="height:100vh;height:100dvh;" data-adaptive-container="true">
-            <header class="flex items-center justify-between bg-slate-900 text-white p-4 lg:hidden flex-shrink-0 shadow-md border-b border-emerald-900/50 sticky top-0 z-50">
+            <header class="flex items-center justify-between bg-white/40 dark:bg-[#030712]/40 backdrop-blur-xl border-b border-slate-200/10 dark:border-white/5 sticky top-0 z-40 shadow-sm p-4 lg:hidden flex-none transition-colors duration-300">
                 <div class="flex items-center gap-3">
-                    <button id="menu-toggle-btn" class="p-2 text-white hover:text-emerald-50 focus:outline-none active:scale-95 transition-colors">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                    <button id="menu-toggle-btn" class="p-2 text-emerald-600 dark:text-emerald-400 focus:outline-none active:scale-95 transition-transform">
+                        <svg class="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
                     </button>
-                    <div class="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center text-white text-base font-bold shadow-lg shadow-emerald-600/20">T</div>
-                    <div class="font-black text-xl tracking-tighter text-emerald-400 uppercase">TERRITORIOS</div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-amber-400 text-sm">❖</span>
+                        <span class="text-emerald-750 dark:text-emerald-400 font-black text-[10px] sm:text-xs tracking-[0.2em] uppercase">CONGREGACIÓN "NUEVE DE OCTUBRE"</span>
+                    </div>
                 </div>
-                <div class="w-6"></div>
+                <div class="flex items-center gap-2 relative z-10 shrink-0">
+                     <div id="connection-status-badge-mobile" class="px-2.5 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-xl text-[8px] font-black uppercase tracking-wider flex items-center gap-1.5 select-none">
+                        <span id="connection-status-ping-mobile" class="relative flex h-1.5 w-1.5">
+                            <span class="saas-spinner-ring-mobile animate-ping bg-emerald-500/30 rounded-full w-1.5 h-1.5 absolute"></span>
+                            <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500 animate-pulse"></span>
+                        </span>
+                        <span id="connection-status-text-mobile">En Línea</span>
+                     </div>
+                </div>
             </header>
-            <div class="flex flex-col lg:flex-row flex-1 min-h-0 overflow-hidden relative">
-                <aside id="main-sidebar" class="fixed inset-y-0 left-0 z-50 w-56 bg-white/40 dark:bg-slate-800/40 backdrop-blur-2xl border-r border-slate-200/50 dark:border-emerald-900/30 transform -translate-x-full transition-transform duration-300 lg:static lg:translate-x-0 lg:flex lg:w-64 flex-col h-full shadow-2xl lg:shadow-none">
-                    <button id="btn-close-sidebar" class="absolute top-4 right-4 p-2 text-slate-400 hover:text-emerald-500 lg:hidden focus:outline-none"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
-                    <div class="p-6 border-b border-slate-200/50 dark:border-emerald-900/30 flex items-center justify-between gap-4 mt-8 lg:mt-0">
-                        <div class="font-bold text-xl tracking-wide text-emerald-700 dark:text-emerald-400 flex items-center gap-3 transition-opacity">
-                            <span class="text-amber-400">❖</span> <span class="sidebar-text">Territorios</span>
-                        </div>
-                    </div>
-                    <nav class="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
-                        <button class="nav-item active w-full flex items-center gap-4 p-4 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-r-2 border-amber-400 font-black text-[10px] uppercase tracking-widest transition-all">
-                            <i class="fas fa-home stroke-1.5" stroke-width="1.5"></i> <span class="sidebar-text">Inicio</span>
-                        </button>
-                    </nav>
-                    <div class="p-4 border-t border-slate-200/50 dark:border-emerald-900/30 space-y-2">
-                        <button onclick="window.toggleTheme();" class="w-full flex items-center gap-3 p-4 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 text-[9px] font-medium uppercase tracking-widest transition-all">
-                            <i class="fas fa-adjust stroke-1.5" stroke-width="1.5"></i> <span class="sidebar-text">Cambiar Tema</span>
-                        </button>
-                        ${['Administrador', 'SuperAdmin'].includes(window.XolvyApp?.user?.role) ? `
-                            <button id="btn-modo-admin" class="w-full flex items-center gap-3 p-4 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 text-[9px] font-medium uppercase tracking-widest transition-all">
-                                <i class="fas fa-shield-alt stroke-1.5" stroke-width="1.5"></i> <span class="sidebar-text">Modo Admin</span>
-                            </button>
-                        ` : ''}
-                        <button id="logout-btn" class="w-full flex items-center gap-3 p-4 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-rose-500/10 hover:text-rose-500 text-[9px] font-medium uppercase tracking-widest transition-all">
-                            <i class="fas fa-sign-out-alt stroke-1.5" stroke-width="1.5"></i> <span class="sidebar-text">Salir</span>
-                        </button>
-                    </div>
-                </aside>
-                <main class="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-slate-50 dark:bg-[#0a0f18] relative">
+            <div class="flex flex-col lg:flex-row flex-1 min-w-0 min-h-0 overflow-hidden relative">
+                <aside id="main-sidebar" class="fixed inset-y-0 left-0 z-50 w-48 bg-white/40 dark:bg-slate-800/40 backdrop-blur-2xl border-r border-slate-200/50 dark:border-emerald-900/30 transform -translate-x-full transition-transform duration-300 lg:static lg:translate-x-0 lg:flex lg:w-52 flex-col h-full shadow-2xl lg:shadow-none p-4 justify-between">
+                    
+                    <!-- Floating close button for mobile drawer -->
+                    <button id="btn-close-sidebar" class="absolute top-4 right-4 p-2 text-slate-400 hover:text-rose-500 lg:hidden focus:outline-none transition-all rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 cursor-pointer z-50">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
 
-                <!-- Desktop / Main Header -->
-                <header class="shrink-0 z-20 bg-white/40 dark:bg-[#0a0f18]/80 backdrop-blur-2xl border-b border-slate-200/50 dark:border-white/5 px-6 md:px-12 py-6 md:py-8 flex items-center justify-between gap-6 relative">
-                    <div class="flex items-center gap-4 md:gap-6 relative z-10">
-                        <div class="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-emerald-600/20 shrink-0">T</div>
-                        <div class="flex flex-col">
-                            <h2 class="text-2xl md:text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter leading-none">
-                                Hola, ${displayName.split(' ')[0]}
-                            </h2>
-                            <div class="flex items-center gap-2 mt-2">
-                                 <div class="px-3 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-lg text-[9px] font-black uppercase tracking-widest flex items-center gap-2">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                    En Línea
-                                 </div>
-                            </div>
+                    <nav class="flex-1 flex flex-col h-full min-h-0 overflow-y-auto hide-scrollbar space-y-1.5 pt-4">
+                        <div class="space-y-1.5 flex-1">
+                            <button class="nav-item active w-full flex items-center gap-3 p-3 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-black text-[10px] uppercase tracking-widest transition-all focus:outline-none">
+                                <i class="fas fa-home stroke-1.5" stroke-width="1.5"></i> <span class="sidebar-text">Inicio</span>
+                            </button>
                         </div>
+                        
+                        <div class="pt-4 border-t border-slate-200/50 dark:border-emerald-900/30 space-y-1.5 mt-auto">
+                            <button onclick="window.toggleTheme();" class="w-full flex items-center gap-3 p-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 text-[9px] font-medium uppercase tracking-widest transition-all focus:outline-none">
+                                <i class="fas fa-adjust stroke-1.5" stroke-width="1.5"></i> <span class="sidebar-text">Cambiar Tema</span>
+                            </button>
+                            ${['Administrador', 'SuperAdmin'].includes(window.XolvyApp?.user?.role) ? `
+                                <button id="btn-modo-admin" class="w-full flex items-center gap-3 p-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 text-[9px] font-medium uppercase tracking-widest transition-all focus:outline-none">
+                                    <i class="fas fa-shield-alt stroke-1.5" stroke-width="1.5"></i> <span class="sidebar-text">Modo Admin</span>
+                                </button>
+                            ` : ''}
+                            <button id="logout-btn" class="w-full flex items-center gap-3 p-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-rose-500/10 hover:text-rose-500 text-[9px] font-medium uppercase tracking-widest transition-all focus:outline-none">
+                                <i class="fas fa-sign-out-alt stroke-1.5" stroke-width="1.5"></i> <span class="sidebar-text">Salir</span>
+                            </button>
+                        </div>
+                    </nav>
+                </aside>
+                <main class="flex-1 min-w-0 flex flex-col min-w-0 h-auto lg:h-full overflow-hidden bg-slate-50 dark:bg-[#0a0f18] relative">
+
+                <!-- Desktop / Main Header (Ultra compact God level) -->
+                <header class="shrink-0 z-20 bg-white/40 dark:bg-[#0a0f18]/80 backdrop-blur-2xl border-b border-slate-200/50 dark:border-white/5 px-6 md:px-12 py-4 flex items-center justify-between gap-6 relative overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-r from-emerald-500/5 via-transparent to-transparent pointer-events-none"></div>
+                    <div class="flex items-center gap-3 relative z-10">
+                        <div class="w-10 h-10 bg-gradient-to-tr from-emerald-600 to-teal-500 rounded-xl flex items-center justify-center text-white text-base font-black shadow-lg shadow-emerald-500/30 shrink-0 border border-white/20 animate-float">
+                            ${displayName.charAt(0)}
+                        </div>
+                        <h2 class="text-xl md:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter leading-none font-sans">
+                            Hola, ${displayName.split(' ')[0]}
+                        </h2>
+                    </div>
+                    
+                    <!-- Online/Offline connection status badge -->
+                    <div class="flex items-center gap-2 relative z-10 shrink-0">
+                         <div id="connection-status-badge" class="px-3 py-1.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 select-none">
+                            <span id="connection-status-ping" class="relative flex h-2 w-2">
+                                <span class="saas-spinner-ring animate-ping bg-emerald-500/30 rounded-full w-2 h-2"></span>
+                                <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 animate-pulse"></span>
+                            </span>
+                            <span id="connection-status-text">En Línea • Terminal Conductor</span>
+                         </div>
                     </div>
                 </header>
 
                 <!-- Phase 4: Main Content Container -->
-                <div class="flex-1 overflow-y-auto custom-scrollbar relative z-10 bg-slate-50/50 dark:bg-black/10">
+                <div class="flex-1 min-w-0 overflow-y-auto custom-scrollbar relative z-10 bg-slate-50/50 dark:bg-black/10">
                     
                     <!-- Dynamic Banner -->
-                    <style>
-                        @keyframes marquee-scroll {
-                            0% { transform: translate(0, 0); }
-                            100% { transform: translate(-100%, 0); }
-                        }
-                        .marquee-text {
-                            display: inline-block;
-                            padding-left: 100%;
-                            animation: marquee-scroll 15s linear infinite;
-                            white-space: nowrap;
-                        }
-                    </style>
                     <div id="dynamic-banner-container" class="w-full flex items-center px-4 md:px-12 py-3 bg-white/20 dark:bg-black/10 border-b border-slate-200/50 dark:border-white/5 relative z-40 overflow-hidden box-border">
-                        <div class="flex items-center gap-3 w-full max-w-full">
+                        <div class="flex items-center gap-3.5 w-full max-w-full">
                             <i class="fas fa-bullhorn text-indigo-500 text-sm animate-pulse shrink-0 drop-shadow-md"></i>
-                            <div class="bg-indigo-50/50 dark:bg-indigo-500/5 px-4 md:px-6 py-2 rounded-xl border border-indigo-100/50 dark:border-indigo-500/10 shadow-sm flex items-center flex-1 min-w-0 overflow-hidden">
-                                <p id="dynamic-banner-content" class="text-[10px] font-black text-indigo-600/80 dark:text-indigo-300/90 uppercase tracking-[0.25em] marquee-text">Sincronizando últimas actualizaciones...</p>
+                            <div class="bg-indigo-50/50 dark:bg-indigo-500/5 px-4 md:px-6 py-2.5 rounded-xl border border-indigo-100/50 dark:border-indigo-500/10 shadow-inner flex items-center flex-1 min-w-0 overflow-hidden">
+                                <div id="dynamic-banner-content" class="text-[9px] sm:text-[10px] font-black text-indigo-600/80 dark:text-indigo-300/90 uppercase tracking-[0.25em] w-full overflow-hidden">Sincronizando últimas actualizaciones...</div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="flex flex-col gap-12 md:gap-24 px-4 md:px-12 py-8 md:py-12 pb-48">
+                    <div class="flex flex-col gap-3 md:gap-4 px-4 md:px-12 py-2 md:py-3 pb-20">
                         <!-- Content Sections (Agenda, Programa, etc.) -->
-                        <div id="agenda-section" class="space-y-6 md:space-y-10">
-                            <div class="flex items-start gap-4 md:gap-8">
-                                <div class="w-12 h-12 md:w-16 md:h-16 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-2xl md:text-3xl text-indigo-500 border border-indigo-500/10">
-                                    <i class="fas fa-bolt"></i>
+                        <div id="agenda-section" class="space-y-2 pb-3 border-b border-slate-200 dark:border-white/5">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-500 border border-indigo-500/10 text-sm">
+                                    <i class="fas fa-bolt animate-pulse"></i>
                                 </div>
                                 <div>
-                                    <h3 class="text-xl md:text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Agenda</h3>
-                                    <p class="text-[9px] md:text-[11px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-[0.2em] mt-1 opacity-80">Asignaciones prioritarias</p>
+                                    <h3 class="text-base font-black text-slate-800 dark:text-white uppercase tracking-wider">Agenda Inteligente</h3>
                                 </div>
                             </div>
-                            <div id="active-agenda-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6"></div>
+                            <div id="active-agenda-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-4"></div>
                         </div>
 
                         <div id="programa-semanal-section" class="modern-card !p-0 overflow-hidden">
@@ -958,12 +1495,11 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                     </div>
                                 </summary>
                                 <div class="p-4 md:p-8 space-y-6 md:space-y-10 animate-fade-in group-open/prog-details:block hidden">
-                                    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50 dark:bg-white/[0.02] p-4 rounded-3xl border border-slate-100 dark:border-white/5">
-                                        <div id="prog-week-range" class="px-6 py-2 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl text-[10px] font-black uppercase tracking-widest border border-indigo-500/10">Cargando...</div>
-                                        <div id="prog-turn-filters" class="flex flex-wrap items-center gap-2"></div>
-                                        <button id="prog-btn-today" class="px-5 py-2 bg-emerald-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 active:scale-95 transition-all hover:bg-emerald-600">MOSTRAR HOY</button>
+                                    <div class="flex items-center justify-center bg-slate-50 dark:bg-white/[0.02] p-4 rounded-3xl border border-slate-100 dark:border-white/5">
+                                        <div id="prog-week-range" class="px-6 py-2 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl text-[10px] font-black uppercase tracking-widest border border-indigo-500/10 text-center shadow-inner">Cargando...</div>
+                                        <div id="prog-turn-filters" class="hidden"></div>
                                     </div>
-                                    <div id="prog-day-selector" class="flex gap-2 overflow-x-auto no-scrollbar w-full"></div>
+                                    <div id="prog-day-selector" class="flex gap-2 items-center justify-center overflow-x-auto no-scrollbar w-full"></div>
                                     <div id="weekly-program-cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6"></div>
                                 </div>
                             </details>
@@ -989,44 +1525,57 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                              </details>
                         </div>
 
-                        <div id="phone-module-card" class="modern-card p-6 md:p-10">
-                            <div class="flex items-center gap-4 mb-8">
-                                <div class="w-12 h-12 md:w-14 md:h-14 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg text-xl md:text-2xl">
-                                    <i class="fas fa-phone-alt"></i>
+                        <div id="phone-module-card" class="modern-card !p-0" style="overflow: visible !important;">
+                            <div class="flex flex-col md:flex-row justify-between items-start md:items-center p-6 md:p-10 border-b border-slate-100 dark:border-white/5 relative">
+                                <div class="flex items-start gap-4 md:gap-8 relative z-10 w-full md:w-auto">
+                                    <div class="w-12 h-12 md:w-16 md:h-16 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-2xl md:text-3xl text-indigo-500 border border-indigo-500/10">
+                                        <i class="fas fa-phone-alt"></i>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <h3 class="text-xl md:text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Telefonía</h3>
+                                        <p class="text-[9px] md:text-[11px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-[0.2em] mt-1 opacity-80">Predicación en vivo y colaboración</p>
+                                    </div>
                                 </div>
-                                <h3 class="text-xl md:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Telefonía</h3>
-                            </div>
-                            <div id="phone-compact-view" class="animate-fade-in py-10">
-                                <div class="bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-900/10 dark:to-slate-900 p-8 md:p-12 text-center rounded-[2.5rem] border border-indigo-100 dark:border-indigo-500/10 shadow-inner">
-                                   <div class="w-16 h-16 md:w-20 md:h-20 bg-indigo-600/10 rounded-2xl flex items-center justify-center text-3xl md:text-4xl text-indigo-600 mx-auto mb-8">
-                                       <i class="fas fa-phone-alt"></i>
-                                   </div>
-                                   <h3 class="text-xl md:text-2xl font-black text-slate-800 dark:text-white mb-4 uppercase tracking-tighter">¿Listo para Predicar?</h3>
-                                   <button id="btn-solicitar" class="btn-pro bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white px-8 py-4 rounded-2xl font-black shadow-lg shadow-indigo-600/20 transition-all active:scale-95 flex items-center gap-3 uppercase tracking-widest text-[10px] mx-auto">
-                                       <i class="fas fa-rocket text-base"></i> Solicitar Números
-                                   </button>
+                                <div id="active-sessions-badge-container" class="hidden items-center gap-1.5 bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400 px-3 py-1.5 rounded-xl border border-indigo-500/20 animate-pulse mt-4 md:mt-0">
+                                    <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                                    <span id="active-sessions-count" class="text-[9px] font-black uppercase tracking-widest">0 sesiones abiertas</span>
                                 </div>
                             </div>
-                            <div id="phone-expanded-view" class="hidden animate-fade-in space-y-8">
-                                <div class="w-full overflow-x-auto">
-                                    <table class="w-full text-left border-collapse">
-                                        <thead class="hidden sm:table-header-group sticky top-[-1px] bg-slate-50 dark:bg-[#12161d] backdrop-blur-xl z-30 border-b border-slate-200 dark:border-white/10">
-                                            <tr class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">
-                                                <th class="p-4">Teléfono</th>
-                                                <th class="p-4">Nombre</th>
-                                                <th class="p-4">Dirección</th>
-                                                <th class="p-4">Asignado a</th>
-                                                <th class="p-4 text-center">Estado</th>
-                                                <th class="p-4">Notas</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="phone-tbody" class="divide-y divide-slate-50 dark:divide-white/5"></tbody>
-                                    </table>
+                            <div class="p-4 md:p-8 space-y-6">
+                                <div id="phone-compact-view" class="animate-fade-in py-10">
+                                    <div class="bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-900/10 dark:to-slate-900 p-8 md:p-12 text-center rounded-[2.5rem] border border-indigo-100 dark:border-indigo-500/10 shadow-inner">
+                                       <div class="w-16 h-16 md:w-20 md:h-20 bg-indigo-600/10 rounded-2xl flex items-center justify-center text-3xl md:text-4xl text-indigo-600 mx-auto mb-8">
+                                           <i class="fas fa-phone-alt"></i>
+                                       </div>
+                                       <h3 class="text-xl md:text-2xl font-black text-slate-800 dark:text-white mb-4 uppercase tracking-tighter">¿Listo para Predicar?</h3>
+                                       <div class="relative inline-block text-left mx-auto">
+                                           <button id="btn-solicitar" class="btn-pro bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white px-8 py-4 rounded-2xl font-black shadow-lg shadow-indigo-600/20 transition-all active:scale-95 flex items-center gap-3 uppercase tracking-widest text-[10px] mx-auto">
+                                               <i class="fas fa-play text-base"></i> Iniciar
+                                           </button>
+                                           <div id="active-sessions-dropdown" class="hidden absolute left-1/2 -translate-x-1/2 mt-3 md:left-full md:top-1/2 md:-translate-y-1/2 md:translate-x-0 md:mt-0 md:ml-4 w-80 rounded-[1.5rem] bg-white dark:bg-[#0b0f19]/95 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] p-4 z-50 animate-fade-in-up">
+                                               <!-- Dynamic sessions content -->
+                                           </div>
+                                       </div>
+                                    </div>
                                 </div>
-                                <div class="mt-10 pt-10 border-t border-slate-100 dark:border-white/5 flex justify-end">
-                                    <button id="btn-finalizar-telefonos" onclick="window.finalizarPredicacionTelefonia()" class="btn-pro bg-emerald-500 hover:bg-emerald-600 text-white px-10 py-5 rounded-[2rem] font-black text-[12px] uppercase tracking-[0.2em] shadow-2xl shadow-emerald-500/30 transition-all active:scale-95 flex items-center gap-4 group">
-                                        <i class="fas fa-check-double text-lg group-hover:rotate-12 transition-transform"></i> Finalizar Predicación
-                                    </button>
+                                <div id="phone-expanded-view" class="hidden animate-fade-in space-y-6">
+                                    <div id="phone-stats-bar"></div>
+                                    <div class="w-full sm:overflow-visible overflow-x-auto">
+                                        <table class="w-full text-left border-collapse">
+                                            <thead class="hidden sm:table-header-group sticky top-0 bg-white dark:bg-[#0b0f19] backdrop-blur-xl z-30 border-b border-slate-200 dark:border-white/10">
+                                                <tr class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">
+                                                    <th class="p-4">Teléfono</th>
+                                                    <th class="p-4">Nombre</th>
+                                                    <th class="p-4">Dirección</th>
+                                                    <th class="p-4">Asignado a</th>
+                                                    <th class="p-4 text-center">Estado</th>
+                                                    <th class="p-4">Notas</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="phone-tbody" class="divide-y divide-slate-50 dark:divide-white/5"></tbody>
+                                        </table>
+                                    </div>
+
                                 </div>
                             </div>
                         </div>
@@ -1050,29 +1599,70 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                  <div class="p-4 md:p-8 animate-fade-in group-open/maps-details:block hidden space-y-8">
                                      <div class="w-full relative">
                                          <i class="fas fa-search absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400"></i>
-                                         <input type="text" id="search-explorer-maps" placeholder="BUSCAR TERRITORIO..." class="input-premium !py-4 !pl-14 !pr-6 text-[11px] uppercase tracking-widest bg-white dark:bg-slate-900 w-full">
+                                         <input type="text" id="search-explorer-maps" placeholder="BUSCAR TERRITORIO..." style="padding-left: 3.5rem !important;" class="input-premium !py-4 !pr-6 text-[11px] uppercase tracking-widest bg-white dark:bg-slate-900 !text-slate-800 dark:!text-white placeholder-slate-400 dark:placeholder-slate-500 w-full">
                                      </div>
                                      <div id="conductor-maps-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6"></div>
                                  </div>
                              </details>
                         </div>
 
-                        <div id="recursos-container-section" class="modern-card p-6 md:p-10">
-                            <div class="flex items-center gap-6 mb-8 px-2">
-                                 <div class="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-amber-500/10 flex items-center justify-center text-xl md:text-2xl text-amber-500">
-                                     <i class="fas fa-hands-helping"></i>
-                                 </div>
-                                 <h3 class="text-xl md:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Recursos</h3>
+                        <div id="recursos-container-section" class="modern-card !p-0 overflow-hidden">
+                            <div class="flex flex-col md:flex-row justify-between items-start md:items-center p-6 md:p-10 border-b border-slate-100 dark:border-white/5 relative">
+                                <div class="flex items-start gap-4 md:gap-8 relative z-10 w-full md:w-auto">
+                                    <div class="w-12 h-12 md:w-16 md:h-16 rounded-2xl bg-amber-500/10 flex items-center justify-center text-2xl md:text-3xl text-amber-500 border border-amber-500/10">
+                                        <i class="fas fa-hands-helping"></i>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <h3 class="text-xl md:text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Recursos</h3>
+                                        <p class="text-[9px] md:text-[11px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-[0.2em] mt-1 opacity-80">Materiales y enlaces de apoyo</p>
+                                    </div>
+                                </div>
                             </div>
-                            <div id="recursos-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6"></div>
+                            <div class="p-4 md:p-8">
+                                <div id="recursos-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
                 </main>
 
-                <div id="phone-floating-actions" class="fixed bottom-6 right-6 hidden flex-col gap-3 z-[99999] animate-slide-up pointer-events-none">
-                    <button id="btn-solicitar-more-float" class="btn-pro w-12 h-12 bg-emerald-500 text-white rounded-2xl shadow-xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all border-2 border-white dark:border-slate-900 pointer-events-auto text-sm"><i class="fas fa-plus"></i></button>
-                    <button id="btn-finalizar-float" class="btn-pro w-12 h-12 bg-rose-500 text-white rounded-2xl shadow-xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all border-2 border-white dark:border-slate-900 pointer-events-auto text-sm"><i class="fas fa-power-off"></i></button>
+                <!-- SVG Gooey Filter definition -->
+                <svg xmlns="http://www.w3.org/2000/svg" version="1.1" class="hidden" style="display:none; position: absolute; width: 0; height: 0;">
+                  <defs>
+                    <filter id="gooey-amalgam">
+                      <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
+                      <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 19 -9" result="goo" />
+                      <feComposite in="SourceGraphic" in2="goo" operator="atop" />
+                    </filter>
+                  </defs>
+                </svg>
+
+                <div id="phone-floating-actions" class="fixed bottom-6 right-6 hidden flex-col items-center gap-3 z-[99999] animate-slide-up pointer-events-none">
+                    <div id="gooey-menu-wrapper" class="gooey-menu-container pointer-events-auto relative flex flex-col items-center justify-center w-14 h-14">
+                        <!-- Sub-button: Agregar publicador -->
+                        <button id="btn-agregar-publicador-goo" class="gooey-item btn-pro absolute bg-indigo-600 hover:bg-indigo-700 text-white w-11 h-11 rounded-full shadow-lg flex items-center justify-center border border-white/20 dark:border-slate-800 text-[10px]" title="Agregar publicador">
+                            <i class="fas fa-user-plus text-xs"></i>
+                        </button>
+                        <!-- Sub-button: Solicitar números -->
+                        <button id="btn-solicitar-more-numbers-goo" class="gooey-item btn-pro absolute bg-teal-600 hover:bg-teal-700 text-white w-11 h-11 rounded-full shadow-lg flex items-center justify-center border border-white/20 dark:border-slate-800 text-[10px]" title="Solicitar 30 números más">
+                            <i class="fas fa-phone-alt text-xs"></i>
+                        </button>
+                        <!-- Main green "+" trigger button -->
+                        <button id="btn-solicitar-more-float" class="btn-pro w-12 h-12 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl shadow-xl flex items-center justify-center border-2 border-white dark:border-slate-900 relative z-10 text-sm">
+                            <i class="fas fa-plus transition-transform duration-350"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Sharp floating labels (independent of gooey filter to remain completely clear) -->
+                    <div id="gooey-labels-container" class="absolute pointer-events-none inset-0">
+                        <div id="lbl-solicitar-more" class="absolute right-16 bottom-[138px] bg-slate-950/80 backdrop-blur text-white px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest opacity-0 scale-90 transition-all duration-300">Solicitar Números</div>
+                        <div id="lbl-agregar-publicador" class="absolute right-16 bottom-[192px] bg-slate-950/80 backdrop-blur text-white px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest opacity-0 scale-90 transition-all duration-300">Agregar Publicador</div>
+                    </div>
+                    
+                    <!-- Finalizar button -->
+                    <button id="btn-finalizar-float" class="btn-pro w-12 h-12 bg-rose-500 text-white rounded-2xl shadow-xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all border-2 border-white dark:border-slate-900 pointer-events-auto text-sm" title="Finalizar Sesión">
+                        <i class="fas fa-power-off"></i>
+                    </button>
                 </div>
             </div>
         </div>
@@ -1105,16 +1695,26 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                         window.stopActiveLivePools();
                     }
 
-                    // 2. Limpieza completa de LocalStorage
+                    // 2. Liberar sesión telefónica si está activa
+                    if (window._phoneSessionActive) {
+                        try {
+                            await window.finalizarPredicacionTelefonia();
+                        } catch (err) {
+                            console.error("Error finalizando telefonía en logout:", err);
+                        }
+                    }
+
+                    // 3. Limpieza completa de LocalStorage y SessionStorage
                     localStorage.removeItem('selected_conductor_name');
                     localStorage.removeItem('xolvy_session');
                     localStorage.removeItem('phone_session_active');
                     localStorage.clear();
+                    sessionStorage.removeItem('phone_session_active_this_tab');
 
-                    // 3. Firebase SignOut
+                    // 4. Firebase SignOut
                     await auth.signOut();
                     
-                    // 4. Redirección
+                    // 5. Redirección
                     location.href = '/login';
                 };
             }
@@ -1131,6 +1731,65 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
             // FIX: Ensure telephony and dynamic features sync on first load
             await refreshConductorView(true);
             window.initMobileMenu();
+
+            // Sincronizar tema en la barra lateral recién montada
+            if (typeof window.updateDOMThemeToggles === 'function') {
+                window.updateDOMThemeToggles(localStorage.getItem('theme') || 'auto');
+            }
+
+            // ══════════════ ESTADO DE CONEXIÓN DINÁMICO ══════════════
+            const updateConnectionStatusBadge = (isOnline) => {
+                const badge = container.querySelector('#connection-status-badge');
+                const dotRing = container.querySelector('#connection-status-ping .saas-spinner-ring');
+                const dotDot = container.querySelector('#connection-status-ping .relative.inline-flex');
+                const text = container.querySelector('#connection-status-text');
+
+                const badgeMobile = container.querySelector('#connection-status-badge-mobile');
+                const dotRingMobile = container.querySelector('#connection-status-ping-mobile .saas-spinner-ring-mobile');
+                const dotDotMobile = container.querySelector('#connection-status-ping-mobile .relative.inline-flex');
+                const textMobile = container.querySelector('#connection-status-text-mobile');
+
+                if (isOnline) {
+                    if (badge) {
+                        badge.className = "px-3 py-1.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 select-none";
+                    }
+                    if (dotRing) dotRing.className = "saas-spinner-ring animate-ping bg-emerald-500/30 rounded-full w-2 h-2";
+                    if (dotDot) dotDot.className = "relative inline-flex rounded-full h-2 w-2 bg-emerald-500 animate-pulse";
+                    if (text) text.textContent = "En Línea • Terminal Conductor";
+
+                    if (badgeMobile) {
+                        badgeMobile.className = "px-2.5 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-xl text-[8px] font-black uppercase tracking-wider flex items-center gap-1.5 select-none";
+                    }
+                    if (dotRingMobile) dotRingMobile.className = "saas-spinner-ring-mobile animate-ping bg-emerald-500/30 rounded-full w-1.5 h-1.5 absolute";
+                    if (dotDotMobile) dotDotMobile.className = "relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500 animate-pulse";
+                    if (textMobile) textMobile.textContent = "En Línea";
+                } else {
+                    if (badge) {
+                        badge.className = "px-3 py-1.5 bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 select-none animate-pulse";
+                    }
+                    if (dotRing) dotRing.className = "saas-spinner-ring animate-ping bg-rose-500/30 rounded-full w-2 h-2";
+                    if (dotDot) dotDot.className = "relative inline-flex rounded-full h-2 w-2 bg-rose-500";
+                    if (text) text.textContent = "Sin Conexión • PWA Offline";
+
+                    if (badgeMobile) {
+                        badgeMobile.className = "px-2.5 py-1 bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 rounded-xl text-[8px] font-black uppercase tracking-wider flex items-center gap-1.5 select-none animate-pulse";
+                    }
+                    if (dotRingMobile) dotRingMobile.className = "saas-spinner-ring-mobile animate-ping bg-rose-500/30 rounded-full w-1.5 h-1.5 absolute";
+                    if (dotDotMobile) dotDotMobile.className = "relative inline-flex rounded-full h-1.5 w-1.5 bg-rose-500";
+                    if (textMobile) textMobile.textContent = "Sin Conexión";
+                }
+            };
+
+            if (window._updateConnectionStatusBadge) {
+                window.removeEventListener('online', window._onlineListener);
+                window.removeEventListener('offline', window._offlineListener);
+            }
+            window._onlineListener = () => updateConnectionStatusBadge(true);
+            window._offlineListener = () => updateConnectionStatusBadge(false);
+            window._updateConnectionStatusBadge = updateConnectionStatusBadge;
+            window.addEventListener('online', window._onlineListener);
+            window.addEventListener('offline', window._offlineListener);
+            updateConnectionStatusBadge(navigator.onLine);
 
 
             // LEVANTAR EL TELÓN (Destruir el Loading Stage)
@@ -1175,7 +1834,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
         try {
             const allTerritorios = poolData?.territorios || [];
-            const userModsEffectivos = conductorData?.modulos || userMods || { agenda: true, programa: true, disponibilidad: true, telefonos: true, mapas: true, ayudas: true };
+            const userModsEffectivos = conductorData?.modulos || userMods || { agenda: true, programa: true, disponibilidad: true, telefonos: true, mapas: true, ayudas: true, cerebro: true };
             const programa = poolData?.programa;
             const bancoS13 = poolData?.banco_s13 || [];
             const normalizedName = normalizeRobust(name);
@@ -1211,22 +1870,29 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                 assignedTerritoryNums = tData.territorio.split(/[,/]+/).map(s => s.trim()).filter(Boolean);
                             }
 
+                            const INACTIVE_STATES = ['Disponible', 'Predicado', 'Sin asignar', 'Extraviado', 'Libre'];
                             const attachedTerritories = assignedTerritoryNums.map(num => {
                                 const t = territoryMap[num] || { numero: num, isMissingData: true };
-                                if (t.id) shownTerritoryIds.add(t.id);
                                 return t;
-                            }).filter(t => !t.isMissingData);
+                            }).filter(t => !t.isMissingData && !INACTIVE_STATES.includes(t.estado) && !INACTIVE_STATES.includes(t.status));
 
-                            assignments.push({
-                                dia: d.nombre,
-                                turno: turno === 'manana' ? '🌅 Mañana' : (turno === 'tarde' ? '☀️ Tarde' : (turno === 'zoom' ? '📹 Zoom' : '🌙 Noche')),
-                                role: isConductor ? 'Conductor' : 'Auxiliar',
-                                isMember: true,
-                                rawDate: d.fecha,
-                                attachedTerritories,
-                                faceta: tData.faceta || 'Predicación',
-                                ...tData
-                            });
+                            const isSpecialActivity = tData.faceta && tData.faceta !== 'Predicación';
+                            if (attachedTerritories.length > 0 || isSpecialActivity) {
+                                attachedTerritories.forEach(t => {
+                                    if (t.id) shownTerritoryIds.add(t.id);
+                                });
+
+                                assignments.push({
+                                    dia: d.nombre,
+                                    turno: turno === 'manana' ? '🌅 Mañana' : (turno === 'tarde' ? '☀️ Tarde' : (turno === 'zoom' ? '📹 Zoom' : '🌙 Noche')),
+                                    role: isConductor ? 'Conductor' : 'Auxiliar',
+                                    isMember: true,
+                                    rawDate: d.fecha,
+                                    attachedTerritories,
+                                    faceta: tData.faceta || 'Predicación',
+                                    ...tData
+                                });
+                            }
                         }
                     });
                 });
@@ -1260,33 +1926,41 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
             if (agendaContainer) {
                 if (!hasShifts) {
                     agendaContainer.innerHTML = `
-<div class="col-span-full py-16 sm:py-24 px-6 sm:px-8 modern-card text-center animate-fade-in shadow-2xl bg-white dark:bg-[#0f1420]/60 border-slate-200 dark:border-white/10 relative overflow-hidden group">
-    <div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
-    <div class="flex flex-col items-center gap-8 relative z-10">
-        <div class="w-24 h-24 bg-primary/10 rounded-[2.5rem] flex items-center justify-center text-4xl text-primary shadow-inner border border-primary/20 animate-float">
+<div class="col-span-full py-4 px-6 bg-white/40 dark:bg-slate-900/40 backdrop-blur-md border border-slate-200/50 dark:border-white/10 text-center sm:text-left flex flex-col sm:flex-row items-center justify-between gap-4 animate-fade-in relative overflow-hidden group rounded-3xl shadow-lg">
+    <!-- Ambient Spotlights -->
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-indigo-500/10 dark:bg-indigo-500/5 rounded-full blur-[80px] pointer-events-none transition-all duration-1000 group-hover:scale-125"></div>
+    <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
+    
+    <div class="flex flex-col sm:flex-row items-center gap-4 relative z-10 text-center sm:text-left">
+        <div class="w-10 h-10 bg-indigo-500/10 dark:bg-indigo-500/20 rounded-2xl flex items-center justify-center text-xl text-indigo-500 dark:text-indigo-400 border border-indigo-500/20 dark:border-indigo-400/30 shadow-inner shrink-0 animate-float">
             <i class="fas fa-calendar-day"></i>
         </div>
-        <div class="space-y-4">
-            <h4 class="text-xl sm:text-3xl font-black text-slate-800 dark:text-white tracking-tighter uppercase transition-transform group-hover:scale-105 duration-500">Sin asignaciones activas</h4>
-            <p class="text-[11px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-[0.4em] max-w-xs mx-auto leading-relaxed">
-                Revisa el cronograma o contacta con el Departamento de territorios
+        <div class="space-y-0.5">
+            <h4 class="text-base font-black text-slate-800 dark:text-white uppercase tracking-tight">Sin asignaciones activas</h4>
+            <p class="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider leading-relaxed">
+                Revisa el cronograma de salidas o contacta con el Departamento de Territorios.
             </p>
         </div>
     </div>
+    
+    <!-- Premium Interactive Button -->
+    <button onclick="window.scrollToCronograma()" class="relative z-20 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all active:scale-95 shadow-md shadow-indigo-600/15 flex items-center gap-2 group shrink-0 select-none border border-white/10 hover:shadow-lg">
+        <i class="fas fa-calendar-alt opacity-70 group-hover:opacity-100 transition-opacity"></i> Ver programa de predicación
+    </button>
 </div>
                     `;
                 } else if (allCompleted) {
                     agendaContainer.innerHTML = `
-<div class="col-span-full py-28 px-8 modern-card bg-emerald-500/5 dark:bg-[#0f231e]/40 !rounded-[4rem] border-2 border-emerald-500/20 text-center animate-bounce-in shadow-2xl shadow-emerald-500/10 relative overflow-hidden group">
+<div class="col-span-full py-10 px-6 bg-emerald-500/5 dark:bg-[#0f231e]/30 !rounded-3xl border border-emerald-500/20 text-center animate-bounce-in shadow-xl shadow-emerald-500/5 relative overflow-hidden group">
     <div class="absolute inset-0 bg-gradient-to-b from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000"></div>
-    <div class="text-9xl mb-10 flex justify-center text-emerald-500 drop-shadow-[0_0_30px_rgba(16,185,129,0.4)] relative z-10 transition-transform group-hover:scale-110 duration-700">
+    <div class="text-5xl mb-4 flex justify-center text-emerald-500 drop-shadow-[0_0_20px_rgba(16,185,129,0.3)] relative z-10 transition-transform group-hover:scale-110 duration-700">
         <i class="fas fa-trophy animate-float"></i>
     </div>
     <div class="relative z-10">
-        <h4 class="text-4xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tighter uppercase mb-4">¡Misión Cumplida!</h4>
-        <p class="text-emerald-600 dark:text-emerald-400 font-black text-xl uppercase tracking-[0.3em]">Territorio al 100%</p>
-        <div class="mt-12 flex justify-center">
-            <div class="px-12 py-5 bg-emerald-500 text-white rounded-3xl text-[11px] font-black uppercase tracking-[0.2em] shadow-[0_20px_40px_rgba(16,185,129,0.3)] hover:scale-105 transition-transform cursor-default">
+        <h4 class="text-2xl font-black text-slate-900 dark:text-white tracking-tighter uppercase mb-1">¡Misión Cumplida!</h4>
+        <p class="text-emerald-600 dark:text-emerald-400 font-black text-[11px] uppercase tracking-[0.2em]">Territorio al 100%</p>
+        <div class="mt-4 flex justify-center">
+            <div class="px-6 py-2.5 bg-emerald-500 text-white rounded-xl text-[9px] font-black uppercase tracking-[0.15em] shadow-[0_12px_24px_rgba(16,185,129,0.25)] hover:scale-105 transition-transform cursor-default">
                 <i class="fas fa-star mr-2"></i> Excelente trabajo, ${name.split(' ')[0]}
             </div>
         </div>
@@ -1295,63 +1969,97 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                     `;
                 } else {
                     agendaContainer.innerHTML = Object.values(groupedByDay).map(day => `
-                        <div class="day-group space-y-4 animate-fade-in">
-                            <div class="flex items-center justify-between px-2 mb-2">
-                                <h3 class="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">${day.dia}</h3>
-                                <div class="h-px flex-1 min-w-0 bg-slate-100 dark:bg-white/5 mx-4"></div>
+                        <div class="day-group flex flex-col h-full space-y-2.5 animate-fade-in w-full">
+                            <div class="flex items-center justify-between px-1.5 mb-1.5">
+                                <h3 class="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">${day.dia}</h3>
+                                <div class="h-px flex-1 min-w-0 bg-slate-100 dark:bg-white/5 mx-3"></div>
                             </div>
                             
                             ${day.shifts.map((a, sIdx) => `
-                                <div class="assignment-card w-full max-w-md h-full flex flex-col justify-between bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 border border-slate-100 dark:border-white/5 shadow-xl shadow-slate-200/20 dark:shadow-black/40 hover:shadow-2xl transition-all duration-500 group">
-                                    <div class="flex items-center gap-3 mb-6">
-                                        <div class="w-10 h-10 rounded-2xl ${a.turno.includes('Mañana') ? 'bg-orange-500/10 text-orange-500' : 'bg-indigo-500/10 text-indigo-500'} flex items-center justify-center text-sm shadow-inner group-hover:rotate-12 transition-transform">
-                                            <i class="fas ${a.turno.includes('Mañana') ? 'fa-sun' : 'fa-moon'}"></i>
-                                        </div>
-                                        <div>
-                                            <h4 class="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">${a.turno}</h4>
-                                            <div class="flex items-center gap-2">
-                                                <i class="fas fa-map-pin text-[9px] text-primary/50"></i>
-                                                <p class="text-xs font-bold text-slate-700 dark:text-slate-300">${a.lugar || 'Ubicación pendiente'}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="flex flex-col gap-4 mb-8">
-                                        <div class="flex-1 min-w-0 space-y-1 pl-4 border-l-2 ${a.role === 'Conductor' ? 'border-primary' : 'border-slate-100 dark:border-white/10'}">
-                                            <p class="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-none">Conductor</p>
-                                            <p class="text-lg font-bold ${a.role === 'Conductor' ? 'text-primary' : 'text-slate-800 dark:text-slate-100'} whitespace-normal break-words leading-tight min-w-[120px]">${a.conductor || '---'}</p>
-                                        </div>
-                                        <div class="flex-1 min-w-0 space-y-1 pl-4 border-l-2 ${a.role === 'Auxiliar' ? 'border-primary' : 'border-slate-100 dark:border-white/10'}">
-                                            <p class="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-none">Auxiliar</p>
-                                            <p class="text-lg font-bold ${a.role === 'Auxiliar' ? 'text-primary' : 'text-slate-800 dark:text-slate-100'} whitespace-normal break-words leading-tight min-w-[120px]">${a.auxiliar || '---'}</p>
-                                        </div>
-                                    </div>
-
-                                    ${a.attachedTerritories.length > 0 ? `
-                                        <div class="space-y-4">
-                                            <button class="w-full mt-4 py-4 bg-slate-100 dark:bg-white/5 text-slate-800 dark:text-slate-100 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 border border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10 transition-all active:scale-95 shadow-sm" 
-                                                onclick="window.abrirModalTerritorios('${a.dia}', '${a.turno}', '${a.attachedTerritories.map(t => t.id).join('|')}')">
-                                                <i class="fas fa-map-location-dot text-indigo-500"></i> Ver ${a.attachedTerritories.length} Territorios
-                                            </button>
-
-                                            <button class="territory-report-btn w-full bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-white font-black text-[10px] uppercase tracking-[0.3em] shadow-xl shadow-teal-500/20 active:scale-95 transition-all group/btn whitespace-normal text-center h-auto"
-                                                data-ids="${a.attachedTerritories.map(t => t.id).join(',')}" 
-                                                data-nums="${a.attachedTerritories.map(t => t.numero).join(',')}"
-                                                data-conductor="${a.conductor || displayName || ''}">
-                                                <i class="fas fa-file-signature opacity-70 group-hover/btn:rotate-12 transition-transform"></i> Informar Actividad
-                                            </button>
-                                        </div>
-                                    ` : `
-                                        <div class="px-5 py-8 bg-slate-50 dark:bg-slate-900 rounded-3xl border-2 border-dashed border-slate-200 dark:border-white/10 text-center space-y-3">
-                                            <div class="w-16 h-16 rounded-2xl bg-white dark:bg-[#0a0f18] mx-auto flex items-center justify-center text-primary text-2xl shadow-sm border border-transparent dark:border-white/5">
-                                                <i class="fas ${a.faceta === 'Telefónica' ? 'fa-phone-alt' : (a.faceta === 'Cartas' ? 'fa-envelope-open-text' : 'fa-bullhorn')}"></i>
+                                <div class="assignment-card flex-1 w-full max-w-md flex flex-col bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl rounded-3xl p-4 border border-slate-200/50 dark:border-white/10 shadow-lg hover:shadow-xl dark:shadow-black/20 hover:border-indigo-500/30 transition-all duration-300 group">
+                                    <div class="flex items-center justify-between gap-3 mb-2.5 shrink-0">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-8 h-8 rounded-xl ${a.turno.includes('Mañana') ? 'bg-orange-500/10 text-orange-500' : 'bg-indigo-500/10 text-indigo-500'} flex items-center justify-center text-xs shadow-inner group-hover:rotate-12 transition-transform">
+                                                <i class="fas ${a.turno.includes('Mañana') ? 'fa-sun' : 'fa-moon'}"></i>
                                             </div>
                                             <div>
-                                                <p class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-1 opacity-60">Actividad Especial</p>
-                                                <p class="text-xl font-black text-primary dark:text-indigo-400 uppercase tracking-tighter">${a.faceta}</p>
+                                                <h4 class="text-[9px] font-black text-slate-550 dark:text-slate-400 uppercase tracking-widest leading-none mb-0.5">${a.turno}</h4>
+                                                <div class="flex items-center gap-1">
+                                                    <i class="fas fa-map-pin text-[7px] text-indigo-500/60"></i>
+                                                    <p class="text-[11px] font-bold text-slate-700 dark:text-slate-300 leading-tight truncate max-w-[200px]" title="${a.lugar || 'Ubicación pendiente'}">${a.lugar || 'Ubicación pendiente'}</p>
+                                                </div>
                                             </div>
                                         </div>
-                                    `}
+                                    </div>
+ 
+                                    <!-- Content Area -->
+                                    <div class="flex-1 flex flex-col justify-start gap-3">
+                                        <!-- Roles Grid Side-by-Side (Ultra space-saving God level) -->
+                                        <div class="grid grid-cols-2 gap-3 bg-slate-50/50 dark:bg-black/10 p-2.5 rounded-2xl border border-slate-100 dark:border-white/5">
+                                            <div class="space-y-0.5 pl-2 border-l-2 ${a.role === 'Conductor' ? 'border-indigo-500 dark:border-indigo-400' : 'border-slate-200 dark:border-white/5'}">
+                                                <p class="text-[8px] font-black text-slate-550 dark:text-slate-400 uppercase tracking-wider leading-none">Conductor</p>
+                                                <p class="text-xs font-black ${a.role === 'Conductor' ? 'text-indigo-600 dark:text-indigo-400 font-extrabold' : 'text-slate-750 dark:text-slate-300'} whitespace-normal break-words leading-tight mt-0.5 min-w-[50px]">${a.conductor || '---'}</p>
+                                            </div>
+                                            <div class="space-y-0.5 pl-2 border-l-2 ${a.role === 'Auxiliar' ? 'border-indigo-500 dark:border-indigo-400' : 'border-slate-200 dark:border-white/5'}">
+                                                <p class="text-[8px] font-black text-slate-550 dark:text-slate-400 uppercase tracking-wider leading-none">Auxiliar</p>
+                                                <p class="text-xs font-black ${a.role === 'Auxiliar' ? 'text-indigo-600 dark:text-indigo-400 font-extrabold' : 'text-slate-750 dark:text-slate-300'} whitespace-normal break-words leading-tight mt-0.5 min-w-[50px]">${a.auxiliar || '---'}</p>
+                                            </div>
+                                        </div>
+ 
+                                        <!-- Territories -->
+                                        ${a.attachedTerritories.length > 0 ? `
+                                            <div class="flex flex-wrap items-center gap-1.5">
+                                                <div class="w-6 h-6 rounded-lg bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-500 dark:text-slate-400" title="Territorios Asignados">
+                                                    <i class="fas fa-map-location-dot text-[9px]"></i>
+                                                </div>
+                                                ${a.attachedTerritories.map(t => {
+                                                    const safeNum = String(t.numero).trim();
+                                                    const dropId = `dropdown-${a.dia}-${a.turno}-${safeNum}`.replace(/\s+/g, '-');
+                                                    return `
+                                                    <div class="relative inline-block text-left">
+                                                        <button onclick="window.toggleTerritoryDropdown(event, '${dropId}')" 
+                                                                class="flex items-center gap-1 px-2 py-1 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-white/10 hover:border-indigo-500/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all group/tbtn shadow-sm select-none">
+                                                                <span class="text-[9px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">${safeNum}</span>
+                                                                <i class="fas fa-map-marked-alt text-[9px] text-indigo-500 group-hover/tbtn:scale-110 transition-transform"></i>
+                                                        </button>
+                                                        <!-- Dropdown Menu -->
+                                                        <div id="${dropId}" class="hidden absolute left-0 mt-1 w-28 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl shadow-xl z-50 overflow-hidden animate-fade-in">
+                                                            <button onclick="window.abrirMapaTerritorio('${safeNum}', 'satelital')" class="w-full text-left px-2.5 py-1.5 text-[9px] font-black text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors flex items-center gap-1.5 border-b border-slate-100 dark:border-white/5">
+                                                                <i class="fas fa-satellite text-indigo-500 text-[9px]"></i> Mapa
+                                                            </button>
+                                                            <button onclick="window.abrirMapaTerritorio('${safeNum}', 'croquis')" class="w-full text-left px-2.5 py-1.5 text-[9px] font-black text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors flex items-center gap-1.5">
+                                                                <i class="fas fa-map text-indigo-500 text-[9px]"></i> Croquis
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    `;
+                                                }).join('')}
+                                            </div>
+                                        ` : ''}
+                                    </div>
+ 
+                                    <!-- Footer (Pushed to bottom) -->
+                                    <div class="mt-3 pt-2.5 border-t border-slate-100 dark:border-white/5 shrink-0">
+                                        ${a.attachedTerritories.length > 0 ? `
+                                            <button class="territory-report-btn w-full bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-white font-extrabold text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all group/btn whitespace-normal text-center h-9"
+                                                data-ids="${a.attachedTerritories.map(t => t.id).join(',')}" 
+                                                data-nums="${a.attachedTerritories.map(t => t.numero).join(',')}"
+                                                data-conductor="${a.conductor || displayName || ''}"
+                                                data-auxiliar="${a.auxiliar || ''}">
+                                                <i class="fas fa-file-signature opacity-75 group-hover/btn:rotate-12 transition-transform"></i> Informar Actividad
+                                            </button>
+                                        ` : `
+                                            <div class="px-4 py-2.5 bg-slate-50/50 dark:bg-slate-950/20 rounded-2xl border border-dashed border-slate-200 dark:border-white/10 text-center space-y-1">
+                                                <div class="w-7 h-7 rounded-lg bg-white dark:bg-[#0a0f18] mx-auto flex items-center justify-center text-primary text-xs shadow-sm border border-transparent dark:border-white/5">
+                                                    <i class="fas ${a.faceta === 'Telefónica' ? 'fa-phone-alt' : (a.faceta === 'Cartas' ? 'fa-envelope-open-text' : 'fa-bullhorn')}"></i>
+                                                </div>
+                                                <div>
+                                                    <p class="text-[8px] font-black text-slate-550 dark:text-slate-400 uppercase tracking-widest mb-0.5 opacity-60">Actividad Especial</p>
+                                                    <p class="text-[10px] font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">${a.faceta}</p>
+                                                </div>
+                                            </div>
+                                        `}
+                                    </div>
                                 </div>
                             `).join('')}
                         </div>
@@ -1359,27 +2067,127 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 }
             }
 
-            // --- XOLVY DYNAMIC BANNER ---
+            // --- GOD-LEVEL INFINITE SEAMLESS MARQUEE (PRECISE OFFSET & SPEED) ---
+            const bannerContainer = container.querySelector('#dynamic-banner-container');
             const bannerContent = container.querySelector('#dynamic-banner-content');
-            if (bannerContent) {
+            
+            // Clean up any legacy intervals
+            if (window._bannerInterval) {
+                clearInterval(window._bannerInterval);
+                window._bannerInterval = null;
+            }
+            // Clean up any legacy resize observers
+            if (window._marqueeObserver) {
+                window._marqueeObserver.disconnect();
+                window._marqueeObserver = null;
+            }
+
+            if (bannerContainer && bannerContent) {
                 const configData = poolData?.configuracion || {};
                 const messages = [];
-                if (configData.tema_mes) messages.push(`TEMA: ${configData.tema_mes}`);
-                if (configData.diffusion_messages?.length > 0) messages.push(...configData.diffusion_messages);
-                
+
+                if (configData.tema_mes?.trim()) {
+                    messages.push('TEMA DE LA SEMANA: ' + configData.tema_mes.trim().toUpperCase());
+                }
+                if (Array.isArray(configData.diffusion_messages)) {
+                    configData.diffusion_messages.forEach(msg => {
+                        if (msg?.trim()) messages.push('ANUNCIO: ' + msg.trim().toUpperCase());
+                    });
+                }
+
                 if (messages.length > 0) {
-                    container.querySelector('#dynamic-banner-container')?.classList.remove('hidden');
-                    let idx = 0;
-                    if (window._bannerInterval) clearInterval(window._bannerInterval);
-                    window._bannerInterval = setInterval(() => {
-                        bannerContent.style.opacity = '0';
-                        setTimeout(() => {
-                            bannerContent.innerText = messages[idx];
-                            bannerContent.style.opacity = '1';
-                            idx = (idx + 1) % messages.length;
-                        }, 500);
-                    }, 5000);
-                    bannerContent.innerText = messages[0];
+                    bannerContainer.style.setProperty('display', 'flex', 'important');
+                    bannerContainer.classList.remove('hidden');
+
+                    const colors = ['#3b82f6', '#06b6d4', '#f59e0b'];
+                    const bullet = '<span style="color:rgba(148,163,184,0.3); margin: 0 1.5rem;">|</span>';
+                    
+                    let htmlContent = '';
+                    if (configData.tema_mes?.trim()) {
+                        htmlContent += `<span class="font-extrabold text-blue-500 mr-2">TEMA DE LA SEMANA:</span><span class="text-slate-700 dark:text-slate-200 font-bold">${configData.tema_mes.trim().toUpperCase()}</span>`;
+                    }
+
+                    if (Array.isArray(configData.diffusion_messages)) {
+                        configData.diffusion_messages.forEach((msg, idx) => {
+                            if (!msg?.trim()) return;
+                            if (htmlContent) htmlContent += bullet;
+                            const color = colors[idx % colors.length];
+                            htmlContent += `<span class="font-extrabold mr-2" style="color:${color}">ANUNCIO:</span><span class="text-slate-700 dark:text-slate-200 font-bold">${msg.trim().toUpperCase()}</span>`;
+                        });
+                    }
+
+                    // Create single track for accurate off-screen scrolling without duplicate clutter
+                    bannerContent.innerHTML = `
+                        <div class="marquee-track-god flex items-center whitespace-nowrap" style="display: inline-flex; white-space: nowrap; width: max-content; will-change: transform; position: relative;">
+                            ${htmlContent}
+                        </div>
+                    `;
+
+                    // Ensure CSS keyframes and class overrides are injected
+                    if (!document.getElementById('marquee-keyframes-god')) {
+                        const styleNode = document.createElement('style');
+                        styleNode.id = 'marquee-keyframes-god';
+                        styleNode.innerHTML = `
+                            @keyframes marquee-scroll-god {
+                                0% { transform: translate3d(var(--scroll-start), 0, 0); }
+                                100% { transform: translate3d(var(--scroll-end), 0, 0); }
+                            }
+                            .marquee-track-god {
+                                display: inline-flex !important;
+                                width: max-content !important;
+                                white-space: nowrap !important;
+                                will-change: transform !important;
+                            }
+                            .marquee-track-god span {
+                                padding: 0 !important;
+                            }
+                        `;
+                        document.head.appendChild(styleNode);
+                    }
+
+                    const track = bannerContent.querySelector('.marquee-track-god');
+                    
+                    // Setup ResizeObserver to dynamically update start, end, and duration to ensure perfect alignment & speed
+                    const updateMarqueeBounds = () => {
+                        if (!bannerContent.isConnected || !track.isConnected) return;
+                        const W = bannerContent.offsetWidth || 1000;
+                        const T = track.offsetWidth || 500;
+                        
+                        track.style.setProperty('--scroll-start', `${W}px`);
+                        track.style.setProperty('--scroll-end', `-${T}px`);
+                        
+                        // Calculated duration keeps a uniform speed of 75px per second
+                        const scrollDistance = W + T;
+                        const calculatedDuration = Math.max(8, scrollDistance / 75);
+                        track.style.animation = `marquee-scroll-god ${calculatedDuration}s linear infinite`;
+                    };
+
+                    const resizeObserver = new ResizeObserver(() => {
+                        updateMarqueeBounds();
+                    });
+                    
+                    resizeObserver.observe(bannerContent);
+                    window._marqueeObserver = resizeObserver;
+
+                    // Initial call
+                    setTimeout(updateMarqueeBounds, 50);
+
+                    // Set wrapper styling
+                    Object.assign(bannerContent.style, {
+                        display: 'block',
+                        width: '100%',
+                        overflow: 'hidden',
+                        opacity: '1'
+                    });
+
+                    const wrapper = bannerContent.parentElement;
+                    if (wrapper) {
+                        wrapper.style.overflow = 'hidden';
+                        wrapper.style.flex = '1';
+                    }
+                } else {
+                    bannerContainer.style.setProperty('display', 'none', 'important');
+                    bannerContainer.classList.add('hidden');
                 }
             }
 
@@ -1395,17 +2203,56 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                     btn.onclick = () => {
                         const ids = btn.dataset.ids.split(',');
                         const conductor = btn.dataset.conductor;
+                        const auxiliar = btn.dataset.auxiliar;
                         if (window.ReceptionHub) {
                             window.renderTableCallback = () => refreshConductorView(true);
                             ReceptionHub.openModal({
-                                preSelectedId: ids[0],
+                                preSelectedIds: ids,
                                 viewMode: 'conductor',
                                 displayName: conductor || name,
+                                scheduledConductor: conductor || '',
+                                scheduledAuxiliar: auxiliar || '',
                                 isAdmin: false
                             });
                         }
                     };
                 });
+
+                // Window toggle dropdown handler
+                window.toggleTerritoryDropdown = (event, id) => {
+                    event.stopPropagation();
+                    document.querySelectorAll('[id^="dropdown-"]').forEach(el => {
+                        if (el.id !== id) {
+                            el.classList.add('hidden');
+                        }
+                    });
+                    const target = document.getElementById(id);
+                    if (target) {
+                        target.classList.toggle('hidden');
+                    }
+                };
+
+                window.scrollToCronograma = () => {
+                    const details = document.getElementById('details-programa');
+                    if (details) {
+                        details.open = true;
+                    }
+                    const section = document.getElementById('programa-semanal-section');
+                    if (section) {
+                        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                };
+
+                if (!window.__dropdownListenerAdded) {
+                    document.addEventListener('click', (e) => {
+                        document.querySelectorAll('[id^="dropdown-"]').forEach(el => {
+                            if (!el.contains(e.target) && !e.target.closest('button')) {
+                                el.classList.add('hidden');
+                            }
+                        });
+                    });
+                    window.__dropdownListenerAdded = true;
+                }
                 
                 if (typeof initSwipeActions === 'function') initSwipeActions();
             }, 800);
@@ -1473,7 +2320,7 @@ window.abrirModalTerritorios = async function(dia, turno, idsRaw) {
                 </div>
             </header>
             
-            <div class="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+            <div class="flex-1 min-w-0 overflow-y-auto p-6 space-y-4 custom-scrollbar">
                 ${territories.map(t => {
                     return `
                     <div class="p-6 bg-white dark:bg-white/[0.03] rounded-3xl border border-slate-100 dark:border-white/5 shadow-sm space-y-4">
@@ -1482,7 +2329,7 @@ window.abrirModalTerritorios = async function(dia, turno, idsRaw) {
                                 <div class="w-14 h-14 bg-primary dark:bg-indigo-600 rounded-2xl flex items-center justify-center text-white text-xl font-black shadow-lg shadow-primary/20">
                                     T${t.numero}
                                 </div>
-                                <div class="min-w-0 flex-1">
+                                <div class="min-w-0 flex-1 min-w-0">
                                     <h5 class="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight break-words whitespace-normal leading-tight">${t.manzanas || 'Sin manzanas'}</h5>
                                     <p class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1">${t.localidad || 'Territorio'}</p>
                                 </div>
@@ -1490,11 +2337,14 @@ window.abrirModalTerritorios = async function(dia, turno, idsRaw) {
                         </div>
 
                         <div class="grid grid-cols-2 gap-3 pt-2">
-                            <button onclick="window.viewMapFromReport('${t.id}')" class="py-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-all flex items-center justify-center gap-2 whitespace-normal text-center h-auto">
-                                <i class="fas fa-map-marked-alt text-primary"></i> Mapa
+                            <button onclick="window.viewMapFromReport('${t.id}', 'satelital')" class="py-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-all flex items-center justify-center gap-2 whitespace-normal text-center h-auto">
+                                <i class="fas fa-satellite text-indigo-500"></i> Mapa
                             </button>
-                            <button onclick="window.showUnifiedTerritoryHistory('${t.id}', '${t.numero}')" class="py-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-all flex items-center justify-center gap-2 whitespace-normal text-center h-auto">
-                                <i class="fas fa-history text-indigo-500"></i> Historial
+                            <button onclick="window.viewMapFromReport('${t.id}', 'croquis')" class="py-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-all flex items-center justify-center gap-2 whitespace-normal text-center h-auto">
+                                <i class="fas fa-map text-indigo-500"></i> Croquis
+                            </button>
+                            <button onclick="window.closeModal(); window.promptReturnTerritorio('${t.id}', '${t.numero}')" class="col-span-2 py-4 bg-emerald-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-600 transition-all flex items-center justify-center gap-2 whitespace-normal text-center h-auto shadow-lg shadow-emerald-500/10">
+                                <i class="fas fa-check-circle"></i> Entregar Territorio
                             </button>
                         </div>
                     </div>

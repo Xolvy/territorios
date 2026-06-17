@@ -17,6 +17,7 @@ import {
     getEffectiveManzanas, getEffectiveShiftId, checkIncongruences, 
     getTurnoStyling, getFieldIcon 
 } from './program-helpers.js';
+import { setAdminLivePool } from '../admin-dashboard.js';
 
 const { getMonday, formatDateId } = UIHelpers;
 
@@ -203,27 +204,22 @@ export const renderProgramaTab = async (container, configData = null) => {
 
                     <!-- Premium Toolbar -->
                     <nav class="flex flex-wrap items-center gap-2 md:gap-3 w-full">
-                        <div class="flex flex-wrap items-center gap-2">
-                            <button id="action-recepcion-prog" class="px-3 py-2 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 rounded-xl border border-slate-200 dark:border-white/10 hover:border-rose-500 hover:text-rose-600 transition-all font-bold text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95 group">
-                                <i class="fas fa-inbox opacity-40 group-hover:opacity-100 text-[10px]"></i> Recepción
-                            </button>
-                        </div>
-
-                        <div class="flex flex-wrap items-center gap-2">
-                            <button id="action-escanear-prog" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-[11px] uppercase tracking-widest transition-all shadow-sm shadow-indigo-200 active:scale-95 group flex items-center gap-2">
-                                <i class="fas fa-wand-magic-sparkles text-indigo-200 group-hover:scale-110 transition-transform text-[10px]"></i> Nexo Vision
-                            </button>
-                            <button id="action-replicar-prog" class="px-3 py-2 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 rounded-xl border border-slate-200 dark:border-white/10 hover:border-indigo-500 hover:text-indigo-600 transition-all font-bold text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95 group">
-                                <i class="fas fa-clone opacity-40 group-hover:opacity-100 text-[10px]"></i> Replicar
-                            </button>
-                        </div>
+                        <button id="action-recepcion-prog" class="flex-1 min-w-0 sm:flex-none min-w-[90px] px-3.5 py-2.5 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 rounded-xl border border-slate-200 dark:border-white/10 hover:border-rose-500 hover:text-rose-600 transition-all font-bold text-[10px] xs:text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95 group">
+                            <i class="fas fa-inbox opacity-40 group-hover:opacity-100 text-[10px]"></i> Recepción
+                        </button>
+                        <button id="action-escanear-prog" class="flex-1 min-w-0 sm:flex-none min-w-[90px] px-3.5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-[10px] xs:text-[11px] uppercase tracking-widest transition-all shadow-sm shadow-indigo-200 active:scale-95 group flex items-center justify-center gap-2">
+                            <i class="fas fa-wand-magic-sparkles text-indigo-200 group-hover:scale-110 transition-transform text-[10px]"></i> Nexo Vision
+                        </button>
+                        <button id="action-replicar-prog" class="flex-1 min-w-0 sm:flex-none min-w-[90px] px-3.5 py-2.5 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 rounded-xl border border-slate-200 dark:border-white/10 hover:border-indigo-500 hover:text-indigo-600 transition-all font-bold text-[10px] xs:text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95 group">
+                            <i class="fas fa-clone opacity-40 group-hover:opacity-100 text-[10px]"></i> Replicar
+                        </button>
 
                         <div style="flex-grow: 1" class="hidden xl:block"></div>
 
                         <!-- Export Action -->
-                        <div class="relative inline-block text-left" id="share-dropdown-container">
-                          <button onclick="toggleShareMenu(event)" class="flex items-center justify-center gap-2 px-4 py-2 bg-slate-900 text-white text-sm font-bold rounded-xl hover:bg-slate-800 transition-all">
-                            <i class="fas fa-share-alt"></i> COMPARTIR <i class="fas fa-chevron-down text-xs ml-1"></i>
+                        <div class="relative inline-block text-left flex-1 min-w-0 sm:flex-none min-w-[110px]" id="share-dropdown-container">
+                          <button onclick="toggleShareMenu(event)" class="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 bg-slate-900 dark:bg-white/10 text-white dark:text-slate-200 text-[10px] xs:text-[11px] font-bold uppercase tracking-widest rounded-xl hover:bg-slate-800 border border-transparent dark:border-white/5 transition-all active:scale-95">
+                            <i class="fas fa-share-alt"></i> COMPARTIR <i class="fas fa-chevron-down text-[8px] ml-1 opacity-70"></i>
                           </button>
                           
                           <div id="share-menu" class="hidden absolute right-0 origin-top-right mt-2 w-48 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-100 dark:border-white/5 z-[60] overflow-hidden">
@@ -236,15 +232,19 @@ export const renderProgramaTab = async (container, configData = null) => {
                           </div>
                         </div>
                     </nav>
-                </div>
-            </header>
 
-            <!-- Day Selector -->
-            <div id="day-selector-container" class="flex flex-wrap items-center justify-center gap-2 mt-8 animate-fade-in" data-adaptive-scroll="true"></div>
+            <!-- Turn Filters & Day Selector Wrapper to override parent space-y spacing -->
+            <div class="flex flex-col gap-1 items-center justify-center w-full mt-6">
+                <!-- Turn Filters (Mañana, Tarde, Noche, Zoom) -->
+                <div id="turn-filters" class="w-full animate-fade-in"></div>
 
-            <div class="relative group min-h-[500px]">
+                <!-- Day Selector -->
+                <div id="day-selector-container" class="flex flex-wrap items-center justify-center gap-2 w-full animate-fade-in" data-adaptive-scroll="true"></div>
+            </div>
+
+            <div class="relative group">
                 <div class="modern-card !p-0 border-0 bg-transparent shadow-none" id="admin-prog-table">
-                    <div class="h-[500px] bg-slate-200/50 dark:bg-white/5 rounded-[3rem] animate-pulse"></div>
+                    <div class="h-[250px] bg-slate-200/50 dark:bg-white/5 rounded-[3rem] animate-pulse"></div>
                 </div>
 
                 <div class="flex flex-col sm:flex-row justify-between items-center px-8 mt-6 gap-4">
@@ -253,7 +253,6 @@ export const renderProgramaTab = async (container, configData = null) => {
                             <i class="fas fa-cloud-upload-alt text-emerald-500"></i> Autoguardado inteligente
                         </p>
                     </div>
-                    <div id="turn-filters" class="flex items-center gap-2"></div>
                     <button id="action-formalizar-prog" class="text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 hover:text-indigo-600 transition-colors flex items-center gap-2 active:scale-95">
                         <i class="fas fa-sync-alt text-[8px]"></i> Sincronización manual
                     </button>
@@ -335,7 +334,7 @@ export const renderProgramaTab = async (container, configData = null) => {
                 renderFilters();
                 renderTable();
             });
-            // setAdminLivePool(programUnsub); // This line was removed as per the instruction's implied change.
+            setAdminLivePool([programUnsub, bancoUnsub]);
 
         } catch (error) {
             console.error(error);
@@ -510,17 +509,17 @@ export const renderProgramaTab = async (container, configData = null) => {
     const renderDaySelector = () => {
         const dayBar = container.querySelector('#day-selector-container');
         if (dayBar) dayBar.innerHTML = `
-            <div class="flex flex-wrap items-center justify-center gap-1.5 p-1.5 bg-slate-100 dark:bg-white/5 rounded-[2rem] border border-slate-200 dark:border-white/10">
+            <div class="flex flex-wrap items-center justify-center gap-1 sm:gap-1.5 p-1.5 bg-white/40 dark:bg-white/[0.02] backdrop-blur-xl rounded-[2rem] border border-slate-200/50 dark:border-white/5 shadow-md max-w-4xl mx-auto">
                 ${dayNames.map((n, i) => `
                     <button onclick="window.setActiveDay(${i})" 
-                            class="relative px-5 py-2.5 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${activeDayIndex === i ? 'bg-slate-900 dark:bg-blue-600 text-white shadow-lg shadow-slate-900/20 dark:shadow-blue-500/20 scale-105' : 'text-slate-500 hover:text-blue-600 hover:bg-white dark:hover:bg-white/10'}">
+                            class="relative px-2.5 sm:px-4.5 py-1.5 sm:py-2 rounded-[1.5rem] text-[8.5px] sm:text-[9.5px] font-black uppercase tracking-widest transition-all duration-300 transform active:scale-95 ${activeDayIndex === i ? 'bg-gradient-to-r from-emerald-600 to-teal-500 dark:from-emerald-500 dark:to-teal-400 text-white shadow-lg shadow-emerald-500/20 scale-105' : 'text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100/50 dark:hover:bg-white/5'}">
                         ${n}
                     </button>
                 `).join('')}
-                <div class="w-px h-6 bg-slate-200 dark:bg-white/10 mx-2"></div>
+                <div class="w-px h-6 bg-slate-200 dark:bg-white/10 mx-1 sm:mx-1.5"></div>
                 <button onclick="window.setActiveDay(-1)" 
-                        class="px-5 py-2.5 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${activeDayIndex === -1 ? 'bg-slate-800 dark:bg-slate-700 text-white shadow-xl' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'}">
-                    Ver Toda la Semana
+                        class="px-2.5 sm:px-4.5 py-1.5 sm:py-2 rounded-[1.5rem] text-[8.5px] sm:text-[9.5px] font-black uppercase tracking-widest transition-all duration-300 transform active:scale-95 ${activeDayIndex === -1 ? 'bg-slate-900 dark:bg-white/10 text-white border border-transparent dark:border-white/5 shadow-md scale-105' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/50 dark:hover:bg-white/5'}">
+                    Toda la Semana
                 </button>
             </div>
         `;
@@ -532,21 +531,21 @@ export const renderProgramaTab = async (container, configData = null) => {
         const turnFilters = container.querySelector('#turn-filters');
         if (!turnFilters) return;
         const turnosArr = [
-            { id: 'manana', icon: 'fa-sun', label: 'Mañana', color: 'text-amber-500', bg: 'bg-amber-500/10' },
-            { id: 'tarde', icon: 'fa-cloud-sun', label: 'Tarde', color: 'text-orange-500', bg: 'bg-orange-500/10' },
-            { id: 'noche', icon: 'fa-moon', label: 'Noche', color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
-            { id: 'zoom', icon: 'fa-video', label: 'Zoom', color: 'text-emerald-500', bg: 'bg-emerald-500/10' }
+            { id: 'manana', icon: 'fa-sun', label: 'Mañana', activeClass: 'bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30 dark:border-amber-500/40 shadow-[0_4px_16px_rgba(245,158,11,0.15)] scale-105 font-extrabold', inactiveClass: 'text-slate-500 dark:text-slate-400 border-transparent hover:bg-slate-100/70 dark:hover:bg-white/5 hover:text-amber-500 dark:hover:text-amber-400' },
+            { id: 'tarde', icon: 'fa-cloud-sun', label: 'Tarde', activeClass: 'bg-orange-500/10 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 border-orange-500/30 dark:border-orange-500/40 shadow-[0_4px_16px_rgba(249,115,22,0.15)] scale-105 font-extrabold', inactiveClass: 'text-slate-500 dark:text-slate-400 border-transparent hover:bg-slate-100/70 dark:hover:bg-white/5 hover:text-orange-500 dark:hover:text-orange-400' },
+            { id: 'noche', icon: 'fa-moon', label: 'Noche', activeClass: 'bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border-indigo-500/30 dark:border-indigo-500/40 shadow-[0_4px_16px_rgba(99,102,241,0.15)] scale-105 font-extrabold', inactiveClass: 'text-slate-500 dark:text-slate-400 border-transparent hover:bg-slate-100/70 dark:hover:bg-white/5 hover:text-indigo-500 dark:hover:text-indigo-400' },
+            { id: 'zoom', icon: 'fa-video', label: 'Zoom', activeClass: 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 dark:border-emerald-500/40 shadow-[0_4px_16px_rgba(16,185,129,0.15)] scale-105 font-extrabold', inactiveClass: 'text-slate-500 dark:text-slate-400 border-transparent hover:bg-slate-100/70 dark:hover:bg-white/5 hover:text-emerald-500 dark:hover:text-emerald-400' }
         ];
 
         turnFilters.innerHTML = `
-            <div class="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10">
+            <div class="flex flex-wrap items-center justify-center gap-2 p-1.5 bg-white/50 dark:bg-white/[0.02] backdrop-blur-xl rounded-2xl border border-slate-200/50 dark:border-white/5 shadow-[0_8px_30px_rgb(0,0,0,0.02)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] max-w-md mx-auto">
                 ${turnosArr.map(t => {
             const isActive = activeTurns.has(t.id);
             return `
                         <button onclick="window.toggleTurnFilter('${t.id}')" 
-                                class="flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all text-[9px] font-black uppercase tracking-wider ${isActive ? t.bg + ' ' + t.color : 'text-slate-600 dark:text-slate-400 opacity-40 hover:opacity-100'}">
-                            <i class="fas ${t.icon}"></i>
-                            ${t.label}
+                                class="flex items-center gap-2.5 px-4 py-2 rounded-xl transition-all duration-300 transform active:scale-95 text-[10px] uppercase tracking-widest font-black border ${isActive ? t.activeClass : t.inactiveClass}">
+                            <i class="fas ${t.icon} text-xs"></i>
+                            <span>${t.label}</span>
                         </button>
                     `;
         }).join('')}
@@ -583,7 +582,7 @@ export const renderProgramaTab = async (container, configData = null) => {
         // Cache for modal
         window._progCache = { activeConductors: activeConductorsFresh, territorios, config, dayNames, grupos: freshGroupsCfg, historial: freshHistorial };
 
-        let html = `<div class="flex flex-col gap-8 md:gap-12 pb-24 max-w-4xl mx-auto">`;
+        let html = `<div class="flex flex-col gap-8 md:gap-12 pb-4 max-w-4xl mx-auto">`;
         
         programa.dias.forEach((dia, dayIndex) => {
             if (activeDayIndex !== -1 && activeDayIndex !== dayIndex) return;
@@ -763,7 +762,7 @@ export const renderProgramaTab = async (container, configData = null) => {
                         </label>
                         <div class="custom-multiselect relative" id="sheet-territorio-container">
                             <div onclick="window.toggleSheetDropdown(event, 'sheet-territorio-dropdown', 'territorio-dropdown-icon')" class="w-full text-left bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-4 rounded-xl hover:border-primary transition-all flex items-center justify-between shadow-sm cursor-pointer block-scale-click min-h-[52px]">
-                                <span id="selected-territorio-text" class="text-[12px] font-black truncate pr-4 ${val ? 'text-primary' : 'text-slate-600 dark:text-slate-400 opacity-40'}">${displayText}</span>
+                                <span id="selected-territorio-text" class="text-[12px] font-black truncate pr-4 ${val ? 'text-slate-800 dark:text-white' : 'text-slate-600 dark:text-slate-400 opacity-40'}">${displayText}</span>
                                 <i class="fas fa-chevron-down text-[10px] text-slate-600 dark:text-slate-400 opacity-50 transition-transform duration-300 pointer-events-none dropdown-chevron-icon" id="territorio-dropdown-icon"></i>
                             </div>
                             <div id="sheet-territorio-dropdown" class="custom-dropdown-content hidden absolute left-0 right-0 bottom-full mb-1 bg-white dark:bg-[#151a26] border border-slate-200 dark:border-white/10 rounded-2xl shadow-[0_-15px_35px_-10px_rgba(0,0,0,0.3)] z-50 max-h-80 overflow-y-auto custom-scrollbar p-0 animate-scale-in origin-bottom">
@@ -849,7 +848,7 @@ export const renderProgramaTab = async (container, configData = null) => {
                         </label>
                         <div class="custom-multiselect relative" id="sheet-groups-container">
                             <div onclick="window.toggleSheetDropdown(event, 'sheet-groups-dropdown', 'groups-dropdown-icon')" class="w-full text-left bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-4 rounded-xl hover:border-primary transition-all flex items-center justify-between shadow-sm cursor-pointer block-scale-click min-h-[52px]">
-                                <span id="selected-groups-text" class="text-[12px] font-black truncate pr-4 ${currentGroups.length ? 'text-primary' : 'text-slate-600 dark:text-slate-400 opacity-40'}">${displayText}</span>
+                                <span id="selected-groups-text" class="text-[12px] font-black truncate pr-4 ${currentGroups.length ? 'text-slate-800 dark:text-white' : 'text-slate-600 dark:text-slate-400 opacity-40'}">${displayText}</span>
                                 <i class="fas fa-chevron-down text-[10px] text-slate-600 dark:text-slate-400 opacity-50 transition-transform duration-300 pointer-events-none dropdown-chevron-icon" id="groups-dropdown-icon"></i>
                             </div>
                             <div id="sheet-groups-dropdown" class="custom-dropdown-content hidden absolute left-0 right-0 bottom-full mb-1 bg-white dark:bg-[#151a26] border border-slate-200 dark:border-white/10 rounded-2xl shadow-[0_-15px_35px_-10px_rgba(0,0,0,0.3)] dark:shadow-none z-50 max-h-56 overflow-y-auto custom-scrollbar p-2 animate-scale-in origin-bottom">
@@ -925,7 +924,7 @@ export const renderProgramaTab = async (container, configData = null) => {
                         </label>
                         <div class="custom-multiselect relative" id="sheet-${fieldId}-container">
                             <div onclick="window.toggleSheetDropdown(event, 'sheet-${fieldId}-dropdown', '${fieldId}-dropdown-icon')" class="w-full text-left bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-4 rounded-xl hover:border-primary transition-all flex items-center justify-between shadow-sm cursor-pointer block-scale-click min-h-[52px]">
-                                <span id="selected-${fieldId}-text" class="text-[12px] font-black truncate pr-4 capitalize ${currentPels.length ? 'text-primary' : 'text-slate-600 dark:text-slate-400 opacity-40'}">${displayText}</span>
+                                <span id="selected-${fieldId}-text" class="text-[12px] font-black truncate pr-4 capitalize ${currentPels.length ? 'text-slate-800 dark:text-white' : 'text-slate-600 dark:text-slate-400 opacity-40'}">${displayText}</span>
                                 <i class="fas fa-chevron-down text-[10px] text-slate-600 dark:text-slate-400 opacity-50 transition-transform duration-300 pointer-events-none dropdown-chevron-icon" id="${fieldId}-dropdown-icon"></i>
                             </div>
                             <div id="sheet-${fieldId}-dropdown" class="custom-dropdown-content hidden absolute left-0 right-0 bottom-full mb-1 bg-white dark:bg-[#151a26] border border-slate-200 dark:border-white/10 rounded-2xl shadow-[0_-15px_35px_-10px_rgba(0,0,0,0.3)] z-50 max-h-56 overflow-y-auto custom-scrollbar p-2 animate-scale-in origin-bottom">
@@ -1140,7 +1139,7 @@ export const renderProgramaTab = async (container, configData = null) => {
         const textSpan = document.getElementById(textId);
         if (textSpan) {
             textSpan.innerText = finalStr || '—';
-            textSpan.className = `text-[12px] font-black truncate pr-4 ${finalStr ? 'text-primary' : 'text-slate-600 dark:text-slate-400 opacity-40'}`;
+            textSpan.className = `text-[12px] font-black truncate pr-4 ${finalStr ? 'text-slate-800 dark:text-white' : 'text-slate-600 dark:text-slate-400 opacity-40'}`;
         }
     };
 
@@ -1190,7 +1189,7 @@ export const renderProgramaTab = async (container, configData = null) => {
         const textSpan = document.getElementById(textId);
         if (textSpan) {
             textSpan.innerText = finalStr || '—';
-            textSpan.className = `text-[12px] font-black truncate pr-4 ${finalStr ? 'text-primary' : 'text-slate-600 dark:text-slate-400 opacity-40'}`;
+            textSpan.className = `text-[12px] font-black truncate pr-4 ${finalStr ? 'text-slate-800 dark:text-white' : 'text-slate-600 dark:text-slate-400 opacity-40'}`;
         }
     };
 
@@ -1226,7 +1225,7 @@ export const renderProgramaTab = async (container, configData = null) => {
         const textSpan = document.getElementById(textId);
         if (textSpan) {
             textSpan.innerText = val || '—';
-            textSpan.className = `text-[12px] font-black truncate pr-4 ${val ? 'text-primary' : 'text-slate-600 dark:text-slate-400 opacity-40'}`;
+            textSpan.className = `text-[12px] font-black truncate pr-4 ${val ? 'text-slate-800 dark:text-white' : 'text-slate-600 dark:text-slate-400 opacity-40'}`;
         }
 
         // Auto-close for single select UX
@@ -1442,7 +1441,7 @@ export const renderProgramaTab = async (container, configData = null) => {
         hiddenInput.value = finalVal;
         if (textDisplay) {
             textDisplay.innerText = finalVal || '—';
-            textDisplay.className = `text-[12px] font-black truncate pr-4 ${finalVal ? 'text-primary' : 'text-slate-600 dark:text-slate-400 opacity-40'}`;
+            textDisplay.className = `text-[12px] font-black truncate pr-4 ${finalVal ? 'text-slate-800 dark:text-white' : 'text-slate-600 dark:text-slate-400 opacity-40'}`;
         }
 
         // Re-render the dropdown content to reflect changes immediately
@@ -1679,7 +1678,7 @@ export const renderProgramaTab = async (container, configData = null) => {
         const valEl = container.querySelector(`#val-${fieldId}-${dayIdx}-${turnoId}`);
         if (valEl) {
             valEl.innerText = val || '—';
-            valEl.className = `text-[11px] font-black truncate ${val ? 'text-primary' : 'text-slate-600 dark:text-slate-400 opacity-40'}`;
+            valEl.className = `text-[11px] font-black truncate ${val ? 'text-slate-800 dark:text-white' : 'text-slate-600 dark:text-slate-400 opacity-40'}`;
             if (fieldId === 'territorio') {
                 valEl.parentElement.dataset.current = val || '';
             }
@@ -2030,7 +2029,7 @@ export const renderProgramaTab = async (container, configData = null) => {
             const displaySpan = document.getElementById('val-territorio-modal');
             if (displaySpan) {
                 displaySpan.innerText = res || '—';
-                displaySpan.className = `text-[12px] font-black truncate ${res ? 'text-primary' : 'text-slate-600 dark:text-slate-400 opacity-40'}`;
+                displaySpan.className = `text-[12px] font-black truncate ${res ? 'text-slate-800 dark:text-white' : 'text-slate-600 dark:text-slate-400 opacity-40'}`;
             }
             // Actualizar data-current del div clickeable para próximas aperturas
             if (btn) btn.dataset.current = res || '';
@@ -2083,6 +2082,11 @@ export const renderProgramaTab = async (container, configData = null) => {
             if (programa && programa.dias) {
                 programa.dias.forEach(diaData => {
                     const turnIds = Object.keys(diaData).filter(k => k !== 'nombre' && k !== 'fecha');
+                    // Sort keys to ensure correct sequential processing
+                    const sortOrder = { 'manana': 1, 'tarde': 2, 'noche': 3, 'zoom': 4 };
+                    const getOrder = (id) => sortOrder[id.split('_')[0]] || 99;
+                    turnIds.sort((a, b) => getOrder(a) - getOrder(b) || a.localeCompare(b));
+                    
                     turnIds.forEach(id => {
                         const t = diaData[id];
                         // CRITICAL FIX: Skip empty slots (e.g. Domingo has tarde/noche/zoom
@@ -2100,6 +2104,7 @@ export const renderProgramaTab = async (container, configData = null) => {
             }
             
             const gruposPorBloque = { m: new Set(), t: new Set(), n: new Set(), z: new Set() };
+            let domingoNonZoomCount = 0;
     
             // 3. SMART MAPPER: Enrutar datos a las celdas exactas
             turnos.forEach(turno => {
@@ -2125,16 +2130,13 @@ export const renderProgramaTab = async (container, configData = null) => {
                 if (lugarStr.includes('zoom') || jornadaStr.includes('zoom')) {
                     bloque = 'z';
                 } else if (isDomingo) {
-                    // Especial DOMINGO: Sus jornadas se distinguen por sufijo numérico
-                    // manana      → bloque m
-                    // manana_2    → bloque t  (segunda mañana/turno en la tabla)
-                    // manana_3    → bloque n  (tercera jornada)
-                    // tarde/noche → sus propios bloques
-                    if (jornadaStr.includes('tarde')) bloque = 't';
-                    else if (jornadaStr.includes('noche')) bloque = 'n';
-                    else if (jornadaStr.includes('_3')) bloque = 'n';
-                    else if (jornadaStr.includes('_2')) bloque = 't';
-                    else bloque = 'm'; // manana sin sufijo o manana_1
+                    // Especial DOMINGO: Asignar bloques secuencialmente para empaquetar hacia arriba
+                    // en lugar de depender rígidamente de la clave de la jornada (ej: manana_2 en el centro)
+                    domingoNonZoomCount++;
+                    if (domingoNonZoomCount === 1) bloque = 'm';
+                    else if (domingoNonZoomCount === 2) bloque = 't';
+                    else if (domingoNonZoomCount === 3) bloque = 'n';
+                    else bloque = 'm'; // Fallback
                 } else {
                     // Normal rest of days
                     if (jornadaStr.includes('tarde')) bloque = 't';
@@ -2360,7 +2362,7 @@ export const renderProgramaTab = async (container, configData = null) => {
             const spanVisual = document.getElementById('val-grupos-modal');
             if (spanVisual) {
                 spanVisual.innerText = val || '—';
-                spanVisual.className = `text-[12px] font-black truncate ${val ? 'text-primary' : 'text-slate-600 dark:text-slate-400 opacity-40'}`;
+                spanVisual.className = `text-[12px] font-black truncate ${val ? 'text-slate-800 dark:text-white' : 'text-slate-600 dark:text-slate-400 opacity-40'}`;
             }
             console.log("✅ Hidden input 'select-grupos' updated");
         } else {

@@ -11,14 +11,14 @@ export const renderReportsTab = async (container, config, appVersion) => {
         container.innerHTML = `
             <div class="animate-fade-in space-y-12 max-w-7xl mx-auto overflow-x-hidden">
                 <!-- Main Nav: Historial vs Reportes -->
-                <nav class="flex flex-wrap items-center gap-3 p-2 bg-white/50 dark:bg-white/[0.03] backdrop-blur-xl rounded-[2.2rem] w-max border border-slate-200 dark:border-white/5 mx-auto transition-all shadow-sm overflow-hidden">
-                    <button id="main-btn-historial" class="px-10 py-4 rounded-[1.8rem] text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 border border-transparent">
+                <nav class="flex flex-wrap justify-center items-center gap-2 p-1.5 bg-white/50 dark:bg-white/[0.03] backdrop-blur-xl rounded-[1.8rem] sm:rounded-[2.2rem] w-full max-w-lg border border-slate-200 dark:border-white/5 mx-auto transition-all shadow-sm">
+                    <button id="main-btn-historial" class="px-4.5 sm:px-10 py-2.5 sm:py-4 rounded-[1.4rem] sm:rounded-[1.8rem] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 border border-transparent flex-1 min-w-0 sm:flex-initial text-center whitespace-nowrap">
                         <i class="fas fa-history"></i> Historial
                     </button>
-                    <button id="main-btn-reportes" class="px-10 py-4 rounded-[1.8rem] text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 border border-transparent">
+                    <button id="main-btn-reportes" class="px-4.5 sm:px-10 py-2.5 sm:py-4 rounded-[1.4rem] sm:rounded-[1.8rem] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 border border-transparent flex-1 min-w-0 sm:flex-initial text-center whitespace-nowrap">
                         <i class="fas fa-print"></i> S-12/S-13
                     </button>
-                    <button id="main-btn-telefonia" class="px-10 py-4 rounded-[1.8rem] text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 border border-transparent">
+                    <button id="main-btn-telefonia" class="px-4.5 sm:px-10 py-2.5 sm:py-4 rounded-[1.4rem] sm:rounded-[1.8rem] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 border border-transparent flex-1 min-w-0 sm:flex-initial text-center whitespace-nowrap">
                         <i class="fas fa-phone-alt"></i> Telefonía
                     </button>
                 </nav>
@@ -36,7 +36,7 @@ export const renderReportsTab = async (container, config, appVersion) => {
                 const isActive = (btn.id === 'main-btn-historial' && _activeMainTab === 'historial') ||
                     (btn.id === 'main-btn-reportes' && _activeMainTab === 'reportes') ||
                     (btn.id === 'main-btn-telefonia' && _activeMainTab === 'telefonia');
-                btn.className = `px-10 py-4 rounded-[1.8rem] text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 ${isActive ? 'bg-slate-900 dark:bg-white/10 text-white shadow-xl shadow-slate-900/20 md:scale-105' : 'text-slate-600 dark:text-slate-400 hover:text-slate-600 dark:hover:text-white'}`;
+                btn.className = `px-4.5 sm:px-10 py-2.5 sm:py-4 rounded-[1.4rem] sm:rounded-[1.8rem] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 flex-1 min-w-0 sm:flex-initial text-center whitespace-nowrap ${isActive ? 'bg-slate-900 dark:bg-white/10 text-white shadow-xl shadow-slate-900/20 md:scale-105' : 'text-slate-600 dark:text-slate-400 hover:text-slate-600 dark:hover:text-white'}`;
             });
         };
 
@@ -83,9 +83,9 @@ export const renderReportsTab = async (container, config, appVersion) => {
 
         target.innerHTML = `
             <div class="space-y-12 animate-fade-in">
-                <nav class="flex items-center gap-3 p-1.5 bg-slate-100/50 dark:bg-white/5 rounded-2xl w-max mx-auto transition-all">
-                    <button id="sub-btn-s13" class="px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all">Registro S-13</button>
-                    <button id="sub-btn-s12" class="px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all">Tarjetas S-12</button>
+                <nav class="flex items-center justify-center gap-2 p-1.5 bg-slate-100/50 dark:bg-white/5 rounded-2xl w-full max-w-xs mx-auto transition-all">
+                    <button id="sub-btn-s13" class="px-4 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex-1 min-w-0 text-center whitespace-nowrap">Registro S-13</button>
+                    <button id="sub-btn-s12" class="px-4 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex-1 min-w-0 text-center whitespace-nowrap">Tarjetas S-12</button>
                 </nav>
                 <div id="report-print-area" class="mt-8"></div>
             </div>
@@ -97,7 +97,7 @@ export const renderReportsTab = async (container, config, appVersion) => {
 
             target.querySelectorAll('nav button').forEach(btn => {
                 const isActive = (btn.id === 'sub-btn-s13' && type === 's13') || (btn.id === 'sub-btn-s12' && type === 's12');
-                btn.className = `px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${isActive ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-600 dark:text-slate-400 hover:text-slate-600'}`;
+                btn.className = `px-4 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex-1 min-w-0 text-center whitespace-nowrap ${isActive ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-600 dark:text-slate-400 hover:text-slate-600'}`;
             });
 
             if (type === 's13') renderS13Print(printArea, history);
@@ -133,7 +133,7 @@ export const renderReportsTab = async (container, config, appVersion) => {
                         </div>
                         <div class="space-y-3">
                             <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Hasta</label>
-                            <input type="date" id="print-s13-to" value="${new Date().toISOString().split('T')[0]}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-emerald-500 transition-all shadow-inner">
+                            <input type="date" id="print-s13-to" value="${UIHelpers.formatDateId(new Date())}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-emerald-500 transition-all shadow-inner">
                         </div>
                     </div>
 

@@ -85,16 +85,60 @@ export const runSystemDiagnosticsAndRepair = async (onProgress) => {
     }
     if (terrBatchCount > 0) await terrBatch.commit();
 
-    reportProgress("📡 Escaneando y normalizando S-13 Live Pool...", 75);
+    reportProgress("📡 Escaneando y normalizando S-13 Live Pool...", 70);
     const s13Snap = await getDocs(collection(db, "banco_s13"));
     const s13Batch = writeBatch(db);
     let s13BatchCount = 0;
+
+    // Map territories from Maestro both by ID and by Number for S-13 auto-healing lookup
+    const maestroMapByNumber = {};
+    const maestroMapById = {};
+    terrSnap.docs.forEach(d => {
+        const data = d.data();
+        const tNum = String(data.numero || '').trim();
+        const tId = d.id;
+        const info = {
+            id: tId,
+            numero: tNum,
+            estado: data.estado || data.status || 'Disponible',
+            asignado_a: data.asignado_a || data.currentAssignee || null,
+            ultima_fecha: data.ultima_fecha || null,
+            fecha_asignacion: data.fecha_asignacion || data.assignmentDate || null
+        };
+        if (tNum) maestroMapByNumber[tNum] = info;
+        maestroMapById[tId] = info;
+    });
+
+    let healedCount = 0;
+    let healedIdCount = 0;
 
     for (const d of s13Snap.docs) {
         const r = d.data();
         let updates = {};
         let dirty = false;
 
+        // 1. Curación de Identificadores (Firestore ID -> Territory Number)
+        // banco_s13 must strictly use the human-readable territory number in "territorio_id" and "numero"
+        let tNum = null;
+        if (maestroMapById[r.territorio_id]) {
+            tNum = maestroMapById[r.territorio_id].numero;
+            updates.territorio_id = tNum;
+            updates.numero = tNum;
+            updates.territorio_numero = tNum;
+            dirty = true;
+            healedIdCount++;
+        } else if (maestroMapById[r.numero]) {
+            tNum = maestroMapById[r.numero].numero;
+            updates.territorio_id = tNum;
+            updates.numero = tNum;
+            updates.territorio_numero = tNum;
+            dirty = true;
+            healedIdCount++;
+        } else {
+            tNum = String(r.territorio_id || r.numero || '').trim();
+        }
+
+        // 2. Normalización de Nombres
         if (r.conductor) {
             const normalized = normalizeName(r.conductor);
             if (r.conductor_normalized !== normalized) {
@@ -110,9 +154,67 @@ export const runSystemDiagnosticsAndRepair = async (onProgress) => {
             }
         }
 
+        // 2b. Curación de Fecha de Asignación (Fecha de Creación en vez del día de predicación)
+        const createdTS = r.createdAt || r.timestamp;
+        if (createdTS) {
+            const creationDateObj = createdTS.toDate ? createdTS.toDate() : new Date(createdTS);
+            if (!isNaN(creationDateObj.getTime())) {
+                // Formatear en zona horaria de Ecuador (GMT-5)
+                const ecDate = new Date(creationDateObj.getTime() - (5 * 60 * 60 * 1000));
+                const ecY = ecDate.getUTCFullYear();
+                const ecM = String(ecDate.getUTCMonth() + 1).padStart(2, '0');
+                const ecD = String(ecDate.getUTCDate()).padStart(2, '0');
+                const creationDateISO = `${ecY}-${ecM}-${ecD}T12:00:00Z`;
+
+                // Comparamos sólo la parte de fecha YYYY-MM-DD
+                const currentAsigDatePart = String(r.fecha_asignacion || '').split('T')[0];
+                const expectedAsigDatePart = `${ecY}-${ecM}-${ecD}`;
+
+                if (currentAsigDatePart !== expectedAsigDatePart) {
+                    updates.fecha_asignacion = creationDateISO;
+                    dirty = true;
+                    healedCount++;
+                }
+            }
+        }
+
+        // 3. Curación del S-13 Live Pool (Auto-Healer Nivel Dios)
+        // Si el registro está 'Asignado' pero en el Maestro ya está 'Disponible'
+        // o reasignado a otro conductor, indica que se entregó sin reportarse al S-13.
+        if (r.estado === 'Asignado' && tNum) {
+            const m = maestroMapByNumber[tNum];
+            if (m) {
+                let shouldClose = false;
+                let closeDate = null;
+                let closeReason = '';
+
+                if (m.estado === 'Disponible') {
+                    shouldClose = true;
+                    closeDate = m.ultima_fecha || r.fecha_asignacion || new Date().toISOString();
+                    closeReason = "Territorio marcado como Disponible en el Maestro.";
+                } else if (m.estado === 'Asignado' && m.asignado_a && normalizeName(m.asignado_a) !== normalizeName(r.conductor)) {
+                    shouldClose = true;
+                    closeDate = m.fecha_asignacion || new Date().toISOString();
+                    closeReason = `Territorio reasignado a ${m.asignado_a}.`;
+                }
+
+                if (shouldClose) {
+                    updates.estado = 'Completado';
+                    updates.fecha_entrega = closeDate;
+                    updates.timestamp = Timestamp.now();
+                    updates.observaciones = r.observaciones
+                        ? `${r.observaciones} (Auto-cerrado por PowerSync: ${closeReason})`
+                        : `(Auto-cerrado por PowerSync: ${closeReason})`;
+                    dirty = true;
+                    healedCount++;
+                }
+            }
+        }
+
         if (dirty) {
             s13Batch.update(d.ref, updates);
-            report.rebuiltHistory++; s13BatchCount++;
+            report.rebuiltHistory++; 
+            s13BatchCount++;
             if (s13BatchCount >= 500) {
                 await s13Batch.commit();
                 s13BatchCount = 0;
@@ -120,6 +222,13 @@ export const runSystemDiagnosticsAndRepair = async (onProgress) => {
         }
     }
     if (s13BatchCount > 0) await s13Batch.commit();
+    
+    if (healedIdCount > 0) {
+        report.details.push(`🛡️ S-13 Healer: Se corrigieron ${healedIdCount} registros con IDs de documento Firestore a números legibles.`);
+    }
+    if (healedCount > 0) {
+        report.details.push(`🛡️ S-13 Healer: Se auto-cerraron y recuperaron ${healedCount} entregas desincronizadas.`);
+    }
 
     reportProgress("📡 Escaneo profundo de base de datos telefónica...", 45);
     const allPhones = await getDocs(collection(db, "telefonos"));

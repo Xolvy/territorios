@@ -3,71 +3,120 @@
  * Handles Light/Dark/Auto modes
  */
 
-export const initTheme = () => {
-    // Check local storage or system preference
-    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+export const applyTheme = (theme) => {
+    const isDark = theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    if (isDark) {
         document.documentElement.classList.add('dark');
+        document.documentElement.style.colorScheme = 'dark';
     } else {
         document.documentElement.classList.remove('dark');
+        document.documentElement.style.colorScheme = 'light';
     }
+
+    // Dispatch dynamic event for views listening to theme changes
+    document.dispatchEvent(new CustomEvent('theme-changed', { detail: { theme } }));
 };
 
-window.initTheme = initTheme;
-window.toggleTheme = () => {
-    const isDark = document.documentElement.classList.contains('dark');
-    if (isDark) {
-        document.documentElement.classList.remove('dark');
-        localStorage.theme = 'light';
-        return 'light';
-    } else {
-        document.documentElement.classList.add('dark');
-        localStorage.theme = 'dark';
-        return 'dark';
+export const initTheme = () => {
+    const theme = localStorage.getItem('theme') || 'auto';
+    applyTheme(theme);
+
+    // Real-time synchronization with device preference settings
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleSystemChange = (e) => {
+        const currentTheme = localStorage.getItem('theme') || 'auto';
+        if (currentTheme === 'auto') {
+            applyTheme('auto');
+        }
+    };
+    
+    try {
+        mediaQuery.removeEventListener('change', handleSystemChange);
+        mediaQuery.addEventListener('change', handleSystemChange);
+    } catch (err) {
+        try {
+            mediaQuery.addListener(handleSystemChange);
+        } catch (e) {}
     }
+
+    // Setup global listeners to automatically keep the DOM theme buttons in sync
+    document.addEventListener('theme-changed', (e) => {
+        updateDOMThemeToggles(e.detail.theme);
+    });
+
+    // Run initial DOM update after short delay to let dashboard mount
+    setTimeout(() => {
+        const activeTheme = localStorage.getItem('theme') || 'auto';
+        updateDOMThemeToggles(activeTheme);
+    }, 150);
 };
 
 export const toggleTheme = () => {
-    const isDark = document.documentElement.classList.contains('dark');
+    const currentTheme = localStorage.getItem('theme') || 'auto';
+    let newTheme;
 
-    // Toggle
-    if (isDark) {
-        document.documentElement.classList.remove('dark');
-        localStorage.theme = 'light';
-        return 'light';
+    // Cycle: auto -> light -> dark -> auto
+    if (currentTheme === 'auto') {
+        newTheme = 'light';
+        localStorage.setItem('theme', 'light');
+    } else if (currentTheme === 'light') {
+        newTheme = 'dark';
+        localStorage.setItem('theme', 'dark');
     } else {
-        document.documentElement.classList.add('dark');
-        localStorage.theme = 'dark';
-        return 'dark';
+        newTheme = 'auto';
+        localStorage.removeItem('theme');
     }
+
+    applyTheme(newTheme);
+
+    // Elegant non-blocking toast messaging
+    if (typeof window.xToast === 'function') {
+        const labels = {
+            light: 'Tema: Modo Claro ☀️',
+            dark: 'Tema: Modo Oscuro 🌙',
+            auto: 'Tema: Configuración del Dispositivo 💻'
+        };
+        window.xToast(labels[newTheme] || 'Tema Actualizado', 'info');
+    }
+
+    return newTheme;
 };
 
-export const resetThemeToAuto = () => {
-    localStorage.removeItem('theme');
-    initTheme();
-    return 'auto';
+export const updateDOMThemeToggles = (theme) => {
+    // Select all sidebar buttons and custom header theme selector buttons
+    const toggles = document.querySelectorAll('.theme-toggle-btn, [onclick="window.toggleTheme();"]');
+    toggles.forEach(btn => {
+        const textSpan = btn.querySelector('.sidebar-text') || btn.querySelector('span');
+        const icon = btn.querySelector('i') || btn.querySelector('svg');
+        
+        let label = 'Tema: Dispositivo';
+        let iconClass = 'fas fa-laptop';
+        let titleText = 'Tema: Automático (Sincronizado con Dispositivo)';
+        
+        if (theme === 'light') {
+            label = 'Tema: Claro';
+            iconClass = 'fas fa-sun text-amber-500';
+            titleText = 'Tema: Modo Claro';
+        } else if (theme === 'dark') {
+            label = 'Tema: Oscuro';
+            iconClass = 'fas fa-moon text-indigo-400';
+            titleText = 'Tema: Modo Oscuro';
+        }
+        
+        if (textSpan) {
+            textSpan.textContent = label;
+        }
+        
+        btn.title = titleText;
+        
+        if (icon && icon.tagName === 'I') {
+            // Unify transitions and rotation
+            icon.className = `${iconClass} transition-all duration-300 transform group-hover:scale-110`;
+        }
+    });
 };
 
-/**
- * Creates a beautiful floating toggle button
- */
-export const createThemeToggle = () => {
-    const btn = document.createElement('button');
-    btn.className = "fixed top-6 right-6 z-[9999] p-3 rounded-full bg-white/10 dark:bg-white/10 backdrop-blur-xl border border-slate-200 dark:border-white/20 shadow-2xl hover:scale-110 transition-all text-teal-600 dark:text-teal-400 group ring-4 ring-black/[0.02]";
-    btn.title = "Cambiar Tema (Claro/Oscuro)";
-
-    const updateIcon = () => {
-        const isDark = document.documentElement.classList.contains('dark');
-        btn.innerHTML = isDark
-            ? `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>`
-            : `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>`;
-    };
-
-    updateIcon();
-
-    btn.onclick = () => {
-        toggleTheme();
-        updateIcon();
-    };
-
-    return btn;
-};
+// Bind to window for direct HTML onClick support
+window.initTheme = initTheme;
+window.toggleTheme = toggleTheme;
+window.updateDOMThemeToggles = updateDOMThemeToggles;

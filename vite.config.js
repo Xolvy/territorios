@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import viteCompression from 'vite-plugin-compression';
-import { ViteImageOptimizer } from 'vite-plugin-image-optimizer';
+import checker from 'vite-plugin-checker';
 import pkg from './package.json';
 
 export default defineConfig({
@@ -43,10 +43,20 @@ export default defineConfig({
             algorithm: 'gzip',
             ext: '.gz',
         }),
+        checker({
+            eslint: {
+                lintCommand: 'eslint --config eslint.config.js --ext .js,.mjs app.js firebase-config.js modules data public',
+            },
+        }),
         VitePWA({
-            // FASE 1: Prompt mode — el usuario decide cuándo actualizar
+            // FASE 1: Prompt modo — el usuario decide cuándo actualizar
             registerType: 'prompt',
             injectRegister: 'auto',
+            strategies: 'injectManifest',
+            filename: 'sw-custom.js',
+            injectManifest: {
+                injectionPoint: 'self.__WB_MANIFEST'
+            },
             workbox: {
                 globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}'],
                 cleanupOutdatedCaches: true,
@@ -93,21 +103,5 @@ export default defineConfig({
                 ]
             }
         }),
-        ViteImageOptimizer({
-            exclude: ['/assets/mapa-general.jpg', '/assets/mapa_territorio.png'],
-            svg: {
-                multipass: true,
-                plugins: [
-                    {
-                        name: 'preset-default',
-                        params: {
-                            overrides: {
-                                cleanupNumericValues: false,
-                            },
-                        },
-                    },
-                ],
-            },
-        })
     ]
 });

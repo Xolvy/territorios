@@ -1,10 +1,14 @@
 import { auth } from '../firebase-config.js';
-import { GoogleAuthProvider, signInWithRedirect, getRedirectResult } from "firebase/auth";
+import { GoogleAuthProvider, signInWithRedirect, getRedirectResult, signInAnonymously } from "firebase/auth";
 import { getPublicadores } from '../data/firestore-services.js';
 import { createAdaptiveLogo } from './utils/AdaptiveLogo.js';
+import { updateDOMThemeToggles, applyTheme } from './utils/theme-manager.js';
 
 
 export const renderLogin = (container) => {
+    // Force auto-theme based on system preferences for the login screen
+    applyTheme('auto');
+
     // --- XOLVY REDIRECT CAPTURE (PWA SILENT LOGIN) ---
     // SECURITY v4.0: No role check from localStorage.
     // Post-redirect, onAuthStateChanged in app.js will fire,
@@ -26,47 +30,104 @@ export const renderLogin = (container) => {
     });
 
     container.innerHTML = `
-        <div class="bg-slate-50 dark:bg-slate-950 min-h-screen flex items-center justify-center p-4 sm:p-6 font-sans animate-fade-in relative overflow-hidden w-full max-w-[100vw]" style="min-height: 100vh; min-height: 100dvh;">
-            <!-- Professional Deep Glow -->
-            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1200px] h-[1200px] bg-blue-900/20 rounded-full blur-[160px] pointer-events-none"></div>
+        <div class="bg-slate-50/60 dark:bg-[#030712]/60 min-h-screen flex items-center justify-center p-4 sm:p-6 font-sans animate-fade-in relative overflow-hidden w-full max-w-[100vw] backdrop-blur-[45px] transition-colors duration-700 ease-in-out" style="min-height: 100vh; min-height: 100dvh;">
+            
+            <!-- Noise texture filter layer -->
+            <div class="noise-overlay"></div>
 
-            <div class="z-10 w-full max-w-4xl flex flex-col items-center gap-6 md:gap-8 px-2">
-                <div id="login-logo-container" class="animate-fade-in transition-all duration-700 text-center">
-                    <h1 class="text-3xl md:text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Sistema de Gestión de Territorios</h1>
+            <!-- Multi-colored Ambient Radial Flows for futuristic 2027 SaaS look -->
+            <div class="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-emerald-500/10 dark:bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none"></div>
+            <div class="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-indigo-500/10 dark:bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none"></div>
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-500/5 dark:bg-blue-500/2 rounded-full blur-[140px] pointer-events-none"></div>
+
+            <div class="z-10 w-full max-w-4xl flex flex-col items-center gap-10 px-2 relative">
+                
+                <!-- Logo Badge & Dynamic Title -->
+                <div id="login-logo-container" class="animate-fade-in transition-all duration-700 text-center flex flex-col items-center">
+                    <div class="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-tr from-emerald-600 via-indigo-600 to-indigo-700 rounded-[1.5rem] sm:rounded-[2rem] flex items-center justify-center text-white text-3xl sm:text-4xl shadow-[0_12px_40px_rgba(99,102,241,0.35)] border border-white/20 mb-4 sm:mb-6 animate-float relative overflow-hidden group">
+                        <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                        <i class="fas fa-layer-group"></i>
+                    </div>
+                    <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black tracking-tight bg-gradient-to-r from-slate-900 via-slate-800 to-slate-700 dark:from-white dark:via-slate-200 dark:to-slate-400 bg-clip-text text-transparent uppercase text-center max-w-xs sm:max-w-xl font-sans">
+                        Ecosistema de Territorios
+                    </h1>
+                    <div class="flex items-center gap-3 mt-4">
+                        <div class="h-[1px] w-4 bg-slate-300 dark:bg-white/10"></div>
+                        <p class="text-[9px] sm:text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.35em] leading-none">
+                            Congregación Nueve de Octubre
+                        </p>
+                        <div class="h-[1px] w-4 bg-slate-300 dark:bg-white/10"></div>
+                    </div>
                 </div>
                 
-                <div class="w-full bg-white dark:bg-slate-900 enterprise-card p-4 sm:p-6 lg:p-8 shadow-2xl rounded-[2.5rem] grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 box-border">
+                <!-- Breathtaking Frost-Glass Responsive Container (Súper Card style) -->
+                <div class="super-card w-full max-w-sm sm:max-w-4xl p-5 sm:p-10 lg:p-12 flex flex-col sm:grid sm:grid-cols-2 gap-6 lg:gap-8 box-border">
                 
-                <!-- Panel Administrador -->
-                <button id="btn-google-login" class="group flex flex-col items-center px-4 py-4 sm:p-5 bg-slate-50 dark:bg-white/5 rounded-2xl border-2 border-slate-100 dark:border-white/5 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-blue-500 w-full max-w-sm mx-auto text-sm sm:text-base text-center cursor-pointer relative z-[9999]">
-                    <div class="p-3 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-600/20 mb-3 transition-transform group-hover:scale-105 duration-500">
-                        <i class="fas fa-user-shield text-2xl h-8 w-8 flex items-center justify-center"></i>
-                    </div>
-                    <h2 class="text-xl lg:text-2xl font-extrabold text-slate-950 dark:text-white tracking-tight mb-1 text-center">Administrador</h2>
-                    <p class="text-slate-600 dark:text-slate-400 mb-4 text-[10px] lg:text-xs leading-relaxed max-w-[240px]">Gestión total de datos, reportes estratégicos S-13 y analíticas avanzadas.</p>
-                    
-                    <div id="google-status-wrapper" class="mt-auto pt-2 flex items-center justify-center gap-2 text-[10px] lg:text-xs font-bold text-slate-600 dark:text-slate-400 group-hover:text-blue-600 transition-colors">
-                        <img src="https://www.google.com/images/branding/product/2x/googleg_32dp.png" class="w-4 h-4 grayscale group-hover:grayscale-0 transition-all" alt="G">
-                        <span>ACCEDER CON GOOGLE &rarr;</span>
-                    </div>
-                </button>
+                    <!-- Panel Administrador -->
+                    <button id="btn-google-login" class="group flex flex-col p-6 bg-white/40 dark:bg-white/[0.03] rounded-3xl border border-white/60 dark:border-white/5 shadow-[0_4px_20px_rgba(0,0,0,0.01)] transition-all duration-500 hover:-translate-y-1.5 hover:shadow-[0_30px_60px_-15px_rgba(99,102,241,0.25)] hover:border-indigo-500/40 dark:hover:border-indigo-400/30 w-full text-left cursor-pointer relative z-[99] focus:outline-none">
+                        <!-- Top Info Row -->
+                        <div class="flex items-center gap-4 w-full">
+                            <!-- Icon Container -->
+                            <div class="p-3.5 bg-gradient-to-tr from-indigo-500 to-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-[0_8px_20px_rgba(99,102,241,0.25)] transition-transform group-hover:scale-110 duration-500 shrink-0">
+                                <i class="fas fa-user-shield text-lg h-5 w-5 flex items-center justify-center"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h2 class="text-base font-black text-slate-800 dark:text-white tracking-tight uppercase leading-none">Administrador</h2>
+                                <p class="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-1">Acceso seguro y analíticas</p>
+                            </div>
+                        </div>
 
-                <!-- Panel Conductor -->
-                    <button id="btn-conductor-trigger" class="btn-pro group flex flex-col items-center px-4 py-6 sm:p-8 bg-white dark:bg-white/5 rounded-[2rem] border-2 border-slate-100 dark:border-white/5 transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:border-slate-900 dark:hover:border-white/10 w-full max-w-sm mx-auto text-sm sm:text-base text-center cursor-pointer">
-                    <div class="p-3 bg-slate-900 dark:bg-white/10 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-slate-900/20 mb-3 transition-transform group-hover:scale-105 duration-500">
-                        <i class="fas fa-map-marked-alt text-2xl h-8 w-8 flex items-center justify-center"></i>
-                    </div>
-                    <h2 class="text-xl lg:text-2xl font-extrabold text-slate-950 dark:text-white tracking-tight mb-1 text-center">Conductor</h2>
-                    <p class="text-slate-600 dark:text-slate-400 mb-4 text-[10px] lg:text-xs leading-relaxed max-w-[240px]">Terminal de campo optimizada para la predicación y gestión de territorios.</p>
-                    
-                    <div class="mt-auto pt-2 flex items-center justify-center gap-2 text-[10px] lg:text-xs font-bold text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
-                        <span>ENTRAR AL TERMINAL &rarr;</span>
-                    </div>
-                </button>
+                        <!-- Description (Desktop Only) -->
+                        <p class="hidden sm:block text-slate-500 dark:text-slate-400/80 mt-6 text-[11px] lg:text-xs leading-relaxed max-w-[320px] font-medium normal-case">
+                            Gestión total de datos, reportes estratégicos S-13 y analíticas avanzadas de territorio.
+                        </p>
+                        
+                        <!-- Divider Line -->
+                        <div class="w-full h-px bg-slate-200/40 dark:bg-white/5 my-4"></div>
 
-                <div id="auth-error" class="hidden col-span-full mt-2 text-rose-600 text-[8px] font-bold uppercase tracking-widest text-center"></div>
+                        <!-- Status/Action Row -->
+                        <div id="google-status-wrapper" class="w-full flex items-center justify-between text-[9px] lg:text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors shrink-0">
+                            <span class="text-[8px] sm:text-[9px] text-slate-400 dark:text-slate-500 font-medium">Método Seguro</span>
+                            <div class="flex items-center gap-2">
+                                <img src="https://www.google.com/images/branding/product/2x/googleg_32dp.png" style="width: 14px; height: 14px;" class="object-contain flex-shrink-0 grayscale group-hover:grayscale-0 transition-all duration-300 contrast-125" alt="G">
+                                <span class="text-[8px] sm:text-[10px] font-black tracking-widest flex items-center gap-1">ACCEDER <i class="fas fa-arrow-right transition-transform group-hover:translate-x-1 duration-300"></i></span>
+                            </div>
+                        </div>
+                    </button>
+
+                    <!-- Panel Conductor -->
+                    <button id="btn-conductor-trigger" class="group flex flex-col p-6 bg-white/40 dark:bg-white/[0.03] rounded-3xl border border-white/60 dark:border-white/5 shadow-[0_4px_20px_rgba(0,0,0,0.01)] transition-all duration-500 hover:-translate-y-1.5 hover:shadow-[0_30px_60px_-15px_rgba(16,185,129,0.25)] hover:border-emerald-500/40 dark:hover:border-emerald-400/30 w-full text-left cursor-pointer focus:outline-none">
+                        <!-- Top Info Row -->
+                        <div class="flex items-center gap-4 w-full">
+                            <!-- Icon Container -->
+                            <div class="p-3.5 bg-gradient-to-tr from-emerald-500 to-emerald-600 rounded-2xl flex items-center justify-center text-white shadow-[0_8px_20px_rgba(16,185,129,0.25)] transition-transform group-hover:scale-110 duration-500 shrink-0">
+                                <i class="fas fa-map-marked-alt text-lg h-5 w-5 flex items-center justify-center"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h2 class="text-base font-black text-slate-800 dark:text-white tracking-tight uppercase leading-none">Conductor</h2>
+                                <p class="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-1">Terminal de predicación</p>
+                            </div>
+                        </div>
+
+                        <!-- Description (Desktop Only) -->
+                        <p class="hidden sm:block text-slate-500 dark:text-slate-400/80 mt-6 text-[11px] lg:text-xs leading-relaxed max-w-[320px] font-medium normal-case">
+                            Terminal de campo optimizada para la predicación en grupo y asignación ágil de territorios.
+                        </p>
+                        
+                        <!-- Divider Line -->
+                        <div class="w-full h-px bg-slate-200/40 dark:bg-white/5 my-4"></div>
+                        
+                        <!-- Status/Action Row -->
+                        <div class="w-full flex items-center justify-between text-[9px] lg:text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors shrink-0">
+                            <span class="text-[8px] sm:text-[9px] text-slate-400 dark:text-slate-500 font-medium">Acceso Público</span>
+                            <span class="text-[8px] sm:text-[10px] font-black tracking-widest flex items-center gap-1">INGRESAR <i class="fas fa-arrow-right transition-transform group-hover:translate-x-1 duration-300"></i></span>
+                        </div>
+                    </button>
+
+                    <div id="auth-error" class="hidden col-span-full mt-2 text-rose-600 text-[8px] font-bold uppercase tracking-widest text-center animate-pulse"></div>
+                </div>
+                
             </div>
-            
         </div>
     `;
 
@@ -76,6 +137,10 @@ export const renderLogin = (container) => {
         const googleStatusWrapper = document.getElementById('google-status-wrapper');
         const btnConductorTrigger = document.getElementById('btn-conductor-trigger');
         const errorEl = document.getElementById('auth-error');
+
+        // Sync initial state of the floating theme switcher button
+        const activeTheme = localStorage.getItem('theme') || 'auto';
+        updateDOMThemeToggles(activeTheme);
 
         if (btnGoogle) {
             btnGoogle.addEventListener('click', async () => {
@@ -113,10 +178,20 @@ export const renderLogin = (container) => {
         }
 
         if (btnConductorTrigger) {
-            btnConductorTrigger.addEventListener('click', () => renderConductorSelection());
+            btnConductorTrigger.addEventListener('click', async () => {
+                // Ensure anonymous authentication before opening the selection modal
+                // to prevent "Missing or insufficient permissions" when fetching directory.
+                try {
+                    if (!auth.currentUser) {
+                        console.log("🛡️ [Login] No active auth session. Requesting anonymous session for directory query...");
+                        await signInAnonymously(auth);
+                    }
+                } catch (err) {
+                    console.error("🛡️ [Login] Failed anonymous login for directory query:", err);
+                }
+                renderConductorSelection();
+            });
         }
-
-        // Ya no se inyecta el logo verde debido a la solicitud de UI
     }, 0);
 };
 
@@ -124,28 +199,28 @@ export const renderLogin = (container) => {
 export const renderConductorSelection = async () => {
     const modal = document.createElement('div');
     modal.id = 'conductor-modal';
-    modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 animate-fade-in';
+    modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-black/75 backdrop-blur-md p-4 animate-fade-in';
     
     modal.innerHTML = `
-        <div class="bg-white dark:bg-[#0a0f18] w-full max-w-lg rounded-3xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden border border-transparent dark:border-white/10">
+        <div class="modal-card-premium bg-white dark:bg-[#0a0f18] w-full max-w-lg rounded-[2.5rem] shadow-2xl flex flex-col max-h-[85vh] overflow-hidden border border-transparent dark:border-white/10 transform transition-all">
             <!-- Header Modal -->
             <div class="p-8 border-b border-slate-100 dark:border-white/5 flex items-center justify-between shrink-0">
                 <div>
-                    <h2 class="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Directorio</h2>
-                    <p class="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-[0.2em] mt-1.5">Busca tu nombre en el listado</p>
+                    <h2 class="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight font-sans">Directorio</h2>
+                    <p class="text-[10px] text-slate-450 dark:text-slate-500 font-bold uppercase tracking-[0.25em] mt-1.5 leading-none">Busca tu nombre en el listado</p>
                 </div>
-                <button id="btn-close-modal-c" class="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-white/5 flex items-center justify-center text-slate-300 dark:text-slate-400 hover:text-rose-500 transition-all border border-slate-100 dark:border-white/10 shadow-inner group">
+                <button id="btn-close-modal-c" class="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-white/5 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 hover:border-rose-500/20 transition-all border border-slate-100 dark:border-white/10 shadow-inner group cursor-pointer focus:outline-none">
                      <i class="fas fa-times group-hover:rotate-90 transition-transform"></i>
                 </button>
             </div>
             
-            <div class="p-8 space-y-8 flex-1 min-w-0 overflow-hidden flex flex-col bg-slate-50/30 dark:bg-black/20">
-                <div class="relative flex items-center w-full mb-4">
+            <div class="p-8 space-y-6 flex-1 min-w-0 overflow-hidden flex flex-col bg-slate-50 dark:bg-slate-900/40">
+                <div class="relative flex items-center w-full mb-2">
                     <div class="absolute inset-y-0 left-0 flex items-center pl-5 pointer-events-none">
-                        <i class="fas fa-search text-slate-600 dark:text-slate-400 text-lg"></i>
+                        <i class="fas fa-search text-slate-450 dark:text-slate-500 text-base"></i>
                     </div>
                     <input type="text" id="conductor-search" placeholder="Escribe tu nombre..." 
-                        class="w-full py-4 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-white/10 rounded-2xl shadow-sm focus:ring-0 focus:border-indigo-400 transition-all font-bold text-base text-slate-800 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-600 outline-none"
+                        class="w-full py-4 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/10 rounded-2xl shadow-sm focus:ring-4 focus:ring-indigo-500/15 focus:border-indigo-500 transition-all font-bold text-base text-slate-800 dark:text-white placeholder:text-slate-350 dark:placeholder:text-slate-655 outline-none"
                         style="padding-left: 3.5rem !important;">
                 </div>
 
@@ -153,8 +228,10 @@ export const renderConductorSelection = async () => {
                 <div class="flex-1 min-w-0 overflow-y-auto pr-2 custom-scrollbar">
                     <div id="conductores-list" class="grid grid-cols-1 gap-4 py-2">
                         <div class="text-center py-20 space-y-6">
-                            <div class="w-8 h-8 border-2 border-indigo-500/10 border-t-indigo-500 rounded-full animate-spin mx-auto"></div>
-                            <p class="text-slate-600 dark:text-slate-400 font-bold uppercase tracking-widest text-[9px]">Sincronizando Directorio...</p>
+                            <div class="relative w-12 h-12 mx-auto">
+                                <div class="w-12 h-12 border-4 border-indigo-500/15 border-t-indigo-500 rounded-full animate-spin"></div>
+                            </div>
+                            <p class="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest text-[9px]">Sincronizando Directorio...</p>
                         </div>
                     </div>
                 </div>
@@ -211,9 +288,9 @@ export const renderConductorSelection = async () => {
 
                 return `
                     <button data-id="${c.id}" data-name="${c.nombre}" data-phone="${c.telefono || ''}"
-                        class="conductor-btn group w-full p-5 bg-white dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-2xl shadow-sm flex items-center justify-between transition-all hover:border-indigo-200 dark:hover:border-indigo-500/50 hover:shadow-md active:scale-[0.98] text-left">
-                        <div class="flex items-center gap-5">
-                            <div class="w-12 h-12 rounded-xl bg-slate-50 dark:bg-black/20 flex items-center justify-center text-indigo-500 font-black text-base border border-slate-100 dark:border-white/5 group-hover:bg-indigo-500 group-hover:text-white transition-all duration-300">
+                        class="conductor-btn group w-full p-4 bg-white dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-2xl shadow-sm flex items-center justify-between transition-all hover:border-indigo-500/40 hover:bg-slate-50/50 dark:hover:bg-indigo-500/5 hover:shadow-md active:scale-[0.98] text-left cursor-pointer focus:outline-none">
+                        <div class="flex items-center gap-4">
+                            <div class="w-11 h-11 rounded-xl bg-slate-50 dark:bg-black/25 flex items-center justify-center text-indigo-500 font-black text-base border border-slate-100 dark:border-white/5 group-hover:bg-indigo-500 group-hover:text-white transition-all duration-300">
                                 ${c.nombre.charAt(0)}
                             </div>
                             <div>
@@ -221,7 +298,7 @@ export const renderConductorSelection = async () => {
                                 <p class="text-[8px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest mt-1">${roleLabel}</p>
                             </div>
                         </div>
-                        <i class="fas fa-chevron-right text-[10px] text-slate-800 dark:text-slate-200 group-hover:text-indigo-400"></i>
+                        <i class="fas fa-chevron-right text-[10px] text-slate-400 dark:text-slate-500 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all duration-300"></i>
                     </button>
                 `;
             }).join('');
@@ -255,7 +332,7 @@ export const renderConductorSelection = async () => {
 
                     // 3. SaaS Premium Loading State (Fix Parpadeo)
                     modal.innerHTML = `
-                        <div class="w-full h-full flex items-center justify-center bg-slate-50/90 dark:bg-[#0a0f18]/95 backdrop-blur-3xl animate-fade-in relative overflow-hidden">
+                        <div class="w-full h-full flex items-center justify-center bg-slate-50/90 dark:bg-[#030712]/95 backdrop-blur-3xl animate-fade-in relative overflow-hidden">
                             <!-- Premium Glows -->
                             <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none"></div>
                             

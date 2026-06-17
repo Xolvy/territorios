@@ -33,6 +33,7 @@ const normalizeTerritorioData = (id, data, latestAssignment = null) => {
     const estado = latestAssignment ? latestAssignment.estado : (data.status || data.estado || 'Disponible');
     const asignado_a = latestAssignment ? latestAssignment.conductor : (data.currentAssignee || data.asignado_a || null);
     const fecha_asignacion = latestAssignment ? latestAssignment.fecha_asignacion : (data.assignmentDate || data.fecha_asignacion || null);
+    const fecha_salida = latestAssignment ? (latestAssignment.fecha_salida || null) : (data.fecha_salida || null);
     const auxiliar = latestAssignment ? (latestAssignment.auxiliar || null) : (data.auxiliar || null);
     const asignado_a_normalized = asignado_a ? normalizeName(asignado_a) : null;
     const auxiliar_normalized = auxiliar ? normalizeName(auxiliar) : null;
@@ -51,6 +52,7 @@ const normalizeTerritorioData = (id, data, latestAssignment = null) => {
         auxiliar: auxiliar,
         auxiliar_normalized: auxiliar_normalized,
         fecha_asignacion: fecha_asignacion,
+        fecha_salida: fecha_salida,
         last_assignment: latestAssignment,
         // Alisos para nuevos nombres
         status: estado,
@@ -244,6 +246,7 @@ export const assignTerritorio = async (id, conductorName, details = {}) => {
             conductor: conductorName,
             conductor_normalized: normalizeName(conductorName),
             fecha_asignacion: details.fecha_asignacion || new Date().toISOString(),
+            fecha_salida: details.fecha_salida || null,
             fecha_entrega: null,
             estado: 'Asignado',
             turno: details.turno || 'Sin turno',
@@ -269,6 +272,7 @@ export const assignTerritorio = async (id, conductorName, details = {}) => {
             currentAssignee: conductorName,
             fecha_asignacion: assignmentData.fecha_asignacion,
             assignmentDate: assignmentData.fecha_asignacion,
+            fecha_salida: details.fecha_salida || null,
             auxiliar: details.auxiliar || null,
             auxiliar_normalized: details.auxiliar ? normalizeName(details.auxiliar) : null,
             turno: details.turno || 'Sin turno',
@@ -286,25 +290,47 @@ export const assignTerritorio = async (id, conductorName, details = {}) => {
 export const returnTerritorio = async (id, notes, customDate, status = 'Completado', fotos = null, conductorOverride = null) => {
     try {
         const dateToUse = customDate ? new Date(customDate).toISOString() : new Date().toISOString();
-        let tNumero = null;
+
+        // PRE-TRANSACTION: Query banco_s13 active assignments (queries not allowed inside transactions)
+        const tPreSnap = await getDoc(doc(db, COL_TERRITORIOS, id));
+        if (!tPreSnap.exists()) {
+            console.warn(`[returnTerritorio] Territorio ${id} no existe.`);
+            return;
+        }
+        const tNumero = String(tPreSnap.data().numero || '');
+
+        let bancoDocRefs = [];
+        if (tNumero) {
+            const bancoQuery = query(collection(db, COL_BANCO_S13),
+                where('territorio_id', '==', tNumero),
+                where('estado', '==', 'Asignado')
+            );
+            const bancoSnap = await getDocs(bancoQuery);
+            bancoDocRefs = bancoSnap.docs.map(d => d.ref);
+        }
+
+        // ATOMIC TRANSACTION: All reads and writes in a single pass
         const conductorName = await runTransaction(db, async (transaction) => {
             const tRef = doc(db, COL_TERRITORIOS, id);
             const statsRef = doc(db, "configuracion", "stats_globales");
-            
+
             // --- FASE 1: LECTURAS (Strictly first) ---
-            const [tSnap, statsSnap] = await Promise.all([
+            const readPromises = [
                 transaction.get(tRef),
                 transaction.get(statsRef)
-            ]);
+            ];
+            // Also read all banco_s13 docs inside the transaction for consistency
+            bancoDocRefs.forEach(ref => readPromises.push(transaction.get(ref)));
+
+            const [tSnap, statsSnap, ...bancoSnaps] = await Promise.all(readPromises);
 
             if (!tSnap.exists()) return null;
             const tData = tSnap.data();
-            tNumero = String(tData.numero || '');
             const prevConductor = tData.asignado_a || null;
 
             // --- FASE 2: ESCRITURAS (Strictly last) ---
-            // CAMBIO A: Estado siempre 'Disponible' para entregas normales (consistencia con returnTerritorioMultiple)
-            transaction.update(tRef, {
+            // Update /territorios
+            const updates = {
                 asignado_a: null,
                 asignado_a_normalized: null,
                 fecha_asignacion: null,
@@ -314,12 +340,15 @@ export const returnTerritorio = async (id, notes, customDate, status = 'Completa
                 hora: null,
                 faceta: null,
                 turno: null,
-                ultima_fecha: dateToUse,
                 estado: status === 'Perdido' ? 'Extraviado' : 'Disponible',
                 prog_sync: null
-            });
+            };
+            if (status !== 'Disponible') {
+                updates.ultima_fecha = dateToUse;
+            }
+            transaction.update(tRef, updates);
 
-            // Update Global Stats atomicity
+            // Update Global Stats atomically
             if (tData.estado === 'Asignado') {
                 if (statsSnap.exists()) {
                     const statsData = statsSnap.data();
@@ -335,39 +364,46 @@ export const returnTerritorio = async (id, notes, customDate, status = 'Completa
                     }, { merge: true });
                 }
             }
+
+            // Update /banco_s13 — ATOMICALLY inside the same transaction
+            const bancoEstado = status === 'Completado' ? 'Completado' : (status === 'Perdido' ? 'Extraviado' : 'Disponible');
+            bancoSnaps.forEach((bSnap, idx) => {
+                if (bSnap.exists()) {
+                    transaction.update(bancoDocRefs[idx], {
+                        estado: bancoEstado,
+                        fecha_entrega: dateToUse,
+                        timestamp_entrega: serverTimestamp(),
+                        observaciones: notes || bSnap.data().observaciones || null,
+                        fotos: fotos || bSnap.data().fotos || null
+                    });
+                }
+            });
+
+            // Write observation log atomically inside the transaction if notes are provided
+            if (notes && notes.trim().length > 0) {
+                const obsRef = doc(collection(db, "bitacora_observaciones"));
+                transaction.set(obsRef, {
+                    territorio_id: tNumero,
+                    conductor: prevConductor || 'Anónimo',
+                    nota: notes,
+                    fecha: dateToUse,
+                    timestamp: serverTimestamp()
+                });
+            }
+
+            if (bancoSnaps.length > 0) {
+                console.log(`✅ [returnTerritorio] banco_s13 cerrado atómicamente para territorio ${tNumero} (${bancoSnaps.filter(s => s.exists()).length} registro(s))`);
+            }
+
             return prevConductor;
         });
 
-        // CAMBIO A: Cierre activo de banco_s13 — fuera de la transacción pero con manejo de error explícito
-        if (tNumero) {
-            try {
-                const bancoQuery = query(collection(db, COL_BANCO_S13),
-                    where('territorio_id', '==', tNumero),
-                    where('estado', '==', 'Asignado')
-                );
-                const bancoSnap = await getDocs(bancoQuery);
-                if (!bancoSnap.empty) {
-                    const batchS13 = writeBatch(db);
-                    bancoSnap.docs.forEach(d => batchS13.update(d.ref, {
-                        estado: status === 'Completado' ? 'Completado' : (status === 'Perdido' ? 'Extraviado' : 'Disponible'),
-                        fecha_entrega: dateToUse,
-                        timestamp_entrega: serverTimestamp()
-                    }));
-                    await batchS13.commit();
-                    console.log(`✅ [returnTerritorio] banco_s13 cerrado para territorio ${tNumero} (${bancoSnap.size} registro(s))`);
-                }
-            } catch (bancoError) {
-                // CAMBIO A: Error NO silencioso — se loguea con severidad y se propaga
-                console.error(`🔴 [returnTerritorio] FALLO CRÍTICO cerrando banco_s13 para territorio ${tNumero}:`, bancoError);
-                // No hacemos throw aquí para no romper el flujo principal, pero el error queda visible
-            }
-        }
-
+        // Post-transaction: Audit log (non-critical, best-effort)
         const finalConductor = conductorOverride || conductorName;
         try {
-            await logReturn(id, dateToUse, status, notes, fotos, finalConductor);
+            await saveAuditLog('ENTREGA_TERRITORIO', { territorio: tNumero, conductor: finalConductor });
         } catch (logError) {
-            console.error(`🟡 [returnTerritorio] logReturn falló para territorio ${tNumero}:`, logError);
+            console.error(`🟡 [returnTerritorio] saveAuditLog falló para territorio ${tNumero}:`, logError);
         }
         ServiceCache.clear('territorios');
         ServiceCache.clear('territorios_combined');
@@ -375,9 +411,11 @@ export const returnTerritorio = async (id, notes, customDate, status = 'Completa
         ServiceCache.clear('stats_globales');
     } catch (e) {
         console.error("Atomic transaction failed in returnTerritorio:", e);
-        throw e; // Propagar el error para que el llamador sepa que la entrega falló
+        throw e;
     }
 };
+
+
 
 export const resyncGlobalStats = async () => {
     try {
@@ -609,7 +647,7 @@ export const returnTerritorioMultiple = async (ids, notes, customDate, status = 
             const prevConductor = tData.currentAssignee || tData.asignado_a || null;
 
             // a) SOBRESCRITURA ABSOLUTA EN MAESTRO (Goma de borrar activa)
-            batch.update(doc(db, COL_TERRITORIOS, tId), {
+            const updates = {
                 status: 'Disponible',
                 currentAssignee: null,
                 assignmentDate: null,
@@ -617,7 +655,6 @@ export const returnTerritorioMultiple = async (ids, notes, customDate, status = 
                 estado: 'Disponible',
                 asignado_a: null,
                 fecha_asignacion: null,
-                ultima_fecha: dateToUse,
                 auxiliar: null,
                 lugar: null,
                 hora: null,
@@ -625,7 +662,11 @@ export const returnTerritorioMultiple = async (ids, notes, customDate, status = 
                 turno: null,
                 prog_sync: null,
                 lastUpdated: serverTimestamp()
-            });
+            };
+            if (status !== 'Disponible') {
+                updates.ultima_fecha = dateToUse;
+            }
+            batch.update(doc(db, COL_TERRITORIOS, tId), updates);
 
             // b) SOBRESCRITURA EN LIVE POOL (banco_s13)
             // Buscamos el registro activo para este número de territorio
@@ -636,13 +677,26 @@ export const returnTerritorioMultiple = async (ids, notes, customDate, status = 
                     estado: status === 'Completado' ? 'Completado' : 'Disponible',
                     fecha_entrega: dateToUse,
                     returnDate: dateToUse, // Campo espejo solicitado
-                    timestamp_entrega: serverTimestamp()
+                    timestamp_entrega: serverTimestamp(),
+                    observaciones: notes || null
                 });
             } else {
                 console.warn(`⚠️ [Reception] No se encontró asignación 'Asignado' en banco_s13 para el territorio ${tNum}`);
             }
 
-            logPromises.push(logReturn(tId, dateToUse, status, notes, null, prevConductor));
+            // Write observation log atomically inside the batch if notes are provided
+            if (notes && notes.trim().length > 0) {
+                const obsRef = doc(collection(db, "bitacora_observaciones"));
+                batch.set(obsRef, {
+                    territorio_id: tNum,
+                    conductor: prevConductor || 'Anónimo',
+                    nota: notes,
+                    fecha: dateToUse,
+                    timestamp: serverTimestamp()
+                });
+            }
+
+            logPromises.push(saveAuditLog('ENTREGA_TERRITORIO', { territorio: tNum, conductor: prevConductor }));
         }
 
         await batch.commit();

@@ -195,6 +195,7 @@ export const syncSlotWithTerritories = async (weekId, dayIdx, turno, tData, date
                     conductor: conductor,
                     conductor_normalized: condNameNormalized,
                     fecha_asignacion: timestampActual,
+                    fecha_salida: dateISO || null,
                     fecha_entrega: null,
                     estado: 'Asignado',
                     turno: turno,
@@ -222,6 +223,7 @@ export const syncSlotWithTerritories = async (weekId, dayIdx, turno, tData, date
                     currentAssignee: conductor,
                     fecha_asignacion: timestampActual,
                     assignmentDate: timestampActual,
+                    fecha_salida: dateISO || null,
                     turno: turno
                 });
             }
@@ -280,9 +282,14 @@ export const sincronizarAsignacionesSalida = async (salida, weekId, fechaSalida)
             );
             const existente = await getDocs(qSameWeek);
 
+            const currentTimestampISO = new Date().toISOString();
+
             if (!existente.empty) {
                 const docRef = existente.docs[0].ref;
-                await updateDoc(docRef, {
+                const oldData = existente.docs[0].data();
+                const hasConductorChanged = oldData.conductor !== conductor;
+                
+                const updates = {
                     territorio_id: String(maestro.numero).trim(),
                     territorio_numero: String(maestro.numero).trim(),
                     numero: String(maestro.numero).trim(),
@@ -290,10 +297,16 @@ export const sincronizarAsignacionesSalida = async (salida, weekId, fechaSalida)
                     conductor_normalized: normalizeName(conductor),
                     auxiliar,
                     auxiliar_normalized: auxiliar ? normalizeName(auxiliar) : null,
-                    fecha_asignacion: fechaSalida,
                     programa_id,
+                    fecha_salida: fechaSalida || null,
                     updatedAt: serverTimestamp()
-                });
+                };
+
+                if (hasConductorChanged) {
+                    updates.fecha_asignacion = currentTimestampISO;
+                }
+
+                await updateDoc(docRef, updates);
             } else {
                 // 4. Auto-cerrar cualquier asignación abierta del pasado para este territorio (autocuración)
                 try {
@@ -306,7 +319,7 @@ export const sincronizarAsignacionesSalida = async (salida, weekId, fechaSalida)
                         const batchClose = writeBatch(db);
                         pastSnap.docs.forEach(d => {
                             batchClose.update(d.ref, {
-                                fecha_entrega: fechaSalida,
+                                fecha_entrega: currentTimestampISO, // Cerrar con la fecha actual
                                 estado: 'Completado',
                                 timestamp: Timestamp.now()
                             });
@@ -327,7 +340,8 @@ export const sincronizarAsignacionesSalida = async (salida, weekId, fechaSalida)
                     conductor_normalized: normalizeName(conductor),
                     auxiliar,
                     auxiliar_normalized: auxiliar ? normalizeName(auxiliar) : null,
-                    fecha_asignacion:  fechaSalida,
+                    fecha_asignacion:  currentTimestampISO,
+                    fecha_salida:      fechaSalida || null,
                     fecha_entrega:     null,
                     estado:            'Asignado',
                     weekId,
@@ -345,8 +359,9 @@ export const sincronizarAsignacionesSalida = async (salida, weekId, fechaSalida)
                 currentAssignee:  conductor,
                 auxiliar:         auxiliar,
                 auxiliar_normalized: auxiliar ? normalizeName(auxiliar) : null,
-                fecha_asignacion: fechaSalida,
-                assignmentDate:   fechaSalida
+                fecha_asignacion: currentTimestampISO,
+                assignmentDate:   currentTimestampISO,
+                fecha_salida:      fechaSalida || null
             });
 
             // 6. Notificar al sistema
@@ -671,6 +686,7 @@ export const formalizeWeek = async (weekId, assignments) => {
                 auxiliar: asig.auxiliar || null,
                 auxiliar_normalized: auxNameNormalized,
                 fecha_asignacion: timestampActual,
+                fecha_salida: asig.fecha_salida || null,
                 fecha_entrega: null,
                 estado: 'Asignado',
                 turno: turno,
@@ -698,6 +714,7 @@ export const formalizeWeek = async (weekId, assignments) => {
                     estado: 'Asignado',
                     asignado_a: asig.conductor || '',
                     fecha_asignacion: timestampActual,
+                    fecha_salida: asig.fecha_salida || null,
                     turno: turno
                 });
             }

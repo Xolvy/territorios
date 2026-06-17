@@ -298,7 +298,8 @@ export const renderPersonalTab = async (container, configData = null, appVersion
                 { id: 'mod-disponibilidad', label: 'Mi disponibilidad', icon: 'fa-user-check', checked: person?.modulos?.disponibilidad !== false },
                 { id: 'mod-telefonos', label: 'Predicación Telefónica', icon: 'fa-phone', checked: person?.modulos?.telefonos !== false },
                 { id: 'mod-mapas', label: 'Explorador de Mapas', icon: 'fa-map-marked-alt', checked: person?.modulos?.mapas !== false },
-                { id: 'mod-ayudas', label: 'Recursos del Ministerio', icon: 'fa-book', checked: person?.modulos?.ayudas !== false }
+                { id: 'mod-ayudas', label: 'Recursos del Ministerio', icon: 'fa-book', checked: person?.modulos?.ayudas !== false },
+                { id: 'mod-cerebro', label: 'Cerebro Nexo (IA)', icon: 'fa-brain', checked: person?.modulos?.cerebro !== false }
             ].map(mod => `
                                     <div class="flex items-center justify-between p-4 bg-white dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/10">
                                         <div class="flex items-center gap-3">
@@ -442,6 +443,7 @@ export const renderPersonalTab = async (container, configData = null, appVersion
                         telefonos: modal.querySelector('#mod-telefonos').checked,
                         mapas: modal.querySelector('#mod-mapas').checked,
                         ayudas: modal.querySelector('#mod-ayudas').checked,
+                        cerebro: modal.querySelector('#mod-cerebro').checked,
                         rescue: modal.querySelector('#mod-agenda').checked
                     }
                 };

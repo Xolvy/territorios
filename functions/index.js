@@ -432,10 +432,25 @@ exports.askNexoAI = onCall(
                 body.system_instruction = systemInstruction;
             }
 
-            // Agregar el prompt actual del usuario
+            // Agregar el prompt actual del usuario (con soporte multimodal)
+            const userParts = [{ text: prompt }];
+            if (request.data.image) {
+                const img = request.data.image;
+                const base64Data = img.inline_data?.data || img.inlineData?.data;
+                const mimeType = img.inline_data?.mime_type || img.inlineData?.mimeType;
+                if (base64Data && mimeType) {
+                    userParts.push({
+                        inlineData: {
+                            mimeType: mimeType,
+                            data: base64Data
+                        }
+                    });
+                }
+            }
+
             body.contents.push({
                 role: "user",
-                parts: [{ text: prompt }]
+                parts: userParts
             });
 
             const response = await fetch(url, {

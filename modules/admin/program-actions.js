@@ -271,7 +271,8 @@ export const openFormalizeModal = async (programa, territorios, loadWeekDataCall
                     conductor: item.data.conductor,
                     turno: item.turnoId,
                     faceta: item.data.faceta || 'Casa en casa',
-                    observaciones: item.data.observaciones || ''
+                    observaciones: item.data.observaciones || '',
+                    fecha_salida: new Date(item.dia.fecha + 'T12:00:00Z').toISOString()
                 };
             });
 

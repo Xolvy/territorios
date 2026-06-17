@@ -43,13 +43,16 @@ export const showNotification = (message, type = 'success', duration = 5000, wor
     if (message.includes('Sincronizando')) displayMessage = message.replace('Sincronizando ', 'Sinc: ');
 
     // Fallback truncation for very long ad-hoc messages
-    if (displayMessage.length > 50) displayMessage = displayMessage.substring(0, 47) + '...';
+    if (displayMessage.length > 60) displayMessage = displayMessage.substring(0, 57) + '...';
+
+    const isSync = type === 'sync' || message.includes('Sincronizando');
+    const isPwa = type === 'pwa';
 
     // 2. HUD Containers
-    const containerClass = (type === 'sync' || type === 'pwa') 
-        ? 'fixed top-4 left-1/2 -translate-x-1/2 z-[10001] flex flex-col items-center gap-3 pointer-events-none w-full max-w-sm'
+    const containerClass = (isSync || isPwa) 
+        ? 'fixed top-6 left-1/2 -translate-x-1/2 z-[10001] flex flex-col items-center gap-4 pointer-events-none w-full max-w-md'
         : 'fixed bottom-6 right-6 z-[10000] flex flex-col items-end gap-3 pointer-events-none';
-    const hudId = (type === 'sync' || type === 'pwa') ? 'xolvy-notifications-top' : 'xolvy-notifications-hud';
+    const hudId = (isSync || isPwa) ? 'xolvy-notifications-top' : 'xolvy-notifications-hud';
 
     let hud = document.getElementById(hudId);
     if (!hud) {
@@ -66,25 +69,59 @@ export const showNotification = (message, type = 'success', duration = 5000, wor
 
     // Type Styling
     const styles = {
-        success: { bg: 'bg-white/95 dark:bg-[#0f1a23]/95 border-emerald-200/50 dark:border-emerald-500/20', text: 'text-emerald-600 dark:text-emerald-400', icon: 'fa-check-circle', label: 'ÉXITO' },
-        error: { bg: 'bg-white/95 dark:bg-[#1a0f12]/95 border-rose-200/50 dark:border-rose-500/20', text: 'text-rose-600 dark:text-rose-400', icon: 'fa-triangle-exclamation', label: 'ERROR' },
-        warning: { bg: 'bg-white/95 dark:bg-[#1a150f]/95 border-amber-200/50 dark:border-amber-500/20', text: 'text-amber-600 dark:text-amber-400', icon: 'fa-circle-exclamation', label: 'AVISO' },
-        info: { bg: 'bg-white/95 dark:bg-[#0f111a]/95 border-indigo-200/50 dark:border-indigo-500/20', text: 'text-indigo-600 dark:text-indigo-400', icon: 'fa-circle-info', label: 'INFO' },
-        sync: { bg: 'bg-white/95 dark:bg-[#0b0f1a] border-indigo-200/50 dark:border-indigo-500/30', text: 'text-indigo-600 dark:text-indigo-400', icon: 'fa-sync-alt fa-spin-slow', label: 'WORKFLOW' },
-        pwa: { bg: 'bg-indigo-600 dark:bg-indigo-500 shadow-[0_10px_30px_rgba(79,70,229,0.4)]', text: 'text-white', icon: 'fa-cloud-download-alt', label: 'PWA READY' }
+        success: { 
+            bg: 'bg-white/90 dark:bg-slate-900/90 border-emerald-100/50 dark:border-emerald-500/10', 
+            text: 'text-emerald-500 dark:text-emerald-400', 
+            icon: 'fa-check', 
+            label: 'ÉXITO',
+            iconBg: 'bg-emerald-50 dark:bg-emerald-500/10'
+        },
+        error: { 
+            bg: 'bg-white/90 dark:bg-slate-900/90 border-rose-100/50 dark:border-rose-500/10', 
+            text: 'text-rose-500 dark:text-rose-400', 
+            icon: 'fa-exclamation-triangle', 
+            label: 'ERROR',
+            iconBg: 'bg-rose-50 dark:bg-rose-500/10'
+        },
+        warning: { 
+            bg: 'bg-white/90 dark:bg-slate-900/90 border-amber-100/50 dark:border-amber-500/10', 
+            text: 'text-amber-500 dark:text-amber-400', 
+            icon: 'fa-exclamation-circle', 
+            label: 'AVISO',
+            iconBg: 'bg-amber-50 dark:bg-amber-500/10'
+        },
+        info: { 
+            bg: 'bg-white/90 dark:bg-slate-900/90 border-blue-100/50 dark:border-blue-500/10', 
+            text: 'text-blue-500 dark:text-blue-400', 
+            icon: 'fa-info-circle', 
+            label: 'INFO',
+            iconBg: 'bg-blue-50 dark:bg-blue-500/10'
+        },
+        sync: { 
+            bg: 'bg-white/90 dark:bg-slate-900/90 border-indigo-100 dark:border-indigo-500/20', 
+            text: 'text-indigo-600 dark:text-indigo-400', 
+            icon: 'fa-sync-alt fa-spin-slow', 
+            label: 'WORKFLOW',
+            iconBg: 'bg-indigo-50 dark:bg-indigo-500/10'
+        },
+        pwa: { 
+            bg: 'bg-indigo-600 dark:bg-indigo-500 border-indigo-700 dark:border-indigo-400 shadow-[0_15px_30px_rgba(79,70,229,0.35)]', 
+            text: 'text-white', 
+            icon: 'fa-cloud-download-alt', 
+            label: 'PWA READY',
+            iconBg: 'bg-white/20'
+        }
     };
 
-    const isSync = type === 'sync' || message.includes('Sincronizando');
-    const isPwa = type === 'pwa';
     const s = styles[isPwa ? 'pwa' : (isSync ? 'sync' : type)] || styles.success;
 
     // Workflow log rendering
     const workflowHTML = workflow.length > 0
-        ? `<div class="mt-2.5 pt-2.5 border-t ${isSync ? 'border-indigo-500/20' : 'border-slate-200 dark:border-white/5'} space-y-1">
+        ? `<div class="mt-3 pt-3 border-t ${isSync ? 'border-indigo-500/10 dark:border-slate-800' : 'border-slate-100 dark:border-slate-800'} space-y-1.5">
              ${workflow.map(step => `
-                <div class="flex items-center gap-1.5 opacity-60">
-                    <i class="fas fa-caret-right text-[6px] text-indigo-500"></i>
-                    <span class="text-[7px] font-black ${isSync ? 'text-indigo-900/50 dark:text-indigo-300/50' : 'text-slate-500 dark:text-slate-400'} uppercase tracking-widest">${step}</span>
+                <div class="flex items-center gap-2.5 opacity-75">
+                    <span class="text-indigo-500 text-[10px]">▶</span>
+                    <span class="text-[9px] font-bold ${isSync ? 'text-indigo-900/80 dark:text-indigo-300' : 'text-slate-600 dark:text-slate-400'} uppercase tracking-widest leading-none">${step}</span>
                 </div>
              `).join('')}
            </div>`
@@ -95,31 +132,31 @@ export const showNotification = (message, type = 'success', duration = 5000, wor
     const activeBarClass = barClass || s.text.replace('text-', 'bg-');
     const undoHTML = onUndo || onComplete ? `
         <div class="mt-4 flex items-center justify-between gap-4">
-             <div class="flex-1 min-w-0 h-1.5 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden">
+             <div class="flex-1 min-w-0 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
                  <div id="notif-progress-${id}" class="h-full ${activeBarClass} w-full transition-all ease-linear" style="transition-duration: ${duration}ms"></div>
              </div>
-             <button id="notif-undo-${id}" class="px-5 py-2 rounded-xl bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 text-[9px] font-black uppercase tracking-widest ${s.text} shadow-sm hover:scale-105 active:scale-95 transition-all">
+             <button id="notif-undo-${id}" class="px-5 py-2 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-800 text-[9px] font-black uppercase tracking-widest ${s.text} shadow-sm hover:scale-105 active:scale-95 transition-all">
                 <i class="fas ${onComplete ? 'fa-times' : 'fa-undo-alt'} mr-1.5"></i> ${undoLabel}
              </button>
         </div>
     ` : '';
 
     const animationClass = (isSync || isPwa) ? 'animate-slide-down' : 'animate-slide-left';
-    card.className = `${s.bg} border backdrop-blur-xl px-5 py-3.5 rounded-full shadow-2xl flex flex-col gap-1 ${animationClass} pointer-events-auto transform transition-all duration-500 hover:scale-[1.02] group min-w-[280px] max-w-[340px]`;
+    card.className = `${s.bg} border backdrop-blur-xl px-6 py-4.5 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.06)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.55)] flex flex-col gap-1.5 ${animationClass} pointer-events-auto transform transition-all duration-500 hover:scale-[1.01] group min-w-[320px] max-w-[380px]`;
     card.innerHTML = `
         <div class="flex items-center gap-4 w-full">
-            <div class="w-10 h-10 ${isSync ? 'bg-indigo-500/10 dark:bg-indigo-500/20' : 'bg-white/50 dark:bg-white/5'} rounded-xl flex items-center justify-center ${s.text} shadow-inner shrink-0 group-hover:scale-110 transition-transform">
+            <div class="w-11 h-11 ${s.iconBg} rounded-2xl flex items-center justify-center ${s.text} shadow-sm shrink-0 group-hover:scale-105 transition-transform duration-300">
                  <i class="fas ${s.icon} text-lg"></i>
             </div>
             <div class="flex flex-col flex-1 min-w-0">
-                <div class="flex items-center gap-2 mb-0.5">
-                    <span class="text-[8px] font-black ${s.text} uppercase tracking-[0.25em]">${s.label}</span>
+                <div class="flex items-center gap-1.5 mb-1">
+                    <span class="text-[9px] font-black ${s.text} uppercase tracking-[0.25em]">${s.label}</span>
                     <span class="w-1 h-1 ${s.text.replace('text-', 'bg-')} rounded-full animate-pulse"></span>
                 </div>
-                <h4 class="text-[11px] font-black ${isSync ? 'text-indigo-900 dark:text-indigo-100' : 'text-slate-800 dark:text-white'} uppercase tracking-tight leading-none">${displayMessage}</h4>
+                <h4 class="text-xs font-black ${isSync ? 'text-slate-900 dark:text-indigo-100' : 'text-slate-850 dark:text-white'} uppercase tracking-tight leading-none">${displayMessage}</h4>
             </div>
-            <button id="notif-close-${id}" class="ml-2 text-slate-600 dark:text-slate-400 hover:text-rose-500 transition-colors opacity-40 hover:opacity-100">
-                <i class="fas fa-times text-[10px]"></i>
+            <button id="notif-close-${id}" class="ml-2 text-slate-400 dark:text-slate-500 hover:text-rose-500 transition-colors opacity-60 hover:opacity-100 p-1">
+                <i class="fas fa-times text-xs"></i>
             </button>
         </div>
         ${workflowHTML}
@@ -128,7 +165,7 @@ export const showNotification = (message, type = 'success', duration = 5000, wor
 
     // Manage Singleton Sync Cards
     if (isSync) {
-        const existing = Array.from(hud.children).find(c => c.innerHTML.includes('XOLVY WORKFLOW') || c.innerHTML.includes('XOLVY UPDATES'));
+        const existing = Array.from(hud.children).find(c => c.innerHTML.includes('WORKFLOW') || c.innerHTML.includes('Sinc:'));
         if (existing) existing.remove();
     }
 
@@ -191,62 +228,61 @@ export const updateNotificationWorkflow = (id, step) => {
     const card = document.getElementById(id);
     if (!card) return;
 
-    let container = card.querySelector('.space-y-1');
+    let container = card.querySelector('.space-y-1.5') || card.querySelector('.space-y-1');
     if (!container) {
         const hr = document.createElement('div');
-        hr.className = 'mt-2.5 pt-2.5 border-t border-white/5 space-y-1';
+        hr.className = 'mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-1.5';
         card.appendChild(hr);
         container = hr;
     }
 
     const stepEl = document.createElement('div');
-    stepEl.className = 'flex items-center gap-1.5 animate-fade-in';
+    stepEl.className = 'flex items-center gap-2.5 animate-fade-in opacity-75';
     stepEl.innerHTML = `
-        <i class="fas fa-caret-right text-[6px] text-indigo-500"></i>
-        <span class="text-[7px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest">${step}</span>
+        <span class="text-indigo-500 text-[10px]">▶</span>
+        <span class="text-[9px] font-bold text-slate-650 dark:text-slate-400 uppercase tracking-widest leading-none">${step}</span>
     `;
     container.appendChild(stepEl);
 };
 
 export const completeSyncNotification = (moduleName) => {
-    const hud = document.getElementById('xolvy-notifications-hud');
-    if (!hud) return;
-    const cards = Array.from(hud.children);
-    const card = cards.find(c => c.innerText.includes(moduleName) || c.innerText.includes('XOLVY WORKFLOW'));
+    const hudTop = document.getElementById('xolvy-notifications-top');
+    const hudHud = document.getElementById('xolvy-notifications-hud');
+    const cards = [];
+    if (hudTop) cards.push(...Array.from(hudTop.children));
+    if (hudHud) cards.push(...Array.from(hudHud.children));
+    const card = cards.find(c => c.innerText.includes(moduleName) || c.innerText.includes('WORKFLOW'));
 
     if (card) {
-        card.className = 'bg-white/95 dark:bg-[#0f231e]/95 border-emerald-500/20 dark:border-emerald-500/30 border backdrop-blur-3xl px-5 py-3.5 rounded-2xl shadow-2xl dark:shadow-[0_20px_50px_rgba(16,185,129,0.3)] flex flex-col gap-1 animate-slide-left pointer-events-auto transform transition-all duration-700';
+        card.className = 'bg-white/90 dark:bg-slate-900/90 border-emerald-100/50 dark:border-emerald-500/10 border backdrop-blur-xl px-6 py-4.5 rounded-[2rem] shadow-[0_20px_50px_rgba(16,185,129,0.15)] flex flex-col gap-1.5 animate-slide-left pointer-events-auto transform transition-all duration-700';
 
         // Cleanup workflow logs
         const workflowDiv = card.querySelector('.border-t');
         if (workflowDiv) workflowDiv.remove();
 
-        const iconWrap = card.querySelector('.w-10');
+        const iconWrap = card.querySelector('.w-11') || card.querySelector('.w-10');
         if (iconWrap) {
-            iconWrap.className = 'w-10 h-10 bg-emerald-500/10 dark:bg-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-inner scale-110 transition-transform';
+            iconWrap.className = 'w-11 h-11 bg-emerald-50 dark:bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 dark:text-emerald-400 shadow-sm scale-105 transition-transform duration-350';
             iconWrap.innerHTML = '<i class="fas fa-check text-lg"></i>';
         }
         const label = card.querySelector('span');
         if (label) {
             label.innerText = 'WORKFLOW FINALIZADO';
-            label.className = 'text-[8px] font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-[0.25em]';
+            label.className = 'text-[9px] font-black text-emerald-500 dark:text-emerald-400 uppercase tracking-[0.25em]';
         }
         const title = card.querySelector('h4');
         if (title) {
             title.innerText = moduleName + ' al día';
-            title.className = 'text-[11px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-tight leading-none';
+            title.className = 'text-xs font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-tight leading-none';
         }
 
         setTimeout(() => {
-            card.classList.add('opacity-0', 'translate-x-[100px]', 'scale-90');
+            card.classList.add('opacity-0', 'translate-y-[-50px]', 'scale-90', 'blur-sm');
             setTimeout(() => card.remove(), 700);
         }, 3000);
     }
 };
 
-/**
- * Generates a simple Excel-compatible XLS (XML) file from an array of objects
- */
 export const generatePlainXLS = (data, fileName) => {
     if (!data || data.length === 0) return;
 

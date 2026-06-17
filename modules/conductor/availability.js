@@ -28,43 +28,63 @@ export const renderAvailabilitySection = async (container, currentUserName) => {
     const turnos = ['mañana', 'tarde', 'noche'];
 
     container.innerHTML = `
-        <div class="animate-fade-in space-y-2">
-            <!-- Compact Single Card Grid -->
-            <div class="modern-card bg-slate-50/50 dark:bg-white/[0.02] border-slate-200 dark:border-white/5 p-4 md:p-6">
-                <!-- Header Labels -->
-                <div class="grid grid-cols-4 gap-2 mb-4 px-4 opacity-50">
-                    <div class="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">Día</div>
-                    <div class="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 text-center">Mañana</div>
-                    <div class="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 text-center">Tarde</div>
-                    <div class="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 text-center">Noche</div>
+        <div class="animate-fade-in space-y-6 max-w-3xl mx-auto w-full">
+            <!-- Grid Header Labels -->
+            <div class="grid grid-cols-4 gap-4 px-6 py-3 bg-slate-50/50 dark:bg-black/10 rounded-2xl border border-slate-150/40 dark:border-white/5">
+                <div class="text-[10px] font-black uppercase tracking-[0.25em] text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
+                    <i class="fas fa-calendar-day text-[9px]"></i> Día
                 </div>
-
-                <div class="space-y-1">
-                    ${dias.map(dia => {
-        const dayDisp = currentDisp[dia] || [];
-        return `
-                            <div class="grid grid-cols-4 gap-2 items-center p-3 hover:bg-white dark:hover:bg-white/5 rounded-2xl transition-all group border border-transparent hover:border-slate-200 dark:hover:border-white/5">
-                                <span class="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest group-hover:text-primary transition-colors">${dia.substring(0, 3)}<span class="hidden sm:inline">${dia.substring(3)}</span></span>
-                                
-                                ${turnos.map(turno => {
-            const isChecked = dayDisp.includes(turno);
-            return `
-                                        <div class="flex justify-center">
-                                            <label class="relative inline-flex items-center cursor-pointer group">
-                                                <input type="checkbox" data-dia="${dia}" data-turno="${turno}" ${isChecked ? 'checked' : ''} class="peer sr-only">
-                                                <div class="w-10 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-emerald-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
-                                            </label>
-                                        </div>
-                                    `;
-        }).join('')}
-                            </div>
-                        `;
-    }).join('')}
+                <div class="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400 text-center flex items-center justify-center gap-1.5">
+                    <i class="fas fa-sun text-[10px] text-amber-500 animate-spin-slow"></i> Mañana
+                </div>
+                <div class="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400 text-center flex items-center justify-center gap-1.5">
+                    <i class="fas fa-cloud-sun text-[10px] text-orange-500"></i> Tarde
+                </div>
+                <div class="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400 text-center flex items-center justify-center gap-1.5">
+                    <i class="fas fa-moon text-[10px] text-indigo-500 animate-pulse"></i> Noche
                 </div>
             </div>
 
+            <!-- Day Rows -->
+            <div class="space-y-3">
+                ${dias.map(dia => {
+                    const dayDisp = currentDisp[dia] || [];
+                    return `
+                        <div class="grid grid-cols-4 gap-4 items-center p-4 bg-white/40 dark:bg-slate-900/10 backdrop-blur-md border border-slate-150/30 dark:border-white/5 rounded-3xl transition-all duration-300 hover:bg-white/80 dark:hover:bg-slate-900/30 hover:border-indigo-500/20 hover:shadow-lg group">
+                            <span class="text-xs font-black uppercase text-slate-700 dark:text-slate-200 tracking-widest group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors pl-2">
+                                ${dia.substring(0, 3)}<span class="hidden sm:inline">${dia.substring(3)}</span>
+                            </span>
+                            
+                            ${turnos.map(turno => {
+                                const isChecked = dayDisp.includes(turno);
+                                const icon = turno === 'mañana' ? 'fa-sun' : (turno === 'tarde' ? 'fa-cloud-sun' : 'fa-moon');
+                                const styling = turno === 'mañana'
+                                    ? 'peer-checked:bg-gradient-to-r peer-checked:from-amber-400 peer-checked:to-orange-500 peer-checked:shadow-amber-500/20 text-amber-600 dark:text-amber-450 hover:bg-amber-500/5 hover:border-amber-500/30'
+                                    : turno === 'tarde'
+                                    ? 'peer-checked:bg-gradient-to-r peer-checked:from-orange-400 peer-checked:to-rose-500 peer-checked:shadow-orange-500/20 text-orange-600 dark:text-orange-450 hover:bg-orange-500/5 hover:border-orange-500/30'
+                                    : 'peer-checked:bg-gradient-to-r peer-checked:from-indigo-500 peer-checked:to-purple-600 peer-checked:shadow-indigo-500/20 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/5 hover:border-indigo-500/30';
+
+                                return `
+                                    <div class="flex justify-center">
+                                        <label class="cursor-pointer select-none w-full max-w-[120px]">
+                                            <input type="checkbox" data-dia="${dia}" data-turno="${turno}" ${isChecked ? 'checked' : ''} class="peer sr-only">
+                                            <div class="flex items-center justify-center gap-2 py-3 rounded-2xl border text-[9px] sm:text-[10px] font-black uppercase tracking-wider transition-all duration-300 peer-checked:text-white peer-checked:scale-105 peer-checked:border-transparent peer-checked:shadow-lg bg-slate-50/60 dark:bg-white/5 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-white/10 hover:scale-[1.02] ${styling}">
+                                                <i class="fas ${icon} text-[10px] sm:text-[12px] shrink-0"></i>
+                                                <span class="hidden sm:inline">${turno}</span>
+                                                <span class="inline sm:hidden">${turno.substring(0,3)}</span>
+                                            </div>
+                                        </label>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+
+            <!-- Save Action Button -->
             <div class="flex justify-center pt-4">
-                <button id="btn-save-disp" class="w-full max-w-xs bg-emerald-500 hover:bg-emerald-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] shadow-xl shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-3">
+                <button id="btn-save-disp" class="btn-pro w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white py-5 rounded-[2rem] font-black text-[12px] uppercase tracking-[0.25em] shadow-xl shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-3">
                     <i class="fas fa-save shadow-lg"></i> Guardar Disponibilidad
                 </button>
             </div>

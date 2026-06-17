@@ -23,6 +23,16 @@ export const renderFullProgramaCards = (programa, container, territoryMap = {}, 
         return;
     }
 
+    const hasVisibleContent = (sData) => {
+        return sData && sData.enabled !== false && (
+            (sData.conductor && sData.conductor.trim() && sData.conductor.trim() !== '—') ||
+            (sData.territorio && sData.territorio.trim() && sData.territorio.trim() !== '—') ||
+            (sData.lugar && sData.lugar.trim() && sData.lugar.trim() !== '—') ||
+            (sData.hora && sData.hora.trim() && sData.hora.trim() !== '—') ||
+            (sData.faceta && sData.faceta.trim() && sData.faceta.trim() !== '—')
+        );
+    };
+
     let html = `
         <div class="col-span-full animate-fade-in">
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
@@ -33,12 +43,10 @@ export const renderFullProgramaCards = (programa, container, territoryMap = {}, 
         const d = (programa.dias || []).find(x => x.nombre === dayName);
         if (!d) return '';
 
-        // Check if day has any visible shift
+        // Check if day has any visible shift with activity content
         const hasVisibleData = shifts.some(s => {
-            if (!activeTurns.has(s)) return false;
             const sData = d[s];
-            if (sData && sData.enabled === false) return false;
-            return sData && (sData.conductor || sData.lugar || sData.hora);
+            return hasVisibleContent(sData);
         });
 
         if (!hasVisibleData) {
@@ -57,7 +65,7 @@ export const renderFullProgramaCards = (programa, container, territoryMap = {}, 
                         <div class="flex justify-between items-center border-b border-slate-100 dark:border-white/5 pb-4">
                             <div>
                                 <h3 class="font-black text-xl text-slate-800 dark:text-white tracking-tighter uppercase leading-none mb-1">${dayName}</h3>
-                                <span class="text-[8px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest mt-1">${d?.fecha ? d.fecha.split('-').reverse().join('/') : '-'}</span>
+                                <span class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest mt-1">${d?.fecha ? d.fecha.split('-').reverse().join('/') : '-'}</span>
                             </div>
                             <div class="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-500">
                                 <i class="fas fa-calendar-day"></i>
@@ -65,10 +73,8 @@ export const renderFullProgramaCards = (programa, container, territoryMap = {}, 
                         </div>
                         <div class="space-y-4">
                             ${shifts.map(shift => {
-            if (!activeTurns.has(shift)) return '';
             const sData = d ? d[shift] : null;
-            if (!sData || sData.enabled === false) return '';
-            if (!sData.conductor && !sData.lugar) return '';
+            if (!hasVisibleContent(sData)) return '';
 
             const isConductor = sData.conductor === currentConductorName;
             const isAuxiliar = sData.auxiliar === currentConductorName;
@@ -79,12 +85,12 @@ export const renderFullProgramaCards = (programa, container, territoryMap = {}, 
                                     <div class="flex items-center justify-between gap-2 mb-3">
                                         <div class="flex items-center gap-2">
                                             <i class="fas ${shiftIcons[shift]} ${shiftColors[shift]} text-[10px]"></i>
-                                            <span class="text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">${shiftLabels[shift]}</span>
+                                            <span class="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">${shiftLabels[shift]}</span>
                                         </div>
                                         ${sData.hora ? `
-                                        <div class="flex items-center gap-1.5 px-2 py-0.5 bg-slate-100 dark:bg-white/5 rounded-full border border-slate-200/50 dark:border-white/5">
-                                            <i class="far fa-clock text-[8px] text-slate-600 dark:text-slate-400"></i>
-                                            <span class="text-[9px] font-black text-slate-600 dark:text-slate-400 tabular-nums">${sData.hora}</span>
+                                        <div class="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 dark:bg-white/5 rounded-full border border-slate-200/50 dark:border-white/5">
+                                            <i class="far fa-clock text-[10px] text-slate-600 dark:text-slate-400"></i>
+                                            <span class="text-[11px] font-black text-slate-600 dark:text-slate-400 tabular-nums">${sData.hora}</span>
                                         </div>` : ''}
                                     </div>
                                     
@@ -94,11 +100,11 @@ export const renderFullProgramaCards = (programa, container, territoryMap = {}, 
                                                 <i class="fas fa-map-marker-alt text-slate-700 dark:text-slate-300 mt-1 text-[8px]"></i>
                                                 <p class="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase leading-snug">${sData.lugar}</p>
                                             </div>` : ''}
-
+ 
                                         <div class="grid grid-cols-1 gap-1.5">
                                             <div class="flex items-center gap-2">
-                                                <div class="w-1 h-3 ${isConductor ? 'bg-primary' : 'bg-slate-300'} rounded-full"></div>
-                                                <span class="text-[10px] font-black ${isConductor ? 'text-primary' : 'text-slate-700 dark:text-slate-200'} truncate uppercase">${sData.conductor || '—'}</span>
+                                                <div class="w-1 h-3 ${isConductor ? 'bg-indigo-600 dark:bg-indigo-400' : 'bg-slate-300'} rounded-full"></div>
+                                                <span class="text-[10px] font-black ${isConductor ? 'text-indigo-600 dark:text-indigo-400 font-extrabold' : 'text-slate-700 dark:text-slate-200'} truncate uppercase">${sData.conductor || '—'}</span>
                                             </div>
                                             ${sData.auxiliar ? `
                                             <div class="flex items-center gap-2">
@@ -106,34 +112,69 @@ export const renderFullProgramaCards = (programa, container, territoryMap = {}, 
                                                 <span class="text-[8px] font-bold ${isAuxiliar ? 'text-indigo-500' : 'text-slate-600 dark:text-slate-400'} truncate uppercase">${sData.auxiliar}</span>
                                             </div>` : ''}
                                         </div>
-
+ 
                                         <div class="mt-2 pt-2 border-t border-black/5 dark:border-white/5 space-y-2">
-                                            <div class="flex flex-wrap gap-1">
-                                                ${isConductor ? `
-                                                    <div class="flex items-center gap-1">
-                                                        <button onclick="window.openTerritorySelector(${dayIdx}, '${shift}', this)" 
-                                                                data-current="${sData.territorio || ''}"
-                                                                class="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-white/10 hover:border-primary/50 transition-all group/tbtn shadow-sm">
-                                                            <i class="fas fa-map-location-dot text-[10px] text-primary/40 group-hover/tbtn:text-primary transition-colors"></i>
-                                                            <span class="text-[10px] font-black ${sData.territorio ? 'text-primary' : 'text-slate-600 dark:text-slate-400 opacity-40'} truncate max-w-[100px] uppercase">
-                                                                ${sData.territorio || 'Seleccionar...'}
-                                                            </span>
-                                                        </button>
-                                                        ${sData.territorio ? `<button onclick="window.abrirMapaTerritorio('${String(sData.territorio).split(/[,;/]/)[0].trim()}')" class="p-1 text-blue-600 hover:bg-blue-100 rounded ml-2" title="Ver mapa"><i class="fas fa-map-marked-alt"></i></button>` : ''}
-                                                    </div>
-                                                ` : `
-                                                    ${sData.territorio ? Array.from(new Set(String(sData.territorio).split(/[,;/]/).map(t => t.trim()).filter(Boolean))).map(t => `
-                                                        <span class="flex items-center gap-1.5 px-2 py-1 bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400 rounded-lg border border-slate-200 dark:border-white/10">
-                                                            <span class="text-[10px] font-black uppercase">${t}</span>
-                                                            <button onclick="window.abrirMapaTerritorio('${t}')" class="p-1 text-blue-600 hover:bg-blue-100 rounded ml-2" title="Ver mapa"><i class="fas fa-map-marked-alt"></i></button>
-                                                        </span>
-                                                    `).join('') : '<span class="text-[9px] font-black text-slate-700 dark:text-slate-300 uppercase italic opacity-40">Libre</span>'}
-                                                `}
+                                            <div class="flex flex-wrap gap-1.5 items-center">
+                                                ${(() => {
+                                                    const territoriesList = sData.territorio ? Array.from(new Set(String(sData.territorio).split(/[,;/]/).map(t => t.trim()).filter(Boolean))) : [];
+                                                    let chipHtml = '';
+                                                    
+                                                    if (territoriesList.length > 0) {
+                                                        chipHtml += territoriesList.map(t => {
+                                                            const dropId = `dropdown-prog-${dayIdx}-${shift}-${t}`.replace(/\s+/g, '-');
+                                                            return `
+                                                            <div class="relative inline-block text-left">
+                                                                <button onclick="window.toggleTerritoryDropdown(event, '${dropId}')" 
+                                                                        class="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-white/10 hover:border-indigo-500/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all group/tbtn shadow-sm select-none">
+                                                                    <span class="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">${t}</span>
+                                                                    <i class="fas fa-map-marked-alt text-[10px] text-indigo-500 group-hover/tbtn:scale-110 transition-transform"></i>
+                                                                </button>
+                                                                <!-- Dropdown Menu -->
+                                                                <div id="${dropId}" class="hidden absolute left-0 mt-1.5 w-28 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl shadow-xl z-50 overflow-hidden animate-fade-in">
+                                                                    <button onclick="window.abrirMapaTerritorio('${t}', 'satelital')" class="w-full text-left px-3 py-2 text-[10px] font-black text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors flex items-center gap-2 border-b border-slate-100 dark:border-white/5">
+                                                                        <i class="fas fa-satellite text-indigo-500 text-[10px]"></i> Mapa
+                                                                    </button>
+                                                                    <button onclick="window.abrirMapaTerritorio('${t}', 'croquis')" class="w-full text-left px-3 py-2 text-[10px] font-black text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors flex items-center gap-2">
+                                                                        <i class="fas fa-map text-indigo-500 text-[10px]"></i> Croquis
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                            `;
+                                                        }).join('');
+                                                        
+                                                        if (isConductor) {
+                                                            chipHtml += `
+                                                            <button onclick="window.openTerritorySelector(${dayIdx}, '${shift}', this)" 
+                                                                    data-current="${sData.territorio || ''}"
+                                                                    class="flex items-center justify-center w-7 h-7 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-white/10 hover:border-indigo-500/50 hover:bg-slate-100 dark:hover:bg-slate-700 text-indigo-600 dark:text-indigo-400 transition-all shadow-sm shrink-0"
+                                                                    title="Modificar Territorios">
+                                                                <i class="fas fa-pen-to-square text-[10px]"></i>
+                                                            </button>
+                                                            `;
+                                                        }
+                                                    } else {
+                                                        if (isConductor) {
+                                                            chipHtml = `
+                                                            <button onclick="window.openTerritorySelector(${dayIdx}, '${shift}', this)" 
+                                                                    data-current=""
+                                                                    class="flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-white/10 hover:border-indigo-500/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all group/tbtn shadow-sm">
+                                                                <i class="fas fa-map-location-dot text-[10px] text-slate-400 dark:text-slate-500 opacity-60 group-hover/tbtn:text-indigo-600 transition-colors"></i>
+                                                                <span class="text-[10px] font-black text-slate-500 dark:text-slate-400 truncate max-w-[100px] uppercase">
+                                                                    Asignar...
+                                                                </span>
+                                                            </button>
+                                                            `;
+                                                        } else {
+                                                            chipHtml = `<span class="text-[9px] font-black text-slate-700 dark:text-slate-300 uppercase italic opacity-40">Libre</span>`;
+                                                        }
+                                                    }
+                                                    return chipHtml;
+                                                })()}
                                             </div>
                                             ${sData.faceta ? `
-                                            <div class="flex items-center gap-1.5 opacity-60">
-                                                <i class="fas fa-bullhorn text-[8px] text-primary"></i>
-                                                <span class="text-[9px] font-black text-primary uppercase tracking-tight">${sData.faceta}</span>
+                                            <div class="flex items-center gap-1.5 mt-2">
+                                                <i class="fas fa-bullhorn text-[10px] text-indigo-500 dark:text-indigo-400"></i>
+                                                <span class="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-tight">${sData.faceta}</span>
                                             </div>
                                             ` : ''}
                                         </div>

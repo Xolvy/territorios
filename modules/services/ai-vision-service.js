@@ -3,7 +3,8 @@
  * @description Nexo AI — Servicio de extracción de datos mediante Gemini Vision API
  */
 
-import { getConfiguracion } from '../../data/firestore-services.js';
+import { functions } from '../../firebase-config.js';
+import { httpsCallable } from 'firebase/functions';
 
 /**
  * Procesa una imagen del programa semanal usando la API de Gemini Vision
@@ -12,20 +13,10 @@ import { getConfiguracion } from '../../data/firestore-services.js';
  */
 export const extractProgramFromImage = async (file) => {
     try {
-        const config = await getConfiguracion();
-        const apiKey = config.gemini_api_key || config.gemini_key;
-
-        if (!apiKey) {
-            throw new Error("API Key de Gemini no encontrada en la configuración del sistema.");
-        }
-
         // Convertir imagen a Base64
         const base64Image = await fileToBase64(file);
         const base64Data = base64Image.split(',')[1];
         const mimeType = file.type;
-
-        // Migración a Gemini 2.5 Flash (Versión 1.5 deprecada)
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
         const prompt = `Analiza esta imagen del programa de predicación semanal y extrae TODOS los datos.
 
@@ -39,34 +30,23 @@ REGLAS CRÍTICAS:
 7. Si menciona "Zoom", "Telefónica" o "Carta", el turno DEBE ser "ZOOM".
 8. Si una celda está vacía, usa "".`;
 
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
+        const askNexoAICallable = httpsCallable(functions, 'askNexoAI');
+        const response = await askNexoAICallable({
+            prompt: prompt,
+            generationConfig: {
+                temperature: 0.1,
+                topP: 0.8,
+                responseMimeType: "application/json"
             },
-            body: JSON.stringify({
-                contents: [
-                    {
-                        parts: [
-                            { text: prompt },
-                            {
-                                inline_data: {
-                                    mime_type: mimeType,
-                                    data: base64Data
-                                }
-                            }
-                        ]
-                    }
-                ]
-            })
+            image: {
+                inlineData: {
+                    mimeType: mimeType,
+                    data: base64Data
+                }
+            }
         });
 
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error?.message || "Error en la petición a Gemini API");
-        }
-
-        const data = await response.json();
+        const data = response.data;
         const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
         // Extraer el JSON del texto (a veces Gemini lo envuelve en bloques ```json)

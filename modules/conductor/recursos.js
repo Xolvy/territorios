@@ -41,7 +41,7 @@ export const renderRecursosSection = (container) => {
                 <i class="fas ${r.icon}"></i>
             </div>
             <div class="flex-1 min-w-0">
-                <h4 class="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-tight group-hover:text-primary transition-colors line-clamp-2">${r.title}</h4>
+                <h4 class="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-2">${r.title}</h4>
                 <p class="text-[8px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-widest mt-1 opacity-80">Recurso de Ayuda</p>
             </div>
         </div>
@@ -237,7 +237,19 @@ export const renderRecursosSection = (container) => {
                     const step = steps[index];
                     const target = document.getElementById(step.id);
 
-                    if (!target || target.offsetParent === null) {
+                    if (!target) {
+                        return goToStep(index + 1);
+                    }
+
+                    // Auto-expand details tags so the content is visible and layout recalculates correctly
+                    const details = target.querySelector('details') || target.closest('details');
+                    if (details) {
+                        details.open = true;
+                    }
+                    const innerDetails = target.querySelectorAll('details');
+                    innerDetails.forEach(det => det.open = true);
+
+                    if (target.offsetParent === null) {
                         return goToStep(index + 1);
                     }
 
@@ -252,10 +264,10 @@ export const renderRecursosSection = (container) => {
                         highlightBox.style.width = `${rect.width + 20}px`;
                         highlightBox.style.height = `${rect.height + 20}px`;
 
-                        // Contenido del Tooltip
+                        // Contenido del Tooltip (Corregidos estilos CSS inline inválidos)
                         tooltip.innerHTML = `
                             <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                                <div style="width: 40px; height: 40px; background: rgba(79, 70, 229, 0.1); color: #4F46E5; border-radius: 12px; display: flex; align-items: center; justify-center; font-size: 20px;">
+                                <div style="width: 40px; height: 40px; background: rgba(79, 70, 229, 0.1); color: #4F46E5; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
                                     <i class="fas fa-robot"></i>
                                 </div>
                                 <strong style="color: #4F46E5; font-size: 16px; text-transform: uppercase; letter-spacing: -0.5px;">🤖 Nexo:</strong>
@@ -263,7 +275,7 @@ export const renderRecursosSection = (container) => {
                             <h4 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 900; color: #1e293b; text-transform: uppercase;">${step.title}</h4>
                             <p style="margin: 0; font-size: 13px; color: #64748b; font-weight: 500; line-height: 1.6;">${step.text}</p>
                             
-                            <div style="display: flex; justify-between; align-items: center; margin-top: 24px; gap: 15px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px; gap: 15px;">
                                 <span style="font-size: 10px; font-weight: 900; color: #cbd5e1; text-transform: uppercase; letter-spacing: 1px;">${index + 1} / ${steps.length}</span>
                                 <div style="display: flex; gap: 8px; margin-left: auto;">
                                     <button id="nexo-tour-skip" style="background: none; border: none; font-size: 10px; font-weight: 900; color: #94a3b8; cursor: pointer; text-transform: uppercase; padding: 8px;">Saltar</button>

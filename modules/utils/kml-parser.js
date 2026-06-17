@@ -130,7 +130,7 @@ export const extractMultiLeafletCoords = (territory) => {
 };
 
 
-const waitForLeaflet = () => {
+export const waitForLeaflet = () => {
     return new Promise((resolve) => {
         if (typeof L !== 'undefined') return resolve(L);
         const interval = setInterval(() => {

@@ -4,7 +4,7 @@ import { onAuthStateChanged, signInAnonymously, getRedirectResult } from "fireba
 import { doc, onSnapshot } from "firebase/firestore";
 import { getPermisosUsuario, migrateConductoresToPublicadores, autoCleanTelefonosData } from './data/firestore-services.js';
 import { initTheme } from './modules/utils/theme-manager.js';
-import { initUpdateManager } from './modules/utils/update-manager.js';
+import { initUpdateManager, stopUpdateManager } from './modules/utils/update-manager.js';
 import { moduleRegistry } from './modules/utils/module-registry.js';
 import { XolvyAdaptive } from './modules/utils/adaptive.js';
 import { VisualEngine } from './modules/utils/visual-engine.js';
@@ -60,11 +60,11 @@ if (window.location.search.includes('rescue')) {
 // Initialize Visual Ecosystem
 VisualEngine.applyGlobalEcosystem();
 
-// Initialize Module Registry
-moduleRegistry.init();
+// Initialize Module Registry (Deferred until authentication and user binding to avoid permission-denied errors)
+// moduleRegistry.init();
 
 // The version is injected by Vite at build time (Core Shell Version)
-const APP_VERSION = "3.1.0";
+const APP_VERSION = "3.8.2";
 window.XolvyApp = { user: null, version: APP_VERSION };
 
 // --- XOLVY MODULAR: MICRO-MODULE ENGINE ---
@@ -110,8 +110,10 @@ const loadConductor = async () => {
 
 
 // --- DIFFUSION LISTENER ---
+let unsubDiffusion = null;
 const initDiffusionListener = () => {
-    onSnapshot(doc(db, "configuracion", "diffusion_active"), (docSnap) => {
+    if (unsubDiffusion) return; // Prevent duplicate listeners
+    unsubDiffusion = onSnapshot(doc(db, "configuracion", "diffusion_active"), (docSnap) => {
         let banner = document.getElementById('global-diffusion-banner');
         if (docSnap.exists() && docSnap.data().active) {
             const data = docSnap.data();
@@ -126,7 +128,18 @@ const initDiffusionListener = () => {
         } else {
             if (banner) banner.remove();
         }
+    }, (error) => {
+        console.warn("⚠️ [Diffusion] Error in diffusion listener:", error);
     });
+};
+
+const stopDiffusionListener = () => {
+    if (unsubDiffusion) {
+        unsubDiffusion();
+        unsubDiffusion = null;
+    }
+    const banner = document.getElementById('global-diffusion-banner');
+    if (banner) banner.remove();
 };
 
 // Initialization
@@ -135,15 +148,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 1. App Loading State: Prevenir renderizado errático durante inicialización y checkeo asíncrono
     appContainer.innerHTML = `
-        <div class="flex flex-col items-center justify-center min-h-screen bg-slate-50 animate-fade-in w-full max-w-[100vw] px-4 box-border" style="min-height: 100vh; min-height: 100dvh;">
-            <div class="w-10 h-10 border-4 border-indigo-500/10 border-t-indigo-500 rounded-full animate-spin mx-auto mb-6 shadow-sm"></div>
-            <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 animate-pulse">Verificando credenciales...</p>
+        <div class="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-white dark:from-[#02040f] dark:via-[#050819] dark:to-[#02020a] text-slate-800 dark:text-slate-200 animate-fade-in w-full max-w-[100vw] px-4 box-border" style="min-height: 100vh; min-height: 100dvh;">
+            <div class="relative overflow-hidden w-full max-w-sm p-12 backdrop-blur-2xl bg-white/40 dark:bg-white/[0.03] border border-slate-200/50 dark:border-white/10 rounded-[3rem] shadow-2xl flex flex-col items-center justify-center gap-6">
+                <!-- Ambient Spotlights -->
+                <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.12),transparent_40%)] opacity-80 pointer-events-none"></div>
+                
+                <div class="relative z-10 flex flex-col items-center gap-6 text-center">
+                    <!-- Premium Spinning Indicator -->
+                    <div class="relative w-16 h-16 flex items-center justify-center shrink-0">
+                        <div class="absolute w-12 h-12 rounded-full border border-indigo-500/30 dark:border-indigo-400/20 animate-ping"></div>
+                        <div class="w-14 h-14 rounded-full border-[3px] border-indigo-500/10 dark:border-white/5 border-t-indigo-600 dark:border-t-indigo-400 animate-spin" style="animation-duration: 0.8s;"></div>
+                    </div>
+                    
+                    <!-- Elegant Minimalist Label -->
+                    <span class="text-[9px] font-black uppercase tracking-[0.4em] text-indigo-600/70 dark:text-indigo-400/70 animate-pulse">Conectando</span>
+                </div>
+            </div>
         </div>
     `;
 
     initTheme();
-    initUpdateManager();
-    initDiffusionListener();
+    // initUpdateManager(); (Deferred until authentication and user binding to avoid permission-denied errors)
     XolvyAdaptive.init();
 
     // 2. Interceptar getRedirectResult sin bloquear el listener global
@@ -158,6 +183,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     const handleAuthChange = async (user) => {
+        // --- UNCONDITIONAL POOL CLEANUP (LP-01, LP-02) ---
+        if (typeof window.stopActiveLivePools === 'function') {
+            try {
+                window.stopActiveLivePools();
+            } catch (e) {
+                console.error("Error stopping active conductor pools:", e);
+            }
+        }
+        if (typeof window.stopAdminLivePools === 'function') {
+            try {
+                window.stopAdminLivePools();
+            } catch (e) {
+                console.error("Error stopping active admin pools:", e);
+            }
+        }
+
         // ═══════════════════════════════════════════════════════════
         // XOLVY SECURITY v4.0 — ZERO TRUST AUTH HANDLER
         // ═══════════════════════════════════════════════════════════
@@ -174,6 +215,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!user) {
             if (window._authSuspended || window._adminAuthSuspended) return;
 
+            stopDiffusionListener();
+            moduleRegistry.stop();
+            stopUpdateManager();
+
             // Protection for Conductors: If there's a local session hint, 
             // trigger anonymous auth + Firestore validation (NOT localStorage role check)
             if (tieneSesionLocal) {
@@ -185,6 +230,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                     try {
                         const identity = await IdentityShield.resolveAndBindIdentity(session?.nombre || session?.email || 'Usuario');
                         if (identity.docId) {
+                            // Initialize diffusion, HMS, and update listeners now that we are authenticated and bound
+                            initDiffusionListener();
+                            moduleRegistry.init();
+                            initUpdateManager();
+
                             // Validated against Firestore — safe to render
                             const render = await loadConductor();
                             render(appContainer, identity.nombreCanonico, APP_VERSION, identity.rol || 'Conductor');
@@ -242,11 +292,26 @@ document.addEventListener('DOMContentLoaded', async () => {
                         return;
                     }
 
+                    // Initialize diffusion, HMS, and update listeners now that we are authenticated and bound
+                    initDiffusionListener();
+                    moduleRegistry.init();
+                    initUpdateManager();
+
                     const render = await loadConductor();
                     render(appContainer, identity.nombreCanonico, APP_VERSION, identity.rol || 'Conductor');
                     return;
                 } else {
-                    // Anonymous but no conductor session? Something is wrong, back to login.
+                    // Anonymous but no conductor session? 
+                    // If we are currently showing the login screen / selection modal, DO NOT sign out!
+                    // This allows anonymous session to remain active so the user can read the directory list.
+                    const isConductorModalOpen = !!document.getElementById('conductor-modal');
+                    const isLoginView = !!document.getElementById('btn-google-login');
+                    
+                    if (isConductorModalOpen || isLoginView) {
+                        console.log("🛡️ [Auth] Anonymous session active for directory query.");
+                        return;
+                    }
+
                     console.warn("⚠️ [Auth] Sesión anónima sin rol de Conductor. Redirigiendo.");
                     await auth.signOut();
                     return;
@@ -258,14 +323,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             const permisos = await getPermisosUsuario(user.email);
             let role = permisos?.role; 
 
-            // Integración de Identity Shield para Admins/Usuarios Autenticados
+            // Integración de Identity Shield Directa para Admins/Usuarios Autenticados
             try {
                 const IdentityService = await import('./data/services/identity-service.js');
-                const identitySearchKey = permisos?.nombre || user.email;
-                window.XolvyApp.identity = await IdentityService.IdentityShield.resolveAndBindIdentity(identitySearchKey);
+                window.XolvyApp.identity = await IdentityService.IdentityShield.bindSessionDirect(
+                    user.uid,
+                    permisos.id,
+                    permisos.nombre,
+                    role
+                );
             } catch (identityError) {
-                console.warn("[Identity] Shield fallback activo", identityError);
+                console.error("🛡️ [Security Shield] Falló la vinculación de la sesión del administrador:", identityError);
             }
+
+            // Initialize diffusion, HMS, and update listeners now that we are authenticated and bound
+            initDiffusionListener();
+            moduleRegistry.init();
+            initUpdateManager();
 
             // Actualizar estado global (from Firestore, not localStorage)
             window.XolvyApp.user = {
@@ -286,6 +360,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 `;
                 return;
             }
+
+            // Run system maintenance hooks now that we have verified active credentials
+            migrateConductoresToPublicadores();
+            autoCleanTelefonosData();
 
             // 2.3 Dashboard Routing (role from Firestore ONLY)
             const isAdmin = (role === 'Administrador' || role === 'SuperAdmin');
@@ -434,13 +512,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         localStorage.setItem('last_app_version', APP_VERSION);
     }
 
-    // Xolvy Automation: System Maintenance Hooks
-    migrateConductoresToPublicadores();
-
-    // AutoClean runs in background without freezing the UI. 
-    // Triggers daily unconditionally to guarantee phone database health 
-    // even if Admin never logs in.
-    autoCleanTelefonosData();
+    // Xolvy Automation: System Maintenance Hooks 
+    // (Migrated to execute safely post-authentication inside handleAuthChange)
 
     let authResolved = false;
 
@@ -491,12 +564,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         const btn = e.target.closest('#logout-btn');
         if (btn && window.location.pathname.startsWith('/conductores')) {
             console.log("👋 [Logout] Cerrando sesión de Conductor...");
+            
+            // Unconditionally stop active pools on logout
+            if (typeof window.stopActiveLivePools === 'function') {
+                try { window.stopActiveLivePools(); } catch (err) {}
+            }
+            if (typeof window.stopAdminLivePools === 'function') {
+                try { window.stopAdminLivePools(); } catch (err) {}
+            }
+
             localStorage.removeItem('xolvy_session');
             localStorage.removeItem('selected_conductor_name');
             
             // Limpiar la URL y recargar para volver al Login puro
             window.history.replaceState({}, '', '/conductores'); 
             window.location.reload();
+        }
+    });
+
+    // --- HOOK DE DESTRUCCIÓN UNCONDITIONAL (LP-01) ---
+    window.addEventListener('beforeunload', () => {
+        if (typeof window.stopActiveLivePools === 'function') {
+            try { window.stopActiveLivePools(); } catch (err) {}
+        }
+        if (typeof window.stopAdminLivePools === 'function') {
+            try { window.stopAdminLivePools(); } catch (err) {}
         }
     });
 });

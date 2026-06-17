@@ -6,35 +6,23 @@
 import Swal from 'sweetalert2';
 
 // ─── THEME FOUNDATION ─────────────────────────────────────────────────────────
-const isDark = () => document.documentElement.classList.contains('dark');
-
+// We use pure Tailwind responsive modifiers (dark:bg-slate-900/90, etc.)
+// to ensure the alert components instantly and reactively adapt to theme changes.
 const BASE_CLASSES = {
-    popup: [
-        'modern-card',
-        '!rounded-[2rem]',
-        '!p-0',
-        '!overflow-hidden',
-        '!border',
-        isDark() ? '!border-white/10' : '!border-slate-200 dark:border-slate-700',
-        '!shadow-[0_60px_120px_-20px_rgba(0,0,0,0.6)]',
-        '!backdrop-blur-3xl',
-        isDark() ? '!bg-slate-900/90' : '!bg-white/95',
-    ].join(' '),
-    htmlContainer: '!px-8 !pb-0 !text-slate-700 dark:!text-slate-800 dark:text-slate-200',
-    title: '!px-8 !pt-8 !pb-3 !font-black !text-slate-800 dark:!text-slate-800 dark:text-slate-100 !tracking-tighter !text-xl !uppercase',
+    popup: 'modern-card !rounded-[2rem] !p-0 !overflow-hidden !border !border-slate-200 dark:!border-white/10 !shadow-[0_60px_120px_-20px_rgba(0,0,0,0.6)] !backdrop-blur-3xl !bg-white/95 dark:!bg-slate-900/90',
+    htmlContainer: '!px-8 !pb-0 !text-slate-700 dark:!text-slate-200',
+    title: '!px-8 !pt-8 !pb-3 !font-black !text-slate-800 dark:!text-slate-100 !tracking-tighter !text-xl !uppercase',
     confirmButton: 'btn-primary !px-8 !py-4 !text-[10px] !font-black !uppercase !tracking-widest !rounded-2xl !shadow-xl !shadow-primary/20',
-    cancelButton: '!px-8 !py-4 !text-[10px] !font-black !uppercase !tracking-widest !rounded-2xl !bg-slate-100 dark:!bg-white/5 !text-slate-600 dark:!text-slate-700 dark:text-slate-300 !shadow-none hover:!bg-slate-200 dark:hover:!bg-white/10',
+    cancelButton: '!px-8 !py-4 !text-[10px] !font-black !uppercase !tracking-widest !rounded-2xl !bg-slate-100 dark:!bg-white/5 !text-slate-600 dark:!text-slate-300 !shadow-none hover:!bg-slate-200 dark:hover:!bg-white/10',
     actions: '!px-8 !pb-8 !pt-4 !gap-3 !flex-row-reverse',
     icon: '!border-0 !mb-0 !mt-8 !mx-auto',
 };
 
 // ─── BASE INSTANCE ─────────────────────────────────────────────────────────────
+// The backdrop style is styled dynamically in input.css using .swal2-container for zero-lock-in reactive rendering
 export const XolvyAlert = Swal.mixin({
     customClass: BASE_CLASSES,
     buttonsStyling: false,
-    backdrop: isDark()
-        ? 'rgba(0,0,0,0.75) backdrop-blur(12px)'
-        : 'rgba(15,23,42,0.5) backdrop-blur(8px)',
     showClass: {
         popup: 'animate-scale-in',
     },
@@ -125,8 +113,8 @@ export const xToast = (message, type = 'success') => {
         },
         html: `
             <div class="flex items-center gap-4 px-5 py-4">
-                <div class="w-9 h-9 rounded-xl bg-gradient-to-br ${colorMap[type] || colorMap.info} flex items-center justify-center text-slate-800 dark:text-slate-100 font-black text-sm shadow-lg flex-shrink-0">${iconMap[type] || iconMap.info}</div>
-                <p class="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight text-left">${message}</p>
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-br ${colorMap[type] || colorMap.info} flex items-center justify-center text-white font-black text-sm shadow-lg flex-shrink-0">${iconMap[type] || iconMap.info}</div>
+                <p class="text-sm font-bold text-white/95 leading-tight text-left">${message}</p>
             </div>
         `,
         showClass: { popup: 'animate-fade-in' },

@@ -18,10 +18,11 @@
  *  - deleteHistoryRecord() → Borrar registro en banco_s13
  */
 import { db } from '../../firebase-config.js';
-import { collection, query, where, getDocs, addDoc, getDoc, doc, writeBatch, orderBy, limit, Timestamp, runTransaction, deleteDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, addDoc, getDoc, doc, writeBatch, orderBy, limit, Timestamp, runTransaction, deleteDoc, updateDoc } from "firebase/firestore";
 import { ServiceCache, fetchCached } from './base-service.js';
 import { saveAuditLog } from './audit-service.js';
 import { syncAssignmentToWeeklyProgram } from './program-service.js';
+import { normalizeName } from '../../modules/utils/helpers.js';
 
 // ═══════════════════════════════════════════════════════════
 const COL_BANCO_S13    = "banco_s13";            // Fuente autoritativa S-13
@@ -73,37 +74,59 @@ export const logReturn = async (territorioId, fechaEntrega, status = 'Completado
         const tSnap = await getDoc(doc(db, COL_TERRITORIOS, territorioId));
         const num = tSnap.exists() ? String(tSnap.data().numero) : territorioId;
 
-        // --- REFERENTIAL INTEGRITY: Query by territory AND conductor to avoid multi-reassignment closure bug ---
-        const filters = [
-            where("territorio_id", "==", num),
-            where("estado", "==", "Asignado")
-        ];
-        if (conductorName) {
-            filters.push(where("conductor", "==", String(conductorName).trim()));
-        }
-
+        // Query active assignments for this territory
         const q = query(
             collection(db, COL_BANCO_S13),
-            ...filters
+            where("territorio_id", "==", num),
+            where("estado", "==", "Asignado")
         );
         const snapshot = await getDocs(q);
 
-        if (!snapshot.empty) {
-            const batch = writeBatch(db);
-            snapshot.docs.forEach(d => {
-                batch.update(d.ref, {
-                    fecha_entrega: fechaEntrega || new Date().toISOString(),
-                    estado: status,
-                    observaciones: notas || d.data().observaciones,
-                    timestamp: Timestamp.now(),
-                    fotos: fotos || null
-                });
+        let docsToUpdate = snapshot.docs;
+        if (conductorName && !snapshot.empty) {
+            const normInput = normalizeName(conductorName);
+            docsToUpdate = snapshot.docs.filter(d => {
+                const c = d.data().conductor;
+                return c && normalizeName(c) === normInput;
             });
+
+            // Fallback: if name doesn't match exactly but we only have 1 active assignment, heal it
+            if (docsToUpdate.length === 0 && snapshot.docs.length === 1) {
+                docsToUpdate = snapshot.docs;
+            }
+        }
+
+        if (docsToUpdate.length > 0) {
+            const batch = writeBatch(db);
+            const finalizingStates = ['Completado', 'Extraviado', 'Disponible', 'Devuelto', 'Devuelto (Transferido)', 'Predicado Parcial'];
+            const isClosing = finalizingStates.includes(status);
+
+            docsToUpdate.forEach(d => {
+                const updates = {
+                    timestamp: Timestamp.now(),
+                    fotos: fotos || d.data().fotos || null
+                };
+
+                if (isClosing) {
+                    updates.fecha_entrega = fechaEntrega || new Date().toISOString();
+                    updates.estado = status;
+                    updates.observaciones = notas || d.data().observaciones || null;
+                } else {
+                    // For partial advances/notes (like 'Avance Parcial', 'Nota S-13', 'Novedad Nexo'),
+                    // DO NOT close the S-13 assignment. Only append the note.
+                    updates.observaciones = notas 
+                        ? (d.data().observaciones ? `${d.data().observaciones}\n[${status}] ${notas}` : `[${status}] ${notas}`)
+                        : d.data().observaciones;
+                }
+
+                batch.update(d.ref, updates);
+            });
+
             await batch.commit();
-            await saveAuditLog('ENTREGA_TERRITORIO', { territorio: num });
+            await saveAuditLog('ENTREGA_TERRITORIO', { territorio: num, estado: status });
 
             if (notas && notas.trim().length > 0) {
-                const conductor = snapshot.docs[0].data().conductor || 'Anónimo';
+                const conductor = docsToUpdate[0].data().conductor || 'Anónimo';
                 await addDoc(collection(db, COL_BITACORA_OBS), {
                     territorio_id: num,
                     conductor: conductor,
@@ -158,26 +181,77 @@ export const getTerritoryHistory = async (territoryNum) => {
 };
 
 export const addHistoryRecord = async (data) => {
-    if (!data.timestamp) {
-        data.timestamp = Timestamp.fromDate(new Date(data.fecha_asignacion || new Date()));
-    }
-    const docRef = await addDoc(collection(db, COL_BANCO_S13), data);
-    ServiceCache.clear('historial');
+    try {
+        const tNum = String(data.numero || data.territorio_id || '').trim();
+        const dateKey = (data.fecha_asignacion || new Date().toISOString()).split('T')[0];
 
-    if (data.fecha_asignacion) {
-        await syncAssignmentToWeeklyProgram({ id: data.territorio_id || docRef.id, numero: data.numero }, data.conductor, data);
-    }
+        // Query all S13 records for this territory
+        const q = query(
+            collection(db, COL_BANCO_S13),
+            where("numero", "==", tNum)
+        );
+        const snapshot = await getDocs(q);
 
-    if (data.observaciones && data.observaciones.trim().length > 0) {
-        await addDoc(collection(db, COL_BITACORA_OBS), {
-            territorio_id: data.numero || data.territorio_id,
-            conductor: data.conductor || 'Anónimo',
-            nota: data.observaciones,
-            fecha: data.fecha_asignacion || data.fecha_entrega || new Date().toISOString(),
-            timestamp: Timestamp.now()
+        // Find existing record with same assignment date
+        const existingDoc = snapshot.docs.find(d => {
+            const fAsig = d.data().fecha_asignacion;
+            return fAsig && fAsig.split('T')[0] === dateKey;
         });
+
+        if (existingDoc) {
+            console.log(`🛡️ [Shield] Manual assignment duplicate found for T-${tNum} on ${dateKey}. Merging/replacing...`);
+            await updateDoc(existingDoc.ref, {
+                conductor: data.conductor || existingDoc.data().conductor,
+                conductor_normalized: data.conductor ? normalizeName(data.conductor) : (existingDoc.data().conductor_normalized || null),
+                auxiliar: data.auxiliar || existingDoc.data().auxiliar || null,
+                auxiliar_normalized: data.auxiliar ? normalizeName(data.auxiliar) : (existingDoc.data().auxiliar_normalized || null),
+                fecha_entrega: data.fecha_entrega || existingDoc.data().fecha_entrega || null,
+                estado: data.estado || existingDoc.data().estado || 'Completado',
+                observaciones: data.observaciones || existingDoc.data().observaciones || null,
+                timestamp: Timestamp.now()
+            });
+
+            ServiceCache.clear('historial');
+            ServiceCache.clear('territorios_combined');
+
+            if (data.observaciones && data.observaciones.trim().length > 0) {
+                await addDoc(collection(db, COL_BITACORA_OBS), {
+                    territorio_id: tNum,
+                    conductor: data.conductor || 'Anónimo',
+                    nota: data.observaciones,
+                    fecha: data.fecha_asignacion || data.fecha_entrega || new Date().toISOString(),
+                    timestamp: Timestamp.now()
+                });
+            }
+            return existingDoc.ref;
+        }
+
+        // Standard add if no duplicate found
+        if (!data.timestamp) {
+            data.timestamp = Timestamp.fromDate(new Date(data.fecha_asignacion || new Date()));
+        }
+        const docRef = await addDoc(collection(db, COL_BANCO_S13), data);
+        ServiceCache.clear('historial');
+        ServiceCache.clear('territorios_combined');
+
+        if (data.fecha_asignacion) {
+            await syncAssignmentToWeeklyProgram({ id: data.territorio_id || docRef.id, numero: data.numero }, data.conductor, data);
+        }
+
+        if (data.observaciones && data.observaciones.trim().length > 0) {
+            await addDoc(collection(db, COL_BITACORA_OBS), {
+                territorio_id: data.numero || data.territorio_id,
+                conductor: data.conductor || 'Anónimo',
+                nota: data.observaciones,
+                fecha: data.fecha_asignacion || data.fecha_entrega || new Date().toISOString(),
+                timestamp: Timestamp.now()
+            });
+        }
+        return docRef;
+    } catch (e) {
+        console.error("Error in addHistoryRecord:", e);
+        throw e;
     }
-    return docRef;
 };
 
 export const updateHistoryRecord = async (id, data) => {

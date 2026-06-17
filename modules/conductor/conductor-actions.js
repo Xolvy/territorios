@@ -5,7 +5,7 @@
  */
 
 import { showModal, UIHelpers, showCustomPrompt } from '../services/ui-helpers.js';
-import { getTerritorios, getTerritoryHistory, returnTerritorio, assignFreeTerritory, transferTerritory, takeTerritoryPartial, getTelefonos, getPublicadores, addPublicador, updateTelefonoStatus, solicitarNumeros } from '../../data/firestore-services.js';
+import { getTerritorios, returnTerritorio, assignFreeTerritory, transferTerritory, takeTerritoryPartial, getTelefonos, getPublicadores, addPublicador, updateTelefonoStatus, solicitarNumeros } from '../../data/firestore-services.js';
 import { formatPhoneNumber, showNotification } from '../utils/helpers.js';
 import { MapViewer } from '../map-viewer.js';
 import { ReceptionHub } from '../services/reception-hub.js';
@@ -42,42 +42,6 @@ window.promptReturnTerritorio = async (id, numero) => {
     });
 };
 
-export async function showUnifiedTerritoryHistory(territoryId, territoryNum) {
-    try {
-        const modalContainer = document.getElementById('modal-container');
-        const previousHTML = modalContainer.innerHTML;
-
-        const history = await getTerritoryHistory(territoryId);
-        showModal(`
-            <div class="flex flex-col h-full bg-slate-50 dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden shadow-2xl">
-                <header class="p-8 bg-amber-500 text-slate-800 dark:text-slate-100 flex items-center gap-6">
-                    <div class="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-2xl shadow-lg shadow-amber-500/20"><i class="fas fa-history"></i></div>
-                    <div><h3 class="text-xl font-black uppercase tracking-tight leading-none mb-1">Historial T-${territoryNum}</h3></div>
-                </header>
-                <div class="flex-1 min-w-0 p-8 overflow-y-auto custom-scrollbar space-y-4">
-                    ${history.map(rec => `
-                        <div class="modern-card p-6 border-slate-200 dark:border-white/5">
-                            <p class="text-[10px] text-slate-600 dark:text-slate-400 font-bold uppercase mb-2">${new Date(rec.fecha_entrega || rec.fecha).toLocaleDateString()}</p>
-                            <p class="text-sm font-bold text-slate-800 dark:text-slate-200">"${rec.notas || rec.observaciones || 'Sin notas'}"</p>
-                        </div>
-                    `).join('')}
-                </div>
-                <footer class="p-8 bg-white dark:bg-black/40 border-t border-slate-100 dark:border-white/5">
-                    <button id="btn-back-history" class="w-full py-5 text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest hover:text-primary transition-all">Regresar</button>
-                </footer>
-            </div>
-        `, (modal) => {
-            const btn = modal.querySelector('#btn-back-history');
-            if (btn) {
-                btn.onclick = () => {
-                    modalContainer.innerHTML = previousHTML;
-                };
-            }
-        }, 'max-w-2xl');
-    } catch (e) { showNotification("Error al cargar historial", "error"); }
-}
-
-window.showUnifiedTerritoryHistory = showUnifiedTerritoryHistory;
 
 export async function handleRescueTerritory(id, num, newConductor, manzanasStr, isFree = false) {
     const manzanas = manzanasStr ? manzanasStr.split(',').map(m => m.trim()).filter(Boolean) : [];

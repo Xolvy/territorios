@@ -23,6 +23,7 @@ export const stopAdminLivePools = () => {
         currentAdminLivePoolUnsubscribe = null;
     }
 };
+window.stopAdminLivePools = stopAdminLivePools;
 
 export const setAdminLivePool = (unsub) => {
     stopAdminLivePools();
@@ -55,7 +56,7 @@ const renderSkeleton = (container) => {
 };
 
 const renderNavItem = (id, icon, label, active) => `
-    <button class="nav-item ${active ? 'active' : ''} flex-1 min-w-0 lg:flex-initial flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-1 lg:gap-4 p-3 lg:p-4 rounded-xl transition-all group border ${active ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-transparent border-r-2 !border-r-amber-400' : 'border-transparent text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium'}" data-tab="${id}">
+    <button class="nav-item ${active ? 'active' : ''} flex-1 min-w-0 lg:flex-initial flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-1 lg:gap-4 p-3 lg:p-4 rounded-xl transition-all group border ${active ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-transparent' : 'border-transparent text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium'}" data-tab="${id}">
         <i class="${icon} stroke-1.5 text-lg transition-transform group-hover:scale-110 shrink-0 ${active ? 'text-emerald-600 dark:text-emerald-400' : ''}"></i>
         <span class="sidebar-text text-[8px] lg:text-[10px] font-bold uppercase tracking-widest whitespace-nowrap overflow-hidden text-ellipsis max-w-full">${label}</span>
     </button>
@@ -177,7 +178,7 @@ const setupNavigation = (appVersion, configData) => {
                 const isActive = t.dataset.tab === currentTab;
                 
                 if (isActive) {
-                    t.className = `nav-item active flex-1 min-w-0 lg:flex-initial flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-1 lg:gap-4 p-3 lg:p-4 rounded-xl transition-all group border bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-transparent border-r-2 !border-r-amber-400`;
+                    t.className = `nav-item active flex-1 min-w-0 lg:flex-initial flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-1 lg:gap-4 p-3 lg:p-4 rounded-xl transition-all group border bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-transparent`;
                     const icon = t.querySelector('i');
                     if (icon) icon.className = icon.className.replace(/text-slate-500/g, '').replace(/dark:text-slate-400/g, '') + ' text-emerald-600 dark:text-emerald-400';
                 } else {
@@ -250,42 +251,52 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
         // --- MAIN SHELL RENDER ---
         container.innerHTML = `
     <div class="flex flex-col w-full overflow-hidden bg-slate-50 dark:bg-[#05070a] animate-fade-in" style="height:100vh;height:100dvh;" data-adaptive-container="true">
-        <header class="flex items-center justify-between bg-emerald-900/70 backdrop-blur-md border-b border-amber-400/50 sticky top-0 z-40 shadow-sm p-4 lg:hidden flex-none">
-            <button id="menu-toggle-btn" class="p-2 text-emerald-400 focus:outline-none active:scale-95 transition-transform">
+        <header class="flex items-center justify-between bg-white/40 dark:bg-[#030712]/40 backdrop-blur-xl border-b border-slate-200/10 dark:border-white/5 sticky top-0 z-40 shadow-sm p-4 lg:hidden flex-none transition-colors duration-300">
+            <button id="menu-toggle-btn" class="p-2 text-emerald-600 dark:text-emerald-400 focus:outline-none active:scale-95 transition-transform">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
             </button>
-            <div class="text-emerald-400 font-black text-lg tracking-tighter uppercase">Territorios</div>
+            <div class="flex items-center gap-2">
+                <span class="text-amber-400 text-sm">❖</span>
+                <span class="text-emerald-750 dark:text-emerald-400 font-black text-[10px] sm:text-xs tracking-[0.2em] uppercase">CONGREGACIÓN "NUEVE DE OCTUBRE"</span>
+                <span class="text-[8px] tracking-wider bg-amber-400/20 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded font-black">ADMIN</span>
+            </div>
             <div class="w-6"></div>
         </header>
-        <div class="flex flex-col lg:flex-row flex-1 min-h-0 overflow-hidden relative">
-            <aside id="main-sidebar" class="fixed inset-y-0 left-0 z-50 w-56 bg-white/40 dark:bg-slate-800/40 backdrop-blur-2xl border-r border-slate-200/50 dark:border-emerald-900/30 transform -translate-x-full transition-transform duration-300 lg:static lg:translate-x-0 lg:flex lg:w-64 flex-col h-full shadow-2xl lg:shadow-none">
-                <button id="btn-close-sidebar" class="absolute top-4 right-4 p-2 text-slate-400 hover:text-emerald-500 lg:hidden focus:outline-none"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
-                <div class="p-6 border-b border-slate-200/50 dark:border-emerald-900/30 flex items-center justify-between gap-4 mt-8 lg:mt-0">
-                    <div class="font-bold text-xl tracking-wide text-emerald-700 dark:text-emerald-400 flex items-center gap-3 transition-opacity">
-                        <span class="text-amber-400">❖</span> <span class="sidebar-text">Territorios</span>
+        <div class="flex flex-col lg:flex-row flex-1 min-w-0 min-h-0 overflow-hidden relative">
+            <aside id="main-sidebar" class="fixed inset-y-0 left-0 z-50 w-48 bg-white/40 dark:bg-slate-800/40 backdrop-blur-2xl border-r border-slate-200/50 dark:border-emerald-900/30 transform -translate-x-full transition-transform duration-300 lg:static lg:translate-x-0 lg:flex lg:w-52 flex-col h-full shadow-2xl lg:shadow-none p-4 justify-between">
+                
+                <!-- Floating close button for mobile drawer -->
+                <button id="btn-close-sidebar" class="absolute top-4 right-4 p-2 text-slate-400 hover:text-rose-500 lg:hidden focus:outline-none transition-all rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/50 cursor-pointer z-50">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+
+                <nav class="flex-1 flex flex-col h-full min-h-0 overflow-y-auto hide-scrollbar space-y-1.5 pt-4">
+                    <div class="space-y-1.5 flex-1">
+                        ${renderNavItem('dashboard', 'fas fa-chart-line', 'Estadísticas', initialTab === 'dashboard')}
+                        ${renderNavItem('casa-en-casa', 'fas fa-map-location-dot', 'Territorios', initialTab === 'casa-en-casa')}
+                        ${renderNavItem('predicacion', 'fas fa-bullhorn', 'P. Pública', initialTab === 'predicacion')}
+                        ${renderNavItem('telefonos', 'fas fa-phone-volume', 'Telefonía', initialTab === 'telefonos')}
+                        ${renderNavItem('reportes', 'fas fa-file-invoice', 'Reportes', initialTab === 'reportes')}
+                        ${renderNavItem('personal', 'fas fa-users', 'Publicadores', initialTab === 'personal')}
+                        ${renderNavItem('recursos', 'fas fa-book-open', 'Recursos', initialTab === 'recursos')}
+                        <div class="h-px bg-slate-200/50 dark:bg-emerald-900/30 my-3 mx-2"></div>
+                        ${renderNavItem('config', 'fas fa-sliders', 'Ajustes', initialTab === 'config')}
                     </div>
-                </div>
-                <nav class="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
-                    ${renderNavItem('dashboard', 'fas fa-chart-line', 'Estadísticas', initialTab === 'dashboard')}
-                    ${renderNavItem('casa-en-casa', 'fas fa-map-location-dot', 'Territorios', initialTab === 'casa-en-casa')}
-                    ${renderNavItem('predicacion', 'fas fa-bullhorn', 'P. Pública', initialTab === 'predicacion')}
-                    ${renderNavItem('telefonos', 'fas fa-phone-volume', 'Telefonía', initialTab === 'telefonos')}
-                    ${renderNavItem('reportes', 'fas fa-file-invoice', 'Reportes', initialTab === 'reportes')}
-                    ${renderNavItem('personal', 'fas fa-users', 'Publicadores', initialTab === 'personal')}
-                    ${renderNavItem('recursos', 'fas fa-book-open', 'Recursos', initialTab === 'recursos')}
-                    <div class="h-px bg-slate-200/50 dark:bg-emerald-900/30 my-4 mx-2"></div>
-                    ${renderNavItem('config', 'fas fa-sliders', 'Ajustes', initialTab === 'config')}
+                    
+                    <div class="pt-4 border-t border-slate-200/50 dark:border-emerald-900/30 space-y-1.5 mt-auto">
+                        <button onclick="window.toggleTheme();" class="w-full flex items-center gap-3 p-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 text-[9px] font-medium uppercase tracking-widest transition-all focus:outline-none">
+                            <i class="fas fa-adjust stroke-1.5" stroke-width="1.5"></i> <span class="sidebar-text">Cambiar Tema</span>
+                        </button>
+                        <button onclick="if(window.XolvyApp?.identity?.nombreCanonico){ localStorage.setItem('selected_conductor_name', window.XolvyApp.identity.nombreCanonico); } else { localStorage.removeItem('selected_conductor_name'); } localStorage.removeItem('xolvy_session'); window.location.href = '/conductores';" class="w-full flex items-center gap-3 p-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 text-[9px] font-medium uppercase tracking-widest transition-all focus:outline-none">
+                            <i class="fas fa-random stroke-1.5" stroke-width="1.5"></i> <span class="sidebar-text">Modo Conductor</span>
+                        </button>
+                        <button id="logout-btn" class="w-full flex items-center gap-3 p-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-rose-500/10 hover:text-rose-500 text-[9px] font-medium uppercase tracking-widest transition-all focus:outline-none">
+                            <i class="fas fa-sign-out-alt stroke-1.5" stroke-width="1.5"></i> <span class="sidebar-text">Salir</span>
+                        </button>
+                    </div>
                 </nav>
-                <div class="p-4 border-t border-slate-200/50 dark:border-emerald-900/30 space-y-2">
-                    <button onclick="if(window.XolvyApp?.identity?.nombreCanonico){ localStorage.setItem('selected_conductor_name', window.XolvyApp.identity.nombreCanonico); } else { localStorage.removeItem('selected_conductor_name'); } localStorage.removeItem('xolvy_session'); window.location.href = '/conductores';" class="w-full flex items-center gap-3 p-4 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 text-[9px] font-medium uppercase tracking-widest transition-all">
-                        <i class="fas fa-random stroke-1.5" stroke-width="1.5"></i> <span class="sidebar-text">Modo Conductor</span>
-                    </button>
-                    <button id="logout-btn" class="w-full flex items-center gap-3 p-4 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-rose-500/10 hover:text-rose-500 text-[9px] font-medium uppercase tracking-widest transition-all">
-                        <i class="fas fa-sign-out-alt stroke-1.5" stroke-width="1.5"></i> <span class="sidebar-text">Salir</span>
-                    </button>
-                </div>
             </aside>
-            <main class="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-slate-50 dark:bg-[#0a0f18] relative">
+            <main class="flex-1 min-w-0 flex flex-col min-w-0 h-auto lg:h-full overflow-hidden bg-slate-50 dark:bg-[#0a0f18] relative">
                 <header class="hidden lg:flex justify-between items-center p-6 border-b border-slate-100 dark:border-white/5 shrink-0">
                     <h2 class="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Panel de Gestión</h2>
                     <div class="flex items-center gap-2">
@@ -293,7 +304,7 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
                         <p class="text-[9px] text-slate-500 font-black uppercase tracking-widest">En línea • v${appVersion}</p>
                     </div>
                 </header>
-                <div id="admin-content" class="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8 pb-32 bg-slate-50/50 dark:bg-black/10"></div>
+                <div id="admin-content" class="flex-1 min-w-0 overflow-y-auto custom-scrollbar p-4 md:p-8 pb-32 bg-slate-50/50 dark:bg-black/10"></div>
             </main>
         </div>
     </div>
@@ -307,6 +318,11 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
         loadTab(initialTab, appVersion, configData);
         XolvyAdaptive.refresh();
         window.initMobileMenu();
+
+        // Sincronizar tema en la barra lateral recién montada
+        if (typeof window.updateDOMThemeToggles === 'function') {
+            window.updateDOMThemeToggles(localStorage.getItem('theme') || 'auto');
+        }
 
     } catch (e) {
         console.error("Admin Boot Error:", e);

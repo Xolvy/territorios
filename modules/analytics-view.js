@@ -6,23 +6,62 @@ import { ServiceCache } from '../data/services/base-service.js';
 import { ReceptionHub } from './services/reception-hub.js';
 
 // --- Helper UI Components ---
-const renderStatCard = (label, id, icon, color, sub) => `
-    <div class="flex flex-col bg-white dark:bg-slate-900 p-5 lg:p-8 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm hover:shadow-md transition-all group overflow-hidden relative">
-        <div class="flex justify-between items-start mb-4">
-             <div class="w-10 h-10 lg:w-12 lg:h-12 bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-400 group-hover:text-blue-600 rounded-xl flex items-center justify-center text-sm lg:text-lg transition-colors border border-slate-100 dark:border-white/5">
+const renderStatCard = (label, id, icon, color, sub) => {
+    let theme = {
+        bg: 'from-blue-500/10 to-indigo-500/5',
+        text: 'text-blue-600 dark:text-blue-400',
+        border: 'border-blue-500/20 dark:border-blue-500/10',
+        light: 'bg-blue-500/20',
+        dot: 'bg-blue-500'
+    };
+    if (id === 'stat-assigned') {
+        theme = {
+            bg: 'from-emerald-500/10 to-teal-500/5',
+            text: 'text-emerald-600 dark:text-emerald-400',
+            border: 'border-emerald-500/20 dark:border-emerald-500/10',
+            light: 'bg-emerald-500/20',
+            dot: 'bg-emerald-500'
+        };
+    } else if (id === 'stat-conductors') {
+        theme = {
+            bg: 'from-violet-500/10 to-purple-500/5',
+            text: 'text-violet-600 dark:text-violet-400',
+            border: 'border-violet-500/20 dark:border-violet-500/10',
+            light: 'bg-violet-500/20',
+            dot: 'bg-violet-500'
+        };
+    } else if (id === 'stat-late') {
+        theme = {
+            bg: 'from-rose-500/10 to-red-500/5',
+            text: 'text-rose-600 dark:text-rose-400',
+            border: 'border-rose-500/20 dark:border-rose-500/10',
+            light: 'bg-rose-500/20',
+            dot: 'bg-rose-500'
+        };
+    }
+
+    return `
+    <div class="super-card flex flex-col p-6 lg:p-8 hover:-translate-y-1.5 transition-all group overflow-hidden relative">
+        <div class="absolute inset-0 bg-gradient-to-br ${theme.bg} opacity-30 group-hover:opacity-100 transition-opacity pointer-events-none duration-500"></div>
+        <div class="flex justify-between items-start mb-6 relative z-10">
+             <div class="w-12 h-12 bg-white dark:bg-white/5 rounded-2xl flex items-center justify-center text-lg ${theme.text} transition-colors border border-slate-100 dark:border-white/5 shadow-sm group-hover:scale-110 duration-500 shrink-0">
                 <i class="${icon}"></i>
             </div>
-            <div class="h-1.5 w-1.5 rounded-full bg-slate-200 dark:bg-white/10 group-hover:bg-blue-500 transition-colors"></div>
+            <span class="relative flex h-2 w-2">
+                <span class="saas-spinner-ring animate-ping ${theme.light} opacity-75 rounded-full w-2 h-2"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 ${theme.dot}"></span>
+            </span>
         </div>
-        <div>
-            <p class="text-[9px] lg:text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-[0.15em] mb-1 font-sans truncate">${label}</p>
+        <div class="relative z-10">
+            <p class="text-[9px] lg:text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] mb-2 font-sans truncate">${label}</p>
             <div class="flex items-baseline gap-2">
-                <span class="text-3xl lg:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tighter tabular-nums" id="${id}">0</span>
-                <span class="text-[9px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest pb-1 border-b border-slate-100 dark:border-white/5 truncate">${sub.split(' ')[0]}</span>
+                <span class="text-3xl lg:text-5xl font-black text-slate-800 dark:text-white tracking-tighter tabular-nums" id="${id}">0</span>
+                <span class="text-[9px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest pb-1 border-b border-slate-200/50 dark:border-white/5 truncate">${sub}</span>
             </div>
         </div>
     </div>
-`;
+    `;
+};
 
 // --- Helper UI Functions ---
 const animateValue = (id, start, end, duration) => {
@@ -129,52 +168,68 @@ const renderLateTable = (list, now, exp) => {
     const tbody = document.getElementById('late-table-body');
     if (!tbody) return;
     if (list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="py-24 text-center opacity-30 text-[10px] font-black uppercase tracking-widest italic">Excelente: No hay territorios con atraso crítico</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="py-24 text-center opacity-30 text-[10px] font-black uppercase tracking-widest italic">Excelente: No hay territorios con atraso crítico</td></tr>`;
         return;
     }
 
     tbody.innerHTML = list.map(t => {
         const date = UIHelpers.parseFirebaseDate(t.fecha_asignacion) || new Date();
-        const diff = Math.ceil(Math.abs(now - date) / (1000 * 60 * 60 * 24));
+        const diff = Math.ceil((now - date) / (1000 * 60 * 60 * 24));
         const threshold = exp || 120;
         const isCritical = diff >= threshold;
         const gravity = isCritical ? 'CRÍTICO' : 'PRECAUCIÓN';
         const color = isCritical ? 'red' : 'yellow';
 
         return `
-            <tr class="block md:table-row mb-4 md:mb-0 border border-slate-100 dark:border-white/5 md:border-0 rounded-xl md:rounded-none bg-white dark:bg-white/[0.01] md:bg-transparent hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors group p-4 md:p-0">
-                <td class="block md:table-cell px-2 md:px-4 lg:px-8 py-3 md:py-5 border-b border-slate-50 dark:border-white/5 md:border-0">
+            <tr class="block md:table-row mb-4 md:mb-0 border border-slate-100 dark:border-white/5 md:border-0 rounded-xl md:rounded-none bg-white dark:bg-white/[0.01] md:bg-transparent hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors group p-4 md:p-0 animate-fade-in">
+                <td class="block md:table-cell px-2 md:px-4 lg:px-8 py-3 md:py-5 border-b border-slate-50 dark:border-white/5 md:border-0 text-left">
                     <div class="flex items-center gap-4">
                         <span class="w-9 h-9 bg-slate-900 text-white rounded-lg flex items-center justify-center font-bold text-sm transition-transform">${t.numero}</span>
                         <div class="flex flex-col min-w-0">
                             <span class="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase truncate max-w-[150px] font-sans">${t.localidad || 'Congregación'}</span>
                             ${(() => {
-                const todas = t.manzanas ? t.manzanas.split(',').map(m => m.trim()).filter(Boolean) : [];
-                const faltantes = todas.filter(m => !t.manzanas_trabajadas?.includes(m));
-                if (t.manzanas_trabajadas?.length > 0 && faltantes.length > 0) {
-                    const label = faltantes.length === 1 ? 'Falta Mz' : 'Faltan Mz';
-                    return `<span class="text-[8px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest mt-0.5">Territorio incompleto: ${label} ${faltantes.join(', ')}</span>`;
-                }
-                return '';
-            })()}
+                                const todas = t.manzanas ? t.manzanas.split(',').map(m => m.trim()).filter(Boolean) : [];
+                                const faltantes = todas.filter(m => !t.manzanas_trabajadas?.includes(m));
+                                if (t.manzanas_trabajadas?.length > 0 && faltantes.length > 0) {
+                                    const label = faltantes.length === 1 ? 'Falta Mz' : 'Faltan Mz';
+                                    return `<span class="text-[8px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest mt-0.5">Territorio incompleto: ${label} ${faltantes.join(', ')}</span>`;
+                                }
+                                return '';
+                            })()}
                         </div>
                     </div>
                 </td>
-                <td class="block md:table-cell flex justify-between md:justify-start items-center px-2 md:px-4 lg:px-8 py-3 md:py-5 border-b border-slate-50 dark:border-white/5 md:border-0">
-                    <span class="md:hidden text-[9px] font-black uppercase text-slate-400">Responsable:</span>
-                    <span class="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-tight">${t.asignado_a}</span>
+                <td class="block md:table-cell px-2 md:px-4 lg:px-8 py-3 md:py-5 border-b border-slate-50 dark:border-white/5 md:border-0 text-left">
+                    <div class="flex justify-between md:block w-full">
+                        <span class="md:hidden text-[9px] font-black uppercase text-slate-400">Responsable:</span>
+                        <span class="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-tight">${t.asignado_a}</span>
+                    </div>
                 </td>
-                <td class="block md:table-cell flex justify-between md:justify-start items-center px-2 md:px-4 lg:px-8 py-3 md:py-5 border-b border-slate-50 dark:border-white/5 md:border-0">
-                    <span class="md:hidden text-[9px] font-black uppercase text-slate-400">Asignación:</span>
-                    <span class="text-[11px] font-medium text-slate-600 dark:text-slate-400 whitespace-nowrap">${date.toLocaleDateString()}</span>
+                <td class="block md:table-cell px-2 md:px-4 lg:px-8 py-3 md:py-5 border-b border-slate-50 dark:border-white/5 md:border-0 text-left">
+                    <div class="flex justify-between md:block w-full">
+                        <span class="md:hidden text-[9px] font-black uppercase text-slate-400">Asignación:</span>
+                        <span class="text-[11px] font-medium text-slate-600 dark:text-slate-400 whitespace-nowrap">${date.toLocaleDateString()}</span>
+                    </div>
                 </td>
-                <td class="block md:table-cell flex justify-between md:justify-start items-center px-2 md:px-4 lg:px-8 py-3 md:py-5 border-b border-slate-50 dark:border-white/5 md:border-0">
-                    <span class="md:hidden text-[9px] font-black uppercase text-slate-400">Tiempo:</span>
-                    <span class="text-[11px] font-bold text-${color}-700 bg-${color}-50 px-2.5 py-1 rounded-full ring-1 ring-${color}-200/50 whitespace-nowrap">${diff} días</span>
+                <td class="block md:table-cell px-2 md:px-4 lg:px-8 py-3 md:py-5 border-b border-slate-50 dark:border-white/5 md:border-0 text-left">
+                    <div class="flex justify-between md:block w-full">
+                        <span class="md:hidden text-[9px] font-black uppercase text-slate-400">Tiempo:</span>
+                        <span class="text-[11px] font-bold text-${color}-700 bg-${color}-50 px-2.5 py-1 rounded-full ring-1 ring-${color}-200/50 whitespace-nowrap">${diff} días</span>
+                    </div>
                 </td>
-                <td class="block md:table-cell flex justify-between md:justify-end items-center px-2 md:px-4 lg:px-8 py-3 md:py-5 text-right">
-                    <span class="md:hidden text-[9px] font-black uppercase text-slate-400">Gravedad:</span>
-                    <span class="text-[10px] font-bold text-${color}-600 uppercase tracking-wider">${gravity}</span>
+                <td class="block md:table-cell px-2 md:px-4 lg:px-8 py-3 md:py-5 text-right border-b border-slate-50 dark:border-white/5 md:border-0">
+                    <div class="flex justify-between md:block w-full text-right">
+                        <span class="md:hidden text-[9px] font-black uppercase text-slate-400">Gravedad:</span>
+                        <span class="text-[10px] font-bold text-${color}-600 uppercase tracking-wider">${gravity}</span>
+                    </div>
+                </td>
+                <td class="block md:table-cell px-2 md:px-4 lg:px-8 py-3 md:py-5 text-right">
+                    <div class="flex justify-between md:block w-full text-right">
+                        <span class="md:hidden text-[9px] font-black uppercase text-slate-400">Acción:</span>
+                        <button class="btn-entregar-critico px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-[9px] font-black uppercase tracking-widest transition-all active:scale-95 inline-flex items-center justify-center gap-1 shadow-md shadow-emerald-500/10" data-tid="${t.id}" data-num="${t.numero}">
+                            <i class="fas fa-check-circle"></i> Entregar
+                        </button>
+                    </div>
                 </td>
             </tr>
         `;
@@ -205,10 +260,10 @@ export const renderAnalyticsView = async (container, appVersion, configData = nu
                 </div>
 
                 <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
-                    <button id="btn-resync-stats" class="flex-1 md:flex-none px-5 py-3.5 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 rounded-xl border border-slate-200 dark:border-white/10 hover:border-emerald-500 hover:text-emerald-600 transition-all font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 shadow-sm active:scale-95 group whitespace-normal text-center h-auto min-h-[48px]">
+                    <button id="btn-resync-stats" class="flex-1 min-w-0 md:flex-none px-5 py-3.5 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 rounded-xl border border-slate-200 dark:border-white/10 hover:border-emerald-500 hover:text-emerald-600 transition-all font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 shadow-sm active:scale-95 group whitespace-normal text-center h-auto min-h-[48px]">
                         <i class="fas fa-shield-halved opacity-40 group-hover:opacity-100"></i> Recalcular
                     </button>
-                    <button id="btn-refresh-analytics" class="flex-1 md:flex-none px-6 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 shadow-sm shadow-blue-200 active:scale-95 group whitespace-normal text-center h-auto min-h-[48px]">
+                    <button id="btn-refresh-analytics" class="flex-1 min-w-0 md:flex-none px-6 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 shadow-sm shadow-blue-200 active:scale-95 group whitespace-normal text-center h-auto min-h-[48px]">
                         <i class="fas fa-sync-alt opacity-70 group-hover:rotate-180 transition-transform duration-700"></i> Actualizar Informe
                     </button>
                 </div>
@@ -225,47 +280,52 @@ export const renderAnalyticsView = async (container, appVersion, configData = nu
             <!-- Insights Section (Middle Row) -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <!-- S-13 Mastery Card -->
-                <div class="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl p-8 border border-slate-200 dark:border-white/5 shadow-sm flex flex-col md:flex-row gap-8 items-center relative overflow-hidden group">
-                        <div class="flex-1 min-w-0 space-y-6">
+                <div class="lg:col-span-2 super-card p-6 md:p-8 flex flex-col md:flex-row gap-8 items-center relative overflow-hidden group">
+                        <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-teal-500/5 opacity-50 pointer-events-none"></div>
+                        <div class="flex-1 min-w-0 space-y-6 relative z-10 w-full">
                             <div class="flex items-center gap-3 text-slate-900 dark:text-white">
-                                <h3 class="text-lg font-bold tracking-tight">Cobertura Global S-13</h3>
-                                <div class="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[8px] font-bold uppercase tracking-widest rounded border border-emerald-100">Live Status</div>
+                                <h3 class="text-base sm:text-lg font-black tracking-tight uppercase font-sans">Cobertura Global S-13</h3>
+                                <div class="px-2.5 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[8px] font-black uppercase tracking-widest rounded-lg border border-emerald-500/20">Live Status</div>
                             </div>
                             <div class="flex items-baseline gap-2 lg:gap-3 flex-wrap">
-                                <span class="text-4xl lg:text-7xl font-extrabold text-slate-900 dark:text-white tracking-tighter tabular-nums" id="stat-s13-coverage">0%</span>
-                                <span class="text-blue-600 font-bold text-[10px] lg:text-xs bg-blue-50 px-2 py-1 rounded whitespace-nowrap" id="stat-s13-diff">+0% Trend</span>
+                                <span class="text-4xl lg:text-7xl font-black text-slate-800 dark:text-white tracking-tighter tabular-nums" id="stat-s13-coverage">0%</span>
+                                <span class="text-emerald-600 dark:text-emerald-400 font-black text-[9px] lg:text-[10px] bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-lg whitespace-nowrap tracking-wider" id="stat-s13-diff">+0% Trend</span>
                             </div>
-                            <div class="h-2 w-full bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
-                                <div id="stat-s13-progress-bar" class="h-full bg-blue-600 rounded-full transition-all duration-1000" style="width: 0%"></div>
+                            <div class="h-2.5 w-full bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden border border-slate-200/40 dark:border-white/5 shadow-inner">
+                                <div id="stat-s13-progress-bar" class="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-1000 shadow-[0_0_12px_rgba(16,185,129,0.5)]" style="width: 0%"></div>
                             </div>
-                            <p class="text-[11px] text-slate-500 font-medium leading-relaxed max-w-md" id="stat-s13-coverage-info">
+                            <p class="text-[10px] sm:text-[11px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed max-w-md" id="stat-s13-coverage-info">
                                 Analizando profundidad del catálogo maestro y niveles de rotación...
                             </p>
                         </div>
-                        <div class="w-full md:w-44 h-44 bg-slate-50 dark:bg-white/5 rounded-2xl flex items-center justify-center p-4 border border-slate-100 dark:border-white/5">
+                        <div class="w-full md:w-44 h-44 bg-white/40 dark:bg-white/[0.02] backdrop-blur-xl rounded-3xl flex items-center justify-center p-4 border border-slate-200/40 dark:border-white/5 shadow-inner relative z-10 shrink-0">
                             <canvas id="chart-s13-mini"></canvas>
                         </div>
                 </div>
 
-                <!-- Strategic Quick Look -->
-                <div class="bg-slate-900 dark:bg-slate-900 rounded-2xl p-8 border border-slate-800 shadow-lg shadow-slate-100 dark:shadow-none flex flex-col justify-between group">
-                    <div class="flex justify-between items-start mb-6">
-                        <div class="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center text-slate-800 dark:text-slate-100 border border-white/20">
-                            <i class="fas fa-bolt-lightning text-xs"></i>
+                <!-- Strategic Quick Look (Hyper-Tech Glowing Terminal Card) -->
+                <div class="bg-gradient-to-br from-[#0c1020] to-[#040814] dark:from-slate-950/90 dark:to-blue-950/60 rounded-[2.5rem] p-8 border border-blue-500/20 dark:border-blue-500/10 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.4)] flex flex-col justify-between group overflow-hidden relative min-h-[300px]">
+                    <!-- Futuristic Glowing Radial Overlays -->
+                    <div class="absolute top-[-20%] right-[-20%] w-48 h-48 bg-blue-500/20 rounded-full blur-[40px] pointer-events-none group-hover:scale-125 transition-transform duration-700"></div>
+                    <div class="absolute bottom-[-10%] left-[-10%] w-32 h-32 bg-amber-500/10 rounded-full blur-[30px] pointer-events-none"></div>
+                    
+                    <div class="flex justify-between items-start mb-6 relative z-10">
+                        <div class="w-11 h-11 bg-white/10 rounded-xl flex items-center justify-center text-amber-400 border border-white/20 shadow-md">
+                            <i class="fas fa-bolt-lightning text-sm animate-pulse"></i>
                         </div>
-                        <span class="text-[9px] font-bold text-white/50 uppercase tracking-[0.2em]">S-13 Priority</span>
+                        <span class="text-[9px] font-black text-blue-400 uppercase tracking-[0.25em]">S-13 Priority</span>
                     </div>
-                    <div class="space-y-6">
-                        <div class="space-y-1">
-                            <p class="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest opacity-70">Mayor Rezago</p>
-                            <p class="text-3xl font-extrabold text-slate-800 dark:text-slate-100 tracking-tighter" id="stat-s13-oldest">#--</p>
-                            <p class="text-[10px] text-white/60 font-medium" id="stat-s13-oldest-info">Escaneando historial...</p>
+                    <div class="space-y-6 relative z-10">
+                        <div class="space-y-1.5">
+                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none opacity-80">Mayor Rezago</p>
+                            <p class="text-3xl font-black text-white tracking-tight" id="stat-s13-oldest">#--</p>
+                            <p class="text-[10px] text-amber-300 font-bold uppercase tracking-wider leading-none" id="stat-s13-oldest-info">Escaneando historial...</p>
                         </div>
-                        <div class="h-px bg-white/10"></div>
-                        <div class="space-y-1">
-                            <p class="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest opacity-70">Punto de Enfoque</p>
-                            <p class="text-3xl font-extrabold text-slate-800 dark:text-slate-100 tracking-tighter truncate" id="stat-s13-frequent">--</p>
-                            <p class="text-[10px] text-white/60 font-medium" id="stat-s13-frequent-info">Nivel de rotación</p>
+                        <div class="h-px bg-white/5 w-full"></div>
+                        <div class="space-y-1.5">
+                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none opacity-80">Punto de Enfoque</p>
+                            <p class="text-2xl font-black text-emerald-400 tracking-tight truncate w-full" id="stat-s13-frequent">--</p>
+                            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider leading-none" id="stat-s13-frequent-info">Nivel de rotación</p>
                         </div>
                     </div>
                 </div>
@@ -313,7 +373,7 @@ export const renderAnalyticsView = async (container, appVersion, configData = nu
                             Intervención Requerida
                         </div>
                         <button onclick="ReceptionHub.openModal({ viewMode: 'admin', isAdmin: true })" 
-                                class="flex-1 sm:flex-none px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 transition-all active:scale-95 whitespace-normal text-center h-auto min-h-[44px]">
+                                class="flex-1 min-w-0 sm:flex-none px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 transition-all active:scale-95 whitespace-normal text-center h-auto min-h-[44px]">
                             GESTIONAR ENTREGAS
                         </button>
                     </div>
@@ -322,11 +382,12 @@ export const renderAnalyticsView = async (container, appVersion, configData = nu
                     <table class="w-full text-left border-collapse min-w-0">
                         <thead class="hidden md:table-header-group">
                             <tr class="bg-gray-100/50 dark:bg-black/40 text-[10px] uppercase font-black text-slate-500 tracking-widest border-b border-slate-100 dark:border-white/5">
-                                <th class="px-4 lg:px-8 py-6">Territorio</th>
-                                <th class="px-4 lg:px-8 py-6">Responsable</th>
-                                <th class="px-4 lg:px-8 py-6">Asignación</th>
-                                <th class="px-4 lg:px-8 py-6">Tiempo</th>
+                                <th class="px-4 lg:px-8 py-6 text-left">Territorio</th>
+                                <th class="px-4 lg:px-8 py-6 text-left">Responsable</th>
+                                <th class="px-4 lg:px-8 py-6 text-left">Asignación</th>
+                                <th class="px-4 lg:px-8 py-6 text-left">Tiempo</th>
                                 <th class="px-4 lg:px-8 py-6 text-right">Gravedad</th>
+                                <th class="px-4 lg:px-8 py-6 text-right">Acción</th>
                             </tr>
                         </thead>
                         <tbody id="late-table-body" class="block md:table-row-group divide-y-0 md:divide-y divide-gray-100 dark:divide-white/5 text-sm">
@@ -367,7 +428,7 @@ export const renderAnalyticsView = async (container, appVersion, configData = nu
 
             // Xolvy Intelligence: Absolute consistency. Calculate EVERYTHING from the real documents.
             // Avoid globalStats for primary counters to prevent desync.
-            const realAssigned = territorios.filter(t => t.estado === 'Asignado' || t.status === 'Asignado');
+            const realAssigned = territorios.filter(t => t.estado === 'Asignado');
             const total = territorios.length;
             const assignedCount = realAssigned.length;
             const assigned = realAssigned;
@@ -376,7 +437,7 @@ export const renderAnalyticsView = async (container, appVersion, configData = nu
             const lateTerritories = assigned.filter(t => {
                 if (!t.fecha_asignacion) return false;
                 const d = UIHelpers.parseFirebaseDate(t.fecha_asignacion) || new Date();
-                const diffDays = Math.ceil(Math.abs(now - d) / (1000 * 60 * 60 * 24));
+                const diffDays = Math.ceil((now - d) / (1000 * 60 * 60 * 24));
                 return diffDays >= Math.floor(expDays * 0.8);
             }).sort((a, b) => {
                 const dA = UIHelpers.parseFirebaseDate(a.fecha_asignacion) || new Date();
@@ -463,6 +524,20 @@ export const renderAnalyticsView = async (container, appVersion, configData = nu
             // --- Late Table Rendering ---
             renderLateTable(lateTerritories, now, expDays);
 
+            // Bind click events to Entregar buttons
+            const tbody = document.getElementById('late-table-body');
+            if (tbody) {
+                tbody.querySelectorAll('.btn-entregar-critico').forEach(btn => {
+                    btn.onclick = () => {
+                        const tid = btn.dataset.tid;
+                        const num = btn.dataset.num;
+                        if (window.promptReturnTerritorio) {
+                            window.promptReturnTerritorio(tid, num);
+                        }
+                    };
+                });
+            }
+
         } catch (e) {
             console.error("Critical error loading analytics:", e);
         }
@@ -480,6 +555,28 @@ export const renderAnalyticsView = async (container, appVersion, configData = nu
     if (refreshBtn) {
         refreshBtn.onclick = () => renderAnalyticsView(container, appVersion);
     }
+
+    // Unificar actualización reactiva en tiempo real al liberar/actualizar un territorio
+    if (window._analyticsReleaseListener) {
+        window.removeEventListener('territorio-liberado', window._analyticsReleaseListener);
+        window.removeEventListener('territorio-actualizado', window._analyticsReleaseListener);
+    }
+
+    window._analyticsReleaseListener = () => {
+        // Verificar si el panel de analíticas sigue montado en el DOM
+        if (document.getElementById('btn-refresh-analytics')) {
+            console.log('[Analytics] Refreshing view due to territory update...');
+            renderAnalyticsView(container, appVersion);
+        } else {
+            // Si ya no está en el DOM, limpiar el listener global
+            window.removeEventListener('territorio-liberado', window._analyticsReleaseListener);
+            window.removeEventListener('territorio-actualizado', window._analyticsReleaseListener);
+            window._analyticsReleaseListener = null;
+        }
+    };
+
+    window.addEventListener('territorio-liberado', window._analyticsReleaseListener);
+    window.addEventListener('territorio-actualizado', window._analyticsReleaseListener);
 
     const resyncBtn = document.getElementById('btn-resync-stats');
     if (resyncBtn) {

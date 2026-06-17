@@ -4736,6 +4736,16 @@ textarea:focus {
     box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)
 }
 
+/* Specific overrides for Phone preaching card to avoid clipping and hover overlap */
+#phone-module-card {
+  overflow: visible !important;
+}
+
+#phone-module-card:hover {
+  transform: none !important;
+}
+
+
 @media (min-width:768px) {
     .modern-card {
         padding: 2rem
@@ -8310,7 +8320,16 @@ html.dark .toolbar-divider {
 }@keyframes slide-down { from { transform: translate(-50%, -100%); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } } .animate-slide-down { animation: slide-down 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; } @keyframes slide-left { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } } .animate-slide-left { animation: slide-left 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
 /* --- XOLVY GLOBAL CONTENTION PROTOCOL (MOBILE HARDENING) --- */
-html, body { overflow-x: hidden !important; width: 100% !important; max-width: 100vw !important; box-sizing: border-box !important; position: relative !important; }
+html, body {
+    min-height: 100%;
+    min-height: 100dvh;
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    box-sizing: border-box !important;
+    position: relative;
+}
 
 #app-container, .main-shell, [data-adaptive-container=" true\] { width: 100% !important; max-width: 100vw !important; overflow-x: hidden !important; box-sizing: border-box !important; }
 
@@ -8327,3 +8346,130 @@ button, .btn-pro, .action-btn { white-space: normal !important; text-align: cent
 
 /* Safe Margins Enforcement */
 @media (max-width: 768px) { .p-4, .px-4, .p-6, .px-6, .p-8, .px-8 { padding-left: 1rem !important; padding-right: 1rem !important; } }
+
+/* --- PREMIUM TERRITORY REPORT BUTTON CONTRAST ENFORCEMENT --- */
+.territory-report-btn {
+    background: linear-gradient(135deg, #009688 0%, #059669 100%) !important;
+    color: #ffffff !important;
+}
+.territory-report-btn:hover {
+    background: linear-gradient(135deg, #00897b 0%, #047857 100%) !important;
+    color: #ffffff !important;
+}
+
+/* =========================================
+   GOOEY MENU SYSTEM (AMALGAMA VISCOSA)
+   ========================================= */
+.gooey-menu-container {
+    filter: url(#gooey-amalgam);
+    overflow: visible !important;
+}
+
+.gooey-item {
+    top: 6px;
+    left: 6px;
+    transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.3s, scale 0.3s;
+    pointer-events: none !important;
+    transform: translateY(0) scale(0.6);
+    opacity: 0;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    z-index: 5 !important;
+}
+
+.open.gooey-menu-container .gooey-item {
+    pointer-events: auto !important;
+}
+
+.open.gooey-menu-container #btn-solicitar-more-numbers-goo {
+    transform: translateY(-58px) scale(1);
+    opacity: 1;
+}
+
+.open.gooey-menu-container #btn-agregar-publicador-goo {
+    transform: translateY(-112px) scale(1);
+    opacity: 1;
+}
+
+.open.gooey-menu-container #btn-solicitar-more-float i {
+    transform: rotate(135deg);
+}
+
+#btn-solicitar-more-numbers-goo {
+    background-color: #0d9488 !important; /* teal-600 */
+}
+
+#btn-solicitar-more-numbers-goo:hover {
+    background-color: #0f766e !important; /* teal-700 */
+}
+
+#btn-agregar-publicador-goo {
+    background-color: #4f46e5 !important; /* indigo-600 */
+}
+
+#btn-agregar-publicador-goo:hover {
+    background-color: #4338ca !important; /* indigo-700 */
+}
+
+#gooey-labels-container {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 99998;
+}
+
+#lbl-solicitar-more, #lbl-agregar-publicador {
+    position: absolute;
+    right: 64px;
+    background-color: rgba(15, 23, 42, 0.9) !important;
+    color: #ffffff !important;
+    padding: 6px 12px !important;
+    border-radius: 12px !important;
+    font-size: 9px !important;
+    font-weight: 900 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.15em !important;
+    white-space: nowrap !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+#lbl-solicitar-more {
+    bottom: 138px;
+}
+
+#lbl-agregar-publicador {
+    bottom: 192px;
+}
+
+#gooey-labels-container .opacity-0 {
+    opacity: 0 !important;
+    transform: scale(0.9) !important;
+    pointer-events: none !important;
+}
+
+#gooey-labels-container.open #lbl-solicitar-more,
+#gooey-labels-container.open #lbl-agregar-publicador {
+    opacity: 1 !important;
+    transform: scale(1) !important;
+    pointer-events: auto !important;
+}
+
+/* Custom dropdown animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translate(-50%, 10px);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+}
+
+.animate-fade-in-up {
+    animation: fadeInUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+

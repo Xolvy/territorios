@@ -53,7 +53,7 @@ export const generateProgramPDF = async (programa, isConductores = true) => {
         // Draw header info if possible
         const startDayStr = programa.dias[0]?.fecha || '';
         const endDayStr = programa.dias[6]?.fecha || '';
-        const rangeText = `${new Date(startDayStr).toLocaleDateString()} AL ${new Date(endDayStr).toLocaleDateString()}`;
+        const rangeText = `${new Date(startDayStr + 'T00:00:00').toLocaleDateString()} AL ${new Date(endDayStr + 'T00:00:00').toLocaleDateString()}`;
 
         // Draw week range near top (estimate pos)
         page.drawText(rangeText, { x: mapX(20), y: mapY(1), size: 10, font });

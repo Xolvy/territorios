@@ -2,7 +2,8 @@
  * @file public/sw-custom.js
  * @description Xolvy Custom Service Worker — Background Sync para cierre de sesión offline.
  *
- * Este archivo se registra ADEMÁS del service worker generado por Workbox/VitePWA.
+ * Este es el único service worker activo para la aplicación.
+ * Se construye con VitePWA usando `injectManifest` desde `public/sw-custom.js`.
  * Usa la Background Sync API para encolar la petición a `finalizarSesionTelefonica`
  * cuando no hay red, y la procesa silenciosamente en cuanto el dispositivo vuelve online.
  *
@@ -15,9 +16,17 @@
  * REGISTRO: Ver modules/utils/background-sync.js para el registro desde el frontend.
  */
 
-// Placeholder para VitePWA / Workbox (Obligatorio para el build)
-// eslint-disable-next-line no-unused-vars
-const _manifest = self.__WB_MANIFEST;
+import { precacheAndRoute } from 'workbox-precaching';
+import { setCacheNameDetails } from 'workbox-core';
+
+setCacheNameDetails({
+    prefix: 'territorios-shell-3-6-5',
+    suffix: 'v1',
+    precache: 'precache',
+    runtime: 'runtime'
+});
+
+precacheAndRoute(self.__WB_MANIFEST);
 
 // ─── BACKGROUND SYNC QUEUE TAG ────────────────────────────────────────────────
 const SYNC_TAG = 'xolvy-session-sync';
@@ -68,12 +77,21 @@ self.addEventListener('activate', (event) => {
     event.waitUntil(self.clients.claim());
 });
 
-// ─── FETCH EVENT HANDLER (Offline Templates) ──────────────────────────────────
+// ─── FETCH EVENT HANDLER (Offline Templates + External Libraries + Navigation Fallback) ──────────────────────────────────
+const EXTERNAL_HOSTS = [
+    'fonts.googleapis.com',
+    'fonts.gstatic.com',
+    'cdnjs.cloudflare.com',
+    'cdn.jsdelivr.net',
+    'unpkg.com',
+    'maps.googleapis.com'
+];
+
 self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
 
     // Estrategia CacheFirst para plantillas institucionales
-    if (TEMPLATE_REGEX.test(url.pathname)) {
+    if (url.origin === self.location.origin && TEMPLATE_REGEX.test(url.pathname)) {
         event.respondWith(
             caches.open(CACHE_NAME).then((cache) => {
                 return cache.match(event.request).then((response) => {
@@ -82,13 +100,37 @@ self.addEventListener('fetch', (event) => {
                             cache.put(event.request, networkResponse.clone());
                         }
                         return networkResponse;
-                    });
-                    // Retorna cache si existe, si no espera al network
+                    }).catch(() => response);
                     return response || fetchPromise;
                 });
             })
         );
         return;
+    }
+
+    // CacheFirst para recursos externos importantes (fonts, librerías y mapas)
+    if (EXTERNAL_HOSTS.some(host => url.hostname.includes(host))) {
+        event.respondWith(
+            caches.open(CACHE_NAME).then(async (cache) => {
+                const cached = await cache.match(event.request);
+                if (cached) return cached;
+                try {
+                    const networkResponse = await fetch(event.request);
+                    if (networkResponse.ok) cache.put(event.request, networkResponse.clone());
+                    return networkResponse;
+                } catch (e) {
+                    return cached;
+                }
+            })
+        );
+        return;
+    }
+
+    // Offline navigation fallback
+    if (event.request.mode === 'navigate' && event.request.method === 'GET') {
+        event.respondWith(
+            fetch(event.request).catch(() => caches.match('/index.html'))
+        );
     }
 });
 

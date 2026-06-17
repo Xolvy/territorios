@@ -35,11 +35,12 @@ class ModuleRegistry {
     }
 
     init() {
+        if (this.unsubscribe) return;
         console.log("🧩 Module Registry: Initializing HMS...");
         let isFirstSnapshot = true;
 
         // Listen to Firestore for module version changes
-        onSnapshot(doc(db, "configuracion", "module_control"), (docSnap) => {
+        this.unsubscribe = onSnapshot(doc(db, "configuracion", "module_control"), (docSnap) => {
             if (!docSnap.exists()) return;
 
             const remoteRegistry = docSnap.data().versions || {};
@@ -65,7 +66,21 @@ class ModuleRegistry {
 
             // After the first snapshot, all subsequent changes are real HMS updates
             isFirstSnapshot = false;
+        }, (error) => {
+            console.warn("⚠️ [ModuleRegistry] Error in module control listener:", error);
         });
+    }
+
+    stop() {
+        if (this.unsubscribe) {
+            console.log("🧩 Module Registry: Stopping HMS...");
+            try {
+                this.unsubscribe();
+            } catch (err) {
+                console.warn("⚠️ [ModuleRegistry] Failed to unsubscribe:", err);
+            }
+            this.unsubscribe = null;
+        }
     }
 
 

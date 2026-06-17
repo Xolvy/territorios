@@ -77,6 +77,11 @@ export const renderAsignacionesView = async (container, configData = null) => {
                             <h4 class="font-black text-lg text-slate-800 dark:text-white uppercase truncate mb-6">${t.asignado_a ? toTitleCase(t.asignado_a) : 'Disponible'}</h4>
                             <div class="flex gap-2">
                                 <button onclick="window.handleNewAssignment('${t.id}')" class="flex-1 min-w-0 py-3 bg-slate-100 dark:bg-white/5 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all">Gestionar</button>
+                                ${isAssigned ? `
+                                <button onclick="window.promptReturnTerritorio('${t.id}', '${t.numero}')" class="flex-1 min-w-0 py-3 bg-emerald-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/10">
+                                    <i class="fas fa-check-circle"></i> Entregar
+                                </button>
+                                ` : ''}
                             </div>
                         </div>`;
         }).join('')}

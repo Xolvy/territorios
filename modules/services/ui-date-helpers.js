@@ -33,6 +33,11 @@ export const UIHelpers = {
         if (!d) return null;
         if (typeof d.toDate === 'function') return d.toDate();
         if (d.seconds) return new Date(d.seconds * 1000);
+        if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
+            // Append local midnight to prevent browser from parsing as UTC (which causes off-by-one shifts)
+            const date = new Date(d + 'T00:00:00');
+            return isNaN(date.getTime()) ? null : date;
+        }
         const date = new Date(d);
         return isNaN(date.getTime()) ? null : date;
     },
@@ -55,10 +60,12 @@ export const UIHelpers = {
      * @returns {Date} El lunes de esa semana
      */
     getMonday: (d) => {
-        d = new Date(d);
-        const day = d.getDay();
-        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-        return new Date(d.setDate(diff));
+        const parsed = UIHelpers.parseFirebaseDate(d);
+        if (!parsed) return new Date();
+        const dateObj = new Date(parsed);
+        const day = dateObj.getDay();
+        const diff = dateObj.getDate() - day + (day === 0 ? -6 : 1);
+        return new Date(dateObj.setDate(diff));
     },
 
     /**
@@ -68,10 +75,11 @@ export const UIHelpers = {
      * @returns {string} Formato "YYYY-MM-DD"
      */
     formatDateId: (date) => {
-        const d = new Date(date);
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
+        const parsed = UIHelpers.parseFirebaseDate(date);
+        if (!parsed) return '';
+        const year = parsed.getFullYear();
+        const month = String(parsed.getMonth() + 1).padStart(2, '0');
+        const day = String(parsed.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
     },
 
@@ -83,11 +91,11 @@ export const UIHelpers = {
      */
     formatDisplayDateRange: (date) => {
         try {
-            const start = new Date(date);
-            if (isNaN(start.getTime())) return '';
-            const end = new Date(date);
+            const start = UIHelpers.parseFirebaseDate(date);
+            if (!start || isNaN(start.getTime())) return '';
+            const end = new Date(start);
             end.setDate(start.getDate() + 6);
-            if (dateFns) {
+            if (dateFns && typeof dateFns.format === 'function') {
                 return `${dateFns.format(start, 'd MMM')} - ${dateFns.format(end, 'd MMM yyyy')}`;
             }
             const f = (d) => `${d.getDate()}/${d.getMonth() + 1}`;

@@ -7,6 +7,7 @@ import {
 import { ServiceCache } from '../../data/services/base-service.js';
 import { showCustomPrompt, showModal, showCustomConfirm } from '../services/ui-helpers.js';
 import { showNotification } from '../utils/helpers.js';
+import { broadcastCurrentVersion } from '../utils/update-manager.js';
 
 /**
  * Ordena cronológicamente un array de strings de tiempo (soporta AM/PM y 24h).
@@ -100,7 +101,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                 </label>
                                 <div class="relative">
                                     <textarea id="conf-tema-mes" rows="2" 
-                                        class="input-premium pr-12 text-sm"
+                                        class="input-premium pr-12 text-sm w-full"
                                         placeholder="Escribe el tema de conversación sugerido o enfoque semanal...">${config.tema_mes || ''}</textarea>
                                     <div class="led-status-container hidden" style="bottom: 2.5rem;"></div>
                                 </div>
@@ -321,6 +322,26 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                 </button>
                             </div>
                             <p class="text-[9px] text-slate-600 dark:text-slate-400 mt-3 ml-1 leading-relaxed italic">Habilita el asistente virtual para análisis predictivo y sugerencias inteligentes.</p>
+                        </div>
+                    </section>
+
+                    <!-- 6. CONTROL DE ACTUALIZACIONES GLOBALES -->
+                    <section class="enterprise-card p-8 relative overflow-hidden">
+                        <header class="flex items-center gap-3 mb-6">
+                            <i class="fas fa-sync-alt text-blue-600 text-sm"></i>
+                            <h4 class="text-[11px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">6. Control de Actualizaciones Globales</h4>
+                        </header>
+
+                        <div class="space-y-4">
+                            <p class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-relaxed">
+                                Si has subido una nueva versión del sistema o hay problemas de carga en ciertos dispositivos, puedes forzar una recarga global en caliente.
+                            </p>
+                            <p class="text-[9px] font-bold text-rose-500 uppercase tracking-widest leading-relaxed bg-rose-500/5 p-4 rounded-2xl border border-rose-500/10">
+                                <i class="fas fa-exclamation-triangle mr-1"></i> <strong>ADVERTENCIA:</strong> Al presionar este botón, todos los dispositivos activos en el mundo que tengan abierta la aplicación purgarán su caché de recursos inmediatamente y recargarán la página. Las sesiones de usuario activas se conservarán.
+                            </p>
+                            <button id="btn-force-global-reload" class="w-full bg-rose-600 hover:bg-rose-500 text-white py-5 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-rose-500/20 active:scale-95 transition-all flex items-center justify-center gap-3">
+                                <i class="fas fa-sync-alt"></i> Forzar Recarga en Todos los Dispositivos
+                            </button>
                         </div>
                     </section>
                 </div>
@@ -748,6 +769,29 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
         await finishLED();
         renderSettingsView(container, config, appVersion, reloadTabFn);
     };
+
+    const btnForceReload = container.querySelector('#btn-force-global-reload');
+    if (btnForceReload) {
+        btnForceReload.onclick = () => {
+            showCustomConfirm("¿Estás seguro de que deseas forzar la recarga en todos los dispositivos activos?", async () => {
+                btnForceReload.disabled = true;
+                btnForceReload.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Propagando Actualización...';
+                try {
+                    await broadcastCurrentVersion();
+                    btnForceReload.innerHTML = '<i class="fas fa-check mr-2"></i> ¡Propagado Exitosamente!';
+                    setTimeout(() => {
+                        btnForceReload.disabled = false;
+                        btnForceReload.innerHTML = '<i class="fas fa-sync-alt"></i> Forzar Recarga en Todos los Dispositivos';
+                    }, 3000);
+                } catch (err) {
+                    console.error("Error al propagar recarga global:", err);
+                    btnForceReload.disabled = false;
+                    btnForceReload.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i> Error al Propagar';
+                    showNotification("Error al forzar recarga", "error");
+                }
+            });
+        };
+    }
 };
 
 export const renderSettingsView = renderConfigTab;
