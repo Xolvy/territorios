@@ -275,7 +275,7 @@ export function openGlobalMapModal(type, allTerritorios) {
         </div>
 
 <div class="flex-1 min-w-0 overflow-hidden rounded-[2.5rem] bg-slate-100 dark:bg-black/40 border border-slate-200 dark:border-white/5 flex items-center justify-center relative touch-none shadow-inner" id="png-zoom-container">
-<img id="global-png-map" src="assets/mapa-general.jpg" class="max-w-full max-h-full object-contain transition-all duration-200 ease-out shadow-2xl origin-center" style="transform: scale(1) translate(0px, 0px);">
+<img id="global-png-map" src="assets/mapa-general.webp" class="max-w-full max-h-full object-contain transition-all duration-200 ease-out shadow-2xl origin-center" style="transform: scale(1) translate(0px, 0px);">
 
 <!-- Dynamic Controls -->
 <div class="absolute bottom-10 right-10 flex flex-col gap-3 z-50">
