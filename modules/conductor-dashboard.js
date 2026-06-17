@@ -408,7 +408,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                     uid: auth.currentUser?.uid || identity?.uid || '',
                     email: auth.currentUser?.email || identity?.email || '',
                     lastActive: Date.now(),
-                    sessionActive: !!window._phoneSessionActive,
+                    sessionActive: !!(window._phoneSessionActive && window._myActivePhonesCount > 0),
                     solicitado_por: myName
                 }, { merge: true });
             } catch (err) {
@@ -454,64 +454,88 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 }
             }
 
-            // Grouped sessions dropdown logic
-            const btnSolicitar = document.getElementById('btn-solicitar');
-            const dropdown = document.getElementById('active-sessions-dropdown');
-            if (btnSolicitar && dropdown) {
+            // Inline Collaboration View Logic
+            const collabState = document.getElementById('phone-start-collaboration-state');
+            const initialState = document.getElementById('phone-start-initial-state');
+            
+            if (collabState && initialState) {
                 if (conductorsInSession.length > 0) {
-                    btnSolicitar.innerHTML = `<i class="fas fa-play text-base"></i> Iniciar <i class="fas fa-chevron-down text-[8px] ml-1"></i>`;
-                    btnSolicitar.classList.remove('from-indigo-600', 'to-indigo-700');
-                    btnSolicitar.classList.add('from-indigo-500', 'to-purple-600');
-                    
                     const sessionItemsHtml = conductorsInSession.map(c => {
                         const initials = c.nombre.trim().split(/\s+/).map(w => w[0]).join('').substring(0, 2).toUpperCase();
                         return `
-                            <div class="flex items-center justify-between p-2 hover:bg-slate-50 dark:hover:bg-white/5 rounded-2xl transition-all">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center text-[10px] font-black tracking-wider uppercase">
+                            <div class="flex items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-white/5 rounded-2xl transition-all border border-slate-100 dark:border-white/5">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center text-xs font-black tracking-wider uppercase shadow-sm">
                                         ${initials}
                                     </div>
                                     <div class="text-left">
-                                        <p class="text-[10px] font-black text-slate-800 dark:text-white uppercase leading-none">${c.nombre}</p>
-                                        <span class="text-[7px] font-bold text-emerald-500 uppercase tracking-widest flex items-center gap-0.5 mt-0.5">
+                                        <p class="text-xs font-black text-slate-800 dark:text-white uppercase leading-none">${c.nombre}</p>
+                                        <span class="text-[8px] font-bold text-emerald-500 uppercase tracking-widest flex items-center gap-1 mt-1">
                                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Activo
                                         </span>
                                     </div>
                                 </div>
-                                <button onclick="event.stopPropagation(); window._joinSession('${c.nombre.replace(/'/g, "\\'")}')" class="btn-pro px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[8px] font-black uppercase tracking-wider shadow-md active:scale-95 transition-all">
+                                <button onclick="event.stopPropagation(); window._joinSession('${c.nombre.replace(/'/g, "\\'")}')" class="btn-pro px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[9px] font-black uppercase tracking-wider shadow-md active:scale-95 transition-all">
                                     Unirse
                                 </button>
                             </div>
                         `;
                     }).join('');
-                    
-                    dropdown.innerHTML = `
-                        <div class="space-y-3 text-left">
-                            <div class="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-white/5">
-                                <div class="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center text-xs">
-                                    <i class="fas fa-project-diagram"></i>
+
+                    collabState.innerHTML = `
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/5">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center text-lg">
+                                        <i class="fas fa-project-diagram"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="text-xs font-black text-slate-800 dark:text-white uppercase tracking-widest leading-none">Colaboración</h4>
+                                        <span class="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-1 block">Sesiones activas</span>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h4 class="text-[9px] font-black text-slate-800 dark:text-white uppercase tracking-widest leading-none">Colaboración</h4>
-                                    <span class="text-[7px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-0.5">Sesiones activas</span>
-                                </div>
+                                <button id="btn-collab-back" class="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 text-[9px] font-black uppercase tracking-wider flex items-center gap-1">
+                                    <i class="fas fa-arrow-left"></i> Volver
+                                </button>
                             </div>
-                            <div class="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
+                            <div class="space-y-2 max-h-[180px] overflow-y-auto pr-1">
                                 ${sessionItemsHtml}
                             </div>
-                            <div class="border-t border-slate-100 dark:border-white/5 pt-2">
-                                <button onclick="event.stopPropagation(); window._startNewSessionDirect()" class="w-full bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 py-2.5 rounded-xl font-black text-[8px] uppercase tracking-widest border border-slate-200 dark:border-white/10 shadow-sm active:scale-95 transition-all text-center">
+                            <div class="border-t border-slate-100 dark:border-white/5 pt-4">
+                                <button id="btn-start-new-session" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3.5 rounded-xl font-black text-[9px] uppercase tracking-widest shadow-md active:scale-95 transition-all text-center">
                                     <i class="fas fa-plus mr-1"></i> Iniciar Sesión Nueva
                                 </button>
                             </div>
                         </div>
                     `;
+
+                    const btnBack = collabState.querySelector('#btn-collab-back');
+                    if (btnBack) {
+                        btnBack.onclick = (e) => {
+                            e.stopPropagation();
+                            collabState.classList.add('hidden');
+                            initialState.classList.remove('hidden');
+                            window._collabStateDismissed = true;
+                        };
+                    }
+
+                    const btnStartNew = collabState.querySelector('#btn-start-new-session');
+                    if (btnStartNew) {
+                        btnStartNew.onclick = async (e) => {
+                            e.stopPropagation();
+                            await window._startNewSessionDirect();
+                        };
+                    }
+
+                    if (!window._collabStateDismissed) {
+                        initialState.classList.add('hidden');
+                        collabState.classList.remove('hidden');
+                    }
                 } else {
-                    btnSolicitar.innerHTML = `<i class="fas fa-play text-base"></i> Iniciar`;
-                    btnSolicitar.classList.remove('from-indigo-500', 'to-purple-600');
-                    btnSolicitar.classList.add('from-indigo-600', 'to-indigo-700');
-                    dropdown.innerHTML = '';
-                    dropdown.classList.add('hidden');
+                    collabState.innerHTML = '';
+                    collabState.classList.add('hidden');
+                    initialState.classList.remove('hidden');
+                    window._collabStateDismissed = false;
                 }
             }
         };
@@ -641,11 +665,13 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                         await loadUnifiedDashboard(container, displayName, userMods, configData, conductorDataRef, userRole, usePool ? poolData : { ...poolData, programa: initialProg });
 
                         const myPhones = await refreshPhones(true);
+                        window._myActivePhonesCount = myPhones.length;
                         
                         // Auto-recovery of active session if there are assigned phones currently "En Sesión"
                         // Only recover if we are in the same tab session (sessionStorage is active)
                         const hasActiveSessionPhones = myPhones.some(p => p.estado === 'En Sesión');
                         const isTabSessionActive = sessionStorage.getItem('phone_session_active_this_tab') === 'true';
+                        
                         if (hasActiveSessionPhones && !window._phoneSessionActive && isTabSessionActive) {
                             console.log(`[Telefonía] ♻️ Auto-recuperando sesión activa detectada para ${displayName}`);
                             window._phoneSessionActive = true;
@@ -657,11 +683,13 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                 localStorage.setItem('phone_session_owner', userName);
                             }
                         } else if (hasActiveSessionPhones && !window._phoneSessionActive && !isTabSessionActive) {
-                            // FIX: No disparar el diálogo automáticamente al cargar la página.
-                            // El usuario ya cerró la sesión. El diálogo solo aparecerá si el usuario
-                            // presiona "Iniciar" y hay números sin finalizar en Firestore.
-                            // (El flujo ya lo maneja iniciarSolicitudNumerosFlow al hacer clic en #btn-solicitar)
                             console.log(`[Telefonía] 📋 Hay ${myPhones.length} teléfonos "En Sesión" en Firestore, pero la sesión está cerrada. Esperando acción del usuario.`);
+                        } else if (!hasActiveSessionPhones && window._phoneSessionActive) {
+                            console.log(`[Telefonía] 🧹 Limpiando bandera de sesión activa local ya que no hay teléfonos en sesión.`);
+                            window._phoneSessionActive = false;
+                            localStorage.removeItem('phone_session_active');
+                            localStorage.removeItem('phone_session_owner');
+                            sessionStorage.removeItem('phone_session_active_this_tab');
                         }
 
                         const publicadores = await getPublicadores();
@@ -812,7 +840,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                             }
                         };
 
-                        // PASO 2: Fix del botón "Solicitar Números"
+                        // PASO 2: Fix del botón "Iniciar" (Solicitar Números)
                         const btnSolicitar = container.querySelector('#btn-solicitar');
                         if (btnSolicitar) {
                             btnSolicitar.onclick = async (e) => {
@@ -821,9 +849,13 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                 const conductorsInSession = (window._activeOthers || []).filter(c => c.sessionActive && c.lastActive > now - 40000);
                                 
                                 if (conductorsInSession.length > 0) {
-                                    const dropdown = container.querySelector('#active-sessions-dropdown');
-                                    if (dropdown) {
-                                        dropdown.classList.toggle('hidden');
+                                    const collabState = container.querySelector('#phone-start-collaboration-state');
+                                    const initialState = container.querySelector('#phone-start-initial-state');
+                                    if (collabState && initialState) {
+                                        initialState.classList.add('hidden');
+                                        collabState.classList.remove('hidden');
+                                        window._collabStateDismissed = false;
+                                        updatePresenceAndSessionsUI();
                                     }
                                 } else {
                                     const oldHtml = btnSolicitar.innerHTML;
@@ -833,9 +865,6 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                         }
 
                         window._joinSession = async (ownerName) => {
-                            const dropdown = container.querySelector('#active-sessions-dropdown');
-                            if (dropdown) dropdown.classList.add('hidden');
-                            
                             localStorage.setItem('phone_session_owner', ownerName);
                             localStorage.setItem('phone_session_active', 'true');
                             sessionStorage.setItem('phone_session_active_this_tab', 'true');
@@ -845,23 +874,10 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                         };
 
                         window._startNewSessionDirect = async () => {
-                            const dropdown = container.querySelector('#active-sessions-dropdown');
-                            if (dropdown) dropdown.classList.add('hidden');
-                            
                             const btnSolicitar = container.querySelector('#btn-solicitar');
                             const oldHtml = btnSolicitar ? btnSolicitar.innerHTML : '';
                             await iniciarSolicitudNumerosFlow(btnSolicitar, oldHtml);
                         };
-
-                        // B2/B3 fix: Registrar el listener de 'click outside' UNA SOLA VEZ
-                        // usando un flag en el container para evitar duplicación en cada refresh.
-                        if (!container._dropdownOutsideListenerAttached) {
-                            container._dropdownOutsideListenerAttached = true;
-                            document.addEventListener('click', () => {
-                                const dropdown = container.querySelector('#active-sessions-dropdown');
-                                if (dropdown) dropdown.classList.add('hidden');
-                            });
-                        }
 
                         const btnFinalizarFloat = container.querySelector('#btn-finalizar-float');
                         if (btnFinalizarFloat) {
@@ -1571,19 +1587,21 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                             </div>
                             <div class="p-4 md:p-8 space-y-6">
                                 <div id="phone-compact-view" class="animate-fade-in py-10">
-                                    <div class="bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-900/10 dark:to-slate-900 p-8 md:p-12 text-center rounded-[2.5rem] border border-indigo-100 dark:border-indigo-500/10 shadow-inner">
-                                       <div class="w-16 h-16 md:w-20 md:h-20 bg-indigo-600/10 rounded-2xl flex items-center justify-center text-3xl md:text-4xl text-indigo-600 mx-auto mb-8">
-                                           <i class="fas fa-phone-alt"></i>
-                                       </div>
-                                       <h3 class="text-xl md:text-2xl font-black text-slate-800 dark:text-white mb-4 uppercase tracking-tighter">¿Listo para Predicar?</h3>
-                                       <div class="relative inline-block text-left mx-auto">
-                                           <button id="btn-solicitar" class="btn-pro bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white px-8 py-4 rounded-2xl font-black shadow-lg shadow-indigo-600/20 transition-all active:scale-95 flex items-center gap-3 uppercase tracking-widest text-[10px] mx-auto">
-                                               <i class="fas fa-play text-base"></i> Iniciar
-                                           </button>
-                                           <div id="active-sessions-dropdown" class="hidden absolute left-1/2 -translate-x-1/2 mt-3 md:left-full md:top-1/2 md:-translate-y-1/2 md:translate-x-0 md:mt-0 md:ml-4 w-80 rounded-[1.5rem] bg-white dark:bg-[#0b0f19]/95 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] p-4 z-50 animate-fade-in-up">
-                                               <!-- Dynamic sessions content -->
-                                           </div>
-                                       </div>
+                                    <div class="bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-900/10 dark:to-slate-900 p-8 md:p-12 text-center rounded-[2.5rem] border border-indigo-100 dark:border-indigo-500/10 shadow-inner max-w-xl mx-auto animate-fade-in">
+                                        <!-- STATE A: Initial View -->
+                                        <div id="phone-start-initial-state" class="space-y-6">
+                                            <div class="w-16 h-16 md:w-20 md:h-20 bg-indigo-600/10 rounded-2xl flex items-center justify-center text-3xl md:text-4xl text-indigo-600 mx-auto mb-6">
+                                                <i class="fas fa-phone-alt"></i>
+                                            </div>
+                                            <h3 class="text-xl md:text-2xl font-black text-slate-800 dark:text-white mb-4 uppercase tracking-tighter">¿Listo para Predicar?</h3>
+                                            <button id="btn-solicitar" class="btn-pro bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white px-8 py-4 rounded-2xl font-black shadow-lg shadow-indigo-600/20 transition-all active:scale-95 flex items-center gap-3 uppercase tracking-widest text-[10px] mx-auto">
+                                                <i class="fas fa-play text-base"></i> Iniciar
+                                            </button>
+                                        </div>
+                                        <!-- STATE B: Collaboration View -->
+                                        <div id="phone-start-collaboration-state" class="hidden space-y-6 text-left">
+                                            <!-- Dynamic sessions content -->
+                                        </div>
                                     </div>
                                 </div>
                                 <div id="phone-expanded-view" class="hidden animate-fade-in space-y-6">
