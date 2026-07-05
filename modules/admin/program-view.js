@@ -6,7 +6,7 @@ import {
     sincronizarAsignacionesSalida, liberarAsignacionesDeSalida
 } from '../../data/firestore-services.js';
 import { extractProgramFromImage } from '../services/ai-vision-service.js';
-import { showNotification, formatGroups, getBaseTerritoryNumber, normalize, normalizeName, splitTerritories } from '../utils/helpers.js';
+import { showNotification, formatGroups, getBaseTerritoryNumber, normalize, normalizeName, splitTerritories, toTitleCase } from '../utils/helpers.js';
 import { UIHelpers, showModal, showTerritorySelectionModal, showCustomConfirm } from '../services/ui-helpers.js';
 import { generateProgramPNG } from './program-generator.js';
 import { db } from '../../firebase-config.js';
@@ -658,8 +658,8 @@ export const renderProgramaTab = async (container, configData = null) => {
                         <div class="flex-1 min-w-0 flex flex-col gap-2 md:gap-1 pl-[56px] sm:pl-0">
                             ${hasData ? `
                                 <div class="flex flex-wrap items-center gap-2">
-                                    <span class="text-sm font-black text-slate-900 dark:text-white capitalize">${data.conductor || 'Sin Asignar'}</span>
-                                    ${data.auxiliar ? `<span class="text-[10px] text-slate-500 font-bold capitalize tracking-wider">+ ${data.auxiliar}</span>` : ''}
+                                    <span class="text-sm font-black text-slate-900 dark:text-white capitalize">${toTitleCase(data.conductor || 'Sin Asignar')}</span>
+                                    ${data.auxiliar ? `<span class="text-[10px] text-slate-500 font-bold capitalize tracking-wider">+ ${toTitleCase(data.auxiliar)}</span>` : ''}
                                 </div>
                                 <div class="flex flex-wrap items-center gap-1.5 mt-1">
                                     ${data.lugar ? `<span class="inline-flex items-center rounded-md bg-slate-100 dark:bg-white/10 px-2 py-0.5 text-[9px] font-black text-slate-600 dark:text-slate-300 ring-1 ring-inset ring-slate-200 dark:ring-white/5 uppercase tracking-widest"><i class="fas fa-map-marker-alt mr-1 text-[7px] opacity-50"></i>${data.lugar}</span>` : ''}
@@ -896,23 +896,24 @@ export const renderProgramaTab = async (container, configData = null) => {
                     const isChecked = currentPels.includes(o.name);
                     const handler = isSingle 
                         ? `window.handleSheetSingleSelectToggle(this, '${o.name}', 'select-${fieldId}', 'selected-${fieldId}-text', 'sheet-${fieldId}-dropdown')`
-                        : `const cb = this.querySelector('input'); cb.checked = !cb.checked; cb.dispatchEvent(new Event('change'));`;
+                        : `window.handleSheetMultiSelectToggle(this, 'select-${fieldId}', 'selected-${fieldId}-text', 'sheet-${fieldId}-dropdown')`;
 
-                    const isBusy = o.isBusy && !isChecked;
                     return `
-                        <label onclick="${isBusy ? '' : handler}" class="flex items-center p-3 ${isBusy ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-100 dark:hover:bg-white/5 cursor-pointer'} rounded-xl transition-colors group/chk relative">
+                        <label class="flex items-center p-3 hover:bg-slate-100 dark:hover:bg-white/5 cursor-pointer rounded-xl transition-colors group/chk relative">
                             <div class="relative w-5 h-5 flex items-center justify-center shrink-0">
-                                <input type="${isSingle ? 'radio' : 'checkbox'}" name="group-${fieldId}" value="${o.name}" ${isChecked?'checked':''} ${isBusy?'disabled':''}
-                                       onclick="event.stopPropagation()"
-                                       onchange="${!isSingle ? `window.handleSheetMultiSelectToggle(this, 'select-${fieldId}', 'selected-${fieldId}-text', 'sheet-${fieldId}-dropdown')` : ''}"
-                                       class="group-checkbox absolute opacity-0 inset-0 z-10 ${isBusy ? 'cursor-not-allowed' : 'cursor-pointer'} w-full h-full">
+                                <input type="${isSingle ? 'radio' : 'checkbox'}" 
+                                       name="group-${fieldId}" 
+                                       value="${o.name}" 
+                                       ${isChecked ? 'checked' : ''} 
+                                       onchange="${handler}"
+                                       class="group-checkbox absolute opacity-0 inset-0 z-10 cursor-pointer w-full h-full">
                                 <div class="w-4 h-4 rounded border-2 border-slate-300 dark:border-white/20 ${isChecked ? 'bg-blue-600 border-blue-600' : ''} flex items-center justify-center transition-all peer-ui">
                                     <i class="fas fa-check text-[8px] text-slate-800 dark:text-slate-100 transition-opacity" style="opacity: ${isChecked ? '1' : '0'};"></i>
                                 </div>
                             </div>
                             <div class="ml-3 flex flex-col pointer-events-none">
-                                <span class="text-[11px] font-black tracking-tight text-slate-700 dark:text-slate-300 ${isBusy ? '' : 'group-hover/chk:text-primary'} transition-colors capitalize">${o.name}</span>
-                                ${isBusy ? '<span class="text-[8px] font-bold text-rose-500 uppercase tracking-widest mt-0.5">Ya asignado hoy</span>' : (o.isAvail ? '<span class="text-[8px] font-bold text-emerald-500 uppercase tracking-widest mt-0.5">Disponible</span>' : '')}
+                                <span class="text-[11px] font-black tracking-tight text-slate-700 dark:text-slate-300 group-hover/chk:text-primary transition-colors capitalize">${o.name}</span>
+                                ${o.isBusy ? '<span class="text-[8px] font-bold text-rose-500 uppercase tracking-widest mt-0.5">Ya asignado hoy</span>' : (o.isAvail ? '<span class="text-[8px] font-bold text-emerald-500 uppercase tracking-widest mt-0.5">Disponible</span>' : '')}
                             </div>
                         </label>`;
                 }).join('');
@@ -924,7 +925,7 @@ export const renderProgramaTab = async (container, configData = null) => {
                         </label>
                         <div class="custom-multiselect relative" id="sheet-${fieldId}-container">
                             <div onclick="window.toggleSheetDropdown(event, 'sheet-${fieldId}-dropdown', '${fieldId}-dropdown-icon')" class="w-full text-left bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 p-4 rounded-xl hover:border-primary transition-all flex items-center justify-between shadow-sm cursor-pointer block-scale-click min-h-[52px]">
-                                <span id="selected-${fieldId}-text" class="text-[12px] font-black truncate pr-4 capitalize ${currentPels.length ? 'text-slate-800 dark:text-white' : 'text-slate-600 dark:text-slate-400 opacity-40'}">${displayText}</span>
+                                <span id="selected-${fieldId}-text" class="text-[12px] font-black truncate pr-4 capitalize ${currentPels.length ? 'text-slate-800 dark:text-white' : 'text-slate-600 dark:text-slate-400 opacity-40'}">${toTitleCase(displayText)}</span>
                                 <i class="fas fa-chevron-down text-[10px] text-slate-600 dark:text-slate-400 opacity-50 transition-transform duration-300 pointer-events-none dropdown-chevron-icon" id="${fieldId}-dropdown-icon"></i>
                             </div>
                             <div id="sheet-${fieldId}-dropdown" class="custom-dropdown-content hidden absolute left-0 right-0 bottom-full mb-1 bg-white dark:bg-[#151a26] border border-slate-200 dark:border-white/10 rounded-2xl shadow-[0_-15px_35px_-10px_rgba(0,0,0,0.3)] z-50 max-h-56 overflow-y-auto custom-scrollbar p-2 animate-scale-in origin-bottom">
@@ -1265,7 +1266,23 @@ export const renderProgramaTab = async (container, configData = null) => {
 
         const sortCriteria = window._progCache.territorySortOrder || 'numero';
 
-        const processedTs = (window._progCache.territorios || []).map(t => {
+        // 1. Group and deduplicate territories by number to consolidate their manzanas
+        const groupedTs = {};
+        (window._progCache.territorios || []).forEach(t => {
+            const num = String(t.numero || '').trim();
+            if (!groupedTs[num]) {
+                groupedTs[num] = { ...t, numero: num };
+            } else {
+                const currentMzs = (groupedTs[num].manzanas || '').split(/[,;/]/).map(m => m.trim()).filter(Boolean);
+                const newMzs = (t.manzanas || '').split(/[,;/]/).map(m => m.trim()).filter(Boolean);
+                const merged = Array.from(new Set([...currentMzs, ...newMzs])).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+                groupedTs[num].manzanas = merged.join(', ');
+                if (t.is_incomplete) groupedTs[num].is_incomplete = true;
+            }
+        });
+        const uniqueTs = Object.values(groupedTs);
+
+        const processedTs = uniqueTs.map(t => {
             const tNum = String(t.numero).trim();
             const s13Records = (window._progCache.historial || []).filter(h => {
                 const histNum = String(h.territorio_id || h.numero || '').trim();
@@ -1321,24 +1338,22 @@ export const renderProgramaTab = async (container, configData = null) => {
             const sel = currentSelection[tNum] || { blocks: new Set(), isFull: false };
             const occ = occupancy[tNum] || { blocks: new Set(), isFull: false };
             
+            // Combined occupancy: other days + current slot selection
+            const combinedBlocks = new Set([...occ.blocks, ...sel.blocks]);
+            const isCombinedFull = occ.isFull || sel.isFull || (manzanas.length > 0 && manzanas.every(m => combinedBlocks.has(m)));
+            
             let badgeClass = 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400';
             let badgeText = 'Libre';
             
-            if (occ.isFull) {
+            if (isCombinedFull) {
                 badgeClass = 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400';
                 badgeText = 'Ocupado';
-            } else if (occ.blocks.size > 0) {
-                if (manzanas.length > 0 && manzanas.every(m => occ.blocks.has(m))) {
-                    badgeClass = 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400';
-                    badgeText = 'Ocupado';
-                } else {
-                    badgeClass = 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400';
-                    badgeText = 'Parcial';
-                }
+            } else if (combinedBlocks.size > 0) {
+                badgeClass = 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400';
+                badgeText = 'Parcial';
             }
 
             const isChecked = sel.isFull || (manzanas.length > 0 && manzanas.every(m => sel.blocks.has(m)));
-            const isFullyOccupied = badgeText === 'Ocupado';
 
             return `
                 <div class="territorio-group p-3 border-b border-slate-50 dark:border-white/5 last:border-0">
@@ -1347,13 +1362,19 @@ export const renderProgramaTab = async (container, configData = null) => {
                             <input type="checkbox" 
                                    onchange="window.handleHierarchicalToggle(this, '${tNum}', true, null, '${turnoId}')"
                                    ${isChecked ? 'checked' : ''} 
-                                   ${isFullyOccupied ? 'disabled' : ''}
                                    class="absolute opacity-0 w-6 h-6 z-10 cursor-pointer">
-                            <div class="w-5 h-5 rounded border-2 border-slate-300 dark:border-white/20 ${isChecked ? 'bg-blue-600 border-blue-600' : ''} flex items-center justify-center transition-all peer-ui peer-disabled:opacity-30 ${isFullyOccupied ? 'opacity-30 cursor-not-allowed' : ''}">
+                            <div class="w-5 h-5 rounded border-2 border-slate-300 dark:border-white/20 ${isChecked ? 'bg-blue-600 border-blue-600' : ''} flex items-center justify-center transition-all peer-ui">
                                 <i class="fas fa-check text-[10px] text-slate-800 dark:text-slate-100 transition-opacity" style="opacity: ${isChecked ? '1' : '0'};"></i>
                             </div>
                             <div class="flex flex-col">
-                                <span class="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300 group-hover:text-primary transition-colors">Territorio ${tNum}</span>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300 group-hover:text-primary transition-colors">Territorio ${tNum}</span>
+                                    ${t.is_incomplete ? `
+                                        <span class="px-2 py-0.5 bg-rose-500/10 text-rose-600 dark:text-rose-450 border border-rose-500/20 text-[7px] font-black uppercase tracking-wider rounded-md flex items-center gap-1">
+                                            <i class="fas fa-puzzle-piece text-[8px] animate-pulse"></i> Incompleto
+                                        </span>
+                                    ` : ''}
+                                </div>
                                 <span class="text-[7.5px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest mt-0.5">
                                     ${t.labelUltimaVez}
                                 </span>
@@ -1367,13 +1388,13 @@ export const renderProgramaTab = async (container, configData = null) => {
                             const isMSelected = sel.isFull || sel.blocks.has(m);
                             const isMOccupied = occ.isFull || occ.blocks.has(m);
                             
-                            if (isMOccupied) {
-                                return `<div class="px-3 py-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[9px] font-semibold text-slate-600 dark:text-slate-400 opacity-50 cursor-not-allowed line-through text-center">${m}</div>`;
-                            }
+                            // Style occupied apples with line-through and rose border, but keep them clickable and selectable!
+                            const occupiedStyle = isMOccupied ? 'line-through decoration-rose-500 decoration-2' : '';
+                            const occupiedBg = isMOccupied && !isMSelected ? 'border-rose-350 dark:border-rose-900/50 bg-rose-500/5' : '';
                             
                             return `
                                 <div onclick="window.handleHierarchicalToggle(this, '${tNum}', false, '${m}', '${turnoId}')" 
-                                     class="block-chip px-3 py-1 ${isMSelected ? 'bg-blue-600 border-blue-600 text-white shadow-sm' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 hover:bg-blue-50 hover:border-blue-300'} border rounded-lg text-[9px] font-semibold cursor-pointer transition-all text-center select-none"
+                                     class="block-chip px-3 py-1 ${isMSelected ? 'bg-blue-600 border-blue-600 text-white shadow-sm' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 hover:bg-blue-50 hover:border-blue-300'} ${occupiedBg} border rounded-lg text-[9px] font-semibold cursor-pointer transition-all text-center select-none ${occupiedStyle}"
                                      data-selected="${isMSelected}">
                                     ${m}
                                 </div>`;
@@ -1401,27 +1422,18 @@ export const renderProgramaTab = async (container, configData = null) => {
         if (isHeader) {
             const isChecked = el.checked;
             if (isChecked) {
-                // Determine if it was already "Full" or "Partial"
-                // select all non-occupied blocks
-                const occ = occupancy[tNum] || { blocks: new Set(), isFull: false };
-                if (occ.isFull) return; // Should be disabled anyway
-                
+                // Select all blocks including busy ones to allow full override
                 if (manzanas.length === 0) {
                     selection[tNum].isFull = true;
                 } else {
-                    // Filter out truly occupied blocks from the pool
-                    manzanas.forEach(m => {
-                        if (!occ.blocks.has(m)) selection[tNum].blocks.add(m);
-                    });
-                    // If all blocks selected, Mark as full? Or let format handle it.
-                    // Let's mark as full if all free blocks are selected and no blocks were occupied
-                    if (occ.blocks.size === 0) selection[tNum].isFull = true;
+                    manzanas.forEach(m => selection[tNum].blocks.add(m));
+                    selection[tNum].isFull = true;
                 }
             } else {
                 delete selection[tNum];
             }
         } else {
-            // PARCHE 1: Pure toggle — always derive truth from selection Set, never from stale dataset
+            // Pure toggle
             const isCurrentlySelected = selection[tNum] && (selection[tNum].isFull || selection[tNum].blocks.has(blockName));
             if (isCurrentlySelected) {
                 selection[tNum].blocks.delete(blockName);
@@ -1430,7 +1442,6 @@ export const renderProgramaTab = async (container, configData = null) => {
             } else {
                 if (!selection[tNum]) selection[tNum] = { blocks: new Set(), isFull: false };
                 selection[tNum].blocks.add(blockName);
-                // If all manzanas are now selected, mark as full
                 if (manzanas.length > 0 && manzanas.every(m => selection[tNum].blocks.has(m))) {
                     selection[tNum].isFull = true;
                 }
@@ -1450,14 +1461,17 @@ export const renderProgramaTab = async (container, configData = null) => {
             // Find the specific territory group and update its UI
             const groups = dropdown.querySelectorAll('.territorio-group');
             groups.forEach(group => {
-                const title = group.querySelector('span.font-black').innerText;
+                const title = group.querySelector('span.font-black')?.innerText || '';
                 const numMatch = title.match(/\d+/);
                 if (numMatch && numMatch[0] === tNum) {
+                    const selData = selection[tNum] || { blocks: new Set(), isFull: false };
+                    const occData = occupancy[tNum] || { blocks: new Set(), isFull: false };
+
                     // Update Header Checkbox
                     const cb = group.querySelector('input[type="checkbox"]');
                     const peerUi = group.querySelector('.peer-ui');
                     const checkIcon = peerUi.querySelector('i');
-                    const isNowChecked = selection[tNum] && (selection[tNum].isFull || (manzanas.length > 0 && manzanas.every(m => selection[tNum].blocks.has(m))));
+                    const isNowChecked = selData.isFull || (manzanas.length > 0 && manzanas.every(m => selData.blocks.has(m)));
                     
                     if (cb) cb.checked = !!isNowChecked;
                     if (peerUi) {
@@ -1470,10 +1484,37 @@ export const renderProgramaTab = async (container, configData = null) => {
                     const chips = group.querySelectorAll('.block-chip');
                     chips.forEach(chip => {
                         const mName = chip.innerText.trim();
-                        const isSelected = selection[tNum] && (selection[tNum].isFull || selection[tNum].blocks.has(mName));
+                        const isSelected = selData.isFull || selData.blocks.has(mName);
+                        const isMOccupied = occData.isFull || occData.blocks.has(mName);
+                        
                         chip.dataset.selected = !!isSelected;
-                        chip.className = `block-chip px-3 py-1 ${isSelected ? 'bg-blue-600 border-blue-600 text-white shadow-sm' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 hover:bg-blue-50 hover:border-blue-300'} border rounded-lg text-[9px] font-semibold cursor-pointer transition-all text-center select-none`;
+                        
+                        const occupiedStyle = isMOccupied ? 'line-through decoration-rose-500 decoration-2' : '';
+                        const occupiedBg = isMOccupied && !isSelected ? 'border-rose-350 dark:border-rose-900/50 bg-rose-500/5' : '';
+                        
+                        chip.className = `block-chip px-3 py-1 ${isSelected ? 'bg-blue-600 border-blue-600 text-white shadow-sm' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 hover:bg-blue-50 hover:border-blue-300'} ${occupiedBg} border rounded-lg text-[9px] font-semibold cursor-pointer transition-all text-center select-none ${occupiedStyle}`;
                     });
+
+                    // Update Badge (Reactively update Libre/Parcial/Ocupado combining week + selection)
+                    const badge = group.querySelector('span.rounded-full');
+                    if (badge) {
+                        const combinedBlocks = new Set([...occData.blocks, ...selData.blocks]);
+                        const isCombinedFull = occData.isFull || selData.isFull || (manzanas.length > 0 && manzanas.every(m => combinedBlocks.has(m)));
+                        
+                        let badgeClass = 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400';
+                        let badgeText = 'Libre';
+                        
+                        if (isCombinedFull) {
+                            badgeClass = 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400';
+                            badgeText = 'Ocupado';
+                        } else if (combinedBlocks.size > 0) {
+                            badgeClass = 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400';
+                            badgeText = 'Parcial';
+                        }
+                        
+                        badge.className = `px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${badgeClass}`;
+                        badge.innerText = badgeText;
+                    }
                 }
             });
         }
@@ -2477,9 +2518,7 @@ export const renderProgramaTab = async (container, configData = null) => {
         } else if (id === 'action-recepcion-prog') {
             execActionRecepcion();
         } else if (id === 'action-escanear-prog') {
-            // Priority to Nexo Vision Multimodal, fallback to classic Program Scanner
-            if (window.nexoVisionScanner) window.nexoVisionScanner();
-            else memoryScannerInput.click();
+            memoryScannerInput.click();
         } else if (id === 'action-replicar-prog') {
             execActionReplicar();
         } else if (id === 'action-exportar-prog') {

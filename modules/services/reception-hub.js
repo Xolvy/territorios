@@ -463,17 +463,11 @@ export class ReceptionHub {
 
                     if (returningWithoutPreaching.length > 0) {
                         const nums = returningWithoutPreaching.map(t => `T-${t.numero}`).join(', ');
-                        const confirm = await window.Swal.fire({
-                            title: '¿Devolver sin predicar?',
-                            text: `Vas a devolver ${nums} al panel sin registrar actividad (quedarán Disponibles). ¿Confirmar devolución?`,
-                            icon: 'warning',
-                            showCancelButton: true,
-                            confirmButtonColor: '#3085d6',
-                            cancelButtonColor: '#d33',
-                            confirmButtonText: 'Sí, devolver',
-                            cancelButtonText: 'Cancelar'
-                        });
-                        if (!confirm.isConfirmed) {
+                        const confirmed = await this.showInlineConfirm(
+                            '¿Devolver sin predicar?',
+                            `Vas a devolver ${nums} al panel sin registrar actividad (quedarán Disponibles). ¿Confirmar devolución?`
+                        );
+                        if (!confirmed) {
                             submitBtn.disabled = false;
                             submitBtn.innerHTML = '<i class="fas fa-check-double"></i> Confirmar y Guardar';
                             return;
@@ -514,6 +508,45 @@ export class ReceptionHub {
                 }
             };
         }
+    }
+
+    showInlineConfirm(title, text) {
+        return new Promise((resolve) => {
+            const container = document.getElementById('reception-hub-modal');
+            if (!container) {
+                resolve(false);
+                return;
+            }
+
+            const overlay = document.createElement('div');
+            overlay.className = 'absolute inset-0 z-[10000] flex items-center justify-center p-6 bg-slate-950/60 dark:bg-black/70 backdrop-blur-md rounded-[20px] animate-fade-in';
+            
+            overlay.innerHTML = `
+                <div class="bg-white dark:bg-[#0a0f18]/95 border border-slate-200/60 dark:border-white/10 p-6 rounded-[2rem] shadow-2xl max-w-sm w-full text-center space-y-4 animate-scale-in relative">
+                    <div class="w-12 h-12 bg-rose-500/10 text-rose-500 rounded-2xl flex items-center justify-center text-xl mx-auto shadow-inner border border-rose-500/10">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">${title}</h4>
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-2 font-semibold leading-relaxed">${text}</p>
+                    </div>
+                    <div class="flex gap-3 w-full pt-2">
+                        <button id="inline-confirm-cancel" class="flex-1 py-3 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 font-bold hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-[9px] uppercase tracking-widest">Cancelar</button>
+                        <button id="inline-confirm-ok" class="flex-1 py-3 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl transition-all text-[9px] uppercase tracking-widest shadow-md shadow-rose-500/10">Sí, devolver</button>
+                    </div>
+                </div>
+            `;
+
+            container.appendChild(overlay);
+
+            const cleanup = (value) => {
+                overlay.remove();
+                resolve(value);
+            };
+
+            overlay.querySelector('#inline-confirm-cancel').onclick = () => cleanup(false);
+            overlay.querySelector('#inline-confirm-ok').onclick = () => cleanup(true);
+        });
     }
 
     /**
