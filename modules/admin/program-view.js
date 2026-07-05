@@ -26,6 +26,7 @@ import {
     splitTerritories,
     toTitleCase,
 } from "../utils/helpers.js";
+import { openSugeridorModal } from "./ai-sugeridor.js";
 import { openFormalizeModal, openReceptionModal } from "./program-actions.js";
 import {
     checkIncongruences,
@@ -240,6 +241,9 @@ export const renderProgramaTab = async (container, configData = null) => {
                         </button>
                         <button id="action-replicar-prog" class="flex-1 min-w-0 sm:flex-none min-w-[90px] px-3.5 py-2.5 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 rounded-xl border border-slate-200 dark:border-white/10 hover:border-indigo-500 hover:text-indigo-600 transition-all font-bold text-[10px] xs:text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95 group">
                             <i class="fas fa-clone opacity-40 group-hover:opacity-100 text-[10px]"></i> Replicar
+                        </button>
+                        <button id="action-sugerencias-prog" class="flex-1 min-w-0 sm:flex-none min-w-[90px] px-3.5 py-2.5 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 rounded-xl border border-slate-200 dark:border-white/10 hover:border-emerald-500 hover:text-emerald-600 transition-all font-bold text-[10px] xs:text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95 group">
+                            <i class="fas fa-lightbulb text-emerald-500 opacity-40 group-hover:opacity-100 text-[10px]"></i> Sugerencias
                         </button>
 
                         <div style="flex-grow: 1" class="hidden xl:block"></div>
@@ -2884,6 +2888,8 @@ export const renderProgramaTab = async (container, configData = null) => {
             memoryScannerInput.click();
         } else if (id === "action-replicar-prog") {
             execActionReplicar();
+        } else if (id === "action-sugerencias-prog") {
+            openSugeridorModal(programa, renderTable);
         } else if (id === "action-exportar-prog") {
             const menuEl = container.querySelector("#export-menu-options");
             const isVisible = menuEl.getAttribute("data-visible") === "true";
