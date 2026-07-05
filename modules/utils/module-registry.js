@@ -6,7 +6,7 @@ import { db } from "../../firebase-config.js";
  * Manages individual versions for application modules to allow granular updates.
  */
 
-const LOCAL_STORAGE_KEY = 'xolvy_module_registry';
+const LOCAL_STORAGE_KEY = "xolvy_module_registry";
 
 class ModuleRegistry {
     constructor() {
@@ -28,7 +28,7 @@ class ModuleRegistry {
             analytics_view: "2.4.5.7",
             reports_view: "2.4.2.5",
             weekly_program: "2.4.2.5",
-            program_views: "2.4.2.5"
+            program_views: "2.4.2.5",
         };
         this.listeners = [];
         this.cache = new Map();
@@ -40,35 +40,41 @@ class ModuleRegistry {
         let isFirstSnapshot = true;
 
         // Listen to Firestore for module version changes
-        this.unsubscribe = onSnapshot(doc(db, "configuracion", "module_control"), (docSnap) => {
-            if (!docSnap.exists()) return;
+        this.unsubscribe = onSnapshot(
+            doc(db, "configuracion", "module_control"),
+            (docSnap) => {
+                if (!docSnap.exists()) return;
 
-            const remoteRegistry = docSnap.data().versions || {};
-            let hasChanges = false;
+                const remoteRegistry = docSnap.data().versions || {};
+                let hasChanges = false;
 
-            Object.keys(remoteRegistry).forEach(moduleName => {
-                if (this.registry[moduleName] !== remoteRegistry[moduleName]) {
-                    console.log(`🔄 HMS Catch: Module [${moduleName}] updated ${this.registry[moduleName]} -> ${remoteRegistry[moduleName]}`);
-                    this.registry[moduleName] = remoteRegistry[moduleName];
-                    hasChanges = true;
+                Object.keys(remoteRegistry).forEach((moduleName) => {
+                    if (this.registry[moduleName] !== remoteRegistry[moduleName]) {
+                        console.log(
+                            `🔄 HMS Catch: Module [${moduleName}] updated ${this.registry[moduleName]} -> ${remoteRegistry[moduleName]}`,
+                        );
+                        this.registry[moduleName] = remoteRegistry[moduleName];
+                        hasChanges = true;
 
-                    // Only notify listeners (trigger re-renders) AFTER the initial sync.
-                    // The first snapshot is just syncing versions; the page is still loading.
-                    if (!isFirstSnapshot) {
-                        this.notifyListeners(moduleName, remoteRegistry[moduleName]);
+                        // Only notify listeners (trigger re-renders) AFTER the initial sync.
+                        // The first snapshot is just syncing versions; the page is still loading.
+                        if (!isFirstSnapshot) {
+                            this.notifyListeners(moduleName, remoteRegistry[moduleName]);
+                        }
                     }
+                });
+
+                if (hasChanges) {
+                    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(this.registry));
                 }
-            });
 
-            if (hasChanges) {
-                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(this.registry));
-            }
-
-            // After the first snapshot, all subsequent changes are real HMS updates
-            isFirstSnapshot = false;
-        }, (error) => {
-            console.warn("⚠️ [ModuleRegistry] Error in module control listener:", error);
-        });
+                // After the first snapshot, all subsequent changes are real HMS updates
+                isFirstSnapshot = false;
+            },
+            (error) => {
+                console.warn("⚠️ [ModuleRegistry] Error in module control listener:", error);
+            },
+        );
     }
 
     stop() {
@@ -83,7 +89,6 @@ class ModuleRegistry {
         }
     }
 
-
     /**
      * Centralized Hot Module Loading with Caching
      * ALWAYS uses Vite's glob import as primary strategy.
@@ -92,8 +97,8 @@ class ModuleRegistry {
     async loadModule(name, path, globMap = {}) {
         // Normalize path to absolute from root
         let absolutePath = path;
-        if (path.startsWith('./')) {
-            if (path.startsWith('./modules/')) {
+        if (path.startsWith("./")) {
+            if (path.startsWith("./modules/")) {
                 absolutePath = path.substring(1); // ./modules/ -> /modules/
             } else {
                 absolutePath = `/modules/${path.substring(2)}`;
@@ -112,18 +117,15 @@ class ModuleRegistry {
         // Build all possible glob key variations for matching
         // app.js glob keys:                ./modules/login.js
         // conductor-dashboard.js glob keys: ./conductor/availability.js
-        const globPath1 = `.${absolutePath}`;  // -> ./modules/login.js or ./modules/conductor/availability.js
-        const globPath2 = absolutePath.startsWith('/modules/')
-            ? `.${absolutePath.substring(8)}`   // -> ./login.js or ./conductor/availability.js
+        const globPath1 = `.${absolutePath}`; // -> ./modules/login.js or ./modules/conductor/availability.js
+        const globPath2 = absolutePath.startsWith("/modules/")
+            ? `.${absolutePath.substring(8)}` // -> ./login.js or ./conductor/availability.js
             : absolutePath;
 
         // STRATEGY 1: ALWAYS use Vite glob map first (works in both dev and production)
         // The glob map is compiled at build time by Vite and already resolves to the correct
         // chunk files. It works reliably in ALL environments.
-        const globKey = globMap[path] ? path
-            : globMap[globPath1] ? globPath1
-                : globMap[globPath2] ? globPath2
-                    : null;
+        const globKey = globMap[path] ? path : globMap[globPath1] ? globPath1 : globMap[globPath2] ? globPath2 : null;
 
         if (globKey) {
             try {
@@ -137,9 +139,7 @@ class ModuleRegistry {
         if (!mod) {
             console.log(`📡 [HMS] No glob key for ${name}, using dynamic import`);
             const isProduction = import.meta.env.PROD;
-            let finalPath = isProduction
-                ? `/assets/${absolutePath.split('/').pop()}`
-                : absolutePath;
+            const finalPath = isProduction ? `/assets/${absolutePath.split("/").pop()}` : absolutePath;
 
             try {
                 mod = await import(/* @vite-ignore */ finalPath);
@@ -158,7 +158,7 @@ class ModuleRegistry {
     }
 
     notifyListeners(moduleName, version) {
-        this.listeners.forEach(cb => cb(moduleName, version));
+        this.listeners.forEach((cb) => cb(moduleName, version));
     }
 }
 

@@ -1,7 +1,7 @@
-import { getCampanas, saveCampana, deleteCampana } from '../../data/firestore-services.js';
-import { showCustomConfirm, showCustomPrompt } from '../services/ui-helpers.js';
+import { deleteCampana, getCampanas, saveCampana } from "../../data/firestore-services.js";
+import { showCustomConfirm, showCustomPrompt } from "../services/ui-helpers.js";
 
-export const renderCampaignsTab = async (container, config, appVersion, reloadTabFn) => {
+export const renderCampaignsTab = async (container, _config, _appVersion, reloadTabFn) => {
     const list = await getCampanas();
     container.innerHTML = `
         <div class="p-8 max-w-5xl animate-fade-in bg-white dark:bg-[#0f1115] rounded-[2.5rem] border border-slate-100 dark:border-white/10 shadow-2xl m-4 overflow-hidden relative">
@@ -23,35 +23,43 @@ export const renderCampaignsTab = async (container, config, appVersion, reloadTa
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10">
-                ${list.length === 0 ? `
+                ${
+                    list.length === 0
+                        ? `
                     <div class="col-span-full py-32 text-center space-y-4 opacity-30">
                         <div class="w-20 h-20 bg-slate-100 dark:bg-white/5 rounded-3xl flex items-center justify-center text-3xl mx-auto"><i class="fas fa-scroll"></i></div>
                         <p class="font-black text-[10px] uppercase tracking-[0.4em]">Sin campañas activas</p>
                     </div>
-                ` : ''}
-                ${list.map(c => `
+                `
+                        : ""
+                }
+                ${list
+                    .map(
+                        (c) => `
                     <div class="bg-slate-50 dark:bg-white/5 p-6 rounded-3xl border border-slate-100 dark:border-white/5 flex justify-between items-center group hover:border-red-500/30 transition-all shadow-sm">
                         <span class="font-black text-slate-700 dark:text-slate-200 uppercase tracking-tight text-sm">${c}</span>
                         <button onclick="window.actionDeleteCampana('${c}')" class="w-10 h-10 bg-white dark:bg-[#1a1a1a] text-red-500 rounded-xl shadow-md border border-slate-100 dark:border-white/10 hover:scale-110 transition-transform flex items-center justify-center" title="Eliminar">
                             <i class="fas fa-trash-alt text-xs"></i>
                         </button>
                     </div>
-                `).join('')}
+                `,
+                    )
+                    .join("")}
             </div>
         </div>
     `;
 
-    container.querySelector('#add-campana').onclick = async () => {
+    container.querySelector("#add-campana").onclick = async () => {
         showCustomPrompt("Nombre de la nueva campaña:", "", async (name) => {
             await saveCampana(name);
-            reloadTabFn('campanas');
+            reloadTabFn("campanas");
         });
     };
 
     window.actionDeleteCampana = async (c) => {
         showCustomConfirm(`¿Borrar la campaña "${c}"? Los registros históricos no se verán afectados.`, async () => {
             await deleteCampana(c);
-            reloadTabFn('campanas');
+            reloadTabFn("campanas");
         });
     };
 };

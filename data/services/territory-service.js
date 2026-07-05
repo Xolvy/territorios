@@ -1,11 +1,29 @@
-import { db, storage } from '../../firebase-config.js';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc, query, where, getDoc, setDoc, Timestamp, writeBatch, arrayUnion, runTransaction, orderBy, limit, serverTimestamp } from "firebase/firestore";
-import { ServiceCache, fetchCached } from './base-service.js';
-import { logReturn, logAssignment } from './history-service.js';
-import { saveAuditLog } from './audit-service.js';
-import { syncAssignmentToWeeklyProgram } from './program-service.js';
-import { normalizeName } from '../../modules/utils/helpers.js';
+import {
+    addDoc,
+    arrayUnion,
+    collection,
+    deleteDoc,
+    doc,
+    getDoc,
+    getDocs,
+    limit,
+    orderBy,
+    query,
+    runTransaction,
+    serverTimestamp,
+    setDoc,
+    Timestamp,
+    updateDoc,
+    where,
+    writeBatch,
+} from "firebase/firestore";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { db, storage } from "../../firebase-config.js";
+import { normalizeName } from "../../modules/utils/helpers.js";
+import { saveAuditLog } from "./audit-service.js";
+import { fetchCached, ServiceCache } from "./base-service.js";
+import { logAssignment, logReturn } from "./history-service.js";
+import { syncAssignmentToWeeklyProgram } from "./program-service.js";
 
 const COL_TERRITORIOS = "territorios";
 const COL_BANCO_S13 = "banco_s13";
@@ -13,9 +31,8 @@ const COL_BANCO_S13 = "banco_s13";
 // --- XOLVY SHIELD: GLOBAL AGGREGATIONS (Moved to internal transaction logic) ---
 // updateGlobalStats removed to prevent Firestore transaction violations (Reads before Writes)
 
-
 export const getGlobalStats = async () => {
-    return fetchCached('stats_globales', async () => {
+    return fetchCached("stats_globales", async () => {
         const snap = await getDoc(doc(db, "configuracion", "stats_globales"));
         return snap.exists() ? snap.data() : { territorios_asignados: 0, territorios_disponibles: 0 };
     });
@@ -23,27 +40,33 @@ export const getGlobalStats = async () => {
 
 const normalizeTerritorioData = (id, data, latestAssignment = null) => {
     let geojson = data.geojson;
-    if (typeof geojson === 'string') {
-        try { geojson = JSON.parse(geojson); } catch (e) { geojson = null; }
+    if (typeof geojson === "string") {
+        try {
+            geojson = JSON.parse(geojson);
+        } catch (_e) {
+            geojson = null;
+        }
     }
-    const numeroStr = String(data.numero || '');
-    
-    // Aislamiento de Scope: Priorizamos los campos del Live Pool (S-13) 
+    const numeroStr = String(data.numero || "");
+
+    // Aislamiento de Scope: Priorizamos los campos del Live Pool (S-13)
     // pero permitimos lectura del Maestro con los nuevos nombres
-    const estado = latestAssignment ? latestAssignment.estado : (data.status || data.estado || 'Disponible');
-    const asignado_a = latestAssignment ? latestAssignment.conductor : (data.currentAssignee || data.asignado_a || null);
-    const fecha_asignacion = latestAssignment ? latestAssignment.fecha_asignacion : (data.assignmentDate || data.fecha_asignacion || null);
-    const fecha_salida = latestAssignment ? (latestAssignment.fecha_salida || null) : (data.fecha_salida || null);
-    const auxiliar = latestAssignment ? (latestAssignment.auxiliar || null) : (data.auxiliar || null);
+    const estado = latestAssignment ? latestAssignment.estado : data.status || data.estado || "Disponible";
+    const asignado_a = latestAssignment ? latestAssignment.conductor : data.currentAssignee || data.asignado_a || null;
+    const fecha_asignacion = latestAssignment
+        ? latestAssignment.fecha_asignacion
+        : data.assignmentDate || data.fecha_asignacion || null;
+    const fecha_salida = latestAssignment ? latestAssignment.fecha_salida || null : data.fecha_salida || null;
+    const auxiliar = latestAssignment ? latestAssignment.auxiliar || null : data.auxiliar || null;
     const asignado_a_normalized = asignado_a ? normalizeName(asignado_a) : null;
     const auxiliar_normalized = auxiliar ? normalizeName(auxiliar) : null;
 
     return {
         id,
         numero: numeroStr,
-        manzanas: data.manzanas || '',
+        manzanas: data.manzanas || "",
         manzanas_trabajadas: data.manzanas_trabajadas || [],
-        localidad: data.localidad || '',
+        localidad: data.localidad || "",
         geojson: geojson,
         imagen: data.imagen || null,
         estado: estado,
@@ -59,29 +82,29 @@ const normalizeTerritorioData = (id, data, latestAssignment = null) => {
         currentAssignee: asignado_a,
         assignmentDate: fecha_asignacion,
         // Datos puros del Maestro (para Recepción estricta)
-        master_status: data.status || data.estado || 'Disponible',
+        master_status: data.status || data.estado || "Disponible",
         master_assignee: data.currentAssignee || data.asignado_a || null,
-        master_date: data.assignmentDate || data.fecha_asignacion || null
+        master_date: data.assignmentDate || data.fecha_asignacion || null,
     };
 };
 
 export const getTerritorios = async () => {
-    return fetchCached('territorios_combined', async () => {
+    return fetchCached("territorios_combined", async () => {
         try {
             const [terrSnap, bancoSnap] = await Promise.all([
                 getDocs(collection(db, COL_TERRITORIOS)),
-                getDocs(query(collection(db, COL_BANCO_S13), where("estado", "==", "Asignado")))
+                getDocs(query(collection(db, COL_BANCO_S13), where("estado", "==", "Asignado"))),
             ]);
             const activeAssignments = {};
-            bancoSnap.docs.forEach(d => {
+            bancoSnap.docs.forEach((d) => {
                 const data = d.data();
-                const baseNum = String(data.territorio_id || '').match(/^(\d+)/)?.[1] || data.territorio_id;
+                const baseNum = String(data.territorio_id || "").match(/^(\d+)/)?.[1] || data.territorio_id;
                 activeAssignments[String(baseNum)] = { ...data, id: d.id };
             });
             return terrSnap.docs
-                .map(doc => normalizeTerritorioData(doc.id, doc.data(), activeAssignments[String(doc.data().numero)]))
-                .filter(t => t.numero && t.numero.trim().length > 0)
-                .sort((a, b) => parseInt(a.numero) - parseInt(b.numero));
+                .map((doc) => normalizeTerritorioData(doc.id, doc.data(), activeAssignments[String(doc.data().numero)]))
+                .filter((t) => t.numero && t.numero.trim().length > 0)
+                .sort((a, b) => parseInt(a.numero, 10) - parseInt(b.numero, 10));
         } catch (e) {
             console.error("Critical error fetching territories:", e);
             return [];
@@ -90,18 +113,18 @@ export const getTerritorios = async () => {
 };
 
 export const addTerritorio = async (territorio) => {
-    ServiceCache.clear('territorios');
+    ServiceCache.clear("territorios");
     await addDoc(collection(db, COL_TERRITORIOS), territorio);
 };
 
 export const updateTerritorio = async (id, data) => {
-    ServiceCache.clear('territorios');
+    ServiceCache.clear("territorios");
     await updateDoc(doc(db, COL_TERRITORIOS, id), data);
 };
 
 export const updateTerritoryGeoJSON = async (numero, geojson) => {
     try {
-        ServiceCache.clear('territorios');
+        ServiceCache.clear("territorios");
         const q = query(collection(db, COL_TERRITORIOS), where("numero", "==", String(numero)));
         const snap = await getDocs(q);
         if (!snap.empty) {
@@ -119,7 +142,7 @@ export const updateTerritoryGeoJSON = async (numero, geojson) => {
 
 export const uploadMapPNG = async (file, territoryNum) => {
     try {
-        const ext = file.name.split('.').pop();
+        const ext = file.name.split(".").pop();
         const fileRef = ref(storage, `mapas/T-${territoryNum}-${Date.now()}.${ext}`);
         await uploadBytes(fileRef, file);
         return await getDownloadURL(fileRef);
@@ -132,7 +155,7 @@ export const uploadMapPNG = async (file, territoryNum) => {
 export const addTerritoryReference = async (territoryId, reference) => {
     try {
         await updateDoc(doc(db, COL_TERRITORIOS, territoryId), {
-            referencias: arrayUnion(reference)
+            referencias: arrayUnion(reference),
         });
         return true;
     } catch (e) {
@@ -143,36 +166,36 @@ export const addTerritoryReference = async (territoryId, reference) => {
 
 export const deleteTerritorio = async (id) => {
     try {
-        ServiceCache.clear('territorios');
-        ServiceCache.clear('puntos_interes');
-        ServiceCache.clear('historial');
-        ServiceCache.clear('programa');
+        ServiceCache.clear("territorios");
+        ServiceCache.clear("puntos_interes");
+        ServiceCache.clear("historial");
+        ServiceCache.clear("programa");
 
         const tSnap = await getDoc(doc(db, COL_TERRITORIOS, id));
         if (!tSnap.exists()) return;
-        const tNum = String(tSnap.data().numero || '').trim();
+        const tNum = String(tSnap.data().numero || "").trim();
 
         const batch = writeBatch(db);
         batch.delete(doc(db, COL_TERRITORIOS, id));
 
         const histQuery = query(collection(db, COL_BANCO_S13), where("territorio_id", "==", tNum));
         const histSnap = await getDocs(histQuery);
-        histSnap.forEach(d => batch.delete(d.ref));
+        histSnap.forEach((d) => batch.delete(d.ref));
 
         const poiQuery = query(collection(db, "puntos_interes"), where("territorio_id", "==", id));
         const poiSnap = await getDocs(poiQuery);
-        poiSnap.forEach(d => batch.delete(d.ref));
+        poiSnap.forEach((d) => batch.delete(d.ref));
 
         // Scrub from Weekly Program
-        const turnos = ['manana', 'tarde', 'noche', 'zoom'];
+        const turnos = ["manana", "tarde", "noche", "zoom"];
         const today = new Date();
         const monday = new Date(today);
         monday.setDate(today.getDate() - (today.getDay() === 0 ? 6 : today.getDay() - 1));
 
         for (let i = -8; i <= 4; i++) {
             const d = new Date(monday);
-            d.setDate(monday.getDate() + (i * 7));
-            const weekId = d.toISOString().split('T')[0];
+            d.setDate(monday.getDate() + i * 7);
+            const weekId = d.toISOString().split("T")[0];
             const progRef = doc(db, "programa_semanal", weekId);
             const pSnap = await getDoc(progRef);
 
@@ -180,20 +203,22 @@ export const deleteTerritorio = async (id) => {
                 const prog = pSnap.data();
                 let wasModified = false;
                 if (Array.isArray(prog.dias)) {
-                    prog.dias.forEach(dia => {
-                        turnos.forEach(turno => {
+                    prog.dias.forEach((dia) => {
+                        turnos.forEach((turno) => {
                             const slot = dia[turno];
-                            if (slot && slot.territorio) {
-                                const terrs = String(slot.territorio).split(/ \/ | \/|,/).map(s => s.trim());
+                            if (slot?.territorio) {
+                                const terrs = String(slot.territorio)
+                                    .split(/ \/ | \/|,/)
+                                    .map((s) => s.trim());
                                 if (terrs.includes(tNum)) {
-                                    const newTerrs = terrs.filter(s => s !== tNum);
-                                    slot.territorio = newTerrs.join(' / ');
+                                    const newTerrs = terrs.filter((s) => s !== tNum);
+                                    slot.territorio = newTerrs.join(" / ");
                                     if (newTerrs.length === 0) {
-                                        slot.conductor = '';
-                                        slot.auxiliar = '';
-                                        slot.lugar = '';
-                                        slot.hora = '';
-                                        slot.faceta = '';
+                                        slot.conductor = "";
+                                        slot.auxiliar = "";
+                                        slot.lugar = "";
+                                        slot.hora = "";
+                                        slot.faceta = "";
                                     }
                                     wasModified = true;
                                 }
@@ -213,24 +238,24 @@ export const deleteTerritorio = async (id) => {
 };
 
 export const getPuntosInteres = async () => {
-    return fetchCached('puntos_interes', async () => {
+    return fetchCached("puntos_interes", async () => {
         const querySnapshot = await getDocs(collection(db, "puntos_interes"));
-        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     });
 };
 
 export const addPuntoInteres = async (punto) => {
-    ServiceCache.clear('puntos_interes');
+    ServiceCache.clear("puntos_interes");
     await addDoc(collection(db, "puntos_interes"), punto);
 };
 
 export const updatePuntoInteres = async (id, data) => {
-    ServiceCache.clear('puntos_interes');
+    ServiceCache.clear("puntos_interes");
     await updateDoc(doc(db, "puntos_interes", id), data);
 };
 
 export const deletePuntoInteres = async (id) => {
-    ServiceCache.clear('puntos_interes');
+    ServiceCache.clear("puntos_interes");
     await deleteDoc(doc(db, "puntos_interes", id));
 };
 
@@ -248,12 +273,12 @@ export const assignTerritorio = async (id, conductorName, details = {}) => {
             fecha_asignacion: details.fecha_asignacion || new Date().toISOString(),
             fecha_salida: details.fecha_salida || null,
             fecha_entrega: null,
-            estado: 'Asignado',
-            turno: details.turno || 'Sin turno',
-            observaciones: details.observaciones || '',
-            faceta: details.faceta || 'Casa en casa',
+            estado: "Asignado",
+            turno: details.turno || "Sin turno",
+            observaciones: details.observaciones || "",
+            faceta: details.faceta || "Casa en casa",
             weekId: details.weekId || null,
-            timestamp: Timestamp.now()
+            timestamp: Timestamp.now(),
         };
         if (details.auxiliar) {
             assignmentData.auxiliar = details.auxiliar;
@@ -261,12 +286,12 @@ export const assignTerritorio = async (id, conductorName, details = {}) => {
         }
 
         const docRef = await addDoc(collection(db, COL_BANCO_S13), assignmentData);
-        await saveAuditLog('ASIGNACION_MANUAL', { territorio: tData.numero, conductor: conductorName });
+        await saveAuditLog("ASIGNACION_MANUAL", { territorio: tData.numero, conductor: conductorName });
 
         // Update Maestro
         await updateDoc(tRef, {
-            estado: 'Asignado',
-            status: 'Asignado',
+            estado: "Asignado",
+            status: "Asignado",
             asignado_a: conductorName,
             asignado_a_normalized: normalizeName(conductorName),
             currentAssignee: conductorName,
@@ -275,11 +300,11 @@ export const assignTerritorio = async (id, conductorName, details = {}) => {
             fecha_salida: details.fecha_salida || null,
             auxiliar: details.auxiliar || null,
             auxiliar_normalized: details.auxiliar ? normalizeName(details.auxiliar) : null,
-            turno: details.turno || 'Sin turno',
-            lastUpdated: serverTimestamp()
+            turno: details.turno || "Sin turno",
+            lastUpdated: serverTimestamp(),
         });
 
-        ServiceCache.clear('territorios_combined');
+        ServiceCache.clear("territorios_combined");
         return docRef.id;
     } catch (e) {
         console.error("Error al asignar:", e);
@@ -287,7 +312,14 @@ export const assignTerritorio = async (id, conductorName, details = {}) => {
     }
 };
 
-export const returnTerritorio = async (id, notes, customDate, status = 'Completado', fotos = null, conductorOverride = null) => {
+export const returnTerritorio = async (
+    id,
+    notes,
+    customDate,
+    status = "Completado",
+    fotos = null,
+    conductorOverride = null,
+) => {
     try {
         const dateToUse = customDate ? new Date(customDate).toISOString() : new Date().toISOString();
 
@@ -297,16 +329,17 @@ export const returnTerritorio = async (id, notes, customDate, status = 'Completa
             console.warn(`[returnTerritorio] Territorio ${id} no existe.`);
             return;
         }
-        const tNumero = String(tPreSnap.data().numero || '');
+        const tNumero = String(tPreSnap.data().numero || "");
 
         let bancoDocRefs = [];
         if (tNumero) {
-            const bancoQuery = query(collection(db, COL_BANCO_S13),
-                where('territorio_id', '==', tNumero),
-                where('estado', '==', 'Asignado')
+            const bancoQuery = query(
+                collection(db, COL_BANCO_S13),
+                where("territorio_id", "==", tNumero),
+                where("estado", "==", "Asignado"),
             );
             const bancoSnap = await getDocs(bancoQuery);
-            bancoDocRefs = bancoSnap.docs.map(d => d.ref);
+            bancoDocRefs = bancoSnap.docs.map((d) => d.ref);
         }
 
         // ATOMIC TRANSACTION: All reads and writes in a single pass
@@ -315,12 +348,9 @@ export const returnTerritorio = async (id, notes, customDate, status = 'Completa
             const statsRef = doc(db, "configuracion", "stats_globales");
 
             // --- FASE 1: LECTURAS (Strictly first) ---
-            const readPromises = [
-                transaction.get(tRef),
-                transaction.get(statsRef)
-            ];
+            const readPromises = [transaction.get(tRef), transaction.get(statsRef)];
             // Also read all banco_s13 docs inside the transaction for consistency
-            bancoDocRefs.forEach(ref => readPromises.push(transaction.get(ref)));
+            bancoDocRefs.forEach((ref) => readPromises.push(transaction.get(ref)));
 
             const [tSnap, statsSnap, ...bancoSnaps] = await Promise.all(readPromises);
 
@@ -340,33 +370,38 @@ export const returnTerritorio = async (id, notes, customDate, status = 'Completa
                 hora: null,
                 faceta: null,
                 turno: null,
-                estado: status === 'Perdido' ? 'Extraviado' : 'Disponible',
-                prog_sync: null
+                estado: status === "Perdido" ? "Extraviado" : "Disponible",
+                prog_sync: null,
             };
-            if (status !== 'Disponible') {
+            if (status !== "Disponible") {
                 updates.ultima_fecha = dateToUse;
             }
             transaction.update(tRef, updates);
 
             // Update Global Stats atomically
-            if (tData.estado === 'Asignado') {
+            if (tData.estado === "Asignado") {
                 if (statsSnap.exists()) {
                     const statsData = statsSnap.data();
                     transaction.update(statsRef, {
                         territorios_disponibles: (statsData.territorios_disponibles || 0) + 1,
-                        territorios_asignados: Math.max(0, (statsData.territorios_asignados || 0) - 1)
+                        territorios_asignados: Math.max(0, (statsData.territorios_asignados || 0) - 1),
                     });
                 } else {
-                    transaction.set(statsRef, {
-                        territorios_disponibles: 1,
-                        territorios_asignados: 0,
-                        total_territorios: 0
-                    }, { merge: true });
+                    transaction.set(
+                        statsRef,
+                        {
+                            territorios_disponibles: 1,
+                            territorios_asignados: 0,
+                            total_territorios: 0,
+                        },
+                        { merge: true },
+                    );
                 }
             }
 
             // Update /banco_s13 — ATOMICALLY inside the same transaction
-            const bancoEstado = status === 'Completado' ? 'Completado' : (status === 'Perdido' ? 'Extraviado' : 'Disponible');
+            const bancoEstado =
+                status === "Completado" ? "Completado" : status === "Perdido" ? "Extraviado" : "Disponible";
             bancoSnaps.forEach((bSnap, idx) => {
                 if (bSnap.exists()) {
                     transaction.update(bancoDocRefs[idx], {
@@ -374,7 +409,7 @@ export const returnTerritorio = async (id, notes, customDate, status = 'Completa
                         fecha_entrega: dateToUse,
                         timestamp_entrega: serverTimestamp(),
                         observaciones: notes || bSnap.data().observaciones || null,
-                        fotos: fotos || bSnap.data().fotos || null
+                        fotos: fotos || bSnap.data().fotos || null,
                     });
                 }
             });
@@ -384,15 +419,17 @@ export const returnTerritorio = async (id, notes, customDate, status = 'Completa
                 const obsRef = doc(collection(db, "bitacora_observaciones"));
                 transaction.set(obsRef, {
                     territorio_id: tNumero,
-                    conductor: prevConductor || 'Anónimo',
+                    conductor: prevConductor || "Anónimo",
                     nota: notes,
                     fecha: dateToUse,
-                    timestamp: serverTimestamp()
+                    timestamp: serverTimestamp(),
                 });
             }
 
             if (bancoSnaps.length > 0) {
-                console.log(`✅ [returnTerritorio] banco_s13 cerrado atómicamente para territorio ${tNumero} (${bancoSnaps.filter(s => s.exists()).length} registro(s))`);
+                console.log(
+                    `✅ [returnTerritorio] banco_s13 cerrado atómicamente para territorio ${tNumero} (${bancoSnaps.filter((s) => s.exists()).length} registro(s))`,
+                );
             }
 
             return prevConductor;
@@ -401,53 +438,53 @@ export const returnTerritorio = async (id, notes, customDate, status = 'Completa
         // Post-transaction: Audit log (non-critical, best-effort)
         const finalConductor = conductorOverride || conductorName;
         try {
-            await saveAuditLog('ENTREGA_TERRITORIO', { territorio: tNumero, conductor: finalConductor });
+            await saveAuditLog("ENTREGA_TERRITORIO", { territorio: tNumero, conductor: finalConductor });
         } catch (logError) {
             console.error(`🟡 [returnTerritorio] saveAuditLog falló para territorio ${tNumero}:`, logError);
         }
-        ServiceCache.clear('territorios');
-        ServiceCache.clear('territorios_combined');
-        ServiceCache.clear('historial');
-        ServiceCache.clear('stats_globales');
+        ServiceCache.clear("territorios");
+        ServiceCache.clear("territorios_combined");
+        ServiceCache.clear("historial");
+        ServiceCache.clear("stats_globales");
     } catch (e) {
         console.error("Atomic transaction failed in returnTerritorio:", e);
         throw e;
     }
 };
 
-
-
 export const resyncGlobalStats = async () => {
     try {
         const [allTerrs, bancoSnap] = await Promise.all([
             getDocs(collection(db, COL_TERRITORIOS)),
-            getDocs(query(collection(db, COL_BANCO_S13), where("estado", "==", "Asignado")))
+            getDocs(query(collection(db, COL_BANCO_S13), where("estado", "==", "Asignado"))),
         ]);
 
-        const activeNums = new Set(bancoSnap.docs.map(d => {
-            const data = d.data();
-            return String(data.territorio_id || '').trim();
-        }));
+        const activeNums = new Set(
+            bancoSnap.docs.map((d) => {
+                const data = d.data();
+                return String(data.territorio_id || "").trim();
+            }),
+        );
 
         const batch = writeBatch(db);
         let correctedCount = 0;
         let finalAssigned = 0;
 
-        allTerrs.docs.forEach(docSnap => {
+        allTerrs.docs.forEach((docSnap) => {
             const data = docSnap.data();
-            const tNum = String(data.numero || '').trim();
-            const isAssignedInMaster = data.estado === 'Asignado' || data.status === 'Asignado';
+            const tNum = String(data.numero || "").trim();
+            const isAssignedInMaster = data.estado === "Asignado" || data.status === "Asignado";
             const hasActiveAssignment = activeNums.has(tNum);
 
             if (isAssignedInMaster && !hasActiveAssignment) {
                 // Healer Logic: Si el maestro dice asignado pero no hay registro en el pool S-13, liberar.
                 batch.update(docSnap.ref, {
-                    estado: 'Disponible',
-                    status: 'Disponible',
+                    estado: "Disponible",
+                    status: "Disponible",
                     asignado_a: null,
                     currentAssignee: null,
                     fecha_asignacion: null,
-                    assignmentDate: null
+                    assignmentDate: null,
                 });
                 correctedCount++;
             } else if (hasActiveAssignment) {
@@ -461,16 +498,20 @@ export const resyncGlobalStats = async () => {
         }
 
         const available = allTerrs.docs.length - finalAssigned;
-        await setDoc(doc(db, "configuracion", "stats_globales"), {
-            territorios_asignados: finalAssigned,
-            territorios_disponibles: available,
-            total_territorios: allTerrs.docs.length,
-            last_sync: Timestamp.now(),
-            healed_count: correctedCount
-        }, { merge: true });
+        await setDoc(
+            doc(db, "configuracion", "stats_globales"),
+            {
+                territorios_asignados: finalAssigned,
+                territorios_disponibles: available,
+                total_territorios: allTerrs.docs.length,
+                last_sync: Timestamp.now(),
+                healed_count: correctedCount,
+            },
+            { merge: true },
+        );
 
-        ServiceCache.clear('stats_globales');
-        ServiceCache.clear('territorios_combined');
+        ServiceCache.clear("stats_globales");
+        ServiceCache.clear("territorios_combined");
         return { assigned: finalAssigned, available, healed: correctedCount };
     } catch (e) {
         console.error("Error resyncing global stats:", e);
@@ -481,9 +522,8 @@ export const resyncGlobalStats = async () => {
 export const getMisTerritorios = async (conductorName) => {
     const q = query(collection(db, COL_TERRITORIOS), where("asignado_a", "==", conductorName));
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 };
-
 
 export const takeTerritoryPartial = async (originalId, userId, takenManzanas, remainingManzanas) => {
     const territoryRef = doc(db, COL_TERRITORIOS, originalId);
@@ -493,12 +533,12 @@ export const takeTerritoryPartial = async (originalId, userId, takenManzanas, re
 
     const newDocParams = {
         ...tData,
-        manzanas: takenManzanas.join(', '),
-        estado: 'Asignado',
+        manzanas: takenManzanas.join(", "),
+        estado: "Asignado",
         asignado_a: userId,
         asignado_a_normalized: normalizeName(userId),
         fecha_asignacion: new Date().toISOString(),
-        origen_id: originalId
+        origen_id: originalId,
     };
     delete newDocParams.id;
     delete newDocParams.is_incomplete;
@@ -507,17 +547,17 @@ export const takeTerritoryPartial = async (originalId, userId, takenManzanas, re
 
     if (remainingManzanas.length > 0) {
         await updateDoc(territoryRef, {
-            manzanas: remainingManzanas.join(', '),
-            estado: 'Libre',
-            is_incomplete: true
+            manzanas: remainingManzanas.join(", "),
+            estado: "Libre",
+            is_incomplete: true,
         });
     } else {
         await updateDoc(territoryRef, {
-            estado: 'Asignado',
+            estado: "Asignado",
             asignado_a: userId,
             asignado_a_normalized: normalizeName(userId),
             fecha_asignacion: new Date().toISOString(),
-            is_incomplete: false
+            is_incomplete: false,
         });
     }
 
@@ -529,8 +569,8 @@ export const assignFreeTerritory = async (id, userId, num, manzanasStr) => {
         asignado_a: userId,
         asignado_a_normalized: normalizeName(userId),
         fecha_asignacion: new Date().toISOString(),
-        estado: 'Asignado',
-        is_incomplete: false
+        estado: "Asignado",
+        is_incomplete: false,
     });
     await logAssignment({ id, numero: num, manzanas: manzanasStr }, userId);
 };
@@ -538,7 +578,7 @@ export const assignFreeTerritory = async (id, userId, num, manzanasStr) => {
 export const cancelarAsignacion = async (id) => {
     // Obtener el número del territorio ANTES de limpiarlo para buscar en banco_s13
     const tSnap = await getDoc(doc(db, COL_TERRITORIOS, id));
-    const tNum = tSnap.exists() ? String(tSnap.data().numero || '') : '';
+    const tNum = tSnap.exists() ? String(tSnap.data().numero || "") : "";
 
     await updateDoc(doc(db, COL_TERRITORIOS, id), {
         asignado_a: null,
@@ -546,18 +586,24 @@ export const cancelarAsignacion = async (id) => {
         auxiliar: null,
         auxiliar_normalized: null,
         fecha_asignacion: null,
-        estado: 'Disponible'
+        estado: "Disponible",
     });
 
     // CAMBIO C: Apuntar a banco_s13 (colección autoritativa) en lugar de historial_territorios
     try {
-        const bancoQuery = query(collection(db, COL_BANCO_S13), where("territorio_id", "==", tNum), where("estado", "==", "Asignado"), orderBy("timestamp", "desc"), limit(1));
+        const bancoQuery = query(
+            collection(db, COL_BANCO_S13),
+            where("territorio_id", "==", tNum),
+            where("estado", "==", "Asignado"),
+            orderBy("timestamp", "desc"),
+            limit(1),
+        );
         const snapshot = await getDocs(bancoQuery);
         if (!snapshot.empty) {
             await updateDoc(doc(db, COL_BANCO_S13, snapshot.docs[0].id), {
-                estado: 'Cancelado',
+                estado: "Cancelado",
                 fecha_entrega: new Date().toISOString(),
-                timestamp_entrega: serverTimestamp()
+                timestamp_entrega: serverTimestamp(),
             });
             console.log(`✅ [cancelarAsignacion] banco_s13 cerrado para territorio ${tNum}`);
         }
@@ -565,15 +611,29 @@ export const cancelarAsignacion = async (id) => {
         console.error("Error cancelling assignment in banco_s13:", e);
     }
 
-    ServiceCache.clear('territorios');
-    ServiceCache.clear('territorios_combined');
-    ServiceCache.clear('historial');
+    ServiceCache.clear("territorios");
+    ServiceCache.clear("territorios_combined");
+    ServiceCache.clear("historial");
 };
 
 export const updateAssignmentData = async (id, updates = {}) => {
     const territoryUpdate = {};
-    const fields = ['fecha_asignacion', 'fecha_salida', 'asignado_a', 'estado', 'auxiliar', 'faceta', 'hora', 'turno', 'lugar', 'campana', 'grupos'];
-    fields.forEach(f => { if (updates[f] !== undefined) territoryUpdate[f] = updates[f]; });
+    const fields = [
+        "fecha_asignacion",
+        "fecha_salida",
+        "asignado_a",
+        "estado",
+        "auxiliar",
+        "faceta",
+        "hora",
+        "turno",
+        "lugar",
+        "campana",
+        "grupos",
+    ];
+    fields.forEach((f) => {
+        if (updates[f] !== undefined) territoryUpdate[f] = updates[f];
+    });
 
     if (updates.asignado_a !== undefined) {
         territoryUpdate.asignado_a_normalized = updates.asignado_a ? normalizeName(updates.asignado_a) : null;
@@ -587,13 +647,19 @@ export const updateAssignmentData = async (id, updates = {}) => {
     try {
         const tSnapForNum = await getDoc(doc(db, COL_TERRITORIOS, id));
         if (tSnapForNum.exists()) {
-            const tNum = String(tSnapForNum.data().numero || '').trim();
-            const q = query(collection(db, COL_BANCO_S13), where("territorio_id", "==", tNum), where("estado", "==", "Asignado"), orderBy("timestamp", "desc"), limit(1));
+            const tNum = String(tSnapForNum.data().numero || "").trim();
+            const q = query(
+                collection(db, COL_BANCO_S13),
+                where("territorio_id", "==", tNum),
+                where("estado", "==", "Asignado"),
+                orderBy("timestamp", "desc"),
+                limit(1),
+            );
             const snapshot = await getDocs(q);
             if (!snapshot.empty) {
                 const histUpdate = {};
-                fields.forEach(f => {
-                    const target = f === 'asignado_a' ? 'conductor' : f;
+                fields.forEach((f) => {
+                    const target = f === "asignado_a" ? "conductor" : f;
                     if (updates[f] !== undefined) histUpdate[target] = updates[f];
                 });
                 if (updates.asignado_a !== undefined) {
@@ -614,23 +680,23 @@ export const updateAssignmentData = async (id, updates = {}) => {
     if (tSnap.exists() && tSnap.data().fecha_asignacion) {
         await syncAssignmentToWeeklyProgram({ id, ...tSnap.data() }, tSnap.data().asignado_a, tSnap.data());
     }
-    ServiceCache.clear('territorios');
-    ServiceCache.clear('historial');
+    ServiceCache.clear("territorios");
+    ServiceCache.clear("historial");
 };
 
-export const returnTerritorioMultiple = async (ids, notes, customDate, status = 'Completado') => {
+export const returnTerritorioMultiple = async (ids, notes, customDate, status = "Completado") => {
     try {
         const dateToUse = customDate ? new Date(customDate).toISOString() : new Date().toISOString();
         const batch = writeBatch(db);
-        
+
         // 1. Fetch relevant data for all territories and their active assignments
         const [tSnaps, bancoSnap] = await Promise.all([
-            Promise.all(ids.map(id => getDoc(doc(db, COL_TERRITORIOS, id)))),
-            getDocs(query(collection(db, COL_BANCO_S13), where("estado", "==", "Asignado")))
+            Promise.all(ids.map((id) => getDoc(doc(db, COL_TERRITORIOS, id)))),
+            getDocs(query(collection(db, COL_BANCO_S13), where("estado", "==", "Asignado"))),
         ]);
 
         const activeAssignmentsForThese = {};
-        bancoSnap.docs.forEach(d => {
+        bancoSnap.docs.forEach((d) => {
             const bData = d.data();
             activeAssignmentsForThese[String(bData.territorio_id)] = d.ref;
         });
@@ -641,18 +707,18 @@ export const returnTerritorioMultiple = async (ids, notes, customDate, status = 
             if (!snap.exists()) continue;
             const tId = snap.id;
             const tData = snap.data();
-            const tNum = String(tData.numero || '').trim();
+            const tNum = String(tData.numero || "").trim();
             if (!tNum) continue;
 
             const prevConductor = tData.currentAssignee || tData.asignado_a || null;
 
             // a) SOBRESCRITURA ABSOLUTA EN MAESTRO (Goma de borrar activa)
             const updates = {
-                status: 'Disponible',
+                status: "Disponible",
                 currentAssignee: null,
                 assignmentDate: null,
                 // Mantener compatibilidad total
-                estado: 'Disponible',
+                estado: "Disponible",
                 asignado_a: null,
                 fecha_asignacion: null,
                 auxiliar: null,
@@ -661,9 +727,9 @@ export const returnTerritorioMultiple = async (ids, notes, customDate, status = 
                 faceta: null,
                 turno: null,
                 prog_sync: null,
-                lastUpdated: serverTimestamp()
+                lastUpdated: serverTimestamp(),
             };
-            if (status !== 'Disponible') {
+            if (status !== "Disponible") {
                 updates.ultima_fecha = dateToUse;
             }
             batch.update(doc(db, COL_TERRITORIOS, tId), updates);
@@ -674,14 +740,16 @@ export const returnTerritorioMultiple = async (ids, notes, customDate, status = 
             if (activeRef) {
                 console.log(`✅ [Reception] Cerrando ciclo en banco_s13 para ${tNum}`);
                 batch.update(activeRef, {
-                    estado: status === 'Completado' ? 'Completado' : 'Disponible',
+                    estado: status === "Completado" ? "Completado" : "Disponible",
                     fecha_entrega: dateToUse,
                     returnDate: dateToUse, // Campo espejo solicitado
                     timestamp_entrega: serverTimestamp(),
-                    observaciones: notes || null
+                    observaciones: notes || null,
                 });
             } else {
-                console.warn(`⚠️ [Reception] No se encontró asignación 'Asignado' en banco_s13 para el territorio ${tNum}`);
+                console.warn(
+                    `⚠️ [Reception] No se encontró asignación 'Asignado' en banco_s13 para el territorio ${tNum}`,
+                );
             }
 
             // Write observation log atomically inside the batch if notes are provided
@@ -689,37 +757,46 @@ export const returnTerritorioMultiple = async (ids, notes, customDate, status = 
                 const obsRef = doc(collection(db, "bitacora_observaciones"));
                 batch.set(obsRef, {
                     territorio_id: tNum,
-                    conductor: prevConductor || 'Anónimo',
+                    conductor: prevConductor || "Anónimo",
                     nota: notes,
                     fecha: dateToUse,
-                    timestamp: serverTimestamp()
+                    timestamp: serverTimestamp(),
                 });
             }
 
-            logPromises.push(saveAuditLog('ENTREGA_TERRITORIO', { territorio: tNum, conductor: prevConductor }));
+            logPromises.push(saveAuditLog("ENTREGA_TERRITORIO", { territorio: tNum, conductor: prevConductor }));
         }
 
         await batch.commit();
         await Promise.all(logPromises);
 
-        ServiceCache.clear('territorios');
-        ServiceCache.clear('territorios_combined');
-        ServiceCache.clear('historial');
-        ServiceCache.clear('stats_globales');
+        ServiceCache.clear("territorios");
+        ServiceCache.clear("territorios_combined");
+        ServiceCache.clear("historial");
+        ServiceCache.clear("stats_globales");
     } catch (e) {
         console.error("Critical error in atomic returnTerritorioMultiple:", e);
         throw e;
     }
 };
 
-export const returnTerritorioParcial = async (originalId, completedManzanas, remainingManzanas, unassignRemaining = false, notes = null, customDate = null, fotos = null, conductorName = null) => {
+export const returnTerritorioParcial = async (
+    originalId,
+    completedManzanas,
+    remainingManzanas,
+    unassignRemaining = false,
+    notes = null,
+    customDate = null,
+    fotos = null,
+    conductorName = null,
+) => {
     const dateToUse = customDate ? new Date(customDate).toISOString() : new Date().toISOString();
-    
+
     const territoryRef = doc(db, COL_TERRITORIOS, originalId);
     const territorySnap = await getDoc(territoryRef);
     if (!territorySnap.exists()) throw new Error("Territorio no encontrado");
     const tData = territorySnap.data();
-    const tNum = String(tData.numero || '');
+    const tNum = String(tData.numero || "");
 
     const batch = writeBatch(db);
 
@@ -728,8 +805,8 @@ export const returnTerritorioParcial = async (originalId, completedManzanas, rem
         const newTerrRef = doc(collection(db, COL_TERRITORIOS));
         batch.set(newTerrRef, {
             ...tData,
-            manzanas: completedManzanas.join(', '),
-            estado: 'Disponible',
+            manzanas: completedManzanas.join(", "),
+            estado: "Disponible",
             asignado_a: null,
             asignado_a_normalized: null,
             currentAssignee: null,
@@ -738,12 +815,12 @@ export const returnTerritorioParcial = async (originalId, completedManzanas, rem
             fecha_asignacion: null,
             assignmentDate: null,
             ultima_fecha: dateToUse,
-            origen_id: originalId
+            origen_id: originalId,
         });
     }
 
     // B) Actualizar el territorio original con las manzanas restantes
-    const updateData = { manzanas: remainingManzanas.join(', ') };
+    const updateData = { manzanas: remainingManzanas.join(", ") };
     if (unassignRemaining) {
         updateData.asignado_a = null;
         updateData.asignado_a_normalized = null;
@@ -752,7 +829,7 @@ export const returnTerritorioParcial = async (originalId, completedManzanas, rem
         updateData.auxiliar_normalized = null;
         updateData.fecha_asignacion = null;
         updateData.assignmentDate = null;
-        updateData.estado = 'Disponible';
+        updateData.estado = "Disponible";
     }
     updateData.is_incomplete = remainingManzanas.length > 0;
 
@@ -760,19 +837,20 @@ export const returnTerritorioParcial = async (originalId, completedManzanas, rem
 
     // C) Cerrar registro activo en banco_s13
     if (tNum) {
-        const qActive = query(collection(db, COL_BANCO_S13),
-            where('territorio_id', '==', tNum),
-            where('estado', '==', 'Asignado')
+        const qActive = query(
+            collection(db, COL_BANCO_S13),
+            where("territorio_id", "==", tNum),
+            where("estado", "==", "Asignado"),
         );
         const bancoSnap = await getDocs(qActive);
         if (!bancoSnap.empty) {
-            bancoSnap.docs.forEach(d => {
+            bancoSnap.docs.forEach((d) => {
                 batch.update(d.ref, {
                     fecha_entrega: dateToUse,
-                    estado: 'Predicado Parcial',
+                    estado: "Predicado Parcial",
                     observaciones: notes || d.data().observaciones || null,
                     timestamp: Timestamp.now(),
-                    fotos: fotos || null
+                    fotos: fotos || null,
                 });
             });
         }
@@ -783,10 +861,10 @@ export const returnTerritorioParcial = async (originalId, completedManzanas, rem
         const obsRef = doc(collection(db, "bitacora_observaciones"));
         batch.set(obsRef, {
             territorio_id: tNum,
-            conductor: conductorName || tData.asignado_a || 'Anónimo',
+            conductor: conductorName || tData.asignado_a || "Anónimo",
             nota: notes,
             fecha: dateToUse,
-            timestamp: Timestamp.now()
+            timestamp: Timestamp.now(),
         });
     }
 
@@ -795,14 +873,14 @@ export const returnTerritorioParcial = async (originalId, completedManzanas, rem
 
     // 3. Notificación de auditoría
     try {
-        await saveAuditLog('ENTREGA_TERRITORIO', { territorio: tNum, detalles: 'Devolución Parcial' });
+        await saveAuditLog("ENTREGA_TERRITORIO", { territorio: tNum, detalles: "Devolución Parcial" });
     } catch (e) {
         console.error("Error saving audit log in returnTerritorioParcial:", e);
     }
 
-    ServiceCache.clear('territorios');
-    ServiceCache.clear('territorios_combined');
-    ServiceCache.clear('historial');
+    ServiceCache.clear("territorios");
+    ServiceCache.clear("territorios_combined");
+    ServiceCache.clear("historial");
 };
 
 export const assignTerritorioParcial = async (originalId, manzanasToAssign, conductorName, details = {}) => {
@@ -812,37 +890,42 @@ export const assignTerritorioParcial = async (originalId, manzanasToAssign, cond
         if (!snap.exists()) throw new Error("Territorio no encontrado");
 
         const data = snap.data();
-        const allManzanas = data.manzanas ? data.manzanas.split(',').map(s => s.trim()).filter(Boolean) : [];
-        const toAssign = manzanasToAssign.map(s => s.trim());
-        const remaining = allManzanas.filter(m => !toAssign.includes(m));
+        const allManzanas = data.manzanas
+            ? data.manzanas
+                  .split(",")
+                  .map((s) => s.trim())
+                  .filter(Boolean)
+            : [];
+        const toAssign = manzanasToAssign.map((s) => s.trim());
+        const remaining = allManzanas.filter((m) => !toAssign.includes(m));
 
         const assignmentData = {
             asignado_a: conductorName,
             asignado_a_normalized: normalizeName(conductorName),
             fecha_asignacion: details.fecha_asignacion || new Date().toISOString(),
             fecha_salida: details.fecha_salida || null,
-            estado: 'Asignado',
+            estado: "Asignado",
             auxiliar: details.auxiliar || null,
             auxiliar_normalized: details.auxiliar ? normalizeName(details.auxiliar) : null,
             lugar: details.lugar || null,
             hora: details.hora || null,
             faceta: details.faceta || null,
             turno: details.turno || null,
-            campana: details.campana || null
+            campana: details.campana || null,
         };
 
         if (remaining.length === 0) {
             await updateDoc(docRef, assignmentData);
             await logAssignment({ id: originalId, ...data }, conductorName, details);
         } else {
-            await updateDoc(docRef, { manzanas: remaining.join(', ') });
+            await updateDoc(docRef, { manzanas: remaining.join(", ") });
             const newDocRef = await addDoc(collection(db, COL_TERRITORIOS), {
                 ...data,
-                manzanas: toAssign.join(', '),
+                manzanas: toAssign.join(", "),
                 ...assignmentData,
-                origen_id: originalId
+                origen_id: originalId,
             });
-            await logAssignment({ id: newDocRef.id, ...data, numero: data.numero + ' (P)' }, conductorName, details);
+            await logAssignment({ id: newDocRef.id, ...data, numero: `${data.numero} (P)` }, conductorName, details);
         }
     } catch (e) {
         console.error("Error splitting territory:", e);
@@ -852,7 +935,7 @@ export const assignTerritorioParcial = async (originalId, manzanasToAssign, cond
 
 export const transferTerritorio = async (id, newConductor, manzanasToTransfer, details = {}) => {
     try {
-        await logReturn(id, new Date().toISOString(), 'Devuelto (Transferido)', `Transferido a ${newConductor}`);
+        await logReturn(id, new Date().toISOString(), "Devuelto (Transferido)", `Transferido a ${newConductor}`);
         const territoryRef = doc(db, COL_TERRITORIOS, id);
         const snap = await getDoc(territoryRef);
         if (!snap.exists()) throw new Error("Territorio no encontrado");
@@ -862,8 +945,8 @@ export const transferTerritorio = async (id, newConductor, manzanasToTransfer, d
             asignado_a: newConductor,
             asignado_a_normalized: normalizeName(newConductor),
             fecha_asignacion: new Date().toISOString(),
-            estado: 'Asignado',
-            manzanas: manzanasToTransfer || tData.manzanas
+            estado: "Asignado",
+            manzanas: manzanasToTransfer || tData.manzanas,
         };
         if (details.auxiliar) {
             updateData.auxiliar = details.auxiliar;
@@ -880,4 +963,3 @@ export const transferTerritorio = async (id, newConductor, manzanasToTransfer, d
 };
 
 export const transferTerritory = transferTerritorio;
-

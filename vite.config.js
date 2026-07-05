@@ -44,9 +44,7 @@ export default defineConfig({
             ext: '.gz',
         }),
         checker({
-            eslint: {
-                lintCommand: 'eslint --config eslint.config.js --ext .js,.mjs app.js firebase-config.js modules data public',
-            },
+            biome: true,
         }),
         VitePWA({
             // FASE 1: Prompt modo — el usuario decide cuándo actualizar

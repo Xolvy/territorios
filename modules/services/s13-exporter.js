@@ -1,16 +1,15 @@
-
 export class S13Exporter {
     static formatDateShort(isoStr) {
-        if (!isoStr) return '';
+        if (!isoStr) return "";
         const d = new Date(isoStr);
         // Usar UTC o simplemente el input string para evitar desfases de zona horaria si aplica
         // Pero aquí d.getDate() es estándar
-        return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getFullYear()).slice(-2)}`;
+        return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getFullYear()).slice(-2)}`;
     }
 
     static generatePageHtml(keys, map, allHistory, reportStartDate, assignOffset, limit, year, congregation) {
         const reportStartMs = new Date(reportStartDate).getTime();
-        let rowsHtml = '';
+        let rowsHtml = "";
         const ROWS_PER_PAGE = 25;
 
         for (let r = 0; r < ROWS_PER_PAGE; r++) {
@@ -20,43 +19,46 @@ export class S13Exporter {
             // Sort: Date Ascending
             assignments.sort((a, b) => new Date(a.fecha_asignacion) - new Date(b.fecha_asignacion));
 
-            let lastCompletionDate = '';
+            let lastCompletionDate = "";
             let foundPrevious = false;
 
             if (assignOffset > 0 && assignments[assignOffset - 1]) {
                 const prevAssign = assignments[assignOffset - 1];
-                if (prevAssign.fecha_entrega && prevAssign.estado !== 'Predicado Parcial') {
-                    lastCompletionDate = this.formatDateShort(prevAssign.fecha_entrega);
+                if (prevAssign.fecha_entrega && prevAssign.estado !== "Predicado Parcial") {
+                    lastCompletionDate = S13Exporter.formatDateShort(prevAssign.fecha_entrega);
                 }
                 foundPrevious = true;
             }
 
             if (!foundPrevious && key) {
                 const previousCompletions = allHistory
-                    .filter(h => {
+                    .filter((h) => {
                         if (!h.numero || !h.fecha_entrega) return false;
-                        if (h.estado === 'Predicado Parcial' || h.estado === 'Avance Parcial') return false;
-                        const hNums = h.numero.toString().split(/[,/]/).map(n => n.trim().padStart(2, '0'));
+                        if (h.estado === "Predicado Parcial" || h.estado === "Avance Parcial") return false;
+                        const hNums = h.numero
+                            .toString()
+                            .split(/[,/]/)
+                            .map((n) => n.trim().padStart(2, "0"));
                         return hNums.includes(key) && new Date(h.fecha_entrega).getTime() < reportStartMs;
                     })
                     .sort((a, b) => new Date(b.fecha_entrega).getTime() - new Date(a.fecha_entrega).getTime());
 
                 if (previousCompletions.length > 0) {
-                    lastCompletionDate = this.formatDateShort(previousCompletions[0].fecha_entrega);
+                    lastCompletionDate = S13Exporter.formatDateShort(previousCompletions[0].fecha_entrega);
                 }
             }
 
             const slice = assignments.slice(assignOffset, assignOffset + limit);
-            let colsHtml = '';
+            let colsHtml = "";
             for (let c = 0; c < 4; c++) {
                 const assign = slice[c];
-                const conductor = assign ? (assign.conductor || '') : '';
-                const assignedDate = assign ? this.formatDateShort(assign.fecha_asignacion) : '';
-                const returnedDate = assign 
-                    ? (assign.estado === 'Predicado Parcial' 
-                        ? this.formatDateShort(assign.fecha_entrega) + ' (P)' 
-                        : this.formatDateShort(assign.fecha_entrega))
-                    : '';
+                const conductor = assign ? assign.conductor || "" : "";
+                const assignedDate = assign ? S13Exporter.formatDateShort(assign.fecha_asignacion) : "";
+                const returnedDate = assign
+                    ? assign.estado === "Predicado Parcial"
+                        ? `${S13Exporter.formatDateShort(assign.fecha_entrega)} (P)`
+                        : S13Exporter.formatDateShort(assign.fecha_entrega)
+                    : "";
 
                 colsHtml += `
                     <td class="border border-black p-0 align-top w-[38mm]">
@@ -81,7 +83,7 @@ export class S13Exporter {
 
             rowsHtml += `
                 <tr class="h-[8.5mm]">
-                    <td class="border border-black text-center font-bold text-xs bg-white dark:bg-slate-900 w-[12mm]">${key || ''}</td>
+                    <td class="border border-black text-center font-bold text-xs bg-white dark:bg-slate-900 w-[12mm]">${key || ""}</td>
                     <td class="border border-black bg-white dark:bg-slate-900 w-[25mm] text-center text-[8px] font-bold">${lastCompletionDate}</td>
                     ${colsHtml}
                 </tr>
@@ -113,7 +115,10 @@ export class S13Exporter {
                             <tr class="text-[7px] font-bold text-center uppercase h-[11mm] leading-[1.1]">
                                 <td class="border border-black p-0.5 align-middle w-[10mm]">Núm.<br> de terr.</td>
                                 <td class="border border-black p-0.5 align-middle leading-tight w-[20mm]">Última fecha<br> en que se<br> completó*</td>
-                                ${Array(4).fill(0).map(() => `
+                                ${Array(4)
+                                    .fill(0)
+                                    .map(
+                                        () => `
                                     <td class="border border-black p-0 align-top">
                                         <div class="flex flex-col h-full">
                                             <div class="border-b border-black py-1 bg-gray-100/50">Asignado a</div>
@@ -127,7 +132,9 @@ export class S13Exporter {
                                             </div>
                                         </div>
                                     </td>
-                                `).join('')}
+                                `,
+                                    )
+                                    .join("")}
                             </tr>
                         </thead>
                         <tbody>

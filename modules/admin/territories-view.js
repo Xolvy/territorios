@@ -1,4 +1,4 @@
-import { renderSkeleton } from '../utils/helpers.js';
+import { renderSkeleton } from "../utils/helpers.js";
 
 // --- TERRITORIOS VIEW SHELL ---
 
@@ -17,8 +17,8 @@ export const renderCasaEnCasaTab = async (container, config, appVersion) => {
                 </div>
 
                 <nav class="flex flex-row items-center justify-start gap-2 w-full sm:w-auto flex-1 sm:flex-initial min-w-0 mt-2 sm:mt-0">
-                    ${renderSubTab('programa', 'fas fa-calendar-check', 'Programa')}
-                    ${renderSubTab('mapas', 'fas fa-map-marked-alt', 'Mapas')}
+                    ${renderSubTab("programa", "fas fa-calendar-check", "Programa")}
+                    ${renderSubTab("mapas", "fas fa-map-marked-alt", "Mapas")}
                 </nav>
             </header>
             
@@ -27,43 +27,42 @@ export const renderCasaEnCasaTab = async (container, config, appVersion) => {
     `;
 
     const loadCasaSub = async (sub) => {
-        const subContainer = container.querySelector('#casa-content');
+        const subContainer = container.querySelector("#casa-content");
 
-        container.querySelectorAll('.sub-tab-casa').forEach(btn => {
+        container.querySelectorAll(".sub-tab-casa").forEach((btn) => {
             const isActive = btn.dataset.sub === sub;
-            btn.classList.toggle('active', isActive);
-            btn.className = `sub-tab-casa group px-3.5 sm:px-6 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl transition-all flex items-center justify-center gap-2 md:gap-3 whitespace-nowrap font-black border text-[9px] sm:text-[10px] uppercase tracking-widest ${isActive ? 'bg-slate-900 text-white dark:bg-white/10 dark:text-white border-slate-800 dark:border-white/5 shadow-sm' : 'bg-white dark:bg-white/5 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/10 shadow-sm'}`;
+            btn.classList.toggle("active", isActive);
+            btn.className = `sub-tab-casa group px-3.5 sm:px-6 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl transition-all flex items-center justify-center gap-2 md:gap-3 whitespace-nowrap font-black border text-[9px] sm:text-[10px] uppercase tracking-widest ${isActive ? "bg-slate-900 text-white dark:bg-white/10 dark:text-white border-slate-800 dark:border-white/5 shadow-sm" : "bg-white dark:bg-white/5 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/10 shadow-sm"}`;
         });
 
         renderSkeleton(subContainer);
 
         try {
             switch (sub) {
-                case 'programa': {
-                    const { renderProgramaTab } = await import('./program-view.js');
+                case "programa": {
+                    const { renderProgramaTab } = await import("./program-view.js");
                     await renderProgramaTab(subContainer, config, appVersion);
                     break;
                 }
-                case 'mapas': {
-                    const { renderMapsView } = await import('./maps-view.js');
+                case "mapas": {
+                    const { renderMapsView } = await import("./maps-view.js");
                     await renderMapsView(subContainer, config, appVersion);
                     break;
                 }
             }
             // Trigger adaptive engine after sub-module load
             if (window.XolvyAdaptive) window.XolvyAdaptive.refresh();
-
         } catch (e) {
             console.error(e);
             subContainer.innerHTML = `<div class="p-20 text-center text-rose-500 font-bold uppercase tracking-widest text-xs">Error: ${e.message}</div>`;
         }
     };
 
-    container.querySelectorAll('.sub-tab-casa').forEach(btn => {
+    container.querySelectorAll(".sub-tab-casa").forEach((btn) => {
         btn.onclick = (e) => loadCasaSub(e.currentTarget.dataset.sub);
     });
 
-    loadCasaSub('programa');
+    loadCasaSub("programa");
 
     // Initial adaptive refresh
     if (window.XolvyAdaptive) window.XolvyAdaptive.refresh();
@@ -75,4 +74,3 @@ const renderSubTab = (id, icon, label) => `
         <span class="ml-2">${label}</span>
     </button>
 `;
-

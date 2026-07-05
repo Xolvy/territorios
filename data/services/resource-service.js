@@ -1,9 +1,9 @@
-import { db } from '../../firebase-config.js';
-import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, getDocs, updateDoc } from "firebase/firestore";
+import { db } from "../../firebase-config.js";
 
 export const getRecursos = async () => {
     const querySnapshot = await getDocs(collection(db, "recursos"));
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 };
 
 export const addRecurso = async (recurso) => {

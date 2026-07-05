@@ -19,9 +19,10 @@
  *  - getSystemVersion()      → Leer versión actual del sistema
  *  - setSystemVersion()      → Actualizar versión del sistema
  */
-import { db } from '../../firebase-config.js';
-import { doc, getDoc, setDoc, updateDoc, Timestamp } from "firebase/firestore";
-import { fetchCached } from './base-service.js';
+
+import { doc, getDoc, setDoc, Timestamp, updateDoc } from "firebase/firestore";
+import { db } from "../../firebase-config.js";
+import { fetchCached } from "./base-service.js";
 
 const CONFIG_TTL = 10 * 60 * 1000; // 10 minutos
 
@@ -30,28 +31,32 @@ const CONFIG_TTL = 10 * 60 * 1000; // 10 minutos
 // ═══════════════════════════════════════════════════════════
 
 export const getGlobalSettings = async () => {
-    return fetchCached('global_settings', async () => {
-        try {
-            const docRef = doc(db, "configuracion", "global_settings");
-            const snap = await getDoc(docRef);
-            if (snap.exists()) {
-                return snap.data();
-            }
-            return {
-                expiration_days: 120,
-                max_active_assignments: 0,
-                theme_color: 'teal',
-                congregation_name: 'Mi Congregación',
-                modules: {
-                    phone_preaching: true,
-                    public_preaching: true
+    return fetchCached(
+        "global_settings",
+        async () => {
+            try {
+                const docRef = doc(db, "configuracion", "global_settings");
+                const snap = await getDoc(docRef);
+                if (snap.exists()) {
+                    return snap.data();
                 }
-            };
-        } catch (e) {
-            console.error("Error fetching global settings:", e);
-            return null;
-        }
-    }, CONFIG_TTL);
+                return {
+                    expiration_days: 120,
+                    max_active_assignments: 0,
+                    theme_color: "teal",
+                    congregation_name: "Mi Congregación",
+                    modules: {
+                        phone_preaching: true,
+                        public_preaching: true,
+                    },
+                };
+            } catch (e) {
+                console.error("Error fetching global settings:", e);
+                return null;
+            }
+        },
+        CONFIG_TTL,
+    );
 };
 
 export const saveGlobalSettings = async (settings) => {
@@ -65,16 +70,20 @@ export const saveGlobalSettings = async (settings) => {
 };
 
 // --- DIFFUSION SYSTEM ---
-export const saveDiffusionMessage = async (message, type = 'info') => {
+export const saveDiffusionMessage = async (message, type = "info") => {
     try {
         const docRef = doc(db, "configuracion", "diffusion_active");
         if (message) {
-            await setDoc(docRef, {
-                content: message,
-                type: type,
-                timestamp: Timestamp.now(),
-                active: true
-            }, { merge: true });
+            await setDoc(
+                docRef,
+                {
+                    content: message,
+                    type: type,
+                    timestamp: Timestamp.now(),
+                    active: true,
+                },
+                { merge: true },
+            );
         } else {
             await updateDoc(docRef, { active: false });
         }
@@ -100,16 +109,20 @@ export const getDiffusionMessage = async () => {
 };
 
 export const getGroupsConfig = async () => {
-    return fetchCached('grupos_config', async () => {
-        try {
-            const docRef = doc(db, "configuracion", "grupos_config");
-            const snap = await getDoc(docRef);
-            return snap.exists() ? snap.data().grupos || [] : [];
-        } catch (e) {
-            console.error("Error fetching groups config:", e);
-            return [];
-        }
-    }, CONFIG_TTL);
+    return fetchCached(
+        "grupos_config",
+        async () => {
+            try {
+                const docRef = doc(db, "configuracion", "grupos_config");
+                const snap = await getDoc(docRef);
+                return snap.exists() ? snap.data().grupos || [] : [];
+            } catch (e) {
+                console.error("Error fetching groups config:", e);
+                return [];
+            }
+        },
+        CONFIG_TTL,
+    );
 };
 
 export const saveGroupsConfig = async (grupos) => {
@@ -124,16 +137,20 @@ export const saveGroupsConfig = async (grupos) => {
 };
 
 export const getConfiguracion = async () => {
-    return fetchCached('configuracion_general', async () => {
-        try {
-            const docRef = doc(db, "configuracion", "general");
-            const snap = await getDoc(docRef);
-            return snap.exists() ? snap.data() : {};
-        } catch (e) {
-            console.error("Error fetching general config:", e);
-            return {};
-        }
-    }, CONFIG_TTL);
+    return fetchCached(
+        "configuracion_general",
+        async () => {
+            try {
+                const docRef = doc(db, "configuracion", "general");
+                const snap = await getDoc(docRef);
+                return snap.exists() ? snap.data() : {};
+            } catch (e) {
+                console.error("Error fetching general config:", e);
+                return {};
+            }
+        },
+        CONFIG_TTL,
+    );
 };
 
 export const saveConfiguracion = async (config) => {
@@ -147,25 +164,33 @@ export const saveConfiguracion = async (config) => {
 };
 
 export const getSystemVersion = async () => {
-    return fetchCached('system_version', async () => {
-        try {
-            const docRef = doc(db, "configuracion", "system_status");
-            const snap = await getDoc(docRef);
-            return snap.exists() ? snap.data().current_version : "0.0.0";
-        } catch (e) {
-            console.error("Error fetching system version:", e);
-            return "0.0.0";
-        }
-    }, CONFIG_TTL);
+    return fetchCached(
+        "system_version",
+        async () => {
+            try {
+                const docRef = doc(db, "configuracion", "system_status");
+                const snap = await getDoc(docRef);
+                return snap.exists() ? snap.data().current_version : "0.0.0";
+            } catch (e) {
+                console.error("Error fetching system version:", e);
+                return "0.0.0";
+            }
+        },
+        CONFIG_TTL,
+    );
 };
 
-export const setSystemVersion = async (version, force = true) => {
+export const setSystemVersion = async (version, _force = true) => {
     try {
         const docRef = doc(db, "configuracion", "system_status");
-        await setDoc(docRef, {
-            current_version: version,
-            last_update: Timestamp.now()
-        }, { merge: true });
+        await setDoc(
+            docRef,
+            {
+                current_version: version,
+                last_update: Timestamp.now(),
+            },
+            { merge: true },
+        );
         return true;
     } catch (e) {
         console.error("Error setting system version:", e);

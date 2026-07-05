@@ -1,39 +1,54 @@
-import { getTerritorios, deleteTerritorio, updateTerritorio, updateTerritoryGeoJSON, startLivePool, uploadMapPNG } from '../../data/firestore-services.js';
-import { showNotification, renderSkeleton } from '../utils/helpers.js';
-import { showModal, showCustomConfirm } from '../services/ui-helpers.js';
-import { MapViewer } from '../map-viewer.js';
-import { setAdminLivePool } from '../admin-dashboard.js';
+import {
+    deleteTerritorio,
+    startLivePool,
+    updateTerritorio,
+    updateTerritoryGeoJSON,
+    uploadMapPNG,
+} from "../../data/firestore-services.js";
+import { setAdminLivePool } from "../admin-dashboard.js";
+import { MapViewer } from "../map-viewer.js";
+import { showCustomConfirm, showModal } from "../services/ui-helpers.js";
+import { renderSkeleton, showNotification } from "../utils/helpers.js";
 
-export const renderMapsView = async (container, config, appVersion) => {
+export const renderMapsView = async (container, config, _appVersion) => {
     let terrs = [];
 
-    const normalizeT = (val) => String(val || '').trim();
+    const normalizeT = (val) => String(val || "").trim();
 
     // Xolvy Live Pool: Real-time synchronization for Territories
     const unsub = startLivePool("territorios", [], (data) => {
         terrs = data
-            .filter(rec => rec.numero && String(rec.numero).trim().length > 0)
-            .map(rec => ({
+            .filter((rec) => rec.numero && String(rec.numero).trim().length > 0)
+            .map((rec) => ({
                 ...rec,
                 numero: normalizeT(rec.numero),
-                manzanas: String(rec.manzanas || '').replace(/Salmo/gi, 'Mz.').trim(),
-                localidad: String(rec.localidad || '').replace(/grupos?/gi, '').trim()
+                manzanas: String(rec.manzanas || "")
+                    .replace(/Salmo/gi, "Mz.")
+                    .trim(),
+                localidad: String(rec.localidad || "")
+                    .replace(/grupos?/gi, "")
+                    .trim(),
             }))
-            .sort((a, b) => String(a.numero || '').localeCompare(String(b.numero || ''), undefined, { numeric: true }));
+            .sort((a, b) => String(a.numero || "").localeCompare(String(b.numero || ""), undefined, { numeric: true }));
 
-        const currentSearch = container.querySelector('#maps-search')?.value.trim().toLowerCase();
+        const currentSearch = container.querySelector("#maps-search")?.value.trim().toLowerCase();
         renderGrid(currentSearch);
     });
     setAdminLivePool(unsub);
 
-    const renderGrid = (query = '') => {
-        const filtered = query ? terrs.filter(t =>
-            String(t.numero || '').toLowerCase().includes(query) ||
-            (t.localidad && t.localidad.toLowerCase().includes(query)) ||
-            (t.nombre && t.nombre.toLowerCase().includes(query))
-        ) : terrs;
+    const renderGrid = (query = "") => {
+        const filtered = query
+            ? terrs.filter(
+                  (t) =>
+                      String(t.numero || "")
+                          .toLowerCase()
+                          .includes(query) ||
+                      t.localidad?.toLowerCase().includes(query) ||
+                      t.nombre?.toLowerCase().includes(query),
+              )
+            : terrs;
 
-        const grid = container.querySelector('#maps-grid');
+        const grid = container.querySelector("#maps-grid");
         if (!grid) return;
 
         if (filtered.length === 0) {
@@ -42,19 +57,30 @@ export const renderMapsView = async (container, config, appVersion) => {
         }
 
         const statusColors = {
-            'Asignado':   { bg: 'bg-amber-500/10',   text: 'text-amber-500',   dot: 'bg-amber-400',   label: 'Asignado' },
-            'Completado': { bg: 'bg-emerald-500/10', text: 'text-emerald-500', dot: 'bg-emerald-400', label: 'Completado' },
-            'Disponible': { bg: 'bg-slate-100 dark:bg-white/5', text: 'text-slate-600 dark:text-slate-400', dot: 'bg-slate-300', label: 'Disponible' },
+            Asignado: { bg: "bg-amber-500/10", text: "text-amber-500", dot: "bg-amber-400", label: "Asignado" },
+            Completado: {
+                bg: "bg-emerald-500/10",
+                text: "text-emerald-500",
+                dot: "bg-emerald-400",
+                label: "Completado",
+            },
+            Disponible: {
+                bg: "bg-slate-100 dark:bg-white/5",
+                text: "text-slate-600 dark:text-slate-400",
+                dot: "bg-slate-300",
+                label: "Disponible",
+            },
         };
 
-        grid.innerHTML = filtered.map(t => {
-            const allMzs = t.manzanas ? String(t.manzanas).split(',').filter(Boolean).length : 0;
-            const subtitle = t.localidad || t.nombre || '—';
-            const estado = t.estado || 'Disponible';
-            const sc = statusColors[estado] || statusColors['Disponible'];
-            const hasMap = !!(t.geojson || t.imagen);
+        grid.innerHTML = filtered
+            .map((t) => {
+                const allMzs = t.manzanas ? String(t.manzanas).split(",").filter(Boolean).length : 0;
+                const subtitle = t.localidad || t.nombre || "—";
+                const estado = t.estado || "Disponible";
+                const sc = statusColors[estado] || statusColors.Disponible;
+                const hasMap = !!(t.geojson || t.imagen);
 
-            return `
+                return `
             <div class="group relative flex flex-col bg-white dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/[0.07] rounded-2xl shadow-sm hover:shadow-xl hover:shadow-slate-200/60 dark:hover:shadow-black/30 hover:-translate-y-0.5 hover:border-primary/30 dark:hover:border-primary/30 transition-all duration-300 overflow-hidden">
                 
                 <div class="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-primary/80 via-indigo-500/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -69,30 +95,42 @@ export const renderMapsView = async (container, config, appVersion) => {
                             <h4 class="text-[13px] font-black text-slate-800 dark:text-white leading-tight truncate max-w-[130px]">${subtitle}</h4>
                         </div>
                     </div>
-                    ${estado !== 'Disponible' ? `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-wider shrink-0 ${sc.bg} ${sc.text}">
+                    ${
+                        estado !== "Disponible"
+                            ? `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-wider shrink-0 ${sc.bg} ${sc.text}">
                         <span class="w-1.5 h-1.5 rounded-full ${sc.dot}"></span>
                         ${sc.label}
-                    </span>` : ''}
+                    </span>`
+                            : ""
+                    }
                 </div>
 
                 <div class="flex flex-wrap items-center gap-2 px-5 pb-4 border-b border-slate-100 dark:border-white/[0.05]">
                     <div class="inline-flex items-center gap-1.5 bg-slate-50 dark:bg-white/5 px-3 py-1.5 rounded-lg border border-slate-100 dark:border-white/5">
                         <i class="fas fa-th-large text-[9px] text-primary opacity-70"></i>
-                        <span class="text-[9px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest">${allMzs} Manzana${allMzs !== 1 ? 's' : ''}</span>
+                        <span class="text-[9px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest">${allMzs} Manzana${allMzs !== 1 ? "s" : ""}</span>
                     </div>
-                    ${hasMap ? `<div class="inline-flex items-center gap-1.5 bg-emerald-500/5 px-3 py-1.5 rounded-lg border border-emerald-500/10">
+                    ${
+                        hasMap
+                            ? `<div class="inline-flex items-center gap-1.5 bg-emerald-500/5 px-3 py-1.5 rounded-lg border border-emerald-500/10">
                         <i class="fas fa-map text-[9px] text-emerald-500"></i>
                         <span class="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Con Mapa</span>
-                    </div>` : ''}
+                    </div>`
+                            : ""
+                    }
                 </div>
 
-                ${t.asignado_a ? `
+                ${
+                    t.asignado_a
+                        ? `
                 <div class="px-5 py-3 flex items-center gap-2 border-b border-slate-100 dark:border-white/[0.05]">
                     <div class="w-5 h-5 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0">
                         <i class="fas fa-user text-[8px] text-amber-500"></i>
                     </div>
                     <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 truncate">${t.asignado_a}</span>
-                </div>` : ''}
+                </div>`
+                        : ""
+                }
 
                 <div class="flex items-center gap-2 p-4 mt-auto bg-slate-50/50 dark:bg-black/10">
                     <button onclick="window.viewMapFromBaseS12('${t.id}')"
@@ -111,7 +149,8 @@ export const renderMapsView = async (container, config, appVersion) => {
                     </button>
                 </div>
             </div>`;
-        }).join('');
+            })
+            .join("");
     };
 
     container.innerHTML = `
@@ -143,16 +182,15 @@ export const renderMapsView = async (container, config, appVersion) => {
         </div>
     `;
 
-    renderSkeleton(container.querySelector('#maps-skeleton-container'));
-
-
+    renderSkeleton(container.querySelector("#maps-skeleton-container"));
 
     // Search Logic
-    container.querySelector('#maps-search').oninput = (e) => renderGrid(e.target.value.trim().toLowerCase());
+    container.querySelector("#maps-search").oninput = (e) => renderGrid(e.target.value.trim().toLowerCase());
 
     // KML Manager Logic
-    container.querySelector('#btn-open-kml-mgr').onclick = () => {
-        showModal(`
+    container.querySelector("#btn-open-kml-mgr").onclick = () => {
+        showModal(
+            `
             <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden">
                 <header class="shrink-0 bg-indigo-600 p-8 text-white relative overflow-hidden">
                     <div class="absolute inset-0 bg-white/10 backdrop-blur-3xl"></div>
@@ -195,133 +233,144 @@ export const renderMapsView = async (container, config, appVersion) => {
                     </button>
                 </footer>
             </div>
-        `, (modal) => {
-            const btnImport = modal.querySelector('#btn-start-import');
-            const input = modal.querySelector('#kml-text-input');
-            const progressBox = modal.querySelector('#kml-progress-box');
-            const bar = modal.querySelector('#kml-bar');
-            const status = modal.querySelector('#kml-status');
-            const count = modal.querySelector('#kml-count');
+        `,
+            (modal) => {
+                const btnImport = modal.querySelector("#btn-start-import");
+                const input = modal.querySelector("#kml-text-input");
+                const progressBox = modal.querySelector("#kml-progress-box");
+                const bar = modal.querySelector("#kml-bar");
+                const status = modal.querySelector("#kml-status");
+                const count = modal.querySelector("#kml-count");
 
-            btnImport.onclick = async () => {
-                const kml = input.value.trim();
-                if (!kml) return;
+                btnImport.onclick = async () => {
+                    const kml = input.value.trim();
+                    if (!kml) return;
 
-                btnImport.disabled = true;
-                progressBox.classList.remove('hidden');
+                    btnImport.disabled = true;
+                    progressBox.classList.remove("hidden");
 
-                try {
-                    const parser = new DOMParser();
-                    const xml = parser.parseFromString(kml, 'text/xml');
-                    const placemarks = xml.querySelectorAll('Placemark');
-                    const groups = {};
+                    try {
+                        const parser = new DOMParser();
+                        const xml = parser.parseFromString(kml, "text/xml");
+                        const placemarks = xml.querySelectorAll("Placemark");
+                        const groups = {};
 
-                    const poisData = [];
-                    placemarks.forEach(pm => {
-                        const name = pm.querySelector('name')?.textContent || '';
-                        // Support both (T1) and T1 or Territorio 1 format strictly matching numbers
-                        const match = name.match(/\(?T-?\s*(\d+)\)?/i) || name.match(/Territorio\s*(\d+)/i);
-                        if (match) {
-                            const tNum = match[1];
-                            if (!groups[tNum]) groups[tNum] = [];
+                        const poisData = [];
+                        placemarks.forEach((pm) => {
+                            const name = pm.querySelector("name")?.textContent || "";
+                            // Support both (T1) and T1 or Territorio 1 format strictly matching numbers
+                            const match = name.match(/\(?T-?\s*(\d+)\)?/i) || name.match(/Territorio\s*(\d+)/i);
+                            if (match) {
+                                const tNum = match[1];
+                                if (!groups[tNum]) groups[tNum] = [];
 
-                            // Polygons
-                            const poly = pm.querySelector('Polygon');
-                            if (poly) {
-                                const coordsText = poly.querySelector('coordinates')?.textContent || '';
-                                const coords = coordsText.trim().split(/\s+/).map(row => {
-                                    const [lng, lat] = row.split(',').map(Number);
-                                    return [lng, lat];
-                                });
-                                groups[tNum].push({
-                                    type: "Feature", properties: { name },
-                                    geometry: { type: "Polygon", coordinates: [coords] }
-                                });
-                            }
-
-                            // Lines (Traces)
-                            const line = pm.querySelector('LineString');
-                            if (line) {
-                                const coordsText = line.querySelector('coordinates')?.textContent || '';
-                                const coordsStr = coordsText.trim().split(/\s+/);
-                                const coords = coordsStr.map(row => row.split(',').map(Number).slice(0, 2)).filter(pair => pair.length === 2 && !isNaN(pair[0]));
-                                if (coords.length > 0) {
-                                    if (!groups[tNum]) groups[tNum] = [];
+                                // Polygons
+                                const poly = pm.querySelector("Polygon");
+                                if (poly) {
+                                    const coordsText = poly.querySelector("coordinates")?.textContent || "";
+                                    const coords = coordsText
+                                        .trim()
+                                        .split(/\s+/)
+                                        .map((row) => {
+                                            const [lng, lat] = row.split(",").map(Number);
+                                            return [lng, lat];
+                                        });
                                     groups[tNum].push({
-                                        type: "Feature", properties: { name, type: "Trace" },
-                                        geometry: { type: "LineString", coordinates: coords }
+                                        type: "Feature",
+                                        properties: { name },
+                                        geometry: { type: "Polygon", coordinates: [coords] },
+                                    });
+                                }
+
+                                // Lines (Traces)
+                                const line = pm.querySelector("LineString");
+                                if (line) {
+                                    const coordsText = line.querySelector("coordinates")?.textContent || "";
+                                    const coordsStr = coordsText.trim().split(/\s+/);
+                                    const coords = coordsStr
+                                        .map((row) => row.split(",").map(Number).slice(0, 2))
+                                        .filter((pair) => pair.length === 2 && !Number.isNaN(pair[0]));
+                                    if (coords.length > 0) {
+                                        if (!groups[tNum]) groups[tNum] = [];
+                                        groups[tNum].push({
+                                            type: "Feature",
+                                            properties: { name, type: "Trace" },
+                                            geometry: { type: "LineString", coordinates: coords },
+                                        });
+                                    }
+                                }
+
+                                // Points (POIs) - Link to Special Zones
+                                const point = pm.querySelector("Point");
+                                if (point) {
+                                    const coordsText = point.querySelector("coordinates")?.textContent || "";
+                                    const [lng, lat] = coordsText.trim().split(",").map(Number);
+                                    poisData.push({
+                                        nombre: name.replace(/\(T\d+\)/i, "").trim(),
+                                        tipo: "Otro",
+                                        territorio_numero: tNum,
+                                        descripcion: pm.querySelector("description")?.textContent || "",
+                                        lat,
+                                        lng,
                                     });
                                 }
                             }
+                        });
 
-                            // Points (POIs) - Link to Special Zones
-                            const point = pm.querySelector('Point');
-                            if (point) {
-                                const coordsText = point.querySelector('coordinates')?.textContent || '';
-                                const [lng, lat] = coordsText.trim().split(',').map(Number);
-                                poisData.push({
-                                    nombre: name.replace(/\(T\d+\)/i, '').trim(),
-                                    tipo: 'Otro',
-                                    territorio_numero: tNum,
-                                    descripcion: pm.querySelector('description')?.textContent || '',
-                                    lat, lng
-                                });
+                        const tNums = Object.keys(groups);
+                        if (tNums.length === 0) throw new Error("No se detectaron territorios (T1, T2...) en el KML.");
+
+                        let done = 0;
+                        for (const num of tNums) {
+                            const geojson = { type: "FeatureCollection", features: groups[num] };
+                            const tId = await updateTerritoryGeoJSON(num, geojson);
+
+                            if (tId) {
+                                // Sync POIs
+                                const tPois = poisData.filter((p) => p.territorio_numero === num);
+                                for (const poi of tPois) {
+                                    const { addPuntoInteres } = await import("../../data/firestore-services.js");
+                                    await addPuntoInteres({ ...poi, territorio_id: tId });
+                                }
                             }
-                        }
-                    });
 
-                    const tNums = Object.keys(groups);
-                    if (tNums.length === 0) throw new Error("No se detectaron territorios (T1, T2...) en el KML.");
-
-                    let done = 0;
-                    for (const num of tNums) {
-                        const geojson = { type: "FeatureCollection", features: groups[num] };
-                        const tId = await updateTerritoryGeoJSON(num, geojson);
-
-                        if (tId) {
-                            // Sync POIs
-                            const tPois = poisData.filter(p => p.territorio_numero === num);
-                            for (const poi of tPois) {
-                                const { addPuntoInteres } = await import('../../data/firestore-services.js');
-                                await addPuntoInteres({ ...poi, territorio_id: tId });
-                            }
+                            done++;
+                            const pct = (done / tNums.length) * 100;
+                            bar.style.width = `${pct}%`;
+                            count.innerText = `${done} / ${tNums.length}`;
+                            status.innerText = `Sincronizando T-${num}...`;
                         }
 
-                        done++;
-                        const pct = (done / tNums.length) * 100;
-                        bar.style.width = pct + '%';
-                        count.innerText = `${done} / ${tNums.length}`;
-                        status.innerText = `Sincronizando T-${num}...`;
+                        status.innerText = "IMPORTACIÓN FINALIZADA";
+                        showNotification("Polígonos actualizados correctamente", "success");
+                        renderGrid();
+                    } catch (err) {
+                        showNotification(err.message, "error");
+                        status.innerText = "ERROR EN PROCESO";
+                    } finally {
+                        btnImport.disabled = false;
                     }
-
-                    status.innerText = "IMPORTACIÓN FINALIZADA";
-                    showNotification("Polígonos actualizados correctamente", "success");
-                    renderGrid();
-                } catch (err) {
-                    showNotification(err.message, "error");
-                    status.innerText = "ERROR EN PROCESO";
-                } finally {
-                    btnImport.disabled = false;
-                }
-            };
-        });
+                };
+            },
+        );
     };
 
     // Card Proxies (Matches window globals in s12-view.js for re-use if needed)
     window.viewMapFromBaseS12 = (id) => {
-        const t = terrs.find(x => x.id === id);
+        const t = terrs.find((x) => x.id === id);
         if (t) {
             if (window.openInteractiveMap) window.openInteractiveMap(t);
-            else MapViewer.render(document.getElementById('modal-container'), t);
+            else MapViewer.render(document.getElementById("modal-container"), t);
         }
     };
 
     window.editTerritorioS12 = async (id) => {
-        const t = terrs.find(x => x.id === id);
+        const t = terrs.find((x) => x.id === id);
         if (!t) return;
-        const tipos = config.tipos_territorio || ['Casa en Casa', 'Negocios', 'Pública'];
+        const tipos = config.tipos_territorio || ["Casa en Casa", "Negocios", "Pública"];
 
-        showModal(`
+        showModal(
+            `
             <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden">
                 <header class="shrink-0 bg-primary p-8 text-white relative overflow-hidden">
                     <div class="absolute inset-0 bg-white/10 backdrop-blur-3xl"></div>
@@ -340,23 +389,23 @@ export const renderMapsView = async (container, config, appVersion) => {
                     <div class="grid grid-cols-1 gap-8">
                          <div class="space-y-3">
                             <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Localidad</label>
-                            <input type="text" id="edit-t-localidad" value="${t.localidad || t.nombre || ''}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all uppercase shadow-inner">
+                            <input type="text" id="edit-t-localidad" value="${t.localidad || t.nombre || ""}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all uppercase shadow-inner">
                         </div>
                         <div class="grid grid-cols-2 gap-6">
                             <div class="space-y-3">
                                 <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Número</label>
-                                <input type="text" id="edit-t-numero" value="${t.numero || ''}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all uppercase shadow-inner">
+                                <input type="text" id="edit-t-numero" value="${t.numero || ""}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all uppercase shadow-inner">
                             </div>
                             <div class="space-y-3">
                                 <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Tipo</label>
                                 <select id="edit-t-tipo" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary cursor-pointer appearance-none shadow-inner">
-                                    ${tipos.map(ti => `<option value="${ti}" ${t.tipo === ti ? 'selected' : ''}>${ti}</option>`).join('')}
+                                    ${tipos.map((ti) => `<option value="${ti}" ${t.tipo === ti ? "selected" : ""}>${ti}</option>`).join("")}
                                 </select>
                             </div>
                         </div>
                         <div class="space-y-3">
                             <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Manzanas (Separadas por coma)</label>
-                            <textarea id="edit-t-mzs" rows="3" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-bold text-slate-700 dark:text-white outline-none focus:border-primary resize-none shadow-inner">${t.manzanas || ''}</textarea>
+                            <textarea id="edit-t-mzs" rows="3" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-bold text-slate-700 dark:text-white outline-none focus:border-primary resize-none shadow-inner">${t.manzanas || ""}</textarea>
                         </div>
                         <div class="space-y-3 mt-2">
                             <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block flex justify-between items-center">
@@ -380,44 +429,46 @@ export const renderMapsView = async (container, config, appVersion) => {
                     </button>
                 </footer>
             </div>
-        `, (modal) => {
-            modal.querySelector('#btn-save-t-edit').onclick = async () => {
-                const btn = modal.querySelector('#btn-save-t-edit');
-                btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Guardando...';
+        `,
+            (modal) => {
+                modal.querySelector("#btn-save-t-edit").onclick = async () => {
+                    const btn = modal.querySelector("#btn-save-t-edit");
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Guardando...';
 
-                try {
-                    const fileInput = modal.querySelector('#edit-t-imagen-file');
-                    let finalImageURL = t.imagen || ''; // Mantener la anterior por defecto
-                    const tNum = modal.querySelector('#edit-t-numero').value.trim();
+                    try {
+                        const fileInput = modal.querySelector("#edit-t-imagen-file");
+                        let finalImageURL = t.imagen || ""; // Mantener la anterior por defecto
+                        const tNum = modal.querySelector("#edit-t-numero").value.trim();
 
-                    if (fileInput.files.length > 0) {
-                        btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Subiendo imagen...';
-                        finalImageURL = await uploadMapPNG(fileInput.files[0], tNum);
+                        if (fileInput.files.length > 0) {
+                            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Subiendo imagen...';
+                            finalImageURL = await uploadMapPNG(fileInput.files[0], tNum);
+                        }
+
+                        await updateTerritorio(id, {
+                            localidad: modal.querySelector("#edit-t-localidad").value.trim(),
+                            nombre: modal.querySelector("#edit-t-localidad").value.trim(),
+                            numero: tNum,
+                            tipo: modal.querySelector("#edit-t-tipo").value,
+                            manzanas: modal.querySelector("#edit-t-mzs").value.trim(),
+                            imagen: finalImageURL,
+                        });
+                        showNotification("Registro actualizado");
+                        modal.classList.add("hidden");
+                    } catch (e) {
+                        showNotification(e.message, "error");
+                    } finally {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fas fa-save"></i> Guardar Cambios';
                     }
-
-                    await updateTerritorio(id, {
-                        localidad: modal.querySelector('#edit-t-localidad').value.trim(),
-                        nombre: modal.querySelector('#edit-t-localidad').value.trim(),
-                        numero: tNum,
-                        tipo: modal.querySelector('#edit-t-tipo').value,
-                        manzanas: modal.querySelector('#edit-t-mzs').value.trim(),
-                        imagen: finalImageURL
-                    });
-                    showNotification("Registro actualizado");
-                    modal.classList.add('hidden');
-                } catch (e) {
-                    showNotification(e.message, "error");
-                } finally {
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fas fa-save"></i> Guardar Cambios';
-                }
-            };
-        });
+                };
+            },
+        );
     };
 
     window.deleteTerritorioS12 = async (id) => {
-        const t = terrs.find(x => x.id === id);
+        const t = terrs.find((x) => x.id === id);
         if (!t) return;
 
         showCustomConfirm(`¿Estás seguro de eliminar el Territorio ${t.numero}?`, async () => {
@@ -425,7 +476,7 @@ export const renderMapsView = async (container, config, appVersion) => {
                 await deleteTerritorio(id);
                 showNotification("Territorio eliminado correctamente", "success");
             } catch (e) {
-                showNotification("Error al eliminar: " + e.message, "error");
+                showNotification(`Error al eliminar: ${e.message}`, "error");
             }
         });
     };

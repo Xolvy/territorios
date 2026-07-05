@@ -1,11 +1,16 @@
-import { getTerritorios, getHistorialReport, getSessionSummaries, deleteHistoryRecord, deleteSessionSummary } from '../../data/firestore-services.js';
-import { showNotification, renderSkeleton } from '../utils/helpers.js';
-import { renderHistorialView } from './history-view.js';
-import { UIHelpers, showModal } from '../services/ui-helpers.js';
+import {
+    deleteSessionSummary,
+    getHistorialReport,
+    getSessionSummaries,
+    getTerritorios,
+} from "../../data/firestore-services.js";
+import { showModal, UIHelpers } from "../services/ui-helpers.js";
+import { renderSkeleton, showNotification } from "../utils/helpers.js";
+import { renderHistorialView } from "./history-view.js";
 
 export const renderReportsTab = async (container, config, appVersion) => {
-    let _activeMainTab = 'historial'; // New main navigation
-    let _activeReportSubTab = 's13'; // Sub-tab for printing section
+    let _activeMainTab = "historial"; // New main navigation
+    let _activeReportSubTab = "s13"; // Sub-tab for printing section
 
     const renderMain = () => {
         container.innerHTML = `
@@ -28,42 +33,55 @@ export const renderReportsTab = async (container, config, appVersion) => {
         `;
 
         const updateNav = () => {
-            const hBtn = container.querySelector('#main-btn-historial');
-            const rBtn = container.querySelector('#main-btn-reportes');
-            const tBtn = container.querySelector('#main-btn-telefonia');
+            const hBtn = container.querySelector("#main-btn-historial");
+            const rBtn = container.querySelector("#main-btn-reportes");
+            const tBtn = container.querySelector("#main-btn-telefonia");
 
-            [hBtn, rBtn, tBtn].forEach(btn => {
-                const isActive = (btn.id === 'main-btn-historial' && _activeMainTab === 'historial') ||
-                    (btn.id === 'main-btn-reportes' && _activeMainTab === 'reportes') ||
-                    (btn.id === 'main-btn-telefonia' && _activeMainTab === 'telefonia');
-                btn.className = `px-4.5 sm:px-10 py-2.5 sm:py-4 rounded-[1.4rem] sm:rounded-[1.8rem] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 flex-1 min-w-0 sm:flex-initial text-center whitespace-nowrap ${isActive ? 'bg-slate-900 dark:bg-white/10 text-white shadow-xl shadow-slate-900/20 md:scale-105' : 'text-slate-600 dark:text-slate-400 hover:text-slate-600 dark:hover:text-white'}`;
+            [hBtn, rBtn, tBtn].forEach((btn) => {
+                const isActive =
+                    (btn.id === "main-btn-historial" && _activeMainTab === "historial") ||
+                    (btn.id === "main-btn-reportes" && _activeMainTab === "reportes") ||
+                    (btn.id === "main-btn-telefonia" && _activeMainTab === "telefonia");
+                btn.className = `px-4.5 sm:px-10 py-2.5 sm:py-4 rounded-[1.4rem] sm:rounded-[1.8rem] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 flex-1 min-w-0 sm:flex-initial text-center whitespace-nowrap ${isActive ? "bg-slate-900 dark:bg-white/10 text-white shadow-xl shadow-slate-900/20 md:scale-105" : "text-slate-600 dark:text-slate-400 hover:text-slate-600 dark:hover:text-white"}`;
             });
         };
 
-        container.querySelector('#main-btn-historial').onclick = () => { _activeMainTab = 'historial'; updateNav(); renderHistorialSection(); };
-        container.querySelector('#main-btn-reportes').onclick = () => { _activeMainTab = 'reportes'; updateNav(); renderReportesSection(); };
-        container.querySelector('#main-btn-telefonia').onclick = () => { _activeMainTab = 'telefonia'; updateNav(); renderTelefoniaSection(); };
+        container.querySelector("#main-btn-historial").onclick = () => {
+            _activeMainTab = "historial";
+            updateNav();
+            renderHistorialSection();
+        };
+        container.querySelector("#main-btn-reportes").onclick = () => {
+            _activeMainTab = "reportes";
+            updateNav();
+            renderReportesSection();
+        };
+        container.querySelector("#main-btn-telefonia").onclick = () => {
+            _activeMainTab = "telefonia";
+            updateNav();
+            renderTelefoniaSection();
+        };
 
         updateNav();
-        if (_activeMainTab === 'historial') renderHistorialSection();
-        else if (_activeMainTab === 'reportes') renderReportesSection();
+        if (_activeMainTab === "historial") renderHistorialSection();
+        else if (_activeMainTab === "reportes") renderReportesSection();
         else renderTelefoniaSection();
     };
 
     const renderHistorialSection = async () => {
-        const target = container.querySelector('#main-report-content');
+        const target = container.querySelector("#main-report-content");
         renderSkeleton(target);
 
         // Use history-view.js logic but injected here
         await renderHistorialView(target, config, appVersion);
 
-        // Add "Historial de Observaciones" Global Toggle/Filter to the history-view UI if possible, 
+        // Add "Historial de Observaciones" Global Toggle/Filter to the history-view UI if possible,
         // or just let history-view handle it.
         // Actually, I'll modify history-view.js later to add the "Observaciones" toggle.
     };
 
     const renderReportesSection = async () => {
-        const target = container.querySelector('#main-report-content');
+        const target = container.querySelector("#main-report-content");
         let terrs = [];
         let history = [];
 
@@ -71,7 +89,7 @@ export const renderReportsTab = async (container, config, appVersion) => {
             const raw = await getTerritorios();
             // Xolvy Shield: Prevent duplicates by Number (Fix Terr 9 issue)
             const seen = new Set();
-            terrs = raw.filter(t => {
+            terrs = raw.filter((t) => {
                 const n = String(t.numero);
                 if (seen.has(n)) return false;
                 seen.add(n);
@@ -79,7 +97,9 @@ export const renderReportsTab = async (container, config, appVersion) => {
             });
             history = await getHistorialReport();
             terrs.sort((a, b) => String(a.numero).localeCompare(String(b.numero), undefined, { numeric: true }));
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error(e);
+        }
 
         target.innerHTML = `
             <div class="space-y-12 animate-fade-in">
@@ -93,19 +113,20 @@ export const renderReportsTab = async (container, config, appVersion) => {
 
         const loadSubReport = (type) => {
             _activeReportSubTab = type;
-            const printArea = target.querySelector('#report-print-area');
+            const printArea = target.querySelector("#report-print-area");
 
-            target.querySelectorAll('nav button').forEach(btn => {
-                const isActive = (btn.id === 'sub-btn-s13' && type === 's13') || (btn.id === 'sub-btn-s12' && type === 's12');
-                btn.className = `px-4 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex-1 min-w-0 text-center whitespace-nowrap ${isActive ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-600 dark:text-slate-400 hover:text-slate-600'}`;
+            target.querySelectorAll("nav button").forEach((btn) => {
+                const isActive =
+                    (btn.id === "sub-btn-s13" && type === "s13") || (btn.id === "sub-btn-s12" && type === "s12");
+                btn.className = `px-4 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex-1 min-w-0 text-center whitespace-nowrap ${isActive ? "bg-indigo-600 text-white shadow-lg" : "text-slate-600 dark:text-slate-400 hover:text-slate-600"}`;
             });
 
-            if (type === 's13') renderS13Print(printArea, history);
+            if (type === "s13") renderS13Print(printArea, history);
             else renderS12Print(printArea, terrs);
         };
 
-        target.querySelector('#sub-btn-s13').onclick = () => loadSubReport('s13');
-        target.querySelector('#sub-btn-s12').onclick = () => loadSubReport('s12');
+        target.querySelector("#sub-btn-s13").onclick = () => loadSubReport("s13");
+        target.querySelector("#sub-btn-s12").onclick = () => loadSubReport("s12");
 
         loadSubReport(_activeReportSubTab);
     };
@@ -129,7 +150,7 @@ export const renderReportsTab = async (container, config, appVersion) => {
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div class="space-y-3">
                             <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Desde</label>
-                            <input type="date" id="print-s13-from" value="${new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0]}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-emerald-500 transition-all shadow-inner">
+                            <input type="date" id="print-s13-from" value="${new Date(new Date().getFullYear(), 0, 1).toISOString().split("T")[0]}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-emerald-500 transition-all shadow-inner">
                         </div>
                         <div class="space-y-3">
                             <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Hasta</label>
@@ -167,42 +188,42 @@ export const renderReportsTab = async (container, config, appVersion) => {
             </div>
         `;
 
-        target.querySelector('#btn-do-print-s13').onclick = async () => {
-            const from = target.querySelector('#print-s13-from').value;
-            const to = target.querySelector('#print-s13-to').value;
+        target.querySelector("#btn-do-print-s13").onclick = async () => {
+            const from = target.querySelector("#print-s13-from").value;
+            const to = target.querySelector("#print-s13-to").value;
 
             showNotification("Generando vista previa...", "info");
-            
-            const { generateS13Report } = await import('./reports-generator.js');
+
+            const { generateS13Report } = await import("./reports-generator.js");
             const result = await generateS13Report(history, from, to, { download: false });
 
-            if (!result || !result.url) return;
+            if (!result?.url) return;
 
-            const resultsArea = target.querySelector('#s13-preview-results');
-            const tableContainer = target.querySelector('#s13-preview-table-container');
+            const resultsArea = target.querySelector("#s13-preview-results");
+            const tableContainer = target.querySelector("#s13-preview-table-container");
 
-            resultsArea.classList.remove('hidden');
+            resultsArea.classList.remove("hidden");
             tableContainer.innerHTML = `
                 <iframe src="${result.url}#toolbar=0&navpanes=0" class="w-full h-[700px] border-none" id="s13-iframe"></iframe>
             `;
 
-            target.querySelector('#btn-export-s13-pdf').onclick = () => {
-                const a = document.createElement('a');
+            target.querySelector("#btn-export-s13-pdf").onclick = () => {
+                const a = document.createElement("a");
                 a.href = result.url;
                 a.download = `Reporte_S13_${from}_${to}.pdf`;
                 a.click();
             };
 
-            target.querySelector('#btn-print-s13-native').onclick = () => {
-                const iframe = target.querySelector('#s13-iframe');
+            target.querySelector("#btn-print-s13-native").onclick = () => {
+                const iframe = target.querySelector("#s13-iframe");
                 if (iframe) {
                     iframe.contentWindow.print();
                 } else {
-                    window.open(result.url, '_blank').print();
+                    window.open(result.url, "_blank").print();
                 }
             };
 
-            resultsArea.scrollIntoView({ behavior: 'smooth' });
+            resultsArea.scrollIntoView({ behavior: "smooth" });
         };
     };
 
@@ -225,37 +246,51 @@ export const renderReportsTab = async (container, config, appVersion) => {
                     </div>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    ${renderLayoutBtnPrint(1, 'fas fa-stop', '1 por hoja')}
-                    ${renderLayoutBtnPrint(4, 'fas fa-th-large', '4 por hoja')}
+                    ${renderLayoutBtnPrint(1, "fas fa-stop", "1 por hoja")}
+                    ${renderLayoutBtnPrint(4, "fas fa-th-large", "4 por hoja")}
                 </div>
                 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4" id="print-s12-grid-sel">
-                    ${terrs.map(t => `
+                    ${terrs
+                        .map(
+                            (t) => `
                         <label class="modern-card !p-3 border-slate-100 dark:border-white/5 shadow-sm cursor-pointer select-none transition-all hover:bg-slate-50 dark:hover:bg-white/5 flex items-center gap-4 group">
                             <input type="checkbox" value="${t.id}" class="peer sr-only">
                             <div class="relative w-10 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-indigo-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all shrink-0"></div>
                             <span class="text-[13px] font-black text-slate-700 dark:text-white uppercase transition-all group-hover:text-indigo-500">T-${t.numero}</span>
                         </label>
-                    `).join('')}
+                    `,
+                        )
+                        .join("")}
                 </div>
             </div>
         `;
 
         const updateCount = () => {
             const count = target.querySelectorAll('input[type="checkbox"]:checked').length;
-            target.querySelector('#sel-count-print').innerText = `${count} / ${terrs.length}`;
+            target.querySelector("#sel-count-print").innerText = `${count} / ${terrs.length}`;
         };
 
-        target.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.onchange = updateCount; });
-        target.querySelector('#btn-print-sel-all').onclick = () => { target.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true); updateCount(); };
-        target.querySelector('#btn-print-sel-none').onclick = () => { target.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false); updateCount(); };
+        target.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+            cb.onchange = updateCount;
+        });
+        target.querySelector("#btn-print-sel-all").onclick = () => {
+            target.querySelectorAll('input[type="checkbox"]').forEach((cb) => (cb.checked = true));
+            updateCount();
+        };
+        target.querySelector("#btn-print-sel-none").onclick = () => {
+            target.querySelectorAll('input[type="checkbox"]').forEach((cb) => (cb.checked = false));
+            updateCount();
+        };
 
-        target.querySelectorAll('.btn-print-layout-action').forEach(btn => {
+        target.querySelectorAll(".btn-print-layout-action").forEach((btn) => {
             btn.onclick = async () => {
-                const layout = parseInt(btn.dataset.layout);
-                const selectedIds = Array.from(target.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+                const layout = parseInt(btn.dataset.layout, 10);
+                const selectedIds = Array.from(target.querySelectorAll('input[type="checkbox"]:checked')).map(
+                    (cb) => cb.value,
+                );
                 if (selectedIds.length === 0) return showNotification("Seleccione territorios", "warning");
 
-                const selectedTerrs = terrs.filter(t => selectedIds.includes(t.id));
+                const selectedTerrs = terrs.filter((t) => selectedIds.includes(t.id));
                 showS12Preview(selectedTerrs, layout);
             };
         });
@@ -263,10 +298,11 @@ export const renderReportsTab = async (container, config, appVersion) => {
 
     const showS12Preview = (selected, layout) => {
         // Determine grid columns for the preview based on layout
-        const previewCols = layout === 1 ? 'grid-cols-1 max-w-lg mx-auto' : 'grid-cols-2';
-        const cardsLabel = layout === 1 ? '1 tarjeta por hoja' : '4 tarjetas por hoja';
+        const previewCols = layout === 1 ? "grid-cols-1 max-w-lg mx-auto" : "grid-cols-2";
+        const cardsLabel = layout === 1 ? "1 tarjeta por hoja" : "4 tarjetas por hoja";
 
-        showModal(`
+        showModal(
+            `
             <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden">
                 <header class="shrink-0 bg-indigo-600 p-6 text-white flex items-center justify-between">
                     <div>
@@ -284,33 +320,36 @@ export const renderReportsTab = async (container, config, appVersion) => {
                         <p class="text-[9px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.3em]">Así se verán sus tarjetas al imprimir</p>
                     </div>
                     <div class="grid ${previewCols} gap-4" id="s12-preview-cards">
-                        ${selected.map(t => {
-                            const mapImg = t.imagen || t.imagen_url || t.mapa_url || '';
-                            return `
+                        ${selected
+                            .map((t) => {
+                                const mapImg = t.imagen || t.imagen_url || t.mapa_url || "";
+                                return `
                             <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col">
                                 <!-- Card header -->
                                 <div class="px-4 py-3 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-slate-50 dark:bg-slate-800">
                                     <div class="flex items-center gap-3">
                                         <div class="w-8 h-8 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-600 font-black text-sm">${t.numero}</div>
                                         <div>
-                                            <p class="text-[10px] font-black text-slate-800 uppercase tracking-tight leading-none">${t.localidad || t.nombre || '—'}</p>
-                                            <p class="text-[8px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest mt-0.5">${t.manzanas ? t.manzanas.split(',').filter(Boolean).length + ' manzanas' : 'S-12'}</p>
+                                            <p class="text-[10px] font-black text-slate-800 uppercase tracking-tight leading-none">${t.localidad || t.nombre || "—"}</p>
+                                            <p class="text-[8px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest mt-0.5">${t.manzanas ? `${t.manzanas.split(",").filter(Boolean).length} manzanas` : "S-12"}</p>
                                         </div>
                                     </div>
-                                    <span class="text-[8px] font-black px-2 py-0.5 rounded-full ${t.estado === 'Asignado' ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600'} uppercase">${t.estado || 'Disponible'}</span>
+                                    <span class="text-[8px] font-black px-2 py-0.5 rounded-full ${t.estado === "Asignado" ? "bg-amber-100 text-amber-600" : "bg-emerald-100 text-emerald-600"} uppercase">${t.estado || "Disponible"}</span>
                                 </div>
                                 <!-- Map area -->
-                                <div class="relative flex-1 min-w-0 bg-white dark:bg-slate-900 flex items-center justify-center" style="min-height:140px; max-height:${layout === 1 ? '260px' : '160px'}">
-                                    ${mapImg
-                                        ? `<img src="${mapImg}" alt="Mapa T-${t.numero}" class="w-full h-full object-contain p-2" style="background:#fff;">`
-                                        : `<div class="flex flex-col items-center gap-2 opacity-20 py-6">
+                                <div class="relative flex-1 min-w-0 bg-white dark:bg-slate-900 flex items-center justify-center" style="min-height:140px; max-height:${layout === 1 ? "260px" : "160px"}">
+                                    ${
+                                        mapImg
+                                            ? `<img src="${mapImg}" alt="Mapa T-${t.numero}" class="w-full h-full object-contain p-2" style="background:#fff;">`
+                                            : `<div class="flex flex-col items-center gap-2 opacity-20 py-6">
                                                <i class="fas fa-map text-3xl text-slate-600 dark:text-slate-400"></i>
                                                <p class="text-[8px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">Sin mapa</p>
                                            </div>`
                                     }
                                 </div>
                             </div>`;
-                        }).join('')}
+                            })
+                            .join("")}
                     </div>
                 </div>
 
@@ -327,19 +366,20 @@ export const renderReportsTab = async (container, config, appVersion) => {
                     </button>
                 </footer>
             </div>
-        `, (modal) => {
-            // Descargar PDF
-            modal.querySelector('#btn-final-s12').onclick = async () => {
-                const { generateS12Report } = await import('./reports-generator.js');
-                generateS12Report(selected, layout);
-                modal.closest('.fixed').classList.add('hidden');
-            };
+        `,
+            (modal) => {
+                // Descargar PDF
+                modal.querySelector("#btn-final-s12").onclick = async () => {
+                    const { generateS12Report } = await import("./reports-generator.js");
+                    generateS12Report(selected, layout);
+                    modal.closest(".fixed").classList.add("hidden");
+                };
 
-            // Imprimir directamente (print nativo del browser)
-            modal.querySelector('#btn-print-s12-direct').onclick = () => {
-                const printCols = layout === 1 ? '1' : '2';
-                const printWin = window.open('', '_blank', 'width=900,height=700');
-                printWin.document.write(`
+                // Imprimir directamente (print nativo del browser)
+                modal.querySelector("#btn-print-s12-direct").onclick = () => {
+                    const printCols = layout === 1 ? "1" : "2";
+                    const printWin = window.open("", "_blank", "width=900,height=700");
+                    printWin.document.write(`
                     <html><head>
                     <title>Tarjetas S-12</title>
                     <style>
@@ -354,36 +394,39 @@ export const renderReportsTab = async (container, config, appVersion) => {
                         .card-badge { font-size: 7px; font-weight: 900; padding: 2px 6px; border-radius: 20px; text-transform: uppercase; }
                         .badge-assigned { background: #fef3c7; color: #d97706; }
                         .badge-available { background: #d1fae5; color: #059669; }
-                        .card-map { display: flex; align-items: center; justify-content: center; min-height: ${layout === 1 ? '220px' : '130px'}; background: #fff; padding: 8px; }
+                        .card-map { display: flex; align-items: center; justify-content: center; min-height: ${layout === 1 ? "220px" : "130px"}; background: #fff; padding: 8px; }
                         .card-map img { max-width: 100%; max-height: 100%; object-fit: contain; }
                         .no-map { opacity: 0.15; font-size: 10px; font-weight: 900; text-align: center; padding: 20px; }
                     </style>
                     </head><body>
                     <div class="grid">
-                    ${selected.map(t => {
-                        const mapImg = t.imagen || t.imagen_url || t.mapa_url || '';
-                        const isAssigned = t.estado === 'Asignado';
-                        return `<div class="card">
+                    ${selected
+                        .map((t) => {
+                            const mapImg = t.imagen || t.imagen_url || t.mapa_url || "";
+                            const isAssigned = t.estado === "Asignado";
+                            return `<div class="card">
                             <div class="card-header">
                                 <div style="display:flex;gap:8px;align-items:center">
                                     <div class="card-num">${t.numero}</div>
-                                    <div><div class="card-title">${t.localidad || t.nombre || '—'}</div><div class="card-sub">${t.manzanas ? t.manzanas.split(',').filter(Boolean).length + ' manzanas' : 'S-12'}</div></div>
+                                    <div><div class="card-title">${t.localidad || t.nombre || "—"}</div><div class="card-sub">${t.manzanas ? `${t.manzanas.split(",").filter(Boolean).length} manzanas` : "S-12"}</div></div>
                                 </div>
-                                <span class="card-badge ${isAssigned ? 'badge-assigned' : 'badge-available'}">${t.estado || 'Disponible'}</span>
+                                <span class="card-badge ${isAssigned ? "badge-assigned" : "badge-available"}">${t.estado || "Disponible"}</span>
                             </div>
-                            <div class="card-map">${mapImg ? '<img src="' + mapImg + '" alt="Mapa">' : '<div class="no-map">Sin imagen de mapa</div>'}</div>
+                            <div class="card-map">${mapImg ? `<img src="${mapImg}" alt="Mapa">` : '<div class="no-map">Sin imagen de mapa</div>'}</div>
                         </div>`;
-                    }).join('')}
+                        })
+                        .join("")}
                     </div>
                     </body></html>`);
-                printWin.document.close();
-                printWin.focus();
-                setTimeout(() => { printWin.print(); }, 600);
-            };
-        });
+                    printWin.document.close();
+                    printWin.focus();
+                    setTimeout(() => {
+                        printWin.print();
+                    }, 600);
+                };
+            },
+        );
     };
-
-
 
     const renderLayoutBtnPrint = (num, icon, label) => `
         <button class="btn-print-layout-action modern-card !p-6 flex items-center justify-center gap-4 bg-white dark:bg-white/5 hover:bg-slate-900 hover:text-white transition-all border border-slate-100 dark:border-white/10 group shadow-lg active:scale-95 flex-col" data-layout="${num}">
@@ -398,7 +441,7 @@ export const renderReportsTab = async (container, config, appVersion) => {
     `;
 
     const renderTelefoniaSection = async () => {
-        const target = container.querySelector('#main-report-content');
+        const target = container.querySelector("#main-report-content");
         renderSkeleton(target);
 
         try {
@@ -410,7 +453,7 @@ export const renderReportsTab = async (container, config, appVersion) => {
                 const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
                 date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay() || 7));
                 const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
-                return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+                return Math.ceil(((date - yearStart) / 86400000 + 1) / 7);
             };
 
             const currentWeek = getWeekNumber(today);
@@ -430,18 +473,36 @@ export const renderReportsTab = async (container, config, appVersion) => {
                     </div>
 
                     <div class="space-y-12 pb-20">
-                        ${summaries.length === 0 ? `
+                        ${
+                            summaries.length === 0
+                                ? `
                             <div class="py-20 text-center opacity-30">
                                 <i class="fas fa-folder-open text-4xl mb-4"></i>
                                 <p class="text-[10px] font-black uppercase tracking-widest">No hay reportes registrados</p>
                             </div>
-                        ` : (() => {
-                    const thisWeek = summaries.filter(s => getWeekNumber(s.timestamp?.toDate ? s.timestamp.toDate() : new Date(s.fecha)) === currentWeek);
-                    const older = summaries.filter(s => getWeekNumber(s.timestamp?.toDate ? s.timestamp.toDate() : new Date(s.fecha)) !== currentWeek);
+                        `
+                                : (
+                                      () => {
+                                          const thisWeek = summaries.filter(
+                                              (s) =>
+                                                  getWeekNumber(
+                                                      s.timestamp?.toDate ? s.timestamp.toDate() : new Date(s.fecha),
+                                                  ) === currentWeek,
+                                          );
+                                          const older = summaries.filter(
+                                              (s) =>
+                                                  getWeekNumber(
+                                                      s.timestamp?.toDate ? s.timestamp.toDate() : new Date(s.fecha),
+                                                  ) !== currentWeek,
+                                          );
 
-                    const renderList = (list) => list.map(s => {
-                        const date = s.timestamp?.toDate ? s.timestamp.toDate() : new Date(s.fecha || Date.now());
-                        return `
+                                          const renderList = (list) =>
+                                              list
+                                                  .map((s) => {
+                                                      const date = s.timestamp?.toDate
+                                                          ? s.timestamp.toDate()
+                                                          : new Date(s.fecha || Date.now());
+                                                      return `
                                     <div class="modern-card p-6 bg-white dark:bg-white/[0.03] border-slate-100 dark:border-white/5 hover:border-primary/30 transition-all group shadow-sm">
                                         <div class="flex flex-col md:flex-row justify-between gap-6">
                                             <div class="flex items-start gap-4">
@@ -449,10 +510,10 @@ export const renderReportsTab = async (container, config, appVersion) => {
                                                     <i class="fas fa-user-circle text-xl"></i>
                                                 </div>
                                                 <div>
-                                                    <h4 class="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">${s.conductor_id || 'Conductor Desconocido'}</h4>
+                                                    <h4 class="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">${s.conductor_id || "Conductor Desconocido"}</h4>
                                                     <p class="text-[9px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-widest mt-1">
-                                                        ${date.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} • 
-                                                        ${date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                                                        ${date.toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long", year: "numeric" })} • 
+                                                        ${date.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
                                                     </p>
                                                 </div>
                                             </div>
@@ -469,13 +530,16 @@ export const renderReportsTab = async (container, config, appVersion) => {
                                                 </button>
                                             </div>
                                         </div>
-                                        ${s.notas ? `<div class="mt-4 p-4 bg-slate-100/50 dark:bg-black/20 rounded-xl border border-dashed border-slate-200 dark:border-white/5"><p class="text-[10px] text-slate-500 dark:text-slate-400 italic">"${s.notas}"</p></div>` : ''}
+                                        ${s.notas ? `<div class="mt-4 p-4 bg-slate-100/50 dark:bg-black/20 rounded-xl border border-dashed border-slate-200 dark:border-white/5"><p class="text-[10px] text-slate-500 dark:text-slate-400 italic">"${s.notas}"</p></div>` : ""}
                                     </div>
                                 `;
-                    }).join('');
+                                                  })
+                                                  .join("");
 
-                    return `
-                                ${thisWeek.length > 0 ? `
+                                          return `
+                                ${
+                                    thisWeek.length > 0
+                                        ? `
                                     <div class="space-y-4">
                                         <div class="flex items-center gap-4 px-4 font-black">
                                             <span class="text-[10px] text-primary uppercase tracking-[0.3em]">Esta Semana</span>
@@ -483,8 +547,12 @@ export const renderReportsTab = async (container, config, appVersion) => {
                                         </div>
                                         ${renderList(thisWeek)}
                                     </div>
-                                ` : ''}
-                                ${older.length > 0 ? `
+                                `
+                                        : ""
+                                }
+                                ${
+                                    older.length > 0
+                                        ? `
                                     <div class="space-y-4">
                                         <div class="flex items-center gap-4 px-4 font-black">
                                             <span class="text-[10px] text-slate-600 dark:text-slate-400 uppercase tracking-[0.3em]">Anteriores</span>
@@ -492,27 +560,35 @@ export const renderReportsTab = async (container, config, appVersion) => {
                                         </div>
                                         ${renderList(older)}
                                     </div>
-                                ` : ''}
+                                `
+                                        : ""
+                                }
                             `;
-                })()}
+                                      }
+                                  )()
+                        }
                     </div>
                 </div>
             `;
 
             window.viewSessionDetail = (sid) => {
-                const s = summaries.find(x => x.id === sid);
+                const s = summaries.find((x) => x.id === sid);
                 if (!s) return;
 
                 const statsHTML = Object.entries(s.stats || {})
                     .filter(([key, val]) => val > 0 && key)
-                    .map(([key, val]) => `
+                    .map(
+                        ([key, val]) => `
                         <div class="p-5 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/5 flex flex-col items-center text-center">
                             <p class="text-[8px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-1">${key}</p>
                             <p class="text-2xl font-black text-slate-800 dark:text-white tabular-nums">${val}</p>
                         </div>
-                    `).join('');
+                    `,
+                    )
+                    .join("");
 
-                window.showModal(`
+                window.showModal(
+                    `
                     <div class="p-8 space-y-8 bg-white dark:bg-[#0b0e14] rounded-[2.5rem] max-w-lg w-full">
                         <div class="flex items-center gap-6">
                             <div class="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-3xl text-primary shadow-inner">
@@ -528,24 +604,32 @@ export const renderReportsTab = async (container, config, appVersion) => {
                             ${statsHTML}
                         </div>
 
-                        ${s.notas ? `
+                        ${
+                            s.notas
+                                ? `
                             <div class="space-y-3">
                                 <p class="text-[9px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1">Notas del Conductor</p>
                                 <div class="p-6 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10">
                                     <p class="text-xs text-slate-600 dark:text-gray-300 leading-relaxed font-medium">"${s.notas}"</p>
                                 </div>
                             </div>
-                        ` : ''}
+                        `
+                                : ""
+                        }
 
                         <button onclick="window.closeModal()" class="w-full py-5 bg-slate-900 dark:bg-white/10 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl transition-all active:scale-95">
                             Entendido
                         </button>
                     </div>
-                `, null, 'max-w-xl');
+                `,
+                    null,
+                    "max-w-xl",
+                );
             };
 
             window.deleteTelefoniaReport = (sid) => {
-                showModal(`
+                showModal(
+                    `
                     <div class="p-8 text-center space-y-6">
                         <div class="w-20 h-20 bg-rose-500/10 text-rose-500 rounded-3xl flex items-center justify-center text-3xl mx-auto shadow-xl">
                             <i class="fas fa-trash-alt"></i>
@@ -557,21 +641,22 @@ export const renderReportsTab = async (container, config, appVersion) => {
                             <button id="confirm-del-tel" class="flex-[1.5] py-4 bg-rose-500 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] active:scale-95 transition-all shadow-xl shadow-rose-500/20">Eliminar Permanente</button>
                         </div>
                     </div>
-                `, (modal) => {
-                    modal.querySelector('#cancel-del-tel').onclick = () => modal.classList.add('hidden');
-                    modal.querySelector('#confirm-del-tel').onclick = async () => {
-                        modal.classList.add('hidden');
-                        try {
-                            await deleteSessionSummary(sid);
-                            showNotification("Reporte eliminado", "success");
-                            renderTelefoniaSection(); // Refrescar vista
-                        } catch (e) {
-                            showNotification("Error: " + e.message, "error");
-                        }
-                    };
-                });
+                `,
+                    (modal) => {
+                        modal.querySelector("#cancel-del-tel").onclick = () => modal.classList.add("hidden");
+                        modal.querySelector("#confirm-del-tel").onclick = async () => {
+                            modal.classList.add("hidden");
+                            try {
+                                await deleteSessionSummary(sid);
+                                showNotification("Reporte eliminado", "success");
+                                renderTelefoniaSection(); // Refrescar vista
+                            } catch (e) {
+                                showNotification(`Error: ${e.message}`, "error");
+                            }
+                        };
+                    },
+                );
             };
-
         } catch (e) {
             console.error(e);
             target.innerHTML = `<div class="py-20 text-center text-rose-500 font-bold">Error al cargar reportes</div>`;
@@ -580,4 +665,3 @@ export const renderReportsTab = async (container, config, appVersion) => {
 
     renderMain();
 };
-

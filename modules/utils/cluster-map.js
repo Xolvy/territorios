@@ -12,11 +12,11 @@
  * - Clusters are rendered as single Canvas overlay (not individual DOM markers)
  *   keeping the DOM clean regardless of point count.
  */
-import Supercluster from 'supercluster';
+import Supercluster from "supercluster";
 
 // ─── CONSTANTS ─────────────────────────────────────────────────────────────────
 const CLUSTER_RADIUS = 80; // px — merge radius
-const MAX_ZOOM = 17;       // Do not cluster beyond this zoom level
+const MAX_ZOOM = 17; // Do not cluster beyond this zoom level
 
 // ─── CANVAS OVERLAY RENDERER ──────────────────────────────────────────────────
 class ClusterOverlay extends google.maps.OverlayView {
@@ -29,18 +29,18 @@ class ClusterOverlay extends google.maps.OverlayView {
     }
 
     onAdd() {
-        this._canvas = document.createElement('canvas');
-        this._canvas.style.position = 'absolute';
-        this._canvas.style.top = '0';
-        this._canvas.style.left = '0';
-        this._canvas.style.pointerEvents = 'none';
+        this._canvas = document.createElement("canvas");
+        this._canvas.style.position = "absolute";
+        this._canvas.style.top = "0";
+        this._canvas.style.left = "0";
+        this._canvas.style.pointerEvents = "none";
         this.getPanes().overlayLayer.appendChild(this._canvas);
 
         // Separate click pane canvas for interactivity
-        this._hitCanvas = document.createElement('canvas');
-        this._hitCanvas.style.cssText = 'position:absolute;top:0;left:0;opacity:0;';
+        this._hitCanvas = document.createElement("canvas");
+        this._hitCanvas.style.cssText = "position:absolute;top:0;left:0;opacity:0;";
         this.getPanes().overlayMouseTarget.appendChild(this._hitCanvas);
-        this._hitCanvas.addEventListener('click', this._handleClick.bind(this));
+        this._hitCanvas.addEventListener("click", this._handleClick.bind(this));
     }
 
     _handleClick(e) {
@@ -76,19 +76,19 @@ class ClusterOverlay extends google.maps.OverlayView {
         for (const c of [this._canvas, this._hitCanvas]) {
             c.width = w * window.devicePixelRatio;
             c.height = h * window.devicePixelRatio;
-            c.style.width = w + 'px';
-            c.style.height = h + 'px';
-            c.style.left = offsetX + 'px';
-            c.style.top = offsetY + 'px';
+            c.style.width = `${w}px`;
+            c.style.height = `${h}px`;
+            c.style.left = `${offsetX}px`;
+            c.style.top = `${offsetY}px`;
         }
 
-        const ctx = this._canvas.getContext('2d');
+        const ctx = this._canvas.getContext("2d");
         const dr = window.devicePixelRatio;
         ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
         ctx.scale(dr, dr);
 
         this._hitRegions = [];
-        const isDark = document.documentElement.classList.contains('dark');
+        const isDark = document.documentElement.classList.contains("dark");
 
         for (const cluster of this._clusters) {
             const [lng, lat] = cluster.geometry.coordinates;
@@ -102,41 +102,41 @@ class ClusterOverlay extends google.maps.OverlayView {
                 // ── Cluster bubble ──
                 const r = Math.min(22 + Math.sqrt(count) * 1.8, 48);
                 const gradient = ctx.createRadialGradient(x, y, 0, x, y, r);
-                gradient.addColorStop(0, '#6366f1');
-                gradient.addColorStop(1, '#4f46e5');
+                gradient.addColorStop(0, "#6366f1");
+                gradient.addColorStop(1, "#4f46e5");
 
                 // Outer ring
                 ctx.beginPath();
                 ctx.arc(x, y, r + 6, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(99,102,241,0.2)';
+                ctx.fillStyle = "rgba(99,102,241,0.2)";
                 ctx.fill();
 
                 // Main bubble
                 ctx.beginPath();
                 ctx.arc(x, y, r, 0, Math.PI * 2);
                 ctx.fillStyle = gradient;
-                ctx.shadowColor = 'rgba(99,102,241,0.6)';
+                ctx.shadowColor = "rgba(99,102,241,0.6)";
                 ctx.shadowBlur = 14;
                 ctx.fill();
                 ctx.shadowBlur = 0;
 
                 // Border
-                ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+                ctx.strokeStyle = "rgba(255,255,255,0.8)";
                 ctx.lineWidth = 2.5;
                 ctx.stroke();
 
                 // Label
-                ctx.fillStyle = '#ffffff';
+                ctx.fillStyle = "#ffffff";
                 ctx.font = `900 ${count > 99 ? 11 : 13}px system-ui, sans-serif`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(count > 999 ? '999+' : String(count), x, y);
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText(count > 999 ? "999+" : String(count), x, y);
 
                 this._hitRegions.push({ x, y, r: r + 6, cluster });
             } else {
                 // ── Single marker pin ──
-                const status = cluster.properties.status || '';
-                const pinColor = status === 'Asignado' ? '#10b981' : status === 'Libre' ? '#6366f1' : '#64748b';
+                const status = cluster.properties.status || "";
+                const pinColor = status === "Asignado" ? "#10b981" : status === "Libre" ? "#6366f1" : "#64748b";
 
                 ctx.beginPath();
                 ctx.arc(x, y, 8, 0, Math.PI * 2);
@@ -145,7 +145,7 @@ class ClusterOverlay extends google.maps.OverlayView {
                 ctx.shadowBlur = 10;
                 ctx.fill();
                 ctx.shadowBlur = 0;
-                ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.8)' : '#ffffff';
+                ctx.strokeStyle = isDark ? "rgba(255,255,255,0.8)" : "#ffffff";
                 ctx.lineWidth = 2;
                 ctx.stroke();
 
@@ -181,9 +181,9 @@ export const initClusterMap = (map, points, options = {}) => {
     const { onPointClick, onClusterClick } = options;
 
     // 1. Build GeoJSON features from raw data
-    const features = points.map(p => ({
-        type: 'Feature',
-        geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
+    const features = points.map((p) => ({
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [p.lng, p.lat] },
         properties: { id: p.id, status: p.status, numero: p.numero, label: p.label || p.numero, ...p },
     }));
 
@@ -202,20 +202,14 @@ export const initClusterMap = (map, points, options = {}) => {
         const ne = bounds.getNorthEast();
         const sw = bounds.getSouthWest();
         const zoom = Math.round(map.getZoom());
-        return index.getClusters(
-            [sw.lng(), sw.lat(), ne.lng(), ne.lat()],
-            zoom
-        );
+        return index.getClusters([sw.lng(), sw.lat(), ne.lng(), ne.lat()], zoom);
     };
 
     // 4. Create overlay
     const handleClusterClick = (cluster) => {
         const isCluster = cluster.properties.cluster;
         if (isCluster) {
-            const expansionZoom = Math.min(
-                index.getClusterExpansionZoom(cluster.id),
-                MAX_ZOOM + 2
-            );
+            const expansionZoom = Math.min(index.getClusterExpansionZoom(cluster.id), MAX_ZOOM + 2);
             const [lng, lat] = cluster.geometry.coordinates;
             map.setCenter({ lat, lng });
             map.setZoom(expansionZoom);
@@ -236,20 +230,17 @@ export const initClusterMap = (map, points, options = {}) => {
         });
     };
 
-    const listeners = [
-        map.addListener('bounds_changed', refresh),
-        map.addListener('zoom_changed', refresh),
-    ];
+    const listeners = [map.addListener("bounds_changed", refresh), map.addListener("zoom_changed", refresh)];
 
     // Initial draw
-    google.maps.event.addListenerOnce(map, 'idle', refresh);
+    google.maps.event.addListenerOnce(map, "idle", refresh);
 
     return {
         /** Re-index with new data points */
         update(newPoints) {
-            const newFeatures = newPoints.map(p => ({
-                type: 'Feature',
-                geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
+            const newFeatures = newPoints.map((p) => ({
+                type: "Feature",
+                geometry: { type: "Point", coordinates: [p.lng, p.lat] },
                 properties: { id: p.id, status: p.status, numero: p.numero, ...p },
             }));
             index.load(newFeatures);
@@ -257,8 +248,8 @@ export const initClusterMap = (map, points, options = {}) => {
         },
         /** Cleanup listeners and overlay */
         destroy() {
-            listeners.forEach(l => google.maps.event.removeListener(l));
+            listeners.forEach((l) => google.maps.event.removeListener(l));
             overlay.setMap(null);
-        }
+        },
     };
 };

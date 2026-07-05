@@ -13,25 +13,26 @@
  * 6. El SW notifica a todas las pestañas abiertas vía postMessage
  */
 
-const DB_NAME = 'xolvy-sync-queue';
+const DB_NAME = "xolvy-sync-queue";
 const DB_VERSION = 1;
-const STORE_NAME = 'pending-requests';
-const SYNC_TAG = 'xolvy-session-sync';
+const STORE_NAME = "pending-requests";
+const SYNC_TAG = "xolvy-session-sync";
 
 // ─── DB HELPERS ───────────────────────────────────────────────────────────────
-const openDB = () => new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, DB_VERSION);
-    req.onupgradeneeded = (e) => {
-        e.target.result.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
-    };
-    req.onsuccess = (e) => resolve(e.target.result);
-    req.onerror = (e) => reject(e.target.error);
-});
+const openDB = () =>
+    new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, DB_VERSION);
+        req.onupgradeneeded = (e) => {
+            e.target.result.createObjectStore(STORE_NAME, { keyPath: "id", autoIncrement: true });
+        };
+        req.onsuccess = (e) => resolve(e.target.result);
+        req.onerror = (e) => reject(e.target.error);
+    });
 
 const enqueueRequest = async (requestData) => {
     const db = await openDB();
     return new Promise((resolve, reject) => {
-        const tx = db.transaction(STORE_NAME, 'readwrite');
+        const tx = db.transaction(STORE_NAME, "readwrite");
         const req = tx.objectStore(STORE_NAME).add({
             ...requestData,
             enqueuedAt: Date.now(),
@@ -58,8 +59,8 @@ export const callOrQueue = async (url, body, token, onSuccess, onQueue) => {
     const requestData = {
         url,
         headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(body),
     };
@@ -68,7 +69,7 @@ export const callOrQueue = async (url, body, token, onSuccess, onQueue) => {
     if (navigator.onLine) {
         try {
             const res = await fetch(url, {
-                method: 'POST',
+                method: "POST",
                 headers: requestData.headers,
                 body: requestData.body,
             });
@@ -78,22 +79,22 @@ export const callOrQueue = async (url, body, token, onSuccess, onQueue) => {
                 return true;
             }
         } catch (e) {
-            console.warn('[BackgroundSync] Direct call failed, queueing...', e);
+            console.warn("[BackgroundSync] Direct call failed, queueing...", e);
         }
     }
 
     // 2. Sin red o fallo de red: encolar
     await enqueueRequest(requestData);
-    console.log('[BackgroundSync] Request enqueued for later sync.');
+    console.log("[BackgroundSync] Request enqueued for later sync.");
 
     // 3. Registrar Background Sync tag
-    if ('serviceWorker' in navigator && 'SyncManager' in window) {
+    if ("serviceWorker" in navigator && "SyncManager" in window) {
         const registration = await navigator.serviceWorker.ready;
         try {
             await registration.sync.register(SYNC_TAG);
             console.log(`[BackgroundSync] Sync tag '${SYNC_TAG}' registered.`);
         } catch (e) {
-            console.warn('[BackgroundSync] SyncManager registration failed:', e);
+            console.warn("[BackgroundSync] SyncManager registration failed:", e);
         }
     }
 
@@ -112,12 +113,12 @@ export const callOrQueue = async (url, body, token, onSuccess, onQueue) => {
  */
 export const onSyncComplete = (callback) => {
     const handler = (event) => {
-        if (event.data?.type === 'BACKGROUND_SYNC_COMPLETE') {
+        if (event.data?.type === "BACKGROUND_SYNC_COMPLETE") {
             callback(event.data.payload);
         }
     };
-    navigator.serviceWorker?.addEventListener('message', handler);
-    return () => navigator.serviceWorker?.removeEventListener('message', handler);
+    navigator.serviceWorker?.addEventListener("message", handler);
+    return () => navigator.serviceWorker?.removeEventListener("message", handler);
 };
 
 // ─── FCM: SUSCRIPCIÓN AL TOPIC 'admins' ──────────────────────────────────────
@@ -137,15 +138,19 @@ export const onSyncComplete = (callback) => {
 export const registerAdminForAlerts = async (fcmToken, adminUid) => {
     if (!fcmToken || !adminUid) return;
     try {
-        const { db } = await import('../../firebase-config.js');
-        const { doc, setDoc } = await import('firebase/firestore');
-        await setDoc(doc(db, 'publicadores', adminUid), {
-            fcm_token: fcmToken,
-            fcm_topic_admins: true,
-            fcm_updated_at: new Date().toISOString(),
-        }, { merge: true });
-        console.log('[FCM] Admin token registrado para alertas críticas.');
+        const { db } = await import("../../firebase-config.js");
+        const { doc, setDoc } = await import("firebase/firestore");
+        await setDoc(
+            doc(db, "publicadores", adminUid),
+            {
+                fcm_token: fcmToken,
+                fcm_topic_admins: true,
+                fcm_updated_at: new Date().toISOString(),
+            },
+            { merge: true },
+        );
+        console.log("[FCM] Admin token registrado para alertas críticas.");
     } catch (e) {
-        console.warn('[FCM] No se pudo registrar token de admin:', e);
+        console.warn("[FCM] No se pudo registrar token de admin:", e);
     }
 };

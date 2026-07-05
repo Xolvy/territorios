@@ -1,24 +1,20 @@
-import {
-    getSystemVersion, setSystemVersion, getConfiguracion
-} from '../data/firestore-services.js';
-import { auth } from '../firebase-config.js';
-import { showNotification } from './utils/helpers.js';
-
-import { moduleRegistry } from './utils/module-registry.js';
-import { XolvyAdaptive } from './utils/adaptive.js';
-import { createAdaptiveLogo } from './utils/AdaptiveLogo.js';
+import { getConfiguracion, getSystemVersion, setSystemVersion } from "../data/firestore-services.js";
+import { auth } from "../firebase-config.js";
+import { XolvyAdaptive } from "./utils/adaptive.js";
+import { showNotification } from "./utils/helpers.js";
+import { moduleRegistry } from "./utils/module-registry.js";
 
 // --- MICRO-MODULE LOADER ---
-const dynamicSubModules = import.meta.glob('./**/*.js');
+const dynamicSubModules = import.meta.glob("./**/*.js");
 
 let currentAdminLivePoolUnsubscribe = null;
 
 export const stopAdminLivePools = () => {
     if (currentAdminLivePoolUnsubscribe) {
-        if (typeof currentAdminLivePoolUnsubscribe === 'function') {
+        if (typeof currentAdminLivePoolUnsubscribe === "function") {
             currentAdminLivePoolUnsubscribe();
         } else if (Array.isArray(currentAdminLivePoolUnsubscribe)) {
-            currentAdminLivePoolUnsubscribe.forEach(unsub => unsub?.());
+            currentAdminLivePoolUnsubscribe.forEach((unsub) => unsub?.());
         }
         currentAdminLivePoolUnsubscribe = null;
     }
@@ -56,66 +52,65 @@ const renderSkeleton = (container) => {
 };
 
 const renderNavItem = (id, icon, label, active) => `
-    <button class="nav-item ${active ? 'active' : ''} flex-1 min-w-0 lg:flex-initial flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-1 lg:gap-4 p-3 lg:p-4 rounded-xl transition-all group border ${active ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-transparent' : 'border-transparent text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium'}" data-tab="${id}">
-        <i class="${icon} stroke-1.5 text-lg transition-transform group-hover:scale-110 shrink-0 ${active ? 'text-emerald-600 dark:text-emerald-400' : ''}"></i>
+    <button class="nav-item ${active ? "active" : ""} flex-1 min-w-0 lg:flex-initial flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-1 lg:gap-4 p-3 lg:p-4 rounded-xl transition-all group border ${active ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-transparent" : "border-transparent text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium"}" data-tab="${id}">
+        <i class="${icon} stroke-1.5 text-lg transition-transform group-hover:scale-110 shrink-0 ${active ? "text-emerald-600 dark:text-emerald-400" : ""}"></i>
         <span class="sidebar-text text-[8px] lg:text-[10px] font-bold uppercase tracking-widest whitespace-nowrap overflow-hidden text-ellipsis max-w-full">${label}</span>
     </button>
 `;
 
-
-
 const loadTab = async (tabName, appVersion, configData = null) => {
-    const contentDiv = document.getElementById('admin-content');
+    const contentDiv = document.getElementById("admin-content");
     stopAdminLivePools(); // Clean up previous listeners
     // Also clean up per-territory timeline live pools (Xolvy Live Pool)
-    if (typeof window._stopAllTimelineLivePools === 'function') {
+    if (typeof window._stopAllTimelineLivePools === "function") {
         window._stopAllTimelineLivePools();
     }
     renderSkeleton(contentDiv);
 
     try {
         // Fallback for direct calls that might miss configData
-        const config = configData || await getConfiguracion();
+        const config = configData || (await getConfiguracion());
 
         switch (tabName) {
-            case 'config': {
-                const mRules = await loadSubModule('rules_view', './admin/rules-view.js');
-                await mRules.renderConfigTab(contentDiv, config, appVersion, (tabId) => loadTab(tabId, appVersion, config));
+            case "config": {
+                const mRules = await loadSubModule("rules_view", "./admin/rules-view.js");
+                await mRules.renderConfigTab(contentDiv, config, appVersion, (tabId) =>
+                    loadTab(tabId, appVersion, config),
+                );
                 break;
             }
-            case 'casa-en-casa': {
-                const mTerrs = await loadSubModule('territories_view', './admin/territories-view.js');
+            case "casa-en-casa": {
+                const mTerrs = await loadSubModule("territories_view", "./admin/territories-view.js");
                 await mTerrs.renderCasaEnCasaTab(contentDiv, config, appVersion);
                 break;
             }
-            case 'predicacion': {
-                const mPublic = await loadSubModule('public_view', './admin/public-view.js');
+            case "predicacion": {
+                const mPublic = await loadSubModule("public_view", "./admin/public-view.js");
                 await mPublic.renderPredicacionTab(contentDiv, config);
                 break;
             }
-            case 'telefonos': {
-                const mPhones = await loadSubModule('phones_view', './admin/phones-view.js');
+            case "telefonos": {
+                const mPhones = await loadSubModule("phones_view", "./admin/phones-view.js");
                 await mPhones.renderTelefonosTab(contentDiv, config);
                 break;
             }
-            case 'reportes': {
-                const mReports = await loadSubModule('reports_view', './admin/reports-view.js');
+            case "reportes": {
+                const mReports = await loadSubModule("reports_view", "./admin/reports-view.js");
                 await mReports.renderReportsTab(contentDiv, config, appVersion);
                 break;
             }
-            case 'recursos': {
-                const mRecs = await loadSubModule('resources_view', './admin/resources-view.js');
+            case "recursos": {
+                const mRecs = await loadSubModule("resources_view", "./admin/resources-view.js");
                 await mRecs.renderRecursosTab(contentDiv, config, appVersion);
                 break;
             }
-            case 'personal': {
-                const mPers = await loadSubModule('personal_view', './admin/personal-view.js');
+            case "personal": {
+                const mPers = await loadSubModule("personal_view", "./admin/personal-view.js");
                 await mPers.renderPersonalTab(contentDiv, config, appVersion);
                 break;
             }
-            case 'dashboard':
             default: {
-                const mAnalytics = await loadSubModule('analytics_view', './analytics-view.js');
+                const mAnalytics = await loadSubModule("analytics_view", "./analytics-view.js");
                 await mAnalytics.renderAnalyticsView(contentDiv, appVersion, config);
                 break;
             }
@@ -137,90 +132,94 @@ const loadTab = async (tabName, appVersion, configData = null) => {
     }
 };
 
-
 const setupNavigation = (appVersion, configData) => {
     // Logout Logic (Deep Session Purge)
-    const logoutBtn = document.getElementById('logout-btn');
+    const logoutBtn = document.getElementById("logout-btn");
     if (logoutBtn) {
         logoutBtn.onclick = null; // Purge any existing
-        logoutBtn.addEventListener('click', async (e) => {
+        logoutBtn.addEventListener("click", async (e) => {
             e.preventDefault();
             console.log("🛡️ [AdminHub] Invocando Cierre de Sesión Blindado...");
-            
+
             // 1. Detener todos los Live Pools activos
-            if (typeof window.stopActiveLivePools === 'function') {
+            if (typeof window.stopActiveLivePools === "function") {
                 window.stopActiveLivePools();
             }
-            if (typeof stopAdminLivePools === 'function') {
+            if (typeof stopAdminLivePools === "function") {
                 stopAdminLivePools();
             }
 
             // 2. Limpieza profunda de LocalStorage
-            localStorage.removeItem('xolvy_session');
-            localStorage.removeItem('phone_session_active');
-            localStorage.removeItem('selected_conductor_name');
+            localStorage.removeItem("xolvy_session");
+            localStorage.removeItem("phone_session_active");
+            localStorage.removeItem("selected_conductor_name");
             localStorage.clear(); // Safe bet for hard reset
 
             // 3. Firebase SignOut
             await auth.signOut();
-            
+
             // 4. Redirección final
-            location.href = '/login';
+            location.href = "/login";
         });
     }
 
-    const tabs = document.querySelectorAll('.nav-item');
-    tabs.forEach(btn => {
+    const tabs = document.querySelectorAll(".nav-item");
+    tabs.forEach((btn) => {
         btn.onclick = (e) => {
             // EXCLUSIÓN MUTUA v2.9
             const currentTab = e.currentTarget.dataset.tab;
-            tabs.forEach(t => {
+            tabs.forEach((t) => {
                 const isActive = t.dataset.tab === currentTab;
-                
+
                 if (isActive) {
                     t.className = `nav-item active flex-1 min-w-0 lg:flex-initial flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-1 lg:gap-4 p-3 lg:p-4 rounded-xl transition-all group border bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-transparent`;
-                    const icon = t.querySelector('i');
-                    if (icon) icon.className = icon.className.replace(/text-slate-500/g, '').replace(/dark:text-slate-400/g, '') + ' text-emerald-600 dark:text-emerald-400';
+                    const icon = t.querySelector("i");
+                    if (icon)
+                        icon.className =
+                            icon.className.replace(/text-slate-500/g, "").replace(/dark:text-slate-400/g, "") +
+                            " text-emerald-600 dark:text-emerald-400";
                 } else {
                     t.className = `nav-item flex-1 min-w-0 lg:flex-initial flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-1 lg:gap-4 p-3 lg:p-4 rounded-xl transition-all group border border-transparent text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 font-medium`;
-                    const icon = t.querySelector('i');
-                    if (icon) icon.className = icon.className.replace(/text-emerald-600/g, '').replace(/dark:text-emerald-400/g, '');
+                    const icon = t.querySelector("i");
+                    if (icon)
+                        icon.className = icon.className
+                            .replace(/text-emerald-600/g, "")
+                            .replace(/dark:text-emerald-400/g, "");
                 }
             });
 
             const target = e.currentTarget;
             const tabId = target.dataset.tab;
             const urlMap = {
-                'dashboard': 'dashboard',
-                'casa-en-casa': 'territorios',
-                'predicacion': 'predicacion',
-                'telefonos': 'telefonos',
-                'reportes': 'reportes',
-                'recursos': 'recursos',
-                'personal': 'publicadores',
-                'config': 'config'
+                dashboard: "dashboard",
+                "casa-en-casa": "territorios",
+                predicacion: "predicacion",
+                telefonos: "telefonos",
+                reportes: "reportes",
+                recursos: "recursos",
+                personal: "publicadores",
+                config: "config",
             };
 
-            window.history.pushState({}, '', `/administrador/${urlMap[tabId] || 'dashboard'}`);
+            window.history.pushState({}, "", `/administrador/${urlMap[tabId] || "dashboard"}`);
             loadTab(tabId, appVersion, configData);
             XolvyAdaptive.refresh();
         };
     });
 };
 
-
-export const renderAdminDashboard = async (container, appVersion, initialTab = 'dashboard') => {
+export const renderAdminDashboard = async (container, appVersion, initialTab = "dashboard") => {
     try {
         window.isAdminMode = true;
 
         // --- GLOBAL ADMIN HELPERS ---
         window.editHistoryRecord = async (id) => {
-            const { editHistoryRecord } = await import('./admin/history-view.js');
+            const { editHistoryRecord } = await import("./admin/history-view.js");
             await editHistoryRecord(id);
         };
 
         window.deleteHistoryRecordUI = async (id, cond, num) => {
-            const { deleteHistoryRecordUI } = await import('./admin/history-view.js');
+            const { deleteHistoryRecordUI } = await import("./admin/history-view.js");
             await deleteHistoryRecordUI(id, cond, num);
         };
 
@@ -228,24 +227,25 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
         const configData = await getConfiguracion();
 
         window.dispatchModuleSync = () => {
-            const currentTab = document.querySelector('.nav-item.active')?.dataset.tab;
+            const currentTab = document.querySelector(".nav-item.active")?.dataset.tab;
             if (currentTab) loadTab(currentTab, appVersion, configData);
         };
 
         window.refreshAdminView = async () => {
-            const currentTab = document.querySelector('.nav-item.active')?.dataset.tab || initialTab;
+            const currentTab = document.querySelector(".nav-item.active")?.dataset.tab || initialTab;
             await loadTab(currentTab, appVersion, configData);
         };
 
-
         // --- VERSION SYNCHRONIZATION ---
         if (appVersion) {
-            getSystemVersion().then(async (remoteVer) => {
-                if (appVersion !== remoteVer) {
-                    console.log(`[Auto - Update] System Bump: ${remoteVer} -> ${appVersion} `);
-                    await setSystemVersion(appVersion);
-                }
-            }).catch(e => console.warn("Version check skipped", e));
+            getSystemVersion()
+                .then(async (remoteVer) => {
+                    if (appVersion !== remoteVer) {
+                        console.log(`[Auto - Update] System Bump: ${remoteVer} -> ${appVersion} `);
+                        await setSystemVersion(appVersion);
+                    }
+                })
+                .catch((e) => console.warn("Version check skipped", e));
         }
 
         // --- MAIN SHELL RENDER ---
@@ -272,15 +272,15 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
 
                 <nav class="flex-1 flex flex-col h-full min-h-0 overflow-y-auto hide-scrollbar space-y-1.5 pt-4">
                     <div class="space-y-1.5 flex-1">
-                        ${renderNavItem('dashboard', 'fas fa-chart-line', 'Estadísticas', initialTab === 'dashboard')}
-                        ${renderNavItem('casa-en-casa', 'fas fa-map-location-dot', 'Territorios', initialTab === 'casa-en-casa')}
-                        ${renderNavItem('predicacion', 'fas fa-bullhorn', 'P. Pública', initialTab === 'predicacion')}
-                        ${renderNavItem('telefonos', 'fas fa-phone-volume', 'Telefonía', initialTab === 'telefonos')}
-                        ${renderNavItem('reportes', 'fas fa-file-invoice', 'Reportes', initialTab === 'reportes')}
-                        ${renderNavItem('personal', 'fas fa-users', 'Publicadores', initialTab === 'personal')}
-                        ${renderNavItem('recursos', 'fas fa-book-open', 'Recursos', initialTab === 'recursos')}
+                        ${renderNavItem("dashboard", "fas fa-chart-line", "Estadísticas", initialTab === "dashboard")}
+                        ${renderNavItem("casa-en-casa", "fas fa-map-location-dot", "Territorios", initialTab === "casa-en-casa")}
+                        ${renderNavItem("predicacion", "fas fa-bullhorn", "P. Pública", initialTab === "predicacion")}
+                        ${renderNavItem("telefonos", "fas fa-phone-volume", "Telefonía", initialTab === "telefonos")}
+                        ${renderNavItem("reportes", "fas fa-file-invoice", "Reportes", initialTab === "reportes")}
+                        ${renderNavItem("personal", "fas fa-users", "Publicadores", initialTab === "personal")}
+                        ${renderNavItem("recursos", "fas fa-book-open", "Recursos", initialTab === "recursos")}
                         <div class="h-px bg-slate-200/50 dark:bg-emerald-900/30 my-3 mx-2"></div>
-                        ${renderNavItem('config', 'fas fa-sliders', 'Ajustes', initialTab === 'config')}
+                        ${renderNavItem("config", "fas fa-sliders", "Ajustes", initialTab === "config")}
                     </div>
                     
                     <div class="pt-4 border-t border-slate-200/50 dark:border-emerald-900/30 space-y-1.5 mt-auto">
@@ -313,24 +313,18 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = '
 `;
 
         // (Logo removed per FASE 2)
-        
+
         setupNavigation(appVersion, configData);
         loadTab(initialTab, appVersion, configData);
         XolvyAdaptive.refresh();
         window.initMobileMenu();
 
         // Sincronizar tema en la barra lateral recién montada
-        if (typeof window.updateDOMThemeToggles === 'function') {
-            window.updateDOMThemeToggles(localStorage.getItem('theme') || 'auto');
+        if (typeof window.updateDOMThemeToggles === "function") {
+            window.updateDOMThemeToggles(localStorage.getItem("theme") || "auto");
         }
-
     } catch (e) {
         console.error("Admin Boot Error:", e);
-        showNotification("Error: " + e.message, "error");
+        showNotification(`Error: ${e.message}`, "error");
     }
 };
-
-
-
-
-

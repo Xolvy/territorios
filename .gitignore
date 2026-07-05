@@ -43,3 +43,9 @@ build/
 
 # Secrets
 serviceAccountKey.json
+
+# Scratch & temporary workspace folders
+scratch/
+verification/
+*.mp4
+*.ogg

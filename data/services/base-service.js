@@ -11,7 +11,7 @@
  *  - fetchCached()          → Helper: devuelve caché o ejecuta fetchFn
  *  - startLivePool()        → Suscripción onSnapshot con callback reactivo
  */
-import { db } from '../../firebase-config.js';
+import { db } from "../../firebase-config.js";
 
 // ═══════════════════════════════════════════════════════════
 // CACHÉ EN MEMORIA (TTL: 2 min por defecto)
@@ -23,14 +23,19 @@ export const ServiceCache = {
     get(key) {
         const item = this.data.get(key);
         const ttl = item?.customTtl || this.defaultTtl;
-        if (item && (Date.now() - item.time < ttl)) return item.value;
+        if (item && Date.now() - item.time < ttl) return item.value;
         return null;
     },
-    set(key, value, customTtl = null) { 
-        this.data.set(key, { value, time: Date.now(), customTtl }); 
+    set(key, value, customTtl = null) {
+        this.data.set(key, { value, time: Date.now(), customTtl });
     },
-    clear(key = null) { if (key) this.data.delete(key); else this.data.clear(); },
-    clearAll() { this.data.clear(); }
+    clear(key = null) {
+        if (key) this.data.delete(key);
+        else this.data.clear();
+    },
+    clearAll() {
+        this.data.clear();
+    },
 };
 
 export const clearServiceCache = () => ServiceCache.clearAll();
@@ -38,7 +43,7 @@ export const clearServiceCache = () => ServiceCache.clearAll();
 export const fetchCached = async (key, fetchFn, customTtl = null) => {
     const cached = ServiceCache.get(key);
     if (cached) return cached;
-    
+
     try {
         const result = await fetchFn();
         // Restaurar: cachear siempre el resultado, incluso si es vacío
@@ -50,42 +55,44 @@ export const fetchCached = async (key, fetchFn, customTtl = null) => {
     }
 };
 
-
 // ═══════════════════════════════════════════════════════════
 // LIVE POOL ENGINE (Xolvy Real-time Sync)
 // onSnapshot reactivo: devuelve la función de cancelación (unsubscribe)
 // ═══════════════════════════════════════════════════════════
-import { collection, query, onSnapshot } from "firebase/firestore";
+import { collection, onSnapshot, query } from "firebase/firestore";
 
 export const PoolManager = {
     activePools: [],
     register(unsub) {
-        if (typeof unsub === 'function') {
+        if (typeof unsub === "function") {
             this.activePools.push(unsub);
         }
         return unsub;
     },
     stopAll() {
         console.log(`🛑 [PoolManager] Deteniendo ${this.activePools.length} live pools activos.`);
-        this.activePools.forEach(unsub => {
+        this.activePools.forEach((unsub) => {
             try {
-                if (typeof unsub === 'function') unsub();
+                if (typeof unsub === "function") unsub();
             } catch (err) {
                 console.error("[PoolManager] Error al detener live pool:", err);
             }
         });
         this.activePools = [];
-    }
+    },
 };
 
 export const startLivePool = (collectionName, filters, onUpdate) => {
     const q = query(collection(db, collectionName), ...filters);
-    const unsub = onSnapshot(q, (snapshot) => {
-        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        onUpdate(data);
-    }, (error) => {
-        console.error(`[Live Pool] Error en ${collectionName}:`, error);
-    });
+    const unsub = onSnapshot(
+        q,
+        (snapshot) => {
+            const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+            onUpdate(data);
+        },
+        (error) => {
+            console.error(`[Live Pool] Error en ${collectionName}:`, error);
+        },
+    );
     return PoolManager.register(unsub);
 };
-

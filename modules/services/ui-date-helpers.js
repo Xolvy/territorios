@@ -16,7 +16,7 @@
  *   - formatDisplayDateRange(date) → Rango humanizado "7 abr - 13 abr 2025"
  *   - initImagePanZoom(imgId, containerId) → Pan/zoom via mouse y touch sobre una imagen
  */
-import * as dateFns from 'date-fns';
+import * as dateFns from "date-fns";
 
 // ═══════════════════════════════════════════════════════════
 // UTILIDADES DE FECHA
@@ -31,27 +31,27 @@ export const UIHelpers = {
      */
     parseFirebaseDate: (d) => {
         if (!d) return null;
-        if (typeof d.toDate === 'function') return d.toDate();
+        if (typeof d.toDate === "function") return d.toDate();
         if (d.seconds) return new Date(d.seconds * 1000);
-        if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
+        if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
             // Append local midnight to prevent browser from parsing as UTC (which causes off-by-one shifts)
-            const date = new Date(d + 'T00:00:00');
-            return isNaN(date.getTime()) ? null : date;
+            const date = new Date(`${d}T00:00:00`);
+            return Number.isNaN(date.getTime()) ? null : date;
         }
         const date = new Date(d);
-        return isNaN(date.getTime()) ? null : date;
+        return Number.isNaN(date.getTime()) ? null : date;
     },
 
     /** Formato corto: DD/MM (ej. "07/04") */
     fmtDate: (d) => {
         const date = UIHelpers.parseFirebaseDate(d);
-        return !date ? '—' : date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
+        return !date ? "—" : date.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" });
     },
 
     /** Formato mediano: DD Mes (ej. "07 abr") */
     fmtDateAt: (d) => {
         const date = UIHelpers.parseFirebaseDate(d);
-        return !date ? '—' : date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+        return !date ? "—" : date.toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
     },
 
     /**
@@ -76,10 +76,10 @@ export const UIHelpers = {
      */
     formatDateId: (date) => {
         const parsed = UIHelpers.parseFirebaseDate(date);
-        if (!parsed) return '';
+        if (!parsed) return "";
         const year = parsed.getFullYear();
-        const month = String(parsed.getMonth() + 1).padStart(2, '0');
-        const day = String(parsed.getDate()).padStart(2, '0');
+        const month = String(parsed.getMonth() + 1).padStart(2, "0");
+        const day = String(parsed.getDate()).padStart(2, "0");
         return `${year}-${month}-${day}`;
     },
 
@@ -92,15 +92,17 @@ export const UIHelpers = {
     formatDisplayDateRange: (date) => {
         try {
             const start = UIHelpers.parseFirebaseDate(date);
-            if (!start || isNaN(start.getTime())) return '';
+            if (!start || Number.isNaN(start.getTime())) return "";
             const end = new Date(start);
             end.setDate(start.getDate() + 6);
-            if (dateFns && typeof dateFns.format === 'function') {
-                return `${dateFns.format(start, 'd MMM')} - ${dateFns.format(end, 'd MMM yyyy')}`;
+            if (dateFns && typeof dateFns.format === "function") {
+                return `${dateFns.format(start, "d MMM")} - ${dateFns.format(end, "d MMM yyyy")}`;
             }
             const f = (d) => `${d.getDate()}/${d.getMonth() + 1}`;
             return `${f(start)} - ${f(end)}, ${start.getFullYear()}`;
-        } catch (e) { return date; }
+        } catch (_e) {
+            return date;
+        }
     },
 
     // ═══════════════════════════════════════════════════════════
@@ -122,7 +124,8 @@ export const UIHelpers = {
         let state = { scale: 1, x: 0, y: 0 };
         let isDragging = false;
         let startX, startY;
-        let lastX = 0, lastY = 0;
+        let lastX = 0,
+            lastY = 0;
         let lastTouchDist = 0;
 
         const updateTransform = () => {
@@ -135,7 +138,7 @@ export const UIHelpers = {
             isDragging = true;
             startX = e.clientX - lastX;
             startY = e.clientY - lastY;
-            container.style.cursor = 'grabbing';
+            container.style.cursor = "grabbing";
         };
 
         window.onmousemove = (e) => {
@@ -149,7 +152,7 @@ export const UIHelpers = {
 
         window.onmouseup = () => {
             isDragging = false;
-            container.style.cursor = 'default';
+            container.style.cursor = "default";
         };
 
         // --- Touch Events ---
@@ -161,7 +164,7 @@ export const UIHelpers = {
             } else if (e.touches.length === 2) {
                 lastTouchDist = Math.hypot(
                     e.touches[0].clientX - e.touches[1].clientX,
-                    e.touches[0].clientY - e.touches[1].clientY
+                    e.touches[0].clientY - e.touches[1].clientY,
                 );
             }
         };
@@ -177,7 +180,7 @@ export const UIHelpers = {
                 e.preventDefault();
                 const dist = Math.hypot(
                     e.touches[0].clientX - e.touches[1].clientX,
-                    e.touches[0].clientY - e.touches[1].clientY
+                    e.touches[0].clientY - e.touches[1].clientY,
                 );
                 const delta = (dist - lastTouchDist) / 100;
                 state.scale = Math.max(1, Math.min(10, state.scale + delta));
@@ -201,13 +204,14 @@ export const UIHelpers = {
         return {
             reset: () => {
                 state = { scale: 1, x: 0, y: 0 };
-                lastX = 0; lastY = 0;
+                lastX = 0;
+                lastY = 0;
                 updateTransform();
             },
             zoom: (delta) => {
                 state.scale = Math.max(1, Math.min(10, state.scale + delta));
                 updateTransform();
-            }
+            },
         };
-    }
+    },
 };

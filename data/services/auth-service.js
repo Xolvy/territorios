@@ -1,5 +1,5 @@
-import { db } from '../../firebase-config.js';
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { db } from "../../firebase-config.js";
 
 export const getPermisosUsuario = async (email) => {
     if (!email) return null;
@@ -12,9 +12,9 @@ export const getPermisosUsuario = async (email) => {
         }
         if (!snap.empty) {
             const data = snap.docs[0].data();
-            const isAdmin = data.privilegios?.includes('Administrador');
+            const isAdmin = data.privilegios?.includes("Administrador");
             if (data.es_conductor || isAdmin) {
-                return { role: isAdmin ? 'Administrador' : 'Conductor', ...data, id: snap.docs[0].id };
+                return { role: isAdmin ? "Administrador" : "Conductor", ...data, id: snap.docs[0].id };
             }
         }
         return null;

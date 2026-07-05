@@ -1,42 +1,48 @@
 import {
-    getTerritorios, getConductores, getHistorialReport, getConfiguracion,
-    assignTerritorio, returnTerritorio, getCampanas
-} from '../../data/firestore-services.js';
-import { showNotification, toTitleCase } from '../utils/helpers.js';
-import { UIHelpers, showModal, showCustomConfirm, showTerritorySelectionModal } from '../services/ui-helpers.js';
-
-const { fmtDate } = UIHelpers;
+    assignTerritorio,
+    getConductores,
+    getConfiguracion,
+    getHistorialReport,
+    getTerritorios,
+    returnTerritorio,
+} from "../../data/firestore-services.js";
+import { showModal } from "../services/ui-helpers.js";
+import { showNotification, toTitleCase } from "../utils/helpers.js";
 
 let _globalTerritorios = [];
 let _globalConductores = [];
-let _globalConfig = {};
-let _selectedIds = new Set();
+let _globalConfig = {}; // eslint-disable-line no-unused-vars
+const _selectedIds = new Set(); // eslint-disable-line no-unused-vars
 
 export const renderAsignacionesView = async (container, configData = null) => {
     const loadData = async () => {
-        const [t, c, h, conf] = await Promise.all([
+        const [t, c, , conf] = await Promise.all([
             getTerritorios(),
             getConductores(),
             getHistorialReport(),
-            configData || getConfiguracion()
+            configData || getConfiguracion(),
         ]);
 
         // Xolvy Data Shield: Robust normalization & ghost filtering
-        const normalizeT = (val) => String(val || '').trim();
+        const normalizeT = (val) => String(val || "").trim();
         _globalTerritorios = t
-            .filter(rec => {
+            .filter((rec) => {
                 const hasNum = rec.numero && String(rec.numero).trim().length > 0;
                 if (!hasNum) console.warn(`🛡️ [Data Shield] Filtered ghost record: ${rec.id}`);
                 return hasNum;
             })
-            .map(rec => ({
+            .map((rec) => ({
                 ...rec,
                 numero: normalizeT(rec.numero),
-                manzanas: String(rec.manzanas || '').replace(/Salmo/gi, 'Mz.').trim()
+                manzanas: String(rec.manzanas || "")
+                    .replace(/Salmo/gi, "Mz.")
+                    .trim(),
             }))
-            .sort((a, b) => String(a.numero || '').localeCompare(String(b.numero || ''), undefined, { numeric: true }));
+            .sort((a, b) => String(a.numero || "").localeCompare(String(b.numero || ""), undefined, { numeric: true }));
 
-        _globalConductores = c.filter(p => p.es_conductor).sort((a, b) => String(a.nombre || '').localeCompare(String(b.nombre || '')));
+        _globalConductores = c
+            .filter((p) => p.es_conductor)
+            .sort((a, b) => String(a.nombre || "").localeCompare(String(b.nombre || "")));
         _globalConfig = conf;
         renderInternal();
     };
@@ -66,98 +72,119 @@ export const renderAsignacionesView = async (container, configData = null) => {
                 </div>
 
                 <div id="assigns-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pb-20">
-                    ${_globalTerritorios.map(t => {
-            const isAssigned = t.estado === 'Asignado' || t.estado === 'Pendiente';
-            return `
-                        <div class="modern-card p-6 border-slate-100 dark:border-white/5 shadow-xl ${isAssigned ? 'bg-primary/5' : ''}">
+                    ${_globalTerritorios
+                        .map((t) => {
+                            const isAssigned = t.estado === "Asignado" || t.estado === "Pendiente";
+                            return `
+                        <div class="modern-card p-6 border-slate-100 dark:border-white/5 shadow-xl ${isAssigned ? "bg-primary/5" : ""}">
                             <div class="flex justify-between items-start mb-4">
                                 <span class="bg-primary/10 text-primary text-[10px] font-black px-2 py-1 rounded-lg uppercase tracking-widest">#${t.numero}</span>
-                                <span class="text-[9px] font-black uppercase tracking-widest ${isAssigned ? 'text-primary' : 'text-slate-600 dark:text-slate-400 opacity-40'}">${t.estado}</span>
+                                <span class="text-[9px] font-black uppercase tracking-widest ${isAssigned ? "text-primary" : "text-slate-600 dark:text-slate-400 opacity-40"}">${t.estado}</span>
                             </div>
-                            <h4 class="font-black text-lg text-slate-800 dark:text-white uppercase truncate mb-6">${t.asignado_a ? toTitleCase(t.asignado_a) : 'Disponible'}</h4>
+                            <h4 class="font-black text-lg text-slate-800 dark:text-white uppercase truncate mb-6">${t.asignado_a ? toTitleCase(t.asignado_a) : "Disponible"}</h4>
                             <div class="flex gap-2">
                                 <button onclick="window.handleNewAssignment('${t.id}')" class="flex-1 min-w-0 py-3 bg-slate-100 dark:bg-white/5 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all">Gestionar</button>
-                                ${isAssigned ? `
+                                ${
+                                    isAssigned
+                                        ? `
                                 <button onclick="window.promptReturnTerritorio('${t.id}', '${t.numero}')" class="flex-1 min-w-0 py-3 bg-emerald-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/10">
                                     <i class="fas fa-check-circle"></i> Entregar
                                 </button>
-                                ` : ''}
+                                `
+                                        : ""
+                                }
                             </div>
                         </div>`;
-        }).join('')}
+                        })
+                        .join("")}
                 </div>
             </div>
         `;
 
-        container.querySelector('#hub-btn-assign').onclick = () => window.handleNewAssignment();
-        container.querySelector('#hub-btn-return').onclick = () => window.handleBulkReturn();
+        container.querySelector("#hub-btn-assign").onclick = () => window.handleNewAssignment();
+        container.querySelector("#hub-btn-return").onclick = () => window.handleBulkReturn();
     };
 
     window.handleNewAssignment = async (editId = null) => {
-        const item = editId ? _globalTerritorios.find(x => x.id === editId) : null;
-        showModal(`
+        const item = editId ? _globalTerritorios.find((x) => x.id === editId) : null;
+        showModal(
+            `
             <div class="p-8 space-y-6">
                 <h3 class="text-xl font-black uppercase">Asignar Territorio</h3>
                 <div class="space-y-4">
                     <div class="space-y-2">
                         <label class="text-[10px] font-black uppercase text-slate-600 dark:text-slate-400">Territorio(s)</label>
-                        <input type="text" id="asig-terr-raw" value="${item ? item.numero : ''}" class="w-full p-4 bg-slate-100 dark:bg-white/5 rounded-xl font-bold" placeholder="Ejem: 10, 15, 20">
+                        <input type="text" id="asig-terr-raw" value="${item ? item.numero : ""}" class="w-full p-4 bg-slate-100 dark:bg-white/5 rounded-xl font-bold" placeholder="Ejem: 10, 15, 20">
                     </div>
                     <div class="space-y-2">
                         <label class="text-[10px] font-black uppercase text-slate-600 dark:text-slate-400">Conductor</label>
                         <select id="asig-cond" class="w-full p-4 bg-slate-100 dark:bg-white/5 rounded-xl font-bold">
                             <option value="">Seleccionar Conductor...</option>
-                            ${_globalConductores.map(c => `<option value="${c.nombre}">${toTitleCase(c.nombre)}</option>`).join('')}
+                            ${_globalConductores.map((c) => `<option value="${c.nombre}">${toTitleCase(c.nombre)}</option>`).join("")}
                         </select>
                     </div>
                     <button id="btn-confirm-asig" class="w-full py-4 bg-primary text-white rounded-xl font-black uppercase tracking-widest">Confirmar</button>
                 </div>
             </div>
-        `, (modal) => {
-            modal.querySelector('#btn-confirm-asig').onclick = async () => {
-                const cond = modal.querySelector('#asig-cond').value;
-                const raw = modal.querySelector('#asig-terr-raw').value;
-                if (!cond || !raw) return showNotification("Faltan datos", "warning");
+        `,
+            (modal) => {
+                modal.querySelector("#btn-confirm-asig").onclick = async () => {
+                    const cond = modal.querySelector("#asig-cond").value;
+                    const raw = modal.querySelector("#asig-terr-raw").value;
+                    if (!cond || !raw) return showNotification("Faltan datos", "warning");
 
-                const nums = raw.split(',').map(n => n.trim());
-                for (const num of nums) {
-                    const t = _globalTerritorios.find(x => String(x.numero) === num);
-                    if (t) await assignTerritorio(t.id, cond, { estado: 'Asignado', fecha_asignacion: new Date().toISOString() });
-                }
-                showNotification("Territorios asignados");
-                modal.remove();
-                loadData();
-            };
-        });
+                    const nums = raw.split(",").map((n) => n.trim());
+                    for (const num of nums) {
+                        const t = _globalTerritorios.find((x) => String(x.numero) === num);
+                        if (t)
+                            await assignTerritorio(t.id, cond, {
+                                estado: "Asignado",
+                                fecha_asignacion: new Date().toISOString(),
+                            });
+                    }
+                    showNotification("Territorios asignados");
+                    modal.remove();
+                    loadData();
+                };
+            },
+        );
     };
 
     window.handleBulkReturn = async () => {
-        const assigned = _globalTerritorios.filter(t => t.estado === 'Asignado');
+        const assigned = _globalTerritorios.filter((t) => t.estado === "Asignado");
         if (assigned.length === 0) return showNotification("Nada que devolver", "info");
 
-        showModal(`
+        showModal(
+            `
             <div class="p-8 space-y-6">
                 <h3 class="text-xl font-black uppercase">Informar Territorios Completados</h3>
                 <div class="space-y-2 max-h-96 overflow-y-auto">
-                    ${assigned.map(t => `
+                    ${assigned
+                        .map(
+                            (t) => `
                         <label class="flex items-center gap-4 p-4 bg-slate-50 dark:bg-white/5 rounded-xl cursor-pointer group hover:bg-white dark:hover:bg-white/10 transition-all border border-transparent hover:border-slate-100 dark:hover:border-white/5">
                             <input type="checkbox" class="ret-check peer sr-only" value="${t.id}">
                             <div class="relative w-10 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-emerald-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all shrink-0"></div>
-                            <span class="text-sm font-bold uppercase text-slate-700 dark:text-white">#${t.numero} - ${t.asignado_a ? toTitleCase(t.asignado_a) : ''}</span>
+                            <span class="text-sm font-bold uppercase text-slate-700 dark:text-white">#${t.numero} - ${t.asignado_a ? toTitleCase(t.asignado_a) : ""}</span>
                         </label>
-                    `).join('')}
+                    `,
+                        )
+                        .join("")}
                 </div>
                 <button id="btn-confirm-ret" class="w-full py-4 bg-emerald-500 text-white rounded-xl font-black uppercase tracking-widest">Confirmar como Completados</button>
             </div>
-        `, (modal) => {
-            modal.querySelector('#btn-confirm-ret').onclick = async () => {
-                const ids = Array.from(modal.querySelectorAll('.ret-check:checked')).map(i => i.value);
-                for (const id of ids) await returnTerritorio(id, "Completado masivo", new Date().toISOString(), "Completado");
-                showNotification("Territorios marcados como completados");
-                modal.remove();
-                loadData();
-            };
-        });
+        `,
+            (modal) => {
+                modal.querySelector("#btn-confirm-ret").onclick = async () => {
+                    const ids = Array.from(modal.querySelectorAll(".ret-check:checked")).map((i) => i.value);
+                    for (const id of ids)
+                        await returnTerritorio(id, "Completado masivo", new Date().toISOString(), "Completado");
+                    showNotification("Territorios marcados como completados");
+                    modal.remove();
+                    loadData();
+                };
+            },
+        );
     };
 
     await loadData();

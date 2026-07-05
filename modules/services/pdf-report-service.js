@@ -11,7 +11,7 @@
  *   generarS12Multiple(lista4Territorios) → S-12_s-Mlt_S.pdf (4 en 1)
  */
 
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 
 // ─── HELPERS PRIVADOS ─────────────────────────────────────────────────────────
 
@@ -96,7 +96,7 @@ const _embedImageFromUrl = async (pdfDoc, page, imageUrl, coords) => {
             borderColor: rgb(0.75, 0.75, 0.75),
             borderWidth: 1,
         });
-        page.drawText('Mapa no disponible', {
+        page.drawText("Mapa no disponible", {
             x: coords.x + 8,
             y: coords.y + coords.height / 2 - 5,
             size: 8,
@@ -107,9 +107,9 @@ const _embedImageFromUrl = async (pdfDoc, page, imageUrl, coords) => {
 
 /** Dispara la descarga de un Blob PDF en el navegador */
 const _downloadPdf = (uint8Array, filename) => {
-    const blob = new Blob([uint8Array], { type: 'application/pdf' });
+    const blob = new Blob([uint8Array], { type: "application/pdf" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = filename;
     document.body.appendChild(a);
@@ -119,10 +119,10 @@ const _downloadPdf = (uint8Array, filename) => {
 };
 
 /** Muestra el XolvyAlert de carga mientras se genera el PDF */
-const _showLoadingAlert = (mensaje = 'Generando documento de alta calidad...') => {
+const _showLoadingAlert = (mensaje = "Generando documento de alta calidad...") => {
     if (!window.Swal) return null;
     window.Swal.fire({
-        title: '📄 Preparando PDF',
+        title: "📄 Preparando PDF",
         html: `<p style="font-weight:600;font-size:13px;">${mensaje}</p>`,
         allowOutsideClick: false,
         allowEscapeKey: false,
@@ -135,7 +135,6 @@ const _closeLoadingAlert = () => {
     if (window.Swal) window.Swal.close();
 };
 
-
 // ─────────────────────────────────────────────────────────────────────────────
 // S-13: Registro de Territorios
 // ─────────────────────────────────────────────────────────────────────────────
@@ -145,10 +144,10 @@ const _closeLoadingAlert = () => {
  * @param {Array<object>} listaTerritorios
  */
 export const generarS13 = async (listaTerritorios = []) => {
-    _showLoadingAlert('Generando S-13 — Registro de Territorios...');
+    _showLoadingAlert("Generando S-13 — Registro de Territorios...");
 
     try {
-        const templateBuffer = await _fetchAssetAsArrayBuffer('/templates/S-13_S.pdf');
+        const templateBuffer = await _fetchAssetAsArrayBuffer("/templates/S-13_S.pdf");
         const pdfDoc = await PDFDocument.load(templateBuffer, { ignoreEncryption: true });
         const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
         const form = pdfDoc.getForm();
@@ -169,24 +168,63 @@ export const generarS13 = async (listaTerritorios = []) => {
 
             const suffix = `_${index + 1}`;
 
-            _writeField(form, page, `numero${suffix}`,      territorio.numero || '',       { x: PAGE_MARGIN_LEFT,       y, size: 8, maxWidth: 40  }, font);
-            _writeField(form, page, `nombre${suffix}`,      territorio.nombre || '',       { x: PAGE_MARGIN_LEFT + 50,  y, size: 8, maxWidth: 120 }, font);
-            _writeField(form, page, `conductor${suffix}`,   territorio.conductor || '',    { x: PAGE_MARGIN_LEFT + 180, y, size: 8, maxWidth: 100 }, font);
-            _writeField(form, page, `fechaSalida${suffix}`, territorio.fechaSalida || '',  { x: PAGE_MARGIN_LEFT + 290, y, size: 8, maxWidth: 60  }, font);
-            _writeField(form, page, `fechaRetorno${suffix}`,territorio.fechaRetorno || '', { x: PAGE_MARGIN_LEFT + 360, y, size: 8, maxWidth: 60  }, font);
+            _writeField(
+                form,
+                page,
+                `numero${suffix}`,
+                territorio.numero || "",
+                { x: PAGE_MARGIN_LEFT, y, size: 8, maxWidth: 40 },
+                font,
+            );
+            _writeField(
+                form,
+                page,
+                `nombre${suffix}`,
+                territorio.nombre || "",
+                { x: PAGE_MARGIN_LEFT + 50, y, size: 8, maxWidth: 120 },
+                font,
+            );
+            _writeField(
+                form,
+                page,
+                `conductor${suffix}`,
+                territorio.conductor || "",
+                { x: PAGE_MARGIN_LEFT + 180, y, size: 8, maxWidth: 100 },
+                font,
+            );
+            _writeField(
+                form,
+                page,
+                `fechaSalida${suffix}`,
+                territorio.fechaSalida || "",
+                { x: PAGE_MARGIN_LEFT + 290, y, size: 8, maxWidth: 60 },
+                font,
+            );
+            _writeField(
+                form,
+                page,
+                `fechaRetorno${suffix}`,
+                territorio.fechaRetorno || "",
+                { x: PAGE_MARGIN_LEFT + 360, y, size: 8, maxWidth: 60 },
+                font,
+            );
         });
 
         const pdfBytes = await pdfDoc.save();
-        _downloadPdf(pdfBytes, `S-13_Territorios_${new Date().toLocaleDateString('es-ES').replace(/\//g, '-')}.pdf`);
+        _downloadPdf(pdfBytes, `S-13_Territorios_${new Date().toLocaleDateString("es-ES").replace(/\//g, "-")}.pdf`);
         _closeLoadingAlert();
-
     } catch (err) {
         _closeLoadingAlert();
-        console.error('[PDFService] Error generando S-13:', err);
-        if (window.Swal) window.Swal.fire({ icon: 'error', title: 'Error al generar S-13', text: err.message, confirmButtonColor: '#0d9488' });
+        console.error("[PDFService] Error generando S-13:", err);
+        if (window.Swal)
+            window.Swal.fire({
+                icon: "error",
+                title: "Error al generar S-13",
+                text: err.message,
+                confirmButtonColor: "#0d9488",
+            });
     }
 };
-
 
 // ─────────────────────────────────────────────────────────────────────────────
 // S-12: Tarjeta de Territorio Individual
@@ -198,10 +236,10 @@ export const generarS13 = async (listaTerritorios = []) => {
  * @param {object} territorio - { numero, nombre, mapaUrl, conductor, fechaSalida, ... }
  */
 export const generarS12 = async (territorio) => {
-    _showLoadingAlert(`Generando S-12 — Territorio ${territorio.numero || ''}...`);
+    _showLoadingAlert(`Generando S-12 — Territorio ${territorio.numero || ""}...`);
 
     try {
-        const templateBuffer = await _fetchAssetAsArrayBuffer('/templates/S-12_S.pdf');
+        const templateBuffer = await _fetchAssetAsArrayBuffer("/templates/S-12_S.pdf");
         const pdfDoc = await PDFDocument.load(templateBuffer, { ignoreEncryption: true });
         const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
         const form = pdfDoc.getForm();
@@ -209,10 +247,10 @@ export const generarS12 = async (territorio) => {
         const { height } = page.getSize();
 
         // ── Campos de texto ───────────────────────────────────────────────────
-        _writeField(form, page, 'numero',      territorio.numero || '',      { x: 60,  y: height - 60,  size: 12 }, font);
-        _writeField(form, page, 'nombre',      territorio.nombre || '',      { x: 110, y: height - 60,  size: 10 }, font);
-        _writeField(form, page, 'conductor',   territorio.conductor || '',   { x: 60,  y: height - 80,  size: 9  }, font);
-        _writeField(form, page, 'fechaSalida', territorio.fechaSalida || '', { x: 300, y: height - 80,  size: 9  }, font);
+        _writeField(form, page, "numero", territorio.numero || "", { x: 60, y: height - 60, size: 12 }, font);
+        _writeField(form, page, "nombre", territorio.nombre || "", { x: 110, y: height - 60, size: 10 }, font);
+        _writeField(form, page, "conductor", territorio.conductor || "", { x: 60, y: height - 80, size: 9 }, font);
+        _writeField(form, page, "fechaSalida", territorio.fechaSalida || "", { x: 300, y: height - 80, size: 9 }, font);
 
         // ── Imagen PNG del mapa (recuadro blanco principal del S-12) ──────────
         // Coordenadas calibradas para el recuadro blanco del S-12 institucional
@@ -220,16 +258,20 @@ export const generarS12 = async (territorio) => {
         await _embedImageFromUrl(pdfDoc, page, territorio.mapaUrl || null, mapaCoords);
 
         const pdfBytes = await pdfDoc.save();
-        _downloadPdf(pdfBytes, `S-12_Territorio_${territorio.numero || 'SN'}.pdf`);
+        _downloadPdf(pdfBytes, `S-12_Territorio_${territorio.numero || "SN"}.pdf`);
         _closeLoadingAlert();
-
     } catch (err) {
         _closeLoadingAlert();
-        console.error('[PDFService] Error generando S-12:', err);
-        if (window.Swal) window.Swal.fire({ icon: 'error', title: 'Error al generar S-12', text: err.message, confirmButtonColor: '#0d9488' });
+        console.error("[PDFService] Error generando S-12:", err);
+        if (window.Swal)
+            window.Swal.fire({
+                icon: "error",
+                title: "Error al generar S-12",
+                text: err.message,
+                confirmButtonColor: "#0d9488",
+            });
     }
 };
-
 
 // ─────────────────────────────────────────────────────────────────────────────
 // S-12 Múltiple: 4 territorios en una sola hoja
@@ -240,14 +282,14 @@ export const generarS12 = async (territorio) => {
  * @param {Array<object>} lista4Territorios - Array de exactamente 4 territorios (se padea si hay menos)
  */
 export const generarS12Multiple = async (lista4Territorios = []) => {
-    _showLoadingAlert('Generando S-12 Múltiple — 4 territorios en 1 hoja...');
+    _showLoadingAlert("Generando S-12 Múltiple — 4 territorios en 1 hoja...");
 
     // Asegurarse de tener exactamente 4 slots (rellenar con null si hay menos)
     const territorios = [...lista4Territorios];
     while (territorios.length < 4) territorios.push(null);
 
     try {
-        const templateBuffer = await _fetchAssetAsArrayBuffer('/templates/S-12_s-Mlt_S.pdf');
+        const templateBuffer = await _fetchAssetAsArrayBuffer("/templates/S-12_s-Mlt_S.pdf");
         const pdfDoc = await PDFDocument.load(templateBuffer, { ignoreEncryption: true });
         const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
         const form = pdfDoc.getForm();
@@ -264,24 +306,29 @@ export const generarS12Multiple = async (lista4Territorios = []) => {
 
         const cuadrantes = [
             {
-                label: 'Top-Left',
+                label: "Top-Left",
                 texto: { x: mapPadding, y: height - 35 },
-                mapa:  { x: mapPadding, y: height - mapPadding - mapInnerH - 20, width: mapInnerW, height: mapInnerH },
+                mapa: { x: mapPadding, y: height - mapPadding - mapInnerH - 20, width: mapInnerW, height: mapInnerH },
             },
             {
-                label: 'Top-Right',
+                label: "Top-Right",
                 texto: { x: halfW + mapPadding, y: height - 35 },
-                mapa:  { x: halfW + mapPadding, y: height - mapPadding - mapInnerH - 20, width: mapInnerW, height: mapInnerH },
+                mapa: {
+                    x: halfW + mapPadding,
+                    y: height - mapPadding - mapInnerH - 20,
+                    width: mapInnerW,
+                    height: mapInnerH,
+                },
             },
             {
-                label: 'Bottom-Left',
+                label: "Bottom-Left",
                 texto: { x: mapPadding, y: halfH - 15 },
-                mapa:  { x: mapPadding, y: mapPadding, width: mapInnerW, height: mapInnerH },
+                mapa: { x: mapPadding, y: mapPadding, width: mapInnerW, height: mapInnerH },
             },
             {
-                label: 'Bottom-Right',
+                label: "Bottom-Right",
                 texto: { x: halfW + mapPadding, y: halfH - 15 },
-                mapa:  { x: halfW + mapPadding, y: mapPadding, width: mapInnerW, height: mapInnerH },
+                mapa: { x: halfW + mapPadding, y: mapPadding, width: mapInnerW, height: mapInnerH },
             },
         ];
 
@@ -295,11 +342,12 @@ export const generarS12Multiple = async (lista4Territorios = []) => {
 
             // Texto: número + nombre en el encabezado del cuadrante
             _writeField(
-                form, page,
+                form,
+                page,
                 `numero${suffix}`,
-                `${territorio.numero || ''} — ${territorio.nombre || ''}`,
+                `${territorio.numero || ""} — ${territorio.nombre || ""}`,
                 { x: cuadrante.texto.x, y: cuadrante.texto.y, size: 9, maxWidth: mapInnerW },
-                font
+                font,
             );
 
             // Mapa PNG
@@ -307,16 +355,20 @@ export const generarS12Multiple = async (lista4Territorios = []) => {
         }
 
         const pdfBytes = await pdfDoc.save();
-        _downloadPdf(pdfBytes, `S-12-Multiple_${new Date().toLocaleDateString('es-ES').replace(/\//g, '-')}.pdf`);
+        _downloadPdf(pdfBytes, `S-12-Multiple_${new Date().toLocaleDateString("es-ES").replace(/\//g, "-")}.pdf`);
         _closeLoadingAlert();
-
     } catch (err) {
         _closeLoadingAlert();
-        console.error('[PDFService] Error generando S-12 Múltiple:', err);
-        if (window.Swal) window.Swal.fire({ icon: 'error', title: 'Error al generar S-12 Múltiple', text: err.message, confirmButtonColor: '#0d9488' });
+        console.error("[PDFService] Error generando S-12 Múltiple:", err);
+        if (window.Swal)
+            window.Swal.fire({
+                icon: "error",
+                title: "Error al generar S-12 Múltiple",
+                text: err.message,
+                confirmButtonColor: "#0d9488",
+            });
     }
 };
-
 
 // ─── Alias retrocompatible con el código anterior ─────────────────────────────
 export const generarS12Auto = generarS12;

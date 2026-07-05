@@ -1,7 +1,7 @@
-import { getTerritorios, updateTerritoryGeoJSON } from '../../data/firestore-services.js';
-import { showNotification } from '../utils/helpers.js';
+import { updateTerritoryGeoJSON } from "../../data/firestore-services.js";
+import { showNotification } from "../utils/helpers.js";
 
-export const renderMapsAdmin = async (container, config) => {
+export const renderMapsAdmin = async (container, _config) => {
     container.innerHTML = `
         <div class="animate-fade-in p-6 space-y-8 max-w-5xl mx-auto">
             <header class="flex items-center gap-6 mb-10">
@@ -53,20 +53,20 @@ export const renderMapsAdmin = async (container, config) => {
     `;
 
     const processKML = async () => {
-        const kmlText = document.getElementById('kml-input').value.trim();
+        const kmlText = document.getElementById("kml-input").value.trim();
         if (!kmlText) return showNotification("Por favor pega el código KML", "warning");
 
-        const btn = document.getElementById('btn-process-kml');
-        const progressDiv = document.getElementById('import-progress');
-        const progressBar = document.getElementById('progress-bar');
-        const progressCount = document.getElementById('progress-count');
-        const progressStatus = document.getElementById('progress-status');
+        const btn = document.getElementById("btn-process-kml");
+        const progressDiv = document.getElementById("import-progress");
+        const progressBar = document.getElementById("progress-bar");
+        const progressCount = document.getElementById("progress-count");
+        const progressStatus = document.getElementById("progress-status");
 
         btn.disabled = true;
-        progressDiv.classList.remove('hidden');
+        progressDiv.classList.remove("hidden");
 
         try {
-            const { parseKmlToGroupedData } = await import('../utils/kml-parser.js');
+            const { parseKmlToGroupedData } = await import("../utils/kml-parser.js");
             const groups = parseKmlToGroupedData(kmlText);
             const tNums = Object.keys(groups);
 
@@ -85,9 +85,9 @@ export const renderMapsAdmin = async (container, config) => {
                         properties: { name: `Manzana ${idx + 1}` },
                         geometry: {
                             type: "Polygon",
-                            coordinates: [latLngs.map(c => [c[1], c[0]])] // Volver a [Lng, Lat] para GeoJSON
-                        }
-                    }))
+                            coordinates: [latLngs.map((c) => [c[1], c[0]])], // Volver a [Lng, Lat] para GeoJSON
+                        },
+                    })),
                 };
 
                 const success = await updateTerritoryGeoJSON(tNum, geojson);
@@ -101,21 +101,20 @@ export const renderMapsAdmin = async (container, config) => {
 
             showNotification(`¡Importación exitosa! ${completed} territorios actualizados con polígonos.`, "success");
             progressStatus.innerText = "IMPORTACIÓN FINALIZADA";
-            progressStatus.classList.replace('text-indigo-500', 'text-emerald-500');
-
+            progressStatus.classList.replace("text-indigo-500", "text-emerald-500");
         } catch (e) {
             console.error(e);
-            showNotification("Error: " + e.message, "error");
+            showNotification(`Error: ${e.message}`, "error");
             progressStatus.innerText = "ERROR EN IMPORTACIÓN";
-            progressStatus.classList.replace('text-indigo-500', 'text-rose-500');
+            progressStatus.classList.replace("text-indigo-500", "text-rose-500");
         } finally {
             btn.disabled = false;
         }
     };
 
-    document.getElementById('btn-process-kml').onclick = processKML;
-    document.getElementById('btn-clear-kml').onclick = () => {
-        document.getElementById('kml-input').value = '';
-        document.getElementById('import-progress').classList.add('hidden');
+    document.getElementById("btn-process-kml").onclick = processKML;
+    document.getElementById("btn-clear-kml").onclick = () => {
+        document.getElementById("kml-input").value = "";
+        document.getElementById("import-progress").classList.add("hidden");
     };
 };

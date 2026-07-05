@@ -3,8 +3,8 @@
  * @description Nexo AI — Servicio de extracción de datos mediante Gemini Vision API
  */
 
-import { functions } from '../../firebase-config.js';
-import { httpsCallable } from 'firebase/functions';
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../../firebase-config.js";
 
 /**
  * Procesa una imagen del programa semanal usando la API de Gemini Vision
@@ -15,7 +15,7 @@ export const extractProgramFromImage = async (file) => {
     try {
         // Convertir imagen a Base64
         const base64Image = await fileToBase64(file);
-        const base64Data = base64Image.split(',')[1];
+        const base64Data = base64Image.split(",")[1];
         const mimeType = file.type;
 
         const prompt = `Analiza esta imagen del programa de predicación semanal y extrae TODOS los datos.
@@ -30,20 +30,20 @@ REGLAS CRÍTICAS:
 7. Si menciona "Zoom", "Telefónica" o "Carta", el turno DEBE ser "ZOOM".
 8. Si una celda está vacía, usa "".`;
 
-        const askNexoAICallable = httpsCallable(functions, 'askNexoAI');
+        const askNexoAICallable = httpsCallable(functions, "askNexoAI");
         const response = await askNexoAICallable({
             prompt: prompt,
             generationConfig: {
                 temperature: 0.1,
                 topP: 0.8,
-                responseMimeType: "application/json"
+                responseMimeType: "application/json",
             },
             image: {
                 inlineData: {
                     mimeType: mimeType,
-                    data: base64Data
-                }
-            }
+                    data: base64Data,
+                },
+            },
         });
 
         const data = response.data;
@@ -56,7 +56,6 @@ REGLAS CRÍTICAS:
         }
 
         return JSON.parse(jsonMatch[0]);
-
     } catch (error) {
         console.error("🚀 [AI Vision] Error:", error);
         throw error;

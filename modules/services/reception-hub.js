@@ -1,7 +1,7 @@
-import { startLivePool, returnTerritorio, returnTerritorioParcial } from '../../data/firestore-services.js';
-import { showNotification } from '../utils/helpers.js';
 import { where } from "firebase/firestore";
-import { UIHelpers } from './ui-date-helpers.js';
+import { returnTerritorio, returnTerritorioParcial, startLivePool } from "../../data/firestore-services.js";
+import { showNotification } from "../utils/helpers.js";
+import { UIHelpers } from "./ui-date-helpers.js";
 
 /**
  * Singleton instance tracker to prevent memory leaks and state contamination.
@@ -16,10 +16,10 @@ let runningHubInstance = null;
 export class ReceptionHub {
     constructor(config = {}) {
         // --- 1. PERSISTENCIA ESTRICTA DEL ESTADO ---
-        this.viewMode = config.viewMode || 'conductor'; // 'admin' | 'conductor'
-        this.displayName = config.displayName || '';
-        this.scheduledConductor = config.scheduledConductor || '';
-        this.scheduledAuxiliar = config.scheduledAuxiliar || '';
+        this.viewMode = config.viewMode || "conductor"; // 'admin' | 'conductor'
+        this.displayName = config.displayName || "";
+        this.scheduledConductor = config.scheduledConductor || "";
+        this.scheduledAuxiliar = config.scheduledAuxiliar || "";
         this.isAdmin = config.isAdmin || false;
         this.preSelectedId = config.preSelectedId || null;
         this.preSelectedIds = config.preSelectedIds || null; // NEW: support multiple IDs
@@ -47,17 +47,17 @@ export class ReceptionHub {
      * Inicialización de la instancia y carga de datos.
      */
     async init() {
-        let user = window.XolvyApp?.user;
+        const user = window.XolvyApp?.user;
 
         // Si no se pasaron datos, intentar resolver del contexto global
         if (!this.displayName && user) {
             this.displayName = user.nombre;
-            this.isAdmin = user.role === 'Administrador' || user.role === 'SuperAdmin';
+            this.isAdmin = user.role === "Administrador" || user.role === "SuperAdmin";
         }
 
         // Cargar conductores para el dropdown
-        const { getConductores } = await import('../../data/firestore-services.js');
-        getConductores().then(list => {
+        const { getConductores } = await import("../../data/firestore-services.js");
+        getConductores().then((list) => {
             this.conductores = list;
             this.updateConductorSelect();
             this.renderList();
@@ -68,9 +68,7 @@ export class ReceptionHub {
         const identity = window.XolvyApp?.identity;
         const myCanonicalName = identity?.nombreCanonico || this.displayName;
 
-        const filtros = (this.isAdmin || !myCanonicalName)
-            ? []
-            : [where("asignado_a", "==", myCanonicalName)];
+        const filtros = this.isAdmin || !myCanonicalName ? [] : [where("asignado_a", "==", myCanonicalName)];
 
         this.unsubscribe = startLivePool("territorios", filtros, (data) => {
             this.territories = data;
@@ -78,13 +76,13 @@ export class ReceptionHub {
             // Autoselección del conductor para administradores
             if (this.isAdmin) {
                 if (this.preSelectedId) {
-                    const target = this.territories.find(t => t.id === this.preSelectedId);
-                    if (target && target.asignado_a) {
+                    const target = this.territories.find((t) => t.id === this.preSelectedId);
+                    if (target?.asignado_a) {
                         this.displayName = target.asignado_a;
                     }
                 } else if (this.preSelectedIds && this.preSelectedIds.length > 0) {
-                    const target = this.territories.find(t => this.preSelectedIds.includes(t.id));
-                    if (target && target.asignado_a) {
+                    const target = this.territories.find((t) => this.preSelectedIds.includes(t.id));
+                    if (target?.asignado_a) {
                         this.displayName = target.asignado_a;
                     }
                 }
@@ -101,20 +99,21 @@ export class ReceptionHub {
      * Renderiza el contenedor base del modal (Shell).
      */
     renderShell() {
-        let modal = document.getElementById('reception-hub-modal');
+        let modal = document.getElementById("reception-hub-modal");
         if (modal) modal.remove();
 
-        modal = document.createElement('div');
-        modal.id = 'reception-hub-modal';
-        modal.className = 'fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/45 backdrop-blur-sm animate-fade-in';
+        modal = document.createElement("div");
+        modal.id = "reception-hub-modal";
+        modal.className =
+            "fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/45 backdrop-blur-sm animate-fade-in";
 
         modal.onclick = (e) => {
-            if (e.target.id === 'reception-hub-modal') this.closeModal();
+            if (e.target.id === "reception-hub-modal") this.closeModal();
         };
 
         const todayId = UIHelpers.formatDateId(new Date());
 
-        let footerHTML = `
+        const footerHTML = `
             <div class="p-6 border-t border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-slate-900 space-y-4 shrink-0">
                 <div class="grid grid-cols-2 gap-4">
                     <div class="space-y-1">
@@ -139,10 +138,10 @@ export class ReceptionHub {
                 <header class="p-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between shrink-0 bg-slate-50 dark:bg-slate-900">
                     <div class="flex items-center gap-4">
                         <div class="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-500 text-lg">
-                            <i class="fas ${this.viewMode === 'admin' ? 'fa-id-card' : 'fa-clipboard-check'}"></i>
+                            <i class="fas ${this.viewMode === "admin" ? "fa-id-card" : "fa-clipboard-check"}"></i>
                         </div>
                         <div>
-                            <h3 class="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter leading-none">${this.viewMode === 'admin' ? 'Gestión HUB' : 'Informar Actividad'}</h3>
+                            <h3 class="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter leading-none">${this.viewMode === "admin" ? "Gestión HUB" : "Informar Actividad"}</h3>
                             <p class="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mt-1">Live Pool S-13</p>
                         </div>
                     </div>
@@ -168,14 +167,14 @@ export class ReceptionHub {
     buildConductorOptions(selectedValue) {
         const uniqueNames = new Set();
         const list = [];
-        const selVal = (selectedValue || '').trim();
+        const selVal = (selectedValue || "").trim();
 
         // 1. Conductor programado
         if (this.scheduledConductor) {
             const name = this.scheduledConductor.trim();
             if (name && !uniqueNames.has(name)) {
                 uniqueNames.add(name);
-                list.push({ nombre: name, group: 'Programados' });
+                list.push({ nombre: name, group: "Programados" });
             }
         }
 
@@ -184,17 +183,17 @@ export class ReceptionHub {
             const name = this.scheduledAuxiliar.trim();
             if (name && !uniqueNames.has(name)) {
                 uniqueNames.add(name);
-                list.push({ nombre: name, group: 'Programados' });
+                list.push({ nombre: name, group: "Programados" });
             }
         }
 
         // 3. Todos los demás conductores
         if (this.conductores) {
-            this.conductores.forEach(c => {
-                const name = (c.nombre || '').trim();
+            this.conductores.forEach((c) => {
+                const name = (c.nombre || "").trim();
                 if (name && !uniqueNames.has(name)) {
                     uniqueNames.add(name);
-                    list.push({ nombre: name, group: 'Otros' });
+                    list.push({ nombre: name, group: "Otros" });
                 }
             });
         }
@@ -202,25 +201,25 @@ export class ReceptionHub {
         // Si el valor seleccionado no está en la lista, agregarlo
         if (selVal && !uniqueNames.has(selVal)) {
             uniqueNames.add(selVal);
-            list.push({ nombre: selVal, group: 'Otros' });
+            list.push({ nombre: selVal, group: "Otros" });
         }
 
         let html = '<option value="">Seleccionar...</option>';
-        const programados = list.filter(item => item.group === 'Programados');
-        const otros = list.filter(item => item.group === 'Otros');
+        const programados = list.filter((item) => item.group === "Programados");
+        const otros = list.filter((item) => item.group === "Otros");
 
         if (programados.length > 0) {
             html += `<optgroup label="Programados para hoy">`;
-            programados.forEach(item => {
-                html += `<option value="${item.nombre}" ${item.nombre === selVal ? 'selected' : ''}>${item.nombre}</option>`;
+            programados.forEach((item) => {
+                html += `<option value="${item.nombre}" ${item.nombre === selVal ? "selected" : ""}>${item.nombre}</option>`;
             });
             html += `</optgroup>`;
         }
 
         if (otros.length > 0) {
             html += `<optgroup label="Otros Conductores">`;
-            otros.forEach(item => {
-                html += `<option value="${item.nombre}" ${item.nombre === selVal ? 'selected' : ''}>${item.nombre}</option>`;
+            otros.forEach((item) => {
+                html += `<option value="${item.nombre}" ${item.nombre === selVal ? "selected" : ""}>${item.nombre}</option>`;
             });
             html += `</optgroup>`;
         }
@@ -232,7 +231,7 @@ export class ReceptionHub {
      * Actualiza dinámicamente el dropdown de conductor.
      */
     updateConductorSelect() {
-        const select = document.getElementById('common-conductor');
+        const select = document.getElementById("common-conductor");
         if (select) {
             const val = select.value || this.displayName;
             select.innerHTML = this.buildConductorOptions(val);
@@ -243,33 +242,38 @@ export class ReceptionHub {
      * Renderiza la lista de tarjetas con filtro RBAC unificado.
      */
     renderList() {
-        const list = document.getElementById('reception-hub-list');
+        const list = document.getElementById("reception-hub-list");
         if (!list) return;
 
         // --- 2. INTERCEPTAR LOS DATOS Y APLICAR FILTRO ---
         const data = this.territories || [];
-        const INACTIVE_STATES = ['Disponible', 'Predicado', 'Sin asignar', 'Extraviado', 'Libre'];
-        let territoriosParaMostrar = data.filter(t => !INACTIVE_STATES.includes(t.estado) && !INACTIVE_STATES.includes(t.status));
+        const INACTIVE_STATES = ["Disponible", "Predicado", "Sin asignar", "Extraviado", "Libre"];
+        let territoriosParaMostrar = data.filter(
+            (t) => !INACTIVE_STATES.includes(t.estado) && !INACTIVE_STATES.includes(t.status),
+        );
 
         // REGLA DE ORO: Si estoy en modo conductor (o no soy admin), solo veo LO MÍO.
-        if (this.viewMode === 'conductor' || !this.isAdmin) {
-            const myName = (window.XolvyApp?.identity?.nombreCanonico || this.displayName || '').trim().toLowerCase();
-            territoriosParaMostrar = territoriosParaMostrar.filter(t => {
-                const asignado = (t.asignado_a || '').trim().toLowerCase();
-                const auxiliar = (t.auxiliar || '').trim().toLowerCase();
+        if (this.viewMode === "conductor" || !this.isAdmin) {
+            const myName = (window.XolvyApp?.identity?.nombreCanonico || this.displayName || "").trim().toLowerCase();
+            territoriosParaMostrar = territoriosParaMostrar.filter((t) => {
+                const asignado = (t.asignado_a || "").trim().toLowerCase();
+                const auxiliar = (t.auxiliar || "").trim().toLowerCase();
                 return asignado === myName || auxiliar === myName;
             });
         }
 
         // Filtro por IDs preseleccionados (soporta preSelectedId y preSelectedIds)
         if (this.preSelectedIds && this.preSelectedIds.length > 0) {
-            territoriosParaMostrar = territoriosParaMostrar.filter(t => this.preSelectedIds.includes(t.id));
+            territoriosParaMostrar = territoriosParaMostrar.filter((t) => this.preSelectedIds.includes(t.id));
         } else if (this.preSelectedId) {
-            territoriosParaMostrar = territoriosParaMostrar.filter(t => t.id === this.preSelectedId);
+            territoriosParaMostrar = territoriosParaMostrar.filter((t) => t.id === this.preSelectedId);
         }
 
         if (territoriosParaMostrar.length === 0) {
-            const emptyMsg = (this.viewMode === 'conductor') ? "No tienes asignaciones pendientes de informar" : "No hay territorios asignados en este momento";
+            const emptyMsg =
+                this.viewMode === "conductor"
+                    ? "No tienes asignaciones pendientes de informar"
+                    : "No hay territorios asignados en este momento";
             list.innerHTML = `
                 <div class="py-20 text-center space-y-4 animate-fade-in opacity-50">
                     <div class="w-16 h-16 bg-slate-200 dark:bg-white/5 rounded-full flex items-center justify-center mx-auto text-slate-500 px-8 dark:text-slate-400">
@@ -281,7 +285,7 @@ export class ReceptionHub {
         }
 
         // --- ORDENAR Y AGRUPAR CRONOLÓGICAMENTE POR DÍA Y CONDUCTOR ---
-        const daysOfWeek = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+        const daysOfWeek = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
         const sortedTerritories = [...territoriosParaMostrar].sort((a, b) => {
             const dateA = UIHelpers.parseFirebaseDate(a.fecha_salida || a.fecha_asignacion) || new Date(0);
             const dateB = UIHelpers.parseFirebaseDate(b.fecha_salida || b.fecha_asignacion) || new Date(0);
@@ -289,23 +293,25 @@ export class ReceptionHub {
         });
 
         const groups = [];
-        sortedTerritories.forEach(t => {
+        sortedTerritories.forEach((t) => {
             const dateObj = UIHelpers.parseFirebaseDate(t.fecha_salida || t.fecha_asignacion);
-            const dayName = dateObj ? daysOfWeek[dateObj.getDay()] : 'Sin Día';
-            const dateStr = dateObj ? dateObj.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
-            const conductor = t.asignado_a || 'Sin Asignar';
-            
-            const dateKey = dateObj ? dateObj.toISOString().split('T')[0] : 'no-date';
+            const dayName = dateObj ? daysOfWeek[dateObj.getDay()] : "Sin Día";
+            const dateStr = dateObj
+                ? dateObj.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric" })
+                : "—";
+            const conductor = t.asignado_a || "Sin Asignar";
+
+            const dateKey = dateObj ? dateObj.toISOString().split("T")[0] : "no-date";
             const key = `${dateKey}_${conductor}`;
 
-            let existingGroup = groups.find(g => g.key === key);
+            let existingGroup = groups.find((g) => g.key === key);
             if (!existingGroup) {
                 existingGroup = {
                     key,
                     dayName,
                     dateStr,
                     conductor,
-                    items: []
+                    items: [],
                 };
                 groups.push(existingGroup);
             }
@@ -314,9 +320,10 @@ export class ReceptionHub {
 
         // Rediseño Vista Unificada (Layout de la Imagen 2 para todos)
         let html = `<div class="space-y-6">`;
-        
-        html += groups.map(group => {
-            const groupHeader = `
+
+        html += groups
+            .map((group) => {
+                const groupHeader = `
             <div class="flex items-center gap-3 mb-4 mt-6 first:mt-0">
                 <div class="h-px bg-slate-200 dark:bg-white/5 flex-1 min-w-0"></div>
                 <span class="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest whitespace-nowrap">
@@ -324,43 +331,55 @@ export class ReceptionHub {
                 </span>
                 <div class="h-px bg-slate-200 dark:bg-white/5 flex-1 min-w-0"></div>
             </div>`;
-            
-            const groupCards = group.items.map(t => {
-                if (!this.selections[t.id]) {
-                    this.selections[t.id] = {
-                        manzanas: [],
-                        notes: '',
-                        conductorFinal: t.asignado_a || '',
-                        date: UIHelpers.formatDateId(new Date())
-                    };
-                }
-                const sel = this.selections[t.id];
-                const mzs = t.manzanas ? t.manzanas.split(',').map(m => m.trim()).filter(Boolean) : [];
-                
-                const allSelected = mzs.length > 0 && mzs.every(m => sel.manzanas.includes(m));
-                const partialSelected = sel.manzanas.length > 0 && !allSelected;
-                
-                let statusBadge = '';
-                if (allSelected) {
-                    statusBadge = `<span class="px-2.5 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[9px] font-black uppercase tracking-wider rounded-lg">Entrega Total</span>`;
-                } else if (partialSelected) {
-                    statusBadge = `<span class="px-2.5 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[9px] font-black uppercase tracking-wider rounded-lg">Entrega Parcial</span>`;
-                } else {
-                    statusBadge = `<span class="px-2.5 py-1 bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/5 text-[9px] font-black uppercase tracking-wider rounded-lg">Sin entregar</span>`;
-                }
 
-                const parsedAsigDate = UIHelpers.parseFirebaseDate(t.fecha_asignacion);
-                const asigDateStr = parsedAsigDate ? parsedAsigDate.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
+                const groupCards = group.items
+                    .map((t) => {
+                        if (!this.selections[t.id]) {
+                            this.selections[t.id] = {
+                                manzanas: [],
+                                notes: "",
+                                conductorFinal: t.asignado_a || "",
+                                date: UIHelpers.formatDateId(new Date()),
+                            };
+                        }
+                        const sel = this.selections[t.id];
+                        const mzs = t.manzanas
+                            ? t.manzanas
+                                  .split(",")
+                                  .map((m) => m.trim())
+                                  .filter(Boolean)
+                            : [];
 
-                return `
-                    <div class="modern-card territory-report-card p-5 border-slate-200 dark:border-white/10 space-y-4 bg-white dark:bg-white/[0.02] animate-fade-in mb-4" data-id="${t.id}" data-manzanas="${t.manzanas || ''}" data-numero="${t.numero}">
+                        const allSelected = mzs.length > 0 && mzs.every((m) => sel.manzanas.includes(m));
+                        const partialSelected = sel.manzanas.length > 0 && !allSelected;
+
+                        let statusBadge = "";
+                        if (allSelected) {
+                            statusBadge = `<span class="px-2.5 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[9px] font-black uppercase tracking-wider rounded-lg">Entrega Total</span>`;
+                        } else if (partialSelected) {
+                            statusBadge = `<span class="px-2.5 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[9px] font-black uppercase tracking-wider rounded-lg">Entrega Parcial</span>`;
+                        } else {
+                            statusBadge = `<span class="px-2.5 py-1 bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/5 text-[9px] font-black uppercase tracking-wider rounded-lg">Sin entregar</span>`;
+                        }
+
+                        const parsedAsigDate = UIHelpers.parseFirebaseDate(t.fecha_asignacion);
+                        const asigDateStr = parsedAsigDate
+                            ? parsedAsigDate.toLocaleDateString("es-ES", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "numeric",
+                              })
+                            : "—";
+
+                        return `
+                    <div class="modern-card territory-report-card p-5 border-slate-200 dark:border-white/10 space-y-4 bg-white dark:bg-white/[0.02] animate-fade-in mb-4" data-id="${t.id}" data-manzanas="${t.manzanas || ""}" data-numero="${t.numero}">
                         <div class="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-3">
                             <div class="flex items-center gap-3">
                                 <div class="w-8 h-8 bg-indigo-500 text-white rounded-lg flex items-center justify-center font-black text-xs shadow-md">
                                     ${t.numero}
                                 </div>
                                 <div class="min-w-0 flex-1">
-                                    <h4 class="text-[12px] font-black text-slate-800 dark:text-white uppercase truncate max-w-[180px]">${t.localidad || 'Territorio'}</h4>
+                                    <h4 class="text-[12px] font-black text-slate-800 dark:text-white uppercase truncate max-w-[180px]">${t.localidad || "Territorio"}</h4>
                                     <p class="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mt-0.5">${mzs.length} Manzanas • Asignado: ${asigDateStr}</p>
                                 </div>
                             </div>
@@ -371,28 +390,36 @@ export class ReceptionHub {
                         
                         <div class="space-y-3">
                             <div class="flex flex-wrap items-center gap-1.5">
-                                ${mzs.map(m => {
-                                    const isSelected = sel.manzanas.includes(m);
-                                    return `
-                                    <button class="mz-select-btn px-3 py-1.5 rounded-lg border text-[10px] font-black transition-all ${isSelected ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10'}" data-val="${m}">
-                                        ${String(m).trim().toLowerCase().startsWith('mz') ? m : `Mz. ${m}`}
+                                ${mzs
+                                    .map((m) => {
+                                        const isSelected = sel.manzanas.includes(m);
+                                        return `
+                                    <button class="mz-select-btn px-3 py-1.5 rounded-lg border text-[10px] font-black transition-all ${isSelected ? "bg-indigo-600 border-indigo-600 text-white shadow-md" : "bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10"}" data-val="${m}">
+                                        ${String(m).trim().toLowerCase().startsWith("mz") ? m : `Mz. ${m}`}
                                     </button>
                                     `;
-                                }).join('')}
-                                ${mzs.length > 1 ? `
+                                    })
+                                    .join("")}
+                                ${
+                                    mzs.length > 1
+                                        ? `
                                 <button class="btn-mark-all-mzs ml-auto px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all" data-id="${t.id}">
                                     Marcar todas
                                 </button>
-                                ` : ''}
+                                `
+                                        : ""
+                                }
                             </div>
                         </div>
                     </div>
                 `;
-            }).join('');
-            
-            return groupHeader + groupCards;
-        }).join('');
-        
+                    })
+                    .join("");
+
+                return groupHeader + groupCards;
+            })
+            .join("");
+
         html += `</div>`;
         list.innerHTML = html;
         this.attachHubEvents(territoriosParaMostrar);
@@ -402,17 +429,22 @@ export class ReceptionHub {
      * Vincula los eventos de interacción de la vista unificada.
      */
     attachHubEvents(territoriosParaMostrar) {
-        const list = document.getElementById('reception-hub-list');
+        const list = document.getElementById("reception-hub-list");
         if (!list) return;
 
-        territoriosParaMostrar.forEach(t => {
+        territoriosParaMostrar.forEach((t) => {
             const card = list.querySelector(`.territory-report-card[data-id="${t.id}"]`);
             if (!card) return;
 
-            const mzs = t.manzanas ? t.manzanas.split(',').map(m => m.trim()).filter(Boolean) : [];
+            const mzs = t.manzanas
+                ? t.manzanas
+                      .split(",")
+                      .map((m) => m.trim())
+                      .filter(Boolean)
+                : [];
 
             // 1. Manzanas Select Buttons
-            card.querySelectorAll('.mz-select-btn').forEach(btn => {
+            card.querySelectorAll(".mz-select-btn").forEach((btn) => {
                 btn.onclick = () => {
                     const val = btn.dataset.val;
                     const sel = this.selections[t.id];
@@ -427,11 +459,11 @@ export class ReceptionHub {
             });
 
             // 2. Mark All button
-            const markAllBtn = card.querySelector('.btn-mark-all-mzs');
+            const markAllBtn = card.querySelector(".btn-mark-all-mzs");
             if (markAllBtn) {
                 markAllBtn.onclick = () => {
                     const sel = this.selections[t.id];
-                    const allSelected = mzs.every(m => sel.manzanas.includes(m));
+                    const allSelected = mzs.every((m) => sel.manzanas.includes(m));
                     if (allSelected) {
                         sel.manzanas = []; // deselect all
                     } else {
@@ -443,29 +475,29 @@ export class ReceptionHub {
         });
 
         // 3. Submit All reports button
-        const submitBtn = document.getElementById('btn-submit-all-reports');
+        const submitBtn = document.getElementById("btn-submit-all-reports");
         if (submitBtn) {
             submitBtn.onclick = async () => {
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Guardando...';
 
                 try {
-                    const dateInput = document.getElementById('common-delivery-date');
+                    const dateInput = document.getElementById("common-delivery-date");
                     const deliveryDate = dateInput ? dateInput.value : UIHelpers.formatDateId(new Date());
-                    const conductorInput = document.getElementById('common-conductor');
-                    const conductor = conductorInput ? conductorInput.value : (this.displayName || 'Conductor');
+                    const conductorInput = document.getElementById("common-conductor");
+                    const conductor = conductorInput ? conductorInput.value : this.displayName || "Conductor";
 
                     // Check if any territory has zero apples selected (meaning Devolución)
-                    const returningWithoutPreaching = territoriosParaMostrar.filter(t => {
+                    const returningWithoutPreaching = territoriosParaMostrar.filter((t) => {
                         const sel = this.selections[t.id];
-                        return !sel || !sel.manzanas || sel.manzanas.length === 0;
+                        return !sel?.manzanas || sel.manzanas.length === 0;
                     });
 
                     if (returningWithoutPreaching.length > 0) {
-                        const nums = returningWithoutPreaching.map(t => `T-${t.numero}`).join(', ');
+                        const nums = returningWithoutPreaching.map((t) => `T-${t.numero}`).join(", ");
                         const confirmed = await this.showInlineConfirm(
-                            '¿Devolver sin predicar?',
-                            `Vas a devolver ${nums} al panel sin registrar actividad (quedarán Disponibles). ¿Confirmar devolución?`
+                            "¿Devolver sin predicar?",
+                            `Vas a devolver ${nums} al panel sin registrar actividad (quedarán Disponibles). ¿Confirmar devolución?`,
                         );
                         if (!confirmed) {
                             submitBtn.disabled = false;
@@ -477,29 +509,48 @@ export class ReceptionHub {
                     // Process each territory
                     for (const t of territoriosParaMostrar) {
                         const sel = this.selections[t.id];
-                        const mzs = t.manzanas ? t.manzanas.split(',').map(m => m.trim()).filter(Boolean) : [];
+                        const mzs = t.manzanas
+                            ? t.manzanas
+                                  .split(",")
+                                  .map((m) => m.trim())
+                                  .filter(Boolean)
+                            : [];
                         const checksMz = sel ? sel.manzanas : [];
-                        const remaining = mzs.filter(x => !checksMz.includes(x));
+                        const remaining = mzs.filter((x) => !checksMz.includes(x));
 
                         if (checksMz.length === 0) {
                             // Devolución sin predicar (Disponible)
-                            await returnTerritorio(t.id, "Devolución desde control unificado", null, 'Disponible');
-                            window.dispatchEvent(new CustomEvent('territorio-liberado', { detail: { id: t.id, numero: t.numero } }));
+                            await returnTerritorio(t.id, "Devolución desde control unificado", null, "Disponible");
+                            window.dispatchEvent(
+                                new CustomEvent("territorio-liberado", { detail: { id: t.id, numero: t.numero } }),
+                            );
                         } else if (remaining.length === 0) {
                             // Entrega Total
-                            await returnTerritorio(t.id, null, deliveryDate, 'Completado', null, conductor);
-                            window.dispatchEvent(new CustomEvent('territorio-liberado', { detail: { id: t.id, numero: t.numero } }));
+                            await returnTerritorio(t.id, null, deliveryDate, "Completado", null, conductor);
+                            window.dispatchEvent(
+                                new CustomEvent("territorio-liberado", { detail: { id: t.id, numero: t.numero } }),
+                            );
                         } else {
                             // Entrega Parcial
-                            await returnTerritorioParcial(t.id, checksMz, remaining, true, null, deliveryDate, null, conductor);
-                            window.dispatchEvent(new CustomEvent('territorio-actualizado', { detail: { id: t.id, numero: t.numero } }));
+                            await returnTerritorioParcial(
+                                t.id,
+                                checksMz,
+                                remaining,
+                                true,
+                                null,
+                                deliveryDate,
+                                null,
+                                conductor,
+                            );
+                            window.dispatchEvent(
+                                new CustomEvent("territorio-actualizado", { detail: { id: t.id, numero: t.numero } }),
+                            );
                         }
                     }
 
                     showNotification("Actividad informada correctamente", "success");
                     if (window.renderTableCallback) window.renderTableCallback();
                     this.closeModal();
-
                 } catch (error) {
                     console.error("Error submitting reports:", error);
                     showNotification(error.message || "Error al guardar la actividad", "error");
@@ -512,15 +563,16 @@ export class ReceptionHub {
 
     showInlineConfirm(title, text) {
         return new Promise((resolve) => {
-            const container = document.getElementById('reception-hub-modal');
+            const container = document.getElementById("reception-hub-modal");
             if (!container) {
                 resolve(false);
                 return;
             }
 
-            const overlay = document.createElement('div');
-            overlay.className = 'absolute inset-0 z-[10000] flex items-center justify-center p-6 bg-slate-950/60 dark:bg-black/70 backdrop-blur-md rounded-[20px] animate-fade-in';
-            
+            const overlay = document.createElement("div");
+            overlay.className =
+                "absolute inset-0 z-[10000] flex items-center justify-center p-6 bg-slate-950/60 dark:bg-black/70 backdrop-blur-md rounded-[20px] animate-fade-in";
+
             overlay.innerHTML = `
                 <div class="bg-white dark:bg-[#0a0f18]/95 border border-slate-200/60 dark:border-white/10 p-6 rounded-[2rem] shadow-2xl max-w-sm w-full text-center space-y-4 animate-scale-in relative">
                     <div class="w-12 h-12 bg-rose-500/10 text-rose-500 rounded-2xl flex items-center justify-center text-xl mx-auto shadow-inner border border-rose-500/10">
@@ -544,8 +596,8 @@ export class ReceptionHub {
                 resolve(value);
             };
 
-            overlay.querySelector('#inline-confirm-cancel').onclick = () => cleanup(false);
-            overlay.querySelector('#inline-confirm-ok').onclick = () => cleanup(true);
+            overlay.querySelector("#inline-confirm-cancel").onclick = () => cleanup(false);
+            overlay.querySelector("#inline-confirm-ok").onclick = () => cleanup(true);
         });
     }
 
@@ -554,7 +606,7 @@ export class ReceptionHub {
      */
     closeModal() {
         if (this.unsubscribe) this.unsubscribe();
-        const modal = document.getElementById('reception-hub-modal');
+        const modal = document.getElementById("reception-hub-modal");
         if (modal) modal.remove();
 
         this.territories = [];
@@ -574,18 +626,18 @@ export class ReceptionHub {
 window.ReceptionHub = ReceptionHub;
 window.closeReceptionHub = () => ReceptionHub.closeModal();
 
-window.promptReturnTerritorio = async (id, numero) => {
+window.promptReturnTerritorio = async (id, _numero) => {
     const user = window.XolvyApp?.user;
-    const authUser = (await import('../../firebase-config.js')).auth.currentUser;
-    
-    const { normalizeRobust } = await import('../utils/helpers.js');
-    const resolvedName = normalizeRobust(user?.nombre || authUser?.displayName || authUser?.email || 'Usuario');
-    const isAdmin = user?.role === 'Administrador' || user?.role === 'SuperAdmin';
+    const authUser = (await import("../../firebase-config.js")).auth.currentUser;
+
+    const { normalizeRobust } = await import("../utils/helpers.js");
+    const resolvedName = normalizeRobust(user?.nombre || authUser?.displayName || authUser?.email || "Usuario");
+    const isAdmin = user?.role === "Administrador" || user?.role === "SuperAdmin";
 
     await ReceptionHub.openModal({
         preSelectedId: id,
-        viewMode: isAdmin ? 'admin' : 'conductor',
+        viewMode: isAdmin ? "admin" : "conductor",
         displayName: resolvedName,
-        isAdmin: isAdmin
+        isAdmin: isAdmin,
     });
 };

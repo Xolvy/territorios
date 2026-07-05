@@ -1,59 +1,65 @@
-import './modules/extensions.mjs';
-import { auth, db } from './firebase-config.js';
-import { onAuthStateChanged, signInAnonymously, getRedirectResult } from "firebase/auth";
+import "./modules/extensions.mjs";
+import { getRedirectResult, onAuthStateChanged } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
-import { getPermisosUsuario, migrateConductoresToPublicadores, autoCleanTelefonosData } from './data/firestore-services.js';
-import { initTheme } from './modules/utils/theme-manager.js';
-import { initUpdateManager, stopUpdateManager } from './modules/utils/update-manager.js';
-import { moduleRegistry } from './modules/utils/module-registry.js';
-import { XolvyAdaptive } from './modules/utils/adaptive.js';
-import { VisualEngine } from './modules/utils/visual-engine.js';
-import { IdentityShield } from './data/services/identity-service.js';
+import {
+    autoCleanTelefonosData,
+    getPermisosUsuario,
+    migrateConductoresToPublicadores,
+} from "./data/firestore-services.js";
+import { IdentityShield } from "./data/services/identity-service.js";
+import { auth, db } from "./firebase-config.js";
+import { XolvyAdaptive } from "./modules/utils/adaptive.js";
+import { moduleRegistry } from "./modules/utils/module-registry.js";
+import { initTheme } from "./modules/utils/theme-manager.js";
+import { initUpdateManager, stopUpdateManager } from "./modules/utils/update-manager.js";
+import { VisualEngine } from "./modules/utils/visual-engine.js";
 
 // --- MOBILE MENU LOGIC ---
 // Deterministic open/close (never toggle) to survive dashboard re-renders
 function closeMobileMenu() {
-    const s = document.getElementById('main-sidebar');
-    const o = document.getElementById('mobile-overlay');
-    if (s) s.classList.add('-translate-x-full');
-    if (o) o.classList.add('hidden');
+    const s = document.getElementById("main-sidebar");
+    const o = document.getElementById("mobile-overlay");
+    if (s) s.classList.add("-translate-x-full");
+    if (o) o.classList.add("hidden");
 }
 function openMobileMenu() {
-    const s = document.getElementById('main-sidebar');
-    const o = document.getElementById('mobile-overlay');
-    if (s) s.classList.remove('-translate-x-full');
-    if (o) o.classList.remove('hidden');
+    const s = document.getElementById("main-sidebar");
+    const o = document.getElementById("mobile-overlay");
+    if (s) s.classList.remove("-translate-x-full");
+    if (o) o.classList.remove("hidden");
 }
 window.closeMobileMenu = closeMobileMenu;
 
 export function initMobileMenu() {
-    const sidebar = document.getElementById('main-sidebar');
-    const toggleBtn = document.getElementById('menu-toggle-btn');
+    const sidebar = document.getElementById("main-sidebar");
+    const toggleBtn = document.getElementById("menu-toggle-btn");
     if (!sidebar || !toggleBtn) return;
 
     // Hamburger → open
-    toggleBtn.onclick = (e) => { e.stopPropagation(); openMobileMenu(); };
+    toggleBtn.onclick = (e) => {
+        e.stopPropagation();
+        openMobileMenu();
+    };
 
     // X button inside sidebar → close
-    const closeBtn = document.getElementById('btn-close-sidebar');
+    const closeBtn = document.getElementById("btn-close-sidebar");
     if (closeBtn) closeBtn.onclick = () => closeMobileMenu();
 
     // Overlay backdrop → close
-    const overlay = document.getElementById('mobile-overlay');
+    const overlay = document.getElementById("mobile-overlay");
     if (overlay) overlay.onclick = () => closeMobileMenu();
 
     // Nav items inside sidebar → close on mobile after selection
-    sidebar.querySelectorAll('.nav-item').forEach(btn => {
-        btn.addEventListener('click', () => {
+    sidebar.querySelectorAll(".nav-item").forEach((btn) => {
+        btn.addEventListener("click", () => {
             if (window.innerWidth < 1024) closeMobileMenu();
         });
     });
 }
 window.initMobileMenu = initMobileMenu;
 
-
 // FASE 1: Clean dirty rescue URLs left by old update loops
-if (window.location.search.includes('rescue')) {
+if (window.location.search.includes("rescue")) {
     window.history.replaceState({}, document.title, window.location.pathname);
 }
 
@@ -68,26 +74,29 @@ const APP_VERSION = "3.8.5";
 window.XolvyApp = { user: null, version: APP_VERSION };
 
 // --- XOLVY MODULAR: MICRO-MODULE ENGINE ---
-const dynamicModules = import.meta.glob('./modules/**/*.js');
+const dynamicModules = import.meta.glob("./modules/**/*.js");
 
 async function loadModule(moduleName, basePath) {
     return moduleRegistry.loadModule(moduleName, basePath, dynamicModules);
 }
 
 // Shell View Accessors
-const loadLogin = async () => (await loadModule('login', './modules/login.js')).renderLogin;
-const loadAdmin = async () => (await loadModule('admin', './modules/admin-dashboard.js')).renderAdminDashboard;
+const loadLogin = async () => (await loadModule("login", "./modules/login.js")).renderLogin;
+const loadAdmin = async () => (await loadModule("admin", "./modules/admin-dashboard.js")).renderAdminDashboard;
 let _conductorLoading = false;
 const loadConductor = async () => {
     if (_conductorLoading) {
-        console.warn('[App] loadConductor ya está en ejecución, ignorando llamada duplicada');
+        console.warn("[App] loadConductor ya está en ejecución, ignorando llamada duplicada");
         return window.XolvyApp.lastConductorRender || (async () => {});
     }
     _conductorLoading = true;
     try {
         // ERROR 2 — Esperar a que Firebase Auth tenga usuario antes de cargar módulos
         await new Promise((resolve) => {
-            if (auth.currentUser) { resolve(); return; }
+            if (auth.currentUser) {
+                resolve();
+                return;
+            }
             const timeout = setTimeout(() => {
                 console.warn("⚠️ [Auth] Timeout en loadConductor — procediendo sin usuario");
                 resolve();
@@ -100,7 +109,7 @@ const loadConductor = async () => {
                 }
             });
         });
-        const render = (await loadModule('conductor', './modules/conductor-dashboard.js')).renderConductorDashboard;
+        const render = (await loadModule("conductor", "./modules/conductor-dashboard.js")).renderConductorDashboard;
         window.XolvyApp.lastConductorRender = render;
         return render;
     } finally {
@@ -108,29 +117,32 @@ const loadConductor = async () => {
     }
 };
 
-
 // --- DIFFUSION LISTENER ---
 let unsubDiffusion = null;
 const initDiffusionListener = () => {
     if (unsubDiffusion) return; // Prevent duplicate listeners
-    unsubDiffusion = onSnapshot(doc(db, "configuracion", "diffusion_active"), (docSnap) => {
-        let banner = document.getElementById('global-diffusion-banner');
-        if (docSnap.exists() && docSnap.data().active) {
-            const data = docSnap.data();
-            if (!banner) {
-                banner = document.createElement('div');
-                banner.id = 'global-diffusion-banner';
-                document.body.prepend(banner);
+    unsubDiffusion = onSnapshot(
+        doc(db, "configuracion", "diffusion_active"),
+        (docSnap) => {
+            let banner = document.getElementById("global-diffusion-banner");
+            if (docSnap.exists() && docSnap.data().active) {
+                const data = docSnap.data();
+                if (!banner) {
+                    banner = document.createElement("div");
+                    banner.id = "global-diffusion-banner";
+                    document.body.prepend(banner);
+                }
+                const bgColor = data.type === "urgent" ? "from-red-600 to-red-800" : "from-blue-600 to-blue-800";
+                banner.className = `w-full bg-gradient-to-r ${bgColor} text-white p-4 flex items-center justify-center gap-4 sticky top-0 z-[100] shadow-2xl`;
+                banner.innerHTML = `<span>📢</span> <div class="flex-1 text-center font-black uppercase text-xs">${data.content}</div>`;
+            } else {
+                if (banner) banner.remove();
             }
-            const bgColor = data.type === 'urgent' ? 'from-red-600 to-red-800' : 'from-blue-600 to-blue-800';
-            banner.className = `w-full bg-gradient-to-r ${bgColor} text-white p-4 flex items-center justify-center gap-4 sticky top-0 z-[100] shadow-2xl`;
-            banner.innerHTML = `<span>📢</span> <div class="flex-1 text-center font-black uppercase text-xs">${data.content}</div>`;
-        } else {
-            if (banner) banner.remove();
-        }
-    }, (error) => {
-        console.warn("⚠️ [Diffusion] Error in diffusion listener:", error);
-    });
+        },
+        (error) => {
+            console.warn("⚠️ [Diffusion] Error in diffusion listener:", error);
+        },
+    );
 };
 
 const stopDiffusionListener = () => {
@@ -138,13 +150,13 @@ const stopDiffusionListener = () => {
         unsubDiffusion();
         unsubDiffusion = null;
     }
-    const banner = document.getElementById('global-diffusion-banner');
+    const banner = document.getElementById("global-diffusion-banner");
     if (banner) banner.remove();
 };
 
 // Initialization
-document.addEventListener('DOMContentLoaded', async () => {
-    const appContainer = document.getElementById('app-container');
+document.addEventListener("DOMContentLoaded", async () => {
+    const appContainer = document.getElementById("app-container");
 
     // 1. App Loading State: Prevenir renderizado errático durante inicialización y checkeo asíncrono
     appContainer.innerHTML = `
@@ -173,25 +185,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 2. Interceptar getRedirectResult sin bloquear el listener global
     // Esto previene que el app se quede colgado en "Verificando credenciales" si Firebase tarda en responder
-    getRedirectResult(auth).then((result) => {
-        if (result && result.user) {
-            console.log("💎 [Auth] Login exitoso vía Redirect:", result.user.email);
-        }
-    }).catch((redirectError) => {
-        console.error("❌ [Auth] Redirect Error:", redirectError);
-        // En caso de error de red o similar, el onAuthStateChanged eventualmente fallará o mostrará login
-    });
+    getRedirectResult(auth)
+        .then((result) => {
+            if (result?.user) {
+                console.log("💎 [Auth] Login exitoso vía Redirect:", result.user.email);
+            }
+        })
+        .catch((redirectError) => {
+            console.error("❌ [Auth] Redirect Error:", redirectError);
+            // En caso de error de red o similar, el onAuthStateChanged eventualmente fallará o mostrará login
+        });
 
     const handleAuthChange = async (user) => {
         // --- UNCONDITIONAL POOL CLEANUP (LP-01, LP-02) ---
-        if (typeof window.stopActiveLivePools === 'function') {
+        if (typeof window.stopActiveLivePools === "function") {
             try {
                 window.stopActiveLivePools();
             } catch (e) {
                 console.error("Error stopping active conductor pools:", e);
             }
         }
-        if (typeof window.stopAdminLivePools === 'function') {
+        if (typeof window.stopAdminLivePools === "function") {
             try {
                 window.stopAdminLivePools();
             } catch (e) {
@@ -209,7 +223,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // persistence (xolvy_session), never for authorization.
         // ═══════════════════════════════════════════════════════════
 
-        const tieneSesionLocal = !!localStorage.getItem('xolvy_session');
+        const tieneSesionLocal = !!localStorage.getItem("xolvy_session");
 
         // CASE 1: No Authenticated User
         if (!user) {
@@ -219,16 +233,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             moduleRegistry.stop();
             stopUpdateManager();
 
-            // Protection for Conductors: If there's a local session hint, 
+            // Protection for Conductors: If there's a local session hint,
             // trigger anonymous auth + Firestore validation (NOT localStorage role check)
             if (tieneSesionLocal) {
                 console.log("🚀 [FastBoot] Detectada sesión local de Conductor. Iniciando validación...");
 
-                if (window.location.pathname.startsWith('/conductores')) {
-                    const session = JSON.parse(localStorage.getItem('xolvy_session'));
+                if (window.location.pathname.startsWith("/conductores")) {
+                    const session = JSON.parse(localStorage.getItem("xolvy_session"));
                     // Identity Shield: Resolve identity via Firestore before rendering
                     try {
-                        const identity = await IdentityShield.resolveAndBindIdentity(session?.nombre || session?.email || 'Usuario');
+                        const identity = await IdentityShield.resolveAndBindIdentity(
+                            session?.nombre || session?.email || "Usuario",
+                        );
                         if (identity.docId) {
                             // Initialize diffusion, HMS, and update listeners now that we are authenticated and bound
                             initDiffusionListener();
@@ -237,7 +253,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                             // Validated against Firestore — safe to render
                             const render = await loadConductor();
-                            render(appContainer, identity.nombreCanonico, APP_VERSION, identity.rol || 'Conductor');
+                            render(appContainer, identity.nombreCanonico, APP_VERSION, identity.rol || "Conductor");
                             return; // CRITICAL: Stop execution here
                         }
                     } catch (e) {
@@ -245,8 +261,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 }
                 // If we reach here, the local session is invalid — purge and show login
-                localStorage.removeItem('xolvy_session');
-                localStorage.removeItem('selected_conductor_name');
+                localStorage.removeItem("xolvy_session");
+                localStorage.removeItem("selected_conductor_name");
             }
 
             // Standard Login Fallback (no more admin guard via localStorage)
@@ -261,14 +277,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         try {
             const contextPath = window.location.pathname;
-            
+
             console.log("💎 [Auth] Active User Session:", user.email);
-            
+
             // 2.1 Anonymous Sessions (Conductor)
             if (user.isAnonymous) {
                 if (window._fastBootRendered) return;
-                const storedName = localStorage.getItem('selected_conductor_name');
-                const session = localStorage.getItem('xolvy_session');
+                const storedName = localStorage.getItem("selected_conductor_name");
+                const session = localStorage.getItem("xolvy_session");
 
                 if (storedName || session) {
                     const nameToResolve = storedName || (session ? JSON.parse(session)?.nombre : null);
@@ -278,16 +294,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                         return;
                     }
 
-                    if (!contextPath.startsWith('/conductores')) window.history.replaceState({}, '', '/conductores');
-                    
+                    if (!contextPath.startsWith("/conductores")) window.history.replaceState({}, "", "/conductores");
+
                     // Identity Shield: Validate against Firestore — the ONLY source of truth
                     const identity = await IdentityShield.resolveAndBindIdentity(nameToResolve);
-                    
+
                     if (!identity.docId) {
                         // User not found in Firestore — reject
                         console.warn("⚠️ [Auth] Conductor no encontrado en Firestore. Cerrando sesión.");
-                        localStorage.removeItem('xolvy_session');
-                        localStorage.removeItem('selected_conductor_name');
+                        localStorage.removeItem("xolvy_session");
+                        localStorage.removeItem("selected_conductor_name");
                         await auth.signOut();
                         return;
                     }
@@ -298,15 +314,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                     initUpdateManager();
 
                     const render = await loadConductor();
-                    render(appContainer, identity.nombreCanonico, APP_VERSION, identity.rol || 'Conductor');
+                    render(appContainer, identity.nombreCanonico, APP_VERSION, identity.rol || "Conductor");
                     return;
                 } else {
-                    // Anonymous but no conductor session? 
+                    // Anonymous but no conductor session?
                     // If we are currently showing the login screen / selection modal, DO NOT sign out!
                     // This allows anonymous session to remain active so the user can read the directory list.
-                    const isConductorModalOpen = !!document.getElementById('conductor-modal');
-                    const isLoginView = !!document.getElementById('btn-google-login');
-                    
+                    const isConductorModalOpen = !!document.getElementById("conductor-modal");
+                    const isLoginView = !!document.getElementById("btn-google-login");
+
                     if (isConductorModalOpen || isLoginView) {
                         console.log("🛡️ [Auth] Anonymous session active for directory query.");
                         return;
@@ -321,19 +337,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             // 2.2 Global Authorization (Firestore Gated — ZERO TRUST)
             // ALWAYS verify role in Firestore — NEVER trust localStorage
             const permisos = await getPermisosUsuario(user.email);
-            let role = permisos?.role; 
+            const role = permisos?.role;
 
             // Integración de Identity Shield Directa para Admins/Usuarios Autenticados
             try {
-                const IdentityService = await import('./data/services/identity-service.js');
+                const IdentityService = await import("./data/services/identity-service.js");
                 window.XolvyApp.identity = await IdentityService.IdentityShield.bindSessionDirect(
                     user.uid,
                     permisos.id,
                     permisos.nombre,
-                    role
+                    role,
                 );
             } catch (identityError) {
-                console.error("🛡️ [Security Shield] Falló la vinculación de la sesión del administrador:", identityError);
+                console.error(
+                    "🛡️ [Security Shield] Falló la vinculación de la sesión del administrador:",
+                    identityError,
+                );
             }
 
             // Initialize diffusion, HMS, and update listeners now that we are authenticated and bound
@@ -346,7 +365,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 uid: user.uid,
                 email: user.email,
                 nombre: window.XolvyApp.identity?.nombreCanonico || permisos?.nombre || user.displayName || user.email,
-                role: role || window.XolvyApp.identity?.rol || 'Visitante'
+                role: role || window.XolvyApp.identity?.rol || "Visitante",
             };
 
             if (!role) {
@@ -366,43 +385,45 @@ document.addEventListener('DOMContentLoaded', async () => {
             autoCleanTelefonosData();
 
             // 2.3 Dashboard Routing (role from Firestore ONLY)
-            const isAdmin = (role === 'Administrador' || role === 'SuperAdmin');
+            const isAdmin = role === "Administrador" || role === "SuperAdmin";
             const path = window.location.pathname;
 
             // FASE 1: Hard-Gated Admin Route Guard (Unbypassable P0 Shield)
-            if (path.startsWith('/administrador')) {
+            if (path.startsWith("/administrador")) {
                 if (!isAdmin) {
-                    console.error("🛡️ [Security Shield] Intento de acceso no autorizado a Administrador detectado. Forzando redirección.");
-                    window.history.replaceState({}, '', '/conductores');
+                    console.error(
+                        "🛡️ [Security Shield] Intento de acceso no autorizado a Administrador detectado. Forzando redirección.",
+                    );
+                    window.history.replaceState({}, "", "/conductores");
                     const render = await loadConductor();
-                    render(appContainer, user.email || 'Usuario', APP_VERSION, role);
+                    render(appContainer, user.email || "Usuario", APP_VERSION, role);
                     return;
                 }
             }
 
             // FASE 2: Redirect duro y limpio en raíz o login
-            if (path === '/' || path === '/login' || path.includes('index.html')) {
+            if (path === "/" || path === "/login" || path.includes("index.html")) {
                 if (isAdmin) {
-                    window.location.href = '/administrador';
+                    window.location.href = "/administrador";
                 } else {
-                    window.location.href = '/conductores';
+                    window.location.href = "/conductores";
                 }
                 return;
             }
 
-            if (isAdmin && path.startsWith('/conductores')) {
+            if (isAdmin && path.startsWith("/conductores")) {
                 // Modo Simulacro: Si un administrador navega a /conductores, se le permite.
                 console.log("🛡️ [Security] Admin entrando a vista Conductor (Modo Simulacro/Supervisión).");
-                
-                let storedName = localStorage.getItem('selected_conductor_name');
+
+                let storedName = localStorage.getItem("selected_conductor_name");
                 if (!storedName && window.XolvyApp?.identity?.nombreCanonico) {
                     storedName = window.XolvyApp.identity.nombreCanonico;
-                    localStorage.setItem('selected_conductor_name', storedName);
+                    localStorage.setItem("selected_conductor_name", storedName);
                 }
 
                 if (!storedName) {
-                    appContainer.innerHTML = '';
-                    const mLogin = await loadModule('login', './modules/login.js');
+                    appContainer.innerHTML = "";
+                    const mLogin = await loadModule("login", "./modules/login.js");
                     mLogin.renderConductorSelection();
                     return;
                 }
@@ -410,34 +431,39 @@ document.addEventListener('DOMContentLoaded', async () => {
                 render(appContainer, storedName, APP_VERSION, role);
             } else if (isAdmin) {
                 // Admin route: Clear conductor session artifacts
-                localStorage.removeItem('xolvy_session');
-                localStorage.removeItem('selected_conductor_name');
+                localStorage.removeItem("xolvy_session");
+                localStorage.removeItem("selected_conductor_name");
 
-                const subPath = path.split('/')[2] || 'dashboard';
-                const urlToTab = { 'territorios': 'casa-en-casa', 'predicacion': 'predicacion', 'telefonos': 'telefonos', 'config': 'config' };
-                const tabId = urlToTab[subPath] || 'dashboard';
+                const subPath = path.split("/")[2] || "dashboard";
+                const urlToTab = {
+                    territorios: "casa-en-casa",
+                    predicacion: "predicacion",
+                    telefonos: "telefonos",
+                    config: "config",
+                };
+                const tabId = urlToTab[subPath] || "dashboard";
                 const render = await loadAdmin();
                 render(appContainer, APP_VERSION, tabId);
             } else {
                 // Publicadores / Otros
-                if (!window.location.pathname.startsWith('/conductores')) window.history.pushState({}, '', '/conductores');
+                if (!window.location.pathname.startsWith("/conductores"))
+                    window.history.pushState({}, "", "/conductores");
                 const render = await loadConductor();
-                render(appContainer, user.email || 'Usuario', APP_VERSION, role);
+                render(appContainer, user.email || "Usuario", APP_VERSION, role);
             }
         } catch (e) {
             console.error("🚀 [Boot] Error:", e);
         }
     };
 
-
     // Expose for seamless transitions
     window.switchToConductorView = () => {
-        window.history.pushState({}, '', '/conductores');
+        window.history.pushState({}, "", "/conductores");
         handleAuthChange(auth.currentUser);
     };
 
     window.switchToAdminView = () => {
-        window.history.pushState({}, '', '/administrador');
+        window.history.pushState({}, "", "/administrador");
         handleAuthChange(auth.currentUser);
     };
 
@@ -446,20 +472,37 @@ document.addEventListener('DOMContentLoaded', async () => {
         const path = window.location.pathname;
 
         // XOLVY UPDATES: Use the new discrete notification system
-        const { notifyModuleUpdate, completeXolvyUpdate } = await import('./modules/utils/update-manager.js');
+        const { notifyModuleUpdate, completeXolvyUpdate } = await import("./modules/utils/update-manager.js");
         notifyModuleUpdate(moduleName, version);
 
         // Define which sub-modules belong to which main view
-        const conductorSubModules = ['availability', 'recursos', 'maps_explorer', 'rescue', 'phone_module', 'onboarding', 'weekly_program', 'program_views'];
-        const adminSubModules = ['territories_view', 'public_view', 'phones_view', 'rules_view', 'analytics_view', 'reports_view'];
+        const conductorSubModules = [
+            "availability",
+            "recursos",
+            "maps_explorer",
+            "rescue",
+            "phone_module",
+            "onboarding",
+            "weekly_program",
+            "program_views",
+        ];
+        const adminSubModules = [
+            "territories_view",
+            "public_view",
+            "phones_view",
+            "rules_view",
+            "analytics_view",
+            "reports_view",
+        ];
 
         // Determine if we should re-render (use path + XolvyApp.user.role, NOT localStorage)
-        const isConductorView = path.startsWith('/conductores');
+        const isConductorView = path.startsWith("/conductores");
         const currentRole = window.XolvyApp?.user?.role;
-        const isAdminView = !isConductorView && (currentRole === 'Administrador' || currentRole === 'SuperAdmin');
+        const isAdminView = !isConductorView && (currentRole === "Administrador" || currentRole === "SuperAdmin");
 
-        const shouldRefreshConductor = isConductorView && (moduleName === 'conductor' || conductorSubModules.includes(moduleName));
-        const shouldRefreshAdmin = isAdminView && (moduleName === 'admin' || adminSubModules.includes(moduleName));
+        const shouldRefreshConductor =
+            isConductorView && (moduleName === "conductor" || conductorSubModules.includes(moduleName));
+        const shouldRefreshAdmin = isAdminView && (moduleName === "admin" || adminSubModules.includes(moduleName));
 
         if (shouldRefreshConductor || shouldRefreshAdmin) {
             const user = auth.currentUser;
@@ -469,9 +512,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             const uiState = {
                 scroll: window.scrollY,
                 module: moduleName,
-                timestamp: Date.now()
+                timestamp: Date.now(),
             };
-            sessionStorage.setItem('xolvy_hms_state', JSON.stringify(uiState));
+            sessionStorage.setItem("xolvy_hms_state", JSON.stringify(uiState));
 
             // Small delay to show the "Receiving" state in HUD
             setTimeout(() => {
@@ -479,11 +522,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 // Targeted refresh or full re-auth
                 if (shouldRefreshConductor && window.refreshConductorView) {
-                    window.refreshConductorView().then(() => { restoreState(); XolvyAdaptive.refresh(); });
+                    window.refreshConductorView().then(() => {
+                        restoreState();
+                        XolvyAdaptive.refresh();
+                    });
                 } else if (shouldRefreshAdmin && window.refreshAdminView) {
-                    window.refreshAdminView().then(() => { restoreState(); XolvyAdaptive.refresh(); });
+                    window.refreshAdminView().then(() => {
+                        restoreState();
+                        XolvyAdaptive.refresh();
+                    });
                 } else {
-                    handleAuthChange(user).then(() => { restoreState(); XolvyAdaptive.refresh(); });
+                    handleAuthChange(user).then(() => {
+                        restoreState();
+                        XolvyAdaptive.refresh();
+                    });
                 }
             }, 2000);
         } else {
@@ -495,24 +547,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     const restoreState = () => {
-        const saved = sessionStorage.getItem('xolvy_hms_state');
+        const saved = sessionStorage.getItem("xolvy_hms_state");
         if (saved) {
             const { scroll } = JSON.parse(saved);
-            window.scrollTo({ top: scroll, behavior: 'smooth' });
-            sessionStorage.removeItem('xolvy_hms_state');
+            window.scrollTo({ top: scroll, behavior: "smooth" });
+            sessionStorage.removeItem("xolvy_hms_state");
         }
     };
 
     // Xolvy Data Shield: Cache Burster on version change
-    const lastVer = localStorage.getItem('last_app_version');
+    const lastVer = localStorage.getItem("last_app_version");
     if (lastVer !== APP_VERSION) {
         console.log(`✨ Version Upgrade: ${lastVer} -> ${APP_VERSION}. Purging caches.`);
-        const { clearServiceCache } = await import('./data/firestore-services.js');
+        const { clearServiceCache } = await import("./data/firestore-services.js");
         clearServiceCache();
-        localStorage.setItem('last_app_version', APP_VERSION);
+        localStorage.setItem("last_app_version", APP_VERSION);
     }
 
-    // Xolvy Automation: System Maintenance Hooks 
+    // Xolvy Automation: System Maintenance Hooks
     // (Migrated to execute safely post-authentication inside handleAuthChange)
 
     let authResolved = false;
@@ -532,16 +584,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         handleAuthChange(user);
     });
 
-    document.addEventListener('demo-login', async (e) => {
+    document.addEventListener("demo-login", async (e) => {
         const { email, role } = e.detail;
-        
+
         // SECURITY v4.0: We store conductor name for session persistence ONLY.
         // No 'demo_role' is stored — role comes from Firestore exclusively.
-        localStorage.setItem('selected_conductor_name', email);
-        
+        localStorage.setItem("selected_conductor_name", email);
+
         // Identity Shield: Secure identity before rendering heavy modules
         const identity = await IdentityShield.resolveAndBindIdentity(email);
-        
+
         // Validate identity was found in Firestore
         if (!identity.docId) {
             console.error("🛡️ [Security] Conductor identity not found in Firestore. Blocking access.");
@@ -549,46 +601,54 @@ document.addEventListener('DOMContentLoaded', async () => {
             render(appContainer, APP_VERSION);
             return;
         }
-        
+
         // Zero-Latency Execution: Enrutamiento en milisegundos ignorando latencia de red
         window._fastBootRendered = true;
-        window.XolvyApp.user = { nombre: identity.nombreCanonico, email: email, role: identity.rol || 'Conductor' };
-        if (!window.location.pathname.startsWith('/conductores')) window.history.pushState({}, '', '/conductores');
-        
+        window.XolvyApp.user = { nombre: identity.nombreCanonico, email: email, role: identity.rol || "Conductor" };
+        if (!window.location.pathname.startsWith("/conductores")) window.history.pushState({}, "", "/conductores");
+
         const render = await loadConductor();
         render(appContainer, identity.nombreCanonico, APP_VERSION, identity.rol || role);
     });
 
     // CAMBIO 3: Listener Delegado Global para Logout de Conductor
-    document.addEventListener('click', async (e) => {
-        const btn = e.target.closest('#logout-btn');
-        if (btn && window.location.pathname.startsWith('/conductores')) {
+    document.addEventListener("click", async (e) => {
+        const btn = e.target.closest("#logout-btn");
+        if (btn && window.location.pathname.startsWith("/conductores")) {
             console.log("👋 [Logout] Cerrando sesión de Conductor...");
-            
+
             // Unconditionally stop active pools on logout
-            if (typeof window.stopActiveLivePools === 'function') {
-                try { window.stopActiveLivePools(); } catch (err) {}
+            if (typeof window.stopActiveLivePools === "function") {
+                try {
+                    window.stopActiveLivePools();
+                } catch (_err) {}
             }
-            if (typeof window.stopAdminLivePools === 'function') {
-                try { window.stopAdminLivePools(); } catch (err) {}
+            if (typeof window.stopAdminLivePools === "function") {
+                try {
+                    window.stopAdminLivePools();
+                } catch (_err) {}
             }
 
-            localStorage.removeItem('xolvy_session');
-            localStorage.removeItem('selected_conductor_name');
-            
+            localStorage.removeItem("xolvy_session");
+            localStorage.removeItem("selected_conductor_name");
+
             // Limpiar la URL y recargar para volver al Login puro
-            window.history.replaceState({}, '', '/conductores'); 
+            window.history.replaceState({}, "", "/conductores");
             window.location.reload();
         }
     });
 
     // --- HOOK DE DESTRUCCIÓN UNCONDITIONAL (LP-01) ---
-    window.addEventListener('beforeunload', () => {
-        if (typeof window.stopActiveLivePools === 'function') {
-            try { window.stopActiveLivePools(); } catch (err) {}
+    window.addEventListener("beforeunload", () => {
+        if (typeof window.stopActiveLivePools === "function") {
+            try {
+                window.stopActiveLivePools();
+            } catch (_err) {}
         }
-        if (typeof window.stopAdminLivePools === 'function') {
-            try { window.stopAdminLivePools(); } catch (err) {}
+        if (typeof window.stopAdminLivePools === "function") {
+            try {
+                window.stopAdminLivePools();
+            } catch (_err) {}
         }
     });
 });

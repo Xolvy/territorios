@@ -8,7 +8,7 @@ export const createModularView = (moduleName, renderFn) => {
 
     return async (container, ...args) => {
         // Clear previous module logic if needed
-        // container.innerHTML = ''; 
+        // container.innerHTML = '';
 
         try {
             await renderFn(container, ...args);

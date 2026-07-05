@@ -1,10 +1,7 @@
-
-import {
-    getTerritorios, deleteTerritorio, updateTerritorio
-} from '../../data/firestore-services.js';
-import { showNotification } from '../utils/helpers.js';
-import { showModal, showCustomConfirm } from '../services/ui-helpers.js';
-import { MapViewer } from '../map-viewer.js';
+import { deleteTerritorio, getTerritorios, updateTerritorio } from "../../data/firestore-services.js";
+import { MapViewer } from "../map-viewer.js";
+import { showCustomConfirm, showModal } from "../services/ui-helpers.js";
+import { showNotification } from "../utils/helpers.js";
 
 export const renderS12View = async (container, config, appVersion) => {
     let terrs = [];
@@ -12,31 +9,40 @@ export const renderS12View = async (container, config, appVersion) => {
         const tRaw = await getTerritorios();
 
         // Xolvy Data Shield: Robust normalization & ghost filtering
-        const normalizeT = (val) => String(val || '').trim();
+        const normalizeT = (val) => String(val || "").trim();
         terrs = tRaw
-            .filter(rec => {
+            .filter((rec) => {
                 const hasNum = rec.numero && String(rec.numero).trim().length > 0;
                 return hasNum;
             })
-            .map(rec => ({
+            .map((rec) => ({
                 ...rec,
                 numero: normalizeT(rec.numero),
-                manzanas: String(rec.manzanas || '').replace(/Salmo/gi, 'Mz.').trim(),
-                localidad: String(rec.localidad || '').replace(/grupos?/gi, '').trim()
+                manzanas: String(rec.manzanas || "")
+                    .replace(/Salmo/gi, "Mz.")
+                    .trim(),
+                localidad: String(rec.localidad || "")
+                    .replace(/grupos?/gi, "")
+                    .trim(),
             }))
-            .sort((a, b) => String(a.numero || '').localeCompare(String(b.numero || ''), undefined, { numeric: true }));
+            .sort((a, b) => String(a.numero || "").localeCompare(String(b.numero || ""), undefined, { numeric: true }));
     } catch (e) {
         console.error("Error sorting S12:", e);
     }
 
-    const renderGrid = (query = '') => {
-        const filtered = query ? terrs.filter(t =>
-            String(t.numero || '').toLowerCase().includes(query) ||
-            (t.localidad && t.localidad.toLowerCase().includes(query)) ||
-            (t.nombre && t.nombre.toLowerCase().includes(query))
-        ) : terrs;
+    const renderGrid = (query = "") => {
+        const filtered = query
+            ? terrs.filter(
+                  (t) =>
+                      String(t.numero || "")
+                          .toLowerCase()
+                          .includes(query) ||
+                      t.localidad?.toLowerCase().includes(query) ||
+                      t.nombre?.toLowerCase().includes(query),
+              )
+            : terrs;
 
-        const grid = container.querySelector('#s12-grid');
+        const grid = container.querySelector("#s12-grid");
         if (!grid) return;
 
         if (filtered.length === 0) {
@@ -44,12 +50,13 @@ export const renderS12View = async (container, config, appVersion) => {
             return;
         }
 
-        grid.innerHTML = filtered.map(t => {
-            try {
-                const isAssigned = t.estado === 'Asignado' || t.estado === 'Pendiente';
-                const allMzs = t.manzanas ? String(t.manzanas).split(',').filter(Boolean).length : 0;
+        grid.innerHTML = filtered
+            .map((t) => {
+                try {
+                    const isAssigned = t.estado === "Asignado" || t.estado === "Pendiente";
+                    const allMzs = t.manzanas ? String(t.manzanas).split(",").filter(Boolean).length : 0;
 
-                return `
+                    return `
                 <div class="modern-card p-5 md:p-6 border-slate-100 dark:border-white/5 shadow-sm group hover:border-primary/50 transition-all bg-white dark:bg-slate-900/40 flex flex-col h-full relative overflow-hidden">
                     <div class="flex justify-between items-start mb-6 shrink-0">
                         <div class="flex items-center gap-3">
@@ -69,25 +76,26 @@ export const renderS12View = async (container, config, appVersion) => {
                     </div>
                     
                     <div class="flex-1 min-w-0 flex flex-col justify-between">
-                        <p class="text-[11px] md:text-sm font-black text-slate-800 dark:text-white uppercase truncate flex items-center gap-2 mb-4" title="${t.localidad || t.nombre || ''}">
+                        <p class="text-[11px] md:text-sm font-black text-slate-800 dark:text-white uppercase truncate flex items-center gap-2 mb-4" title="${t.localidad || t.nombre || ""}">
                             <i class="fas fa-location-dot text-[10px] text-primary/40 shrink-0"></i>
-                            <span class="truncate">${t.localidad || t.nombre || '—'}</span>
+                            <span class="truncate">${t.localidad || t.nombre || "—"}</span>
                         </p>
                         
                         <div class="pt-4 border-t border-slate-100 dark:border-white/5 flex flex-wrap items-center justify-between gap-2">
                             <div class="flex items-center gap-1.5 min-w-0">
-                                <span class="text-[7px] md:text-[8px] font-black px-1.5 py-0.5 md:py-1 rounded-md ${isAssigned ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-600' : 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600'} uppercase tracking-tight shrink-0">${t.estado || 'Disponible'}</span>
-                                ${t.asignado_a ? `<span class="text-[7px] font-black text-slate-600 dark:text-slate-400 uppercase truncate max-w-[50px] md:max-w-[70px]">${t.asignado_a}</span>` : ''}
+                                <span class="text-[7px] md:text-[8px] font-black px-1.5 py-0.5 md:py-1 rounded-md ${isAssigned ? "bg-amber-100 dark:bg-amber-500/20 text-amber-600" : "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600"} uppercase tracking-tight shrink-0">${t.estado || "Disponible"}</span>
+                                ${t.asignado_a ? `<span class="text-[7px] font-black text-slate-600 dark:text-slate-400 uppercase truncate max-w-[50px] md:max-w-[70px]">${t.asignado_a}</span>` : ""}
                             </div>
                             <div class="text-[7px] md:text-[8px] font-black text-slate-600 dark:text-slate-400 uppercase bg-slate-50 dark:bg-white/5 px-1.5 py-0.5 md:py-1 rounded-md border border-slate-100 dark:border-white/5 shrink-0">${allMzs} MZ</div>
                         </div>
                     </div>
                 </div>`;
-            } catch (cardErr) {
-                console.error("Critical rendering error on territory card:", cardErr, t);
-                return `<div class="p-4 border border-rose-500/30 rounded-2xl text-[8px] font-black text-rose-500 uppercase">Error en registro ${t.numero || t.id}</div>`;
-            }
-        }).join('');
+                } catch (cardErr) {
+                    console.error("Critical rendering error on territory card:", cardErr, t);
+                    return `<div class="p-4 border border-rose-500/30 rounded-2xl text-[8px] font-black text-rose-500 uppercase">Error en registro ${t.numero || t.id}</div>`;
+                }
+            })
+            .join("");
     };
 
     container.innerHTML = `
@@ -116,16 +124,20 @@ export const renderS12View = async (container, config, appVersion) => {
         </div>
     `;
 
-    const searchInput = container.querySelector('#s12-search');
+    const searchInput = container.querySelector("#s12-search");
     if (searchInput) {
         searchInput.oninput = (e) => renderGrid(e.target.value.trim().toLowerCase());
     }
 
-    const exportBtn = container.querySelector('#btn-export-s12');
+    const exportBtn = container.querySelector("#btn-export-s12");
     if (exportBtn) {
         exportBtn.onclick = () => {
-             // 📝 FASE 5: Redirigir al modulo oficial
-             showNotification("Para generar el catálogo S-12 Oficial, ve a la pestaña de Reportes y Genera el S-13 (Registro Maestro).", "info", 5000);
+            // 📝 FASE 5: Redirigir al modulo oficial
+            showNotification(
+                "Para generar el catálogo S-12 Oficial, ve a la pestaña de Reportes y Genera el S-13 (Registro Maestro).",
+                "info",
+                5000,
+            );
         };
     }
 
@@ -138,12 +150,13 @@ export const renderS12View = async (container, config, appVersion) => {
     };
 
     window.editTerritorioS12 = async (id) => {
-        const t = terrs.find(x => x.id === id);
+        const t = terrs.find((x) => x.id === id);
         if (!t) return;
 
-        const tipos = config.tipos_territorio || ['Casa en Casa', 'Negocios', 'Pública'];
+        const tipos = config.tipos_territorio || ["Casa en Casa", "Negocios", "Pública"];
 
-        showModal(`
+        showModal(
+            `
             <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden">
                 <header class="shrink-0 bg-primary p-8 text-white relative overflow-hidden">
                     <div class="absolute inset-0 bg-white/10 backdrop-blur-3xl"></div>
@@ -162,23 +175,23 @@ export const renderS12View = async (container, config, appVersion) => {
                     <div class="grid grid-cols-1 gap-8">
                          <div class="space-y-3">
                             <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Localidad</label>
-                            <input type="text" id="edit-t-localidad" value="${t.localidad || t.nombre || ''}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all uppercase shadow-inner">
+                            <input type="text" id="edit-t-localidad" value="${t.localidad || t.nombre || ""}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all uppercase shadow-inner">
                         </div>
                         <div class="grid grid-cols-2 gap-6">
                             <div class="space-y-3">
                                 <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Número</label>
-                                <input type="text" id="edit-t-numero" value="${t.numero || ''}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all uppercase shadow-inner">
+                                <input type="text" id="edit-t-numero" value="${t.numero || ""}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all uppercase shadow-inner">
                             </div>
                             <div class="space-y-3">
                                 <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Tipo</label>
                                 <select id="edit-t-tipo" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary cursor-pointer appearance-none shadow-inner">
-                                    ${tipos.map(ti => `<option value="${ti}" ${t.tipo === ti ? 'selected' : ''}>${ti}</option>`).join('')}
+                                    ${tipos.map((ti) => `<option value="${ti}" ${t.tipo === ti ? "selected" : ""}>${ti}</option>`).join("")}
                                 </select>
                             </div>
                         </div>
                         <div class="space-y-3">
                             <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Manzanas (Separadas por coma)</label>
-                            <textarea id="edit-t-mzs" rows="3" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-bold text-slate-700 dark:text-white outline-none focus:border-primary resize-none shadow-inner">${t.manzanas || ''}</textarea>
+                            <textarea id="edit-t-mzs" rows="3" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-bold text-slate-700 dark:text-white outline-none focus:border-primary resize-none shadow-inner">${t.manzanas || ""}</textarea>
                         </div>
                     </div>
                 </div>
@@ -192,51 +205,53 @@ export const renderS12View = async (container, config, appVersion) => {
                     </button>
                 </footer>
             </div>
-    `, (modal) => {
-            modal.querySelector('#btn-cancel-t-edit').onclick = () => modal.classList.add('hidden');
-            modal.querySelector('#btn-save-t-edit').onclick = async () => {
-                const btn = modal.querySelector('#btn-save-t-edit');
-                btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Actualizando...';
+    `,
+            (modal) => {
+                modal.querySelector("#btn-cancel-t-edit").onclick = () => modal.classList.add("hidden");
+                modal.querySelector("#btn-save-t-edit").onclick = async () => {
+                    const btn = modal.querySelector("#btn-save-t-edit");
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Actualizando...';
 
-                try {
-                    await updateTerritorio(id, {
-                        localidad: modal.querySelector('#edit-t-localidad').value.trim(),
-                        nombre: modal.querySelector('#edit-t-localidad').value.trim(), // Keep sync for backward compat
-                        numero: modal.querySelector('#edit-t-numero').value.trim(),
-                        tipo: modal.querySelector('#edit-t-tipo').value,
-                        manzanas: modal.querySelector('#edit-t-mzs').value.trim()
-                    });
-                    showNotification("S-12 actualizado correctamente");
-                    modal.classList.add('hidden');
-                    renderS12View(container, config, appVersion);
-                } catch (e) {
-                    showNotification("Error: " + e.message, "error");
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fas fa-save"></i> Actualizar Registro';
-                }
-            };
-        });
+                    try {
+                        await updateTerritorio(id, {
+                            localidad: modal.querySelector("#edit-t-localidad").value.trim(),
+                            nombre: modal.querySelector("#edit-t-localidad").value.trim(), // Keep sync for backward compat
+                            numero: modal.querySelector("#edit-t-numero").value.trim(),
+                            tipo: modal.querySelector("#edit-t-tipo").value,
+                            manzanas: modal.querySelector("#edit-t-mzs").value.trim(),
+                        });
+                        showNotification("S-12 actualizado correctamente");
+                        modal.classList.add("hidden");
+                        renderS12View(container, config, appVersion);
+                    } catch (e) {
+                        showNotification(`Error: ${e.message}`, "error");
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fas fa-save"></i> Actualizar Registro';
+                    }
+                };
+            },
+        );
     };
 
     // Button Logic Proxy
     window.viewMapFromBaseS12 = async (id) => {
         showNotification("Cargando mapa...", "info");
         try {
-            const t = terrs.find(x => x.id === id);
+            const t = terrs.find((x) => x.id === id);
 
             if (!t) {
                 showNotification("Error: Territorio no encontrado en memoria. Intente recargar.", "error");
                 return;
             }
 
-            console.log("🗺️ Opening map for T-" + t.numero, { hasImage: !!t.imagen, coords: t.coordenadas });
+            console.log(`🗺️ Opening map for T-${t.numero}`, { hasImage: !!t.imagen, coords: t.coordenadas });
 
             // Force modal container cleanup if needed
-            const modal = document.getElementById('modal-container');
+            const modal = document.getElementById("modal-container");
             if (modal) {
                 // Ensure it has the right classes for visibility if MapViewer blindly toggles hidden
-                if (!modal.classList.contains('flex')) modal.classList.add('flex', 'items-center', 'justify-center');
+                if (!modal.classList.contains("flex")) modal.classList.add("flex", "items-center", "justify-center");
             }
 
             if (window.openInteractiveMap) window.openInteractiveMap(t);
@@ -248,7 +263,7 @@ export const renderS12View = async (container, config, appVersion) => {
     };
 
     window.showHistoryFromBaseS12 = async (id, num) => {
-        const { showUnifiedTerritoryHistory } = await import('../conductor-dashboard.js?v=' + appVersion);
+        await import(`../conductor-dashboard.js?v=${appVersion}`);
         if (window.showUnifiedTerritoryHistory) window.showUnifiedTerritoryHistory(id, num);
     };
 

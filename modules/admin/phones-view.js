@@ -1,17 +1,21 @@
 import {
-    getPublicadores, startLivePool,
-    updateTelefono, addTelefono, deleteTelefono, autoCleanTelefonosData,
-    getTelemetriaTelefonia
-} from '../../data/firestore-services.js';
-import { formatPhoneNumber, getStatusColor, showNotification } from '../utils/helpers.js';
-import { showModal, showCustomConfirm } from '../services/ui-helpers.js';
-import { setAdminLivePool } from '../admin-dashboard.js';
+    addTelefono,
+    autoCleanTelefonosData,
+    deleteTelefono,
+    getPublicadores,
+    getTelemetriaTelefonia,
+    startLivePool,
+    updateTelefono,
+} from "../../data/firestore-services.js";
+import { setAdminLivePool } from "../admin-dashboard.js";
+import { showCustomConfirm, showModal } from "../services/ui-helpers.js";
+import { formatPhoneNumber, getStatusColor, showNotification } from "../utils/helpers.js";
 
-export const renderTelefonosTab = async (container, configData = null) => {
+export const renderTelefonosTab = async (container, _configData = null) => {
     let telefonos = [];
     const publicadores = await getPublicadores();
 
-    publicadores.sort((a, b) => String(a.nombre || '').localeCompare(String(b.nombre || '')));
+    publicadores.sort((a, b) => String(a.nombre || "").localeCompare(String(b.nombre || "")));
 
     // Ejecuta limpieza automática en segundo plano cuando el Admin entra a la vista
     autoCleanTelefonosData();
@@ -20,7 +24,7 @@ export const renderTelefonosTab = async (container, configData = null) => {
     const unsub = startLivePool("telefonos", [], (data) => {
         telefonos = data;
         console.log("📱 [Live Pool] Phone Directory Updated.");
-        renderData(searchInput?.value || '', container.querySelector('#show-hidden-phones')?.checked);
+        renderData(searchInput?.value || "", container.querySelector("#show-hidden-phones")?.checked);
     });
     setAdminLivePool(unsub);
 
@@ -89,12 +93,12 @@ export const renderTelefonosTab = async (container, configData = null) => {
         </div>
     `;
 
-    const tbody = container.querySelector('#phone-table-body');
-    const mobileList = container.querySelector('#phone-mobile-list');
-    const searchInput = container.querySelector('#phone-search');
+    const tbody = container.querySelector("#phone-table-body");
+    const mobileList = container.querySelector("#phone-mobile-list");
+    const searchInput = container.querySelector("#phone-search");
 
     const publicadoresMap = {};
-    publicadores.forEach(p => {
+    publicadores.forEach((p) => {
         publicadoresMap[p.id] = p.nombre;
         publicadoresMap[p.nombre] = p.nombre; // Keep names as is
     });
@@ -104,9 +108,9 @@ export const renderTelefonosTab = async (container, configData = null) => {
         return publicadoresMap[val] || val;
     };
 
-    let sortConfig = { key: 'propietario', direction: 'asc' };
+    const sortConfig = { key: "propietario", direction: "asc" };
 
-    const renderData = (query = '', showHidden = false) => {
+    const renderData = (query = "", showHidden = false) => {
         const now = new Date();
         const sixMonthsAgo = new Date();
         sixMonthsAgo.setMonth(now.getMonth() - 6);
@@ -115,12 +119,12 @@ export const renderTelefonosTab = async (container, configData = null) => {
         let filtered = [...telefonos];
 
         if (!showHidden) {
-            filtered = filtered.filter(t => {
+            filtered = filtered.filter((t) => {
                 // Hide Revisita
-                if (t.estado === 'Revisita') return false;
+                if (t.estado === "Revisita") return false;
 
                 // Hide 'No llamar' if within 6 months
-                if (t.ultimo_estado === 'No llamar') {
+                if (t.ultimo_estado === "No llamar") {
                     const lastDate = t.fecha_ultimo_estado ? new Date(t.fecha_ultimo_estado) : new Date(0);
                     if (lastDate > sixMonthsAgo) return false;
                 }
@@ -130,39 +134,51 @@ export const renderTelefonosTab = async (container, configData = null) => {
         }
 
         if (query) {
-            filtered = filtered.filter(t =>
-                t.numero.toLowerCase().includes(lowerCaseQuery) ||
-                (t.nombre && t.nombre.toLowerCase().includes(lowerCaseQuery)) ||
-                (t.propietario && t.propietario.toLowerCase().includes(lowerCaseQuery)) ||
-                (t.direccion && t.direccion.toLowerCase().includes(lowerCaseQuery))
+            filtered = filtered.filter(
+                (t) =>
+                    t.numero.toLowerCase().includes(lowerCaseQuery) ||
+                    t.nombre?.toLowerCase().includes(lowerCaseQuery) ||
+                    t.propietario?.toLowerCase().includes(lowerCaseQuery) ||
+                    t.direccion?.toLowerCase().includes(lowerCaseQuery),
             );
         }
 
         // Apply Sorting
         filtered.sort((a, b) => {
-            let valA = '', valB = '';
+            let valA = "",
+                valB = "";
 
-            if (sortConfig.key === 'propietario') {
-                valA = a.propietario || a.nombre || '';
-                valB = b.propietario || b.nombre || '';
-            } else if (sortConfig.key === 'estado') {
-                valA = a.estado || '';
-                valB = b.estado || '';
-            } else if (sortConfig.key === 'asignacion') {
-                valA = getDisplayName(a.asignado_a) || '';
-                valB = getDisplayName(b.asignado_a) || '';
+            if (sortConfig.key === "propietario") {
+                valA = a.propietario || a.nombre || "";
+                valB = b.propietario || b.nombre || "";
+            } else if (sortConfig.key === "estado") {
+                valA = a.estado || "";
+                valB = b.estado || "";
+            } else if (sortConfig.key === "asignacion") {
+                valA = getDisplayName(a.asignado_a) || "";
+                valB = getDisplayName(b.asignado_a) || "";
             }
 
             const cmp = valA.localeCompare(valB, undefined, { numeric: true });
-            return sortConfig.direction === 'asc' ? cmp : -cmp;
+            return sortConfig.direction === "asc" ? cmp : -cmp;
         });
 
-        tbody.innerHTML = filtered.map(t => {
-            const eStr = String(t.estado || '').toLowerCase().trim();
-            const estado = (eStr === 'sin asignar' || eStr === 'no asignado' || eStr === 'disponible' || eStr === 'null' || !eStr) ? '' : t.estado;
-            const asignadoA = getDisplayName(t.asignado_a);
+        tbody.innerHTML = filtered
+            .map((t) => {
+                const eStr = String(t.estado || "")
+                    .toLowerCase()
+                    .trim();
+                const estado =
+                    eStr === "sin asignar" ||
+                    eStr === "no asignado" ||
+                    eStr === "disponible" ||
+                    eStr === "null" ||
+                    !eStr
+                        ? ""
+                        : t.estado;
+                const asignadoA = getDisplayName(t.asignado_a);
 
-            return `
+                return `
             <tr class="group hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
                 <td class="p-4 md:p-6 w-[40%]">
                     <div class="flex items-center gap-4">
@@ -170,24 +186,28 @@ export const renderTelefonosTab = async (container, configData = null) => {
                             <i class="fas fa-user"></i>
                         </div>
                         <div class="min-w-0">
-                            <p class="text-xs md:text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight truncate">${t.propietario || t.nombre || 'Desconocido'}</p>
+                            <p class="text-xs md:text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight truncate">${t.propietario || t.nombre || "Desconocido"}</p>
                             <p class="text-[10px] md:text-[11px] text-slate-600 dark:text-slate-400 font-mono font-bold">${formatPhoneNumber(t.numero)}</p>
                         </div>
                     </div>
                 </td>
                 <td class="p-4 md:p-6 text-center w-[20%]">
-                    ${estado ? `<span class="${getStatusColor(estado)} text-[9px] md:text-[10px] font-black uppercase px-3 py-1.5 rounded-lg border border-current/20 shadow-sm whitespace-nowrap">${estado}</span>` : ''}
+                    ${estado ? `<span class="${getStatusColor(estado)} text-[9px] md:text-[10px] font-black uppercase px-3 py-1.5 rounded-lg border border-current/20 shadow-sm whitespace-nowrap">${estado}</span>` : ""}
                 </td>
                 <td class="p-4 md:p-6 w-[30%]">
-                    ${asignadoA ? `
+                    ${
+                        asignadoA
+                            ? `
                         <div class="flex items-center gap-2">
                             <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(asignadoA)}&background=random&color=fff" class="w-6 h-6 rounded-lg shrink-0">
                             <div class="flex flex-col min-w-0">
                                 <span class="text-[10px] md:text-[11px] font-black text-slate-500 uppercase truncate">${asignadoA}</span>
-                                <span class="text-[8px] font-bold text-slate-400/70 uppercase tracking-tighter">${t.fecha_asignacion ? new Date(t.fecha_asignacion).toLocaleDateString() : ''}</span>
+                                <span class="text-[8px] font-bold text-slate-400/70 uppercase tracking-tighter">${t.fecha_asignacion ? new Date(t.fecha_asignacion).toLocaleDateString() : ""}</span>
                             </div>
                         </div>
-                    ` : '<span class="text-[10px] text-slate-700 dark:text-slate-300 uppercase font-bold italic">No asignado</span>'}
+                    `
+                            : '<span class="text-[10px] text-slate-700 dark:text-slate-300 uppercase font-bold italic">No asignado</span>'
+                    }
                 </td>
                 <td class="p-4 md:p-6 w-[10%] text-right">
                     <div class="flex items-center justify-end gap-2 opacity-10 md:opacity-0 group-hover:opacity-100 transition-opacity">
@@ -200,14 +220,26 @@ export const renderTelefonosTab = async (container, configData = null) => {
                     </div>
                 </td>
             </tr>
-        `}).join('');
+        `;
+            })
+            .join("");
 
-        mobileList.innerHTML = filtered.map(t => {
-            const eStr = String(t.estado || '').toLowerCase().trim();
-            const estado = (eStr === 'sin asignar' || eStr === 'no asignado' || eStr === 'disponible' || eStr === 'null' || !eStr) ? '' : t.estado;
-            const asignadoA = getDisplayName(t.solicitado_por || t.asignado_a);
+        mobileList.innerHTML = filtered
+            .map((t) => {
+                const eStr = String(t.estado || "")
+                    .toLowerCase()
+                    .trim();
+                const estado =
+                    eStr === "sin asignar" ||
+                    eStr === "no asignado" ||
+                    eStr === "disponible" ||
+                    eStr === "null" ||
+                    !eStr
+                        ? ""
+                        : t.estado;
+                const asignadoA = getDisplayName(t.solicitado_por || t.asignado_a);
 
-            return `
+                return `
             <div class="enterprise-card p-5 border-slate-200 dark:border-white/5 shadow-sm space-y-4 relative overflow-hidden group">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3">
@@ -215,15 +247,15 @@ export const renderTelefonosTab = async (container, configData = null) => {
                             <i class="fas fa-user text-sm"></i>
                         </div>
                         <div>
-                            <p class="text-xs font-black text-slate-800 dark:text-white uppercase">${t.propietario || t.nombre || 'Desconocido'}</p>
+                            <p class="text-xs font-black text-slate-800 dark:text-white uppercase">${t.propietario || t.nombre || "Desconocido"}</p>
                             <p class="text-[10px] text-slate-600 dark:text-slate-400 font-mono">${formatPhoneNumber(t.numero)}</p>
                         </div>
                     </div>
-                    ${estado ? `<span class="${getStatusColor(estado)} text-[8px] font-black uppercase px-2 py-1 rounded-md border border-current/20">${estado}</span>` : ''}
+                    ${estado ? `<span class="${getStatusColor(estado)} text-[8px] font-black uppercase px-2 py-1 rounded-md border border-current/20">${estado}</span>` : ""}
                 </div>
                 <div class="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-white/5">
                     <div class="text-[9px] font-black text-slate-600 dark:text-slate-400 uppercase">
-                        ${asignadoA ? `Asig: <span class="text-slate-600 dark:text-slate-300 ml-1">${asignadoA}</span>` : 'Sin asignar'}
+                        ${asignadoA ? `Asig: <span class="text-slate-600 dark:text-slate-300 ml-1">${asignadoA}</span>` : "Sin asignar"}
                     </div>
                     <div class="flex gap-2">
                         <button onclick="window.editPhone('${t.id}')" class="w-8 h-8 flex items-center justify-center bg-slate-50 dark:bg-white/5 rounded-lg text-slate-600 dark:text-slate-400"><i class="fas fa-edit text-[10px]"></i></button>
@@ -231,39 +263,42 @@ export const renderTelefonosTab = async (container, configData = null) => {
                     </div>
                 </div>
             </div>
-        `}).join('');
+        `;
+            })
+            .join("");
     };
 
     const toggleSort = (key) => {
         if (sortConfig.key === key) {
-            sortConfig.direction = sortConfig.direction === 'asc' ? 'desc' : 'asc';
+            sortConfig.direction = sortConfig.direction === "asc" ? "desc" : "asc";
         } else {
             sortConfig.key = key;
-            sortConfig.direction = 'asc';
+            sortConfig.direction = "asc";
         }
 
         // Update header UI
-        container.querySelectorAll('th[data-sort]').forEach(th => {
-            const icon = th.querySelector('i');
+        container.querySelectorAll("th[data-sort]").forEach((th) => {
+            const icon = th.querySelector("i");
             if (th.dataset.sort === key) {
-                th.classList.add('text-primary');
-                icon.className = `fas fa-sort-${sortConfig.direction === 'asc' ? 'up' : 'down'} ml-2`;
-                icon.style.opacity = '1';
+                th.classList.add("text-primary");
+                icon.className = `fas fa-sort-${sortConfig.direction === "asc" ? "up" : "down"} ml-2`;
+                icon.style.opacity = "1";
             } else {
-                th.classList.remove('text-primary');
-                icon.className = 'fas fa-sort ml-2';
-                icon.style.opacity = '0.3';
+                th.classList.remove("text-primary");
+                icon.className = "fas fa-sort ml-2";
+                icon.style.opacity = "0.3";
             }
         });
 
-        renderData(searchInput.value, container.querySelector('#show-hidden-phones').checked);
+        renderData(searchInput.value, container.querySelector("#show-hidden-phones").checked);
     };
 
     const openModalPhone = (phone = null) => {
         const isEdit = !!phone;
-        const estados = ['Contestaron', 'No contestan', 'Colgaron', 'Revisita', 'No llamar', 'Testigo', 'Suspendido'];
+        const estados = ["Contestaron", "No contestan", "Colgaron", "Revisita", "No llamar", "Testigo", "Suspendido"];
 
-        showModal(`
+        showModal(
+            `
             <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden">
                 <header class="shrink-0 bg-primary p-8 text-white relative">
                     <div class="absolute inset-0 bg-white/10 backdrop-blur-3xl"></div>
@@ -272,7 +307,7 @@ export const renderTelefonosTab = async (container, configData = null) => {
                             <i class="fas fa-phone"></i>
                         </div>
                         <div>
-                            <h3 class="text-2xl font-black uppercase tracking-tight mb-1">${isEdit ? 'Editar Registro' : 'Nuevo Registro'}</h3>
+                            <h3 class="text-2xl font-black uppercase tracking-tight mb-1">${isEdit ? "Editar Registro" : "Nuevo Registro"}</h3>
                             <p class="text-[10px] opacity-60 uppercase tracking-[0.4em] font-black">Directorio Telefónico</p>
                         </div>
                     </div>
@@ -282,28 +317,28 @@ export const renderTelefonosTab = async (container, configData = null) => {
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div class="space-y-3">
                             <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Número de Teléfono</label>
-                            <input type="text" id="m-phone-num" value="${phone?.numero || ''}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all shadow-inner" placeholder="0987654321">
+                            <input type="text" id="m-phone-num" value="${phone?.numero || ""}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all shadow-inner" placeholder="0987654321">
                         </div>
                         <div class="space-y-3">
                             <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Nombre / Propietario</label>
-                            <input type="text" id="m-phone-name" value="${phone?.propietario || phone?.nombre || ''}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all shadow-inner uppercase" placeholder="EJ: JUAN PEREZ">
+                            <input type="text" id="m-phone-name" value="${phone?.propietario || phone?.nombre || ""}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all shadow-inner uppercase" placeholder="EJ: JUAN PEREZ">
                         </div>
                         <div class="space-y-3">
                             <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Dirección / Referencia</label>
-                            <input type="text" id="m-phone-address" value="${phone?.direccion || ''}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all shadow-inner uppercase" placeholder="EJ: CALLE 1 Y CALLE 2">
+                            <input type="text" id="m-phone-address" value="${phone?.direccion || ""}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all shadow-inner uppercase" placeholder="EJ: CALLE 1 Y CALLE 2">
                         </div>
                         <div class="space-y-3">
                             <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Estado</label>
                             <select id="m-phone-state" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all appearance-none cursor-pointer shadow-inner">
-                                <option value="" ${(!phone?.estado || phone?.estado === 'Sin asignar' || phone?.estado === 'Disponible') ? 'selected' : ''}></option>
-                                ${estados.map(s => `<option value="${s}" ${phone?.estado === s ? 'selected' : ''}>${s}</option>`).join('')}
+                                <option value="" ${!phone?.estado || phone?.estado === "Sin asignar" || phone?.estado === "Disponible" ? "selected" : ""}></option>
+                                ${estados.map((s) => `<option value="${s}" ${phone?.estado === s ? "selected" : ""}>${s}</option>`).join("")}
                             </select>
                         </div>
                         <div class="space-y-3">
                             <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Responsable Actual</label>
                             <select id="m-phone-asig" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all appearance-none cursor-pointer shadow-inner">
                                 <option value=""></option>
-                                ${publicadores.map(p => `<option value="${p.nombre}" ${(phone?.solicitado_por === p.nombre || phone?.asignado_a === p.nombre) ? 'selected' : ''}>${p.nombre}</option>`).join('')}
+                                ${publicadores.map((p) => `<option value="${p.nombre}" ${phone?.solicitado_por === p.nombre || phone?.asignado_a === p.nombre ? "selected" : ""}>${p.nombre}</option>`).join("")}
                             </select>
                         </div>
                     </div>
@@ -312,68 +347,74 @@ export const renderTelefonosTab = async (container, configData = null) => {
                 <footer class="shrink-0 p-8 bg-white dark:bg-black/40 border-t border-slate-100 dark:border-white/5 flex gap-4">
                     <button onclick="document.getElementById('modal-container').classList.add('hidden')" class="btn-pro flex-1 min-w-0 py-5 bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-white/10 transition-all">Cancelar</button>
                     <button id="m-save-phone" class="btn-pro flex-[2] py-5 bg-primary text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20 transition-all hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-2">
-                        <i class="fas fa-save"></i> ${isEdit ? 'Guardar Cambios' : 'Crear Registro'}
+                        <i class="fas fa-save"></i> ${isEdit ? "Guardar Cambios" : "Crear Registro"}
                     </button>
                 </footer>
             </div>
-        `, (modal) => {
-            modal.querySelector('#m-save-phone').onclick = async () => {
-                const btn = modal.querySelector('#m-save-phone');
-                const original = btn.innerHTML;
-                btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Guardando...';
+        `,
+            (modal) => {
+                modal.querySelector("#m-save-phone").onclick = async () => {
+                    const btn = modal.querySelector("#m-save-phone");
+                    const original = btn.innerHTML;
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Guardando...';
 
-                const asigVal = modal.querySelector('#m-phone-asig').value || null;
-                const data = {
-                    numero: modal.querySelector('#m-phone-num').value.trim(),
-                    propietario: modal.querySelector('#m-phone-name').value.trim(),
-                    direccion: modal.querySelector('#m-phone-address').value.trim(),
-                    estado: modal.querySelector('#m-phone-state').value,
-                    solicitado_por: asigVal,
-                    asignado_a: asigVal
+                    const asigVal = modal.querySelector("#m-phone-asig").value || null;
+                    const data = {
+                        numero: modal.querySelector("#m-phone-num").value.trim(),
+                        propietario: modal.querySelector("#m-phone-name").value.trim(),
+                        direccion: modal.querySelector("#m-phone-address").value.trim(),
+                        estado: modal.querySelector("#m-phone-state").value,
+                        solicitado_por: asigVal,
+                        asignado_a: asigVal,
+                    };
+
+                    if (asigVal && (!phone || (!phone.solicitado_por && !phone.asignado_a))) {
+                        data.fecha_asignacion = new Date().toISOString();
+                    }
+
+                    if (!data.numero) {
+                        showNotification("El número es obligatorio", "error");
+                        btn.disabled = false;
+                        btn.innerHTML = original;
+                        return;
+                    }
+
+                    try {
+                        if (isEdit) await updateTelefono(phone.id, data);
+                        else await addTelefono(data);
+                        showNotification("Directorio actualizado");
+                        document.getElementById("modal-container").classList.add("hidden");
+                    } catch (e) {
+                        showNotification(e.message, "error");
+                        btn.disabled = false;
+                        btn.innerHTML = original;
+                    }
                 };
-
-                if (asigVal && (!phone || (!phone.solicitado_por && !phone.asignado_a))) {
-                    data.fecha_asignacion = new Date().toISOString();
-                }
-
-                if (!data.numero) {
-                    showNotification("El número es obligatorio", "error");
-                    btn.disabled = false; btn.innerHTML = original;
-                    return;
-                }
-
-                try {
-                    if (isEdit) await updateTelefono(phone.id, data);
-                    else await addTelefono(data);
-                    showNotification("Directorio actualizado");
-                    document.getElementById('modal-container').classList.add('hidden');
-                } catch (e) {
-                    showNotification(e.message, "error");
-                    btn.disabled = false; btn.innerHTML = original;
-                }
-            };
-        });
+            },
+        );
     };
 
-    window.editPhone = (id) => openModalPhone(telefonos.find(t => t.id === id));
-    window.deletePhone = (id) => showCustomConfirm("¿Eliminar este registro permanentemente?", async () => {
-        await deleteTelefono(id);
-        showNotification("Registro eliminado");
-    });
+    window.editPhone = (id) => openModalPhone(telefonos.find((t) => t.id === id));
+    window.deletePhone = (id) =>
+        showCustomConfirm("¿Eliminar este registro permanentemente?", async () => {
+            await deleteTelefono(id);
+            showNotification("Registro eliminado");
+        });
 
-    container.querySelectorAll('th[data-sort]').forEach(th => {
+    container.querySelectorAll("th[data-sort]").forEach((th) => {
         th.onclick = () => toggleSort(th.dataset.sort);
     });
 
-    searchInput.oninput = (e) => renderData(e.target.value.toLowerCase(), container.querySelector('#show-hidden-phones').checked);
-    container.querySelector('#show-hidden-phones').onchange = (e) => renderData(searchInput.value, e.target.checked);
-    container.querySelector('#add-phone-btn').onclick = () => openModalPhone();
+    searchInput.oninput = (e) =>
+        renderData(e.target.value.toLowerCase(), container.querySelector("#show-hidden-phones").checked);
+    container.querySelector("#show-hidden-phones").onchange = (e) => renderData(searchInput.value, e.target.checked);
+    container.querySelector("#add-phone-btn").onclick = () => openModalPhone();
 
     // Telemetry Sync
     const updateTelemetry = async () => {
         const stats = await getTelemetriaTelefonia();
-        const telemetryContainer = container.querySelector('#telemetry-card-container');
+        const telemetryContainer = container.querySelector("#telemetry-card-container");
         if (!telemetryContainer) return;
 
         telemetryContainer.innerHTML = `

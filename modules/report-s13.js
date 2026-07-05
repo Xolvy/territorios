@@ -1,13 +1,18 @@
-
-import { getHistorialReport, rebuildHistoryFromSchedule, getConfiguracion, getTerritorios, runSystemDiagnosticsAndRepair } from '../data/firestore-services.js';
-import { showNotification, generatePlainXLS } from './utils/helpers.js';
-import { S13Exporter } from './services/s13-exporter.js';
+import {
+    getConfiguracion,
+    getHistorialReport,
+    getTerritorios,
+    rebuildHistoryFromSchedule,
+    runSystemDiagnosticsAndRepair,
+} from "../data/firestore-services.js";
+import { S13Exporter } from "./services/s13-exporter.js";
+import { generatePlainXLS, showNotification } from "./utils/helpers.js";
 
 export const renderS13CommandCenter = async (container) => {
-    const [history, config, territories] = await Promise.all([
+    const [history, _config, territories] = await Promise.all([
         getHistorialReport(),
         getConfiguracion(),
-        getTerritorios()
+        getTerritorios(),
     ]);
 
     container.innerHTML = `
@@ -109,12 +114,15 @@ export const renderS13CommandCenter = async (container) => {
         const territoryFreq = {};
         const latestTouch = {};
 
-        history.forEach(h => {
+        history.forEach((h) => {
             if (!h.numero) return;
-            const nums = String(h.numero).split(/[,/]/).map(n => n.trim()).filter(n => n);
+            const nums = String(h.numero)
+                .split(/[,/]/)
+                .map((n) => n.trim())
+                .filter((n) => n);
             const d = h.fecha_entrega || h.fecha_asignacion;
 
-            nums.forEach(n => {
+            nums.forEach((n) => {
                 allUniqueTouched.add(n);
                 territoryFreq[n] = (territoryFreq[n] || 0) + 1;
                 totalWorkActs++;
@@ -128,35 +136,40 @@ export const renderS13CommandCenter = async (container) => {
         const missing = total - allUniqueTouched.size;
         const workRounds = total > 0 ? (totalWorkActs / total).toFixed(1) : 0;
 
-        container.querySelector('#cc-stat-coverage').innerText = `${coverage}%`;
-        container.querySelector('#cc-stat-coverage-sub').innerText = `${allUniqueTouched.size} de ${total} territorios • ${workRounds} vueltas`;
-        container.querySelector('#cc-stat-missing').innerText = missing;
-        container.querySelector('#cc-stat-missing-bar').style.width = `${(missing / total) * 100}%`;
+        container.querySelector("#cc-stat-coverage").innerText = `${coverage}%`;
+        container.querySelector("#cc-stat-coverage-sub").innerText =
+            `${allUniqueTouched.size} de ${total} territorios • ${workRounds} vueltas`;
+        container.querySelector("#cc-stat-missing").innerText = missing;
+        container.querySelector("#cc-stat-missing-bar").style.width = `${(missing / total) * 100}%`;
 
         const sortedFreq = Object.entries(territoryFreq).sort((a, b) => b[1] - a[1]);
         if (sortedFreq[0]) {
-            container.querySelector('#cc-stat-frequent').innerText = `Territorio ${sortedFreq[0][0]}`;
-            container.querySelector('#cc-stat-frequent-sub').innerText = `${sortedFreq[0][1]} informes registrados`;
+            container.querySelector("#cc-stat-frequent").innerText = `Territorio ${sortedFreq[0][0]}`;
+            container.querySelector("#cc-stat-frequent-sub").innerText = `${sortedFreq[0][1]} informes registrados`;
         }
 
-        const rezagoSorted = territories.filter(t => latestTouch[t.numero]).sort((a, b) => new Date(latestTouch[a.numero]) - new Date(latestTouch[b.numero]));
+        const rezagoSorted = territories
+            .filter((t) => latestTouch[t.numero])
+            .sort((a, b) => new Date(latestTouch[a.numero]) - new Date(latestTouch[b.numero]));
         if (rezagoSorted[0]) {
-            const days = Math.floor((new Date() - new Date(latestTouch[rezagoSorted[0].numero])) / (1000 * 60 * 60 * 24));
-            container.querySelector('#cc-stat-oldest').innerText = `#${rezagoSorted[0].numero}`;
-            container.querySelector('#cc-stat-oldest-sub').innerText = `Hace ${days} días`;
+            const days = Math.floor(
+                (Date.now() - new Date(latestTouch[rezagoSorted[0].numero])) / (1000 * 60 * 60 * 24),
+            );
+            container.querySelector("#cc-stat-oldest").innerText = `#${rezagoSorted[0].numero}`;
+            container.querySelector("#cc-stat-oldest-sub").innerText = `Hace ${days} días`;
         }
     };
     updateStats();
 
     // Initialize Year Selector
-    const yearSelect = container.querySelector('#report-year-select');
-    const startInput = container.querySelector('#report-start');
-    const endInput = container.querySelector('#report-end');
+    const yearSelect = container.querySelector("#report-year-select");
+    const startInput = container.querySelector("#report-start");
+    const endInput = container.querySelector("#report-end");
 
     const now = new Date();
     const serviceYear = now.getMonth() >= 8 ? now.getFullYear() + 1 : now.getFullYear();
     for (let y = serviceYear - 5; y <= serviceYear + 5; y++) {
-        const opt = document.createElement('option');
+        const opt = document.createElement("option");
         opt.value = y;
         opt.textContent = y;
         if (y === serviceYear) opt.selected = true;
@@ -165,7 +178,7 @@ export const renderS13CommandCenter = async (container) => {
     }
 
     const setDatesFromSY = (sy) => {
-        const y = parseInt(sy);
+        const y = parseInt(sy, 10);
         const start = `${y - 1}-09-01`;
         const end = `${y}-08-31`;
         if (startInput) startInput.value = start;
@@ -175,15 +188,15 @@ export const renderS13CommandCenter = async (container) => {
     if (yearSelect) yearSelect.onchange = (e) => setDatesFromSY(e.target.value);
 
     // Default to S13 Report
-    const mainCont = container.querySelector('#cc-main-container');
+    const mainCont = container.querySelector("#cc-main-container");
     await renderHistoryTab(mainCont, {
         showHeader: false,
         startInput: startInput,
-        endInput: endInput
+        endInput: endInput,
     });
 
     // Actions
-    container.querySelector('#cc-btn-power-sync').onclick = async () => {
+    container.querySelector("#cc-btn-power-sync").onclick = async () => {
         try {
             showNotification("Iniciando Power Sync Global...", "info");
             await runSystemDiagnosticsAndRepair((msg, pc) => {
@@ -191,41 +204,42 @@ export const renderS13CommandCenter = async (container) => {
             });
             showNotification("Sincronización Maestra Exitosa", "success");
             // Auto-generate report after sync
-            container.querySelector('#btn-generate-report-hidden')?.click();
+            container.querySelector("#btn-generate-report-hidden")?.click();
         } catch (e) {
-            showNotification("Error en Power Sync: " + e.message, "error");
+            showNotification(`Error en Power Sync: ${e.message}`, "error");
         }
     };
 
-    container.querySelector('#cc-btn-tools').onclick = () => {
-        const rebuildBtn = mainCont.querySelector('#btn-rebuild-history');
+    container.querySelector("#cc-btn-tools").onclick = () => {
+        const rebuildBtn = mainCont.querySelector("#btn-rebuild-history");
         if (rebuildBtn) rebuildBtn.click();
     };
 
-    const searchInp = container.querySelector('#cc-universal-search');
+    const searchInp = container.querySelector("#cc-universal-search");
     if (searchInp) {
         searchInp.oninput = (e) => {
-            const q = e.target.value.toLowerCase().trim();
+            const _q = e.target.value.toLowerCase().trim();
             // Implement simple filter for the visible list if it exists
-            const listItems = mainCont.querySelectorAll('.s13-row');
-            // Note: S13 report rows are usually generated in renderReport. 
-            // This search will actually be handled by the generate button usually, 
+            const _listItems = mainCont.querySelectorAll(".s13-row");
+            // Note: S13 report rows are usually generated in renderReport.
+            // This search will actually be handled by the generate button usually,
             // but we can add real-time filtering if the report is already visible.
         };
     }
 
     // Generate Trigger
-    const internalBtn = mainCont.querySelector('#btn-generate-report-hidden');
+    const internalBtn = mainCont.querySelector("#btn-generate-report-hidden");
     if (internalBtn) setTimeout(() => internalBtn.click(), 500); // Auto-load
 };
-
 
 export const renderHistoryTab = (container, options = {}) => {
     const showHeader = options.showHeader !== false;
 
     container.innerHTML = `
         <div class="h-full flex flex-col gap-6 animate-fade-in relative">
-            ${showHeader ? `
+            ${
+                showHeader
+                    ? `
             <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 border-b border-slate-100 dark:border-white/5 pb-8">
                 <div class="flex items-center gap-6">
                     <div class="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-3xl text-primary shadow-inner border border-primary/10 animate-float">
@@ -269,7 +283,9 @@ export const renderHistoryTab = (container, options = {}) => {
                     </button>
                 </div>
             </header>
-            ` : ''}
+            `
+                    : ""
+            }
 
             <div id="report-preview" class="flex-1 min-w-0 overflow-auto bg-slate-50 dark:bg-black/20 rounded-[2.5rem] border border-slate-100 dark:border-white/5 p-4 sm:p-12 flex flex-col items-center gap-10 relative min-h-[600px] shadow-inner">
                  <div class="text-center mt-20 space-y-6 opacity-30 group">
@@ -294,13 +310,13 @@ export const renderHistoryTab = (container, options = {}) => {
 
     // Initialize Dates (Current Month)
     const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const _firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const _lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
     // Initialize Service Year Selector and Dates
-    const yearSelect = showHeader ? container.querySelector('#report-year-select') : null;
-    const startInput = showHeader ? container.querySelector('#report-start') : (options.startInput || null);
-    const endInput = showHeader ? container.querySelector('#report-end') : (options.endInput || null);
+    const yearSelect = showHeader ? container.querySelector("#report-year-select") : null;
+    const startInput = showHeader ? container.querySelector("#report-start") : options.startInput || null;
+    const endInput = showHeader ? container.querySelector("#report-end") : options.endInput || null;
 
     // Calculate current Service Year
     const currentYear = now.getFullYear();
@@ -309,7 +325,7 @@ export const renderHistoryTab = (container, options = {}) => {
 
     if (yearSelect) {
         for (let y = serviceYear - 5; y <= serviceYear + 5; y++) {
-            const opt = document.createElement('option');
+            const opt = document.createElement("option");
             opt.value = y;
             opt.textContent = y;
             if (y === serviceYear) opt.selected = true;
@@ -320,14 +336,14 @@ export const renderHistoryTab = (container, options = {}) => {
 
     const setDatesFromServiceYear = (sy) => {
         if (!startInput || !endInput) return;
-        const y = parseInt(sy);
+        const y = parseInt(sy, 10);
         const start = new Date(y - 1, 8, 1);
         const end = new Date(y, 7, 31);
 
         const fmt = (d) => {
             const yy = d.getFullYear();
-            const mm = String(d.getMonth() + 1).padStart(2, '0');
-            const dd = String(d.getDate()).padStart(2, '0');
+            const mm = String(d.getMonth() + 1).padStart(2, "0");
+            const dd = String(d.getDate()).padStart(2, "0");
             return `${yy}-${mm}-${dd}`;
         };
         startInput.value = fmt(start);
@@ -337,7 +353,7 @@ export const renderHistoryTab = (container, options = {}) => {
     if (showHeader) setDatesFromServiceYear(serviceYear);
 
     if (yearSelect) {
-        yearSelect.addEventListener('change', (e) => {
+        yearSelect.addEventListener("change", (e) => {
             setDatesFromServiceYear(e.target.value);
         });
     }
@@ -351,86 +367,92 @@ export const renderHistoryTab = (container, options = {}) => {
             return;
         }
 
-        const loader = container.querySelector('#report-loading');
-        if (loader) loader.classList.remove('hidden');
+        const loader = container.querySelector("#report-loading");
+        if (loader) loader.classList.remove("hidden");
 
         try {
-            const [allHistory, allTerritorios] = await Promise.all([
-                getHistorialReport(),
-                getTerritorios()
-            ]);
+            const [allHistory, allTerritorios] = await Promise.all([getHistorialReport(), getTerritorios()]);
 
             const startMs = new Date(start).getTime();
             const endObj = new Date(end);
             endObj.setHours(23, 59, 59, 999);
             const endMs = endObj.getTime();
 
-            const historyInRange = allHistory.filter(item => {
+            const historyInRange = allHistory.filter((item) => {
                 const fAsig = new Date(item.fecha_asignacion).getTime();
                 const fEntr = item.fecha_entrega ? new Date(item.fecha_entrega).getTime() : null;
                 return (fAsig >= startMs && fAsig <= endMs) || (fEntr && fEntr >= startMs && fEntr <= endMs);
             });
 
             const config = await getConfiguracion();
-            const congregationName = config?.congregacion?.nombre || 'Mi Congregación';
-            const yearLabel = (yearSelect && yearSelect.value) || serviceYear;
+            const congregationName = config?.congregacion?.nombre || "Mi Congregación";
+            const yearLabel = yearSelect?.value || serviceYear;
 
-            renderReport(container, historyInRange, allHistory, allTerritorios, start, end, yearLabel, congregationName);
+            renderReport(
+                container,
+                historyInRange,
+                allHistory,
+                allTerritorios,
+                start,
+                end,
+                yearLabel,
+                congregationName,
+            );
 
             if (showHeader) {
-                container.querySelector('#btn-export-s13-pdf')?.classList.remove('hidden');
-                container.querySelector('#btn-export-s13-excel')?.classList.remove('hidden');
+                container.querySelector("#btn-export-s13-pdf")?.classList.remove("hidden");
+                container.querySelector("#btn-export-s13-excel")?.classList.remove("hidden");
             }
 
             window._currentS13Data = historyInRange;
         } catch (e) {
             console.error(e);
-            showNotification("Error generando reporte: " + e.message, "error");
+            showNotification(`Error generando reporte: ${e.message}`, "error");
         } finally {
-            if (loader) loader.classList.add('hidden');
+            if (loader) loader.classList.add("hidden");
         }
     };
 
-    if (showHeader && container.querySelector('#btn-generate-report')) {
-        container.querySelector('#btn-generate-report').addEventListener('click', handleGenerate);
+    if (showHeader && container.querySelector("#btn-generate-report")) {
+        container.querySelector("#btn-generate-report").addEventListener("click", handleGenerate);
     }
-    container.querySelector('#btn-generate-report-hidden')?.addEventListener('click', handleGenerate);
+    container.querySelector("#btn-generate-report-hidden")?.addEventListener("click", handleGenerate);
 
-    const pdfBtn = document.getElementById('btn-export-s13-pdf');
+    const pdfBtn = document.getElementById("btn-export-s13-pdf");
     if (pdfBtn) {
         pdfBtn.onclick = async () => {
             const btn = pdfBtn;
             const oldText = btn.innerHTML;
-            btn.innerHTML = '⏳ Generando PDF...';
+            btn.innerHTML = "⏳ Generando PDF...";
             btn.disabled = true;
 
             try {
                 // Delegar al nuevo motor PDF oficial (S-13_S.pdf) con AcroForm
-                const { generarS13 } = await import('./services/pdf-report-service.js');
-                
+                const { generarS13 } = await import("./services/pdf-report-service.js");
+
                 // Fetch the original territories directly or from sorted view.
                 // We'll use getTerritorios directly to ensure we have pure fresh data for the template.
-                const { getTerritorios } = await import('../data/firestore-services.js');
+                const { getTerritorios } = await import("../data/firestore-services.js");
                 const tRaw = await getTerritorios();
-                
+
                 // Formateamos para el generador S-13 AcroForm (requiere: numero, nombre/localidad, conductor, fechas)
                 const formattedList = tRaw
-                     .filter(t => t.numero && String(t.numero).trim())
-                     .sort((a,b) => String(a.numero).localeCompare(String(b.numero), undefined, { numeric: true }))
-                     .map(t => ({
-                          numero: t.numero,
-                          nombre: t.localidad || t.nombre || '',
-                          conductor: t.asignado_a || '',
-                          // Extrayendo info de data actual del front (si _currentS13Data está disponible)
-                          fechaSalida: t.ultima_fecha || '',
-                          fechaRetorno: '' // The original HTML generator was pulling from history logic. We'll simplify to latest data.
-                     }));
+                    .filter((t) => t.numero && String(t.numero).trim())
+                    .sort((a, b) => String(a.numero).localeCompare(String(b.numero), undefined, { numeric: true }))
+                    .map((t) => ({
+                        numero: t.numero,
+                        nombre: t.localidad || t.nombre || "",
+                        conductor: t.asignado_a || "",
+                        // Extrayendo info de data actual del front (si _currentS13Data está disponible)
+                        fechaSalida: t.ultima_fecha || "",
+                        fechaRetorno: "", // The original HTML generator was pulling from history logic. We'll simplify to latest data.
+                    }));
 
                 await generarS13(formattedList);
                 showNotification("✅ S-13 generado correctamente.", "success");
             } catch (e) {
                 console.error(e);
-                showNotification("Error exportando PDF: " + e.message, "error");
+                showNotification(`Error exportando PDF: ${e.message}`, "error");
             } finally {
                 btn.innerHTML = oldText;
                 btn.disabled = false;
@@ -438,80 +460,98 @@ export const renderHistoryTab = (container, options = {}) => {
         };
     }
 
-    const excelBtn = document.getElementById('btn-export-s13-excel');
+    const excelBtn = document.getElementById("btn-export-s13-excel");
     if (excelBtn) {
         excelBtn.onclick = () => {
             const data = window._currentS13Data;
             if (!data || data.length === 0) return;
 
             const flatList = [];
-            data.forEach(item => {
-                const nums = item.numero.toString().split(',').map(n => n.trim());
-                nums.forEach(num => {
+            data.forEach((item) => {
+                const nums = item.numero
+                    .toString()
+                    .split(",")
+                    .map((n) => n.trim());
+                nums.forEach((num) => {
                     flatList.push({
-                        'Territorio': num,
-                        'Conductor': item.conductor || '-',
-                        'Fecha Asignación': formatDateShort(item.fecha_asignacion),
-                        'Fecha en que se completó': formatDateShort(item.fecha_entrega),
-                        'Estado': item.estado || '-',
-                        'Observaciones': item.observaciones || '-'
+                        Territorio: num,
+                        Conductor: item.conductor || "-",
+                        "Fecha Asignación": formatDateShort(item.fecha_asignacion),
+                        "Fecha en que se completó": formatDateShort(item.fecha_entrega),
+                        Estado: item.estado || "-",
+                        Observaciones: item.observaciones || "-",
                     });
                 });
             });
 
             flatList.sort((a, b) => a.Territorio.localeCompare(b.Territorio, undefined, { numeric: true }));
-            generatePlainXLS(flatList, `Listado_Asignaciones_S13_${document.getElementById('report-start').value}`);
+            generatePlainXLS(flatList, `Listado_Asignaciones_S13_${document.getElementById("report-start").value}`);
             showNotification("Excel generado con éxito", "success");
         };
     }
 
     // Rebuild Listener
-    const rebuildBtn = document.getElementById('btn-rebuild-history');
+    const rebuildBtn = document.getElementById("btn-rebuild-history");
     if (rebuildBtn) {
         rebuildBtn.onclick = async () => {
             const runRebuild = async () => {
-                const loader = document.getElementById('report-loading');
-                if (loader) loader.classList.remove('hidden');
+                const loader = document.getElementById("report-loading");
+                if (loader) loader.classList.remove("hidden");
                 try {
                     const count = await rebuildHistoryFromSchedule();
                     showNotification(`Historial reconstruido. Se recuperaron ${count} asignaciones.`, "success");
                 } catch (e) {
                     console.error(e);
-                    showNotification("Error en reconstrucción: " + e.message, "error");
+                    showNotification(`Error en reconstrucción: ${e.message}`, "error");
                 } finally {
-                    if (loader) loader.classList.add('hidden');
+                    if (loader) loader.classList.add("hidden");
                 }
             };
-            window.showCustomConfirm("¿Deseas analizar todos los Programas Semanales antiguos para reconstruir el historial de asignaciones?", runRebuild);
+            window.showCustomConfirm(
+                "¿Deseas analizar todos los Programas Semanales antiguos para reconstruir el historial de asignaciones?",
+                runRebuild,
+            );
         };
     }
 };
 
 // --- LOGIC ENGINE ---
 
-const renderReport = (parent, dataInRange, allHistory, allTerritorios, startDate, endDate, yearLabel, congregationName) => {
-    const container = parent.querySelector('#report-preview');
+const renderReport = (
+    parent,
+    dataInRange,
+    allHistory,
+    allTerritorios,
+    startDate,
+    _endDate,
+    yearLabel,
+    congregationName,
+) => {
+    const container = parent.querySelector("#report-preview");
     if (!container) return;
-    container.innerHTML = '';
+    container.innerHTML = "";
 
     // 1. Map all territories
     const territoriesMap = new Map();
 
     // Sort all territories numerically by number
     const sortedTerrs = [...allTerritorios].sort((a, b) =>
-        String(a.numero).localeCompare(String(b.numero), undefined, { numeric: true })
+        String(a.numero).localeCompare(String(b.numero), undefined, { numeric: true }),
     );
 
-    sortedTerrs.forEach(t => {
-        const numStr = String(t.numero).padStart(2, '0');
+    sortedTerrs.forEach((t) => {
+        const numStr = String(t.numero).padStart(2, "0");
         if (!territoriesMap.has(numStr)) territoriesMap.set(numStr, []);
     });
 
     // Populate with assignments in range
-    dataInRange.forEach(item => {
+    dataInRange.forEach((item) => {
         if (!item.numero) return;
-        const nums = item.numero.toString().split(/[,/]/).map(n => n.trim().padStart(2, '0'));
-        nums.forEach(num => {
+        const nums = item.numero
+            .toString()
+            .split(/[,/]/)
+            .map((n) => n.trim().padStart(2, "0"));
+        nums.forEach((num) => {
             if (territoriesMap.has(num)) {
                 territoriesMap.get(num).push({ ...item, numero: num });
             }
@@ -519,11 +559,11 @@ const renderReport = (parent, dataInRange, allHistory, allTerritorios, startDate
     });
 
     const sortedKeys = Array.from(territoriesMap.keys()).sort((a, b) =>
-        a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+        a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }),
     );
 
     // 2. Pagination State (Image shows 22 rows per page)
-    let pageHtmls = [];
+    const pageHtmls = [];
     const TERR_PER_PAGE = 25;
     const ASSIGNS_PER_PAGE = 4;
 
@@ -532,7 +572,7 @@ const renderReport = (parent, dataInRange, allHistory, allTerritorios, startDate
 
         // Calculate Max Assignments across this chunk to see if we need multiple HORIZONTAL pages
         let maxAssigns = 0;
-        terrChunkKeys.forEach(k => {
+        terrChunkKeys.forEach((k) => {
             const count = territoriesMap.get(k).length;
             if (count > maxAssigns) maxAssigns = count;
         });
@@ -542,16 +582,18 @@ const renderReport = (parent, dataInRange, allHistory, allTerritorios, startDate
 
         for (let s = 0; s < sheetsNeeded; s++) {
             const assignStartIndex = s * ASSIGNS_PER_PAGE;
-            pageHtmls.push(S13Exporter.generatePageHtml(
-                terrChunkKeys,
-                territoriesMap,
-                allHistory, // Pass all history to find "Last Completion"
-                startDate,
-                assignStartIndex,
-                ASSIGNS_PER_PAGE,
-                yearLabel,
-                congregationName
-            ));
+            pageHtmls.push(
+                S13Exporter.generatePageHtml(
+                    terrChunkKeys,
+                    territoriesMap,
+                    allHistory, // Pass all history to find "Last Completion"
+                    startDate,
+                    assignStartIndex,
+                    ASSIGNS_PER_PAGE,
+                    yearLabel,
+                    congregationName,
+                ),
+            );
         }
     }
 
@@ -567,16 +609,11 @@ const renderReport = (parent, dataInRange, allHistory, allTerritorios, startDate
         return;
     }
 
-    container.innerHTML = pageHtmls.join('');
+    container.innerHTML = pageHtmls.join("");
 };
 
 const formatDateShort = (isoStr) => {
-    if (!isoStr) return '';
+    if (!isoStr) return "";
     const d = new Date(isoStr);
     return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
 };
-
-
-
-
-

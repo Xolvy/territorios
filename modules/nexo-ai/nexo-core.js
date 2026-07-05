@@ -1,5 +1,5 @@
-import { functions } from '../../firebase-config.js';
 import { httpsCallable } from "firebase/functions";
+import { functions } from "../../firebase-config.js";
 
 export class NexoAgent {
     constructor(manifest) {
@@ -13,7 +13,7 @@ export class NexoAgent {
         this.ui = new NexoUI();
         this.latestContext = {};
         this.flujo = null; // { paso, territorioId, territorioNum }
-        
+
         // Exponer para acceso global según instrucciones
         window.nexoIniciarFlujoAvance = (id, num) => this.iniciarFlujoAvance(id, num);
     }
@@ -41,13 +41,13 @@ export class NexoAgent {
         }
 
         this.recognition = new SpeechRecognition();
-        this.recognition.lang = 'es-ES';
+        this.recognition.lang = "es-ES";
         this.recognition.continuous = false;
         this.recognition.interimResults = false;
 
         this.recognition.onstart = () => {
             this.isListening = true;
-            this.ui.updateStatus('Escuchando...');
+            this.ui.updateStatus("Escuchando...");
             console.log("Nexo: Escuchando...");
         };
 
@@ -55,10 +55,10 @@ export class NexoAgent {
             const transcript = event.results[0][0].transcript;
             console.log("Nexo escuchó:", transcript);
             this.limpiarTimeoutInactividad(); // Cancelo timer al escuchar interacción
-            this.ui.addMessage(transcript, 'usuario');
-            
+            this.ui.addMessage(transcript, "usuario");
+
             // Verificación prioritaria de flujo estructurado
-            if (this.flujo && this.flujo.paso) {
+            if (this.flujo?.paso) {
                 await this.manejarFlujoLocal(transcript);
                 return;
             }
@@ -69,13 +69,13 @@ export class NexoAgent {
         this.recognition.onerror = (event) => {
             console.error("Error en Nexo:", event.error);
             this.isListening = false;
-            this.ui.updateStatus('Error');
+            this.ui.updateStatus("Error");
         };
 
         this.recognition.onend = () => {
             this.isListening = false;
-            this.ui.updateStatus('En espera');
-            
+            this.ui.updateStatus("En espera");
+
             // Si no hay flujo activo, inicio el timer de auto-cierre
             if (!this.flujo) {
                 this.iniciarTimeoutInactividad();
@@ -87,38 +87,35 @@ export class NexoAgent {
     }
 
     async manejarFlujoLocal(texto) {
-        if (!this.flujo || !this.flujo.cola) return;
+        if (!this.flujo?.cola) return;
         const { paso, cola, indice } = this.flujo;
         const territorioActual = cola[indice];
 
         // ── PASO 1: confirmar manzanas ──
         if (paso === 1) {
             const completo = /(sí|si|todo|todas|terminamos|completo)/.test(texto.toLowerCase());
-            
-            if (this.actions['registrar_predicacion_territorio']) {
-                await this.actions['registrar_predicacion_territorio']({
+
+            if (this.actions.registrar_predicacion_territorio) {
+                await this.actions.registrar_predicacion_territorio({
                     territorio_id: territorioActual.id,
-                    tipo_entrega: completo ? 'completo' : 'parcial',
-                    es_flujo_interno: true
+                    tipo_entrega: completo ? "completo" : "parcial",
+                    es_flujo_interno: true,
                 });
             }
-            
+
             this.flujo.paso = 2;
-            this.speak(
-                `¿Alguna novedad para el registro S-13 del territorio ${territorioActual.numero}?`,
-                true
-            );
+            this.speak(`¿Alguna novedad para el registro S-13 del territorio ${territorioActual.numero}?`, true);
             return;
         }
 
         // ── PASO 2: recolectar novedades ──
         if (paso === 2) {
             const sinNovedad = /(no|nada|ninguna|sin novedad)/.test(texto.toLowerCase());
-            
-            if (!sinNovedad && this.actions['registrar_novedad_flujo']) {
-                await this.actions['registrar_novedad_flujo']({
+
+            if (!sinNovedad && this.actions.registrar_novedad_flujo) {
+                await this.actions.registrar_novedad_flujo({
                     territorio_id: territorioActual.id,
-                    novedad: texto
+                    novedad: texto,
                 });
             }
 
@@ -129,21 +126,22 @@ export class NexoAgent {
                 const siguiente = cola[siguienteIndice];
                 this.flujo.paso = 1;
                 this.flujo.indice = siguienteIndice;
-                
+
                 this.speak(
                     `Ahora con el territorio ${siguiente.numero}. ¿Se predicaron todas las manzanas o quedó alguna pendiente?`,
-                    true
+                    true,
                 );
             } else {
                 // ── Cola terminada: cierre ──
                 this.flujo = null;
                 this.iniciarTimeoutInactividad(); // Inicio timer al terminar flujo
-                
+
                 const totalRegistrados = cola.length;
-                const resumen = totalRegistrados === 1
-                    ? `territorio ${cola[0].numero} registrado`
-                    : `${totalRegistrados} territorios registrados`;
-                
+                const resumen =
+                    totalRegistrados === 1
+                        ? `territorio ${cola[0].numero} registrado`
+                        : `${totalRegistrados} territorios registrados`;
+
                 this.speak(`Listo, ${resumen}. ¡Buen trabajo!`, false);
             }
             return;
@@ -178,19 +176,20 @@ export class NexoAgent {
 
     async obtenerInfoTerritorio(idOrNum) {
         try {
-            const { getTerritorios } = await import('../../data/firestore-services.js');
+            const { getTerritorios } = await import("../../data/firestore-services.js");
             const territorios = await getTerritorios();
-            const target = territorios.find(t => t.id === String(idOrNum) || String(t.numero) === String(idOrNum));
+            const target = territorios.find((t) => t.id === String(idOrNum) || String(t.numero) === String(idOrNum));
             if (target) {
                 return { id: target.id, numero: target.numero };
             }
-        } catch (e) { console.error("Error resolviendo territorio:", e); }
+        } catch (e) {
+            console.error("Error resolviendo territorio:", e);
+        }
         return { id: idOrNum, numero: idOrNum };
     }
 
     async processCommand(textoUsuario, contextoDinamico = {}) {
-        if (this.flujo && this.flujo.paso) {
-
+        if (this.flujo?.paso) {
             await this.manejarFlujoLocal(textoUsuario);
             return;
         }
@@ -218,7 +217,7 @@ export class NexoAgent {
             ${JSON.stringify(contextoDinamico, null, 2)}
             
             MEMORIA RECIENTE:
-            - Último territorio: ${this.ultimoTerritorioId || 'Ninguno'}
+            - Último territorio: ${this.ultimoTerritorioId || "Ninguno"}
             
             REGLAS TÉCNICAS:
             1. No uses Markdown. Solo devuelve JSON puro.
@@ -241,82 +240,79 @@ export class NexoAgent {
         `;
 
         this.ui.showTyping();
-        this.ui.updateStatus('Procesando...');
+        this.ui.updateStatus("Procesando...");
         try {
-            const askNexoAI = httpsCallable(functions, 'askNexoAI');
+            const askNexoAI = httpsCallable(functions, "askNexoAI");
             const result = await askNexoAI({
                 prompt: textoUsuario,
                 systemInstruction: { parts: [{ text: systemPrompt }] },
                 generationConfig: {
                     temperature: 0.1,
                     topP: 0.8,
-                    responseMimeType: "application/json"
-                }
+                    responseMimeType: "application/json",
+                },
             });
 
             const data = result.data;
-            
+
             if (data.error) {
-                console.error('Nexo Cloud Function Error:', data.error);
+                console.error("Nexo Cloud Function Error:", data.error);
                 throw new Error("Pérdida de conexión con el cerebro de Nexo.");
             }
 
-
-            let rawJson = data.candidates[0].content.parts[0].text.trim();
+            const rawJson = data.candidates[0].content.parts[0].text.trim();
             let decision;
             try {
                 // Limpiar posibles backticks de markdown que Gemini a veces añade
                 const cleanJson = rawJson
-                    .replace(/```json\n?/g, '')
-                    .replace(/```\n?/g, '')
+                    .replace(/```json\n?/g, "")
+                    .replace(/```\n?/g, "")
                     .trim();
                 decision = JSON.parse(cleanJson);
-            } catch (parseErr) {
-                console.warn('[Nexo] Error parseando respuesta de Gemini:', rawJson);
+            } catch (_parseErr) {
+                console.warn("[Nexo] Error parseando respuesta de Gemini:", rawJson);
                 // Respuesta de fallback para no dejar a Nexo congelado
                 decision = {
-                    respuesta_hablada: 'Disculpa, no entendí bien. ¿Puedes repetirlo?',
-                    accion: null
+                    respuesta_hablada: "Disculpa, no entendí bien. ¿Puedes repetirlo?",
+                    accion: null,
                 };
             }
-            console.log('Nexo Decisión:', decision);
+            console.log("Nexo Decisión:", decision);
 
             // 0. Memoria de territorio para seguimiento
-            if (decision.accion && decision.accion.parametros && decision.accion.parametros.territorio_id) {
+            if (decision.accion?.parametros?.territorio_id) {
                 this.ultimoTerritorioId = decision.accion.parametros.territorio_id;
-            } else if (decision.accion && decision.accion.parametros && decision.accion.parametros.numero_territorio) {
+            } else if (decision.accion?.parametros?.numero_territorio) {
                 this.ultimoTerritorioId = decision.accion.parametros.numero_territorio;
             }
 
             // 1. Hablar (Silenciar si la acción dispara el flujo de voz estructurado)
-            const silenciarIA = decision.accion && (decision.accion.nombre === 'registrar_predicacion_territorio');
-            
+            const silenciarIA = decision.accion && decision.accion.nombre === "registrar_predicacion_territorio";
+
             if (decision.respuesta_hablada && !silenciarIA) {
                 this.speak(decision.respuesta_hablada);
             }
 
             // 2. Ejecutar
-            if (decision.accion && decision.accion.nombre) {
+            if (decision.accion?.nombre) {
                 const funcName = decision.accion.nombre;
                 const params = decision.accion.parametros;
 
                 // Caso especial FASE 3: Registro de territorios en cola
-                if (funcName === 'registrar_predicacion_territorio') {
+                if (funcName === "registrar_predicacion_territorio") {
                     const ids = params.ids || [params.territorio_id || params.id];
-                    const territoriosInfo = await Promise.all(
-                        ids.map(id => this.obtenerInfoTerritorio(id))
-                    );
+                    const territoriosInfo = await Promise.all(ids.map((id) => this.obtenerInfoTerritorio(id)));
 
                     this.flujo = {
                         paso: 1,
                         cola: territoriosInfo,
-                        indice: 0
+                        indice: 0,
                     };
 
                     const primero = this.flujo.cola[0];
                     this.speak(
                         `He registrado tu avance. ¿Se predicaron todas las manzanas del territorio ${primero.numero} o quedó alguna pendiente?`,
-                        true
+                        true,
                     );
                     return decision;
                 }
@@ -325,8 +321,8 @@ export class NexoAgent {
                     try {
                         await this.actions[funcName](params);
                     } catch (e) {
-                         console.error(`Error ejecutando ${funcName}:`, e);
-                         this.speak("Ocurrió un error al intentar completar tu comando.");
+                        console.error(`Error ejecutando ${funcName}:`, e);
+                        this.speak("Ocurrió un error al intentar completar tu comando.");
                     }
                 } else {
                     console.warn(`Nexo: Función '${funcName}' pedida por la IA no está registrada.`);
@@ -335,35 +331,34 @@ export class NexoAgent {
             }
 
             return decision;
-
         } catch (error) {
             this.ui.hideTyping();
-            this.ui.updateStatus('En espera');
-            console.error('Nexo processCommand error:', error);
+            this.ui.updateStatus("En espera");
+            console.error("Nexo processCommand error:", error);
             this.speak("Hubo un error al procesar tu instrucción.");
         }
     }
 
     speak(text, autoListen = false) {
         if (!text) return;
-        this.limpiarTimeoutInactividad(); 
+        this.limpiarTimeoutInactividad();
         this.ui.hideTyping();
-        this.ui.updateStatus('Hablando...');
-        this.ui.addMessage(text, 'nexo');
+        this.ui.updateStatus("Hablando...");
+        this.ui.addMessage(text, "nexo");
         this.synth.cancel();
         const voiceMessage = new SpeechSynthesisUtterance(text);
-        voiceMessage.lang = 'es-ES';
-        
+        voiceMessage.lang = "es-ES";
+
         voiceMessage.onend = () => {
             if (autoListen) {
                 setTimeout(() => {
                     try {
-                        this.ui.updateStatus('Escuchando...');
+                        this.ui.updateStatus("Escuchando...");
                         this.listen(this.latestContext);
                     } catch (e) {
                         console.error("Mic error:", e);
                         this.isListening = false;
-                        this.ui.updateStatus('Error');
+                        this.ui.updateStatus("Error");
                     }
                 }, 100);
             } else {
@@ -372,7 +367,9 @@ export class NexoAgent {
         };
 
         const voices = this.synth.getVoices();
-        const preferredVoice = voices.find(v => (v.lang === 'es-ES' || v.lang === 'es-MX') && v.name.includes('Google'));
+        const preferredVoice = voices.find(
+            (v) => (v.lang === "es-ES" || v.lang === "es-MX") && v.name.includes("Google"),
+        );
         if (preferredVoice) {
             voiceMessage.voice = preferredVoice;
         }
@@ -380,45 +377,50 @@ export class NexoAgent {
         this.synth.speak(voiceMessage);
     }
 
-    async analyzeImage(base64Data, mimeType = 'image/jpeg') {
+    async analyzeImage(base64Data, mimeType = "image/jpeg") {
         try {
-            const askNexoAI = httpsCallable(functions, 'askNexoAI');
+            const askNexoAI = httpsCallable(functions, "askNexoAI");
             const result = await askNexoAI({
                 prompt: "Eres un asistente visual. Analiza la imagen de esta tarjeta de territorio. Extrae en formato JSON el 'territorio_id' (el número del territorio) y un array 'manzanas_trabajadas' con los números de las manzanas que veas marcadas, tachadas o pintadas. Responde únicamente el JSON.",
                 image: {
                     inline_data: {
                         mime_type: mimeType,
-                        data: base64Data
-                    }
-                }
+                        data: base64Data,
+                    },
+                },
             });
 
             const data = result.data;
             if (data.error) {
-                console.error('Nexo Vision Cloud Function Error:', data.error);
+                console.error("Nexo Vision Cloud Function Error:", data.error);
                 throw new Error("Error en el análisis visual de Nexo.");
             }
 
-
             let rawJson = data.candidates[0].content.parts[0].text.trim();
-            if (rawJson.startsWith('```json')) {
-                rawJson = rawJson.replace(/```json/g, '').replace(/```/g, '').trim();
+            if (rawJson.startsWith("```json")) {
+                rawJson = rawJson
+                    .replace(/```json/g, "")
+                    .replace(/```/g, "")
+                    .trim();
             }
 
             return JSON.parse(rawJson);
         } catch (error) {
-            console.error('Nexo analyzeImage error:', error);
+            console.error("Nexo analyzeImage error:", error);
             throw error;
         }
     }
 
     iniciarFlujoAvance(id, num) {
-        this.flujo = { 
-            paso: 1, 
-            territorioId: String(id), 
-            territorioNum: String(num) 
+        this.flujo = {
+            paso: 1,
+            territorioId: String(id),
+            territorioNum: String(num),
         };
-        this.speak(`He registrado tu avance. ¿Se predicaron todas las manzanas del territorio ${num} o quedó alguna pendiente?`, true);
+        this.speak(
+            `He registrado tu avance. ¿Se predicaron todas las manzanas del territorio ${num} o quedó alguna pendiente?`,
+            true,
+        );
     }
 }
 
@@ -433,15 +435,15 @@ class NexoUI {
     }
 
     init() {
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => this.injectUI());
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", () => this.injectUI());
         } else {
             this.injectUI();
         }
     }
 
     injectUI() {
-        if (document.getElementById('nexo-widget')) return;
+        if (document.getElementById("nexo-widget")) return;
 
         const styles = `
             #nexo-widget {
@@ -563,8 +565,8 @@ class NexoUI {
         styleSheet.innerText = styles;
         document.head.appendChild(styleSheet);
 
-        const widget = document.createElement('div');
-        widget.id = 'nexo-widget';
+        const widget = document.createElement("div");
+        widget.id = "nexo-widget";
         widget.innerHTML = `
             <div id="nexo-chat-panel">
                 <div id="nexo-messages"></div>
@@ -585,16 +587,18 @@ class NexoUI {
         `;
         document.body.appendChild(widget);
 
-        document.getElementById('nexo-pill').onclick = (e) => {
+        document.getElementById("nexo-pill").onclick = (_e) => {
             const nexo = window._nexoInstance;
             if (this.isChatOpen) {
                 // Cerrar
-                if (nexo && nexo.recognition) {
-                    try { nexo.recognition.stop(); } catch(err) {}
+                if (nexo?.recognition) {
+                    try {
+                        nexo.recognition.stop();
+                    } catch (_err) {}
                 }
                 if (nexo) nexo.isListening = false;
                 this.toggleChat(); // Colapsa
-                this.updateStatus('EN ESPERA');
+                this.updateStatus("EN ESPERA");
             } else {
                 // Abrir
                 this.toggleChat();
@@ -612,70 +616,70 @@ class NexoUI {
 
     toggleChat() {
         this.isChatOpen = !this.isChatOpen;
-        const panel = document.getElementById('nexo-chat-panel');
-        const pill = document.getElementById('nexo-pill');
-        const widget = document.getElementById('nexo-widget');
-        const ring = document.getElementById('nexo-status-ring');
-        const dot = document.getElementById('nexo-idle-dot');
-        const mic = document.getElementById('nexo-mic-icon');
+        const panel = document.getElementById("nexo-chat-panel");
+        const pill = document.getElementById("nexo-pill");
+        const widget = document.getElementById("nexo-widget");
+        const ring = document.getElementById("nexo-status-ring");
+        const dot = document.getElementById("nexo-idle-dot");
+        const mic = document.getElementById("nexo-mic-icon");
 
         if (!panel || !pill || !widget) return;
 
         if (this.isChatOpen) {
-            panel.style.display = 'flex';
-            pill.classList.add('active');
-            widget.classList.add('active');
-            if (dot) dot.style.display = 'none';
-            if (ring) ring.style.display = 'block'; // Mostrar anillo al abrir
-            if (mic) mic.style.display = 'block';
+            panel.style.display = "flex";
+            pill.classList.add("active");
+            widget.classList.add("active");
+            if (dot) dot.style.display = "none";
+            if (ring) ring.style.display = "block"; // Mostrar anillo al abrir
+            if (mic) mic.style.display = "block";
 
             // Si está vacío, saludar pero no auto-escuchar inmediatamente (dejar que el usuario vea el panel)
-            const messages = document.getElementById('nexo-messages');
+            const _messages = document.getElementById("nexo-messages");
         } else {
-            panel.style.display = 'none';
-            pill.classList.remove('active');
-            widget.classList.remove('active');
-            if (ring) ring.style.display = 'none';
-            if (dot) dot.style.display = 'block';
-            if (mic) mic.style.display = 'none';
+            panel.style.display = "none";
+            pill.classList.remove("active");
+            widget.classList.remove("active");
+            if (ring) ring.style.display = "none";
+            if (dot) dot.style.display = "block";
+            if (mic) mic.style.display = "none";
             this.clear();
         }
     }
 
     updateStatus(state) {
-        const stateEl = document.getElementById('nexo-state');
-        const ring = document.getElementById('nexo-status-ring');
-        const dot = document.getElementById('nexo-idle-dot');
-        const mic = document.getElementById('nexo-mic-icon');
+        const stateEl = document.getElementById("nexo-state");
+        const ring = document.getElementById("nexo-status-ring");
+        const dot = document.getElementById("nexo-idle-dot");
+        const mic = document.getElementById("nexo-mic-icon");
 
         if (!stateEl) return;
         stateEl.innerText = state;
 
-        if (state === 'Escuchando...' || state === 'Procesando...' || state === 'Hablando...') {
-            if (ring) ring.style.display = 'block';
-            if (dot) dot.style.display = 'none';
-            if (mic) mic.style.display = 'block';
+        if (state === "Escuchando..." || state === "Procesando..." || state === "Hablando...") {
+            if (ring) ring.style.display = "block";
+            if (dot) dot.style.display = "none";
+            if (mic) mic.style.display = "block";
         } else {
             if (!this.isChatOpen) {
-                if (ring) ring.style.display = 'none';
-                if (dot) dot.style.display = 'block';
-                if (mic) mic.style.display = 'none';
+                if (ring) ring.style.display = "none";
+                if (dot) dot.style.display = "block";
+                if (mic) mic.style.display = "none";
             }
         }
     }
 
     addMessage(texto, tipo) {
-        const panel = document.getElementById('nexo-chat-panel');
-        const messages = document.getElementById('nexo-messages');
+        const _panel = document.getElementById("nexo-chat-panel");
+        const messages = document.getElementById("nexo-messages");
         if (!messages) return;
 
         // Auto-abrir si llega mensaje
         if (!this.isChatOpen) this.toggleChat();
 
-        const row = document.createElement('div');
+        const row = document.createElement("div");
         row.className = `msg-row ${tipo}`;
-        
-        const avatarChar = tipo === 'nexo' ? 'N' : 'T'; // 'T' de Tú
+
+        const avatarChar = tipo === "nexo" ? "N" : "T"; // 'T' de Tú
         row.innerHTML = `
             <div class="msg-avatar">${avatarChar}</div>
             <div class="msg-bubble">${texto}</div>
@@ -690,12 +694,12 @@ class NexoUI {
     }
 
     showTyping() {
-        const messages = document.getElementById('nexo-messages');
-        if (!messages || document.getElementById('nexo-typing-bubble')) return;
+        const messages = document.getElementById("nexo-messages");
+        if (!messages || document.getElementById("nexo-typing-bubble")) return;
 
-        const row = document.createElement('div');
-        row.className = 'msg-row nexo';
-        row.id = 'nexo-typing-bubble';
+        const row = document.createElement("div");
+        row.className = "msg-row nexo";
+        row.id = "nexo-typing-bubble";
         row.innerHTML = `
             <div class="msg-avatar">N</div>
             <div class="msg-bubble" id="nexo-typing">
@@ -709,12 +713,12 @@ class NexoUI {
     }
 
     hideTyping() {
-        const bubble = document.getElementById('nexo-typing-bubble');
+        const bubble = document.getElementById("nexo-typing-bubble");
         if (bubble) bubble.remove();
     }
 
     clear() {
-        const messages = document.getElementById('nexo-messages');
-        if (messages) messages.innerHTML = '';
+        const messages = document.getElementById("nexo-messages");
+        if (messages) messages.innerHTML = "";
     }
 }

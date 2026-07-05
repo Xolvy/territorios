@@ -1,13 +1,16 @@
 /* global Sortable */
 import {
+    addPuntoInteres,
+    deletePuntoInteres,
+    getPuntosInteres,
+    getTerritorios,
     saveConfiguracion,
-    getPuntosInteres, addPuntoInteres, deletePuntoInteres, updatePuntoInteres,
-    getTerritorios
-} from '../../data/firestore-services.js';
-import { ServiceCache } from '../../data/services/base-service.js';
-import { showCustomPrompt, showModal, showCustomConfirm } from '../services/ui-helpers.js';
-import { showNotification } from '../utils/helpers.js';
-import { broadcastCurrentVersion } from '../utils/update-manager.js';
+    updatePuntoInteres,
+} from "../../data/firestore-services.js";
+import { ServiceCache } from "../../data/services/base-service.js";
+import { showCustomConfirm, showCustomPrompt, showModal } from "../services/ui-helpers.js";
+import { showNotification } from "../utils/helpers.js";
+import { broadcastCurrentVersion } from "../utils/update-manager.js";
 
 /**
  * Ordena cronológicamente un array de strings de tiempo (soporta AM/PM y 24h).
@@ -15,14 +18,14 @@ import { broadcastCurrentVersion } from '../utils/update-manager.js';
 const sortChronologically = (times) => {
     if (!times || !Array.isArray(times)) return [];
     const parse = (s) => {
-        if (!s || typeof s !== 'string') return 0;
+        if (!s || typeof s !== "string") return 0;
         const raw = s.toLowerCase().trim();
-        const mod = raw.includes('pm') ? 'pm' : (raw.includes('am') ? 'am' : null);
-        let [h, m] = raw.replace(/[ap]m/g, '').split(':').map(Number);
-        if (isNaN(h)) h = 0;
-        if (mod === 'pm' && h < 12) h += 12;
-        if (mod === 'am' && h === 12) h = 0;
-        // Inferencia: Si es < 8 y no tiene AM/PM, probablemente es de la mañana para JW (ej. 9:00), 
+        const mod = raw.includes("pm") ? "pm" : raw.includes("am") ? "am" : null;
+        let [h, m] = raw.replace(/[ap]m/g, "").split(":").map(Number);
+        if (Number.isNaN(h)) h = 0;
+        if (mod === "pm" && h < 12) h += 12;
+        if (mod === "am" && h === 12) h = 0;
+        // Inferencia: Si es < 8 y no tiene AM/PM, probablemente es de la mañana para JW (ej. 9:00),
         // pero si es < 8 y es tarde escolar/reunión, asumimos coherencia 24h o PM.
         if (!mod && h > 0 && h < 7) h += 12;
         return h * 60 + (m || 0);
@@ -31,24 +34,22 @@ const sortChronologically = (times) => {
 };
 
 export const renderConfigTab = async (container, config, appVersion, reloadTabFn) => {
-    const [puntosInteres, territorios] = await Promise.all([
-        getPuntosInteres(), getTerritorios()
-    ]);
+    const [puntosInteres, territorios] = await Promise.all([getPuntosInteres(), getTerritorios()]);
 
     // Helper for showing manual LED feedback
     const triggerManualLED = async (id) => {
         const el = container.querySelector(`#led-${id}`);
-        if (!el) return () => { };
+        if (!el) return () => {};
         el.innerHTML = '<div class="led-spinner"></div>';
-        el.classList.remove('hidden', 'opacity-0');
-        el.style.display = 'flex';
+        el.classList.remove("hidden", "opacity-0");
+        el.style.display = "flex";
         return async (success = true) => {
             if (success) {
                 el.innerHTML = '<i class="fas fa-check-circle led-check"></i>';
-                await new Promise(r => setTimeout(r, 1200));
+                await new Promise((r) => setTimeout(r, 1200));
             }
-            el.classList.add('hidden');
-            el.style.display = 'none';
+            el.classList.add("hidden");
+            el.style.display = "none";
         };
     };
 
@@ -56,18 +57,25 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
         const freshPuntos = await getPuntosInteres();
         puntosInteres.length = 0;
         puntosInteres.push(...freshPuntos);
-        const listZ = container.querySelector('#list-zonas');
+        const listZ = container.querySelector("#list-zonas");
         if (listZ) {
-            listZ.innerHTML = puntosInteres.length === 0 ? '<p class="text-[10px] text-slate-600 dark:text-slate-400 text-center py-4 italic w-full">Sin zonas registradas</p>' : puntosInteres.map((p) => `
+            listZ.innerHTML =
+                puntosInteres.length === 0
+                    ? '<p class="text-[10px] text-slate-600 dark:text-slate-400 text-center py-4 italic w-full">Sin zonas registradas</p>'
+                    : puntosInteres
+                          .map(
+                              (p) => `
                 <div class="bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-bold flex items-center gap-2 shadow-sm animate-scale-in cursor-move group/tag" data-id="${p.id}">
                     <i class="fas fa-grip-vertical text-slate-700 dark:text-slate-300 text-[8px]"></i>
                     <div class="flex flex-col cursor-pointer" onclick="window.editPOI_Rules('${p.id}')">
                         <span class="leading-none text-[11px]">${p.nombre}</span>
-                        <span class="text-[7px] text-slate-600 dark:text-slate-400 uppercase tracking-tighter">T-${p.territorio_numero || '??'}</span>
+                        <span class="text-[7px] text-slate-600 dark:text-slate-400 uppercase tracking-tighter">T-${p.territorio_numero || "??"}</span>
                     </div>
                     <button onclick="window.deletePOI_Rules('${p.id}')" class="text-slate-700 dark:text-slate-300 hover:text-red-500 transition-colors ml-1"><i class="fas fa-times"></i></button>
                 </div>
-            `).join('');
+            `,
+                          )
+                          .join("");
         }
     };
 
@@ -102,7 +110,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                 <div class="relative">
                                     <textarea id="conf-tema-mes" rows="2" 
                                         class="input-premium pr-12 text-sm w-full"
-                                        placeholder="Escribe el tema de conversación sugerido o enfoque semanal...">${config.tema_mes || ''}</textarea>
+                                        placeholder="Escribe el tema de conversación sugerido o enfoque semanal...">${config.tema_mes || ""}</textarea>
                                     <div class="led-status-container hidden" style="bottom: 2.5rem;"></div>
                                 </div>
                             </div>
@@ -116,7 +124,10 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                     </div>
                                 </label>
                                 <div id="list-diffusion" class="space-y-2.5 p-4 bg-slate-100/50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 min-h-[100px]">
-                                    ${(config.diffusion_messages || []).map((msg, i) => `
+                                    ${
+                                        (config.diffusion_messages || [])
+                                            .map(
+                                                (msg, i) => `
                                         <div class="bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-slate-200 dark:border-white/10 text-[11px] font-black flex items-start gap-4 animate-scale-in group/msg cursor-move">
                                             <div class="w-7 h-7 bg-blue-500/10 rounded-lg flex items-center justify-center text-blue-600 shrink-0 mt-0.5 transition-transform group-hover/msg:rotate-12">
                                                 <i class="fas fa-grip-vertical text-[10px]"></i>
@@ -126,7 +137,11 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                                 <i class="fas fa-trash-alt"></i>
                                             </button>
                                         </div>
-                                    `).join('') || '<p class="text-[10px] text-slate-600 dark:text-slate-400 text-center py-6 italic">No hay anuncios de difusión activos. El banner solo mostrará el TEMA DE LA SEMANA.</p>'}
+                                    `,
+                                            )
+                                            .join("") ||
+                                        '<p class="text-[10px] text-slate-600 dark:text-slate-400 text-center py-6 italic">No hay anuncios de difusión activos. El banner solo mostrará el TEMA DE LA SEMANA.</p>'
+                                    }
                                 </div>
                                 <p class="text-[9px] text-slate-600 dark:text-slate-400 mt-3 ml-1 italic leading-relaxed">Todo será visible en el banner dinámico del Modo Conductor cada 3 segundos.</p>
                             </div>
@@ -144,7 +159,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                             <div class="relative group/input">
                                 <label class="label-premium">Nombre de la Congregación</label>
                                 <div class="relative">
-                                    <input type="text" id="conf-nombre" value="${config.congregacion?.nombre || ''}" 
+                                    <input type="text" id="conf-nombre" value="${config.congregacion?.nombre || ""}" 
                                         class="input-premium pr-12"
                                         placeholder="Ej. Nueve de Octubre">
                                     <div class="led-status-container hidden"></div>
@@ -154,7 +169,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                             <div class="relative group/input">
                                 <label class="label-premium">Número de Congregación</label>
                                 <div class="relative">
-                                    <input type="text" id="conf-numero" value="${config.congregacion?.numero || ''}" 
+                                    <input type="text" id="conf-numero" value="${config.congregacion?.numero || ""}" 
                                         class="input-premium pr-12"
                                         placeholder="Ej. 14282">
                                     <div class="led-status-container hidden"></div>
@@ -181,7 +196,9 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                     </div>
                                 </label>
                                 <div id="list-horarios" class="flex flex-wrap gap-2 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 min-h-[60px]">
-                                    ${(sortChronologically(config.horarios_programa || [])).map((h, i) => `
+                                    ${sortChronologically(config.horarios_programa || [])
+                                        .map(
+                                            (h, i) => `
                                             <div class="bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-bold flex items-center gap-2 shadow-sm animate-scale-in cursor-move">
                                                 <i class="fas fa-grip-vertical text-slate-700 dark:text-slate-300 text-[8px]"></i>
                                                 <span class="flex-1 min-w-0">${h}</span>
@@ -189,7 +206,9 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                                     <i class="fas fa-times"></i>
                                                 </button>
                                             </div>
-                                        `).join('')}
+                                        `,
+                                        )
+                                        .join("")}
                                 </div>
                             </div>
 
@@ -203,7 +222,9 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                     </div>
                                 </label>
                                  <div id="list-lugares" class="flex flex-wrap gap-2 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 min-h-[60px]">
-                                    ${(config.lugares || []).map((l, i) => `
+                                    ${(config.lugares || [])
+                                        .map(
+                                            (l, i) => `
                                             <div class="bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-bold flex items-center gap-2 shadow-sm animate-scale-in cursor-move">
                                                 <i class="fas fa-grip-vertical text-slate-700 dark:text-slate-300 text-[8px]"></i>
                                                 <span class="flex-1 min-w-0">${l}</span>
@@ -211,7 +232,9 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                                     <i class="fas fa-times"></i>
                                                 </button>
                                             </div>
-                                        `).join('')}
+                                        `,
+                                        )
+                                        .join("")}
                                 </div>
                             </div>
                         </div>
@@ -235,7 +258,9 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                     </div>
                                 </label>
                                 <div id="list-facetas" class="flex flex-wrap gap-2 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 min-h-[60px]">
-                                    ${(config.facetas || []).map((f, i) => `
+                                    ${(config.facetas || [])
+                                        .map(
+                                            (f, i) => `
                                         <div class="bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-bold flex items-center gap-2 shadow-sm animate-scale-in cursor-move">
                                             <i class="fas fa-grip-vertical text-slate-700 dark:text-slate-300 text-[8px]"></i>
                                             <span class="flex-1 min-w-0">${f}</span>
@@ -243,7 +268,9 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                                 <i class="fas fa-times"></i>
                                             </button>
                                         </div>
-                                    `).join('')}
+                                    `,
+                                        )
+                                        .join("")}
                                 </div>
                             </div>
 
@@ -257,7 +284,9 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                     </div>
                                 </label>
                                 <div id="list-tipos-t" class="flex flex-wrap gap-2 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 min-h-[60px]">
-                                    ${(config.tipos_territorio || ['Casa en Casa', 'Negocios', 'Pública']).map((t, i) => `
+                                    ${(config.tipos_territorio || ["Casa en Casa", "Negocios", "Pública"])
+                                        .map(
+                                            (t, i) => `
                                         <div class="bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-bold flex items-center gap-2 shadow-sm animate-scale-in cursor-move">
                                             <i class="fas fa-grip-vertical text-slate-700 dark:text-slate-300 text-[8px]"></i>
                                             <span class="flex-1 min-w-0">${t}</span>
@@ -265,7 +294,9 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                                 <i class="fas fa-times"></i>
                                             </button>
                                         </div>
-                                    `).join('')}
+                                    `,
+                                        )
+                                        .join("")}
                                 </div>
                             </div>
                         </div>
@@ -284,18 +315,26 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                             </header>
 
                             <div id="list-zonas" class="flex flex-wrap gap-2 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 min-h-[60px]">
-                                ${puntosInteres.length === 0 ? `
+                                ${
+                                    puntosInteres.length === 0
+                                        ? `
                                     <p class="text-[10px] text-slate-600 dark:text-slate-400 text-center py-4 italic w-full">Sin zonas registradas</p>
-                                ` : puntosInteres.map((p) => `
+                                `
+                                        : puntosInteres
+                                              .map(
+                                                  (p) => `
                                     <div class="bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-bold flex items-center gap-2 shadow-sm animate-scale-in cursor-move group/tag" data-id="${p.id}">
                                         <i class="fas fa-grip-vertical text-slate-700 dark:text-slate-300 text-[8px]"></i>
                                         <div class="flex flex-col cursor-pointer" onclick="window.editPOI_Rules('${p.id}')">
                                             <span class="leading-none text-[11px]">${p.nombre}</span>
-                                            <span class="text-[7px] text-slate-600 dark:text-slate-400 uppercase tracking-tighter">T-${p.territorio_numero || '??'}</span>
+                                            <span class="text-[7px] text-slate-600 dark:text-slate-400 uppercase tracking-tighter">T-${p.territorio_numero || "??"}</span>
                                         </div>
                                         <button onclick="window.deletePOI_Rules('${p.id}')" class="text-slate-700 dark:text-slate-300 hover:text-red-500 transition-colors ml-1"><i class="fas fa-times"></i></button>
                                     </div>
-                                `).join('')}
+                                `,
+                                              )
+                                              .join("")
+                                }
                             </div>
                         </div>
                     </section>
@@ -313,7 +352,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                                 <span class="text-[8px] px-1.5 py-0.5 bg-indigo-500/10 text-indigo-500 rounded uppercase tracking-tighter">AI Assistant</span>
                             </label>
                             <div class="relative">
-                                <input type="password" id="gemini-key" value="${config.gemini_key || ''}" 
+                                <input type="password" id="gemini-key" value="${config.gemini_key || ""}" 
                                     class="input-premium pr-20 font-mono"
                                     placeholder="AIzaSy...">
                                 <div class="led-status-container hidden" style="right: 3.5rem;"></div>
@@ -351,12 +390,12 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
     // --- DRAGGABLE LISTS INITIALIZATION ---
     setTimeout(() => {
         const listIds = {
-            'list-horarios': 'horarios_programa',
-            'list-lugares': 'lugares',
-            'list-facetas': 'facetas',
-            'list-tipos-t': 'tipos_territorio',
-            'list-diffusion': 'diffusion_messages',
-            'list-zonas': 'zonas'
+            "list-horarios": "horarios_programa",
+            "list-lugares": "lugares",
+            "list-facetas": "facetas",
+            "list-tipos-t": "tipos_territorio",
+            "list-diffusion": "diffusion_messages",
+            "list-zonas": "zonas",
         };
 
         Object.keys(listIds).forEach((id) => {
@@ -364,22 +403,27 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
             if (el && window.Sortable) {
                 new Sortable(el, {
                     animation: 150,
-                    ghostClass: 'opacity-50',
+                    ghostClass: "opacity-50",
                     onEnd: async (evt) => {
                         if (evt.oldIndex === evt.newIndex) return;
 
                         const type = listIds[id];
-                        const ledId = type === 'horarios_programa' ? 'horarios' :
-                            type === 'diffusion_messages' ? 'diffusion' :
-                                type === 'tipos_territorio' ? 'tipos_t' : type;
+                        const ledId =
+                            type === "horarios_programa"
+                                ? "horarios"
+                                : type === "diffusion_messages"
+                                  ? "diffusion"
+                                  : type === "tipos_territorio"
+                                    ? "tipos_t"
+                                    : type;
                         const finishLED = await triggerManualLED(ledId);
 
-                        if (type === 'zonas') {
-                            const tagEls = Array.from(el.querySelectorAll('[data-id]'));
-                            const idChain = tagEls.map(tel => tel.dataset.id);
+                        if (type === "zonas") {
+                            const tagEls = Array.from(el.querySelectorAll("[data-id]"));
+                            const idChain = tagEls.map((tel) => tel.dataset.id);
 
                             try {
-                                const { updatePuntoInteres } = await import('../../data/firestore-services.js');
+                                const { updatePuntoInteres } = await import("../../data/firestore-services.js");
                                 for (let i = 0; i < idChain.length; i++) {
                                     await updatePuntoInteres(idChain[i], { order: i });
                                 }
@@ -401,8 +445,8 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
 
                         await saveConfiguracion(config);
                         await finishLED();
-                        reloadTabFn('config');
-                    }
+                        reloadTabFn("config");
+                    },
                 });
             }
         });
@@ -414,20 +458,20 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
         if (saveTimeout) clearTimeout(saveTimeout);
 
         const inputEl = id ? container.querySelector(`#${id}`) : null;
-        const statusEl = inputEl?.parentElement?.querySelector('.led-status-container');
+        const statusEl = inputEl?.parentElement?.querySelector(".led-status-container");
 
         if (statusEl) {
             statusEl.innerHTML = '<div class="led-spinner"></div>';
-            statusEl.classList.remove('hidden', 'opacity-0');
-            statusEl.style.display = 'flex';
+            statusEl.classList.remove("hidden", "opacity-0");
+            statusEl.style.display = "flex";
         }
 
         try {
             // Capturar valores reales de la UI (sin fallback destructivo)
-            const nombreVal = container.querySelector('#conf-nombre')?.value.trim();
-            const numeroVal = container.querySelector('#conf-numero')?.value.trim();
-            const geminiVal = container.querySelector('#gemini-key')?.value.trim();
-            const temaVal = container.querySelector('#conf-tema-mes')?.value.trim();
+            const nombreVal = container.querySelector("#conf-nombre")?.value.trim();
+            const numeroVal = container.querySelector("#conf-numero")?.value.trim();
+            const geminiVal = container.querySelector("#gemini-key")?.value.trim();
+            const temaVal = container.querySelector("#conf-tema-mes")?.value.trim();
 
             // Sincronizar objeto config
             if (nombreVal !== undefined) {
@@ -447,17 +491,16 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
             if (statusEl) {
                 statusEl.innerHTML = '<i class="fas fa-check-circle led-check"></i>';
                 setTimeout(() => {
-                    statusEl.classList.add('opacity-0');
+                    statusEl.classList.add("opacity-0");
                     setTimeout(() => {
-                        statusEl.classList.add('hidden');
-                        statusEl.style.display = 'none';
+                        statusEl.classList.add("hidden");
+                        statusEl.style.display = "none";
                     }, 500);
                 }, 1500);
             }
 
             // Si es un cambio mayor, notificar brevemente
-            if (!id || id === 'conf-nombre') showNotification("Ajustes guardados", "success");
-
+            if (!id || id === "conf-nombre") showNotification("Ajustes guardados", "success");
         } catch (e) {
             console.error("Auto-save error:", e);
             if (statusEl) statusEl.innerHTML = '<i class="fas fa-exclamation-circle text-red-500 text-[10px]"></i>';
@@ -471,35 +514,43 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
     };
 
     // Attach listeners to text inputs (Blur for immediate, Input for debounced)
-    ['conf-nombre', 'conf-numero', 'gemini-key', 'conf-tema-mes'].forEach(id => {
+    ["conf-nombre", "conf-numero", "gemini-key", "conf-tema-mes"].forEach((id) => {
         const el = container.querySelector(`#${id}`);
         if (el) {
-            el.addEventListener('input', () => triggerAutoSave(id));
-            el.addEventListener('blur', () => performSave(id));
+            el.addEventListener("input", () => triggerAutoSave(id));
+            el.addEventListener("blur", () => performSave(id));
         }
     });
 
     // Helper functions for dynamic lists (modified to save immediately)
     // --- OPTIMISTIC LIST RENDERING ---
     const renderListItems = (type) => {
-        const containerId = type === 'horarios' ? 'list-horarios' :
-            type === 'lugares' ? 'list-lugares' :
-                type === 'facetas' ? 'list-facetas' :
-                    type === 'tipos_t' ? 'list-tipos-t' : null;
+        const containerId =
+            type === "horarios"
+                ? "list-horarios"
+                : type === "lugares"
+                  ? "list-lugares"
+                  : type === "facetas"
+                    ? "list-facetas"
+                    : type === "tipos_t"
+                      ? "list-tipos-t"
+                      : null;
         if (!containerId) return;
 
         const listEl = container.querySelector(`#${containerId}`);
         if (!listEl) return;
 
         let items = [];
-        if (type === 'horarios') {
+        if (type === "horarios") {
             config.horarios_programa = sortChronologically(config.horarios_programa || []);
             items = config.horarios_programa;
-        } else if (type === 'lugares') items = config.lugares || [];
-        else if (type === 'facetas') items = config.facetas || [];
-        else if (type === 'tipos_t') items = config.tipos_territorio || ['Casa en Casa', 'Negocios', 'Pública'];
+        } else if (type === "lugares") items = config.lugares || [];
+        else if (type === "facetas") items = config.facetas || [];
+        else if (type === "tipos_t") items = config.tipos_territorio || ["Casa en Casa", "Negocios", "Pública"];
 
-        listEl.innerHTML = items.map((val, i) => `
+        listEl.innerHTML = items
+            .map(
+                (val, i) => `
             <div class="bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-bold flex items-center gap-2 shadow-sm animate-scale-in cursor-move">
                 <i class="fas fa-grip-vertical text-slate-700 dark:text-slate-300 text-[8px]"></i>
                 <span class="flex-1 min-w-0">${val}</span>
@@ -507,23 +558,25 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-        `).join('');
+        `,
+            )
+            .join("");
     };
 
     // Event Delegation para eliminación de badges
-    container.addEventListener('click', (e) => {
+    container.addEventListener("click", (e) => {
         const btn = e.target.closest('button[data-action="remove-item"]');
         if (!btn) return;
         const { type, index } = btn.dataset;
-        window.removeConfigItem(type, parseInt(index));
+        window.removeConfigItem(type, parseInt(index, 10));
     });
 
     const addConfigItem = (type) => {
         const labels = {
-            horarios: 'Horario (ej. 09:00AM)',
-            lugares: 'Lugar de Reunión',
-            facetas: 'Faceta de Servicio',
-            tipos_t: 'Tipo de Territorio'
+            horarios: "Horario (ej. 09:00AM)",
+            lugares: "Lugar de Reunión",
+            facetas: "Faceta de Servicio",
+            tipos_t: "Tipo de Territorio",
         };
 
         showCustomPrompt(`Añadir ${labels[type]}:`, "", async (val) => {
@@ -531,14 +584,17 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
             const text = val.trim();
 
             // 1. Optimistic Update (UI)
-            if (type === 'horarios') {
+            if (type === "horarios") {
                 config.horarios_programa = [...(config.horarios_programa || []), text];
-            } else if (type === 'lugares') {
+            } else if (type === "lugares") {
                 config.lugares = [...(config.lugares || []), text];
-            } else if (type === 'facetas') {
+            } else if (type === "facetas") {
                 config.facetas = [...(config.facetas || []), text];
-            } else if (type === 'tipos_t') {
-                config.tipos_territorio = [...(config.tipos_territorio || ['Casa en Casa', 'Negocios', 'Pública']), text];
+            } else if (type === "tipos_t") {
+                config.tipos_territorio = [
+                    ...(config.tipos_territorio || ["Casa en Casa", "Negocios", "Pública"]),
+                    text,
+                ];
             }
 
             renderListItems(type);
@@ -561,11 +617,11 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
         const finishLED = await triggerManualLED(type);
 
         // Optimistic UI
-        if (type === 'horarios') config.horarios_programa.splice(index, 1);
-        if (type === 'lugares') config.lugares.splice(index, 1);
-        if (type === 'facetas') config.facetas.splice(index, 1);
-        if (type === 'tipos_t') {
-            if (!config.tipos_territorio) config.tipos_territorio = ['Casa en Casa', 'Negocios', 'Pública'];
+        if (type === "horarios") config.horarios_programa.splice(index, 1);
+        if (type === "lugares") config.lugares.splice(index, 1);
+        if (type === "facetas") config.facetas.splice(index, 1);
+        if (type === "tipos_t") {
+            if (!config.tipos_territorio) config.tipos_territorio = ["Casa en Casa", "Negocios", "Pública"];
             config.tipos_territorio.splice(index, 1);
         }
 
@@ -584,17 +640,18 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
     // --- POI (ZONAS) HANDLERS ---
     const openPOIModal = (poi = null) => {
         const isEdit = !!poi;
-        showModal(`
+        showModal(
+            `
             <div class="flex flex-col p-6 max-w-sm w-full mx-auto">
                 <header class="mb-6">
-                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-1 uppercase tracking-tighter">${isEdit ? 'Editar Zona' : 'Añadir Zona'}</h3>
+                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-1 uppercase tracking-tighter">${isEdit ? "Editar Zona" : "Añadir Zona"}</h3>
                     <p class="text-[10px] text-blue-600 dark:text-blue-400 font-bold uppercase tracking-widest">Predicación Especial</p>
                 </header>
 
                 <div class="space-y-5">
                     <div class="space-y-2 group/input">
                         <label class="label-premium">Nombre de la Zona</label>
-                        <input type="text" id="poi-name" value="${poi?.nombre || ''}" class="input-premium" placeholder="P. ej: Parada de Taxis Central">
+                        <input type="text" id="poi-name" value="${poi?.nombre || ""}" class="input-premium" placeholder="P. ej: Parada de Taxis Central">
                     </div>
                     
                     <div class="grid grid-cols-2 gap-4">
@@ -602,10 +659,10 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                             <label class="label-premium">Tipo</label>
                             <div class="relative">
                                 <select id="poi-type" class="input-premium appearance-none cursor-pointer pr-10">
-                                    <option value="Taxi" ${poi?.tipo === 'Taxi' ? 'selected' : ''}>🚕 Taxis</option>
-                                    <option value="Bus" ${poi?.tipo === 'Bus' ? 'selected' : ''}>🚌 Bus</option>
-                                    <option value="Parque" ${poi?.tipo === 'Parque' ? 'selected' : ''}>🌳 Parque</option>
-                                    <option value="Comercial" ${poi?.tipo === 'Comercial' ? 'selected' : ''}>🏪 Tiendas</option>
+                                    <option value="Taxi" ${poi?.tipo === "Taxi" ? "selected" : ""}>🚕 Taxis</option>
+                                    <option value="Bus" ${poi?.tipo === "Bus" ? "selected" : ""}>🚌 Bus</option>
+                                    <option value="Parque" ${poi?.tipo === "Parque" ? "selected" : ""}>🌳 Parque</option>
+                                    <option value="Comercial" ${poi?.tipo === "Comercial" ? "selected" : ""}>🏪 Tiendas</option>
                                 </select>
                                 <i class="fas fa-chevron-down absolute right-5 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400 text-[10px] pointer-events-none"></i>
                             </div>
@@ -615,9 +672,18 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                             <div class="relative">
                                 <select id="poi-terr" class="input-premium appearance-none cursor-pointer pr-10">
                                     <option value="">Buscar T...</option>
-                                    ${territorios.sort((a, b) => String(a.numero || '').localeCompare(String(b.numero || ''), undefined, { numeric: true })).map(t => `
-                                        <option value="${t.id}" data-num="${t.numero}" ${poi?.territorio_id === t.id ? 'selected' : ''}>T-${t.numero}</option>
-                                    `).join('')}
+                                    ${territorios
+                                        .sort((a, b) =>
+                                            String(a.numero || "").localeCompare(String(b.numero || ""), undefined, {
+                                                numeric: true,
+                                            }),
+                                        )
+                                        .map(
+                                            (t) => `
+                                        <option value="${t.id}" data-num="${t.numero}" ${poi?.territorio_id === t.id ? "selected" : ""}>T-${t.numero}</option>
+                                    `,
+                                        )
+                                        .join("")}
                                 </select>
                                 <i class="fas fa-chevron-down absolute right-5 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400 text-[10px] pointer-events-none"></i>
                             </div>
@@ -626,7 +692,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
 
                     <div class="space-y-2 group/input">
                         <label class="label-premium">Instrucciones / Ubicación</label>
-                        <textarea id="poi-desc" rows="2" class="input-premium resize-none" placeholder="Ubicación exacta...">${poi?.descripcion || ''}</textarea>
+                        <textarea id="poi-desc" rows="2" class="input-premium resize-none" placeholder="Ubicación exacta...">${poi?.descripcion || ""}</textarea>
                     </div>
                 </div>
 
@@ -635,82 +701,97 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                         Omitir
                     </button>
                     <button type="button" id="save-poi-btn" class="btn-pro flex-[2] px-5 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-[10px] uppercase tracking-widest rounded-xl shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-3">
-                        <i class="fas fa-save opacity-70"></i> ${isEdit ? 'Actualizar' : 'Guardar Zona'}
+                        <i class="fas fa-save opacity-70"></i> ${isEdit ? "Actualizar" : "Guardar Zona"}
                     </button>
                 </footer>
             </div>
-        `, (modal) => {
-            modal.querySelector('#btn-cancel-poi').onclick = (e) => {
-                if (e) {
-                    e.preventDefault();
-                    e.stopImmediatePropagation();
-                }
-                modal.classList.add('hidden');
-                modal.innerHTML = ''; // Destrucción del DOM
-            };
+        `,
+            (modal) => {
+                modal.querySelector("#btn-cancel-poi").onclick = (e) => {
+                    if (e) {
+                        e.preventDefault();
+                        e.stopImmediatePropagation();
+                    }
+                    modal.classList.add("hidden");
+                    modal.innerHTML = ""; // Destrucción del DOM
+                };
 
-            modal.querySelector('#save-poi-btn').onclick = async (e) => {
-                if (e) {
-                    e.preventDefault();
-                    e.stopImmediatePropagation();
-                }
+                modal.querySelector("#save-poi-btn").onclick = async (e) => {
+                    if (e) {
+                        e.preventDefault();
+                        e.stopImmediatePropagation();
+                    }
 
-                const btn = modal.querySelector('#save-poi-btn');
-                const name = modal.querySelector('#poi-name').value.trim();
-                const type = modal.querySelector('#poi-type').value;
-                const terrId = modal.querySelector('#poi-terr').value;
-                const terrNum = modal.querySelector('#poi-terr').options[modal.querySelector('#poi-terr').selectedIndex].dataset.num;
-                const desc = modal.querySelector('#poi-desc').value.trim();
+                    const btn = modal.querySelector("#save-poi-btn");
+                    const name = modal.querySelector("#poi-name").value.trim();
+                    const type = modal.querySelector("#poi-type").value;
+                    const terrId = modal.querySelector("#poi-terr").value;
+                    const terrNum =
+                        modal.querySelector("#poi-terr").options[modal.querySelector("#poi-terr").selectedIndex].dataset
+                            .num;
+                    const desc = modal.querySelector("#poi-desc").value.trim();
 
-                if (!name || !terrId) return showNotification("Nombre y Territorio obligatorios", "warning");
+                    if (!name || !terrId) return showNotification("Nombre y Territorio obligatorios", "warning");
 
-                btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Procesando...';
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Procesando...';
 
-                try {
-                    const finishLED = await triggerManualLED('zonas');
-                    const data = { nombre: name, tipo: type, territorio_id: terrId, territorio_numero: terrNum, descripcion: desc };
-                    if (isEdit) await updatePuntoInteres(poi.id, data);
-                    else await addPuntoInteres(data);
+                    try {
+                        const finishLED = await triggerManualLED("zonas");
+                        const data = {
+                            nombre: name,
+                            tipo: type,
+                            territorio_id: terrId,
+                            territorio_numero: terrNum,
+                            descripcion: desc,
+                        };
+                        if (isEdit) await updatePuntoInteres(poi.id, data);
+                        else await addPuntoInteres(data);
 
-                    modal.classList.add('hidden');
-                    modal.innerHTML = ''; // Destrucción completa
-                    await finishLED();
-                    showNotification(isEdit ? "Zona actualizada" : "Zona añadida");
-                    renderZonasUI();
-                } catch (e) {
-                    showNotification("Error: " + e.message, "error");
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fas fa-save"></i> Reintentar';
-                }
-            };
-        }, 'max-w-sm');
+                        modal.classList.add("hidden");
+                        modal.innerHTML = ""; // Destrucción completa
+                        await finishLED();
+                        showNotification(isEdit ? "Zona actualizada" : "Zona añadida");
+                        renderZonasUI();
+                    } catch (e) {
+                        showNotification(`Error: ${e.message}`, "error");
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fas fa-save"></i> Reintentar';
+                    }
+                };
+            },
+            "max-w-sm",
+        );
     };
 
-    const addHorBtn = container.querySelector('#add-horario');
-    if (addHorBtn) addHorBtn.onclick = () => addConfigItem('horarios');
+    const addHorBtn = container.querySelector("#add-horario");
+    if (addHorBtn) addHorBtn.onclick = () => addConfigItem("horarios");
 
-    const addLugBtn = container.querySelector('#add-lugar');
-    if (addLugBtn) addLugBtn.onclick = () => addConfigItem('lugares');
+    const addLugBtn = container.querySelector("#add-lugar");
+    if (addLugBtn) addLugBtn.onclick = () => addConfigItem("lugares");
 
-    const addFacBtn = container.querySelector('#add-faceta');
-    if (addFacBtn) addFacBtn.onclick = () => addConfigItem('facetas');
+    const addFacBtn = container.querySelector("#add-faceta");
+    if (addFacBtn) addFacBtn.onclick = () => addConfigItem("facetas");
 
-    const addTipBtn = container.querySelector('#add-tipo-t');
-    if (addTipBtn) addTipBtn.onclick = () => addConfigItem('tipos_t');
+    const addTipBtn = container.querySelector("#add-tipo-t");
+    if (addTipBtn) addTipBtn.onclick = () => addConfigItem("tipos_t");
 
-    const addDiffBtn = container.querySelector('#add-diffusion-msg');
+    const addDiffBtn = container.querySelector("#add-diffusion-msg");
     if (addDiffBtn) {
         addDiffBtn.onclick = null; // Purge stale
         addDiffBtn.onclick = () => {
             showCustomPrompt("Contenido del Anuncio:", "", async (val) => {
                 if (!val) return;
-                const finishLED = await triggerManualLED('diffusion');
+                const finishLED = await triggerManualLED("diffusion");
 
                 try {
                     // Carga fresca para evitar machacar cambios en paralelo
-                    const freshConfig = await import('../../data/firestore-services.js').then(m => m.getConfiguracion());
-                    const currentMsgs = Array.isArray(freshConfig.diffusion_messages) ? freshConfig.diffusion_messages : [];
+                    const freshConfig = await import("../../data/firestore-services.js").then((m) =>
+                        m.getConfiguracion(),
+                    );
+                    const currentMsgs = Array.isArray(freshConfig.diffusion_messages)
+                        ? freshConfig.diffusion_messages
+                        : [];
 
                     // Solo añadir si no existe ya exactamente igual (opcional pero recomendado)
                     // if (currentMsgs.includes(val)) return showNotification("Mensaje ya existe", "warning");
@@ -719,19 +800,19 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                     await saveConfiguracion(freshConfig);
 
                     // Limpieza de caché local para asegurar que el re-render use datos nuevos
-                    ServiceCache.clear('configuracion');
+                    ServiceCache.clear("configuracion");
 
                     if (window.XolvyAlert) {
                         window.XolvyAlert.fire({
-                            title: 'Anuncio Publicado',
-                            text: 'El banner se actualizará en segundos.',
-                            icon: 'success',
+                            title: "Anuncio Publicado",
+                            text: "El banner se actualizará en segundos.",
+                            icon: "success",
                             timer: 2000,
                             showConfirmButton: false,
                             didClose: () => {
                                 // Re-render sin skeleton (para evitar parpadeo agresivo)
                                 renderSettingsView(container, freshConfig, appVersion, reloadTabFn);
-                            }
+                            },
                         });
                     } else {
                         await finishLED();
@@ -746,50 +827,56 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
         };
     }
 
-    const addPoiBtn = container.querySelector('#add-poi-btn');
+    const addPoiBtn = container.querySelector("#add-poi-btn");
     if (addPoiBtn) addPoiBtn.onclick = () => openPOIModal();
 
-    window.editPOI_Rules = (id) => openPOIModal(puntosInteres.find(p => p.id === id));
-    window.deletePOI_Rules = (id) => showCustomConfirm("¿Eliminar esta zona de predicación?", async () => {
-        const finishLED = await triggerManualLED('zonas');
-        await deletePuntoInteres(id);
-        await finishLED();
-        showNotification("Zona eliminada");
-        renderZonasUI();
-    });
+    window.editPOI_Rules = (id) => openPOIModal(puntosInteres.find((p) => p.id === id));
+    window.deletePOI_Rules = (id) =>
+        showCustomConfirm("¿Eliminar esta zona de predicación?", async () => {
+            const finishLED = await triggerManualLED("zonas");
+            await deletePuntoInteres(id);
+            await finishLED();
+            showNotification("Zona eliminada");
+            renderZonasUI();
+        });
 
     window.removeDiffusionMessage = async (index) => {
         if (!config.diffusion_messages) return;
-        const finishLED = await triggerManualLED('diffusion');
+        const finishLED = await triggerManualLED("diffusion");
         config.diffusion_messages.splice(index, 1);
         await saveConfiguracion(config);
 
         // Sincronización Suave: Limpiar caché y re-renderizar sin skeleton
-        ServiceCache.clear('configuracion');
+        ServiceCache.clear("configuracion");
         await finishLED();
         renderSettingsView(container, config, appVersion, reloadTabFn);
     };
 
-    const btnForceReload = container.querySelector('#btn-force-global-reload');
+    const btnForceReload = container.querySelector("#btn-force-global-reload");
     if (btnForceReload) {
         btnForceReload.onclick = () => {
-            showCustomConfirm("¿Estás seguro de que deseas forzar la recarga en todos los dispositivos activos?", async () => {
-                btnForceReload.disabled = true;
-                btnForceReload.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Propagando Actualización...';
-                try {
-                    await broadcastCurrentVersion();
-                    btnForceReload.innerHTML = '<i class="fas fa-check mr-2"></i> ¡Propagado Exitosamente!';
-                    setTimeout(() => {
+            showCustomConfirm(
+                "¿Estás seguro de que deseas forzar la recarga en todos los dispositivos activos?",
+                async () => {
+                    btnForceReload.disabled = true;
+                    btnForceReload.innerHTML =
+                        '<i class="fas fa-spinner fa-spin mr-2"></i> Propagando Actualización...';
+                    try {
+                        await broadcastCurrentVersion();
+                        btnForceReload.innerHTML = '<i class="fas fa-check mr-2"></i> ¡Propagado Exitosamente!';
+                        setTimeout(() => {
+                            btnForceReload.disabled = false;
+                            btnForceReload.innerHTML =
+                                '<i class="fas fa-sync-alt"></i> Forzar Recarga en Todos los Dispositivos';
+                        }, 3000);
+                    } catch (err) {
+                        console.error("Error al propagar recarga global:", err);
                         btnForceReload.disabled = false;
-                        btnForceReload.innerHTML = '<i class="fas fa-sync-alt"></i> Forzar Recarga en Todos los Dispositivos';
-                    }, 3000);
-                } catch (err) {
-                    console.error("Error al propagar recarga global:", err);
-                    btnForceReload.disabled = false;
-                    btnForceReload.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i> Error al Propagar';
-                    showNotification("Error al forzar recarga", "error");
-                }
-            });
+                        btnForceReload.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i> Error al Propagar';
+                        showNotification("Error al forzar recarga", "error");
+                    }
+                },
+            );
         };
     }
 };

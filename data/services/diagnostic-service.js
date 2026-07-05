@@ -1,13 +1,18 @@
-import { db } from '../../firebase-config.js';
-import { collection, query, where, getDocs, doc, writeBatch, deleteDoc, setDoc, Timestamp } from "firebase/firestore";
-import { ServiceCache } from './base-service.js';
-import { normalizeName } from '../../modules/utils/helpers.js';
+import { collection, deleteDoc, getDocs, Timestamp, writeBatch } from "firebase/firestore";
+import { db } from "../../firebase-config.js";
+import { normalizeName } from "../../modules/utils/helpers.js";
 
 export const runSystemDiagnosticsAndRepair = async (onProgress) => {
     const report = {
-        rebuiltHistory: 0, fixedPhones: 0, fixedTerritories: 0, syncPersonnel: 0, details: []
+        rebuiltHistory: 0,
+        fixedPhones: 0,
+        fixedTerritories: 0,
+        syncPersonnel: 0,
+        details: [],
     };
-    const reportProgress = (msg, pc) => { if (onProgress) onProgress(msg, pc); };
+    const reportProgress = (msg, pc) => {
+        if (onProgress) onProgress(msg, pc);
+    };
 
     reportProgress("🔍 Escaneando integridad de territorios...", 30);
     const terrSnap = await getDocs(collection(db, "territorios"));
@@ -16,7 +21,7 @@ export const runSystemDiagnosticsAndRepair = async (onProgress) => {
 
     for (const d of terrSnap.docs) {
         const t = d.data();
-        let updates = {};
+        const updates = {};
         let dirty = false;
 
         // Propagación de identidad canónica en Maestro
@@ -60,27 +65,49 @@ export const runSystemDiagnosticsAndRepair = async (onProgress) => {
             dirty = true;
         }
 
-        if (t.estado === 'Asignado' && !t.asignado_a) {
-            updates.estado = 'Disponible'; updates.status = 'Disponible'; updates.asignado_a = null; updates.asignado_a_normalized = null; updates.currentAssignee = null; updates.fecha_asignacion = null; updates.assignmentDate = null; updates.turno = null; dirty = true;
+        if (t.estado === "Asignado" && !t.asignado_a) {
+            updates.estado = "Disponible";
+            updates.status = "Disponible";
+            updates.asignado_a = null;
+            updates.asignado_a_normalized = null;
+            updates.currentAssignee = null;
+            updates.fecha_asignacion = null;
+            updates.assignmentDate = null;
+            updates.turno = null;
+            dirty = true;
             report.details.push(`Territorio ${t.numero}: Corregido estado 'Asignado' sin conductor -> Disponible`);
         }
-        if (t.estado === 'Disponible' && (t.asignado_a || t.fecha_asignacion)) {
-            updates.asignado_a = null; updates.asignado_a_normalized = null; updates.currentAssignee = null; updates.fecha_asignacion = null; updates.assignmentDate = null; updates.turno = null; updates.status = 'Disponible'; dirty = true;
+        if (t.estado === "Disponible" && (t.asignado_a || t.fecha_asignacion)) {
+            updates.asignado_a = null;
+            updates.asignado_a_normalized = null;
+            updates.currentAssignee = null;
+            updates.fecha_asignacion = null;
+            updates.assignmentDate = null;
+            updates.turno = null;
+            updates.status = "Disponible";
+            dirty = true;
             report.details.push(`Territorio ${t.numero}: Limpiado conductor en territorio 'Disponible'`);
         }
-        if (!['Disponible', 'Asignado', 'Extraviado', 'Predicado', 'Pendiente'].includes(t.estado)) {
-            updates.estado = 'Disponible'; updates.status = 'Disponible'; dirty = true;
+        if (!["Disponible", "Asignado", "Extraviado", "Predicado", "Pendiente"].includes(t.estado)) {
+            updates.estado = "Disponible";
+            updates.status = "Disponible";
+            dirty = true;
             report.details.push(`Territorio ${t.numero}: Estado inválido '${t.estado}' -> Disponible`);
         }
         if (String(t.numero) !== String(t.numero).trim()) {
-            updates.numero = String(t.numero).trim(); dirty = true;
+            updates.numero = String(t.numero).trim();
+            dirty = true;
             report.details.push(`Territorio ${t.numero}: Número normalizado`);
         }
 
         if (dirty) {
             terrBatch.update(d.ref, updates);
-            report.fixedTerritories++; terrBatchCount++;
-            if (terrBatchCount >= 500) { await terrBatch.commit(); terrBatchCount = 0; }
+            report.fixedTerritories++;
+            terrBatchCount++;
+            if (terrBatchCount >= 500) {
+                await terrBatch.commit();
+                terrBatchCount = 0;
+            }
         }
     }
     if (terrBatchCount > 0) await terrBatch.commit();
@@ -93,17 +120,17 @@ export const runSystemDiagnosticsAndRepair = async (onProgress) => {
     // Map territories from Maestro both by ID and by Number for S-13 auto-healing lookup
     const maestroMapByNumber = {};
     const maestroMapById = {};
-    terrSnap.docs.forEach(d => {
+    terrSnap.docs.forEach((d) => {
         const data = d.data();
-        const tNum = String(data.numero || '').trim();
+        const tNum = String(data.numero || "").trim();
         const tId = d.id;
         const info = {
             id: tId,
             numero: tNum,
-            estado: data.estado || data.status || 'Disponible',
+            estado: data.estado || data.status || "Disponible",
             asignado_a: data.asignado_a || data.currentAssignee || null,
             ultima_fecha: data.ultima_fecha || null,
-            fecha_asignacion: data.fecha_asignacion || data.assignmentDate || null
+            fecha_asignacion: data.fecha_asignacion || data.assignmentDate || null,
         };
         if (tNum) maestroMapByNumber[tNum] = info;
         maestroMapById[tId] = info;
@@ -114,7 +141,7 @@ export const runSystemDiagnosticsAndRepair = async (onProgress) => {
 
     for (const d of s13Snap.docs) {
         const r = d.data();
-        let updates = {};
+        const updates = {};
         let dirty = false;
 
         // 1. Curación de Identificadores (Firestore ID -> Territory Number)
@@ -135,7 +162,7 @@ export const runSystemDiagnosticsAndRepair = async (onProgress) => {
             dirty = true;
             healedIdCount++;
         } else {
-            tNum = String(r.territorio_id || r.numero || '').trim();
+            tNum = String(r.territorio_id || r.numero || "").trim();
         }
 
         // 2. Normalización de Nombres
@@ -158,16 +185,16 @@ export const runSystemDiagnosticsAndRepair = async (onProgress) => {
         const createdTS = r.createdAt || r.timestamp;
         if (createdTS) {
             const creationDateObj = createdTS.toDate ? createdTS.toDate() : new Date(createdTS);
-            if (!isNaN(creationDateObj.getTime())) {
+            if (!Number.isNaN(creationDateObj.getTime())) {
                 // Formatear en zona horaria de Ecuador (GMT-5)
-                const ecDate = new Date(creationDateObj.getTime() - (5 * 60 * 60 * 1000));
+                const ecDate = new Date(creationDateObj.getTime() - 5 * 60 * 60 * 1000);
                 const ecY = ecDate.getUTCFullYear();
-                const ecM = String(ecDate.getUTCMonth() + 1).padStart(2, '0');
-                const ecD = String(ecDate.getUTCDate()).padStart(2, '0');
+                const ecM = String(ecDate.getUTCMonth() + 1).padStart(2, "0");
+                const ecD = String(ecDate.getUTCDate()).padStart(2, "0");
                 const creationDateISO = `${ecY}-${ecM}-${ecD}T12:00:00Z`;
 
                 // Comparamos sólo la parte de fecha YYYY-MM-DD
-                const currentAsigDatePart = String(r.fecha_asignacion || '').split('T')[0];
+                const currentAsigDatePart = String(r.fecha_asignacion || "").split("T")[0];
                 const expectedAsigDatePart = `${ecY}-${ecM}-${ecD}`;
 
                 if (currentAsigDatePart !== expectedAsigDatePart) {
@@ -181,25 +208,29 @@ export const runSystemDiagnosticsAndRepair = async (onProgress) => {
         // 3. Curación del S-13 Live Pool (Auto-Healer Nivel Dios)
         // Si el registro está 'Asignado' pero en el Maestro ya está 'Disponible'
         // o reasignado a otro conductor, indica que se entregó sin reportarse al S-13.
-        if (r.estado === 'Asignado' && tNum) {
+        if (r.estado === "Asignado" && tNum) {
             const m = maestroMapByNumber[tNum];
             if (m) {
                 let shouldClose = false;
                 let closeDate = null;
-                let closeReason = '';
+                let closeReason = "";
 
-                if (m.estado === 'Disponible') {
+                if (m.estado === "Disponible") {
                     shouldClose = true;
                     closeDate = m.ultima_fecha || r.fecha_asignacion || new Date().toISOString();
                     closeReason = "Territorio marcado como Disponible en el Maestro.";
-                } else if (m.estado === 'Asignado' && m.asignado_a && normalizeName(m.asignado_a) !== normalizeName(r.conductor)) {
+                } else if (
+                    m.estado === "Asignado" &&
+                    m.asignado_a &&
+                    normalizeName(m.asignado_a) !== normalizeName(r.conductor)
+                ) {
                     shouldClose = true;
                     closeDate = m.fecha_asignacion || new Date().toISOString();
                     closeReason = `Territorio reasignado a ${m.asignado_a}.`;
                 }
 
                 if (shouldClose) {
-                    updates.estado = 'Completado';
+                    updates.estado = "Completado";
                     updates.fecha_entrega = closeDate;
                     updates.timestamp = Timestamp.now();
                     updates.observaciones = r.observaciones
@@ -213,7 +244,7 @@ export const runSystemDiagnosticsAndRepair = async (onProgress) => {
 
         if (dirty) {
             s13Batch.update(d.ref, updates);
-            report.rebuiltHistory++; 
+            report.rebuiltHistory++;
             s13BatchCount++;
             if (s13BatchCount >= 500) {
                 await s13Batch.commit();
@@ -222,9 +253,11 @@ export const runSystemDiagnosticsAndRepair = async (onProgress) => {
         }
     }
     if (s13BatchCount > 0) await s13Batch.commit();
-    
+
     if (healedIdCount > 0) {
-        report.details.push(`🛡️ S-13 Healer: Se corrigieron ${healedIdCount} registros con IDs de documento Firestore a números legibles.`);
+        report.details.push(
+            `🛡️ S-13 Healer: Se corrigieron ${healedIdCount} registros con IDs de documento Firestore a números legibles.`,
+        );
     }
     if (healedCount > 0) {
         report.details.push(`🛡️ S-13 Healer: Se auto-cerraron y recuperaron ${healedCount} entregas desincronizadas.`);
@@ -234,7 +267,7 @@ export const runSystemDiagnosticsAndRepair = async (onProgress) => {
     const allPhones = await getDocs(collection(db, "telefonos"));
     const allPubs = await getDocs(collection(db, "publicadores"));
     const pubsMap = {};
-    allPubs.forEach(d => {
+    allPubs.forEach((d) => {
         const p = d.data();
         pubsMap[d.id] = p.nombre;
         pubsMap[p.nombre] = d.id;
@@ -244,20 +277,25 @@ export const runSystemDiagnosticsAndRepair = async (onProgress) => {
     let phoneBatchCount = 0;
     for (const d of allPhones.docs) {
         const t = d.data();
-        let updates = {};
+        const updates = {};
         let dirty = false;
-        const status = (t.estado || '').trim().toLowerCase();
+        const _status = (t.estado || "").trim().toLowerCase();
 
-        if (t.asignado_a === 'Usuario' || t.publicador_asignado === 'Usuario') {
+        if (t.asignado_a === "Usuario" || t.publicador_asignado === "Usuario") {
             if (pubsMap[t.publicador_asignado]) {
-                updates.asignado_a = pubsMap[t.publicador_asignado]; dirty = true;
+                updates.asignado_a = pubsMap[t.publicador_asignado];
+                dirty = true;
             } else {
-                updates.asignado_a = null; updates.publicador_asignado = null; updates.estado = 'Sin asignar'; dirty = true;
+                updates.asignado_a = null;
+                updates.publicador_asignado = null;
+                updates.estado = "Sin asignar";
+                dirty = true;
             }
         }
         if (dirty) {
             phoneBatch.update(d.ref, updates);
-            report.fixedPhones++; phoneBatchCount++;
+            report.fixedPhones++;
+            phoneBatchCount++;
             if (phoneBatchCount >= 500) {
                 await phoneBatch.commit();
                 phoneBatch = writeBatch(db);
@@ -270,29 +308,34 @@ export const runSystemDiagnosticsAndRepair = async (onProgress) => {
     reportProgress("👥 Sincronizando directorio personal...", 95);
     const pubBatch = writeBatch(db);
     let pubCount = 0;
-    allPubs.forEach(d => {
+    allPubs.forEach((d) => {
         const p = d.data();
-        if (!p.modulos || p.modulos.telefonos !== true) {
-            pubBatch.update(d.ref, { 'modulos.telefonos': true });
+        if (p.modulos?.telefonos !== true) {
+            pubBatch.update(d.ref, { "modulos.telefonos": true });
             pubCount++;
         }
     });
-    if (pubCount > 0) { await pubBatch.commit(); report.syncPersonnel = pubCount; }
+    if (pubCount > 0) {
+        await pubBatch.commit();
+        report.syncPersonnel = pubCount;
+    }
 
     reportProgress("✨ Limpieza profunda completada.", 100);
     return report;
 };
 
 export const clearAllCurrentData = async (onProgress) => {
-    const reportProgress = (msg, pc) => { if (onProgress) onProgress(msg, pc); };
+    const _reportProgress = (msg, pc) => {
+        if (onProgress) onProgress(msg, pc);
+    };
     // Implementation of masterResetAssignments logic
     const terrSnap = await getDocs(collection(db, "territorios"));
     const terrBatch = writeBatch(db);
     let tCount = 0;
-    terrSnap.forEach(d => {
+    terrSnap.forEach((d) => {
         const t = d.data();
-        if (t.estado === 'Asignado' || t.asignado_a || t.fecha_asignacion) {
-            terrBatch.update(d.ref, { estado: 'Disponible', asignado_a: null, fecha_asignacion: null, turno: null });
+        if (t.estado === "Asignado" || t.asignado_a || t.fecha_asignacion) {
+            terrBatch.update(d.ref, { estado: "Disponible", asignado_a: null, fecha_asignacion: null, turno: null });
             tCount++;
         }
     });

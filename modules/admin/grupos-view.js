@@ -1,12 +1,10 @@
-import {
-    getGroupsConfig, getPublicadores, saveGroupsConfig
-} from '../../data/firestore-services.js';
-import { showNotification, toTitleCase } from '../utils/helpers.js';
+import { getGroupsConfig, getPublicadores, saveGroupsConfig } from "../../data/firestore-services.js";
+import { showNotification, toTitleCase } from "../utils/helpers.js";
 
 export const renderGruposTab = async (container) => {
     const groups = await getGroupsConfig();
     const publicadores = await getPublicadores();
-    publicadores.sort((a, b) => String(a.nombre || '').localeCompare(String(b.nombre || '')));
+    publicadores.sort((a, b) => String(a.nombre || "").localeCompare(String(b.nombre || "")));
 
     container.innerHTML = `
         <div class="mb-8 px-4">
@@ -20,7 +18,9 @@ export const renderGruposTab = async (container) => {
         </div>
         
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 p-4">
-            ${groups.map(g => `
+            ${groups
+                .map(
+                    (g) => `
                 <div class="modern-card group border-slate-200 dark:border-white/5 shadow-xl transition-all hover:scale-[1.02] relative overflow-hidden">
                     <div class="absolute -right-12 -top-12 w-32 h-32 bg-teal-500/5 rounded-full blur-3xl"></div>
                     
@@ -36,7 +36,7 @@ export const renderGruposTab = async (container) => {
                                 <div class="relative">
                                     <select id="leader-${g.id}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-xs font-bold text-slate-700 dark:text-slate-200 focus:border-teal-500 outline-none shadow-sm appearance-none cursor-pointer">
                                         <option value="">Sin asignar</option>
-                                        ${publicadores.map(p => `<option value="${p.nombre}" ${g.lider === p.nombre ? 'selected' : ''}>${toTitleCase(p.nombre)}</option>`).join('')}
+                                        ${publicadores.map((p) => `<option value="${p.nombre}" ${g.lider === p.nombre ? "selected" : ""}>${toTitleCase(p.nombre)}</option>`).join("")}
                                     </select>
                                     <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400 text-[10px] pointer-events-none"></i>
                                 </div>
@@ -47,7 +47,7 @@ export const renderGruposTab = async (container) => {
                                 <div class="relative">
                                     <select id="assistant-${g.id}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-xs font-bold text-slate-700 dark:text-slate-200 focus:border-teal-500 outline-none shadow-sm appearance-none cursor-pointer">
                                         <option value="">Sin asignar</option>
-                                        ${publicadores.map(p => `<option value="${p.nombre}" ${g.asistente === p.nombre ? 'selected' : ''}>${toTitleCase(p.nombre)}</option>`).join('')}
+                                        ${publicadores.map((p) => `<option value="${p.nombre}" ${g.asistente === p.nombre ? "selected" : ""}>${toTitleCase(p.nombre)}</option>`).join("")}
                                     </select>
                                     <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400 text-[10px] pointer-events-none"></i>
                                 </div>
@@ -56,14 +56,16 @@ export const renderGruposTab = async (container) => {
                             <div class="space-y-2">
                                 <label class="text-[9px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1">Punto de Salida</label>
                                 <div class="relative">
-                                    <input type="text" id="house-${g.id}" value="${g.casa_salida || ''}" placeholder="Ej. Calle 123..." class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-xs font-bold text-slate-700 dark:text-slate-200 focus:border-teal-500 outline-none shadow-sm">
+                                    <input type="text" id="house-${g.id}" value="${g.casa_salida || ""}" placeholder="Ej. Calle 123..." class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-4 text-xs font-bold text-slate-700 dark:text-slate-200 focus:border-teal-500 outline-none shadow-sm">
                                     <i class="fas fa-home absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 dark:text-white/10"></i>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            `).join('')}
+            `,
+                )
+                .join("")}
         </div>
 
         <div class="mt-16 flex flex-col md:flex-row justify-center items-center gap-6 pb-20">
@@ -76,36 +78,36 @@ export const renderGruposTab = async (container) => {
         </div>
     `;
 
-    container.querySelector('#add-group-btn').onclick = () => {
-        const newId = groups.length > 0 ? (Math.max(...groups.map(g => g.id)) + 1) : 1;
+    container.querySelector("#add-group-btn").onclick = () => {
+        const newId = groups.length > 0 ? Math.max(...groups.map((g) => g.id)) + 1 : 1;
         groups.push({
             id: newId,
             nombre: `Grupo ${newId}`,
             lider: "",
             asistente: "",
-            casa_salida: ""
+            casa_salida: "",
         });
         renderGruposTab(container);
     };
 
-    container.querySelector('#save-groups').onclick = async () => {
-        const btn = container.querySelector('#save-groups');
+    container.querySelector("#save-groups").onclick = async () => {
+        const btn = container.querySelector("#save-groups");
         const originalHTML = btn.innerHTML;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sincronizando...';
         btn.disabled = true;
 
-        const updated = groups.map(g => ({
+        const updated = groups.map((g) => ({
             ...g,
             lider: document.getElementById(`leader-${g.id}`).value,
             asistente: document.getElementById(`assistant-${g.id}`).value,
-            casa_salida: document.getElementById(`house-${g.id}`).value.trim()
+            casa_salida: document.getElementById(`house-${g.id}`).value.trim(),
         }));
 
         try {
             await saveGroupsConfig(updated);
             showNotification("Configuración de grupos persistida correctamente", "success");
         } catch (e) {
-            showNotification("Error: " + e.message, "error");
+            showNotification(`Error: ${e.message}`, "error");
         } finally {
             btn.innerHTML = originalHTML;
             btn.disabled = false;

@@ -1,7 +1,7 @@
-import { auth, db } from '../../firebase-config.js';
 import { signInAnonymously } from "firebase/auth";
-import { collection, query, where, getDocs, updateDoc, doc, setDoc } from "firebase/firestore";
-import { normalizeRobust } from '../../modules/utils/helpers.js';
+import { collection, doc, getDocs, query, setDoc, updateDoc, where } from "firebase/firestore";
+import { auth, db } from "../../firebase-config.js";
+import { normalizeRobust } from "../../modules/utils/helpers.js";
 
 /**
  * IDENTITY SHIELD: Service to resolve and bind Firestore identities with Firebase Auth.
@@ -42,7 +42,7 @@ export const IdentityShield = {
                 pData = targetDoc.data();
             } else {
                 // Intento 2: Buscar por teléfono
-                const cleanedPhone = rawIdentifier.replace(/\D/g, '');
+                const cleanedPhone = rawIdentifier.replace(/\D/g, "");
                 if (cleanedPhone) {
                     const qPhone = query(pubCol, where("telefono", "==", cleanedPhone));
                     const phoneSnap = await getDocs(qPhone);
@@ -51,7 +51,7 @@ export const IdentityShield = {
                         pData = targetDoc.data();
                     }
                 }
-                
+
                 if (!targetDoc) {
                     // Intento 3: Buscar por nombre exacto
                     const qName = query(pubCol, where("nombre", "==", rawIdentifier));
@@ -61,15 +61,19 @@ export const IdentityShield = {
                         pData = targetDoc.data();
                     } else {
                         // Intento 4: Fallback de último recurso (solo si la regla de listado está permitida)
-                        console.log("🛡️ [IdentityShield] Consultas directas sin éxito. Ejecutando búsqueda por barrido...");
-                        const normalizedPhoneInput = cleanedPhone || rawIdentifier.replace(/\D/g, '');
+                        console.log(
+                            "🛡️ [IdentityShield] Consultas directas sin éxito. Ejecutando búsqueda por barrido...",
+                        );
+                        const normalizedPhoneInput = cleanedPhone || rawIdentifier.replace(/\D/g, "");
                         const snap = await getDocs(pubCol);
                         for (const d of snap.docs) {
                             const data = d.data();
                             const nameMatch = normalizeRobust(data.nombre) === normalizedInput;
                             const emailMatch = data.email && normalizeRobust(data.email) === normalizedInput;
-                            const phoneMatch = normalizedPhoneInput && String(data.telefono || '').replace(/\D/g, '') === normalizedPhoneInput;
-                            
+                            const phoneMatch =
+                                normalizedPhoneInput &&
+                                String(data.telefono || "").replace(/\D/g, "") === normalizedPhoneInput;
+
                             if (nameMatch || emailMatch || phoneMatch) {
                                 targetDoc = d;
                                 pData = data;
@@ -80,7 +84,10 @@ export const IdentityShield = {
                 }
             }
         } catch (queryError) {
-            console.warn("🛡️ [IdentityShield] Error en consulta de identidad, posible restricción Zero Trust:", queryError);
+            console.warn(
+                "🛡️ [IdentityShield] Error en consulta de identidad, posible restricción Zero Trust:",
+                queryError,
+            );
         }
 
         if (!targetDoc) {
@@ -90,20 +97,20 @@ export const IdentityShield = {
                 uid: uid,
                 docId: null,
                 nombreCanonico: rawIdentifier,
-                rol: 'Visitante',
-                isAnonymous: true
+                rol: "Visitante",
+                isAnonymous: true,
             };
         }
 
-        let identityRol = 'Publicador';
+        let identityRol = "Publicador";
         if (pData.privilegios && Array.isArray(pData.privilegios) && pData.privilegios.length > 0) {
-            if (pData.privilegios.includes('Administrador') || pData.privilegios.includes('SuperAdmin')) {
-                identityRol = 'Administrador';
-            } else if (pData.privilegios.includes('Conductor')) {
-                identityRol = 'Conductor';
+            if (pData.privilegios.includes("Administrador") || pData.privilegios.includes("SuperAdmin")) {
+                identityRol = "Administrador";
+            } else if (pData.privilegios.includes("Conductor")) {
+                identityRol = "Conductor";
             }
         } else if (pData.es_conductor) {
-            identityRol = 'Conductor';
+            identityRol = "Conductor";
         }
         const ultimaConexionStr = new Date().toISOString();
 
@@ -113,14 +120,14 @@ export const IdentityShield = {
                 publicadorId: targetDoc.id,
                 nombre: pData.nombre,
                 rol: identityRol,
-                ultima_conexion: ultimaConexionStr
+                ultima_conexion: ultimaConexionStr,
             });
             console.log("🛡️ [IdentityShield] Session Vault (/auth_binds) binding escrito con éxito.");
 
             // Actualizar documento de publicador
             await updateDoc(doc(db, "publicadores", targetDoc.id), {
                 current_auth_uid: uid,
-                ultima_conexion: ultimaConexionStr
+                ultima_conexion: ultimaConexionStr,
             });
             console.log("🛡️ [IdentityShield] Binding exitoso: UID vinculada al perfil.");
         } catch (e) {
@@ -132,15 +139,15 @@ export const IdentityShield = {
             uid: uid,
             docId: targetDoc.id,
             nombreCanonico: pData.nombre,
-            email: pData.email || '',
-            telefono: pData.telefono || '',
+            email: pData.email || "",
+            telefono: pData.telefono || "",
             rol: identityRol,
-            isAnonymous: currentUser.isAnonymous
+            isAnonymous: currentUser.isAnonymous,
         };
 
         window.XolvyApp = window.XolvyApp || {};
         window.XolvyApp.identity = identity;
-        
+
         return identity;
     },
 
@@ -163,14 +170,14 @@ export const IdentityShield = {
                 publicadorId: docId,
                 nombre: name,
                 rol: role,
-                ultima_conexion: ultimaConexionStr
+                ultima_conexion: ultimaConexionStr,
             });
             console.log("🛡️ [IdentityShield] Session Vault Direct Binding escrito con éxito.");
 
             // 2. Actualizar el documento de publicadores
             await updateDoc(doc(db, "publicadores", docId), {
                 current_auth_uid: uid,
-                ultima_conexion: ultimaConexionStr
+                ultima_conexion: ultimaConexionStr,
             });
             console.log("🛡️ [IdentityShield] Direct Binding exitoso: UID vinculada al perfil.");
         } catch (e) {
@@ -183,12 +190,12 @@ export const IdentityShield = {
             docId: docId,
             nombreCanonico: name,
             rol: role,
-            isAnonymous: false
+            isAnonymous: false,
         };
 
         window.XolvyApp = window.XolvyApp || {};
         window.XolvyApp.identity = identity;
-        
+
         return identity;
-    }
+    },
 };

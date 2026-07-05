@@ -1,42 +1,48 @@
-import Chart from 'chart.js/auto';
-import { getTerritorios, getConductores, getGlobalSettings, getHistorialReport, getGlobalStats, resyncGlobalStats } from '../data/firestore-services.js';
-import { showNotification } from './utils/helpers.js';
-import { UIHelpers, showModal } from './services/ui-helpers.js';
-import { ServiceCache } from '../data/services/base-service.js';
-import { ReceptionHub } from './services/reception-hub.js';
+import Chart from "chart.js/auto";
+import {
+    getConductores,
+    getGlobalSettings,
+    getGlobalStats,
+    getHistorialReport,
+    getTerritorios,
+    resyncGlobalStats,
+} from "../data/firestore-services.js";
+import { ServiceCache } from "../data/services/base-service.js";
+import { UIHelpers } from "./services/ui-helpers.js";
+import { showNotification } from "./utils/helpers.js";
 
 // --- Helper UI Components ---
-const renderStatCard = (label, id, icon, color, sub) => {
+const renderStatCard = (label, id, icon, _color, sub) => {
     let theme = {
-        bg: 'from-blue-500/10 to-indigo-500/5',
-        text: 'text-blue-600 dark:text-blue-400',
-        border: 'border-blue-500/20 dark:border-blue-500/10',
-        light: 'bg-blue-500/20',
-        dot: 'bg-blue-500'
+        bg: "from-blue-500/10 to-indigo-500/5",
+        text: "text-blue-600 dark:text-blue-400",
+        border: "border-blue-500/20 dark:border-blue-500/10",
+        light: "bg-blue-500/20",
+        dot: "bg-blue-500",
     };
-    if (id === 'stat-assigned') {
+    if (id === "stat-assigned") {
         theme = {
-            bg: 'from-emerald-500/10 to-teal-500/5',
-            text: 'text-emerald-600 dark:text-emerald-400',
-            border: 'border-emerald-500/20 dark:border-emerald-500/10',
-            light: 'bg-emerald-500/20',
-            dot: 'bg-emerald-500'
+            bg: "from-emerald-500/10 to-teal-500/5",
+            text: "text-emerald-600 dark:text-emerald-400",
+            border: "border-emerald-500/20 dark:border-emerald-500/10",
+            light: "bg-emerald-500/20",
+            dot: "bg-emerald-500",
         };
-    } else if (id === 'stat-conductors') {
+    } else if (id === "stat-conductors") {
         theme = {
-            bg: 'from-violet-500/10 to-purple-500/5',
-            text: 'text-violet-600 dark:text-violet-400',
-            border: 'border-violet-500/20 dark:border-violet-500/10',
-            light: 'bg-violet-500/20',
-            dot: 'bg-violet-500'
+            bg: "from-violet-500/10 to-purple-500/5",
+            text: "text-violet-600 dark:text-violet-400",
+            border: "border-violet-500/20 dark:border-violet-500/10",
+            light: "bg-violet-500/20",
+            dot: "bg-violet-500",
         };
-    } else if (id === 'stat-late') {
+    } else if (id === "stat-late") {
         theme = {
-            bg: 'from-rose-500/10 to-red-500/5',
-            text: 'text-rose-600 dark:text-rose-400',
-            border: 'border-rose-500/20 dark:border-rose-500/10',
-            light: 'bg-rose-500/20',
-            dot: 'bg-rose-500'
+            bg: "from-rose-500/10 to-red-500/5",
+            text: "text-rose-600 dark:text-rose-400",
+            border: "border-rose-500/20 dark:border-rose-500/10",
+            light: "bg-rose-500/20",
+            dot: "bg-rose-500",
         };
     }
 
@@ -79,122 +85,160 @@ const animateValue = (id, start, end, duration) => {
 
 const initMainCharts = (total, assigned, late, freqMap, coverage) => {
     // --- XOLVY DARK MODE ADAPTATION ---
-    const isDark = document.documentElement.classList.contains('dark');
-    const textColor = isDark ? '#94a3b8' : '#64748b'; // slate-400 / slate-500
-    const gridColor = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)';
-    const trackColor = isDark ? 'rgba(255, 255, 255, 0.05)' : '#f1f5f9'; // slate-100
-    const strokeColor = isDark ? '#0f172a' : '#ffffff'; // slate-900 / white
+    const isDark = document.documentElement.classList.contains("dark");
+    const textColor = isDark ? "#94a3b8" : "#64748b"; // slate-400 / slate-500
+    const gridColor = isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.05)";
+    const trackColor = isDark ? "rgba(255, 255, 255, 0.05)" : "#f1f5f9"; // slate-100
+    const strokeColor = isDark ? "#0f172a" : "#ffffff"; // slate-900 / white
 
     // Prevenir superposición de instancias de Chart.js al cambiar de tema (Hot Reload)
-    ['chart-status', 'chart-territories', 'chart-s13-mini'].forEach(id => {
+    ["chart-status", "chart-territories", "chart-s13-mini"].forEach((id) => {
         const existingChart = Chart.getChart(id);
         if (existingChart) existingChart.destroy();
     });
 
     // Doughnut: Status
-    const ctxStatus = document.getElementById('chart-status')?.getContext('2d');
+    const ctxStatus = document.getElementById("chart-status")?.getContext("2d");
     if (ctxStatus) {
         new Chart(ctxStatus, {
-            type: 'doughnut',
+            type: "doughnut",
             data: {
-                labels: ['Disponibles', 'En Tiempo', 'Vencidos'],
-                datasets: [{
-                    data: [total - assigned, assigned - late, late],
-                    backgroundColor: [trackColor, '#3b82f6', '#f43f5e'],
-                    borderColor: strokeColor,
-                    borderWidth: 2,
-                    hoverOffset: 10,
-                    borderRadius: 4
-                }]
+                labels: ["Disponibles", "En Tiempo", "Vencidos"],
+                datasets: [
+                    {
+                        data: [total - assigned, assigned - late, late],
+                        backgroundColor: [trackColor, "#3b82f6", "#f43f5e"],
+                        borderColor: strokeColor,
+                        borderWidth: 2,
+                        hoverOffset: 10,
+                        borderRadius: 4,
+                    },
+                ],
             },
             options: {
-                responsive: true, maintainAspectRatio: false, cutout: '82%',
-                plugins: { legend: { position: 'bottom', labels: { color: textColor, usePointStyle: true, padding: 25, font: { weight: 'bold', size: 10 } } } }
-            }
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: "82%",
+                plugins: {
+                    legend: {
+                        position: "bottom",
+                        labels: {
+                            color: textColor,
+                            usePointStyle: true,
+                            padding: 25,
+                            font: { weight: "bold", size: 10 },
+                        },
+                    },
+                },
+            },
         });
     }
 
     // Bar: Frequency
-    const ctxFreq = document.getElementById('chart-territories')?.getContext('2d');
+    const ctxFreq = document.getElementById("chart-territories")?.getContext("2d");
     if (ctxFreq) {
-        const sorted = Object.entries(freqMap).sort((a, b) => b[1] - a[1]).slice(0, 10);
+        const sorted = Object.entries(freqMap)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10);
         new Chart(ctxFreq, {
-            type: 'bar',
+            type: "bar",
             data: {
-                labels: sorted.map(x => `#${x[0]}`),
-                datasets: [{
-                    label: 'Veces Trabajado',
-                    data: sorted.map(x => x[1]),
-                    backgroundColor: '#3b82f6',
-                    borderRadius: 6,
-                    maxBarThickness: 32,
-                    hoverBackgroundColor: '#10b981' // emerald-500
-                }]
+                labels: sorted.map((x) => `#${x[0]}`),
+                datasets: [
+                    {
+                        label: "Veces Trabajado",
+                        data: sorted.map((x) => x[1]),
+                        backgroundColor: "#3b82f6",
+                        borderRadius: 6,
+                        maxBarThickness: 32,
+                        hoverBackgroundColor: "#10b981", // emerald-500
+                    },
+                ],
             },
             options: {
-                responsive: true, maintainAspectRatio: false,
+                responsive: true,
+                maintainAspectRatio: false,
                 scales: {
-                    y: { beginAtZero: true, border: { display: false }, grid: { color: gridColor }, ticks: { color: textColor, font: { size: window.innerWidth < 768 ? 8 : 9 } } },
-                    x: { grid: { display: false }, border: { display: false }, ticks: { color: textColor, font: { size: window.innerWidth < 768 ? 8 : 10, weight: 'bold' } } }
+                    y: {
+                        beginAtZero: true,
+                        border: { display: false },
+                        grid: { color: gridColor },
+                        ticks: { color: textColor, font: { size: window.innerWidth < 768 ? 8 : 9 } },
+                    },
+                    x: {
+                        grid: { display: false },
+                        border: { display: false },
+                        ticks: { color: textColor, font: { size: window.innerWidth < 768 ? 8 : 10, weight: "bold" } },
+                    },
                 },
-                plugins: { legend: { display: false } }
-            }
+                plugins: { legend: { display: false } },
+            },
         });
     }
 
     // Radial: Tiny S-13
-    const ctxMini = document.getElementById('chart-s13-mini')?.getContext('2d');
+    const ctxMini = document.getElementById("chart-s13-mini")?.getContext("2d");
     if (ctxMini) {
         new Chart(ctxMini, {
-            type: 'doughnut',
+            type: "doughnut",
             data: {
-                datasets: [{
-                    data: [coverage, 100 - coverage],
-                    backgroundColor: ['#3b82f6', trackColor],
-                    borderWidth: 0,
-                    circumference: 270,
-                    rotation: 225
-                }]
+                datasets: [
+                    {
+                        data: [coverage, 100 - coverage],
+                        backgroundColor: ["#3b82f6", trackColor],
+                        borderWidth: 0,
+                        circumference: 270,
+                        rotation: 225,
+                    },
+                ],
             },
             options: {
-                responsive: true, maintainAspectRatio: false, cutout: '88%',
-                plugins: { tooltip: { enabled: false } }
-            }
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: "88%",
+                plugins: { tooltip: { enabled: false } },
+            },
         });
     }
 };
 
 const renderLateTable = (list, now, exp) => {
-    const tbody = document.getElementById('late-table-body');
+    const tbody = document.getElementById("late-table-body");
     if (!tbody) return;
     if (list.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6" class="py-24 text-center opacity-30 text-[10px] font-black uppercase tracking-widest italic">Excelente: No hay territorios con atraso crítico</td></tr>`;
         return;
     }
 
-    tbody.innerHTML = list.map(t => {
-        const date = UIHelpers.parseFirebaseDate(t.fecha_asignacion) || new Date();
-        const diff = Math.ceil((now - date) / (1000 * 60 * 60 * 24));
-        const threshold = exp || 120;
-        const isCritical = diff >= threshold;
-        const gravity = isCritical ? 'CRÍTICO' : 'PRECAUCIÓN';
-        const color = isCritical ? 'red' : 'yellow';
+    tbody.innerHTML = list
+        .map((t) => {
+            const date = UIHelpers.parseFirebaseDate(t.fecha_asignacion) || new Date();
+            const diff = Math.ceil((now - date) / (1000 * 60 * 60 * 24));
+            const threshold = exp || 120;
+            const isCritical = diff >= threshold;
+            const gravity = isCritical ? "CRÍTICO" : "PRECAUCIÓN";
+            const color = isCritical ? "red" : "yellow";
 
-        return `
+            return `
             <tr class="block md:table-row mb-4 md:mb-0 border border-slate-100 dark:border-white/5 md:border-0 rounded-xl md:rounded-none bg-white dark:bg-white/[0.01] md:bg-transparent hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors group p-4 md:p-0 animate-fade-in">
                 <td class="block md:table-cell px-2 md:px-4 lg:px-8 py-3 md:py-5 border-b border-slate-50 dark:border-white/5 md:border-0 text-left">
                     <div class="flex items-center gap-4">
                         <span class="w-9 h-9 bg-slate-900 text-white rounded-lg flex items-center justify-center font-bold text-sm transition-transform">${t.numero}</span>
                         <div class="flex flex-col min-w-0">
-                            <span class="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase truncate max-w-[150px] font-sans">${t.localidad || 'Congregación'}</span>
+                            <span class="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase truncate max-w-[150px] font-sans">${t.localidad || "Congregación"}</span>
                             ${(() => {
-                                const todas = t.manzanas ? t.manzanas.split(',').map(m => m.trim()).filter(Boolean) : [];
-                                const faltantes = todas.filter(m => !t.manzanas_trabajadas?.includes(m));
+                                const todas = t.manzanas
+                                    ? t.manzanas
+                                          .split(",")
+                                          .map((m) => m.trim())
+                                          .filter(Boolean)
+                                    : [];
+                                const faltantes = todas.filter((m) => !t.manzanas_trabajadas?.includes(m));
                                 if (t.manzanas_trabajadas?.length > 0 && faltantes.length > 0) {
-                                    const label = faltantes.length === 1 ? 'Falta Mz' : 'Faltan Mz';
-                                    return `<span class="text-[8px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest mt-0.5">Territorio incompleto: ${label} ${faltantes.join(', ')}</span>`;
+                                    const label = faltantes.length === 1 ? "Falta Mz" : "Faltan Mz";
+                                    return `<span class="text-[8px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest mt-0.5">Territorio incompleto: ${label} ${faltantes.join(", ")}</span>`;
                                 }
-                                return '';
+                                return "";
                             })()}
                         </div>
                     </div>
@@ -233,10 +277,11 @@ const renderLateTable = (list, now, exp) => {
                 </td>
             </tr>
         `;
-    }).join('');
+        })
+        .join("");
 };
 
-export const renderAnalyticsView = async (container, appVersion, configData = null) => {
+export const renderAnalyticsView = async (container, appVersion, _configData = null) => {
     // 1. Fetch settings (global_settings) while acknowledging injected config (general)
     let settings = {};
     try {
@@ -271,10 +316,10 @@ export const renderAnalyticsView = async (container, appVersion, configData = nu
 
             <!-- Grid de Tarjetas de Impacto -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                ${renderStatCard('Inventario Total', 'stat-total-terr', 'fas fa-boxes-stacked', 'blue', 'Catálogo Maestro')}
-                ${renderStatCard('Territorios en Calle', 'stat-assigned', 'fas fa-map-location-dot', 'blue', 'Asignados ahora')}
-                ${renderStatCard('Fuerza Operativa', 'stat-conductors', 'fas fa-users-gear', 'blue', 'Conductores activos')}
-                ${renderStatCard('Atrasos Críticos', 'stat-late', 'fas fa-triangle-exclamation', 'rose', 'Requiere intervención')}
+                ${renderStatCard("Inventario Total", "stat-total-terr", "fas fa-boxes-stacked", "blue", "Catálogo Maestro")}
+                ${renderStatCard("Territorios en Calle", "stat-assigned", "fas fa-map-location-dot", "blue", "Asignados ahora")}
+                ${renderStatCard("Fuerza Operativa", "stat-conductors", "fas fa-users-gear", "blue", "Conductores activos")}
+                ${renderStatCard("Atrasos Críticos", "stat-late", "fas fa-triangle-exclamation", "rose", "Requiere intervención")}
             </div>
 
             <!-- Insights Section (Middle Row) -->
@@ -407,56 +452,66 @@ export const renderAnalyticsView = async (container, appVersion, configData = nu
     const loadData = async () => {
         try {
             // PASO 3: Invalidar caché para asegurar datos frescos en métricas
-            ServiceCache.clear('territorios_combined');
+            ServiceCache.clear("territorios_combined");
 
-            const [territorios, conductores, historial, globalStats] = await Promise.all([
+            const [territorios, conductores, historial, _globalStats] = await Promise.all([
                 getTerritorios(),
                 getConductores(),
                 getHistorialReport(),
-                getGlobalStats()
+                getGlobalStats(),
             ]);
 
             // PASO 2: Logs de diagnóstico temporales
-            console.log('[Analytics Debug] Total territorios obtenidos:', territorios.length);
-            console.log('[Analytics Debug] Estados únicos encontrados:',
-                [...new Set(territorios.map(t => t.estado))]);
-            console.log('[Analytics Debug] Territorios con estado Asignado:',
-                territorios.filter(t => t.estado === 'Asignado').map(t => ({ id: t.id, numero: t.numero, estado: t.estado, asignado_a: t.asignado_a })));
-
+            console.log("[Analytics Debug] Total territorios obtenidos:", territorios.length);
+            console.log("[Analytics Debug] Estados únicos encontrados:", [
+                ...new Set(territorios.map((t) => t.estado)),
+            ]);
+            console.log(
+                "[Analytics Debug] Territorios con estado Asignado:",
+                territorios
+                    .filter((t) => t.estado === "Asignado")
+                    .map((t) => ({ id: t.id, numero: t.numero, estado: t.estado, asignado_a: t.asignado_a })),
+            );
 
             const expDays = settings?.expiration_days || 120;
 
             // Xolvy Intelligence: Absolute consistency. Calculate EVERYTHING from the real documents.
             // Avoid globalStats for primary counters to prevent desync.
-            const realAssigned = territorios.filter(t => t.estado === 'Asignado');
+            const realAssigned = territorios.filter((t) => t.estado === "Asignado");
             const total = territorios.length;
             const assignedCount = realAssigned.length;
             const assigned = realAssigned;
 
             const now = new Date();
-            const lateTerritories = assigned.filter(t => {
-                if (!t.fecha_asignacion) return false;
-                const d = UIHelpers.parseFirebaseDate(t.fecha_asignacion) || new Date();
-                const diffDays = Math.ceil((now - d) / (1000 * 60 * 60 * 24));
-                return diffDays >= Math.floor(expDays * 0.8);
-            }).sort((a, b) => {
-                const dA = UIHelpers.parseFirebaseDate(a.fecha_asignacion) || new Date();
-                const dB = UIHelpers.parseFirebaseDate(b.fecha_asignacion) || new Date();
-                return dA - dB;
-            });
+            const lateTerritories = assigned
+                .filter((t) => {
+                    if (!t.fecha_asignacion) return false;
+                    const d = UIHelpers.parseFirebaseDate(t.fecha_asignacion) || new Date();
+                    const diffDays = Math.ceil((now - d) / (1000 * 60 * 60 * 24));
+                    return diffDays >= Math.floor(expDays * 0.8);
+                })
+                .sort((a, b) => {
+                    const dA = UIHelpers.parseFirebaseDate(a.fecha_asignacion) || new Date();
+                    const dB = UIHelpers.parseFirebaseDate(b.fecha_asignacion) || new Date();
+                    return dA - dB;
+                });
 
             // --- Strategic Metrics Logic (S-13 Filtered) ---
             const allUniqueTouched = new Set();
             let totalWorkActs = 0;
             const territoryFreq = {};
 
-            historial.forEach(h => {
+            historial.forEach((h) => {
                 // Xolvy Logic: Only SUCCESS logs count for coverage and frequency
-                if (h.estado !== 'Completado' && h.estado !== 'Predicado') return;
+                if (h.estado !== "Completado" && h.estado !== "Predicado") return;
 
                 if (!h.numero) return;
-                const nums = h.numero.toString().split(/[,;]/).map(n => n.trim()).filter(n => n);
-                nums.forEach(num => {
+                const nums = h.numero
+                    .toString()
+                    .split(/[,;]/)
+                    .map((n) => n.trim())
+                    .filter((n) => n);
+                nums.forEach((num) => {
                     allUniqueTouched.add(num);
                     territoryFreq[num] = (territoryFreq[num] || 0) + 1;
                     totalWorkActs++;
@@ -468,55 +523,65 @@ export const renderAnalyticsView = async (container, appVersion, configData = nu
             const workRounds = total > 0 ? (totalWorkActs / total).toFixed(1) : 0;
 
             const mostFreqSorted = Object.entries(territoryFreq).sort((a, b) => b[1] - a[1]);
-            const topTerritory = mostFreqSorted[0]?.[0] || '--';
+            const topTerritory = mostFreqSorted[0]?.[0] || "--";
             const topCount = mostFreqSorted[0]?.[1] || 0;
 
             const latestTouch = {};
-            historial.forEach(h => {
-                if (h.estado !== 'Completado' && h.estado !== 'Predicado') return;
+            historial.forEach((h) => {
+                if (h.estado !== "Completado" && h.estado !== "Predicado") return;
                 const d = h.fecha_entrega || h.fecha_asignacion;
                 if (!d || !h.numero) return;
-                const nums = h.numero.toString().split(/[,;]/).map(n => n.trim()).filter(n => n);
-                nums.forEach(num => {
+                const nums = h.numero
+                    .toString()
+                    .split(/[,;]/)
+                    .map((n) => n.trim())
+                    .filter((n) => n);
+                nums.forEach((num) => {
                     if (!latestTouch[num] || new Date(d) > new Date(latestTouch[num])) {
                         latestTouch[num] = d;
                     }
                 });
             });
 
-            const rezagoSorted = territorios.filter(t => latestTouch[t.numero]).sort((a, b) => {
-                const dA = UIHelpers.parseFirebaseDate(latestTouch[a.numero]) || new Date(0);
-                const dB = UIHelpers.parseFirebaseDate(latestTouch[b.numero]) || new Date(0);
-                return dA - dB;
-            });
-            const oldestTerritory = rezagoSorted[0]?.numero || '--';
+            const rezagoSorted = territorios
+                .filter((t) => latestTouch[t.numero])
+                .sort((a, b) => {
+                    const dA = UIHelpers.parseFirebaseDate(latestTouch[a.numero]) || new Date(0);
+                    const dB = UIHelpers.parseFirebaseDate(latestTouch[b.numero]) || new Date(0);
+                    return dA - dB;
+                });
+            const oldestTerritory = rezagoSorted[0]?.numero || "--";
             const latestDate = UIHelpers.parseFirebaseDate(latestTouch[oldestTerritory]) || new Date();
-            const daysRezago = oldestTerritory !== '--' ? Math.floor((new Date() - latestDate) / (1000 * 60 * 60 * 24)) : 0;
+            const daysRezago =
+                oldestTerritory !== "--" ? Math.floor((Date.now() - latestDate) / (1000 * 60 * 60 * 24)) : 0;
 
             // --- UI Animation/Updates ---
-            if (!document.getElementById('stat-total-terr')) return;
+            if (!document.getElementById("stat-total-terr")) return;
 
-            animateValue('stat-total-terr', 0, total, 1000);
-            animateValue('stat-assigned', 0, assignedCount, 1000);
-            animateValue('stat-conductors', 0, conductores.length, 1000);
-            animateValue('stat-late', 0, lateTerritories.length, 1000);
+            animateValue("stat-total-terr", 0, total, 1000);
+            animateValue("stat-assigned", 0, assignedCount, 1000);
+            animateValue("stat-conductors", 0, conductores.length, 1000);
+            animateValue("stat-late", 0, lateTerritories.length, 1000);
 
             // S-13 Visual Shield: If coverage is 100% but late is high, highlight the bottleneck
-            const s13Label = document.getElementById('stat-s13-coverage');
+            const s13Label = document.getElementById("stat-s13-coverage");
             s13Label.innerText = `${s13CoveragePercent}%`;
-            if(lateTerritories.length > total * 0.5) {
-                s13Label.classList.add('text-rose-500');
+            if (lateTerritories.length > total * 0.5) {
+                s13Label.classList.add("text-rose-500");
             } else {
-                s13Label.classList.remove('text-rose-500');
+                s13Label.classList.remove("text-rose-500");
             }
-            document.getElementById('stat-s13-progress-bar').style.width = `${s13CoveragePercent}%`;
-            document.getElementById('stat-s13-coverage-info').innerText = `${uniqueWorkedCount} de ${total} territorios cubiertos en este ciclo • ${workRounds} vueltas al catálogo`;
+            document.getElementById("stat-s13-progress-bar").style.width = `${s13CoveragePercent}%`;
+            document.getElementById("stat-s13-coverage-info").innerText =
+                `${uniqueWorkedCount} de ${total} territorios cubiertos en este ciclo • ${workRounds} vueltas al catálogo`;
 
-            document.getElementById('stat-s13-oldest').innerText = oldestTerritory === '--' ? '--' : `#${oldestTerritory}`;
-            document.getElementById('stat-s13-oldest-info').innerText = `Último informe: hace ${daysRezago} días`;
+            document.getElementById("stat-s13-oldest").innerText =
+                oldestTerritory === "--" ? "--" : `#${oldestTerritory}`;
+            document.getElementById("stat-s13-oldest-info").innerText = `Último informe: hace ${daysRezago} días`;
 
-            document.getElementById('stat-s13-frequent').innerText = topTerritory === '--' ? '--' : `Territorio ${topTerritory}`;
-            document.getElementById('stat-s13-frequent-info').innerText = `Registrado ${topCount} veces recientemente`;
+            document.getElementById("stat-s13-frequent").innerText =
+                topTerritory === "--" ? "--" : `Territorio ${topTerritory}`;
+            document.getElementById("stat-s13-frequent-info").innerText = `Registrado ${topCount} veces recientemente`;
 
             // --- Charts Initialization ---
             initMainCharts(total, assignedCount, lateTerritories.length, territoryFreq, s13CoveragePercent);
@@ -525,9 +590,9 @@ export const renderAnalyticsView = async (container, appVersion, configData = nu
             renderLateTable(lateTerritories, now, expDays);
 
             // Bind click events to Entregar buttons
-            const tbody = document.getElementById('late-table-body');
+            const tbody = document.getElementById("late-table-body");
             if (tbody) {
-                tbody.querySelectorAll('.btn-entregar-critico').forEach(btn => {
+                tbody.querySelectorAll(".btn-entregar-critico").forEach((btn) => {
                     btn.onclick = () => {
                         const tid = btn.dataset.tid;
                         const num = btn.dataset.num;
@@ -537,7 +602,6 @@ export const renderAnalyticsView = async (container, appVersion, configData = nu
                     };
                 });
             }
-
         } catch (e) {
             console.error("Critical error loading analytics:", e);
         }
@@ -547,46 +611,43 @@ export const renderAnalyticsView = async (container, appVersion, configData = nu
 
     // --- Helper UI Functions ---
 
-
-
-
     loadData();
-    const refreshBtn = document.getElementById('btn-refresh-analytics');
+    const refreshBtn = document.getElementById("btn-refresh-analytics");
     if (refreshBtn) {
         refreshBtn.onclick = () => renderAnalyticsView(container, appVersion);
     }
 
     // Unificar actualización reactiva en tiempo real al liberar/actualizar un territorio
     if (window._analyticsReleaseListener) {
-        window.removeEventListener('territorio-liberado', window._analyticsReleaseListener);
-        window.removeEventListener('territorio-actualizado', window._analyticsReleaseListener);
+        window.removeEventListener("territorio-liberado", window._analyticsReleaseListener);
+        window.removeEventListener("territorio-actualizado", window._analyticsReleaseListener);
     }
 
     window._analyticsReleaseListener = () => {
         // Verificar si el panel de analíticas sigue montado en el DOM
-        if (document.getElementById('btn-refresh-analytics')) {
-            console.log('[Analytics] Refreshing view due to territory update...');
+        if (document.getElementById("btn-refresh-analytics")) {
+            console.log("[Analytics] Refreshing view due to territory update...");
             renderAnalyticsView(container, appVersion);
         } else {
             // Si ya no está en el DOM, limpiar el listener global
-            window.removeEventListener('territorio-liberado', window._analyticsReleaseListener);
-            window.removeEventListener('territorio-actualizado', window._analyticsReleaseListener);
+            window.removeEventListener("territorio-liberado", window._analyticsReleaseListener);
+            window.removeEventListener("territorio-actualizado", window._analyticsReleaseListener);
             window._analyticsReleaseListener = null;
         }
     };
 
-    window.addEventListener('territorio-liberado', window._analyticsReleaseListener);
-    window.addEventListener('territorio-actualizado', window._analyticsReleaseListener);
+    window.addEventListener("territorio-liberado", window._analyticsReleaseListener);
+    window.addEventListener("territorio-actualizado", window._analyticsReleaseListener);
 
-    const resyncBtn = document.getElementById('btn-resync-stats');
+    const resyncBtn = document.getElementById("btn-resync-stats");
     if (resyncBtn) {
         resyncBtn.onclick = async () => {
-            const icon = resyncBtn.querySelector('i');
-            icon.classList.add('fa-spin');
+            const icon = resyncBtn.querySelector("i");
+            icon.classList.add("fa-spin");
             resyncBtn.disabled = true;
 
             const result = await resyncGlobalStats();
-            
+
             if (result && result.healed > 0) {
                 showNotification(`Sincronización completa. Se sanaron ${result.healed} estados desfasados.`, "success");
             } else {

@@ -1,17 +1,19 @@
-import { db } from '../../firebase-config.js';
-import { collection, getDocs, doc, setDoc, writeBatch, Timestamp } from "firebase/firestore";
+import { collection, doc, setDoc, writeBatch } from "firebase/firestore";
+import { db } from "../../firebase-config.js";
 
 export const restoreSystemBackup = async (data, onProgress) => {
     if (!data) throw new Error("No data provided for restore");
     const collections = [
-        { key: 'territorios', name: 'territorios' },
-        { key: 'conductores', name: 'conductores' },
-        { key: 'telefonos', name: 'telefonos' },
-        { key: 'publicadores', name: 'publicadores' },
-        { key: 'historial', name: 'historial_territorios' }
+        { key: "territorios", name: "territorios" },
+        { key: "conductores", name: "conductores" },
+        { key: "telefonos", name: "telefonos" },
+        { key: "publicadores", name: "publicadores" },
+        { key: "historial", name: "historial_territorios" },
     ];
     let totalOps = 0;
-    collections.forEach(c => { if (data[c.key]) totalOps += data[c.key].length; });
+    collections.forEach((c) => {
+        if (data[c.key]) totalOps += data[c.key].length;
+    });
     if (data.config) totalOps += 1;
     if (data.programa) totalOps += 1;
 
@@ -27,7 +29,7 @@ export const restoreSystemBackup = async (data, onProgress) => {
         for (let i = 0; i < items.length; i += 500) {
             const batch = writeBatch(db);
             const chunk = items.slice(i, i + 500);
-            chunk.forEach(item => {
+            chunk.forEach((item) => {
                 const { id, ...cleanData } = item;
                 const docRef = id ? doc(db, colDef.name, id) : doc(collection(db, colDef.name));
                 batch.set(docRef, cleanData, { merge: true });

@@ -1,6 +1,6 @@
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "../../firebase-config.js";
-import { showNotification, updateNotificationWorkflow, completeSyncNotification } from "./helpers.js";
+import { completeSyncNotification, showNotification, updateNotificationWorkflow } from "./helpers.js";
 
 /**
  * UPDATE MANAGER - SUPER POWER UP
@@ -16,16 +16,20 @@ const APP_VERSION = __APP_VERSION__;
 const UpdateShield = {
     getStats: () => {
         try {
-            return JSON.parse(localStorage.getItem('xolvy_update_loop_stats') || '{"count":0, "lastAttempt":0, "lastTarget":""}');
-        } catch (e) {
+            return JSON.parse(
+                localStorage.getItem("xolvy_update_loop_stats") || '{"count":0, "lastAttempt":0, "lastTarget":""}',
+            );
+        } catch (_e) {
             console.warn("🛡️ [Update Shield] Storage unavailable.");
             return { count: 0, lastAttempt: 0, lastTarget: "" };
         }
     },
     saveStats: (stats) => {
         try {
-            localStorage.setItem('xolvy_update_loop_stats', JSON.stringify(stats));
-        } catch (e) { /* ignore */ }
+            localStorage.setItem("xolvy_update_loop_stats", JSON.stringify(stats));
+        } catch (_e) {
+            /* ignore */
+        }
     },
     registerAttempt: (targetVersion) => {
         try {
@@ -46,22 +50,28 @@ const UpdateShield = {
             UpdateShield.saveStats(stats);
             console.warn(`🛡️ [Update Shield] Attempt ${stats.count}/3 for v${targetVersion} registered.`);
             return stats;
-        } catch (e) { return { count: 1, lastAttempt: Date.now(), lastTarget: targetVersion }; }
+        } catch (_e) {
+            return { count: 1, lastAttempt: Date.now(), lastTarget: targetVersion };
+        }
     },
     isLocked: () => {
         try {
             const stats = UpdateShield.getStats();
-            const locked = stats.count >= 3 && (Date.now() - stats.lastAttempt < 300000);
+            const locked = stats.count >= 3 && Date.now() - stats.lastAttempt < 300000;
             if (locked) console.error("🚨 [Update Shield] CIRCUIT BREAKER ACTIVE: Update loop detected.");
             return locked;
-        } catch (e) { return false; }
+        } catch (_e) {
+            return false;
+        }
     },
     reset: () => {
         try {
             console.log("🛡️ [Update Shield] Resetting loop statistics.");
-            localStorage.removeItem('xolvy_update_loop_stats');
-        } catch (e) { /* ignore */ }
-    }
+            localStorage.removeItem("xolvy_update_loop_stats");
+        } catch (_e) {
+            /* ignore */
+        }
+    },
 };
 
 let unsubUpdate = null;
@@ -84,92 +94,98 @@ export const initUpdateManager = () => {
 
     // 0. RADICAL PURGE: Verify if we are coming from a "stuck" state
     try {
-        const lastSessionVersion = localStorage.getItem('xolvy_last_shell_version');
+        const lastSessionVersion = localStorage.getItem("xolvy_last_shell_version");
         if (lastSessionVersion && lastSessionVersion !== APP_VERSION) {
             console.log(`🧹 [Radical Purge] Version transition detected: ${lastSessionVersion} -> ${APP_VERSION}`);
             performRadicalCachePurge(false); // Silent purge if we already updated
-            localStorage.setItem('xolvy_last_shell_version', APP_VERSION);
+            localStorage.setItem("xolvy_last_shell_version", APP_VERSION);
 
             // SUCCESS: We successfully moved to a new version, reset the loop shield
             UpdateShield.reset();
         } else if (!lastSessionVersion) {
-            localStorage.setItem('xolvy_last_shell_version', APP_VERSION);
+            localStorage.setItem("xolvy_last_shell_version", APP_VERSION);
         }
-    } catch (e) {
+    } catch (_e) {
         console.warn("🛡️ [Update Manager] Storage access denied.");
     }
     // 1. HANDSHAKE: Check if we just updated to show "Online" status
     try {
-        if (localStorage.getItem('xolvy_update_handshake') === 'true') {
+        if (localStorage.getItem("xolvy_update_handshake") === "true") {
             console.log("🟢 [Xolvy Updates] Handshake detected. Showing 'Online' status.");
-            localStorage.removeItem('xolvy_update_handshake');
+            localStorage.removeItem("xolvy_update_handshake");
 
             // Show a premium "Online" notification
             setTimeout(() => {
                 showNotification("¡Conexión Restablecida! Sistema Optimizado", "success");
             }, 1500);
         }
-    } catch (e) { /* ignore */ }
+    } catch (_e) {
+        /* ignore */
+    }
 
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('updated') === 'true') {
+    if (urlParams.get("updated") === "true") {
         window.history.replaceState({}, document.title, window.location.pathname);
     }
 
     // 2. Listen for Server-Side Force Updates
-    unsubUpdate = onSnapshot(doc(db, "configuracion", "version_control"), async (docSnap) => {
-        if (!docSnap.exists()) return;
+    unsubUpdate = onSnapshot(
+        doc(db, "configuracion", "version_control"),
+        async (docSnap) => {
+            if (!docSnap.exists()) return;
 
-        const data = docSnap.data();
-        const serverVersion = data.latestVersion;
-        const serverForceTimestamp = data.forceTimestamp || 0;
-        const localForceTimestamp = parseInt(localStorage.getItem('last_force_timestamp') || '0');
+            const data = docSnap.data();
+            const serverVersion = data.latestVersion;
+            const serverForceTimestamp = data.forceTimestamp || 0;
+            const localForceTimestamp = parseInt(localStorage.getItem("last_force_timestamp") || "0", 10);
 
-        // Helper for semantic comparison (e.g., 2.4.2.10 > 2.4.2.9)
-        const isNewer = (vServer, vLocal) => {
-            const s = String(vServer).split('.').map(Number);
-            const l = String(vLocal).split('.').map(Number);
-            for (let i = 0; i < Math.max(s.length, l.length); i++) {
-                if ((s[i] || 0) > (l[i] || 0)) return true;
-                if ((s[i] || 0) < (l[i] || 0)) return false;
+            // Helper for semantic comparison (e.g., 2.4.2.10 > 2.4.2.9)
+            const isNewer = (vServer, vLocal) => {
+                const s = String(vServer).split(".").map(Number);
+                const l = String(vLocal).split(".").map(Number);
+                for (let i = 0; i < Math.max(s.length, l.length); i++) {
+                    if ((s[i] || 0) > (l[i] || 0)) return true;
+                    if ((s[i] || 0) < (l[i] || 0)) return false;
+                }
+                return false;
+            };
+
+            const hasUpdate = isNewer(serverVersion, APP_VERSION);
+            const forceRequired = serverForceTimestamp > localForceTimestamp;
+
+            console.log(`📡 Update Check: Local=${APP_VERSION}, Server=${serverVersion} | NewAvailable=${hasUpdate}`);
+
+            // ONLY trigger full reload if the CORE shell version is NEWER
+            if (hasUpdate) {
+                // Check if we are locked in a loop
+                if (UpdateShield.isLocked()) {
+                    showRescuePill(serverVersion);
+                    return;
+                }
+
+                console.log("🚀 Core Update Required! Starting background sync...");
+                startBackgroundUpdate(serverVersion, serverForceTimestamp);
+            } else if (forceRequired) {
+                // Force reload active devices to resolve stuck state or cache issues
+                console.log("⚡ Force Sync/Reload requested. Purging caches and reloading...");
+                localStorage.setItem("last_force_timestamp", serverForceTimestamp.toString());
+                await performRadicalCachePurge(false);
+                window.location.reload();
+            } else if (isNewer(APP_VERSION, serverVersion)) {
+                // TELEMETRY: If I am an Admin and my version is newer, I should auto-sync the server
+                // TELEMETRY: If I am an Admin and my version is newer, I should auto-sync the server
+                const currentRole = window.XolvyApp?.user?.role;
+                const isAdmin = currentRole === "Administrador" || currentRole === "SuperAdmin";
+                if (isAdmin) {
+                    console.log("📡 [Telemetry] Admin detected with newer version. Auto-syncing Firestore...");
+                    broadcastCurrentVersion().catch((err) => console.warn("Telemetry sync failed:", err));
+                }
             }
-            return false;
-        };
-
-        const hasUpdate = isNewer(serverVersion, APP_VERSION);
-        const forceRequired = serverForceTimestamp > localForceTimestamp;
-
-        console.log(`📡 Update Check: Local=${APP_VERSION}, Server=${serverVersion} | NewAvailable=${hasUpdate}`);
-
-        // ONLY trigger full reload if the CORE shell version is NEWER
-        if (hasUpdate) {
-            // Check if we are locked in a loop
-            if (UpdateShield.isLocked()) {
-                showRescuePill(serverVersion);
-                return;
-            }
-
-            console.log("🚀 Core Update Required! Starting background sync...");
-            startBackgroundUpdate(serverVersion, serverForceTimestamp);
-        } else if (forceRequired) {
-            // Force reload active devices to resolve stuck state or cache issues
-            console.log("⚡ Force Sync/Reload requested. Purging caches and reloading...");
-            localStorage.setItem('last_force_timestamp', serverForceTimestamp.toString());
-            await performRadicalCachePurge(false);
-            window.location.reload();
-        } else if (isNewer(APP_VERSION, serverVersion)) {
-            // TELEMETRY: If I am an Admin and my version is newer, I should auto-sync the server
-            // TELEMETRY: If I am an Admin and my version is newer, I should auto-sync the server
-            const currentRole = window.XolvyApp?.user?.role;
-            const isAdmin = (currentRole === 'Administrador' || currentRole === 'SuperAdmin');
-            if (isAdmin) {
-                console.log("📡 [Telemetry] Admin detected with newer version. Auto-syncing Firestore...");
-                broadcastCurrentVersion().catch(err => console.warn("Telemetry sync failed:", err));
-            }
-        }
-    }, (error) => {
-        console.warn("⚠️ [UpdateManager] Error in version control listener:", error);
-    });
+        },
+        (error) => {
+            console.warn("⚠️ [UpdateManager] Error in version control listener:", error);
+        },
+    );
 
     // 3. Telemetry: If I'm an Admin, I should verify if my version is the "latest"
     // This is optional but helps keep the Firestore doc in sync
@@ -180,38 +196,37 @@ export const initUpdateManager = () => {
  * Performs the update silently using the HUD sidebar
  */
 const startBackgroundUpdate = async (newVersion, forceTimestamp = 0) => {
-    if (document.getElementById('xolvy-core-sync-hud')) return;
+    if (document.getElementById("xolvy-core-sync-hud")) return;
 
     // 1. Show HUD card for the core update
     notifyModuleUpdate("Núcleo", newVersion);
 
     // Flag for "Online" handshake after reload
-    localStorage.setItem('xolvy_update_handshake', 'true');
+    localStorage.setItem("xolvy_update_handshake", "true");
 
     // Preservation of state (Rule 1.3)
     const currentState = {
         path: window.location.pathname,
         timestamp: Date.now(),
         role: window.XolvyApp?.user?.role || null,
-        user: localStorage.getItem('selected_conductor_name')
+        user: localStorage.getItem("selected_conductor_name"),
     };
-    sessionStorage.setItem('xolvy_pre_update_state', JSON.stringify(currentState));
+    sessionStorage.setItem("xolvy_pre_update_state", JSON.stringify(currentState));
 
     try {
         // AI Announcement (Background) handled by Nexo now
-
 
         // Register attempt in the shield
         UpdateShield.registerAttempt(newVersion);
 
         // 2. Perform the update swap
         // Wait 4 seconds so the user can see the sync notification in the HUD
-        await new Promise(r => setTimeout(r, 4000));
+        await new Promise((r) => setTimeout(r, 4000));
 
         // Radical Cache Purge (Smart Mode - Session Preserved)
         await performRadicalCachePurge(false);
 
-        if (forceTimestamp) localStorage.setItem('last_force_timestamp', forceTimestamp.toString());
+        if (forceTimestamp) localStorage.setItem("last_force_timestamp", forceTimestamp.toString());
 
         // 3. Finalize and Reload
         completeXolvyUpdate("Núcleo", newVersion);
@@ -219,14 +234,11 @@ const startBackgroundUpdate = async (newVersion, forceTimestamp = 0) => {
         setTimeout(() => {
             window.location.href = `${window.location.pathname}?updated=true`;
         }, 1500);
-
     } catch (err) {
         console.error("Background update failed:", err);
         window.location.reload();
     }
 };
-
-
 
 /**
  * PERISTENCE KILLER: Ensures NO old assets (especially Service Workers) survive a version jump
@@ -236,16 +248,16 @@ export const performRadicalCachePurge = async (full = true) => {
 
     try {
         // 1. Clear all Caches (Radical Eviction)
-        if ('caches' in window) {
+        if ("caches" in window) {
             const keys = await caches.keys();
-            await Promise.all(keys.map(key => caches.delete(key)));
+            await Promise.all(keys.map((key) => caches.delete(key)));
             console.log("✅ [Purge] Browser Caches cleared");
         }
 
         // 2. Unregister all Service Workers immediately
-        if ('serviceWorker' in navigator) {
+        if ("serviceWorker" in navigator) {
             const regs = await navigator.serviceWorker.getRegistrations();
-            await Promise.all(regs.map(r => r.unregister()));
+            await Promise.all(regs.map((r) => r.unregister()));
             console.log("✅ [Purge] Service Workers unregistered");
         }
 
@@ -253,44 +265,48 @@ export const performRadicalCachePurge = async (full = true) => {
             // 3. Delete IndexedDB Databases (Firestore persistence often gets corrupted)
             // WE ONLY DO THIS IN RADICAL MODE (Rescue) to avoid logging out users
             try {
-                if (window.indexedDB && window.indexedDB.databases) {
+                if (window.indexedDB?.databases) {
                     const dbs = await window.indexedDB.databases();
-                    await Promise.all(dbs.map(db => {
-                        // DO NOT DELETE AUTH DATABASE IF POSSIBLE
-                        if (db.name.includes('auth')) return Promise.resolve();
+                    await Promise.all(
+                        dbs.map((db) => {
+                            // DO NOT DELETE AUTH DATABASE IF POSSIBLE
+                            if (db.name.includes("auth")) return Promise.resolve();
 
-                        console.log(`🗑️ [Purge] Deleting DB: ${db.name}`);
-                        return new Promise((resolve) => {
-                            const req = window.indexedDB.deleteDatabase(db.name);
-                            req.onsuccess = () => resolve();
-                            req.onerror = () => resolve();
-                            req.onblocked = () => resolve();
-                        });
-                    }));
+                            console.log(`🗑️ [Purge] Deleting DB: ${db.name}`);
+                            return new Promise((resolve) => {
+                                const req = window.indexedDB.deleteDatabase(db.name);
+                                req.onsuccess = () => resolve();
+                                req.onerror = () => resolve();
+                                req.onblocked = () => resolve();
+                            });
+                        }),
+                    );
                 } else if (window.indexedDB) {
                     // Fallback for browsers that don't support .databases()
                     const legacyDBs = [
                         "firestore/[DEFAULT]/territorios-jw/main",
                         "firebase-heartbeat-database",
-                        "firebase-installations-database"
+                        "firebase-installations-database",
                     ];
-                    legacyDBs.forEach(dbName => window.indexedDB.deleteDatabase(dbName));
+                    legacyDBs.forEach((dbName) => {
+                        window.indexedDB.deleteDatabase(dbName);
+                    });
                 }
                 console.log("✅ [Purge] Non-Auth IndexedDB cleared");
-            } catch (idbErr) { console.warn("IndexDB purge partial failure:", idbErr); }
+            } catch (idbErr) {
+                console.warn("IndexDB purge partial failure:", idbErr);
+            }
 
             // 4. Clear storage
             sessionStorage.clear();
 
             // 5. Force browser to reload from network on next request
-            localStorage.setItem('xolvy_purge_executed', Date.now().toString());
+            localStorage.setItem("xolvy_purge_executed", Date.now().toString());
         }
     } catch (e) {
         console.error("Purge failed:", e);
     }
 };
-
-
 
 /**
  * XOLVY UPDATES - DISCRETE HUD & IA NOTIFICATIONS
@@ -301,25 +317,21 @@ export const notifyModuleUpdate = async (moduleName, version) => {
     const notifId = showXolvyUpdateHUD(moduleName, version);
 
     // 2. Trace Workflow (HMS Telemetry)
-    setTimeout(() => updateNotificationWorkflow(notifId, 'Validando Módulos...'), 500);
-    setTimeout(() => updateNotificationWorkflow(notifId, 'Buscando Assets HMS...'), 1200);
+    setTimeout(() => updateNotificationWorkflow(notifId, "Validando Módulos..."), 500);
+    setTimeout(() => updateNotificationWorkflow(notifId, "Buscando Assets HMS..."), 1200);
 
     // 3. IA Integration (Handled by Nexo now)
-    setTimeout(() => updateNotificationWorkflow(notifId, 'Compilando Delta de Parche...'), 1800);
-
+    setTimeout(() => updateNotificationWorkflow(notifId, "Compilando Delta de Parche..."), 1800);
 };
 
 const showXolvyUpdateHUD = (moduleName, version) => {
-    return showNotification(`Sincronizando ${moduleName} v${version}`, 'sync', 0, ['Iniciando Handshake...']);
+    return showNotification(`Sincronizando ${moduleName} v${version}`, "sync", 0, ["Iniciando Handshake..."]);
 };
-
-
 
 export const completeXolvyUpdate = (moduleName, version) => {
     const finalName = version ? `${moduleName} v${version}` : moduleName;
     completeSyncNotification(finalName);
 };
-
 
 /**
  * ADMIN ONLY: Utility to broadcast the current version as the latest
@@ -332,7 +344,7 @@ export const broadcastCurrentVersion = async () => {
             latestVersion: APP_VERSION,
             forceTimestamp: Date.now(),
             forceUpdate: true,
-            updatedAt: new Date().toLocaleString()
+            updatedAt: new Date().toLocaleString(),
         });
         showNotification("¡Actualización Global Activada!", "success");
     } catch (err) {
@@ -345,11 +357,12 @@ export const broadcastCurrentVersion = async () => {
  * RESCUE PILL: Shown when an update loop is detected
  */
 const showRescuePill = (targetVersion) => {
-    if (document.getElementById('xolvy-rescue-pill')) return;
+    if (document.getElementById("xolvy-rescue-pill")) return;
 
-    const pill = document.createElement('div');
-    pill.id = 'xolvy-rescue-pill';
-    pill.className = 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[100000] w-[90%] max-w-sm animate-fade-in';
+    const pill = document.createElement("div");
+    pill.id = "xolvy-rescue-pill";
+    pill.className =
+        "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[100000] w-[90%] max-w-sm animate-fade-in";
     pill.innerHTML = `
         <div class="bg-white/95 dark:bg-slate-900/95 backdrop-blur-3xl border border-slate-200 dark:border-indigo-500/20 p-8 rounded-[3rem] shadow-[0_40px_100px_rgba(0,0,0,0.2)] dark:shadow-[0_40px_100px_rgba(0,0,0,0.8)] text-center">
             <div class="w-20 h-20 bg-indigo-500/10 rounded-[2rem] flex items-center justify-center text-4xl text-indigo-500 mx-auto mb-6 shadow-inner animate-float">
@@ -371,8 +384,8 @@ const showRescuePill = (targetVersion) => {
 
     document.body.appendChild(pill);
 
-    pill.querySelector('#btn-rescue-action').onclick = async () => {
-        const btn = pill.querySelector('#btn-rescue-action');
+    pill.querySelector("#btn-rescue-action").onclick = async () => {
+        const btn = pill.querySelector("#btn-rescue-action");
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-sync fa-spin"></i>';
 

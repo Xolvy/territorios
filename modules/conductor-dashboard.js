@@ -1,118 +1,119 @@
-
-import { auth, db } from '../firebase-config.js';
 import { onAuthStateChanged } from "firebase/auth";
-import { where, documentId, arrayUnion, onSnapshot, doc, setDoc } from "firebase/firestore";
+import { arrayUnion, doc, documentId, setDoc, where } from "firebase/firestore";
 import {
-    getTerritorios, getPublicadores, getTelefonos, getTelefonosParaSesion,
-    getConfiguracion,
-    getProgramaSemanal, saveProgramaSemanal, syncSlotWithTerritories,
     addPublicador,
-    releaseUnusedTelefonos, solicitarNumeros, updateTelefonoStatus, logSessionSummary, releaseTelefonosById,
-    finalizarSesionConCrm, getTelemetriaTelefonia,
-    transferTerritory, takeTerritoryPartial, assignFreeTerritory,
-    startLivePool, returnTerritorio, updateTerritorio, logReturn, PoolManager
-} from '../data/firestore-services.js';
-import { 
-    renderSkeleton, 
-    showNotification, 
-    normalizeRobust, 
-    formatManzanas, 
-    getSafeDateId, 
-    getMonday 
-} from './utils/helpers.js';
-import { NexoAgent } from './nexo-ai/nexo-core.js';
-import { NexoManifest } from './nexo-ai/territorios-manifest.js';
-import { MapViewer } from './map-viewer.js';
-import { AppConfig } from './utils/config.js';
+    finalizarSesionConCrm,
+    getConfiguracion,
+    getProgramaSemanal,
+    getPublicadores,
+    getTelefonos,
+    getTelefonosParaSesion,
+    getTerritorios,
+    logReturn,
+    PoolManager,
+    releaseUnusedTelefonos,
+    returnTerritorio,
+    solicitarNumeros,
+    startLivePool,
+    updateTelefonoStatus,
+    updateTerritorio,
+} from "../data/firestore-services.js";
+import { auth, db } from "../firebase-config.js";
+import { NexoAgent } from "./nexo-ai/nexo-core.js";
+import { NexoManifest } from "./nexo-ai/territorios-manifest.js";
+import { showModal } from "./services/ui-helpers.js";
+import { AppConfig } from "./utils/config.js";
+import { getMonday, getSafeDateId, normalizeRobust, renderSkeleton, showNotification } from "./utils/helpers.js";
 
-import { UIHelpers, showModal, showCustomPrompt } from './services/ui-helpers.js';
-import { VisualEngine } from './utils/visual-engine.js';
-import { createAdaptiveLogo } from './utils/AdaptiveLogo.js';
 window.AppConfig = AppConfig;
 
-import { moduleRegistry } from './utils/module-registry.js';
-import './conductor/conductor-actions.js';
-import { ReceptionHub } from './services/reception-hub.js';
+import { moduleRegistry } from "./utils/module-registry.js";
+import "./conductor/conductor-actions.js";
+import { ReceptionHub } from "./services/reception-hub.js";
 
 // --- MICRO-MODULE LOADER ---
-const dynamicSubModules = import.meta.glob('./**/*.js');
+const dynamicSubModules = import.meta.glob("./**/*.js");
 
 async function loadSubModule(name, path) {
     return moduleRegistry.loadModule(name, path, dynamicSubModules);
 }
 
-
 // --- UTILS ---
 window.finalizarPredicacionTelefonia = async () => {
     try {
-        showNotification('Procesando Ciclo de Vida CRM...', 'info');
-        
-        const name = localStorage.getItem('selected_conductor_name');
-        const sessionOwner = localStorage.getItem('phone_session_owner') || name;
-        
+        showNotification("Procesando Ciclo de Vida CRM...", "info");
+
+        const name = localStorage.getItem("selected_conductor_name");
+        const sessionOwner = localStorage.getItem("phone_session_owner") || name;
+
         // Fetch all phones for the session to see what was modified
         const allPhones = await getTelefonosParaSesion(sessionOwner);
-        
+
         // FIX HUGO: Extraer el solicitado_por REAL de los documentos de Firestore.
         // No confiar en el localStorage ya que puede tener acentos/capitalización distinta
         // a la que se guardó en Firestore cuando se solicitaron los números.
-        const realOwnerFromFirestore = allPhones.length > 0
-            ? (allPhones.find(p => p.solicitado_por)?.solicitado_por || sessionOwner)
-            : sessionOwner;
-        
+        const realOwnerFromFirestore =
+            allPhones.length > 0
+                ? allPhones.find((p) => p.solicitado_por)?.solicitado_por || sessionOwner
+                : sessionOwner;
+
         const changes = {};
-        allPhones.forEach(p => {
+        allPhones.forEach((p) => {
             // If the state is not "En Sesión" and not empty/null, or has notes, it was processed!
-            if ((p.estado && p.estado !== 'En Sesión') || p.notas) {
+            if ((p.estado && p.estado !== "En Sesión") || p.notas) {
                 changes[p.id] = {
-                    estado: p.estado === 'En Sesión' ? '' : p.estado,
-                    notas: p.notas || ''
+                    estado: p.estado === "En Sesión" ? "" : p.estado,
+                    notas: p.notas || "",
                 };
             }
         });
-        
+
         try {
             // Phase 1: Batch CRM Finalization
             // This handles: Purgas, Enfriamiento, 3 Strikes, Masive Recycling and Session Reports
             await finalizarSesionConCrm(realOwnerFromFirestore, changes);
         } catch (crmErr) {
-            console.error('Error en CRM Finalization (non-blocking):', crmErr);
+            console.error("Error en CRM Finalization (non-blocking):", crmErr);
         }
-        
+
         try {
             // Phase 2: Cleanup session owners for unused numbers
             // Usamos el nombre real de Firestore, y además pasamos los IDs explícitos
             // para garantizar que todos los números de la sesión se liberen
-            await releaseUnusedTelefonos(realOwnerFromFirestore, false, true, allPhones.map(p => p.id));
+            await releaseUnusedTelefonos(
+                realOwnerFromFirestore,
+                false,
+                true,
+                allPhones.map((p) => p.id),
+            );
         } catch (releaseErr) {
-            console.error('Error en releaseUnusedTelefonos (non-blocking):', releaseErr);
+            console.error("Error en releaseUnusedTelefonos (non-blocking):", releaseErr);
         }
-        
-        showNotification('Predicación finalizada y procesada por CRM', 'success');
+
+        showNotification("Predicación finalizada y procesada por CRM", "success");
     } catch (e) {
-        console.error('Error al finalizar predicación CRM:', e);
-        showNotification('Error al finalizar predicación, cerrando sesión local...', 'error');
+        console.error("Error al finalizar predicación CRM:", e);
+        showNotification("Error al finalizar predicación, cerrando sesión local...", "error");
     } finally {
         // 3. Clear memory local always to prevent UI lockups
         window.pendingPhoneChanges = {};
         window._phoneSessionActive = false;
-        localStorage.removeItem('phone_session_active');
-        localStorage.removeItem('phone_session_owner');
-        sessionStorage.removeItem('phone_session_active_this_tab');
-        
+        localStorage.removeItem("phone_session_active");
+        localStorage.removeItem("phone_session_owner");
+        sessionStorage.removeItem("phone_session_active_this_tab");
+
         // 4. Refrescar vista
-        if (typeof window.refreshConductorView === 'function') {
+        if (typeof window.refreshConductorView === "function") {
             await window.refreshConductorView(true);
         }
     }
 };
 
-
-window.viewMapFromReport = async (id, mode = 'satelital') => {
+window.viewMapFromReport = async (id, mode = "satelital") => {
     if (!id) return;
     showNotification("Cargando visor de mapa...", "info");
     const territories = await getTerritorios();
-    const t = territories.find(x => x.id === id);
+    const t = territories.find((x) => x.id === id);
     if (t) {
         window.openInteractiveMap(t, { mode });
     } else {
@@ -120,12 +121,12 @@ window.viewMapFromReport = async (id, mode = 'satelital') => {
     }
 };
 
-window.abrirMapaTerritorio = async function(numeroTerritorio, mode = 'satelital') {
+window.abrirMapaTerritorio = async (numeroTerritorio, mode = "satelital") => {
     if (!numeroTerritorio) return;
     console.log("Abriendo mapa para territorio:", numeroTerritorio, "modo:", mode);
     try {
         const territories = await getTerritorios();
-        const target = territories.find(t => String(t.numero) === String(numeroTerritorio));
+        const target = territories.find((t) => String(t.numero) === String(numeroTerritorio));
         if (target) {
             window.viewMapFromReport(target.id, mode);
         } else {
@@ -140,23 +141,24 @@ let s13LivePoolUnsubscribe = null;
 
 // --- UTILS: OVERLAY CONTROL ---
 const ocultarOverlay = () => {
-    const overlay = document.getElementById('login-sync-overlay');
+    const overlay = document.getElementById("login-sync-overlay");
     if (overlay) {
-        overlay.classList.add('opacity-0');
+        overlay.classList.add("opacity-0");
         setTimeout(() => overlay.remove(), 500);
     }
 };
 
-
-export const renderConductorDashboard = async (container, nameOrEmail, appVersion, userRole = null) => {
+export const renderConductorDashboard = async (container, nameOrEmail, _appVersion, userRole = null) => {
     if (!container) {
-        console.warn('[Dashboard] container es null — abortando render');
+        console.warn("[Dashboard] container es null — abortando render");
         return;
     }
 
-    
+    let initSwipeActions = null;
+    let initNexoSystem = null;
+
     console.log("🚀 [Conductor] Starting Parallel Initialization...");
-    
+
     // 1. Render Skeleton + Immediate Overlay Dismissal (with safety timeout)
     const safetyTimeout = setTimeout(ocultarOverlay, 3000);
     renderSkeleton(container);
@@ -164,22 +166,26 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
     clearTimeout(safetyTimeout);
 
     // --- AUTH GUARD (FASTBOOT SYNC) ---
-    const esperarAuth = () => new Promise(resolve => {
-        if (auth.currentUser) { resolve(); return; }
-        console.log("⏳ [Dashboard] Esperando Firebase Auth para carga de datos...");
-        const t = setTimeout(() => {
-            console.warn("⚠️ [Dashboard] Timeout esperando Auth — procediendo...");
-            resolve();
-        }, 4000);
-        const unsub = onAuthStateChanged(auth, u => {
-            if (u) {
-                console.log("💎 [Dashboard] Auth detectado:", u.email);
-                clearTimeout(t);
-                unsub();
+    const esperarAuth = () =>
+        new Promise((resolve) => {
+            if (auth.currentUser) {
                 resolve();
+                return;
             }
+            console.log("⏳ [Dashboard] Esperando Firebase Auth para carga de datos...");
+            const t = setTimeout(() => {
+                console.warn("⚠️ [Dashboard] Timeout esperando Auth — procediendo...");
+                resolve();
+            }, 4000);
+            const unsub = onAuthStateChanged(auth, (u) => {
+                if (u) {
+                    console.log("💎 [Dashboard] Auth detectado:", u.email);
+                    clearTimeout(t);
+                    unsub();
+                    resolve();
+                }
+            });
         });
-    });
 
     try {
         // Garantizar que Firestore tenga credenciales antes de pedir getPublicadores()
@@ -187,22 +193,17 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
         // 2. Parallel Data & Module Fetching (Combined for maximum throughput)
         const currentWeekId = getSafeDateId(getMonday(new Date()));
-        
+
         const [baseData, modules] = await Promise.all([
+            Promise.all([getTerritorios(), getTelefonos(), getPublicadores(), getProgramaSemanal(currentWeekId)]),
             Promise.all([
-                getTerritorios(),
-                getTelefonos(),
-                getPublicadores(),
-                getProgramaSemanal(currentWeekId)
+                loadSubModule("availability", "./conductor/availability.js"),
+                loadSubModule("recursos", "./conductor/recursos.js"),
+                loadSubModule("maps_explorer", "./conductor/maps-explorer.js"),
+                loadSubModule("rescue", "./conductor/rescue.js"),
+                loadSubModule("phone_module", "./conductor/phone-module.js"),
+                loadSubModule("weekly_program", "./conductor/weekly-program.js"),
             ]),
-            Promise.all([
-                loadSubModule('availability', './conductor/availability.js'),
-                loadSubModule('recursos', './conductor/recursos.js'),
-                loadSubModule('maps_explorer', './conductor/maps-explorer.js'),
-                loadSubModule('rescue', './conductor/rescue.js'),
-                loadSubModule('phone_module', './conductor/phone-module.js'),
-                loadSubModule('weekly_program', './conductor/weekly-program.js')
-            ])
         ]);
 
         const [allT, allTel, allPublicadores, initialProg] = baseData;
@@ -214,9 +215,9 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
         // Tab close detection: if session is active in localStorage but not in sessionStorage,
         // it means the user closed the tab and opened a new one.
-        const isTabSessionActive = sessionStorage.getItem('phone_session_active_this_tab') === 'true';
-        const isLocalSessionActive = localStorage.getItem('phone_session_active') === 'true';
-        
+        const isTabSessionActive = sessionStorage.getItem("phone_session_active_this_tab") === "true";
+        const isLocalSessionActive = localStorage.getItem("phone_session_active") === "true";
+
         // Siempre iniciar con el módulo de telefonía cerrado en la carga inicial de la aplicación (debe aparecer cerrado).
         // Si hay una sesión sin finalizar, se le propondrá continuarla o iniciar una nueva.
         window._phoneSessionActive = false;
@@ -224,46 +225,49 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
         if (isLocalSessionActive && !isTabSessionActive) {
             // Ya no liberamos automáticamente en segundo plano en la carga inicial,
             // ya que el flujo de SweetAlert2 le permitirá al usuario elegir "Continuar sesión anterior".
-            localStorage.removeItem('phone_session_active');
-            localStorage.removeItem('phone_session_owner');
+            localStorage.removeItem("phone_session_active");
+            localStorage.removeItem("phone_session_owner");
         } else if (isLocalSessionActive && isTabSessionActive) {
             // Si es un refresco explícito en la misma pestaña con sesión activa, la mantenemos abierta.
             window._phoneSessionActive = true;
         }
 
         // Búsqueda hiper-robusta ignorando mayúsculas y tildes
-        const normalizar = (txt) => String(txt || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+        const normalizar = (txt) =>
+            String(txt || "")
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .trim()
+                .toLowerCase();
         const targetName = normalizar(displayName);
 
         const allC = allPublicadores; // getPublicadores ya viene resuelto en baseData
-        let conductorData = allC.find(c => normalizar(c.nombre) === targetName) || null;
+        const conductorData = allC.find((c) => normalizar(c.nombre) === targetName) || null;
 
         // Restaurar el nombre con sus mayúsculas originales para que la UI se vea bien
-        if (conductorData && conductorData.nombre) {
+        if (conductorData?.nombre) {
             displayName = conductorData.nombre;
         } else {
             console.error(`[Data Shield] CRÍTICO: No se encontró publicador para: ${targetName}`);
         }
-        
+
         console.log("[IdentityShield] Conductor Dashboard cargado con nombre canónico:", displayName);
 
         // Xolvy Modular: Pool Data and Unsubscribe references (Initialized early for HMS/LivePool access)
         let currentLivePoolUnsubscribe = null;
         let programLivePoolUnsubscribe = null;
         let territoriesLivePoolUnsubscribe = null;
-        let s13LivePoolUnsubscribe = null;
         let configLivePoolUnsubscribe = null;
         let telefonosLivePoolUnsubscribe = null;
         let presenceLivePoolUnsubscribe = null;
         let currentSubscribedOwner = null;
         let currentSubscribedActive = false;
-        let currentSystemConfig = null;
-        let poolData = {
+        const poolData = {
             territorios: allT,
             programa: initialProg,
             configuracion: null,
             s13: [],
-            banco_s13: []
+            banco_s13: [],
         };
 
         // Debounce Mechanism to prevent Re-render Storms (LP-02, LP-03)
@@ -277,13 +281,14 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
         // Al final de renderConductorDashboard, levantar la cortina (dentro del try antes de salir)
         const levantarCortina = () => {
-            const loginOverlay = document.getElementById('login-stage-container') || 
-                               document.querySelector('.login-wrapper') || 
-                               document.getElementById('login-root') ||
-                               document.getElementById('conductor-modal'); // Agregado como fallback seguro
+            const loginOverlay =
+                document.getElementById("login-stage-container") ||
+                document.querySelector(".login-wrapper") ||
+                document.getElementById("login-root") ||
+                document.getElementById("conductor-modal"); // Agregado como fallback seguro
             if (loginOverlay) {
-                loginOverlay.style.opacity = '0';
-                loginOverlay.style.pointerEvents = 'none';
+                loginOverlay.style.opacity = "0";
+                loginOverlay.style.pointerEvents = "none";
                 setTimeout(() => loginOverlay.remove(), 600);
             }
         };
@@ -295,18 +300,23 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 window._presenceInterval = null;
             }
 
-            [currentLivePoolUnsubscribe, programLivePoolUnsubscribe,
-                territoriesLivePoolUnsubscribe, s13LivePoolUnsubscribe,
-                configLivePoolUnsubscribe, telefonosLivePoolUnsubscribe,
-                presenceLivePoolUnsubscribe].forEach(unsub => {
-                    if (typeof unsub === 'function') {
-                        try {
-                            unsub();
-                        } catch (err) {
-                            console.error("Error stopping unsub:", err);
-                        }
+            [
+                currentLivePoolUnsubscribe,
+                programLivePoolUnsubscribe,
+                territoriesLivePoolUnsubscribe,
+                s13LivePoolUnsubscribe,
+                configLivePoolUnsubscribe,
+                telefonosLivePoolUnsubscribe,
+                presenceLivePoolUnsubscribe,
+            ].forEach((unsub) => {
+                if (typeof unsub === "function") {
+                    try {
+                        unsub();
+                    } catch (err) {
+                        console.error("Error stopping unsub:", err);
                     }
-                });
+                }
+            });
             currentLivePoolUnsubscribe = null;
             programLivePoolUnsubscribe = null;
             territoriesLivePoolUnsubscribe = null;
@@ -318,7 +328,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
             currentSubscribedActive = false;
 
             // Deep purge via PoolManager (LP-01)
-            if (typeof PoolManager !== 'undefined' && PoolManager.stopAll) {
+            if (PoolManager?.stopAll) {
                 PoolManager.stopAll();
             }
 
@@ -330,32 +340,33 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
             // FIX-D: Cleanup global event listener to avoid duplicates on HMS remount
             if (window.__territoryReleasedHandler) {
-                window.removeEventListener('territorio-liberado', window.__territoryReleasedHandler);
+                window.removeEventListener("territorio-liberado", window.__territoryReleasedHandler);
                 window.__territoryReleasedHandler = null;
             }
             if (window._beforeUnloadHandler) {
-                window.removeEventListener('beforeunload', window._beforeUnloadHandler);
+                window.removeEventListener("beforeunload", window._beforeUnloadHandler);
                 window._beforeUnloadHandler = null;
             }
             console.log("🛑 [Live Pool] All conductor pools stopped.");
         };
 
         if (window._beforeUnloadHandler) {
-            window.removeEventListener('beforeunload', window._beforeUnloadHandler);
+            window.removeEventListener("beforeunload", window._beforeUnloadHandler);
         }
         window._beforeUnloadHandler = (e) => {
             if (window._phoneSessionActive) {
                 e.preventDefault();
-                e.returnValue = 'Tienes una sesión de predicación telefónica activa. Por favor, finalízala formalmente antes de salir.';
+                e.returnValue =
+                    "Tienes una sesión de predicación telefónica activa. Por favor, finalízala formalmente antes de salir.";
                 return e.returnValue;
             }
         };
-        window.addEventListener('beforeunload', window._beforeUnloadHandler);
+        window.addEventListener("beforeunload", window._beforeUnloadHandler);
 
         // FIX-D + PASO 3: Handler mejorado del evento 'territorio-liberado'.
         const _onTerritorioLiberado = async (e) => {
-            if (!(container && container.isConnected)) return;
-            console.log('[Live Pool] 🔔 territorio-liberado recibido:', e.detail);
+            if (!container?.isConnected) return;
+            console.log("[Live Pool] 🔔 territorio-liberado recibido:", e.detail);
             if (window.__forcePoolRefresh) {
                 await window.__forcePoolRefresh();
             } else {
@@ -363,54 +374,67 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
             }
         };
         if (window.__territoryReleasedHandler) {
-            window.removeEventListener('territorio-liberado', window.__territoryReleasedHandler);
+            window.removeEventListener("territorio-liberado", window.__territoryReleasedHandler);
         }
         window.__territoryReleasedHandler = _onTerritorioLiberado;
-        window.addEventListener('territorio-liberado', _onTerritorioLiberado);
+        window.addEventListener("territorio-liberado", _onTerritorioLiberado);
 
         // XOLVY LIVE POOL: Real-time synchronization engine
         // This ensures Admin changes are visible to conductors instantly without refresh
-        territoriesLivePoolUnsubscribe = startLivePool('territorios', [], (data) => {
+        territoriesLivePoolUnsubscribe = startLivePool("territorios", [], (data) => {
             poolData.territorios = data;
-            if (container && container.isConnected) safeRenderDashboard();
+            if (container?.isConnected) safeRenderDashboard();
         });
 
-        programLivePoolUnsubscribe = startLivePool('programa_semanal', [where(documentId(), '==', currentWeekId)], (data) => {
-            poolData.programa = data[0] || null;
-            if (container && container.isConnected) safeRenderDashboard();
-        });
+        programLivePoolUnsubscribe = startLivePool(
+            "programa_semanal",
+            [where(documentId(), "==", currentWeekId)],
+            (data) => {
+                poolData.programa = data[0] || null;
+                if (container?.isConnected) safeRenderDashboard();
+            },
+        );
 
-        s13LivePoolUnsubscribe = startLivePool('banco_s13', [where('fecha_entrega', '==', null)], (data) => {
+        s13LivePoolUnsubscribe = startLivePool("banco_s13", [where("fecha_entrega", "==", null)], (data) => {
             poolData.banco_s13 = data;
-            if (container && container.isConnected) safeRenderDashboard();
+            if (container?.isConnected) safeRenderDashboard();
         });
 
-        configLivePoolUnsubscribe = startLivePool('configuracion', [where(documentId(), '==', 'general')], (data) => {
+        configLivePoolUnsubscribe = startLivePool("configuracion", [where(documentId(), "==", "general")], (data) => {
             poolData.configuracion = data[0] || null;
-            if (container && container.isConnected) safeRenderDashboard();
+            if (container?.isConnected) safeRenderDashboard();
         });
 
         // ══════════════ REGISTRO DE PRESENCIA EN VIVO ══════════════
         const toTitleCase = (str) => {
-            if (!str) return '';
-            return str.trim().toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+            if (!str) return "";
+            return str
+                .trim()
+                .toLowerCase()
+                .split(" ")
+                .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(" ");
         };
 
         const registrarPresencia = async () => {
             const identity = window.XolvyApp?.identity;
             const myName = identity?.nombreCanonico || displayName;
             if (!myName || !db) return;
-            
+
             try {
                 const pRef = doc(db, "presencia_conductores", myName);
-                await setDoc(pRef, {
-                    nombre: myName,
-                    uid: auth.currentUser?.uid || identity?.uid || '',
-                    email: auth.currentUser?.email || identity?.email || '',
-                    lastActive: Date.now(),
-                    sessionActive: !!(window._phoneSessionActive && window._myActivePhonesCount > 0),
-                    solicitado_por: myName
-                }, { merge: true });
+                await setDoc(
+                    pRef,
+                    {
+                        nombre: myName,
+                        uid: auth.currentUser?.uid || identity?.uid || "",
+                        email: auth.currentUser?.email || identity?.email || "",
+                        lastActive: Date.now(),
+                        sessionActive: !!(window._phoneSessionActive && window._myActivePhonesCount > 0),
+                        solicitado_por: myName,
+                    },
+                    { merge: true },
+                );
             } catch (err) {
                 console.warn("[Presencia] Error al actualizar presencia:", err);
             }
@@ -427,42 +451,52 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
             const myUid = auth.currentUser?.uid || identity?.uid;
             const myEmail = auth.currentUser?.email || identity?.email;
             const myName = identity?.nombreCanonico || displayName;
-            
-            const activeOthers = (window._activeOthers || []).filter(c => {
-                const isMe = (myUid && c.uid === myUid) || 
-                             (myEmail && c.email && normalizeRobust(c.email) === normalizeRobust(myEmail)) || 
-                             (normalizeRobust(c.nombre) === normalizeRobust(myName));
+
+            const activeOthers = (window._activeOthers || []).filter((c) => {
+                const isMe =
+                    (myUid && c.uid === myUid) ||
+                    (myEmail && c.email && normalizeRobust(c.email) === normalizeRobust(myEmail)) ||
+                    normalizeRobust(c.nombre) === normalizeRobust(myName);
                 return !isMe && c.lastActive > now - 40000;
             });
-            const conductorsInSession = activeOthers.filter(c => c.sessionActive);
+            const conductorsInSession = activeOthers.filter((c) => c.sessionActive);
 
             // Connected conductors indicator is removed as requested by user
 
-            const sessionsBadge = document.getElementById('active-sessions-badge-container');
-            const sessionsCount = document.getElementById('active-sessions-count');
+            const sessionsBadge = document.getElementById("active-sessions-badge-container");
+            const sessionsCount = document.getElementById("active-sessions-count");
             if (sessionsBadge && sessionsCount) {
                 const sessionCountVal = conductorsInSession.length;
-                sessionsCount.innerText = `${sessionCountVal} ${sessionCountVal === 1 ? 'sesión abierta' : 'sesiones abiertas'}`;
-                
-                const myActive = !!(window._phoneSessionActive || localStorage.getItem('phone_session_active') === 'true');
+                sessionsCount.innerText = `${sessionCountVal} ${sessionCountVal === 1 ? "sesión abierta" : "sesiones abiertas"}`;
+
+                const myActive = !!(
+                    window._phoneSessionActive || localStorage.getItem("phone_session_active") === "true"
+                );
                 if (!myActive && sessionCountVal > 0) {
-                    sessionsBadge.classList.remove('hidden');
-                    sessionsBadge.classList.add('flex');
+                    sessionsBadge.classList.remove("hidden");
+                    sessionsBadge.classList.add("flex");
                 } else {
-                    sessionsBadge.classList.remove('flex');
-                    sessionsBadge.classList.add('hidden');
+                    sessionsBadge.classList.remove("flex");
+                    sessionsBadge.classList.add("hidden");
                 }
             }
 
             // Inline Collaboration View Logic
-            const collabState = document.getElementById('phone-start-collaboration-state');
-            const initialState = document.getElementById('phone-start-initial-state');
-            
+            const collabState = document.getElementById("phone-start-collaboration-state");
+            const initialState = document.getElementById("phone-start-initial-state");
+
             if (collabState && initialState) {
                 if (conductorsInSession.length > 0) {
-                    const sessionItemsHtml = conductorsInSession.map(c => {
-                        const initials = c.nombre.trim().split(/\s+/).map(w => w[0]).join('').substring(0, 2).toUpperCase();
-                        return `
+                    const sessionItemsHtml = conductorsInSession
+                        .map((c) => {
+                            const initials = c.nombre
+                                .trim()
+                                .split(/\s+/)
+                                .map((w) => w[0])
+                                .join("")
+                                .substring(0, 2)
+                                .toUpperCase();
+                            return `
                             <div class="flex items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-white/5 rounded-2xl transition-all border border-slate-100 dark:border-white/5">
                                 <div class="flex items-center gap-3">
                                     <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center text-xs font-black tracking-wider uppercase shadow-sm">
@@ -480,7 +514,8 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                 </button>
                             </div>
                         `;
-                    }).join('');
+                        })
+                        .join("");
 
                     collabState.innerHTML = `
                         <div class="space-y-4">
@@ -509,17 +544,17 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                         </div>
                     `;
 
-                    const btnBack = collabState.querySelector('#btn-collab-back');
+                    const btnBack = collabState.querySelector("#btn-collab-back");
                     if (btnBack) {
                         btnBack.onclick = (e) => {
                             e.stopPropagation();
-                            collabState.classList.add('hidden');
-                            initialState.classList.remove('hidden');
+                            collabState.classList.add("hidden");
+                            initialState.classList.remove("hidden");
                             window._collabStateDismissed = true;
                         };
                     }
 
-                    const btnStartNew = collabState.querySelector('#btn-start-new-session');
+                    const btnStartNew = collabState.querySelector("#btn-start-new-session");
                     if (btnStartNew) {
                         btnStartNew.onclick = async (e) => {
                             e.stopPropagation();
@@ -528,29 +563,30 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                     }
 
                     if (!window._collabStateDismissed) {
-                        initialState.classList.add('hidden');
-                        collabState.classList.remove('hidden');
+                        initialState.classList.add("hidden");
+                        collabState.classList.remove("hidden");
                     }
                 } else {
-                    collabState.innerHTML = '';
-                    collabState.classList.add('hidden');
-                    initialState.classList.remove('hidden');
+                    collabState.innerHTML = "";
+                    collabState.classList.add("hidden");
+                    initialState.classList.remove("hidden");
                     window._collabStateDismissed = false;
                 }
             }
         };
 
-        presenceLivePoolUnsubscribe = startLivePool('presencia_conductores', [], (data) => {
+        presenceLivePoolUnsubscribe = startLivePool("presencia_conductores", [], (data) => {
             const now = Date.now();
             const identity = window.XolvyApp?.identity;
             const myUid = auth.currentUser?.uid || identity?.uid;
             const myEmail = auth.currentUser?.email || identity?.email;
             const myName = identity?.nombreCanonico || displayName;
-            
-            const activeOthers = (data || []).filter(c => {
-                const isMe = (myUid && c.uid === myUid) || 
-                             (myEmail && c.email && normalizeRobust(c.email) === normalizeRobust(myEmail)) || 
-                             (normalizeRobust(c.nombre) === normalizeRobust(myName));
+
+            const activeOthers = (data || []).filter((c) => {
+                const isMe =
+                    (myUid && c.uid === myUid) ||
+                    (myEmail && c.email && normalizeRobust(c.email) === normalizeRobust(myEmail)) ||
+                    normalizeRobust(c.nombre) === normalizeRobust(myName);
                 return !isMe && c.lastActive > now - 40000;
             });
             window._activeOthers = activeOthers;
@@ -563,16 +599,16 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
         // FIX-D: Exponer forcePoolRefresh como red de seguridad para módulos externos
         window.__forcePoolRefresh = async () => {
             try {
-                const { getDocs, collection: col, query: q, where: wh } = await import('firebase/firestore');
-                const { db: _db } = await import('../firebase-config.js');
-                const tSnap = await getDocs(col(_db, 'territorios'));
-                poolData.territorios = tSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-                const s13Snap = await getDocs(q(col(_db, 'banco_s13'), wh('fecha_entrega', '==', null)));
-                poolData.banco_s13 = s13Snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                if (container && container.isConnected) safeRenderDashboard();
-                console.log('[Pool] 🔄 Refresh forzado completado');
+                const { getDocs, collection: col, query: q, where: wh } = await import("firebase/firestore");
+                const { db: _db } = await import("../firebase-config.js");
+                const tSnap = await getDocs(col(_db, "territorios"));
+                poolData.territorios = tSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+                const s13Snap = await getDocs(q(col(_db, "banco_s13"), wh("fecha_entrega", "==", null)));
+                poolData.banco_s13 = s13Snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+                if (container?.isConnected) safeRenderDashboard();
+                console.log("[Pool] 🔄 Refresh forzado completado");
             } catch (err) {
-                console.warn('[Pool] forcePoolRefresh error:', err);
+                console.warn("[Pool] forcePoolRefresh error:", err);
             }
         };
 
@@ -582,38 +618,57 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
             const identity = window.XolvyApp?.identity;
             const canonicalName = identity?.nombreCanonico || nombreConductor;
 
-            if (identity && identity.docId) {
+            if (identity?.docId) {
                 const allC = await getPublicadores();
-                const found = allC.find(c => c.id === identity.docId || normalizeRobust(c.nombre) === normalizeRobust(canonicalName));
+                const found = allC.find(
+                    (c) => c.id === identity.docId || normalizeRobust(c.nombre) === normalizeRobust(canonicalName),
+                );
                 if (found) return { ...found, es_conductor: true };
             }
 
-            const normalized      = String(nombreConductor || '').trim().toLowerCase();
-            const normalizedPhone = normalized.replace(/\D/g, '');
+            const _normalized = String(nombreConductor || "")
+                .trim()
+                .toLowerCase();
 
             for (let i = 0; i < intentos; i++) {
                 const allC = await getPublicadores();
-                const conductor = allC.find(c => {
-                    const name  = String(c.nombre || '').trim().toLowerCase();
-                    const email = String(c.email  || '').trim().toLowerCase();
-                    const phone = String(c.telefono || '').replace(/\D/g, '');
-                    const normalizedSearch = String(nombreConductor || '').trim().toLowerCase();
-                    const normalizedPhoneSearch = normalizedSearch.replace(/\D/g, '');
-                    
-                    return name === normalizedSearch 
-                        || email === normalizedSearch 
-                        || (normalizedPhoneSearch && phone === normalizedPhoneSearch);
+                const conductor = allC.find((c) => {
+                    const name = String(c.nombre || "")
+                        .trim()
+                        .toLowerCase();
+                    const email = String(c.email || "")
+                        .trim()
+                        .toLowerCase();
+                    const phone = String(c.telefono || "").replace(/\D/g, "");
+                    const normalizedSearch = String(nombreConductor || "")
+                        .trim()
+                        .toLowerCase();
+                    const normalizedPhoneSearch = normalizedSearch.replace(/\D/g, "");
+
+                    return (
+                        name === normalizedSearch ||
+                        email === normalizedSearch ||
+                        (normalizedPhoneSearch && phone === normalizedPhoneSearch)
+                    );
                 });
-                
+
                 if (conductor) return conductor;
-                await new Promise(r => setTimeout(r, 800));
+                await new Promise((r) => setTimeout(r, 800));
             }
-            
+
             return {
                 nombre: canonicalName,
-                modulos: { agenda: true, programa: true, disponibilidad: true, telefonos: true, mapas: true, ayudas: true, rescue: false },
+                modulos: {
+                    agenda: true,
+                    programa: true,
+                    disponibilidad: true,
+                    telefonos: true,
+                    mapas: true,
+                    ayudas: true,
+                    rescue: false,
+                },
                 disponibilidad: {},
-                es_conductor: true
+                es_conductor: true,
             };
         }
 
@@ -622,7 +677,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
             const userName = identity?.nombreCanonico || displayName;
             const userEmail = identity?.email || auth.currentUser?.email;
 
-            const joinedOwner = localStorage.getItem('phone_session_owner');
+            const joinedOwner = localStorage.getItem("phone_session_owner");
             const sessionQueryOwner = joinedOwner || userName;
 
             // PASO 3: Normalización estricta para el filtrado del Live Pool
@@ -630,17 +685,21 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
             const cleanSessionQueryOwner = normalizeRobust(sessionQueryOwner);
             const cleanUserEmail = normalizeRobust(userEmail);
 
-            const isActive = !!(window._phoneSessionActive || localStorage.getItem('phone_session_active') === 'true');
-            return allPhones.filter(t => {
+            const isActive = !!(window._phoneSessionActive || localStorage.getItem("phone_session_active") === "true");
+            return allPhones.filter((t) => {
                 const pub = normalizeRobust(t.publicador_asignado);
                 const asg = normalizeRobust(t.asignado_a);
                 const sol = normalizeRobust(t.solicitado_por);
-                
+
                 if (isActive) {
                     return sol === cleanSessionQueryOwner;
                 } else {
-                    return (pub === cleanSessionQueryOwner || pub === cleanUserEmail) || 
-                           (asg === cleanSessionQueryOwner || asg === cleanUserEmail);
+                    return (
+                        pub === cleanSessionQueryOwner ||
+                        pub === cleanUserEmail ||
+                        asg === cleanSessionQueryOwner ||
+                        asg === cleanUserEmail
+                    );
                 }
             });
         }
@@ -649,68 +708,94 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
         async function refreshConductorView(usePool = false) {
             if (_renderTimeout) clearTimeout(_renderTimeout);
-            
+
             return new Promise((resolve) => {
                 _renderTimeout = setTimeout(async () => {
                     try {
                         const configData = await getConfiguracion();
                         const conductorDataRef = await obtenerConductorData(displayName);
 
-                        if (conductorDataRef && conductorDataRef.nombre) {
+                        if (conductorDataRef?.nombre) {
                             displayName = conductorDataRef.nombre;
                         }
 
-                        const userMods = conductorDataRef?.modulos || { agenda: true, programa: true, disponibilidad: true, telefonos: true, mapas: true, ayudas: true, rescue: false };
+                        const userMods = conductorDataRef?.modulos || {
+                            agenda: true,
+                            programa: true,
+                            disponibilidad: true,
+                            telefonos: true,
+                            mapas: true,
+                            ayudas: true,
+                            rescue: false,
+                        };
 
-                        await loadUnifiedDashboard(container, displayName, userMods, configData, conductorDataRef, userRole, usePool ? poolData : { ...poolData, programa: initialProg });
+                        await loadUnifiedDashboard(
+                            container,
+                            displayName,
+                            userMods,
+                            configData,
+                            conductorDataRef,
+                            userRole,
+                            usePool ? poolData : { ...poolData, programa: initialProg },
+                        );
 
                         const myPhones = await refreshPhones(true);
                         window._myActivePhonesCount = myPhones.length;
-                        
+
                         // Auto-recovery of active session if there are assigned phones currently "En Sesión"
                         // Only recover if we are in the same tab session (sessionStorage is active)
-                        const hasActiveSessionPhones = myPhones.some(p => p.estado === 'En Sesión');
-                        const isTabSessionActive = sessionStorage.getItem('phone_session_active_this_tab') === 'true';
-                        
+                        const hasActiveSessionPhones = myPhones.some((p) => p.estado === "En Sesión");
+                        const isTabSessionActive = sessionStorage.getItem("phone_session_active_this_tab") === "true";
+
                         if (hasActiveSessionPhones && !window._phoneSessionActive && isTabSessionActive) {
                             console.log(`[Telefonía] ♻️ Auto-recuperando sesión activa detectada para ${displayName}`);
                             window._phoneSessionActive = true;
-                            localStorage.setItem('phone_session_active', 'true');
-                            
+                            localStorage.setItem("phone_session_active", "true");
+
                             const identity = window.XolvyApp?.identity;
                             const userName = identity?.nombreCanonico || displayName;
-                            if (!localStorage.getItem('phone_session_owner')) {
-                                localStorage.setItem('phone_session_owner', userName);
+                            if (!localStorage.getItem("phone_session_owner")) {
+                                localStorage.setItem("phone_session_owner", userName);
                             }
                         } else if (hasActiveSessionPhones && !window._phoneSessionActive && !isTabSessionActive) {
-                            console.log(`[Telefonía] 📋 Hay ${myPhones.length} teléfonos "En Sesión" en Firestore, pero la sesión está cerrada. Esperando acción del usuario.`);
+                            console.log(
+                                `[Telefonía] 📋 Hay ${myPhones.length} teléfonos "En Sesión" en Firestore, pero la sesión está cerrada. Esperando acción del usuario.`,
+                            );
                         } else if (!hasActiveSessionPhones && window._phoneSessionActive) {
-                            console.log(`[Telefonía] 🧹 Limpiando bandera de sesión activa local ya que no hay teléfonos en sesión.`);
+                            console.log(
+                                `[Telefonía] 🧹 Limpiando bandera de sesión activa local ya que no hay teléfonos en sesión.`,
+                            );
                             window._phoneSessionActive = false;
-                            localStorage.removeItem('phone_session_active');
-                            localStorage.removeItem('phone_session_owner');
-                            sessionStorage.removeItem('phone_session_active_this_tab');
+                            localStorage.removeItem("phone_session_active");
+                            localStorage.removeItem("phone_session_owner");
+                            sessionStorage.removeItem("phone_session_active_this_tab");
                         }
 
                         const publicadores = await getPublicadores();
 
                         if (mPhone?.initializePhoneModule) {
-                            mPhone.initializePhoneModule(myPhones, publicadores, displayName, container.querySelector('#phone-tbody'), () => refreshConductorView(true));
+                            mPhone.initializePhoneModule(
+                                myPhones,
+                                publicadores,
+                                displayName,
+                                container.querySelector("#phone-tbody"),
+                                () => refreshConductorView(true),
+                            );
                         }
 
                         // ══════════════ VISIBILIDAD TELEFÓNICA ══════════════
-                        const compactView = container.querySelector('#phone-compact-view');
-                        const expandedView = container.querySelector('#phone-expanded-view');
-                        const floatingActions = container.querySelector('#phone-floating-actions');
+                        const compactView = container.querySelector("#phone-compact-view");
+                        const expandedView = container.querySelector("#phone-expanded-view");
+                        const floatingActions = container.querySelector("#phone-floating-actions");
 
                         if (myPhones.length > 0 && window._phoneSessionActive) {
-                            compactView?.classList.add('hidden');
-                            expandedView?.classList.remove('hidden');
-                            floatingActions?.classList.replace('hidden', 'flex');
+                            compactView?.classList.add("hidden");
+                            expandedView?.classList.remove("hidden");
+                            floatingActions?.classList.replace("hidden", "flex");
                         } else {
-                            compactView?.classList.remove('hidden');
-                            expandedView?.classList.add('hidden');
-                            floatingActions?.classList.replace('flex', 'hidden');
+                            compactView?.classList.remove("hidden");
+                            expandedView?.classList.add("hidden");
+                            floatingActions?.classList.replace("flex", "hidden");
                         }
 
                         // Bindings for phone buttons
@@ -718,81 +803,103 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                         async function iniciarSolicitudNumerosFlow(btnToDisable, oldHtml) {
                             const identity = window.XolvyApp?.identity;
                             let solicitante = identity?.nombreCanonico || displayName;
-                            
+
                             // Look up in publicadores to get canonical database spelling (with correct accents)
                             if (publicadores && publicadores.length > 0) {
-                                const matched = publicadores.find(p => normalizeRobust(p.nombre) === normalizeRobust(solicitante));
-                                if (matched && matched.nombre) {
+                                const matched = publicadores.find(
+                                    (p) => normalizeRobust(p.nombre) === normalizeRobust(solicitante),
+                                );
+                                if (matched?.nombre) {
                                     solicitante = matched.nombre;
                                 }
                             }
-                            
+
                             try {
                                 // 1. Check if there is an unfinalized session in Firestore
                                 const existingPhones = await getTelefonosParaSesion(solicitante);
-                                const unfinalized = existingPhones.filter(p => p.solicitado_por && normalizeRobust(p.solicitado_por) === normalizeRobust(solicitante));
-                                
+                                const unfinalized = existingPhones.filter(
+                                    (p) =>
+                                        p.solicitado_por &&
+                                        normalizeRobust(p.solicitado_por) === normalizeRobust(solicitante),
+                                );
+
                                 // Clean up stale unfinalized phones automatically (older than 24 hours)
                                 const nowTime = Date.now();
                                 const staleThresholdMs = 24 * 60 * 60 * 1000; // 24 hours
                                 const recentUnfinalized = [];
                                 const staleUnfinalized = [];
-                                
-                                unfinalized.forEach(p => {
+
+                                unfinalized.forEach((p) => {
                                     const assignDate = p.fecha_asignacion ? new Date(p.fecha_asignacion) : null;
-                                    if (!assignDate || (nowTime - assignDate.getTime() > staleThresholdMs)) {
+                                    if (!assignDate || nowTime - assignDate.getTime() > staleThresholdMs) {
                                         staleUnfinalized.push(p);
                                     } else {
                                         recentUnfinalized.push(p);
                                     }
                                 });
-                                
+
                                 if (staleUnfinalized.length > 0) {
-                                    console.log(`[Telefonía] 🧹 Limpiando automáticamente ${staleUnfinalized.length} números expirados de la sesión previa de ${solicitante}`);
-                                    await releaseUnusedTelefonos(solicitante, false, true, staleUnfinalized.map(p => p.id));
+                                    console.log(
+                                        `[Telefonía] 🧹 Limpiando automáticamente ${staleUnfinalized.length} números expirados de la sesión previa de ${solicitante}`,
+                                    );
+                                    await releaseUnusedTelefonos(
+                                        solicitante,
+                                        false,
+                                        true,
+                                        staleUnfinalized.map((p) => p.id),
+                                    );
                                 }
-                                
+
                                 if (recentUnfinalized.length > 0) {
                                     // Temporarily restore the button so the user can interact
                                     if (btnToDisable) {
                                         btnToDisable.disabled = false;
                                         if (oldHtml) btnToDisable.innerHTML = oldHtml;
                                     }
-                                    
+
                                     const result = await window.Swal.fire({
-                                        title: 'Sesión anterior detectada',
-                                        text: 'Tienes una sesión de predicación telefónica activa sin finalizar. ¿Deseas continuarla o iniciar una nueva?',
-                                        icon: 'question',
+                                        title: "Sesión anterior detectada",
+                                        text: "Tienes una sesión de predicación telefónica activa sin finalizar. ¿Deseas continuarla o iniciar una nueva?",
+                                        icon: "question",
                                         showCancelButton: true,
-                                        confirmButtonText: 'Continuar sesión anterior',
-                                        denyButtonText: 'Iniciar una nueva',
+                                        confirmButtonText: "Continuar sesión anterior",
+                                        denyButtonText: "Iniciar una nueva",
                                         showDenyButton: true,
-                                        cancelButtonText: 'Cancelar',
+                                        cancelButtonText: "Cancelar",
                                         customClass: {
-                                            popup: 'rounded-[2rem] bg-white dark:bg-[#0a0f18]/95 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white',
-                                            confirmButton: 'btn-pro bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all mr-2',
-                                            denyButton: 'btn-pro bg-amber-500 hover:bg-amber-600 text-white px-5 py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all mr-2',
-                                            cancelButton: 'btn-pro bg-slate-100 dark:bg-white/5 text-slate-500 hover:bg-slate-200 px-5 py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all'
-                                        }
+                                            popup: "rounded-[2rem] bg-white dark:bg-[#0a0f18]/95 border border-slate-200/60 dark:border-white/10 text-slate-800 dark:text-white",
+                                            confirmButton:
+                                                "btn-pro bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all mr-2",
+                                            denyButton:
+                                                "btn-pro bg-amber-500 hover:bg-amber-600 text-white px-5 py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all mr-2",
+                                            cancelButton:
+                                                "btn-pro bg-slate-100 dark:bg-white/5 text-slate-500 hover:bg-slate-200 px-5 py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all",
+                                        },
                                     });
 
                                     if (result.isConfirmed) {
                                         // Continuar sesión anterior
                                         window._phoneSessionActive = true;
-                                        localStorage.setItem('phone_session_active', 'true');
-                                        localStorage.setItem('phone_session_owner', solicitante);
-                                        sessionStorage.setItem('phone_session_active_this_tab', 'true');
-                                        showNotification('Sesión anterior restaurada', 'success');
+                                        localStorage.setItem("phone_session_active", "true");
+                                        localStorage.setItem("phone_session_owner", solicitante);
+                                        sessionStorage.setItem("phone_session_active_this_tab", "true");
+                                        showNotification("Sesión anterior restaurada", "success");
                                         await refreshConductorView(true);
                                         return;
                                     } else if (result.isDenied) {
                                         // Iniciar una nueva: liberar la anterior primero en la BD
-                                        showNotification('Liberando números de sesión anterior...', 'info');
+                                        showNotification("Liberando números de sesión anterior...", "info");
                                         if (btnToDisable) {
                                             btnToDisable.disabled = true;
-                                            btnToDisable.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Solicitando...';
+                                            btnToDisable.innerHTML =
+                                                '<i class="fas fa-circle-notch fa-spin"></i> Solicitando...';
                                         }
-                                        await releaseUnusedTelefonos(solicitante, false, true, recentUnfinalized.map(p => p.id));
+                                        await releaseUnusedTelefonos(
+                                            solicitante,
+                                            false,
+                                            true,
+                                            recentUnfinalized.map((p) => p.id),
+                                        );
                                     } else {
                                         // Cancelar
                                         return;
@@ -800,31 +907,37 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                 } else {
                                     if (btnToDisable && !btnToDisable.disabled) {
                                         btnToDisable.disabled = true;
-                                        btnToDisable.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Solicitando...';
+                                        btnToDisable.innerHTML =
+                                            '<i class="fas fa-circle-notch fa-spin"></i> Solicitando...';
                                     }
                                 }
-                                
+
                                 // Release any unfinalized numbers from previous sessions before starting a new one (safety net)
-                                const isActive = !!(window._phoneSessionActive || localStorage.getItem('phone_session_active') === 'true');
+                                const isActive = !!(
+                                    window._phoneSessionActive ||
+                                    localStorage.getItem("phone_session_active") === "true"
+                                );
                                 if (!isActive) {
-                                    console.log(`[Telefonía] 🧹 Limpiando números de sesión previa para: ${solicitante}`);
+                                    console.log(
+                                        `[Telefonía] 🧹 Limpiando números de sesión previa para: ${solicitante}`,
+                                    );
                                     await releaseUnusedTelefonos(solicitante, false, true);
                                 }
-                                
+
                                 console.log(`[Telefonía] 🚀 Solicitando números para: ${solicitante}`);
                                 const count = await solicitarNumeros(30, solicitante);
                                 console.log(`[Telefonía] ✅ Respuesta de solicitarNumeros: ${count} asignados`);
-                                
+
                                 if (count > 0) {
                                     window._phoneSessionActive = true;
-                                    localStorage.setItem('phone_session_active', 'true');
-                                    localStorage.setItem('phone_session_owner', solicitante);
-                                    sessionStorage.setItem('phone_session_active_this_tab', 'true');
-                                    showNotification(`Se han asignado ${count} números nuevos.`, 'success');
+                                    localStorage.setItem("phone_session_active", "true");
+                                    localStorage.setItem("phone_session_owner", solicitante);
+                                    sessionStorage.setItem("phone_session_active_this_tab", "true");
+                                    showNotification(`Se han asignado ${count} números nuevos.`, "success");
                                     await refreshConductorView(true);
                                 } else {
                                     // U8: Restaurar botón si no hay números disponibles
-                                    showNotification('No hay más números disponibles en este momento.', 'warning');
+                                    showNotification("No hay más números disponibles en este momento.", "warning");
                                     if (btnToDisable) {
                                         btnToDisable.disabled = false;
                                         if (oldHtml) btnToDisable.innerHTML = oldHtml;
@@ -838,22 +951,24 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                     if (oldHtml) btnToDisable.innerHTML = oldHtml;
                                 }
                             }
-                        };
+                        }
 
                         // PASO 2: Fix del botón "Iniciar" (Solicitar Números)
-                        const btnSolicitar = container.querySelector('#btn-solicitar');
+                        const btnSolicitar = container.querySelector("#btn-solicitar");
                         if (btnSolicitar) {
                             btnSolicitar.onclick = async (e) => {
                                 e.stopPropagation();
                                 const now = Date.now();
-                                const conductorsInSession = (window._activeOthers || []).filter(c => c.sessionActive && c.lastActive > now - 40000);
-                                
+                                const conductorsInSession = (window._activeOthers || []).filter(
+                                    (c) => c.sessionActive && c.lastActive > now - 40000,
+                                );
+
                                 if (conductorsInSession.length > 0) {
-                                    const collabState = container.querySelector('#phone-start-collaboration-state');
-                                    const initialState = container.querySelector('#phone-start-initial-state');
+                                    const collabState = container.querySelector("#phone-start-collaboration-state");
+                                    const initialState = container.querySelector("#phone-start-initial-state");
                                     if (collabState && initialState) {
-                                        initialState.classList.add('hidden');
-                                        collabState.classList.remove('hidden');
+                                        initialState.classList.add("hidden");
+                                        collabState.classList.remove("hidden");
                                         window._collabStateDismissed = false;
                                         updatePresenceAndSessionsUI();
                                     }
@@ -865,26 +980,29 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                         }
 
                         window._joinSession = async (ownerName) => {
-                            localStorage.setItem('phone_session_owner', ownerName);
-                            localStorage.setItem('phone_session_active', 'true');
-                            sessionStorage.setItem('phone_session_active_this_tab', 'true');
+                            localStorage.setItem("phone_session_owner", ownerName);
+                            localStorage.setItem("phone_session_active", "true");
+                            sessionStorage.setItem("phone_session_active_this_tab", "true");
                             window._phoneSessionActive = true;
-                            showNotification(`Te has unido a la sesión de ${ownerName}`, 'success');
+                            showNotification(`Te has unido a la sesión de ${ownerName}`, "success");
                             await refreshConductorView(true);
                         };
 
                         window._startNewSessionDirect = async () => {
-                            const btnSolicitar = container.querySelector('#btn-solicitar');
-                            const oldHtml = btnSolicitar ? btnSolicitar.innerHTML : '';
+                            const btnSolicitar = container.querySelector("#btn-solicitar");
+                            const oldHtml = btnSolicitar ? btnSolicitar.innerHTML : "";
                             await iniciarSolicitudNumerosFlow(btnSolicitar, oldHtml);
                         };
 
-                        const btnFinalizarFloat = container.querySelector('#btn-finalizar-float');
+                        const btnFinalizarFloat = container.querySelector("#btn-finalizar-float");
                         if (btnFinalizarFloat) {
                             btnFinalizarFloat.onclick = async () => {
-                                const joinedOwner = localStorage.getItem('phone_session_owner');
-                                const currentConductorName = localStorage.getItem('selected_conductor_name') || displayName;
-                                const isOwner = !joinedOwner || normalizeRobust(joinedOwner) === normalizeRobust(currentConductorName);
+                                const joinedOwner = localStorage.getItem("phone_session_owner");
+                                const currentConductorName =
+                                    localStorage.getItem("selected_conductor_name") || displayName;
+                                const isOwner =
+                                    !joinedOwner ||
+                                    normalizeRobust(joinedOwner) === normalizeRobust(currentConductorName);
 
                                 if (isOwner) {
                                     // U3: Mostrar spinner durante la finalización CRM
@@ -900,43 +1018,43 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                 } else {
                                     // Non-owner: desconectarse de la sesión compartida
                                     window._phoneSessionActive = false;
-                                    localStorage.removeItem('phone_session_active');
-                                    localStorage.removeItem('phone_session_owner');
-                                    sessionStorage.removeItem('phone_session_active_this_tab');
-                                    showNotification('Te has desconectado de la sesión', 'info');
+                                    localStorage.removeItem("phone_session_active");
+                                    localStorage.removeItem("phone_session_owner");
+                                    sessionStorage.removeItem("phone_session_active_this_tab");
+                                    showNotification("Te has desconectado de la sesión", "info");
                                     refreshConductorView(true);
                                 }
                             };
                         }
 
                         // ══════════════ AMALGAMA VISCOSA GOOEY MENU ══════════════
-                        const menuWrapper = container.querySelector('#gooey-menu-wrapper');
-                        const labelsContainer = container.querySelector('#gooey-labels-container');
-                        const btnSolicitarFloat = container.querySelector('#btn-solicitar-more-float');
-                        const btnSolicitarNumbersGoo = container.querySelector('#btn-solicitar-more-numbers-goo');
-                        const btnAgregarPublicadorGoo = container.querySelector('#btn-agregar-publicador-goo');
+                        const menuWrapper = container.querySelector("#gooey-menu-wrapper");
+                        const labelsContainer = container.querySelector("#gooey-labels-container");
+                        const btnSolicitarFloat = container.querySelector("#btn-solicitar-more-float");
+                        const btnSolicitarNumbersGoo = container.querySelector("#btn-solicitar-more-numbers-goo");
+                        const btnAgregarPublicadorGoo = container.querySelector("#btn-agregar-publicador-goo");
 
                         if (btnSolicitarFloat && menuWrapper && labelsContainer) {
                             const closeGooeyMenu = () => {
-                                menuWrapper.classList.remove('open');
-                                labelsContainer.classList.remove('open');
+                                menuWrapper.classList.remove("open");
+                                labelsContainer.classList.remove("open");
                             };
 
                             btnSolicitarFloat.onclick = (e) => {
                                 e.stopPropagation();
-                                const isOpen = menuWrapper.classList.toggle('open');
-                                labelsContainer.classList.toggle('open', isOpen);
+                                const isOpen = menuWrapper.classList.toggle("open");
+                                labelsContainer.classList.toggle("open", isOpen);
                             };
 
                             // Cierra el menú al hacer clic en cualquier otra parte de la pantalla
                             if (window._closeGooeyMenuHandler) {
-                                document.removeEventListener('click', window._closeGooeyMenuHandler);
+                                document.removeEventListener("click", window._closeGooeyMenuHandler);
                             }
                             window._closeGooeyMenuHandler = closeGooeyMenu;
-                            document.addEventListener('click', window._closeGooeyMenuHandler);
+                            document.addEventListener("click", window._closeGooeyMenuHandler);
 
                             // Evitar que hacer clic dentro del contenedor del menú lo cierre inmediatamente
-                            menuWrapper.addEventListener('click', (e) => {
+                            menuWrapper.addEventListener("click", (e) => {
                                 e.stopPropagation();
                             });
 
@@ -953,9 +1071,9 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                 btnAgregarPublicadorGoo.onclick = async (e) => {
                                     e.stopPropagation();
                                     closeGooeyMenu();
-                                    
+
                                     const { value: formValues } = await window.Swal.fire({
-                                        title: 'NUEVO PUBLICADOR',
+                                        title: "NUEVO PUBLICADOR",
                                         html: `
                                             <div class="space-y-4 text-left p-2">
                                                 <div>
@@ -989,39 +1107,41 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                             </div>
                                         `,
                                         focusConfirm: false,
-                                        confirmButtonText: 'GUARDAR',
+                                        confirmButtonText: "GUARDAR",
                                         showCancelButton: true,
-                                        cancelButtonText: 'CANCELAR',
+                                        cancelButtonText: "CANCELAR",
                                         customClass: {
-                                            popup: 'rounded-[2rem] bg-white dark:bg-[#0a0f18]/95 border border-slate-200/60 dark:border-white/10',
-                                            confirmButton: 'btn-pro bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all',
-                                            cancelButton: 'btn-pro bg-slate-100 dark:bg-white/5 text-slate-500 hover:bg-slate-200 px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all'
+                                            popup: "rounded-[2rem] bg-white dark:bg-[#0a0f18]/95 border border-slate-200/60 dark:border-white/10",
+                                            confirmButton:
+                                                "btn-pro bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all",
+                                            cancelButton:
+                                                "btn-pro bg-slate-100 dark:bg-white/5 text-slate-500 hover:bg-slate-200 px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all",
                                         },
                                         preConfirm: () => {
-                                            const nombreInput = document.getElementById('swal-pub-nombre');
-                                            const telefonoInput = document.getElementById('swal-pub-telefono');
-                                            const generoInput = document.getElementById('swal-pub-genero');
-                                            const grupoInput = document.getElementById('swal-pub-grupo');
-                                            
-                                            const nombre = nombreInput ? nombreInput.value.trim() : '';
-                                            const telefono = telefonoInput ? telefonoInput.value.trim() : '';
-                                            const genero = generoInput ? generoInput.value : 'H';
-                                            const grupo = grupoInput ? parseInt(grupoInput.value) : 1;
-                                            
+                                            const nombreInput = document.getElementById("swal-pub-nombre");
+                                            const telefonoInput = document.getElementById("swal-pub-telefono");
+                                            const generoInput = document.getElementById("swal-pub-genero");
+                                            const grupoInput = document.getElementById("swal-pub-grupo");
+
+                                            const nombre = nombreInput ? nombreInput.value.trim() : "";
+                                            const telefono = telefonoInput ? telefonoInput.value.trim() : "";
+                                            const genero = generoInput ? generoInput.value : "H";
+                                            const grupo = grupoInput ? parseInt(grupoInput.value, 10) : 1;
+
                                             if (!nombre) {
-                                                window.Swal.showValidationMessage('El nombre es obligatorio');
+                                                window.Swal.showValidationMessage("El nombre es obligatorio");
                                                 return false;
                                             }
                                             return { nombre, telefono, genero, grupo };
-                                        }
+                                        },
                                     });
 
                                     if (formValues) {
                                         const newPublisher = {
                                             ...formValues,
                                             es_conductor: false,
-                                            email: '',
-                                            privilegios: ['Publicador'],
+                                            email: "",
+                                            privilegios: ["Publicador"],
                                             disponibilidad: [],
                                             modulos: {
                                                 habilitado: true,
@@ -1032,32 +1152,33 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                                 mapas: false,
                                                 ayudas: false,
                                                 cerebro: false,
-                                                rescue: false
-                                            }
+                                                rescue: false,
+                                            },
                                         };
                                         try {
                                             await addPublicador(newPublisher);
-                                            showNotification('Publicador agregado exitosamente', 'success');
+                                            showNotification("Publicador agregado exitosamente", "success");
                                             await refreshConductorView(true);
                                         } catch (error) {
-                                            console.error('Error al agregar publicador:', error);
-                                            showNotification('Error al guardar el publicador', 'error');
+                                            console.error("Error al agregar publicador:", error);
+                                            showNotification("Error al guardar el publicador", "error");
                                         }
                                     }
                                 };
                             }
                         }
 
-
-
                         // B8 fix: evaluación de visibilidad ya fue hecha en las líneas 630-642;
                         // esta segunda evaluación era redundante y podía deshacer la primera.
                         // Eliminada para evitar condiciones de carrera.
 
                         // Re-subscribe or update Telefonos Live Pool based on current session owner
-                        const joinedOwner = localStorage.getItem('phone_session_owner');
-                        const sessionQueryOwner = joinedOwner || (window.XolvyApp?.identity?.nombreCanonico || displayName);
-                        const isActive = !!(window._phoneSessionActive || localStorage.getItem('phone_session_active') === 'true');
+                        const joinedOwner = localStorage.getItem("phone_session_owner");
+                        const sessionQueryOwner =
+                            joinedOwner || window.XolvyApp?.identity?.nombreCanonico || displayName;
+                        const isActive = !!(
+                            window._phoneSessionActive || localStorage.getItem("phone_session_active") === "true"
+                        );
                         const cleanQueryOwner = toTitleCase(sessionQueryOwner);
 
                         if (cleanQueryOwner !== currentSubscribedOwner || isActive !== currentSubscribedActive) {
@@ -1065,41 +1186,52 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                 telefonosLivePoolUnsubscribe();
                                 telefonosLivePoolUnsubscribe = null;
                             }
-                            
+
                             currentSubscribedOwner = cleanQueryOwner;
                             currentSubscribedActive = isActive;
-                            
+
                             if (isActive) {
                                 console.log(`📡 [Live Pool] Subscribing to telefonos for owner: ${cleanQueryOwner}`);
-                                telefonosLivePoolUnsubscribe = startLivePool('telefonos', [where('solicitado_por', '==', cleanQueryOwner)], async (data) => {
-                                    console.log("☎️ [Live Pool] Telephones updated in real-time:", data.length);
-                                    if (!container || !container.isConnected) return;
-                                    // FIX: Actualizar solo el módulo de teléfonos en lugar de re-renderizar todo el dashboard.
-                                    // Esto evita la tormenta de re-renders y las notificaciones duplicadas
-                                    // cuando se asigna un publicador o estado.
-                                    try {
-                                        const updatedPhones = await refreshPhones();
-                                        const publicadoresLive = await getPublicadores();
-                                        if (mPhone?.initializePhoneModule) {
-                                            mPhone.initializePhoneModule(updatedPhones, publicadoresLive, displayName, container.querySelector('#phone-tbody'), () => refreshConductorView(true));
+                                telefonosLivePoolUnsubscribe = startLivePool(
+                                    "telefonos",
+                                    [where("solicitado_por", "==", cleanQueryOwner)],
+                                    async (data) => {
+                                        console.log("☎️ [Live Pool] Telephones updated in real-time:", data.length);
+                                        if (!container?.isConnected) return;
+                                        // FIX: Actualizar solo el módulo de teléfonos en lugar de re-renderizar todo el dashboard.
+                                        // Esto evita la tormenta de re-renders y las notificaciones duplicadas
+                                        // cuando se asigna un publicador o estado.
+                                        try {
+                                            const updatedPhones = await refreshPhones();
+                                            const publicadoresLive = await getPublicadores();
+                                            if (mPhone?.initializePhoneModule) {
+                                                mPhone.initializePhoneModule(
+                                                    updatedPhones,
+                                                    publicadoresLive,
+                                                    displayName,
+                                                    container.querySelector("#phone-tbody"),
+                                                    () => refreshConductorView(true),
+                                                );
+                                            }
+                                            // Actualizar visibilidad según resultado
+                                            const compactViewLive = container.querySelector("#phone-compact-view");
+                                            const expandedViewLive = container.querySelector("#phone-expanded-view");
+                                            const floatingActionsLive =
+                                                container.querySelector("#phone-floating-actions");
+                                            if (updatedPhones.length > 0 && window._phoneSessionActive) {
+                                                compactViewLive?.classList.add("hidden");
+                                                expandedViewLive?.classList.remove("hidden");
+                                                floatingActionsLive?.classList.replace("hidden", "flex");
+                                            } else {
+                                                compactViewLive?.classList.remove("hidden");
+                                                expandedViewLive?.classList.add("hidden");
+                                                floatingActionsLive?.classList.replace("flex", "hidden");
+                                            }
+                                        } catch (liveErr) {
+                                            console.error("[Live Pool] Error actualizando teléfonos en vivo:", liveErr);
                                         }
-                                        // Actualizar visibilidad según resultado
-                                        const compactViewLive = container.querySelector('#phone-compact-view');
-                                        const expandedViewLive = container.querySelector('#phone-expanded-view');
-                                        const floatingActionsLive = container.querySelector('#phone-floating-actions');
-                                        if (updatedPhones.length > 0 && window._phoneSessionActive) {
-                                            compactViewLive?.classList.add('hidden');
-                                            expandedViewLive?.classList.remove('hidden');
-                                            floatingActionsLive?.classList.replace('hidden', 'flex');
-                                        } else {
-                                            compactViewLive?.classList.remove('hidden');
-                                            expandedViewLive?.classList.add('hidden');
-                                            floatingActionsLive?.classList.replace('flex', 'hidden');
-                                        }
-                                    } catch (liveErr) {
-                                        console.error('[Live Pool] Error actualizando teléfonos en vivo:', liveErr);
-                                    }
-                                });
+                                    },
+                                );
                             }
                         }
 
@@ -1114,24 +1246,24 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
         }
         window.refreshConductorView = refreshConductorView;
 
-        function initSwipeActions() {
-            const cards = document.querySelectorAll('.territory-card-swipe');
-            cards.forEach(card => {
-                const content = card.querySelector('.swipe-content');
-                const leftAction = card.querySelector('.swipe-action-left');
-                const rightAction = card.querySelector('.swipe-action-right');
+        initSwipeActions = () => {
+            const cards = document.querySelectorAll(".territory-card-swipe");
+            cards.forEach((card) => {
+                const content = card.querySelector(".swipe-content");
+                const leftAction = card.querySelector(".swipe-action-left");
+                const rightAction = card.querySelector(".swipe-action-right");
 
                 let startX = 0;
                 let currentX = 0;
                 let isMoving = false;
 
-                card.addEventListener('touchstart', (e) => {
+                card.addEventListener("touchstart", (e) => {
                     startX = e.touches[0].clientX;
                     isMoving = true;
-                    if (content) content.style.transition = 'none';
+                    if (content) content.style.transition = "none";
                 });
 
-                card.addEventListener('touchmove', (e) => {
+                card.addEventListener("touchmove", (e) => {
                     if (!isMoving || !content) return;
                     currentX = e.touches[0].clientX - startX;
                     if (Math.abs(currentX) > 100) return;
@@ -1140,21 +1272,21 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
                     if (currentX > 30) {
                         if (leftAction) leftAction.style.opacity = Math.min(1, (currentX - 30) / 40);
-                        card.style.backgroundColor = 'rgba(37, 99, 235, 0.8)';
+                        card.style.backgroundColor = "rgba(37, 99, 235, 0.8)";
                     } else if (currentX < -30) {
                         if (rightAction) rightAction.style.opacity = Math.min(1, (Math.abs(currentX) - 30) / 40);
-                        card.style.backgroundColor = 'rgba(13, 148, 136, 0.8)';
+                        card.style.backgroundColor = "rgba(13, 148, 136, 0.8)";
                     } else {
                         if (leftAction) leftAction.style.opacity = 0;
                         if (rightAction) rightAction.style.opacity = 0;
-                        card.style.backgroundColor = 'transparent';
+                        card.style.backgroundColor = "transparent";
                     }
                 });
 
-                card.addEventListener('touchend', () => {
+                card.addEventListener("touchend", () => {
                     isMoving = false;
                     if (!content) return;
-                    content.style.transition = 'transform 0.3s ease';
+                    content.style.transition = "transform 0.3s ease";
 
                     if (Math.abs(currentX) > 70) {
                         if (currentX > 0) {
@@ -1162,102 +1294,129 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                 id: card.dataset.id,
                                 numero: card.dataset.num,
                                 manzanas: card.dataset.manzanas,
-                                coordenadas: card.dataset.coords ? JSON.parse(card.dataset.coords) : null
+                                coordenadas: card.dataset.coords ? JSON.parse(card.dataset.coords) : null,
                             };
                             if (window.openInteractiveMap) window.openInteractiveMap(t);
                         } else {
                             if (window.ReceptionHub) {
-                                let currentFullName = displayName || window.XolvyApp?.user?.nombre || 'Usuario_Desconocido';
+                                const currentFullName =
+                                    displayName || window.XolvyApp?.user?.nombre || "Usuario_Desconocido";
                                 console.log("Enviando al modal de swipe el nombre:", currentFullName);
                                 window.renderTableCallback = () => refreshConductorView(true);
                                 ReceptionHub.openModal({
                                     preSelectedId: card.dataset.id,
-                                    viewMode: 'conductor',
+                                    viewMode: "conductor",
                                     displayName: currentFullName,
-                                    isAdmin: false
+                                    isAdmin: false,
                                 });
                             }
                         }
                     }
-                content.style.transform = 'translateX(0px)';
+                    content.style.transform = "translateX(0px)";
                     if (leftAction) leftAction.style.opacity = 0;
                     if (rightAction) rightAction.style.opacity = 0;
-                    setTimeout(() => card.style.backgroundColor = 'transparent', 300);
+                    setTimeout(() => (card.style.backgroundColor = "transparent"), 300);
                     currentX = 0;
                 });
             });
-        }
+        };
 
-        async function initNexoSystem() {
-            if (document.getElementById('nexo-widget')) document.getElementById('nexo-widget').remove();
-            if (document.getElementById('nexo-fab')) document.getElementById('nexo-fab').remove();
+        initNexoSystem = async () => {
+            if (document.getElementById("nexo-widget")) document.getElementById("nexo-widget").remove();
+            if (document.getElementById("nexo-fab")) document.getElementById("nexo-fab").remove();
 
             const nexo = new NexoAgent(NexoManifest);
             window._nexoInstance = nexo;
 
-
             nexo.getLatestContext = () => {
                 return {
-                    territorios_asignados: (poolData.territorios || []).filter(t => 
-                        normalizeRobust(t.asignado_a) === normalizeRobust(displayName) || 
-                        normalizeRobust(t.auxiliar) === normalizeRobust(displayName)
-                    ).map(t => ({ id: t.id, numero: t.numero, manzanas: t.manzanas })),
+                    territorios_asignados: (poolData.territorios || [])
+                        .filter(
+                            (t) =>
+                                normalizeRobust(t.asignado_a) === normalizeRobust(displayName) ||
+                                normalizeRobust(t.auxiliar) === normalizeRobust(displayName),
+                        )
+                        .map((t) => ({ id: t.id, numero: t.numero, manzanas: t.manzanas })),
                     conductor: displayName,
-                    fecha_actual: new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+                    fecha_actual: new Date().toLocaleDateString("es-ES", {
+                        weekday: "long",
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                    }),
                 };
             };
 
-            nexo.registerAction('registrar_predicacion_territorio', async (params) => {
+            nexo.registerAction("registrar_predicacion_territorio", async (params) => {
                 console.log("🛠️ Nexo Transaccional:", params);
                 try {
                     const ALL_T = await getTerritorios();
-                    const tId = String(params.territorio_id || '');
-                    let target = ALL_T.find(t => String(t.numero) === tId || t.id === tId);
-                    
+                    const tId = String(params.territorio_id || "");
+                    let target = ALL_T.find((t) => String(t.numero) === tId || t.id === tId);
+
                     if (!target) {
-                        const assigned = (poolData.territorios || []).filter(t => 
-                            normalizeRobust(t.asignado_a) === normalizeRobust(displayName) || 
-                            normalizeRobust(t.auxiliar) === normalizeRobust(displayName)
+                        const assigned = (poolData.territorios || []).filter(
+                            (t) =>
+                                normalizeRobust(t.asignado_a) === normalizeRobust(displayName) ||
+                                normalizeRobust(t.auxiliar) === normalizeRobust(displayName),
                         );
                         if (assigned.length === 1) target = assigned[0];
                         else if (assigned.length > 1 && !params.territorio_id) {
-                             return nexo.speak(`Tienes varios territorios asignados. ¿A cuál te refieres?`);
+                            return nexo.speak(`Tienes varios territorios asignados. ¿A cuál te refieres?`);
                         }
                     }
 
                     if (target) {
-                        if (params.tipo_entrega === 'completo') {
-                            await returnTerritorio(target.id, params.notas_novedades || "Entrega completa informada a Nexo AI", null, "Completado");
-                            
+                        if (params.tipo_entrega === "completo") {
+                            await returnTerritorio(
+                                target.id,
+                                params.notas_novedades || "Entrega completa informada a Nexo AI",
+                                null,
+                                "Completado",
+                            );
+
                             if (!params.es_flujo_interno) {
                                 window.nexoIniciarFlujoAvance(target.id, target.numero);
                             }
                         } else {
-                            const manzanas = Array.isArray(params.manzanas_trabajadas) ? params.manzanas_trabajadas : [];
+                            const manzanas = Array.isArray(params.manzanas_trabajadas)
+                                ? params.manzanas_trabajadas
+                                : [];
                             const updateData = {};
                             if (manzanas.length > 0) {
-                                updateData.manzanas_trabajadas = arrayUnion(...manzanas.map(m => String(m)));
+                                updateData.manzanas_trabajadas = arrayUnion(...manzanas.map((m) => String(m)));
                             }
 
                             if (Object.keys(updateData).length > 0) {
-                                 await updateTerritorio(target.id, updateData);
-                            }
-                            
-                            if (params.notas_novedades) {
-                                 await logReturn(target.id, new Date().toISOString(), 'Avance Parcial', params.notas_novedades, null, displayName);
+                                await updateTerritorio(target.id, updateData);
                             }
 
-                            window.dispatchEvent(new CustomEvent('territorio-liberado', {
-                                detail: { id: target.id, numero: target.numero, status: 'parcial' }
-                            }));
-                            
+                            if (params.notas_novedades) {
+                                await logReturn(
+                                    target.id,
+                                    new Date().toISOString(),
+                                    "Avance Parcial",
+                                    params.notas_novedades,
+                                    null,
+                                    displayName,
+                                );
+                            }
+
+                            window.dispatchEvent(
+                                new CustomEvent("territorio-liberado", {
+                                    detail: { id: target.id, numero: target.numero, status: "parcial" },
+                                }),
+                            );
+
                             if (!params.es_flujo_interno) {
                                 window.nexoIniciarFlujoAvance(target.id, target.numero);
                             }
                         }
                         if (window.refreshConductorView) window.refreshConductorView(true);
                     } else {
-                        nexo.speak(`No logré identificar el territorio ${params.territorio_id || ''}. Por favor, confírmame el número.`);
+                        nexo.speak(
+                            `No logré identificar el territorio ${params.territorio_id || ""}. Por favor, confírmame el número.`,
+                        );
                     }
                 } catch (err) {
                     console.error("Nexo Transactional Error:", err);
@@ -1265,156 +1424,203 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 }
             });
 
-            nexo.registerAction('registrar_novedad_flujo', async (params) => {
+            nexo.registerAction("registrar_novedad_flujo", async (params) => {
                 console.log("📝 Registrando novedad desde Nexo:", params);
                 try {
                     await updateTerritorio(params.territorio_id, {
                         notas: params.novedad,
-                        ultima_novedad_nexo: params.novedad
+                        ultima_novedad_nexo: params.novedad,
                     });
-                    
-                    await logReturn(params.territorio_id, new Date().toISOString(), 'Novedad Nexo', params.novedad, null, displayName);
 
-                    window.dispatchEvent(new CustomEvent('territorio-liberado', {
-                        detail: { id: params.territorio_id, status: 'novedad' }
-                    }));
+                    await logReturn(
+                        params.territorio_id,
+                        new Date().toISOString(),
+                        "Novedad Nexo",
+                        params.novedad,
+                        null,
+                        displayName,
+                    );
+
+                    window.dispatchEvent(
+                        new CustomEvent("territorio-liberado", {
+                            detail: { id: params.territorio_id, status: "novedad" },
+                        }),
+                    );
                 } catch (err) {
                     console.error("Error al registrar novedad de flujo:", err);
                 }
             });
 
-            nexo.registerAction('agregar_nota_s13', async (params) => {
+            nexo.registerAction("agregar_nota_s13", async (params) => {
                 try {
                     const territorios = await getTerritorios();
-                    const target = territorios.find(t => String(t.numero) === String(params.territorio_id));
+                    const target = territorios.find((t) => String(t.numero) === String(params.territorio_id));
                     if (target) {
-                        await logReturn(target.id, new Date().toISOString(), 'Nota S-13', params.nota, null, displayName);
+                        await logReturn(
+                            target.id,
+                            new Date().toISOString(),
+                            "Nota S-13",
+                            params.nota,
+                            null,
+                            displayName,
+                        );
                         if (window.XolvyAlert) {
-                            window.XolvyAlert.fire({ 
-                                icon: 'success', 
+                            window.XolvyAlert.fire({
+                                icon: "success",
                                 title: `Nota añadida al T-${params.territorio_id}`,
-                                text: "Registro S-13 actualizado." 
+                                text: "Registro S-13 actualizado.",
                             });
                         }
                         if (window.refreshConductorView) window.refreshConductorView(true);
                     } else {
                         nexo.speak(`No encontré el territorio ${params.territorio_id} para añadir la nota.`);
                     }
-                } catch (err) { console.error("Nexo Error nota:", err); }
-            });
-
-            nexo.registerAction('actualizar_estado_telefono', async (params) => {
-                try {
-                    const activeOwner = localStorage.getItem('phone_session_owner') || displayName;
-                    const telefonos = await getTelefonosParaSesion(activeOwner); 
-                    let target = telefonos.find(t => String(t.telefono || t.numero).endsWith(String(params.ultimos_digitos).padStart(4, '0')));
-                    
-                    if (!target) {
-                        target = (await getTelefonos()).find(t => String(t.telefono || t.numero).endsWith(params.ultimos_digitos));
-                    }
-                    
-                    if (target) {
-                        await updateTelefonoStatus(target.id, params.nuevo_estado, displayName, "Nexo AI modificado.");
-                        if (window.XolvyAlert) {
-                            window.XolvyAlert.fire({ icon: 'success', title: `Teléfono terminado en ${params.ultimos_digitos} se actualizó a: ${params.nuevo_estado}` });
-                        }
-                    } else {
-                        nexo.speak(`No he podido ubicar un teléfono terminando en ${params.ultimos_digitos} en tu libreta activa.`);
-                    }
-                } catch(e) {
-                     console.error("Nexo Error en telefono:", e);
+                } catch (err) {
+                    console.error("Nexo Error nota:", err);
                 }
             });
 
-            nexo.registerAction('mostrar_mapa_territorio', async (params) => {
+            nexo.registerAction("actualizar_estado_telefono", async (params) => {
+                try {
+                    const activeOwner = localStorage.getItem("phone_session_owner") || displayName;
+                    const telefonos = await getTelefonosParaSesion(activeOwner);
+                    let target = telefonos.find((t) =>
+                        String(t.telefono || t.numero).endsWith(String(params.ultimos_digitos).padStart(4, "0")),
+                    );
+
+                    if (!target) {
+                        target = (await getTelefonos()).find((t) =>
+                            String(t.telefono || t.numero).endsWith(params.ultimos_digitos),
+                        );
+                    }
+
+                    if (target) {
+                        await updateTelefonoStatus(target.id, params.nuevo_estado, displayName, "Nexo AI modificado.");
+                        if (window.XolvyAlert) {
+                            window.XolvyAlert.fire({
+                                icon: "success",
+                                title: `Teléfono terminado en ${params.ultimos_digitos} se actualizó a: ${params.nuevo_estado}`,
+                            });
+                        }
+                    } else {
+                        nexo.speak(
+                            `No he podido ubicar un teléfono terminando en ${params.ultimos_digitos} en tu libreta activa.`,
+                        );
+                    }
+                } catch (e) {
+                    console.error("Nexo Error en telefono:", e);
+                }
+            });
+
+            nexo.registerAction("mostrar_mapa_territorio", async (params) => {
                 try {
                     if (window.XolvyAlert) {
-                        window.XolvyAlert.fire({ toast: true, position: 'bottom-end', title: `Buscando mapa del Territorio ${params.numero_territorio}...`, icon: 'info' });
+                        window.XolvyAlert.fire({
+                            toast: true,
+                            position: "bottom-end",
+                            title: `Buscando mapa del Territorio ${params.numero_territorio}...`,
+                            icon: "info",
+                        });
                     }
                     const allT = await getTerritorios();
-                    const target = allT.find(t => String(t.numero) === String(params.numero_territorio));
+                    const target = allT.find((t) => String(t.numero) === String(params.numero_territorio));
                     if (target && window.openInteractiveMap) {
                         window.openInteractiveMap(target);
                     } else {
                         nexo.speak(`No encontré el territorio ${params.numero_territorio} en la base de mapas.`);
                     }
-                } catch (err) { console.error("Nexo map error:", err); }
+                } catch (err) {
+                    console.error("Nexo map error:", err);
+                }
             });
 
-            nexo.registerAction('actualizar_dias_disponibles', async (params) => {
+            nexo.registerAction("actualizar_dias_disponibles", async (params) => {
                 try {
-                    const { updatePublicador } = await import('../data/services/personnel-service.js');
+                    const { updatePublicador } = await import("../data/services/personnel-service.js");
                     const pubs = await getPublicadores();
                     const userNameNormalized = normalizeRobust(displayName);
-                    const userEmail = auth.currentUser?.email?.toLowerCase() || '';
-                    const target = pubs.find(c => {
+                    const userEmail = auth.currentUser?.email?.toLowerCase() || "";
+                    const target = pubs.find((c) => {
                         const n = normalizeRobust(c.nombre);
-                        const e = String(c.email || '').toLowerCase();
+                        const e = String(c.email || "").toLowerCase();
                         return n === userNameNormalized || e === userEmail;
                     });
 
                     if (target) {
                         await updatePublicador(target.id, { disponibilidad_dias: params.dias_detallados });
                         if (window.XolvyAlert) {
-                            window.XolvyAlert.fire({ icon: 'success', title: `Días de predicación actualizados para ${displayName}` });
+                            window.XolvyAlert.fire({
+                                icon: "success",
+                                title: `Días de predicación actualizados para ${displayName}`,
+                            });
                         }
                         if (window.refreshConductorView) window.refreshConductorView(true);
                     } else {
                         nexo.speak("No encontré tu perfil activo para actualizar los días.");
                     }
-                } catch (err) { console.error("Nexo Error días:", err); }
-            });
-
-            nexo.registerAction('actualizar_disponibilidad', async () => {
-                try {
-                    if (window.XolvyAlert) window.XolvyAlert.fire({ icon: 'success', title: `Disponibilidad de semana guardada.` });
                 } catch (err) {
-                     console.error("Nexo Error disponiblidad:", err);
+                    console.error("Nexo Error días:", err);
                 }
             });
 
-            nexo.registerAction('leer_tema_semanal', async () => {
+            nexo.registerAction("actualizar_disponibilidad", async () => {
                 try {
-                    const temaEl = document.querySelector('#dynamic-banner-content');
-                    let text = "No veo ningún tema especial configurado para esta semana. Sigue preparándote con la Guía de Actividades.";
-                    
-                    if (temaEl && temaEl.innerText.trim() !== '') {
-                        const firstTrack = temaEl.querySelector('.marquee-track-god > div:first-child');
-                        text = `¡Hola! ${firstTrack ? firstTrack.innerText.trim() : temaEl.innerText.trim()}`;
-                    } else if (document.querySelector('.barra-notificaciones-dinamica')) {
-                        const fallback = document.querySelector('.barra-notificaciones-dinamica').innerText;
-                        if (fallback) text = `El tema actual es: ${fallback}`;
-                    }
-                    
-                    if (window.XolvyAlert) {
-                        window.XolvyAlert.fire({ icon: 'info', title: 'Tema Semanal', text: text });
-                    }
-                } catch (e) { console.error("Nexo Error tema:", e); }
+                    if (window.XolvyAlert)
+                        window.XolvyAlert.fire({ icon: "success", title: `Disponibilidad de semana guardada.` });
+                } catch (err) {
+                    console.error("Nexo Error disponiblidad:", err);
+                }
             });
 
-            nexo.registerAction('informar_territorios_vencidos', async () => {
+            nexo.registerAction("leer_tema_semanal", async () => {
                 try {
-                    const { getBancoS13 } = await import('../data/firestore-services.js');
+                    const temaEl = document.querySelector("#dynamic-banner-content");
+                    let text =
+                        "No veo ningún tema especial configurado para esta semana. Sigue preparándote con la Guía de Actividades.";
+
+                    if (temaEl && temaEl.innerText.trim() !== "") {
+                        const firstTrack = temaEl.querySelector(".marquee-track-god > div:first-child");
+                        text = `¡Hola! ${firstTrack ? firstTrack.innerText.trim() : temaEl.innerText.trim()}`;
+                    } else if (document.querySelector(".barra-notificaciones-dinamica")) {
+                        const fallback = document.querySelector(".barra-notificaciones-dinamica").innerText;
+                        if (fallback) text = `El tema actual es: ${fallback}`;
+                    }
+
+                    if (window.XolvyAlert) {
+                        window.XolvyAlert.fire({ icon: "info", title: "Tema Semanal", text: text });
+                    }
+                } catch (e) {
+                    console.error("Nexo Error tema:", e);
+                }
+            });
+
+            nexo.registerAction("informar_territorios_vencidos", async () => {
+                try {
+                    const { getBancoS13 } = await import("../data/firestore-services.js");
                     const banco = await getBancoS13();
                     const hoy = new Date();
-                    const vencidos = banco.filter(t => {
+                    const vencidos = banco.filter((t) => {
                         if (!t.fecha_vencimiento) return false;
                         const fv = new Date(t.fecha_vencimiento);
                         return fv < hoy && !t.fecha_entrega;
                     });
 
                     if (vencidos.length > 0) {
-                        const nums = vencidos.map(v => v.numero).join(', ');
-                        nexo.speak(`He encontrado ${vencidos.length} territorios que ya vencieron en el archivo S-13. Son los territorios: ${nums}. ¿Quieres que los revisemos?`);
+                        const nums = vencidos.map((v) => v.numero).join(", ");
+                        nexo.speak(
+                            `He encontrado ${vencidos.length} territorios que ya vencieron en el archivo S-13. Son los territorios: ${nums}. ¿Quieres que los revisemos?`,
+                        );
                     } else {
-                        nexo.speak("Todo está al día en el banco S-13. No hay territorios vencidos pendientes de entrega.");
+                        nexo.speak(
+                            "Todo está al día en el banco S-13. No hay territorios vencidos pendientes de entrega.",
+                        );
                     }
                 } catch (e) {
                     console.error("Nexo Error vencidos:", e);
                     nexo.speak("Tuve un problema al consultar el banco S-13.");
                 }
             });
-        }
+        };
 
         // UI Shell Injection (RESTAURACIÓN PREMIUM V2.5 - ORDEN ESTRICTO)
         container.innerHTML = `
@@ -1458,11 +1664,15 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                             <button onclick="window.toggleTheme();" class="w-full flex items-center gap-3 p-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 text-[9px] font-medium uppercase tracking-widest transition-all focus:outline-none">
                                 <i class="fas fa-adjust stroke-1.5" stroke-width="1.5"></i> <span class="sidebar-text">Cambiar Tema</span>
                             </button>
-                            ${['Administrador', 'SuperAdmin'].includes(window.XolvyApp?.user?.role) ? `
+                            ${
+                                ["Administrador", "SuperAdmin"].includes(window.XolvyApp?.user?.role)
+                                    ? `
                                 <button id="btn-modo-admin" class="w-full flex items-center gap-3 p-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 text-[9px] font-medium uppercase tracking-widest transition-all focus:outline-none">
                                     <i class="fas fa-shield-alt stroke-1.5" stroke-width="1.5"></i> <span class="sidebar-text">Modo Admin</span>
                                 </button>
-                            ` : ''}
+                            `
+                                    : ""
+                            }
                             <button id="logout-btn" class="w-full flex items-center gap-3 p-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-rose-500/10 hover:text-rose-500 text-[9px] font-medium uppercase tracking-widest transition-all focus:outline-none">
                                 <i class="fas fa-sign-out-alt stroke-1.5" stroke-width="1.5"></i> <span class="sidebar-text">Salir</span>
                             </button>
@@ -1479,7 +1689,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                             ${displayName.charAt(0)}
                         </div>
                         <h2 class="text-xl md:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter leading-none font-sans">
-                            Hola, ${displayName.split(' ')[0]}
+                            Hola, ${displayName.split(" ")[0]}
                         </h2>
                     </div>
                     
@@ -1722,22 +1932,31 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
         // UI Initialization (Synchronous DOM guarantee)
         requestAnimationFrame(async () => {
             console.log("🎨 [Dashboard] Lifecycle: Shell injected, starting Unified Load...");
-            await loadUnifiedDashboard(container, displayName, null, null, null, userRole, {
-                territorios: allT,
-                telefonos: allTel,
-                publicadores: allPublicadores,
-                programa: initialProg
-            }, { mAvail, mRec, mMaps, mRescue, mPhone, mProg });
-            
+            await loadUnifiedDashboard(
+                container,
+                displayName,
+                null,
+                null,
+                null,
+                userRole,
+                {
+                    territorios: allT,
+                    telefonos: allTel,
+                    publicadores: allPublicadores,
+                    programa: initialProg,
+                },
+                { mAvail, mRec, mMaps, mRescue, mPhone, mProg },
+            );
+
             // ══════════════ BOTÓN SALIR (DEEP PURGE) ══════════════
-            const logoutBtn = container.querySelector('#logout-btn');
+            const logoutBtn = container.querySelector("#logout-btn");
             if (logoutBtn) {
                 logoutBtn.onclick = async (e) => {
                     e.preventDefault();
                     console.log("🛑 [ConductorDash] Iniciando purga de sesión...");
-                    
+
                     // 1. Detener todos los Live Pools activos
-                    if (typeof window.stopActiveLivePools === 'function') {
+                    if (typeof window.stopActiveLivePools === "function") {
                         window.stopActiveLivePools();
                     }
 
@@ -1751,26 +1970,26 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                     }
 
                     // 3. Limpieza completa de LocalStorage y SessionStorage
-                    localStorage.removeItem('selected_conductor_name');
-                    localStorage.removeItem('xolvy_session');
-                    localStorage.removeItem('phone_session_active');
+                    localStorage.removeItem("selected_conductor_name");
+                    localStorage.removeItem("xolvy_session");
+                    localStorage.removeItem("phone_session_active");
                     localStorage.clear();
-                    sessionStorage.removeItem('phone_session_active_this_tab');
+                    sessionStorage.removeItem("phone_session_active_this_tab");
 
                     // 4. Firebase SignOut
                     await auth.signOut();
-                    
+
                     // 5. Redirección
-                    location.href = '/login';
+                    location.href = "/login";
                 };
             }
-            
+
             // BOTON MODO ADMIN
-            const modoAdminBtn = container.querySelector('#btn-modo-admin');
+            const modoAdminBtn = container.querySelector("#btn-modo-admin");
             if (modoAdminBtn) {
-                modoAdminBtn.addEventListener('click', (e) => {
+                modoAdminBtn.addEventListener("click", (e) => {
                     e.preventDefault();
-                    window.location.href = '/administrador';
+                    window.location.href = "/administrador";
                 });
             }
 
@@ -1779,69 +1998,83 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
             window.initMobileMenu();
 
             // Sincronizar tema en la barra lateral recién montada
-            if (typeof window.updateDOMThemeToggles === 'function') {
-                window.updateDOMThemeToggles(localStorage.getItem('theme') || 'auto');
+            if (typeof window.updateDOMThemeToggles === "function") {
+                window.updateDOMThemeToggles(localStorage.getItem("theme") || "auto");
             }
 
             // ══════════════ ESTADO DE CONEXIÓN DINÁMICO ══════════════
             const updateConnectionStatusBadge = (isOnline) => {
-                const badge = container.querySelector('#connection-status-badge');
-                const dotRing = container.querySelector('#connection-status-ping .saas-spinner-ring');
-                const dotDot = container.querySelector('#connection-status-ping .relative.inline-flex');
-                const text = container.querySelector('#connection-status-text');
+                const badge = container.querySelector("#connection-status-badge");
+                const dotRing = container.querySelector("#connection-status-ping .saas-spinner-ring");
+                const dotDot = container.querySelector("#connection-status-ping .relative.inline-flex");
+                const text = container.querySelector("#connection-status-text");
 
-                const badgeMobile = container.querySelector('#connection-status-badge-mobile');
-                const dotRingMobile = container.querySelector('#connection-status-ping-mobile .saas-spinner-ring-mobile');
-                const dotDotMobile = container.querySelector('#connection-status-ping-mobile .relative.inline-flex');
-                const textMobile = container.querySelector('#connection-status-text-mobile');
+                const badgeMobile = container.querySelector("#connection-status-badge-mobile");
+                const dotRingMobile = container.querySelector(
+                    "#connection-status-ping-mobile .saas-spinner-ring-mobile",
+                );
+                const dotDotMobile = container.querySelector("#connection-status-ping-mobile .relative.inline-flex");
+                const textMobile = container.querySelector("#connection-status-text-mobile");
 
                 if (isOnline) {
                     if (badge) {
-                        badge.className = "px-3 py-1.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 select-none";
+                        badge.className =
+                            "px-3 py-1.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 select-none";
                     }
-                    if (dotRing) dotRing.className = "saas-spinner-ring animate-ping bg-emerald-500/30 rounded-full w-2 h-2";
-                    if (dotDot) dotDot.className = "relative inline-flex rounded-full h-2 w-2 bg-emerald-500 animate-pulse";
+                    if (dotRing)
+                        dotRing.className = "saas-spinner-ring animate-ping bg-emerald-500/30 rounded-full w-2 h-2";
+                    if (dotDot)
+                        dotDot.className = "relative inline-flex rounded-full h-2 w-2 bg-emerald-500 animate-pulse";
                     if (text) text.textContent = "En Línea • Terminal Conductor";
 
                     if (badgeMobile) {
-                        badgeMobile.className = "px-2.5 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-xl text-[8px] font-black uppercase tracking-wider flex items-center gap-1.5 select-none";
+                        badgeMobile.className =
+                            "px-2.5 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-xl text-[8px] font-black uppercase tracking-wider flex items-center gap-1.5 select-none";
                     }
-                    if (dotRingMobile) dotRingMobile.className = "saas-spinner-ring-mobile animate-ping bg-emerald-500/30 rounded-full w-1.5 h-1.5 absolute";
-                    if (dotDotMobile) dotDotMobile.className = "relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500 animate-pulse";
+                    if (dotRingMobile)
+                        dotRingMobile.className =
+                            "saas-spinner-ring-mobile animate-ping bg-emerald-500/30 rounded-full w-1.5 h-1.5 absolute";
+                    if (dotDotMobile)
+                        dotDotMobile.className =
+                            "relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500 animate-pulse";
                     if (textMobile) textMobile.textContent = "En Línea";
                 } else {
                     if (badge) {
-                        badge.className = "px-3 py-1.5 bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 select-none animate-pulse";
+                        badge.className =
+                            "px-3 py-1.5 bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 select-none animate-pulse";
                     }
-                    if (dotRing) dotRing.className = "saas-spinner-ring animate-ping bg-rose-500/30 rounded-full w-2 h-2";
+                    if (dotRing)
+                        dotRing.className = "saas-spinner-ring animate-ping bg-rose-500/30 rounded-full w-2 h-2";
                     if (dotDot) dotDot.className = "relative inline-flex rounded-full h-2 w-2 bg-rose-500";
                     if (text) text.textContent = "Sin Conexión • PWA Offline";
 
                     if (badgeMobile) {
-                        badgeMobile.className = "px-2.5 py-1 bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 rounded-xl text-[8px] font-black uppercase tracking-wider flex items-center gap-1.5 select-none animate-pulse";
+                        badgeMobile.className =
+                            "px-2.5 py-1 bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 rounded-xl text-[8px] font-black uppercase tracking-wider flex items-center gap-1.5 select-none animate-pulse";
                     }
-                    if (dotRingMobile) dotRingMobile.className = "saas-spinner-ring-mobile animate-ping bg-rose-500/30 rounded-full w-1.5 h-1.5 absolute";
-                    if (dotDotMobile) dotDotMobile.className = "relative inline-flex rounded-full h-1.5 w-1.5 bg-rose-500";
+                    if (dotRingMobile)
+                        dotRingMobile.className =
+                            "saas-spinner-ring-mobile animate-ping bg-rose-500/30 rounded-full w-1.5 h-1.5 absolute";
+                    if (dotDotMobile)
+                        dotDotMobile.className = "relative inline-flex rounded-full h-1.5 w-1.5 bg-rose-500";
                     if (textMobile) textMobile.textContent = "Sin Conexión";
                 }
             };
 
             if (window._updateConnectionStatusBadge) {
-                window.removeEventListener('online', window._onlineListener);
-                window.removeEventListener('offline', window._offlineListener);
+                window.removeEventListener("online", window._onlineListener);
+                window.removeEventListener("offline", window._offlineListener);
             }
             window._onlineListener = () => updateConnectionStatusBadge(true);
             window._offlineListener = () => updateConnectionStatusBadge(false);
             window._updateConnectionStatusBadge = updateConnectionStatusBadge;
-            window.addEventListener('online', window._onlineListener);
-            window.addEventListener('offline', window._offlineListener);
+            window.addEventListener("online", window._onlineListener);
+            window.addEventListener("offline", window._offlineListener);
             updateConnectionStatusBadge(navigator.onLine);
-
 
             // LEVANTAR EL TELÓN (Destruir el Loading Stage)
             levantarCortina();
         });
-        
     } catch (error) {
         console.error("Dashboard initialization failed:", error);
         ocultarOverlay();
@@ -1850,60 +2083,96 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
     // --- INNER FUNCTIONS (RETAINING SCOPE) ---
 
-    async function loadUnifiedDashboard(container, name, userMods, configData, conductorData, userRole, poolData = null, subModules = {}) {
+    async function loadUnifiedDashboard(
+        container,
+        name,
+        userMods,
+        _configData,
+        conductorData,
+        _userRole,
+        poolData = null,
+        subModules = {},
+    ) {
         // FASE 2: Render Lock — prevent concurrent render storms
         if (window.__isRenderingDashboard) {
-            console.warn('[Dashboard] loadUnifiedDashboard: render lock active, skipping');
+            console.warn("[Dashboard] loadUnifiedDashboard: render lock active, skipping");
             return;
         }
         window.__isRenderingDashboard = true;
 
-        const { mAvail, mRec, mMaps, mRescue, mPhone, mProg } = subModules;
+        const { mAvail, mRec, mMaps, mProg } = subModules;
         if (!container) {
-            console.warn('[Dashboard] loadUnifiedDashboard: container es null');
+            console.warn("[Dashboard] loadUnifiedDashboard: container es null");
             window.__isRenderingDashboard = false;
             return;
         }
 
         if (!conductorData) {
-            conductorData = { 
-                nombre: name, 
-                modulos: { agenda: true, programa: true, disponibilidad: true, telefonos: true, mapas: true, ayudas: true }, 
-                disponibilidad: { lunes: [], martes: [], miercoles: [], jueves: [], viernes: [], sabado: [], domingo: [] } 
+            conductorData = {
+                nombre: name,
+                modulos: {
+                    agenda: true,
+                    programa: true,
+                    disponibilidad: true,
+                    telefonos: true,
+                    mapas: true,
+                    ayudas: true,
+                },
+                disponibilidad: {
+                    lunes: [],
+                    martes: [],
+                    miercoles: [],
+                    jueves: [],
+                    viernes: [],
+                    sabado: [],
+                    domingo: [],
+                },
             };
         }
-        
+
         // OPTIMIZACIÓN: Si el esqueleto ya está inyectado, no lo borres todo.
-        const isShellInjected = !!container.querySelector('#conductor-shell-root');
-        
-        console.log(`🎨 [Dashboard] Lifecycle: loadUnifiedDashboard ${isShellInjected ? 'updating data only' : 'rendering full shell'}...`);
+        const isShellInjected = !!container.querySelector("#conductor-shell-root");
+
+        console.log(
+            `🎨 [Dashboard] Lifecycle: loadUnifiedDashboard ${isShellInjected ? "updating data only" : "rendering full shell"}...`,
+        );
 
         try {
             const allTerritorios = poolData?.territorios || [];
-            const userModsEffectivos = conductorData?.modulos || userMods || { agenda: true, programa: true, disponibilidad: true, telefonos: true, mapas: true, ayudas: true, cerebro: true };
+            const userModsEffectivos = conductorData?.modulos ||
+                userMods || {
+                    agenda: true,
+                    programa: true,
+                    disponibilidad: true,
+                    telefonos: true,
+                    mapas: true,
+                    ayudas: true,
+                    cerebro: true,
+                };
             const programa = poolData?.programa;
-            const bancoS13 = poolData?.banco_s13 || [];
             const normalizedName = normalizeRobust(name);
 
             // 1. Data Processing
             const territoryMap = {};
-            allTerritorios.forEach(t => { if (t.numero) territoryMap[t.numero] = t; });
+            allTerritorios.forEach((t) => {
+                if (t.numero) territoryMap[t.numero] = t;
+            });
 
             const currentWeekId = getSafeDateId(getMonday(new Date()));
-            const turnosArr = ['manana', 'tarde', 'noche', 'zoom'];
+            const turnosArr = ["manana", "tarde", "noche", "zoom"];
             const assignments = [];
             const shownTerritoryIds = new Set();
 
-            if (programa && programa.dias) {
+            if (programa?.dias) {
                 programa.dias.forEach((d, idx) => {
-                    const mondayDate = new Date(programa.id + 'T12:00:00');
+                    const mondayDate = new Date(`${programa.id}T12:00:00`);
                     if (!d.fecha) {
                         const dayDate = new Date(mondayDate);
                         dayDate.setDate(dayDate.getDate() + idx);
                         d.fecha = getSafeDateId(dayDate);
                     }
 
-                    turnosArr.forEach(turno => {
+                    turnosArr.forEach((turno) => {
                         const tData = d[turno];
                         if (tData && (tData.conductor || tData.auxiliar || tData.lugar)) {
                             const isConductor = normalizeRobust(tData.conductor) === normalizedName;
@@ -1913,30 +2182,47 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
                             let assignedTerritoryNums = [];
                             if (tData.territorio) {
-                                assignedTerritoryNums = tData.territorio.split(/[,/]+/).map(s => s.trim()).filter(Boolean);
+                                assignedTerritoryNums = tData.territorio
+                                    .split(/[,/]+/)
+                                    .map((s) => s.trim())
+                                    .filter(Boolean);
                             }
 
-                            const INACTIVE_STATES = ['Disponible', 'Predicado', 'Sin asignar', 'Extraviado', 'Libre'];
-                            const attachedTerritories = assignedTerritoryNums.map(num => {
-                                const t = territoryMap[num] || { numero: num, isMissingData: true };
-                                return t;
-                            }).filter(t => !t.isMissingData && !INACTIVE_STATES.includes(t.estado) && !INACTIVE_STATES.includes(t.status));
+                            const INACTIVE_STATES = ["Disponible", "Predicado", "Sin asignar", "Extraviado", "Libre"];
+                            const attachedTerritories = assignedTerritoryNums
+                                .map((num) => {
+                                    const t = territoryMap[num] || { numero: num, isMissingData: true };
+                                    return t;
+                                })
+                                .filter(
+                                    (t) =>
+                                        !t.isMissingData &&
+                                        !INACTIVE_STATES.includes(t.estado) &&
+                                        !INACTIVE_STATES.includes(t.status),
+                                );
 
-                            const isSpecialActivity = tData.faceta && tData.faceta !== 'Predicación';
+                            const isSpecialActivity = tData.faceta && tData.faceta !== "Predicación";
                             if (attachedTerritories.length > 0 || isSpecialActivity) {
-                                attachedTerritories.forEach(t => {
+                                attachedTerritories.forEach((t) => {
                                     if (t.id) shownTerritoryIds.add(t.id);
                                 });
 
                                 assignments.push({
                                     dia: d.nombre,
-                                    turno: turno === 'manana' ? '🌅 Mañana' : (turno === 'tarde' ? '☀️ Tarde' : (turno === 'zoom' ? '📹 Zoom' : '🌙 Noche')),
-                                    role: isConductor ? 'Conductor' : 'Auxiliar',
+                                    turno:
+                                        turno === "manana"
+                                            ? "🌅 Mañana"
+                                            : turno === "tarde"
+                                              ? "☀️ Tarde"
+                                              : turno === "zoom"
+                                                ? "📹 Zoom"
+                                                : "🌙 Noche",
+                                    role: isConductor ? "Conductor" : "Auxiliar",
                                     isMember: true,
                                     rawDate: d.fecha,
                                     attachedTerritories,
-                                    faceta: tData.faceta || 'Predicación',
-                                    ...tData
+                                    faceta: tData.faceta || "Predicación",
+                                    ...tData,
                                 });
                             }
                         }
@@ -1946,29 +2232,20 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
             // Grouping for rendering
             const groupedByDay = {};
-            assignments.forEach(a => {
+            assignments.forEach((a) => {
                 if (!groupedByDay[a.dia]) groupedByDay[a.dia] = { dia: a.dia, shifts: [] };
                 groupedByDay[a.dia].shifts.push(a);
             });
 
-            // Calculate Rescue Data
-            const myExtraMissions = allTerritorios.filter(t => 
-                (normalizeRobust(t.asignado_a) === normalizedName || normalizeRobust(t.auxiliar) === normalizedName) &&
-                !shownTerritoryIds.has(t.id)
+            const totalActiveTerritories = assignments.reduce(
+                (acc, a) => acc + (a.attachedTerritories?.length || 0),
+                0,
             );
-            const rescueCandidates = allTerritorios.filter(t => {
-                const isFree = t.estado === 'Libre' || t.estado === 'Disponible' || t.estado === 'Sin asignar';
-                const isIncomplete = t.is_incomplete === true;
-                return isFree || isIncomplete;
-            });
-            const totalMissionCount = rescueCandidates.length + myExtraMissions.length;
-
-            const totalActiveTerritories = assignments.reduce((acc, a) => acc + (a.attachedTerritories?.length || 0), 0);
             const hasShifts = assignments.length > 0;
             const allCompleted = hasShifts && totalActiveTerritories === 0;
 
             // 2. Template Strings
-            const agendaContainer = container.querySelector('#active-agenda-container');
+            const agendaContainer = container.querySelector("#active-agenda-container");
             if (agendaContainer) {
                 if (!hasShifts) {
                     agendaContainer.innerHTML = `
@@ -2007,32 +2284,36 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
         <p class="text-emerald-600 dark:text-emerald-400 font-black text-[11px] uppercase tracking-[0.2em]">Territorio al 100%</p>
         <div class="mt-4 flex justify-center">
             <div class="px-6 py-2.5 bg-emerald-500 text-white rounded-xl text-[9px] font-black uppercase tracking-[0.15em] shadow-[0_12px_24px_rgba(16,185,129,0.25)] hover:scale-105 transition-transform cursor-default">
-                <i class="fas fa-star mr-2"></i> Excelente trabajo, ${name.split(' ')[0]}
+                <i class="fas fa-star mr-2"></i> Excelente trabajo, ${name.split(" ")[0]}
             </div>
         </div>
     </div>
 </div>
                     `;
                 } else {
-                    agendaContainer.innerHTML = Object.values(groupedByDay).map(day => `
+                    agendaContainer.innerHTML = Object.values(groupedByDay)
+                        .map(
+                            (day) => `
                         <div class="day-group flex flex-col h-full space-y-2.5 animate-fade-in w-full">
                             <div class="flex items-center justify-between px-1.5 mb-1.5">
                                 <h3 class="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">${day.dia}</h3>
                                 <div class="h-px flex-1 min-w-0 bg-slate-100 dark:bg-white/5 mx-3"></div>
                             </div>
                             
-                            ${day.shifts.map((a, sIdx) => `
+                            ${day.shifts
+                                .map(
+                                    (a) => `
                                 <div class="assignment-card flex-1 w-full max-w-md flex flex-col bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl rounded-3xl p-4 border border-slate-200/50 dark:border-white/10 shadow-lg hover:shadow-xl dark:shadow-black/20 hover:border-indigo-500/30 transition-all duration-300 group">
                                     <div class="flex items-center justify-between gap-3 mb-2.5 shrink-0">
                                         <div class="flex items-center gap-3">
-                                            <div class="w-8 h-8 rounded-xl ${a.turno.includes('Mañana') ? 'bg-orange-500/10 text-orange-500' : 'bg-indigo-500/10 text-indigo-500'} flex items-center justify-center text-xs shadow-inner group-hover:rotate-12 transition-transform">
-                                                <i class="fas ${a.turno.includes('Mañana') ? 'fa-sun' : 'fa-moon'}"></i>
+                                            <div class="w-8 h-8 rounded-xl ${a.turno.includes("Mañana") ? "bg-orange-500/10 text-orange-500" : "bg-indigo-500/10 text-indigo-500"} flex items-center justify-center text-xs shadow-inner group-hover:rotate-12 transition-transform">
+                                                <i class="fas ${a.turno.includes("Mañana") ? "fa-sun" : "fa-moon"}"></i>
                                             </div>
                                             <div>
                                                 <h4 class="text-[9px] font-black text-slate-550 dark:text-slate-400 uppercase tracking-widest leading-none mb-0.5">${a.turno}</h4>
                                                 <div class="flex items-center gap-1">
                                                     <i class="fas fa-map-pin text-[7px] text-indigo-500/60"></i>
-                                                    <p class="text-[11px] font-bold text-slate-700 dark:text-slate-300 leading-tight truncate max-w-[200px]" title="${a.lugar || 'Ubicación pendiente'}">${a.lugar || 'Ubicación pendiente'}</p>
+                                                    <p class="text-[11px] font-bold text-slate-700 dark:text-slate-300 leading-tight truncate max-w-[200px]" title="${a.lugar || "Ubicación pendiente"}">${a.lugar || "Ubicación pendiente"}</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -2042,26 +2323,33 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                     <div class="flex-1 flex flex-col justify-start gap-3">
                                         <!-- Roles Grid Side-by-Side (Ultra space-saving God level) -->
                                         <div class="grid grid-cols-2 gap-3 bg-slate-50/50 dark:bg-black/10 p-2.5 rounded-2xl border border-slate-100 dark:border-white/5">
-                                            <div class="space-y-0.5 pl-2 border-l-2 ${a.role === 'Conductor' ? 'border-indigo-500 dark:border-indigo-400' : 'border-slate-200 dark:border-white/5'}">
+                                            <div class="space-y-0.5 pl-2 border-l-2 ${a.role === "Conductor" ? "border-indigo-500 dark:border-indigo-400" : "border-slate-200 dark:border-white/5"}">
                                                 <p class="text-[8px] font-black text-slate-550 dark:text-slate-400 uppercase tracking-wider leading-none">Conductor</p>
-                                                <p class="text-xs font-black ${a.role === 'Conductor' ? 'text-indigo-600 dark:text-indigo-400 font-extrabold' : 'text-slate-750 dark:text-slate-300'} whitespace-normal break-words leading-tight mt-0.5 min-w-[50px]">${a.conductor || '---'}</p>
+                                                <p class="text-xs font-black ${a.role === "Conductor" ? "text-indigo-600 dark:text-indigo-400 font-extrabold" : "text-slate-750 dark:text-slate-300"} whitespace-normal break-words leading-tight mt-0.5 min-w-[50px]">${a.conductor || "---"}</p>
                                             </div>
-                                            <div class="space-y-0.5 pl-2 border-l-2 ${a.role === 'Auxiliar' ? 'border-indigo-500 dark:border-indigo-400' : 'border-slate-200 dark:border-white/5'}">
+                                            <div class="space-y-0.5 pl-2 border-l-2 ${a.role === "Auxiliar" ? "border-indigo-500 dark:border-indigo-400" : "border-slate-200 dark:border-white/5"}">
                                                 <p class="text-[8px] font-black text-slate-550 dark:text-slate-400 uppercase tracking-wider leading-none">Auxiliar</p>
-                                                <p class="text-xs font-black ${a.role === 'Auxiliar' ? 'text-indigo-600 dark:text-indigo-400 font-extrabold' : 'text-slate-750 dark:text-slate-300'} whitespace-normal break-words leading-tight mt-0.5 min-w-[50px]">${a.auxiliar || '---'}</p>
+                                                <p class="text-xs font-black ${a.role === "Auxiliar" ? "text-indigo-600 dark:text-indigo-400 font-extrabold" : "text-slate-750 dark:text-slate-300"} whitespace-normal break-words leading-tight mt-0.5 min-w-[50px]">${a.auxiliar || "---"}</p>
                                             </div>
                                         </div>
  
                                         <!-- Territories -->
-                                        ${a.attachedTerritories.length > 0 ? `
+                                        ${
+                                            a.attachedTerritories.length > 0
+                                                ? `
                                             <div class="flex flex-wrap items-center gap-1.5">
                                                 <div class="w-6 h-6 rounded-lg bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-500 dark:text-slate-400" title="Territorios Asignados">
                                                     <i class="fas fa-map-location-dot text-[9px]"></i>
                                                 </div>
-                                                ${a.attachedTerritories.map(t => {
-                                                    const safeNum = String(t.numero).trim();
-                                                    const dropId = `dropdown-${a.dia}-${a.turno}-${safeNum}`.replace(/\s+/g, '-');
-                                                    return `
+                                                ${a.attachedTerritories
+                                                    .map((t) => {
+                                                        const safeNum = String(t.numero).trim();
+                                                        const dropId =
+                                                            `dropdown-${a.dia}-${a.turno}-${safeNum}`.replace(
+                                                                /\s+/g,
+                                                                "-",
+                                                            );
+                                                        return `
                                                     <div class="relative inline-block text-left">
                                                         <button onclick="window.toggleTerritoryDropdown(event, '${dropId}')" 
                                                                 class="flex items-center gap-1 px-2 py-1 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-white/10 hover:border-indigo-500/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all group/tbtn shadow-sm select-none">
@@ -2079,44 +2367,55 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                                                         </div>
                                                     </div>
                                                     `;
-                                                }).join('')}
+                                                    })
+                                                    .join("")}
                                             </div>
-                                        ` : ''}
+                                        `
+                                                : ""
+                                        }
                                     </div>
  
                                     <!-- Footer (Pushed to bottom) -->
                                     <div class="mt-3 pt-2.5 border-t border-slate-100 dark:border-white/5 shrink-0">
-                                        ${a.attachedTerritories.length > 0 ? `
+                                        ${
+                                            a.attachedTerritories.length > 0
+                                                ? `
                                             <button class="territory-report-btn w-full bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-white font-extrabold text-[9px] uppercase tracking-wider shadow-md active:scale-95 transition-all group/btn whitespace-normal text-center h-9"
-                                                data-ids="${a.attachedTerritories.map(t => t.id).join(',')}" 
-                                                data-nums="${a.attachedTerritories.map(t => t.numero).join(',')}"
-                                                data-conductor="${a.conductor || displayName || ''}"
-                                                data-auxiliar="${a.auxiliar || ''}">
+                                                data-ids="${a.attachedTerritories.map((t) => t.id).join(",")}" 
+                                                data-nums="${a.attachedTerritories.map((t) => t.numero).join(",")}"
+                                                data-conductor="${a.conductor || window.XolvyApp?.identity?.nombreCanonico || ""}"
+                                                data-auxiliar="${a.auxiliar || ""}">
                                                 <i class="fas fa-file-signature opacity-75 group-hover/btn:rotate-12 transition-transform"></i> Informar Actividad
                                             </button>
-                                        ` : `
+                                        `
+                                                : `
                                             <div class="px-4 py-2.5 bg-slate-50/50 dark:bg-slate-950/20 rounded-2xl border border-dashed border-slate-200 dark:border-white/10 text-center space-y-1">
                                                 <div class="w-7 h-7 rounded-lg bg-white dark:bg-[#0a0f18] mx-auto flex items-center justify-center text-primary text-xs shadow-sm border border-transparent dark:border-white/5">
-                                                    <i class="fas ${a.faceta === 'Telefónica' ? 'fa-phone-alt' : (a.faceta === 'Cartas' ? 'fa-envelope-open-text' : 'fa-bullhorn')}"></i>
+                                                    <i class="fas ${a.faceta === "Telefónica" ? "fa-phone-alt" : a.faceta === "Cartas" ? "fa-envelope-open-text" : "fa-bullhorn"}"></i>
                                                 </div>
                                                 <div>
                                                     <p class="text-[8px] font-black text-slate-550 dark:text-slate-400 uppercase tracking-widest mb-0.5 opacity-60">Actividad Especial</p>
                                                     <p class="text-[10px] font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">${a.faceta}</p>
                                                 </div>
                                             </div>
-                                        `}
+                                        `
+                                        }
                                     </div>
                                 </div>
-                            `).join('')}
+                            `,
+                                )
+                                .join("")}
                         </div>
-                    `).join('');
+                    `,
+                        )
+                        .join("");
                 }
             }
 
             // --- GOD-LEVEL INFINITE SEAMLESS MARQUEE (PRECISE OFFSET & SPEED) ---
-            const bannerContainer = container.querySelector('#dynamic-banner-container');
-            const bannerContent = container.querySelector('#dynamic-banner-content');
-            
+            const bannerContainer = container.querySelector("#dynamic-banner-container");
+            const bannerContent = container.querySelector("#dynamic-banner-content");
+
             // Clean up any legacy intervals
             if (window._bannerInterval) {
                 clearInterval(window._bannerInterval);
@@ -2133,22 +2432,22 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 const messages = [];
 
                 if (configData.tema_mes?.trim()) {
-                    messages.push('TEMA DE LA SEMANA: ' + configData.tema_mes.trim().toUpperCase());
+                    messages.push(`TEMA DE LA SEMANA: ${configData.tema_mes.trim().toUpperCase()}`);
                 }
                 if (Array.isArray(configData.diffusion_messages)) {
-                    configData.diffusion_messages.forEach(msg => {
-                        if (msg?.trim()) messages.push('ANUNCIO: ' + msg.trim().toUpperCase());
+                    configData.diffusion_messages.forEach((msg) => {
+                        if (msg?.trim()) messages.push(`ANUNCIO: ${msg.trim().toUpperCase()}`);
                     });
                 }
 
                 if (messages.length > 0) {
-                    bannerContainer.style.setProperty('display', 'flex', 'important');
-                    bannerContainer.classList.remove('hidden');
+                    bannerContainer.style.setProperty("display", "flex", "important");
+                    bannerContainer.classList.remove("hidden");
 
-                    const colors = ['#3b82f6', '#06b6d4', '#f59e0b'];
+                    const colors = ["#3b82f6", "#06b6d4", "#f59e0b"];
                     const bullet = '<span style="color:rgba(148,163,184,0.3); margin: 0 1.5rem;">|</span>';
-                    
-                    let htmlContent = '';
+
+                    let htmlContent = "";
                     if (configData.tema_mes?.trim()) {
                         htmlContent += `<span class="font-extrabold text-blue-500 mr-2">TEMA DE LA SEMANA:</span><span class="text-slate-700 dark:text-slate-200 font-bold">${configData.tema_mes.trim().toUpperCase()}</span>`;
                     }
@@ -2170,9 +2469,9 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                     `;
 
                     // Ensure CSS keyframes and class overrides are injected
-                    if (!document.getElementById('marquee-keyframes-god')) {
-                        const styleNode = document.createElement('style');
-                        styleNode.id = 'marquee-keyframes-god';
+                    if (!document.getElementById("marquee-keyframes-god")) {
+                        const styleNode = document.createElement("style");
+                        styleNode.id = "marquee-keyframes-god";
                         styleNode.innerHTML = `
                             @keyframes marquee-scroll-god {
                                 0% { transform: translate3d(var(--scroll-start), 0, 0); }
@@ -2191,17 +2490,17 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                         document.head.appendChild(styleNode);
                     }
 
-                    const track = bannerContent.querySelector('.marquee-track-god');
-                    
+                    const track = bannerContent.querySelector(".marquee-track-god");
+
                     // Setup ResizeObserver to dynamically update start, end, and duration to ensure perfect alignment & speed
                     const updateMarqueeBounds = () => {
                         if (!bannerContent.isConnected || !track.isConnected) return;
                         const W = bannerContent.offsetWidth || 1000;
                         const T = track.offsetWidth || 500;
-                        
-                        track.style.setProperty('--scroll-start', `${W}px`);
-                        track.style.setProperty('--scroll-end', `-${T}px`);
-                        
+
+                        track.style.setProperty("--scroll-start", `${W}px`);
+                        track.style.setProperty("--scroll-end", `-${T}px`);
+
                         // Calculated duration keeps a uniform speed of 75px per second
                         const scrollDistance = W + T;
                         const calculatedDuration = Math.max(8, scrollDistance / 75);
@@ -2211,7 +2510,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                     const resizeObserver = new ResizeObserver(() => {
                         updateMarqueeBounds();
                     });
-                    
+
                     resizeObserver.observe(bannerContent);
                     window._marqueeObserver = resizeObserver;
 
@@ -2220,45 +2519,45 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
 
                     // Set wrapper styling
                     Object.assign(bannerContent.style, {
-                        display: 'block',
-                        width: '100%',
-                        overflow: 'hidden',
-                        opacity: '1'
+                        display: "block",
+                        width: "100%",
+                        overflow: "hidden",
+                        opacity: "1",
                     });
 
                     const wrapper = bannerContent.parentElement;
                     if (wrapper) {
-                        wrapper.style.overflow = 'hidden';
-                        wrapper.style.flex = '1';
+                        wrapper.style.overflow = "hidden";
+                        wrapper.style.flex = "1";
                     }
                 } else {
-                    bannerContainer.style.setProperty('display', 'none', 'important');
-                    bannerContainer.classList.add('hidden');
+                    bannerContainer.style.setProperty("display", "none", "important");
+                    bannerContainer.classList.add("hidden");
                 }
             }
 
             // Cleanup & Bindings
             setTimeout(() => {
-                const refreshedAgendaContainer = container.querySelector('#active-agenda-container');
+                const refreshedAgendaContainer = container.querySelector("#active-agenda-container");
                 if (!refreshedAgendaContainer) {
-                    console.warn('[Dashboard] agendaContainer aún no disponible tras 800ms');
+                    console.warn("[Dashboard] agendaContainer aún no disponible tras 800ms");
                     return;
                 }
-                const btnsReport = refreshedAgendaContainer.querySelectorAll('.territory-report-btn');
-                btnsReport.forEach(btn => {
+                const btnsReport = refreshedAgendaContainer.querySelectorAll(".territory-report-btn");
+                btnsReport.forEach((btn) => {
                     btn.onclick = () => {
-                        const ids = btn.dataset.ids.split(',');
+                        const ids = btn.dataset.ids.split(",");
                         const conductor = btn.dataset.conductor;
                         const auxiliar = btn.dataset.auxiliar;
                         if (window.ReceptionHub) {
-                            window.renderTableCallback = () => refreshConductorView(true);
+                            window.renderTableCallback = () => window.refreshConductorView(true);
                             ReceptionHub.openModal({
                                 preSelectedIds: ids,
-                                viewMode: 'conductor',
+                                viewMode: "conductor",
                                 displayName: conductor || name,
-                                scheduledConductor: conductor || '',
-                                scheduledAuxiliar: auxiliar || '',
-                                isAdmin: false
+                                scheduledConductor: conductor || "",
+                                scheduledAuxiliar: auxiliar || "",
+                                isAdmin: false,
                             });
                         }
                     };
@@ -2267,51 +2566,51 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
                 // Window toggle dropdown handler
                 window.toggleTerritoryDropdown = (event, id) => {
                     event.stopPropagation();
-                    document.querySelectorAll('[id^="dropdown-"]').forEach(el => {
+                    document.querySelectorAll('[id^="dropdown-"]').forEach((el) => {
                         if (el.id !== id) {
-                            el.classList.add('hidden');
+                            el.classList.add("hidden");
                         }
                     });
                     const target = document.getElementById(id);
                     if (target) {
-                        target.classList.toggle('hidden');
+                        target.classList.toggle("hidden");
                     }
                 };
 
                 window.scrollToCronograma = () => {
-                    const details = document.getElementById('details-programa');
+                    const details = document.getElementById("details-programa");
                     if (details) {
                         details.open = true;
                     }
-                    const section = document.getElementById('programa-semanal-section');
+                    const section = document.getElementById("programa-semanal-section");
                     if (section) {
-                        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        section.scrollIntoView({ behavior: "smooth", block: "start" });
                     }
                 };
 
                 if (!window.__dropdownListenerAdded) {
-                    document.addEventListener('click', (e) => {
-                        document.querySelectorAll('[id^="dropdown-"]').forEach(el => {
-                            if (!el.contains(e.target) && !e.target.closest('button')) {
-                                el.classList.add('hidden');
+                    document.addEventListener("click", (e) => {
+                        document.querySelectorAll('[id^="dropdown-"]').forEach((el) => {
+                            if (!el.contains(e.target) && !e.target.closest("button")) {
+                                el.classList.add("hidden");
                             }
                         });
                     });
                     window.__dropdownListenerAdded = true;
                 }
-                
-                if (typeof initSwipeActions === 'function') initSwipeActions();
+
+                if (typeof initSwipeActions === "function") initSwipeActions();
             }, 800);
 
             // Sub-modules render
             if (userModsEffectivos.disponibilidad !== false && mAvail?.renderAvailabilitySection) {
-                mAvail.renderAvailabilitySection(document.getElementById('availability-container'), name);
+                mAvail.renderAvailabilitySection(document.getElementById("availability-container"), name);
             }
             // 6. AYUDAS & RELEVOS (Removido por solicitud del usuario)
-            
+
             // 8. RECURSOS DEL MINISTERIO
             if (userModsEffectivos.ayudas !== false && mRec?.renderRecursosSection) {
-                mRec.renderRecursosSection(document.getElementById('recursos-container'));
+                mRec.renderRecursosSection(document.getElementById("recursos-container"));
             }
             if (userModsEffectivos.mapas !== false && mMaps?.renderMapsExplorer) {
                 mMaps.renderMapsExplorer(container, allTerritorios, (t) => window.openInteractiveMap(t));
@@ -2319,40 +2618,48 @@ export const renderConductorDashboard = async (container, nameOrEmail, appVersio
             if (userModsEffectivos.programa !== false && mProg?.initializeWeeklyProgram) {
                 // Persist state during refresh
                 if (!window._activeProgDayIndex) window._activeProgDayIndex = -1;
-                if (!window._activeProgTurns) window._activeProgTurns = new Set(['manana', 'tarde', 'zoom', 'noche']);
-                
-                mProg.initializeWeeklyProgram(container, userModsEffectivos, allTerritorios, territoryMap, name, currentWeekId, window._activeProgDayIndex, window._activeProgTurns);
+                if (!window._activeProgTurns) window._activeProgTurns = new Set(["manana", "tarde", "zoom", "noche"]);
+
+                mProg.initializeWeeklyProgram(
+                    container,
+                    userModsEffectivos,
+                    allTerritorios,
+                    territoryMap,
+                    name,
+                    currentWeekId,
+                    window._activeProgDayIndex,
+                    window._activeProgTurns,
+                );
             }
 
             // Nexo Agent Initialization (REACTIVACIÓN)
-            if (userModsEffectivos.cerebro !== false && typeof initNexoSystem === 'function') {
+            if (userModsEffectivos.cerebro !== false && typeof initNexoSystem === "function") {
                 try {
                     await initNexoSystem();
-                    console.log('🤖 [Nexo] Sistema inicializado correctamente');
+                    console.log("🤖 [Nexo] Sistema inicializado correctamente");
                 } catch (err) {
-                    console.warn('[Nexo] No se pudo inicializar:', err.message);
+                    console.warn("[Nexo] No se pudo inicializar:", err.message);
                 }
             }
-
-
         } catch (err) {
             console.error("Critical error in loadUnifiedDashboard:", err);
             showNotification("Error parcial al renderizar interfaz", "warning");
         } finally {
             // FASE 2: Release render lock after brief cooldown
-            setTimeout(() => { window.__isRenderingDashboard = false; }, 500);
+            setTimeout(() => {
+                window.__isRenderingDashboard = false;
+            }, 500);
         }
     }
 };
 
-window.abrirModalTerritorios = async function(dia, turno, idsRaw) {
-    const ids = idsRaw.split('|');
+window.abrirModalTerritorios = async (dia, turno, idsRaw) => {
+    const ids = idsRaw.split("|");
     const allTerritorios = await getTerritorios();
-    const bancoS13 = (window._cachedBancoS13) ? window._cachedBancoS13 : []; // Intentar obtener del cache global si existe
-    
-    const territories = ids.map(id => allTerritorios.find(t => t.id === id)).filter(Boolean);
-    
-    let html = `
+
+    const territories = ids.map((id) => allTerritorios.find((t) => t.id === id)).filter(Boolean);
+
+    const html = `
         <div class="flex flex-col h-full max-h-[85vh]">
             <header class="p-8 border-b border-slate-100 dark:border-white/5 shrink-0 bg-slate-50 dark:bg-slate-900/50">
                 <div class="flex items-center gap-4">
@@ -2367,8 +2674,9 @@ window.abrirModalTerritorios = async function(dia, turno, idsRaw) {
             </header>
             
             <div class="flex-1 min-w-0 overflow-y-auto p-6 space-y-4 custom-scrollbar">
-                ${territories.map(t => {
-                    return `
+                ${territories
+                    .map((t) => {
+                        return `
                     <div class="p-6 bg-white dark:bg-white/[0.03] rounded-3xl border border-slate-100 dark:border-white/5 shadow-sm space-y-4">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-4">
@@ -2376,8 +2684,8 @@ window.abrirModalTerritorios = async function(dia, turno, idsRaw) {
                                     T${t.numero}
                                 </div>
                                 <div class="min-w-0 flex-1 min-w-0">
-                                    <h5 class="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight break-words whitespace-normal leading-tight">${t.manzanas || 'Sin manzanas'}</h5>
-                                    <p class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1">${t.localidad || 'Territorio'}</p>
+                                    <h5 class="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight break-words whitespace-normal leading-tight">${t.manzanas || "Sin manzanas"}</h5>
+                                    <p class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1">${t.localidad || "Territorio"}</p>
                                 </div>
                             </div>
                         </div>
@@ -2394,7 +2702,9 @@ window.abrirModalTerritorios = async function(dia, turno, idsRaw) {
                             </button>
                         </div>
                     </div>
-                `}).join('')}
+                `;
+                    })
+                    .join("")}
             </div>
 
             <footer class="p-6 border-t border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-slate-900/50 shrink-0">
@@ -2403,14 +2713,7 @@ window.abrirModalTerritorios = async function(dia, turno, idsRaw) {
         </div>
     `;
 
-    showModal(html, null, 'max-w-md');
+    showModal(html, null, "max-w-md");
 };
-
-
-
-
-
-
-
 
 // End of conductor-dashboard.js

@@ -1,5 +1,5 @@
-import { XolvyAlert } from './alerts.js';
-import { updateTerritoryGeoJSON } from '../../data/firestore-services.js';
+import { updateTerritoryGeoJSON } from "../../data/firestore-services.js";
+import { XolvyAlert } from "./alerts.js";
 
 /**
  * @file modules/utils/kml-parser.js
@@ -12,38 +12,38 @@ import { updateTerritoryGeoJSON } from '../../data/firestore-services.js';
 export const parseKmlToGroupedData = (kmlString) => {
     if (!kmlString) return {};
     const parser = new DOMParser();
-    const xml = parser.parseFromString(kmlString, 'text/xml');
-    const placemarks = xml.querySelectorAll('Placemark');
+    const xml = parser.parseFromString(kmlString, "text/xml");
+    const placemarks = xml.querySelectorAll("Placemark");
     const groups = {};
 
-    placemarks.forEach(pm => {
-        const name = pm.querySelector('name')?.textContent || '';
+    placemarks.forEach((pm) => {
+        const name = pm.querySelector("name")?.textContent || "";
         const tMatch = name.match(/\(T(\d+)\)/i);
         if (tMatch) {
             const tId = tMatch[1];
-            const coordinatesNode = pm.querySelector('coordinates');
-            
+            const coordinatesNode = pm.querySelector("coordinates");
+
             if (coordinatesNode) {
                 if (!groups[tId]) groups[tId] = [];
-                
+
                 const coordString = coordinatesNode.textContent.trim();
-                const coordsArray = coordString.split(/\s+/); 
-                
+                const coordsArray = coordString.split(/\s+/);
+
                 const latLngs = coordsArray
-                    .filter(c => c.includes(','))
-                    .map(coord => {
-                        const parts = coord.split(',');
+                    .filter((c) => c.includes(","))
+                    .map((coord) => {
+                        const parts = coord.split(",");
                         const lat = parseFloat(parts[1]);
                         const lng = parseFloat(parts[0]);
-                        return (!isNaN(lat) && !isNaN(lng)) ? [lat, lng] : null;
+                        return !Number.isNaN(lat) && !Number.isNaN(lng) ? [lat, lng] : null;
                     })
                     .filter(Boolean);
-                
+
                 if (latLngs.length > 0) {
                     // SE GUARDA EL NOMBRE PARA ETIQUETADO DINÁMICO
-                    groups[tId].push({ 
-                        nombre: name.replace(/\(T\d+\)/i, '').trim(), 
-                        coords: latLngs 
+                    groups[tId].push({
+                        nombre: name.replace(/\(T\d+\)/i, "").trim(),
+                        coords: latLngs,
                     });
                 }
             }
@@ -66,17 +66,17 @@ export const syncKmlToFirestore = async (kmlString) => {
             type: "FeatureCollection",
             features: groups[tNum].map((item, idx) => ({
                 type: "Feature",
-                properties: { 
+                properties: {
                     id: `mz_${idx + 1}`,
-                    name: item.nombre || `Manzana ${idx + 1}`
+                    name: item.nombre || `Manzana ${idx + 1}`,
                 },
                 geometry: {
                     type: "Polygon",
-                    coordinates: [item.coords.map(c => [c[1], c[0]])]
-                }
-            }))
+                    coordinates: [item.coords.map((c) => [c[1], c[0]])],
+                },
+            })),
         };
-        
+
         const success = await updateTerritoryGeoJSON(tNum, geojson);
         if (success) updatedCount++;
     }
@@ -88,22 +88,26 @@ export const syncKmlToFirestore = async (kmlString) => {
  */
 export const extractMultiLeafletCoords = (territory) => {
     if (!territory) return [];
-    
+
     const results = [];
 
     let geo = territory.geojson;
-    if (typeof geo === 'string' && geo.trim().startsWith('{')) {
-        try { geo = JSON.parse(geo); } catch (e) { geo = null; }
+    if (typeof geo === "string" && geo.trim().startsWith("{")) {
+        try {
+            geo = JSON.parse(geo);
+        } catch (_e) {
+            geo = null;
+        }
     }
 
-    if (geo && geo.type === 'FeatureCollection' && Array.isArray(geo.features)) {
-        geo.features.forEach(f => {
-            if (f.geometry && f.geometry.type === 'Polygon') {
+    if (geo && geo.type === "FeatureCollection" && Array.isArray(geo.features)) {
+        geo.features.forEach((f) => {
+            if (f.geometry && f.geometry.type === "Polygon") {
                 const ring = f.geometry.coordinates[0];
                 if (Array.isArray(ring)) {
                     results.push({
-                        nombre: f.properties?.name || f.properties?.id || 'Mz',
-                        coords: ring.map(pt => [pt[1], pt[0]])
+                        nombre: f.properties?.name || f.properties?.id || "Mz",
+                        coords: ring.map((pt) => [pt[1], pt[0]]),
                     });
                 }
             }
@@ -111,42 +115,46 @@ export const extractMultiLeafletCoords = (territory) => {
     }
 
     // Fallback retrocompatible
-    if (results.length === 0 && typeof territory.kml === 'string' && territory.kml.includes('<coordinates>')) {
+    if (results.length === 0 && typeof territory.kml === "string" && territory.kml.includes("<coordinates>")) {
         const parser = new DOMParser();
-        const xml = parser.parseFromString(territory.kml, 'text/xml');
-        const coordsEl = xml.querySelector('coordinates');
+        const xml = parser.parseFromString(territory.kml, "text/xml");
+        const coordsEl = xml.querySelector("coordinates");
         if (coordsEl) {
-            const pts = coordsEl.textContent.trim().split(/\s+/)
-                .filter(c => c.includes(','))
-                .map(c => {
-                    const p = c.split(',');
+            const pts = coordsEl.textContent
+                .trim()
+                .split(/\s+/)
+                .filter((c) => c.includes(","))
+                .map((c) => {
+                    const p = c.split(",");
                     return [parseFloat(p[1]), parseFloat(p[0])];
                 });
-            if (pts.length > 0) results.push({ nombre: 'Zona', coords: pts });
+            if (pts.length > 0) results.push({ nombre: "Zona", coords: pts });
         }
     }
 
     return results;
 };
 
-
 export const waitForLeaflet = () => {
     return new Promise((resolve) => {
-        if (typeof L !== 'undefined') return resolve(L);
+        if (typeof L !== "undefined") return resolve(L);
         const interval = setInterval(() => {
-            if (typeof L !== 'undefined') {
+            if (typeof L !== "undefined") {
                 clearInterval(interval);
                 resolve(L);
             }
         }, 100);
-        setTimeout(() => { clearInterval(interval); resolve(null); }, 5000);
+        setTimeout(() => {
+            clearInterval(interval);
+            resolve(null);
+        }, 5000);
     });
 };
 
 export const showKmlMapModal = async (territorio, options = {}) => {
     const L = await waitForLeaflet();
     if (!L) {
-        XolvyAlert.fire({ icon: 'error', title: 'Error de Red', text: 'Leaflet no detectado.' });
+        XolvyAlert.fire({ icon: "error", title: "Error de Red", text: "Leaflet no detectado." });
         return;
     }
 
@@ -154,14 +162,18 @@ export const showKmlMapModal = async (territorio, options = {}) => {
     const allItems = extractMultiLeafletCoords(territorio);
 
     if (allItems.length === 0) {
-        XolvyAlert.fire({ icon: 'warning', title: 'SIN DATOS ESPACIALES', text: 'Este territorio no posee coordenadas válidas.' });
+        XolvyAlert.fire({
+            icon: "warning",
+            title: "SIN DATOS ESPACIALES",
+            text: "Este territorio no posee coordenadas válidas.",
+        });
         return;
     }
 
     // ── Inyectar estilos glassmorphism para etiquetas y controles ──────────
-    const STYLE_ID = 'xolvy-map-premium-styles';
+    const STYLE_ID = "xolvy-map-premium-styles";
     if (!document.getElementById(STYLE_ID)) {
-        const style = document.createElement('style');
+        const style = document.createElement("style");
         style.id = STYLE_ID;
         style.textContent = `
             /* Etiquetas glassmorphism de manzanas */
@@ -205,13 +217,14 @@ export const showKmlMapModal = async (territorio, options = {}) => {
     }
 
     // ── Crear modal propio ────────────────────────────────────────────────
-    const MODAL_ID = 'xolvy-kml-modal';
-    let existing = document.getElementById(MODAL_ID);
+    const MODAL_ID = "xolvy-kml-modal";
+    const existing = document.getElementById(MODAL_ID);
     if (existing) existing.remove();
 
-    const modalEl = document.createElement('div');
+    const modalEl = document.createElement("div");
     modalEl.id = MODAL_ID;
-    modalEl.className = 'fixed inset-0 z-[9999] flex items-stretch justify-center bg-black/60 backdrop-blur-sm animate-fade-in';
+    modalEl.className =
+        "fixed inset-0 z-[9999] flex items-stretch justify-center bg-black/60 backdrop-blur-sm animate-fade-in";
     modalEl.innerHTML = `
         <div class="relative flex flex-col w-full h-full md:max-w-[96vw] md:max-h-[92vh] md:m-auto md:rounded-[2rem] overflow-hidden shadow-[0_40px_100px_-20px_rgba(0,0,0,0.7)] border border-white/10">
 
@@ -228,7 +241,7 @@ export const showKmlMapModal = async (territorio, options = {}) => {
                     </div>
                     <div class="min-w-0">
                         <p class="text-[9px] font-black text-indigo-300 uppercase tracking-[0.25em] leading-none mb-0.5">Localizador Satelital</p>
-                        <h3 class="text-sm font-black text-slate-800 dark:text-slate-100 leading-none truncate">Territorio ${territorio.numero || ''}</h3>
+                        <h3 class="text-sm font-black text-slate-800 dark:text-slate-100 leading-none truncate">Territorio ${territorio.numero || ""}</h3>
                     </div>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
@@ -282,21 +295,21 @@ export const showKmlMapModal = async (territorio, options = {}) => {
     document.body.appendChild(modalEl);
 
     // ── Inicializar Leaflet ───────────────────────────────────────────────
-    const mapEl = document.getElementById('xolvy-leaflet-map');
+    const mapEl = document.getElementById("xolvy-leaflet-map");
     const map = L.map(mapEl, { zoomControl: false, scrollWheelZoom: true });
 
-    L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+    L.tileLayer("https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}", {
         maxZoom: 20,
-        attribution: '&copy; Google Maps'
+        attribution: "&copy; Google Maps",
     }).addTo(map);
 
     // ── Renderizar polígonos premium ──────────────────────────────────────
-    const POLY_COLORS = ['#4f46e5','#0ea5e9','#10b981','#f59e0b','#ec4899','#8b5cf6'];
+    const POLY_COLORS = ["#4f46e5", "#0ea5e9", "#10b981", "#f59e0b", "#ec4899", "#8b5cf6"];
     const layerGroup = L.featureGroup().addTo(map);
 
     allItems.forEach((item, index) => {
         const coords = item.coords || item;
-        let labelText = (item.nombre || `Mz. ${index + 1}`).split('(')[0].trim();
+        const labelText = (item.nombre || `Mz. ${index + 1}`).split("(")[0].trim();
         const accentColor = POLY_COLORS[index % POLY_COLORS.length];
 
         const poly = L.polygon(coords, {
@@ -304,31 +317,33 @@ export const showKmlMapModal = async (territorio, options = {}) => {
             weight: 2.5,
             fillColor: accentColor,
             fillOpacity: 0.22,
-            lineCap: 'round',
-            lineJoin: 'round',
+            lineCap: "round",
+            lineJoin: "round",
             dashArray: null,
         }).addTo(layerGroup);
 
         // Hover: resaltar
-        poly.on('mouseover', function() {
+        poly.on("mouseover", function () {
             this.setStyle({ fillOpacity: 0.42, weight: 3.5 });
         });
-        poly.on('mouseout', function() {
+        poly.on("mouseout", function () {
             this.setStyle({ fillOpacity: 0.22, weight: 2.5 });
         });
 
         // Etiqueta glassmorphism permanente
         poly.bindTooltip(labelText, {
             permanent: true,
-            direction: 'center',
-            className: 'xolvy-mz-label'
+            direction: "center",
+            className: "xolvy-mz-label",
         }).openTooltip();
     });
 
     if (layerGroup.getLayers().length > 0) {
         map.fitBounds(layerGroup.getBounds(), { padding: [80, 80] });
     }
-    setTimeout(() => { map.invalidateSize(); }, 200);
+    setTimeout(() => {
+        map.invalidateSize();
+    }, 200);
 
     // ── Auto-localizar ────────────────────────────────────────────────────
     let userMarker = null;
@@ -337,42 +352,41 @@ export const showKmlMapModal = async (territorio, options = {}) => {
     };
     if (autoLocate) setTimeout(doLocate, 500);
 
-    map.on('locationfound', (e) => {
+    map.on("locationfound", (e) => {
         if (userMarker) {
             userMarker.setLatLng(e.latlng);
         } else {
             userMarker = L.marker(e.latlng, {
                 icon: L.divIcon({
-                    className: '',
+                    className: "",
                     html: '<div class="xolvy-gps-dot"></div>',
                     iconSize: [18, 18],
-                    iconAnchor: [9, 9]
-                })
+                    iconAnchor: [9, 9],
+                }),
             }).addTo(map);
         }
         map.flyTo(e.latlng, 17, { animate: true, duration: 1.5 });
     });
 
-    map.on('locationerror', () => {
-        XolvyAlert.fire({ icon: 'error', title: 'GPS Desactivado', text: 'No se pudo obtener tu ubicación actual.' });
+    map.on("locationerror", () => {
+        XolvyAlert.fire({ icon: "error", title: "GPS Desactivado", text: "No se pudo obtener tu ubicación actual." });
     });
 
     // ── Controles del panel ───────────────────────────────────────────────
-    document.getElementById('xolvy-zoom-in').onclick  = () => map.zoomIn();
-    document.getElementById('xolvy-zoom-out').onclick = () => map.zoomOut();
-    document.getElementById('xolvy-recenter').onclick = () => {
+    document.getElementById("xolvy-zoom-in").onclick = () => map.zoomIn();
+    document.getElementById("xolvy-zoom-out").onclick = () => map.zoomOut();
+    document.getElementById("xolvy-recenter").onclick = () => {
         if (layerGroup.getLayers().length > 0) map.fitBounds(layerGroup.getBounds(), { padding: [80, 80] });
     };
-    document.getElementById('xolvy-locate').onclick   = doLocate;
+    document.getElementById("xolvy-locate").onclick = doLocate;
 
     // ── Cerrar modal ─────────────────────────────────────────────────────
     const closeModal = () => {
         map.remove();
         modalEl.remove();
     };
-    document.getElementById('kml-modal-close').onclick = closeModal;
-    modalEl.addEventListener('click', (e) => {
+    document.getElementById("kml-modal-close").onclick = closeModal;
+    modalEl.addEventListener("click", (e) => {
         if (e.target === modalEl) closeModal();
     });
 };
-

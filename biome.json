@@ -1,0 +1,60 @@
+{
+    "$schema": "https://biomejs.dev/schemas/2.5.2/schema.json",
+    "assist": { "actions": { "source": { "organizeImports": "on" } } },
+    "formatter": {
+        "enabled": true,
+        "indentStyle": "space",
+        "indentWidth": 4,
+        "lineWidth": 120
+    },
+    "linter": {
+        "enabled": true,
+        "rules": {
+            "preset": "recommended",
+            "correctness": {
+                "noUnusedVariables": "warn",
+                "noUndeclaredVariables": "error"
+            },
+            "complexity": {
+                "noStaticOnlyClass": "off"
+            },
+            "style": {
+                "useConst": "warn"
+            },
+            "suspicious": {
+                "noVar": "warn",
+                "useIterableCallbackReturn": "off"
+            }
+        }
+    },
+    "javascript": {
+        "globals": [
+            "google",
+            "L",
+            "Chart",
+            "Swal",
+            "anime",
+            "VisualEngine",
+            "AppConfig",
+            "IdentityShield",
+            "moduleRegistry",
+            "XolvyApp",
+            "NexoAgent",
+            "UIHelpers",
+            "VoiceDictationHelper",
+            "html2canvas",
+            "__APP_VERSION__",
+            "Sortable"
+        ]
+    },
+    "files": {
+        "includes": [
+            "app.js",
+            "firebase-config.js",
+            "modules/**/*.js",
+            "modules/**/*.mjs",
+            "data/**/*.js",
+            "public/sw-custom.js"
+        ]
+    }
+}

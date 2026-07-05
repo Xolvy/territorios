@@ -13,13 +13,13 @@ export const COL = {
     PROGRAMA: "programa_semanal",
     AUDIT: "logs_auditoria",
     METRICAS: "metricas_telefonia",
-    TELEFONOS: "telefonos"
+    TELEFONOS: "telefonos",
 };
 
 export const CACHE_KEYS = {
-    TERRITORIOS: 'territorios_combined',
-    HISTORIAL: 'historial',
-    STATS: 'stats_globales',
-    PROGRAMA: 'programa',
-    POIS: 'puntos_interes'
+    TERRITORIOS: "territorios_combined",
+    HISTORIAL: "historial",
+    STATS: "stats_globales",
+    PROGRAMA: "programa",
+    POIS: "puntos_interes",
 };

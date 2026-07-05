@@ -1,6 +1,5 @@
 // Cerebro IA (intelligence.js) ha sido purgado. Las funciones pasan a Nexo.
 
-
 export const renderAdminAI = async (container, configData = null, appVersion = null) => {
     container.innerHTML = `
         <div class="space-y-10 animate-fade-in p-2 md:p-6 max-w-5xl mx-auto w-full overflow-x-hidden">
@@ -71,27 +70,28 @@ export const renderAdminAI = async (container, configData = null, appVersion = n
         </div>
     `;
 
-    const stream = container.querySelector('#ai-response-stream');
-    const status = container.querySelector('#ai-status-indicator');
+    const stream = container.querySelector("#ai-response-stream");
+    const status = container.querySelector("#ai-status-indicator");
 
-    const logAI = (msg, type = 'info') => {
-        const div = document.createElement('div');
-        div.className = `p-4 rounded-2xl ${type === 'error' ? 'bg-red-500/10 text-red-400' : 'bg-white/5 text-emerald-400'} border border-white/5 animate-fade-in`;
+    const logAI = (msg, type = "info") => {
+        const div = document.createElement("div");
+        div.className = `p-4 rounded-2xl ${type === "error" ? "bg-red-500/10 text-red-400" : "bg-white/5 text-emerald-400"} border border-white/5 animate-fade-in`;
         div.innerHTML = `<span class="opacity-40 mr-2">></span> ${msg}`;
-        stream.innerHTML = '';
+        stream.innerHTML = "";
         stream.appendChild(div);
         stream.scrollTop = stream.scrollHeight;
     };
 
     const runAction = async () => {
-        const config = configData || await import('../../data/firestore-services.js').then(m => m.getConfiguracion());
+        const config =
+            configData || (await import("../../data/firestore-services.js").then((m) => m.getConfiguracion()));
         if (!config.gemini_key) {
-            logAI("ERROR: API Key de Gemini no configurada. Ve a Ajustes > Reglas.", 'error');
+            logAI("ERROR: API Key de Gemini no configurada. Ve a Ajustes > Reglas.", "error");
             return;
         }
 
-        status.innerText = 'Analyzing...';
-        status.className = 'text-emerald-500 animate-pulse';
+        status.innerText = "Analyzing...";
+        status.className = "text-emerald-500 animate-pulse";
         logAI("Iniciando motor de inteligencia... Escaneando base de datos global.");
 
         setTimeout(() => {
@@ -104,11 +104,11 @@ Toda la inteligencia artificial, análisis y control ahora es gestionado por <st
 
 Por favor, presiona el orbe y usa tu voz o escribe para solicitar auditorías, predicciones o cualquier otra acción.
 </div>`;
-            status.innerText = 'Ready';
-            status.className = '';
+            status.innerText = "Ready";
+            status.className = "";
         }, 1500);
     };
 
-    container.querySelector('#ai-btn-audit').onclick = () => runAction('audit');
-    container.querySelector('#ai-btn-predict').onclick = () => runAction('predict');
+    container.querySelector("#ai-btn-audit").onclick = () => runAction("audit");
+    container.querySelector("#ai-btn-predict").onclick = () => runAction("predict");
 };
