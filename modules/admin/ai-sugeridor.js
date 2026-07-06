@@ -268,6 +268,14 @@ export const openSugeridorModal = (programa, renderTableCallback) => {
     }
     const uniqueTs = Object.values(uniqueTsMap);
 
+    // Sort uniqueTs numerically for the dropdown selection options
+    uniqueTs.sort((a, b) => {
+        const na = parseInt(a.numero, 10);
+        const nb = parseInt(b.numero, 10);
+        if (!Number.isNaN(na) && !Number.isNaN(nb)) return na - nb;
+        return a.numero.localeCompare(b.numero);
+    });
+
     // ── Future and Programmed slots only ────────────────────────────────────
     const futureSlots = buildFutureSlots(programa);
 
@@ -314,11 +322,37 @@ export const openSugeridorModal = (programa, renderTableCallback) => {
             const style = document.createElement("style");
             style.id = STYLE_ID;
             style.textContent = `
-                .xolvy-t-label { background: rgba(15,23,42,0.85) !important; color: #fff !important; border: 1px solid rgba(255,255,255,0.15) !important; border-radius: 8px !important; padding: 3px 8px !important; font-weight: 900 !important; font-size: 10px !important; text-transform: uppercase !important; letter-spacing: 0.08em !important; box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important; backdrop-filter: blur(4px); }
-                .xolvy-t-label-libre { background: rgba(16,185,129,0.9) !important; border-color: rgba(5,150,105,0.5) !important; }
-                .xolvy-t-label-devuelto { background: rgba(245,158,11,0.9) !important; border-color: rgba(217,119,6,0.5) !important; }
-                .xolvy-t-label-ocupado { background: rgba(239,68,68,0.85) !important; border-color: rgba(220,38,38,0.5) !important; }
+                .xolvy-t-label {
+                    display: flex !important;
+                    flex-direction: column !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    text-align: center !important;
+                    white-space: nowrap !important;
+                    background: rgba(15,23,42,0.9) !important;
+                    color: #fff !important;
+                    border: 1px solid rgba(255,255,255,0.15) !important;
+                    border-radius: 8px !important;
+                    padding: 4px 10px !important;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+                    backdrop-filter: blur(4px);
+                }
+                .xolvy-t-label-libre { background: rgba(16,185,129,0.92) !important; border-color: rgba(5,150,105,0.5) !important; }
+                .xolvy-t-label-devuelto { background: rgba(245,158,11,0.92) !important; border-color: rgba(217,119,6,0.5) !important; }
+                .xolvy-t-label-ocupado { background: rgba(239,68,68,0.88) !important; border-color: rgba(220,38,38,0.5) !important; }
                 .xolvy-t-label::before { display: none !important; }
+                .xolvy-t-num {
+                    font-size: 11px !important;
+                    font-weight: 900 !important;
+                    line-height: 1.1 !important;
+                }
+                .xolvy-t-status {
+                    font-size: 7.5px !important;
+                    font-weight: 800 !important;
+                    margin-top: 2px !important;
+                    letter-spacing: 0.05em !important;
+                    opacity: 0.95;
+                }
                 .xolvy-gps-pulse { animation: xolvyGpsPulse 2s ease-in-out infinite; }
                 @keyframes xolvyGpsPulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.3); opacity: 0.7; } }
             `;
@@ -428,7 +462,7 @@ export const openSugeridorModal = (programa, renderTableCallback) => {
                 L.marker([t.centroid.lat, t.centroid.lng], {
                     icon: L.divIcon({
                         className: "",
-                        html: `<div class="${cssClass}">T-${t.numero} · ${statusLabel}</div>`,
+                        html: `<div class="${cssClass}"><div class="xolvy-t-num">T-${t.numero}</div><div class="xolvy-t-status">${statusLabel}</div></div>`,
                         iconSize: [0, 0],
                         iconAnchor: [0, 0],
                     }),
@@ -441,18 +475,14 @@ export const openSugeridorModal = (programa, renderTableCallback) => {
             leafletMap.fitBounds(layerGroup.getBounds(), { padding: [40, 40] });
         }
 
-        // Draw GPS marker if active
         if (refCoords) {
             updateGpsMarkerOnMap(refCoords.lat, refCoords.lng);
         }
 
-        // Bind Leaflet controls
         setTimeout(() => {
             leafletMap.invalidateSize();
             document.getElementById("ai-map-zoom-in")?.addEventListener("click", () => leafletMap.zoomIn());
             document.getElementById("ai-map-zoom-out")?.addEventListener("click", () => leafletMap.zoomOut());
-
-            // Recenter/GPS locate button click handler
             document.getElementById("ai-map-recenter")?.addEventListener("click", () => {
                 triggerGpsLocateAndZoom();
             });
@@ -482,7 +512,7 @@ export const openSugeridorModal = (programa, renderTableCallback) => {
         }
     };
 
-    // Advanced locate and zoom function
+    // Advanced locate and zoom function (limits max zoom to 16/17 for visibility context)
     const triggerGpsLocateAndZoom = () => {
         const loader = document.getElementById("ai-sugeridor-loader");
         if (loader) loader.classList.remove("hidden");
@@ -510,7 +540,8 @@ export const openSugeridorModal = (programa, renderTableCallback) => {
                         const bounds = L.featureGroup(
                             allItems.map((item) => L.polygon(item.coords || item)),
                         ).getBounds();
-                        leafletMap.fitBounds(bounds, { padding: [50, 50] });
+                        // limit maxZoom to 16 so it does not zoom too close
+                        leafletMap.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
                         showNotification(`Te encuentras en el Territorio ${containingT.numero}`, "success");
                     } else {
                         // Find closest territory
@@ -531,7 +562,7 @@ export const openSugeridorModal = (programa, renderTableCallback) => {
                             const bounds = L.featureGroup(
                                 allItems.map((item) => L.polygon(item.coords || item)),
                             ).getBounds();
-                            leafletMap.fitBounds(bounds, { padding: [50, 50] });
+                            leafletMap.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
                             showNotification(
                                 `Ubicación GPS fijada. Centrado en el Territorio ${closestT.numero} más cercano`,
                                 "info",
@@ -577,7 +608,7 @@ export const openSugeridorModal = (programa, renderTableCallback) => {
                 refCoords = t.centroid;
                 const allItems = extractMultiLeafletCoords(t);
                 const bounds = L.featureGroup(allItems.map((item) => L.polygon(item.coords || item))).getBounds();
-                leafletMap.fitBounds(bounds, { padding: [50, 50] });
+                leafletMap.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
                 showNotification(`Centrado en el Territorio ${selectedRefKey}`, "info");
             } else {
                 refCoords = null;
@@ -651,7 +682,7 @@ export const openSugeridorModal = (programa, renderTableCallback) => {
                 </button>
             </header>
 
-            <!-- Location Context Selection -->
+            <!-- Location Context Selection (Resumed labels: Mapa general, Mi ubicación, Territorio X) -->
             <div class="px-5 md:px-7 pt-4 pb-3 shrink-0">
                 <div class="p-3 bg-slate-50 dark:bg-[#0e1320] border border-slate-200/60 dark:border-white/5 rounded-xl space-y-2 relative">
                     <div id="ai-sugeridor-loader" class="hidden absolute inset-0 bg-white/60 dark:bg-[#0e1320]/60 backdrop-blur-xs flex items-center justify-center rounded-xl z-30">
@@ -659,13 +690,10 @@ export const openSugeridorModal = (programa, renderTableCallback) => {
                     </div>
                     <label class="text-[8px] font-black text-slate-600 dark:text-slate-400 tracking-widest uppercase block font-semibold">📍 Centro de Referencia del Mapa</label>
                     <select id="ai-ref-select" onchange="window.handleRefChange(this)" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-2.5 rounded-xl text-[10px] font-bold text-slate-700 dark:text-white outline-none cursor-pointer">
-                        <option value="none">📍 CENTRO GENERAL DEL MAPA (TODOS LOS TERRITORIOS)</option>
-                        <option value="gps">📍 MI UBICACIÓN ACTUAL (GPS EN VIVO)</option>
+                        <option value="none">📍 MAPA GENERAL</option>
+                        <option value="gps">📍 MI UBICACIÓN</option>
                         ${uniqueTs
-                            .map(
-                                (t) =>
-                                    `<option value="${t.numero}">📍 DESDE EL TERRITORIO ${t.numero} (${t.localidad || "Sin localidad"})</option>`,
-                            )
+                            .map((t) => `<option value="${t.numero}">📍 TERRITORIO ${t.numero}</option>`)
                             .join("")}
                     </select>
                 </div>
