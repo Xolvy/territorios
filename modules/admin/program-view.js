@@ -563,7 +563,7 @@ export const renderProgramaTab = async (container, configData = null) => {
                     .map(
                         (n, i) => `
                     <button onclick="window.setActiveDay(${i})" 
-                            class="relative px-2.5 sm:px-4.5 py-1.5 sm:py-2 rounded-[1.5rem] text-[8.5px] sm:text-[9.5px] font-black uppercase tracking-widest transition-all duration-300 transform active:scale-95 ${activeDayIndex === i ? "bg-gradient-to-r from-emerald-600 to-teal-500 dark:from-emerald-500 dark:to-teal-400 text-white shadow-lg shadow-emerald-500/20 scale-105" : "text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100/50 dark:hover:bg-white/5"}">
+                            class="relative px-4 sm:px-6 py-2 rounded-[1.5rem] text-[8.5px] sm:text-[9.5px] font-black uppercase tracking-widest transition-all duration-300 transform active:scale-95 ${activeDayIndex === i ? "bg-gradient-to-r from-emerald-600 to-teal-500 dark:from-emerald-500 dark:to-teal-400 text-white shadow-lg shadow-emerald-500/20 scale-105" : "text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100/50 dark:hover:bg-white/5"}">
                         ${n}
                     </button>
                 `,
@@ -571,7 +571,7 @@ export const renderProgramaTab = async (container, configData = null) => {
                     .join("")}
                 <div class="w-px h-6 bg-slate-200 dark:bg-white/10 mx-1 sm:mx-1.5"></div>
                 <button onclick="window.setActiveDay(-1)" 
-                        class="px-2.5 sm:px-4.5 py-1.5 sm:py-2 rounded-[1.5rem] text-[8.5px] sm:text-[9.5px] font-black uppercase tracking-widest transition-all duration-300 transform active:scale-95 ${activeDayIndex === -1 ? "bg-slate-900 dark:bg-white/10 text-white border border-transparent dark:border-white/5 shadow-md scale-105" : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/50 dark:hover:bg-white/5"}">
+                        class="px-4 sm:px-6 py-2 rounded-[1.5rem] text-[8.5px] sm:text-[9.5px] font-black uppercase tracking-widest transition-all duration-300 transform active:scale-95 ${activeDayIndex === -1 ? "bg-slate-900 dark:bg-white/10 text-white border border-transparent dark:border-white/5 shadow-md scale-105" : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/50 dark:hover:bg-white/5"}">
                     Toda la Semana
                 </button>
             </div>

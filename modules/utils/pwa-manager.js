@@ -118,14 +118,28 @@ export const isStandalone = () => {
     );
 };
 
+const getOrCreateBottomHUD = () => {
+    const hudId = "xolvy-bottom-hud";
+    let hud = document.getElementById(hudId);
+    if (!hud) {
+        hud = document.createElement("div");
+        hud.id = hudId;
+        hud.className = "fixed bottom-24 left-4 right-4 md:bottom-12 md:left-auto md:right-8 md:w-[320px] sm:w-[360px] z-[10000] flex flex-col gap-4 pointer-events-none";
+        document.body.appendChild(hud);
+    }
+    return hud;
+};
+
 const ensureInstallUI = () => {
     let banner = document.getElementById("pwa-persistence-banner");
     if (banner || isStandalone()) return;
 
+    const hud = getOrCreateBottomHUD();
+
     banner = document.createElement("div");
     banner.id = "pwa-persistence-banner";
     banner.className =
-        "fixed bottom-24 left-4 right-4 md:bottom-12 md:left-auto md:right-8 md:w-[320px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl p-5 rounded-2xl z-[1000] border border-teal-500/20 animate-bounce-in shadow-[0_20px_40px_-5px_rgba(13,148,136,0.1)] dark:shadow-[0_20px_40px_-5px_rgba(0,0,0,0.45)]";
+        "w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl p-5 rounded-2xl border border-teal-500/20 animate-bounce-in shadow-[0_20px_40px_-5px_rgba(13,148,136,0.1)] dark:shadow-[0_20px_40px_-5px_rgba(0,0,0,0.45)] pointer-events-auto";
 
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
@@ -165,7 +179,7 @@ const ensureInstallUI = () => {
         </div>
     `;
 
-    document.body.appendChild(banner);
+    hud.appendChild(banner);
 
     const installBtn = document.getElementById("btn-pwa-main-install");
     if (installBtn) {
@@ -269,10 +283,12 @@ const showNotificationRationale = () => {
     let rationale = document.getElementById("notification-rationale");
     if (rationale) return;
 
+    const hud = getOrCreateBottomHUD();
+
     rationale = document.createElement("div");
     rationale.id = "notification-rationale";
     rationale.className =
-        "fixed bottom-24 left-4 right-4 md:bottom-12 md:left-auto md:right-8 md:w-[360px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl p-5.5 rounded-3xl z-[110] border border-blue-500/15 animate-bounce-in shadow-[0_25px_60px_rgba(59,130,246,0.12)] dark:shadow-[0_25px_60px_rgba(0,0,0,0.5)]";
+        "w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl p-5.5 rounded-3xl border border-blue-500/15 animate-bounce-in shadow-[0_25px_60px_rgba(59,130,246,0.12)] dark:shadow-[0_25px_60px_rgba(0,0,0,0.5)] pointer-events-auto";
 
     rationale.innerHTML = `
         <div class="flex flex-col gap-4">
@@ -292,7 +308,7 @@ const showNotificationRationale = () => {
         </div>
     `;
 
-    document.body.appendChild(rationale);
+    hud.appendChild(rationale);
 
     document.getElementById("btn-notif-grant").onclick = async () => {
         const permission = await Notification.requestPermission();

@@ -17,13 +17,13 @@ export const renderReportsTab = async (container, config, appVersion) => {
             <div class="animate-fade-in space-y-12 max-w-7xl mx-auto overflow-x-hidden">
                 <!-- Main Nav: Historial vs Reportes -->
                 <nav class="flex flex-wrap justify-center items-center gap-2 p-1.5 bg-white/50 dark:bg-white/[0.03] backdrop-blur-xl rounded-[1.8rem] sm:rounded-[2.2rem] w-full max-w-lg border border-slate-200 dark:border-white/5 mx-auto transition-all shadow-sm">
-                    <button id="main-btn-historial" class="px-4.5 sm:px-10 py-2.5 sm:py-4 rounded-[1.4rem] sm:rounded-[1.8rem] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 border border-transparent flex-1 min-w-0 sm:flex-initial text-center whitespace-nowrap">
+                    <button id="main-btn-historial" class="px-5 sm:px-10 py-2.5 sm:py-4 rounded-[1.4rem] sm:rounded-[1.8rem] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 border border-transparent flex-1 min-w-0 sm:flex-initial text-center whitespace-nowrap">
                         <i class="fas fa-history"></i> Historial
                     </button>
-                    <button id="main-btn-reportes" class="px-4.5 sm:px-10 py-2.5 sm:py-4 rounded-[1.4rem] sm:rounded-[1.8rem] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 border border-transparent flex-1 min-w-0 sm:flex-initial text-center whitespace-nowrap">
+                    <button id="main-btn-reportes" class="px-5 sm:px-10 py-2.5 sm:py-4 rounded-[1.4rem] sm:rounded-[1.8rem] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 border border-transparent flex-1 min-w-0 sm:flex-initial text-center whitespace-nowrap">
                         <i class="fas fa-print"></i> S-12/S-13
                     </button>
-                    <button id="main-btn-telefonia" class="px-4.5 sm:px-10 py-2.5 sm:py-4 rounded-[1.4rem] sm:rounded-[1.8rem] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 border border-transparent flex-1 min-w-0 sm:flex-initial text-center whitespace-nowrap">
+                    <button id="main-btn-telefonia" class="px-5 sm:px-10 py-2.5 sm:py-4 rounded-[1.4rem] sm:rounded-[1.8rem] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 border border-transparent flex-1 min-w-0 sm:flex-initial text-center whitespace-nowrap">
                         <i class="fas fa-phone-alt"></i> Telefonía
                     </button>
                 </nav>
@@ -42,7 +42,7 @@ export const renderReportsTab = async (container, config, appVersion) => {
                     (btn.id === "main-btn-historial" && _activeMainTab === "historial") ||
                     (btn.id === "main-btn-reportes" && _activeMainTab === "reportes") ||
                     (btn.id === "main-btn-telefonia" && _activeMainTab === "telefonia");
-                btn.className = `px-4.5 sm:px-10 py-2.5 sm:py-4 rounded-[1.4rem] sm:rounded-[1.8rem] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 flex-1 min-w-0 sm:flex-initial text-center whitespace-nowrap ${isActive ? "bg-slate-900 dark:bg-white/10 text-white shadow-xl shadow-slate-900/20 md:scale-105" : "text-slate-600 dark:text-slate-400 hover:text-slate-600 dark:hover:text-white"}`;
+                btn.className = `px-5 sm:px-10 py-2.5 sm:py-4 rounded-[1.4rem] sm:rounded-[1.8rem] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 flex-1 min-w-0 sm:flex-initial text-center whitespace-nowrap ${isActive ? "bg-slate-900 dark:bg-white/10 text-white shadow-xl shadow-slate-900/20 md:scale-105" : "text-slate-600 dark:text-slate-400 hover:text-slate-600 dark:hover:text-white"}`;
             });
         };
 
