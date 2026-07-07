@@ -214,9 +214,52 @@ export const updateAppBadge = (count) => {
 
 export const requestNotifications = async () => {
     if (!("Notification" in window)) return;
-    if (Notification.permission === "granted" || Notification.permission === "denied") return;
+
+    if (Notification.permission === "granted") {
+        syncFCMToken();
+        return;
+    }
+
+    if (Notification.permission === "denied") return;
 
     showNotificationRationale();
+};
+
+const syncFCMToken = async () => {
+    try {
+        const { doc, getDoc } = await import("firebase/firestore");
+        const { db, app } = await import("../../firebase-config.js");
+
+        const configSnap = await getDoc(doc(db, "configuracion", "general"));
+        const fcmVapidKey = configSnap.exists() ? configSnap.data().fcm_vapid_key : null;
+
+        if (!fcmVapidKey) {
+            console.log("⚠️ FCM: No fcm_vapid_key found in General Config. Push subscription skipped.");
+            return;
+        }
+
+        const { getMessaging, getToken, onMessage } = await import("firebase/messaging");
+        const { httpsCallable } = await import("firebase/functions");
+        const { functions } = await import("../../firebase-config.js");
+
+        const messaging = getMessaging(app);
+
+        const token = await getToken(messaging, { vapidKey: fcmVapidKey });
+        if (token) {
+            const registrarToken = httpsCallable(functions, "registrarTokenFCM");
+            await registrarToken({ token });
+            console.log("📌 FCM Token successfully registered and subscribed.");
+
+            // Listen for foreground notifications
+            onMessage(messaging, (payload) => {
+                console.log("🔔 FCM: Foreground push received:", payload);
+                const { title, body } = payload.notification || {};
+                showNotification(`${title || "Aviso"}: ${body || ""}`, "info");
+            });
+        }
+    } catch (err) {
+        console.warn("❌ FCM Sync Error:", err);
+    }
 };
 
 const showNotificationRationale = () => {
@@ -248,7 +291,10 @@ const showNotificationRationale = () => {
 
     document.getElementById("btn-notif-grant").onclick = async () => {
         const permission = await Notification.requestPermission();
-        if (permission === "granted") showNotification("¡Notificaciones activadas!", "success");
+        if (permission === "granted") {
+            showNotification("¡Notificaciones activadas!", "success");
+            syncFCMToken();
+        }
         rationale.remove();
     };
 

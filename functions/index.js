@@ -494,3 +494,132 @@ exports.askNexoAI = onCall(
         }
     }
 );
+
+// ─── CLOUD FUNCTION: registrarTokenFCM ──────────────────────────────────────
+exports.registrarTokenFCM = onCall(
+    { region: "us-central1" },
+    async (request) => {
+        if (!request.auth) {
+            throw new HttpsError("unauthenticated", "Auth required.");
+        }
+        const { token } = request.data;
+        if (!token) {
+            throw new HttpsError("invalid-argument", "Token required.");
+        }
+
+        const uid = request.auth.uid;
+        console.log(`[registrarTokenFCM] Registering token for UID: ${uid}`);
+
+        // Get user publicador ID
+        const bindDoc = await db.collection("auth_binds").doc(uid).get();
+        if (!bindDoc.exists) {
+            throw new HttpsError("not-found", "User bind not found.");
+        }
+        const { publicadorId, rol } = bindDoc.data();
+
+        // Save token to publicador document
+        const pubRef = db.collection("publicadores").doc(publicadorId);
+        const pubSnap = await pubRef.get();
+        if (pubSnap.exists) {
+            const currentTokens = pubSnap.data().fcm_tokens || [];
+            if (!currentTokens.includes(token)) {
+                currentTokens.push(token);
+                await pubRef.update({ fcm_tokens: currentTokens });
+            }
+        }
+
+        // Subscribe token to FCM topics
+        const messaging = getMessaging();
+        try {
+            await messaging.subscribeToTopic([token], "all");
+            if (rol === "Administrador" || rol === "SuperAdmin") {
+                await messaging.subscribeToTopic([token], "admins");
+            } else if (rol === "Conductor") {
+                await messaging.subscribeToTopic([token], "conductores");
+            }
+            console.log(`[registrarTokenFCM] Successfully registered token to topics.`);
+        } catch (err) {
+            console.error("[registrarTokenFCM] Error subscribing to topics:", err);
+        }
+
+        return { success: true };
+    }
+);
+
+// ─── CLOUD FUNCTION: enviarNotificacionGlobal ───────────────────────────────
+exports.enviarNotificacionGlobal = onCall(
+    { region: "us-central1", timeoutSeconds: 60 },
+    async (request) => {
+        if (!request.auth) {
+            throw new HttpsError(
+                "unauthenticated",
+                "Debes estar autenticado para enviar notificaciones."
+            );
+        }
+
+        const callerUid = request.auth.uid;
+        // Verify caller is admin in auth_binds
+        const bindDoc = await db.collection("auth_binds").doc(callerUid).get();
+        if (!bindDoc.exists) {
+            throw new HttpsError("permission-denied", "No autorizado.");
+        }
+        const userRole = bindDoc.data().rol;
+        if (userRole !== "Administrador" && userRole !== "SuperAdmin") {
+            throw new HttpsError("permission-denied", "Solo administradores pueden enviar notificaciones.");
+        }
+
+        const { titulo, cuerpo } = request.data;
+        if (!titulo || !cuerpo) {
+            throw new HttpsError("invalid-argument", "Título y cuerpo son requeridos.");
+        }
+
+        console.log(`[enviarNotificacionGlobal] Enviando push: "${titulo}" de ${callerUid}`);
+
+        const messaging = getMessaging();
+
+        const message = {
+            topic: "all",
+            notification: {
+                title: titulo,
+                body: cuerpo,
+            },
+            data: {
+                tipo: "anuncio",
+                timestamp: new Date().toISOString(),
+            },
+            android: {
+                priority: "high",
+                notification: {
+                    defaultSound: true,
+                }
+            },
+            apns: {
+                payload: {
+                    aps: {
+                        sound: "default",
+                        badge: 1,
+                    }
+                }
+            },
+            webpush: {
+                notification: {
+                    icon: "/icon-192.svg",
+                    badge: "/icon-192.svg",
+                    vibrate: [200, 100, 200],
+                },
+                fcmOptions: {
+                    link: "/"
+                }
+            }
+        };
+
+        try {
+            const response = await messaging.send(message);
+            console.log(`[enviarNotificacionGlobal] ✅ FCM enviado a 'all': ${response}`);
+            return { success: true, messageId: response };
+        } catch (err) {
+            console.error("[enviarNotificacionGlobal] Error:", err);
+            throw new HttpsError("internal", err.message);
+        }
+    }
+);

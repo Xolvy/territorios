@@ -183,6 +183,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     // initUpdateManager(); (Deferred until authentication and user binding to avoid permission-denied errors)
     XolvyAdaptive.init();
 
+    // Initialize PWA Engine
+    import("./modules/utils/pwa-manager.js").then((m) => m.initPWA());
+
     // 2. Interceptar getRedirectResult sin bloquear el listener global
     // Esto previene que el app se quede colgado en "Verificando credenciales" si Firebase tarda en responder
     getRedirectResult(auth)

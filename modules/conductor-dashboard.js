@@ -1646,6 +1646,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, _appVersi
                 </div>
             </header>
             <div class="flex flex-col lg:flex-row flex-1 min-w-0 min-h-0 overflow-hidden relative">
+                <div id="mobile-overlay" class="fixed inset-0 bg-slate-900/50 z-40 hidden lg:hidden backdrop-blur-sm transition-opacity cursor-pointer"></div>
                 <aside id="main-sidebar" class="fixed inset-y-0 left-0 z-50 w-48 bg-white/40 dark:bg-slate-800/40 backdrop-blur-2xl border-r border-slate-200/50 dark:border-emerald-900/30 transform -translate-x-full transition-transform duration-300 lg:static lg:translate-x-0 lg:flex lg:w-52 flex-col h-full shadow-2xl lg:shadow-none p-4 justify-between">
                     
                     <!-- Floating close button for mobile drawer -->

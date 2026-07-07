@@ -40,7 +40,7 @@ const firebaseConfig = {
 };
 
 // Inicializa Firebase o recupera instancia existente
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+export const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
 // ═══════════════════════════════════════════════════════════
 // SINGLETON: Auth y Firestore

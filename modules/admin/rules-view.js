@@ -383,6 +383,47 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                             </button>
                         </div>
                     </section>
+
+                    <!-- 7. NOTIFICACIONES PWA (ANUNCIOS GLOBALES) -->
+                    <section class="enterprise-card p-8 relative overflow-hidden">
+                        <header class="flex items-center gap-3 mb-6">
+                            <i class="fas fa-bell text-blue-600 text-sm"></i>
+                            <h4 class="text-[11px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">7. Notificaciones PWA (Anuncios Globales)</h4>
+                        </header>
+
+                        <div class="space-y-5">
+                            <p class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-relaxed">
+                                Envía un anuncio instantáneo a todos los dispositivos que tengan instalada la PWA y permisos activos.
+                            </p>
+
+                            <div class="relative group/input">
+                                <label class="label-premium flex items-center justify-between">
+                                    FCM Web Push VAPID Key
+                                    <span class="text-[8px] px-1.5 py-0.5 bg-teal-500/10 text-teal-500 rounded uppercase tracking-tighter">Configuración</span>
+                                </label>
+                                <input type="text" id="fcm-vapid-key" value="${config.fcm_vapid_key || ""}" 
+                                    class="input-premium font-mono"
+                                    placeholder="Ej. BFG_...">
+                                <div class="led-status-container hidden" style="right: 1.5rem; top: 2.5rem;"></div>
+                            </div>
+
+                            <div class="h-px bg-slate-200/50 dark:bg-emerald-900/30 my-4"></div>
+
+                            <div class="relative group/input">
+                                <label class="label-premium">Título de la Notificación</label>
+                                <input type="text" id="notif-title" class="input-premium" placeholder="Ej. Cambio de horario o anuncio importante">
+                            </div>
+
+                            <div class="relative group/input">
+                                <label class="label-premium">Mensaje de la Notificación</label>
+                                <textarea id="notif-body" class="input-premium h-20 resize-none py-3" placeholder="Escribe el cuerpo del mensaje aquí..."></textarea>
+                            </div>
+
+                            <button id="btn-send-pwa-notif" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-indigo-600/20 active:scale-95 transition-all flex items-center justify-center gap-3">
+                                <i class="fas fa-paper-plane"></i> Enviar Notificación Push
+                            </button>
+                        </div>
+                    </section>
                 </div>
             </div>
         `;
@@ -467,11 +508,11 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
         }
 
         try {
-            // Capturar valores reales de la UI (sin fallback destructivo)
             const nombreVal = container.querySelector("#conf-nombre")?.value.trim();
             const numeroVal = container.querySelector("#conf-numero")?.value.trim();
             const geminiVal = container.querySelector("#gemini-key")?.value.trim();
             const temaVal = container.querySelector("#conf-tema-mes")?.value.trim();
+            const fcmVapidVal = container.querySelector("#fcm-vapid-key")?.value.trim();
 
             // Sincronizar objeto config
             if (nombreVal !== undefined) {
@@ -484,6 +525,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
             }
             if (geminiVal !== undefined) config.gemini_key = geminiVal;
             if (temaVal !== undefined) config.tema_mes = temaVal;
+            if (fcmVapidVal !== undefined) config.fcm_vapid_key = fcmVapidVal;
 
             // Persistir en Firestore
             await saveConfiguracion(config);
@@ -514,7 +556,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
     };
 
     // Attach listeners to text inputs (Blur for immediate, Input for debounced)
-    ["conf-nombre", "conf-numero", "gemini-key", "conf-tema-mes"].forEach((id) => {
+    ["conf-nombre", "conf-numero", "gemini-key", "conf-tema-mes", "fcm-vapid-key"].forEach((id) => {
         const el = container.querySelector(`#${id}`);
         if (el) {
             el.addEventListener("input", () => triggerAutoSave(id));
@@ -877,6 +919,41 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                     }
                 },
             );
+        };
+    }
+
+    const btnSendNotif = container.querySelector("#btn-send-pwa-notif");
+    if (btnSendNotif) {
+        btnSendNotif.onclick = async () => {
+            const titleInput = container.querySelector("#notif-title");
+            const bodyInput = container.querySelector("#notif-body");
+            const titulo = titleInput?.value.trim();
+            const cuerpo = bodyInput?.value.trim();
+
+            if (!titulo || !cuerpo) {
+                showNotification("Título y mensaje son requeridos", "warning");
+                return;
+            }
+
+            btnSendNotif.disabled = true;
+            btnSendNotif.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Enviando Notificación...';
+
+            try {
+                const { httpsCallable } = await import("firebase/functions");
+                const { functions } = await import("../../firebase-config.js");
+                const enviarNotif = httpsCallable(functions, "enviarNotificacionGlobal");
+                await enviarNotif({ titulo, cuerpo });
+
+                showNotification("Notificación enviada con éxito", "success");
+                if (titleInput) titleInput.value = "";
+                if (bodyInput) bodyInput.value = "";
+            } catch (err) {
+                console.error("Error al enviar notificación push:", err);
+                showNotification("Error al enviar la notificación", "error");
+            } finally {
+                btnSendNotif.disabled = false;
+                btnSendNotif.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar Notificación Push';
+            }
         };
     }
 };
