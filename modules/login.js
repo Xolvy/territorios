@@ -41,18 +41,18 @@ export const renderLogin = (container) => {
             <div class="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-indigo-500/10 dark:bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none"></div>
             <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-500/5 dark:bg-blue-500/2 rounded-full blur-[140px] pointer-events-none"></div>
 
-            <div class="z-10 w-full max-w-4xl flex flex-col items-center gap-10 px-2 relative">
+            <div class="z-10 w-full max-w-3xl flex flex-col items-center gap-6 px-4 relative">
                 
                 <!-- Logo Badge & Dynamic Title -->
                 <div id="login-logo-container" class="animate-fade-in transition-all duration-700 text-center flex flex-col items-center">
-                    <div class="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-tr from-emerald-600 via-indigo-600 to-indigo-700 rounded-[1.5rem] sm:rounded-[2rem] flex items-center justify-center text-white text-3xl sm:text-4xl shadow-[0_12px_40px_rgba(99,102,241,0.35)] border border-white/20 mb-4 sm:mb-6 animate-float relative overflow-hidden group">
+                    <div class="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-tr from-emerald-600 via-indigo-600 to-indigo-700 rounded-xl sm:rounded-2xl flex items-center justify-center text-white text-xl sm:text-2xl shadow-[0_12px_40px_rgba(99,102,241,0.35)] border border-white/20 mb-2 sm:mb-3 animate-float relative overflow-hidden group">
                         <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
                         <i class="fas fa-layer-group"></i>
                     </div>
-                    <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black tracking-tight bg-gradient-to-r from-slate-900 via-slate-800 to-slate-700 dark:from-white dark:via-slate-200 dark:to-slate-400 bg-clip-text text-transparent uppercase text-center max-w-xs sm:max-w-xl font-sans">
+                    <h1 class="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight bg-gradient-to-r from-slate-900 via-slate-800 to-slate-700 dark:from-white dark:via-slate-200 dark:to-slate-400 bg-clip-text text-transparent uppercase text-center max-w-xs sm:max-w-xl font-sans">
                         Ecosistema de Territorios
                     </h1>
-                    <div class="flex items-center gap-3 mt-4">
+                    <div class="flex items-center gap-3 mt-2">
                         <div class="h-[1px] w-4 bg-slate-300 dark:bg-white/10"></div>
                         <p class="text-[9px] sm:text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.35em] leading-none">
                             Congregación Nueve de Octubre
@@ -62,66 +62,66 @@ export const renderLogin = (container) => {
                 </div>
                 
                 <!-- Breathtaking Frost-Glass Responsive Container (Súper Card style) -->
-                <div class="super-card w-full max-w-sm sm:max-w-4xl p-5 sm:p-10 lg:p-12 flex flex-col sm:grid sm:grid-cols-2 gap-6 lg:gap-8 box-border">
+                <div class="super-card w-full max-w-sm sm:max-w-3xl p-5 sm:p-7 lg:p-8 flex flex-col sm:grid sm:grid-cols-2 gap-5 lg:gap-6 box-border">
                 
                     <!-- Panel Administrador -->
-                    <button id="btn-google-login" class="group flex flex-col p-6 bg-white/40 dark:bg-white/[0.03] rounded-3xl border border-white/60 dark:border-white/5 shadow-[0_4px_20px_rgba(0,0,0,0.01)] transition-all duration-500 hover:-translate-y-1.5 hover:shadow-[0_30px_60px_-15px_rgba(99,102,241,0.25)] hover:border-indigo-500/40 dark:hover:border-indigo-400/30 w-full text-left cursor-pointer relative z-[99] focus:outline-none">
+                    <button id="btn-google-login" class="group flex flex-col p-5 bg-white/40 dark:bg-white/[0.03] rounded-2xl border border-white/60 dark:border-white/5 shadow-[0_4px_20px_rgba(0,0,0,0.01)] transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_20px_40px_-10px_rgba(99,102,241,0.2)] hover:border-indigo-500/40 dark:hover:border-indigo-400/30 w-full text-left cursor-pointer relative z-[99] focus:outline-none">
                         <!-- Top Info Row -->
                         <div class="flex items-center gap-4 w-full">
                             <!-- Icon Container -->
-                            <div class="p-3.5 bg-gradient-to-tr from-indigo-500 to-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-[0_8px_20px_rgba(99,102,241,0.25)] transition-transform group-hover:scale-110 duration-500 shrink-0">
-                                <i class="fas fa-user-shield text-lg h-5 w-5 flex items-center justify-center"></i>
+                            <div class="p-2.5 bg-gradient-to-tr from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center text-white shadow-[0_8px_20px_rgba(99,102,241,0.25)] transition-transform group-hover:scale-110 duration-500 shrink-0">
+                                <i class="fas fa-user-shield text-base h-5 w-5 flex items-center justify-center"></i>
                             </div>
                             <div class="flex-1 min-w-0">
-                                <h2 class="text-base font-black text-slate-800 dark:text-white tracking-tight uppercase leading-none">Administrador</h2>
+                                <h2 class="text-sm sm:text-base font-black text-slate-800 dark:text-white tracking-tight uppercase leading-none">Administrador</h2>
                                 <p class="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-1">Acceso seguro y analíticas</p>
                             </div>
                         </div>
 
                         <!-- Description (Desktop Only) -->
-                        <p class="hidden sm:block text-slate-500 dark:text-slate-400/80 mt-6 text-[11px] lg:text-xs leading-relaxed max-w-[320px] font-medium normal-case">
+                        <p class="hidden sm:block text-slate-500 dark:text-slate-400/80 mt-4 text-[10.5px] lg:text-[11px] leading-relaxed max-w-[280px] font-medium normal-case">
                             Gestión total de datos, reportes estratégicos S-13 y analíticas avanzadas de territorio.
                         </p>
                         
                         <!-- Divider Line -->
-                        <div class="w-full h-px bg-slate-200/40 dark:bg-white/5 my-4"></div>
+                        <div class="w-full h-px bg-slate-200/40 dark:bg-white/5 my-3"></div>
 
                         <!-- Status/Action Row -->
-                        <div id="google-status-wrapper" class="w-full flex items-center justify-between text-[9px] lg:text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors shrink-0">
+                        <div id="google-status-wrapper" class="w-full flex items-center justify-between text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors shrink-0">
                             <span class="text-[8px] sm:text-[9px] text-slate-400 dark:text-slate-500 font-medium">Método Seguro</span>
                             <div class="flex items-center gap-2">
-                                <img src="https://www.google.com/images/branding/product/2x/googleg_32dp.png" style="width: 14px; height: 14px;" class="object-contain flex-shrink-0 grayscale group-hover:grayscale-0 transition-all duration-300 contrast-125" alt="G">
-                                <span class="text-[8px] sm:text-[10px] font-black tracking-widest flex items-center gap-1">ACCEDER <i class="fas fa-arrow-right transition-transform group-hover:translate-x-1 duration-300"></i></span>
+                                <img src="https://www.google.com/images/branding/product/2x/googleg_32dp.png" style="width: 13px; height: 13px;" class="object-contain flex-shrink-0 grayscale group-hover:grayscale-0 transition-all duration-300 contrast-125" alt="G">
+                                <span class="text-[8px] sm:text-[9px] font-black tracking-widest flex items-center gap-1">ACCEDER <i class="fas fa-arrow-right transition-transform group-hover:translate-x-1 duration-300"></i></span>
                             </div>
                         </div>
                     </button>
 
                     <!-- Panel Conductor -->
-                    <button id="btn-conductor-trigger" class="group flex flex-col p-6 bg-white/40 dark:bg-white/[0.03] rounded-3xl border border-white/60 dark:border-white/5 shadow-[0_4px_20px_rgba(0,0,0,0.01)] transition-all duration-500 hover:-translate-y-1.5 hover:shadow-[0_30px_60px_-15px_rgba(16,185,129,0.25)] hover:border-emerald-500/40 dark:hover:border-emerald-400/30 w-full text-left cursor-pointer focus:outline-none">
+                    <button id="btn-conductor-trigger" class="group flex flex-col p-5 bg-white/40 dark:bg-white/[0.03] rounded-2xl border border-white/60 dark:border-white/5 shadow-[0_4px_20px_rgba(0,0,0,0.01)] transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_20px_40px_-10px_rgba(16,185,129,0.2)] hover:border-emerald-500/40 dark:hover:border-emerald-400/30 w-full text-left cursor-pointer focus:outline-none">
                         <!-- Top Info Row -->
                         <div class="flex items-center gap-4 w-full">
                             <!-- Icon Container -->
-                            <div class="p-3.5 bg-gradient-to-tr from-emerald-500 to-emerald-600 rounded-2xl flex items-center justify-center text-white shadow-[0_8px_20px_rgba(16,185,129,0.25)] transition-transform group-hover:scale-110 duration-500 shrink-0">
-                                <i class="fas fa-map-marked-alt text-lg h-5 w-5 flex items-center justify-center"></i>
+                            <div class="p-2.5 bg-gradient-to-tr from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center text-white shadow-[0_8px_20px_rgba(16,185,129,0.25)] transition-transform group-hover:scale-110 duration-500 shrink-0">
+                                <i class="fas fa-map-marked-alt text-base h-5 w-5 flex items-center justify-center"></i>
                             </div>
                             <div class="flex-1 min-w-0">
-                                <h2 class="text-base font-black text-slate-800 dark:text-white tracking-tight uppercase leading-none">Conductor</h2>
+                                <h2 class="text-sm sm:text-base font-black text-slate-800 dark:text-white tracking-tight uppercase leading-none">Conductor</h2>
                                 <p class="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-1">Terminal de predicación</p>
                             </div>
                         </div>
 
                         <!-- Description (Desktop Only) -->
-                        <p class="hidden sm:block text-slate-500 dark:text-slate-400/80 mt-6 text-[11px] lg:text-xs leading-relaxed max-w-[320px] font-medium normal-case">
+                        <p class="hidden sm:block text-slate-500 dark:text-slate-400/80 mt-4 text-[10.5px] lg:text-[11px] leading-relaxed max-w-[280px] font-medium normal-case">
                             Terminal de campo optimizada para la predicación en grupo y asignación ágil de territorios.
                         </p>
                         
                         <!-- Divider Line -->
-                        <div class="w-full h-px bg-slate-200/40 dark:bg-white/5 my-4"></div>
+                        <div class="w-full h-px bg-slate-200/40 dark:bg-white/5 my-3"></div>
                         
                         <!-- Status/Action Row -->
-                        <div class="w-full flex items-center justify-between text-[9px] lg:text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors shrink-0">
+                        <div class="w-full flex items-center justify-between text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors shrink-0">
                             <span class="text-[8px] sm:text-[9px] text-slate-400 dark:text-slate-500 font-medium">Acceso Público</span>
-                            <span class="text-[8px] sm:text-[10px] font-black tracking-widest flex items-center gap-1">INGRESAR <i class="fas fa-arrow-right transition-transform group-hover:translate-x-1 duration-300"></i></span>
+                            <span class="text-[8px] sm:text-[9px] font-black tracking-widest flex items-center gap-1">INGRESAR <i class="fas fa-arrow-right transition-transform group-hover:translate-x-1 duration-300"></i></span>
                         </div>
                     </button>
 
