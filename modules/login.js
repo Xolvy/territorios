@@ -19,7 +19,7 @@ export const renderLogin = (container) => {
             <div class="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-indigo-500/10 dark:bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none"></div>
             <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-500/5 dark:bg-blue-500/2 rounded-full blur-[140px] pointer-events-none"></div>
 
-            <div class="z-10 w-full max-w-2xl flex flex-col items-center gap-8 px-4 relative">
+            <div class="z-10 w-full flex flex-col items-center gap-8 px-4 relative" style="max-width: 42rem !important;">
                 
                 <!-- Logo Badge & Dynamic Title -->
                 <div id="login-logo-container" class="animate-fade-in transition-all duration-700 text-center flex flex-col items-center">
@@ -171,7 +171,7 @@ export const renderConductorSelection = async () => {
         "fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-black/75 backdrop-blur-md p-4 animate-fade-in";
 
     modal.innerHTML = `
-        <div class="modal-card-premium bg-white dark:bg-[#0a0f18] w-full max-w-md rounded-[2.5rem] shadow-2xl flex flex-col max-h-[85vh] overflow-hidden border border-transparent dark:border-white/10 transform transition-all">
+        <div class="modal-card-premium bg-white dark:bg-[#0a0f18] w-full rounded-[2.5rem] shadow-2xl flex flex-col max-h-[85vh] overflow-hidden border border-transparent dark:border-white/10 transform transition-all" style="max-width: 28rem !important;">
             <!-- Header Modal -->
             <div class="px-6 py-5 sm:px-8 sm:py-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between shrink-0">
                 <div>
