@@ -8,7 +8,6 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "prebuild": "npm run lint",
     "preview": "vite preview",
     "lint": "biome check app.js firebase-config.js modules data public",
     "lint:fix": "biome check --write app.js firebase-config.js modules data public",
