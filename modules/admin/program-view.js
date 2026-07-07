@@ -703,7 +703,7 @@ export const renderProgramaTab = async (container, configData = null) => {
             html += `
                 <div class="day-group animate-fade-in relative">
                     <!-- Header Día Normal -->
-                    <div class="py-4 mb-4 border-b border-slate-200/60 dark:border-white/5 flex items-center justify-between">
+                    <div class="py-4 mb-4 px-4 md:px-6 border-b border-slate-200/60 dark:border-white/5 flex items-center justify-between">
                         <div>
                             <h4 class="text-xl md:text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">${dia.nombre}</h4>
                             <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none mt-1">${dia.fecha}</p>

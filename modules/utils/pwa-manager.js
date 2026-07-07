@@ -90,7 +90,7 @@ const showUpdateBanner = () => {
     toast.className =
         "fixed top-32 left-4 right-4 md:left-1/2 md:right-auto md:-translate-x-1/2 md:w-[380px] z-[10001] animate-bounce-in";
     toast.innerHTML = `
-        <div class="modern-card bg-white/95 dark:bg-slate-900/95 text-slate-800 dark:text-white p-4.5 rounded-2xl shadow-2xl flex items-center gap-4 border border-emerald-500/15 backdrop-blur-xl">
+        <div class="modern-card bg-white/95 dark:bg-slate-900/95 text-slate-800 dark:text-white p-5 rounded-2xl shadow-2xl flex items-center gap-4 border border-emerald-500/15 backdrop-blur-xl">
             <div class="w-10 h-10 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-500 text-base shrink-0">
                 <i class="fas fa-rocket animate-pulse"></i>
             </div>
@@ -288,7 +288,7 @@ const showNotificationRationale = () => {
     rationale = document.createElement("div");
     rationale.id = "notification-rationale";
     rationale.className =
-        "w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl p-5.5 rounded-3xl border border-blue-500/15 animate-bounce-in shadow-[0_25px_60px_rgba(59,130,246,0.12)] dark:shadow-[0_25px_60px_rgba(0,0,0,0.5)] pointer-events-auto";
+        "w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl p-6 rounded-3xl border border-blue-500/15 animate-bounce-in shadow-[0_25px_60px_rgba(59,130,246,0.12)] dark:shadow-[0_25px_60px_rgba(0,0,0,0.5)] pointer-events-auto";
 
     rationale.innerHTML = `
         <div class="flex flex-col gap-4">
