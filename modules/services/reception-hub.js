@@ -97,8 +97,7 @@ export class ReceptionHub {
 
     /**
      * Renderiza el contenedor base del modal (Shell).
-     */
-    renderShell() {
+      renderShell() {
         let modal = document.getElementById("reception-hub-modal");
         if (modal) modal.remove();
 
@@ -110,28 +109,6 @@ export class ReceptionHub {
         modal.onclick = (e) => {
             if (e.target.id === "reception-hub-modal") this.closeModal();
         };
-
-        const todayId = UIHelpers.formatDateId(new Date());
-
-        const footerHTML = `
-            <div class="p-6 border-t border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-slate-900 space-y-4 shrink-0">
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="space-y-1">
-                        <label class="text-[8px] font-black text-slate-550 dark:text-slate-400 uppercase tracking-widest ml-1 block">Fecha de entrega</label>
-                        <input type="date" id="common-delivery-date" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-3 rounded-xl text-[11px] font-bold text-slate-700 dark:text-white outline-none cursor-pointer" value="${todayId}">
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-[8px] font-black text-slate-555 dark:text-slate-400 uppercase tracking-widest ml-1 block">Conductor</label>
-                        <select id="common-conductor" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-3 rounded-xl text-[11px] font-bold text-slate-700 dark:text-white outline-none cursor-pointer">
-                            ${this.buildConductorOptions(this.displayName)}
-                        </select>
-                    </div>
-                </div>
-                <button id="btn-submit-all-reports" class="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-500/20 transition-all active:scale-95 flex items-center justify-center gap-2">
-                    <i class="fas fa-check-double"></i> Confirmar y Guardar
-                </button>
-            </div>
-        `;
 
         modal.innerHTML = `
             <div class="bg-white dark:bg-[#0b0e14] rounded-[20px] w-full max-w-[500px] max-h-[88vh] flex flex-col shadow-2xl overflow-hidden animate-slide-up border border-slate-200 dark:border-white/10">
@@ -153,8 +130,6 @@ export class ReceptionHub {
                 <div id="reception-hub-list" class="flex-1 min-w-0 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-slate-50/50 dark:bg-black/10">
                     <!-- Contenido dinámico -->
                 </div>
-
-                ${footerHTML}
             </div>
         `;
 
@@ -323,15 +298,6 @@ export class ReceptionHub {
 
         html += groups
             .map((group) => {
-                const groupHeader = `
-            <div class="flex items-center gap-3 mb-4 mt-6 first:mt-0">
-                <div class="h-px bg-slate-200 dark:bg-white/5 flex-1 min-w-0"></div>
-                <span class="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest whitespace-nowrap">
-                    ${group.conductor} (${group.dayName})
-                </span>
-                <div class="h-px bg-slate-200 dark:bg-white/5 flex-1 min-w-0"></div>
-            </div>`;
-
                 const groupCards = group.items
                     .map((t) => {
                         if (!this.selections[t.id]) {
@@ -340,6 +306,7 @@ export class ReceptionHub {
                                 notes: "",
                                 conductorFinal: t.asignado_a || "",
                                 date: UIHelpers.formatDateId(new Date()),
+                                mode: "entregar",
                             };
                         }
                         const sel = this.selections[t.id];
@@ -350,16 +317,21 @@ export class ReceptionHub {
                                   .filter(Boolean)
                             : [];
 
-                        const allSelected = mzs.length > 0 && mzs.every((m) => sel.manzanas.includes(m));
-                        const partialSelected = sel.manzanas.length > 0 && !allSelected;
+                        const isEntregar = sel.mode !== "sin_entregar";
 
                         let statusBadge = "";
-                        if (allSelected) {
-                            statusBadge = `<span class="px-2.5 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[9px] font-black uppercase tracking-wider rounded-lg">Entrega Total</span>`;
-                        } else if (partialSelected) {
-                            statusBadge = `<span class="px-2.5 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[9px] font-black uppercase tracking-wider rounded-lg">Entrega Parcial</span>`;
+                        if (isEntregar) {
+                            const allSelected = mzs.length > 0 && mzs.every((m) => sel.manzanas.includes(m));
+                            const partialSelected = sel.manzanas.length > 0 && !allSelected;
+                            if (allSelected) {
+                                statusBadge = `<span class="px-2 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[9px] font-black uppercase tracking-wider rounded-lg">Entrega Total</span>`;
+                            } else if (partialSelected) {
+                                statusBadge = `<span class="px-2 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[9px] font-black uppercase tracking-wider rounded-lg">Entrega Parcial</span>`;
+                            } else {
+                                statusBadge = `<span class="px-2 py-0.5 bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/5 text-[9px] font-black uppercase tracking-wider rounded-lg font-bold">Sin Entregar</span>`;
+                            }
                         } else {
-                            statusBadge = `<span class="px-2.5 py-1 bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/5 text-[9px] font-black uppercase tracking-wider rounded-lg">Sin entregar</span>`;
+                            statusBadge = `<span class="px-2 py-0.5 bg-slate-100 dark:bg-white/5 text-slate-550 dark:text-slate-400 border border-slate-200/50 dark:border-white/5 text-[9px] font-black uppercase tracking-wider rounded-lg">Mantener Asignado</span>`;
                         }
 
                         const parsedAsigDate = UIHelpers.parseFirebaseDate(t.fecha_asignacion);
@@ -371,52 +343,115 @@ export class ReceptionHub {
                               })
                             : "—";
 
-                        return `
-                    <div class="modern-card territory-report-card p-5 border-slate-200 dark:border-white/10 space-y-4 bg-white dark:bg-white/[0.02] animate-fade-in mb-4" data-id="${t.id}" data-manzanas="${t.manzanas || ""}" data-numero="${t.numero}">
-                        <div class="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-3">
-                            <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 bg-indigo-500 text-white rounded-lg flex items-center justify-center font-black text-xs shadow-md">
-                                    ${t.numero}
-                                </div>
-                                <div class="min-w-0 flex-1">
-                                    <h4 class="text-[12px] font-black text-slate-800 dark:text-white uppercase truncate max-w-[180px]">${t.localidad || "Territorio"}</h4>
-                                    <p class="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mt-0.5">${mzs.length} Manzanas • Asignado: ${asigDateStr}</p>
-                                </div>
-                            </div>
-                            <div>
-                                ${statusBadge}
-                            </div>
-                        </div>
-                        
-                        <div class="space-y-3">
-                            <div class="flex flex-wrap items-center gap-1.5">
-                                ${mzs
-                                    .map((m) => {
-                                        const isSelected = sel.manzanas.includes(m);
-                                        return `
-                                    <button class="mz-select-btn px-3 py-1.5 rounded-lg border text-[10px] font-black transition-all ${isSelected ? "bg-indigo-600 border-indigo-600 text-white shadow-md" : "bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10"}" data-val="${m}">
-                                        ${String(m).trim().toLowerCase().startsWith("mz") ? m : `Mz. ${m}`}
+                        const toggleButtonHTML = `
+                            <button class="btn-toggle-delivery px-2.5 py-1.5 rounded-xl border text-[9px] font-black uppercase tracking-wider transition-all active:scale-95 flex items-center gap-1.5 ${
+                                isEntregar
+                                    ? "bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border-indigo-500/20"
+                                    : "bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-white/5"
+                            }" data-tid="${t.id}">
+                                <i class="fas ${isEntregar ? "fa-check-circle" : "fa-ban"}"></i>
+                                ${isEntregar ? "Entregar" : "Confirmar sin Entregar"}
+                            </button>
+                        `;
+
+                        let actionContentHTML = "";
+                        if (isEntregar) {
+                            actionContentHTML = `
+                            <div class="space-y-3">
+                                <div class="flex flex-wrap items-center gap-1.5">
+                                    ${mzs
+                                        .map((m) => {
+                                            const isSelected = sel.manzanas.includes(m);
+                                            return `
+                                        <button class="mz-select-btn px-3 py-1.5 rounded-lg border text-[10px] font-black transition-all ${
+                                            isSelected
+                                                ? "bg-indigo-600 border-indigo-600 text-white shadow-md"
+                                                : "bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10"
+                                        }" data-val="${m}">
+                                            ${String(m).trim().toLowerCase().startsWith("mz") ? m : `Mz. ${m}`}
+                                        </button>
+                                        `;
+                                        })
+                                        .join("")}
+                                    ${
+                                        mzs.length > 1
+                                            ? `
+                                    <button class="btn-mark-all-mzs ml-auto px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all" data-id="${t.id}">
+                                        Marcar todas
                                     </button>
-                                    `;
-                                    })
-                                    .join("")}
-                                ${
-                                    mzs.length > 1
-                                        ? `
-                                <button class="btn-mark-all-mzs ml-auto px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all" data-id="${t.id}">
-                                    Marcar todas
-                                </button>
-                                `
-                                        : ""
-                                }
+                                    `
+                                            : ""
+                                    }
+                                </div>
                             </div>
+                            `;
+                        } else {
+                            actionContentHTML = `
+                            <div class="flex items-center gap-2 p-3.5 bg-slate-50 dark:bg-white/[0.01] rounded-2xl border border-slate-250/30 dark:border-white/5">
+                                <i class="fas fa-info-circle text-[10.5px] text-slate-450 dark:text-slate-500"></i>
+                                <span class="text-[9.5px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">El territorio se mantendrá asignado (no se liberará)</span>
+                            </div>
+                            `;
+                        }
+
+                        return `
+                        <div class="modern-card territory-report-card p-5 border-slate-200 dark:border-white/10 space-y-4 bg-white dark:bg-white/[0.02] animate-fade-in ${!isEntregar ? "opacity-60 transition-opacity duration-300" : ""}" data-id="${t.id}" data-manzanas="${t.manzanas || ""}" data-numero="${t.numero}">
+                            <div class="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-3">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 bg-indigo-500 text-white rounded-lg flex items-center justify-center font-black text-xs shadow-md shrink-0">
+                                        ${t.numero}
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <h4 class="text-[12px] font-black text-slate-800 dark:text-white uppercase truncate max-w-[180px]">${t.localidad || "Territorio"}</h4>
+                                        <p class="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mt-0.5">${mzs.length} Manzanas • Asignado: ${asigDateStr}</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2 shrink-0">
+                                    ${toggleButtonHTML}
+                                    ${statusBadge}
+                                </div>
+                            </div>
+                            ${actionContentHTML}
                         </div>
-                    </div>
-                `;
+                    `;
                     })
                     .join("");
 
-                return groupHeader + groupCards;
+                const todayId = UIHelpers.formatDateId(new Date());
+
+                return `
+                <div class="assignment-group-block p-5 rounded-[2rem] border border-slate-200/80 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.01] shadow-sm space-y-4 mb-6" data-group-key="${group.key}">
+                    <div class="flex items-center justify-between border-b border-slate-200 dark:border-white/5 pb-3 mb-2">
+                        <span class="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-[0.2em] whitespace-nowrap">
+                            ${group.conductor} (${group.dayName})
+                        </span>
+                        <span class="text-[9.5px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-none">${group.dateStr}</span>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        ${groupCards}
+                    </div>
+
+                    <!-- Panel de Controles Local por Asignación -->
+                    <div class="mt-4 pt-4 border-t border-slate-200/80 dark:border-white/5 space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="space-y-1">
+                                <label class="text-[8px] font-black text-slate-550 dark:text-slate-400 uppercase tracking-widest ml-1 block">Fecha de devolución</label>
+                                <input type="date" class="group-date w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-3 rounded-xl text-[11px] font-bold text-slate-700 dark:text-white outline-none cursor-pointer" value="${group.key.split('_')[0] !== 'no-date' ? group.key.split('_')[0] : todayId}">
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[8px] font-black text-slate-555 dark:text-slate-400 uppercase tracking-widest ml-1 block">Conductor</label>
+                                <select class="group-conductor w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-3 rounded-xl text-[11px] font-bold text-slate-700 dark:text-white outline-none cursor-pointer">
+                                    ${this.buildConductorOptions(group.conductor)}
+                                </select>
+                            </div>
+                        </div>
+                        <button class="btn-confirm-group w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-500/20 transition-all active:scale-95 flex items-center justify-center gap-2" data-group-key="${group.key}">
+                            <i class="fas fa-check-double"></i> Confirmar y Guardar Asignación
+                        </button>
+                    </div>
+                </div>
+                `;
             })
             .join("");
 
@@ -443,7 +478,17 @@ export class ReceptionHub {
                       .filter(Boolean)
                 : [];
 
-            // 1. Manzanas Select Buttons
+            // Toggle delivery button
+            const toggleBtn = card.querySelector(".btn-toggle-delivery");
+            if (toggleBtn) {
+                toggleBtn.onclick = () => {
+                    const sel = this.selections[t.id];
+                    sel.mode = sel.mode === "sin_entregar" ? "entregar" : "sin_entregar";
+                    this.renderList();
+                };
+            }
+
+            // Manzanas Select Buttons
             card.querySelectorAll(".mz-select-btn").forEach((btn) => {
                 btn.onclick = () => {
                     const val = btn.dataset.val;
@@ -458,7 +503,7 @@ export class ReceptionHub {
                 };
             });
 
-            // 2. Mark All button
+            // Mark All button
             const markAllBtn = card.querySelector(".btn-mark-all-mzs");
             if (markAllBtn) {
                 markAllBtn.onclick = () => {
@@ -474,23 +519,35 @@ export class ReceptionHub {
             }
         });
 
-        // 3. Submit All reports button
-        const submitBtn = document.getElementById("btn-submit-all-reports");
-        if (submitBtn) {
-            submitBtn.onclick = async () => {
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Guardando...';
+        // 3. Submit reports for group button
+        list.querySelectorAll(".btn-confirm-group").forEach((btn) => {
+            btn.onclick = async () => {
+                const groupKey = btn.dataset.groupKey;
+                const groupBlock = list.querySelector(`.assignment-group-block[data-group-key="${groupKey}"]`);
+                if (!groupBlock) return;
+
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Guardando...';
 
                 try {
-                    const dateInput = document.getElementById("common-delivery-date");
+                    const dateInput = groupBlock.querySelector(".group-date");
                     const deliveryDate = dateInput ? dateInput.value : UIHelpers.formatDateId(new Date());
-                    const conductorInput = document.getElementById("common-conductor");
+                    const conductorInput = groupBlock.querySelector(".group-conductor");
                     const conductor = conductorInput ? conductorInput.value : this.displayName || "Conductor";
 
-                    // Check if any territory has zero apples selected (meaning Devolución)
-                    const returningWithoutPreaching = territoriosParaMostrar.filter((t) => {
+                    // Find all territory cards inside this specific group block
+                    const territoryCards = groupBlock.querySelectorAll(".territory-report-card");
+                    const groupTerritories = [];
+                    territoryCards.forEach((c) => {
+                        const tid = c.dataset.id;
+                        const t = this.territories.find((x) => x.id === tid);
+                        if (t) groupTerritories.push(t);
+                    });
+
+                    // Check if any territory to deliver has zero apples selected (meaning Devolución)
+                    const returningWithoutPreaching = groupTerritories.filter((t) => {
                         const sel = this.selections[t.id];
-                        return !sel?.manzanas || sel.manzanas.length === 0;
+                        return sel?.mode !== "sin_entregar" && (!sel?.manzanas || sel.manzanas.length === 0);
                     });
 
                     if (returningWithoutPreaching.length > 0) {
@@ -500,15 +557,22 @@ export class ReceptionHub {
                             `Vas a devolver ${nums} al panel sin registrar actividad (quedarán Disponibles). ¿Confirmar devolución?`,
                         );
                         if (!confirmed) {
-                            submitBtn.disabled = false;
-                            submitBtn.innerHTML = '<i class="fas fa-check-double"></i> Confirmar y Guardar';
+                            btn.disabled = false;
+                            btn.innerHTML = '<i class="fas fa-check-double"></i> Confirmar y Guardar Asignación';
                             return;
                         }
                     }
 
-                    // Process each territory
-                    for (const t of territoriosParaMostrar) {
+                    // Process each territory in the group
+                    let processedCount = 0;
+                    for (const t of groupTerritories) {
                         const sel = this.selections[t.id];
+                        if (sel?.mode === "sin_entregar") {
+                            // Confirm without delivering -> keep assigned
+                            continue;
+                        }
+
+                        processedCount++;
                         const mzs = t.manzanas
                             ? t.manzanas
                                   .split(",")
@@ -550,15 +614,25 @@ export class ReceptionHub {
 
                     showNotification("Actividad informada correctamente", "success");
                     if (window.renderTableCallback) window.renderTableCallback();
-                    this.closeModal();
+
+                    // Auto-close if everything in the hub is processed
+                    const activeStateFilter = ["Disponible", "Predicado", "Sin asignar", "Extraviado", "Libre"];
+                    const remainingActive = this.territories.filter(
+                        (t) => !activeStateFilter.includes(t.estado) && !activeStateFilter.includes(t.status)
+                    );
+                    if (remainingActive.length === 0) {
+                        setTimeout(() => {
+                            this.closeModal();
+                        }, 800);
+                    }
                 } catch (error) {
                     console.error("Error submitting reports:", error);
                     showNotification(error.message || "Error al guardar la actividad", "error");
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = '<i class="fas fa-check-double"></i> Confirmar y Guardar';
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-check-double"></i> Confirmar y Guardar Asignación';
                 }
             };
-        }
+        });
     }
 
     showInlineConfirm(title, text) {
