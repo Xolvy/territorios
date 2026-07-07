@@ -45,6 +45,7 @@ export default defineConfig({
         }),
         checker({
             biome: true,
+            enableBuild: false,
         }),
         VitePWA({
             // FASE 1: Prompt modo — el usuario decide cuándo actualizar
