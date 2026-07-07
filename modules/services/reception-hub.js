@@ -317,7 +317,7 @@ export class ReceptionHub {
                                   .filter(Boolean)
                             : [];
 
-                        const isEntregar = sel.mode !== "sin_entregar";
+                        const isEntregar = sel.mode !== "sin_predicar";
 
                         let statusBadge = "";
                         if (isEntregar) {
@@ -331,7 +331,7 @@ export class ReceptionHub {
                                 statusBadge = `<span class="px-2 py-0.5 bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/5 text-[9px] font-black uppercase tracking-wider rounded-lg font-bold">Sin Entregar</span>`;
                             }
                         } else {
-                            statusBadge = `<span class="px-2 py-0.5 bg-slate-100 dark:bg-white/5 text-slate-550 dark:text-slate-400 border border-slate-200/50 dark:border-white/5 text-[9px] font-black uppercase tracking-wider rounded-lg">Mantener Asignado</span>`;
+                            statusBadge = `<span class="px-2 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[9px] font-black uppercase tracking-wider rounded-lg">Sin Predicar</span>`;
                         }
 
                         const parsedAsigDate = UIHelpers.parseFirebaseDate(t.fecha_asignacion);
@@ -347,10 +347,10 @@ export class ReceptionHub {
                             <button class="btn-toggle-delivery px-2.5 py-1.5 rounded-xl border text-[9px] font-black uppercase tracking-wider transition-all active:scale-95 flex items-center gap-1.5 ${
                                 isEntregar
                                     ? "bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border-indigo-500/20"
-                                    : "bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-white/5"
+                                    : "bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-550 dark:text-slate-400 border-slate-200 dark:border-white/5"
                             }" data-tid="${t.id}">
-                                <i class="fas ${isEntregar ? "fa-check-circle" : "fa-ban"}"></i>
-                                ${isEntregar ? "Entregar" : "Confirmar sin Entregar"}
+                                <i class="fas ${isEntregar ? "fa-clipboard-check" : "fa-undo"}"></i>
+                                ${isEntregar ? "Devolver Predicado" : "Devolver sin Predicar"}
                             </button>
                         `;
 
@@ -388,11 +388,11 @@ export class ReceptionHub {
                         } else {
                             actionContentHTML = `
                             <div class="flex items-center gap-2 p-3.5 bg-slate-50 dark:bg-white/[0.01] rounded-2xl border border-slate-250/30 dark:border-white/5">
-                                <i class="fas fa-info-circle text-[10.5px] text-slate-450 dark:text-slate-500"></i>
-                                <span class="text-[9.5px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">El territorio se mantendrá asignado (no se liberará)</span>
+                                <i class="fas fa-info-circle text-[10.5px] text-amber-500 font-black"></i>
+                                <span class="text-[9.5px] font-bold text-slate-550 dark:text-slate-400 uppercase tracking-wide">El territorio se liberará y quedará libre en el mapa</span>
                             </div>
                             `;
-                        }
+                        }                       }
 
                         return `
                         <div class="modern-card territory-report-card p-5 border-slate-200 dark:border-white/10 space-y-4 bg-white dark:bg-white/[0.02] animate-fade-in ${!isEntregar ? "opacity-60 transition-opacity duration-300" : ""}" data-id="${t.id}" data-manzanas="${t.manzanas || ""}" data-numero="${t.numero}">
@@ -547,7 +547,7 @@ export class ReceptionHub {
                     // Check if any territory to deliver has zero apples selected (meaning Devolución)
                     const returningWithoutPreaching = groupTerritories.filter((t) => {
                         const sel = this.selections[t.id];
-                        return sel?.mode !== "sin_entregar" && (!sel?.manzanas || sel.manzanas.length === 0);
+                        return sel?.mode !== "sin_predicar" && (!sel?.manzanas || sel.manzanas.length === 0);
                     });
 
                     if (returningWithoutPreaching.length > 0) {
@@ -567,8 +567,12 @@ export class ReceptionHub {
                     let processedCount = 0;
                     for (const t of groupTerritories) {
                         const sel = this.selections[t.id];
-                        if (sel?.mode === "sin_entregar") {
-                            // Confirm without delivering -> keep assigned
+                        if (sel?.mode === "sin_predicar") {
+                            // Devolución sin predicar (Disponible)
+                            await returnTerritorio(t.id, "Devolución sin predicar desde control unificado", null, "Disponible");
+                            window.dispatchEvent(
+                                new CustomEvent("territorio-liberado", { detail: { id: t.id, numero: t.numero } }),
+                            );
                             continue;
                         }
 
