@@ -7,7 +7,7 @@ export const getPermisosUsuario = async (email) => {
         const qPub = query(collection(db, "publicadores"), where("telefono", "==", email));
         let snap = await getDocs(qPub);
         if (snap.empty) {
-            const qEmail = query(collection(db, "publicadores"), where("email", "==", email));
+            const qEmail = query(collection(db, "publicadores"), where("email", "==", email.toLowerCase()));
             snap = await getDocs(qEmail);
         }
         if (!snap.empty) {

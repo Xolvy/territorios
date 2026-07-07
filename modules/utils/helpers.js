@@ -167,9 +167,9 @@ export const showNotification = (
             : "";
 
     const animationClass = "animate-slide-in-down md:animate-slide-in-right";
-    card.className = `${s.bg} border backdrop-blur-xl px-4.5 py-3 rounded-2xl shadow-[0_20px_40px_-10px_rgba(0,0,0,0.06)] dark:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.3)] flex flex-col gap-1 ${animationClass} pointer-events-auto transform transition-all duration-500 hover:scale-[1.01] group w-full max-w-[310px]`;
+    card.className = `${s.bg} border backdrop-blur-xl p-4 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.06)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.35)] flex flex-col gap-1.5 ${animationClass} pointer-events-auto transform transition-all duration-500 hover:scale-[1.01] group w-full max-w-[340px]`;
     card.innerHTML = `
-        <div class="flex items-center gap-3 w-full">
+        <div class="flex items-center gap-3.5 w-full">
             <div class="w-9 h-9 ${s.iconBg} rounded-xl flex items-center justify-center ${s.text} shadow-sm shrink-0 group-hover:scale-105 transition-transform duration-300">
                  <i class="fas ${s.icon} text-sm"></i>
             </div>
@@ -178,9 +178,9 @@ export const showNotification = (
                     <span class="text-[8px] font-black ${s.text} uppercase tracking-[0.25em]">${s.label}</span>
                     <span class="w-1 h-1 ${s.text.replace("text-", "bg-")} rounded-full animate-pulse"></span>
                 </div>
-                <h4 class="text-[11px] font-black ${isSync ? "text-slate-900 dark:text-indigo-100" : "text-slate-850 dark:text-white"} uppercase tracking-tight leading-tight">${displayMessage}</h4>
+                <h4 class="text-[12px] font-bold ${isSync ? "text-slate-900 dark:text-indigo-100" : "text-slate-800 dark:text-white"} normal-case tracking-wide leading-snug">${displayMessage}</h4>
             </div>
-            <button id="notif-close-${id}" class="ml-2 text-slate-400 dark:text-slate-500 hover:text-rose-500 transition-colors opacity-60 hover:opacity-100 p-1">
+            <button id="notif-close-${id}" class="ml-2 text-slate-400 dark:text-slate-500 hover:text-rose-500 transition-colors opacity-60 hover:opacity-100 p-1 cursor-pointer">
                 <i class="fas fa-times text-xs"></i>
             </button>
         </div>

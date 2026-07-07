@@ -1995,7 +1995,11 @@ export const renderConductorDashboard = async (container, nameOrEmail, _appVersi
             if (modoAdminBtn) {
                 modoAdminBtn.addEventListener("click", (e) => {
                     e.preventDefault();
-                    window.location.href = "/administrador";
+                    if (typeof window.switchToAdminView === "function") {
+                        window.switchToAdminView();
+                    } else {
+                        window.location.href = "/administrador";
+                    }
                 });
             }
 

@@ -70,7 +70,7 @@ VisualEngine.applyGlobalEcosystem();
 // moduleRegistry.init();
 
 // The version is injected by Vite at build time (Core Shell Version)
-const APP_VERSION = "3.8.5";
+const APP_VERSION = "3.9.0";
 window.XolvyApp = { user: null, version: APP_VERSION };
 
 // --- XOLVY MODULAR: MICRO-MODULE ENGINE ---
@@ -389,7 +389,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             // 2.3 Dashboard Routing (role from Firestore ONLY)
             const isAdmin = role === "Administrador" || role === "SuperAdmin";
-            const path = window.location.pathname;
+            let path = window.location.pathname;
 
             // FASE 1: Hard-Gated Admin Route Guard (Unbypassable P0 Shield)
             if (path.startsWith("/administrador")) {
@@ -404,14 +404,14 @@ document.addEventListener("DOMContentLoaded", async () => {
                 }
             }
 
-            // FASE 2: Redirect duro y limpio en raíz o login
+            // FASE 2: Redirect suave y limpio en raíz o login (cero parpadeos)
             if (path === "/" || path === "/login" || path.includes("index.html")) {
                 if (isAdmin) {
-                    window.location.href = "/administrador";
+                    window.history.replaceState({}, "", "/administrador");
                 } else {
-                    window.location.href = "/conductores";
+                    window.history.replaceState({}, "", "/conductores");
                 }
-                return;
+                path = window.location.pathname;
             }
 
             if (isAdmin && path.startsWith("/conductores")) {
