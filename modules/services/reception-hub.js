@@ -392,7 +392,7 @@ export class ReceptionHub {
                                 <span class="text-[9.5px] font-bold text-slate-550 dark:text-slate-400 uppercase tracking-wide">El territorio se liberará y quedará libre en el mapa</span>
                             </div>
                             `;
-                        }                       }
+                        }
 
                         return `
                         <div class="modern-card territory-report-card p-5 border-slate-200 dark:border-white/10 space-y-4 bg-white dark:bg-white/[0.02] animate-fade-in ${!isEntregar ? "opacity-60 transition-opacity duration-300" : ""}" data-id="${t.id}" data-manzanas="${t.manzanas || ""}" data-numero="${t.numero}">
