@@ -4,7 +4,7 @@ import viteCompression from 'vite-plugin-compression';
 import checker from 'vite-plugin-checker';
 import pkg from './package.json';
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
     root: '.',
     define: {
         __APP_VERSION__: JSON.stringify(pkg.version),
@@ -43,10 +43,9 @@ export default defineConfig({
             algorithm: 'gzip',
             ext: '.gz',
         }),
-        checker({
+        command === 'serve' ? checker({
             biome: true,
-            enableBuild: false,
-        }),
+        }) : null,
         VitePWA({
             // FASE 1: Prompt modo — el usuario decide cuándo actualizar
             registerType: 'prompt',
@@ -102,5 +101,5 @@ export default defineConfig({
                 ]
             }
         }),
-    ]
-});
+    ].filter(Boolean)
+}));

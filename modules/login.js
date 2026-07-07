@@ -43,7 +43,7 @@ export const renderLogin = (container) => {
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
                 
                     <!-- Panel Administrador -->
-                    <button id="btn-google-login" class="group flex flex-col p-6 md:p-8 bg-white/70 dark:bg-slate-900/60 rounded-[2.5rem] border border-slate-200/60 dark:border-white/5 shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-1.5 hover:border-indigo-500/40 dark:hover:border-indigo-400/30 w-full text-center cursor-pointer relative z-[99] focus:outline-none backdrop-blur-xl">
+                    <div id="btn-google-login" role="button" tabindex="0" class="group flex flex-col p-6 md:p-8 bg-white/70 dark:bg-slate-900/60 rounded-[2.5rem] border border-slate-200/60 dark:border-white/5 shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-1.5 hover:border-indigo-500/40 dark:hover:border-indigo-400/30 w-full text-center cursor-pointer relative z-[99] focus:outline-none backdrop-blur-xl">
                         <!-- Icon Badge -->
                         <div class="w-14 h-14 bg-gradient-to-tr from-indigo-500 via-indigo-600 to-violet-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/20 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 mb-6 mx-auto">
                             <i class="fas fa-user-shield text-xl"></i>
@@ -64,10 +64,10 @@ export const renderLogin = (container) => {
                             <span>Acceder con Google</span>
                             <i class="fas fa-arrow-right transition-transform group-hover:translate-x-1 duration-300 ml-1"></i>
                         </div>
-                    </button>
+                    </div>
 
                     <!-- Panel Conductor -->
-                    <button id="btn-conductor-trigger" class="group flex flex-col p-6 md:p-8 bg-white/70 dark:bg-slate-900/60 rounded-[2.5rem] border border-slate-200/60 dark:border-white/5 shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-1.5 hover:border-emerald-500/40 dark:hover:border-emerald-400/30 w-full text-center cursor-pointer relative z-[99] focus:outline-none backdrop-blur-xl">
+                    <div id="btn-conductor-trigger" role="button" tabindex="0" class="group flex flex-col p-6 md:p-8 bg-white/70 dark:bg-slate-900/60 rounded-[2.5rem] border border-slate-200/60 dark:border-white/5 shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-1.5 hover:border-emerald-500/40 dark:hover:border-emerald-400/30 w-full text-center cursor-pointer relative z-[99] focus:outline-none backdrop-blur-xl">
                         <!-- Icon Badge -->
                         <div class="w-14 h-14 bg-gradient-to-tr from-emerald-500 via-teal-500 to-teal-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/20 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 mb-6 mx-auto">
                             <i class="fas fa-map-marked-alt text-xl"></i>
@@ -88,7 +88,7 @@ export const renderLogin = (container) => {
                             <span>Ingresar al Directorio</span>
                             <i class="fas fa-arrow-right transition-transform group-hover:translate-x-1 duration-300 ml-1"></i>
                         </div>
-                    </button>
+                    </div>
 
                     <div id="auth-error" class="hidden col-span-full mt-2 text-rose-600 text-[8px] font-bold uppercase tracking-widest text-center animate-pulse"></div>
                 </div>
@@ -110,7 +110,8 @@ export const renderLogin = (container) => {
 
         if (btnGoogle) {
             btnGoogle.addEventListener("click", async () => {
-                btnGoogle.disabled = true;
+                if (btnGoogle.classList.contains("pointer-events-none")) return;
+                btnGoogle.classList.add("pointer-events-none", "opacity-50");
                 googleStatusWrapper.innerHTML = `<i class="fas fa-circle-notch animate-spin mr-2"></i> Redirigiendo...`;
 
                 // FASE 1: Limpieza estricta de rutas previas e ignorar caché de navegación
@@ -133,7 +134,7 @@ export const renderLogin = (container) => {
                     console.error("Error en Auth:", error);
                     errorEl.textContent = `Error de Servidor: ${error.message}`;
                     errorEl.classList.remove("hidden");
-                    btnGoogle.disabled = false;
+                    btnGoogle.classList.remove("pointer-events-none", "opacity-50");
                     googleStatusWrapper.innerHTML = `
                         <img src="https://www.google.com/images/branding/product/2x/googleg_32dp.png" class="w-5 h-5 grayscale group-hover:grayscale-0 transition-all" alt="G">
                         <span>ACCEDER CON GOOGLE &rarr;</span>
