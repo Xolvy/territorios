@@ -1,4 +1,4 @@
-import { GoogleAuthProvider, signInAnonymously, signInWithPopup } from "firebase/auth";
+import { GoogleAuthProvider, signInAnonymously, signInWithPopup, signInWithRedirect } from "firebase/auth";
 import { getPublicadores } from "../data/firestore-services.js";
 import { auth } from "../firebase-config.js";
 
@@ -111,7 +111,7 @@ export const renderLogin = (container) => {
         if (btnGoogle) {
             btnGoogle.addEventListener("click", async () => {
                 btnGoogle.disabled = true;
-                googleStatusWrapper.innerHTML = `<i class="fas fa-circle-notch animate-spin mr-2"></i> Iniciando Sesión...`;
+                googleStatusWrapper.innerHTML = `<i class="fas fa-circle-notch animate-spin mr-2"></i> Conectando...`;
 
                 // FASE 1: Limpieza estricta de rutas previas e ignorar caché de navegación
                 localStorage.removeItem("lastPath");
@@ -127,8 +127,22 @@ export const renderLogin = (container) => {
                 try {
                     const provider = new GoogleAuthProvider();
                     provider.setCustomParameters({ prompt: "select_account" });
-                    // SECURITY v4.0: NO demo_role stored. Role verified from Firestore post-redirect.
-                    await signInWithPopup(auth, provider);
+                    
+                    const isPrimaryDomain =
+                        window.location.hostname === "territorios-jw.web.app" ||
+                        window.location.hostname === "territorios-jw.firebaseapp.com";
+
+                    const isStandalone =
+                        window.navigator.standalone ||
+                        window.matchMedia("(display-mode: standalone)").matches;
+
+                    if (isPrimaryDomain || isStandalone) {
+                        console.log("🛡️ [Auth] Hybrid Strategy: Using signInWithRedirect for maximum PWA/iOS integration.");
+                        await signInWithRedirect(auth, provider);
+                    } else {
+                        console.log("🛡️ [Auth] Hybrid Strategy: Using signInWithPopup to bypass cross-origin browser constraints.");
+                        await signInWithPopup(auth, provider);
+                    }
                 } catch (error) {
                     console.error("Error en Auth:", error);
                     errorEl.textContent = `Error de Servidor: ${error.message}`;
