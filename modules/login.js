@@ -1,4 +1,4 @@
-import { GoogleAuthProvider, signInAnonymously, signInWithRedirect } from "firebase/auth";
+import { GoogleAuthProvider, signInAnonymously, signInWithPopup } from "firebase/auth";
 import { getPublicadores } from "../data/firestore-services.js";
 import { auth } from "../firebase-config.js";
 
@@ -111,7 +111,7 @@ export const renderLogin = (container) => {
         if (btnGoogle) {
             btnGoogle.addEventListener("click", async () => {
                 btnGoogle.disabled = true;
-                googleStatusWrapper.innerHTML = `<i class="fas fa-circle-notch animate-spin mr-2"></i> Redirigiendo...`;
+                googleStatusWrapper.innerHTML = `<i class="fas fa-circle-notch animate-spin mr-2"></i> Iniciando Sesión...`;
 
                 // FASE 1: Limpieza estricta de rutas previas e ignorar caché de navegación
                 localStorage.removeItem("lastPath");
@@ -128,7 +128,7 @@ export const renderLogin = (container) => {
                     const provider = new GoogleAuthProvider();
                     provider.setCustomParameters({ prompt: "select_account" });
                     // SECURITY v4.0: NO demo_role stored. Role verified from Firestore post-redirect.
-                    await signInWithRedirect(auth, provider);
+                    await signInWithPopup(auth, provider);
                 } catch (error) {
                     console.error("Error en Auth:", error);
                     errorEl.textContent = `Error de Servidor: ${error.message}`;
