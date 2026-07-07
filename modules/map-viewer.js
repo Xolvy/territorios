@@ -995,3 +995,12 @@ window.openInteractiveMap = (territory, options = {}) => {
     modal.classList.add("flex");
     MapViewer.render(document.getElementById("map-viewer-root"), territory, options);
 };
+
+window.openGlobalMap = (allTerritorios) => {
+    const modal = document.getElementById("modal-container");
+    if (!modal) return;
+    modal.innerHTML = '<div id="map-viewer-root" class="w-full h-full max-w-6xl mx-auto p-2 md:p-8"></div>';
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+    MapViewer.renderGlobal(document.getElementById("map-viewer-root"), allTerritorios);
+};

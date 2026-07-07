@@ -287,9 +287,19 @@ export const openSugeridorModal = (programa, renderTableCallback) => {
 
     const getTerritoryStatus = (num, estado) => {
         const isAssigned = assignedTerritoryNumbers.has(num);
-        if (!isAssigned) return "libre";
-        if (estado === "Disponible" || estado === "Libre") return "devuelto";
-        return "ocupado";
+        if (isAssigned || estado === "Asignado") return "ocupado";
+
+        // Check if there is any history for this territory number
+        const hasHistory = historial.some((h) => {
+            const histNum = String(h.territorio_id || h.numero || "").trim();
+            return (
+                histNum === num &&
+                (h.estado === "Completado" || (h.fecha_entrega && String(h.fecha_entrega).trim() !== ""))
+            );
+        });
+
+        if (hasHistory) return "devuelto";
+        return "libre";
     };
 
     // ════════════════════════════════════════════════════════════════════════
@@ -471,11 +481,30 @@ export const openSugeridorModal = (programa, renderTableCallback) => {
             }
         }
 
-        if (layerGroup.getLayers().length > 0) {
-            leafletMap.fitBounds(layerGroup.getBounds(), { padding: [40, 40] });
+        // Determine map centering based on selectedRefKey
+        if (selectedRefKey === "gps" && refCoords) {
+            leafletMap.setView([refCoords.lat, refCoords.lng], 16);
+            updateGpsMarkerOnMap(refCoords.lat, refCoords.lng);
+        } else if (selectedRefKey !== "none" && selectedRefKey !== "gps") {
+            const currentT = uniqueTs.find((x) => x.numero === selectedRefKey);
+            if (currentT) {
+                const allItems = extractMultiLeafletCoords(currentT);
+                if (allItems.length > 0) {
+                    const tBounds = L.featureGroup(allItems.map((item) => L.polygon(item.coords || item))).getBounds();
+                    leafletMap.fitBounds(tBounds, { padding: [50, 50], maxZoom: 16 });
+                } else if (currentT.centroid) {
+                    leafletMap.setView([currentT.centroid.lat, currentT.centroid.lng], 16);
+                }
+            } else if (layerGroup.getLayers().length > 0) {
+                leafletMap.fitBounds(layerGroup.getBounds(), { padding: [40, 40] });
+            }
+        } else {
+            if (layerGroup.getLayers().length > 0) {
+                leafletMap.fitBounds(layerGroup.getBounds(), { padding: [40, 40] });
+            }
         }
 
-        if (refCoords) {
+        if (refCoords && selectedRefKey !== "gps") {
             updateGpsMarkerOnMap(refCoords.lat, refCoords.lng);
         }
 
@@ -526,22 +555,13 @@ export const openSugeridorModal = (programa, renderTableCallback) => {
 
                     if (loader) loader.classList.add("hidden");
 
-                    updateGpsMarkerOnMap(lat, lng);
-
                     const selectEl = document.getElementById("ai-ref-select");
                     if (selectEl) selectEl.value = "gps";
                     selectedRefKey = "gps";
 
                     const containingT = findTerritoryContainingPoint(lat, lng, uniqueTs);
-                    const L = window.L;
 
-                    if (containingT && L) {
-                        const allItems = extractMultiLeafletCoords(containingT);
-                        const bounds = L.featureGroup(
-                            allItems.map((item) => L.polygon(item.coords || item)),
-                        ).getBounds();
-                        // limit maxZoom to 16 so it does not zoom too close
-                        leafletMap.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+                    if (containingT) {
                         showNotification(`Te encuentras en el Territorio ${containingT.numero}`, "success");
                     } else {
                         // Find closest territory
@@ -557,21 +577,16 @@ export const openSugeridorModal = (programa, renderTableCallback) => {
                             }
                         }
 
-                        if (closestT && L) {
-                            const allItems = extractMultiLeafletCoords(closestT);
-                            const bounds = L.featureGroup(
-                                allItems.map((item) => L.polygon(item.coords || item)),
-                            ).getBounds();
-                            leafletMap.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+                        if (closestT) {
                             showNotification(
                                 `Ubicación GPS fijada. Centrado en el Territorio ${closestT.numero} más cercano`,
                                 "info",
                             );
                         } else {
-                            leafletMap.setView([lat, lng], 16);
                             showNotification("Ubicación GPS sincronizada", "success");
                         }
                     }
+                    renderMap();
                 },
                 (err) => {
                     console.warn("[GPS] Geolocator error:", err);

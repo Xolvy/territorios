@@ -87,15 +87,12 @@ export const xPrompt = async (title, placeholder = "", defaultValue = "") => {
     return result.isConfirmed ? result.value?.trim() : null;
 };
 
-/**
- * Toast notification (top-end, auto-dismiss)
- */
 export const xToast = (message, type = "success") => {
     const iconMap = {
-        success: "✓",
-        error: "✕",
-        warning: "⚠",
-        info: "ℹ",
+        success: '<i class="fas fa-check"></i>',
+        error: '<i class="fas fa-times"></i>',
+        warning: '<i class="fas fa-exclamation-triangle"></i>',
+        info: '<i class="fas fa-info-circle"></i>',
     };
     const colorMap = {
         success: "from-emerald-600 to-teal-500",
@@ -106,20 +103,22 @@ export const xToast = (message, type = "success") => {
 
     Swal.fire({
         toast: true,
-        position: "bottom-end",
+        position: "top-end",
         timer: 3500,
         timerProgressBar: true,
         showConfirmButton: false,
         customClass: {
-            popup: `!rounded-2xl !border !border-white/10 !shadow-2xl !backdrop-blur-xl !bg-slate-900/95 dark:!bg-black/90 !text-white !p-0 !overflow-hidden`,
+            popup: `!rounded-[1.75rem] !border !border-slate-200/60 dark:!border-white/10 !shadow-[0_20px_50px_rgba(0,0,0,0.05)] dark:!shadow-[0_20px_50px_rgba(0,0,0,0.45)] !backdrop-blur-xl !bg-white/95 dark:!bg-slate-900/95 !p-0 !overflow-hidden`,
         },
         html: `
-            <div class="flex items-center gap-4 px-5 py-4">
-                <div class="w-9 h-9 rounded-xl bg-gradient-to-br ${colorMap[type] || colorMap.info} flex items-center justify-center text-white font-black text-sm shadow-lg flex-shrink-0">${iconMap[type] || iconMap.info}</div>
-                <p class="text-sm font-bold text-white/95 leading-tight text-left">${message}</p>
+            <div class="flex items-center gap-4 px-5 py-4 w-full">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-br ${colorMap[type] || colorMap.info} flex items-center justify-center text-white font-black text-xs shadow-lg shadow-indigo-500/10 flex-shrink-0">
+                    ${iconMap[type] || iconMap.info}
+                </div>
+                <p class="text-xs font-black text-slate-800 dark:text-slate-100 leading-snug text-left flex-1 min-w-0">${message}</p>
             </div>
         `,
-        showClass: { popup: "animate-fade-in" },
+        showClass: { popup: "animate-slide-in-right" },
     });
 };
 

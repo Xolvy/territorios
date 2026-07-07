@@ -62,17 +62,14 @@ export const showNotification = (
     if (message.includes("Sincronizando")) displayMessage = message.replace("Sincronizando ", "Sinc: ");
 
     // Fallback truncation for very long ad-hoc messages
-    if (displayMessage.length > 60) displayMessage = `${displayMessage.substring(0, 57)}...`;
+    if (displayMessage.length > 75) displayMessage = `${displayMessage.substring(0, 72)}...`;
 
     const isSync = type === "sync" || message.includes("Sincronizando");
-    const isPwa = type === "pwa";
 
-    // 2. HUD Containers
+    // 2. Unified Premium HUD Container (Top-Center on mobile, Top-Right on desktop)
     const containerClass =
-        isSync || isPwa
-            ? "fixed top-6 left-1/2 -translate-x-1/2 z-[10001] flex flex-col items-center gap-4 pointer-events-none w-full max-w-md"
-            : "fixed bottom-6 right-6 z-[10000] flex flex-col items-end gap-3 pointer-events-none";
-    const hudId = isSync || isPwa ? "xolvy-notifications-top" : "xolvy-notifications-hud";
+        "fixed top-6 left-4 right-4 md:left-auto md:right-6 md:w-[380px] z-[10001] flex flex-col items-center md:items-end gap-3 pointer-events-none";
+    const hudId = "xolvy-notifications-hud";
 
     let hud = document.getElementById(hudId);
     if (!hud) {
@@ -90,66 +87,66 @@ export const showNotification = (
     // Type Styling
     const styles = {
         success: {
-            bg: "bg-white/90 dark:bg-slate-900/90 border-emerald-100/50 dark:border-emerald-500/10",
+            bg: "bg-white/95 dark:bg-slate-900/95 border-slate-200/60 dark:border-white/10",
             text: "text-emerald-500 dark:text-emerald-400",
             icon: "fa-check",
             label: "ÉXITO",
             iconBg: "bg-emerald-50 dark:bg-emerald-500/10",
         },
         error: {
-            bg: "bg-white/90 dark:bg-slate-900/90 border-rose-100/50 dark:border-rose-500/10",
+            bg: "bg-white/95 dark:bg-slate-900/95 border-slate-200/60 dark:border-white/10",
             text: "text-rose-500 dark:text-rose-400",
             icon: "fa-exclamation-triangle",
             label: "ERROR",
             iconBg: "bg-rose-50 dark:bg-rose-500/10",
         },
         warning: {
-            bg: "bg-white/90 dark:bg-slate-900/90 border-amber-100/50 dark:border-amber-500/10",
+            bg: "bg-white/95 dark:bg-slate-900/95 border-slate-200/60 dark:border-white/10",
             text: "text-amber-500 dark:text-amber-400",
             icon: "fa-exclamation-circle",
             label: "AVISO",
             iconBg: "bg-amber-50 dark:bg-amber-500/10",
         },
         info: {
-            bg: "bg-white/90 dark:bg-slate-900/90 border-blue-100/50 dark:border-blue-500/10",
+            bg: "bg-white/95 dark:bg-slate-900/95 border-slate-200/60 dark:border-white/10",
             text: "text-blue-500 dark:text-blue-400",
             icon: "fa-info-circle",
             label: "INFO",
             iconBg: "bg-blue-50 dark:bg-blue-500/10",
         },
         sync: {
-            bg: "bg-white/90 dark:bg-slate-900/90 border-indigo-100 dark:border-indigo-500/20",
+            bg: "bg-white/95 dark:bg-slate-900/95 border-indigo-100 dark:border-indigo-500/20",
             text: "text-indigo-600 dark:text-indigo-400",
             icon: "fa-sync-alt fa-spin-slow",
             label: "WORKFLOW",
             iconBg: "bg-indigo-50 dark:bg-indigo-500/10",
         },
         pwa: {
-            bg: "bg-indigo-600 dark:bg-indigo-500 border-indigo-700 dark:border-indigo-400 shadow-[0_15px_30px_rgba(79,70,229,0.35)]",
-            text: "text-white",
+            bg: "bg-white/95 dark:bg-slate-900/95 border-indigo-100 dark:border-indigo-500/20",
+            text: "text-indigo-600 dark:text-indigo-400",
             icon: "fa-cloud-download-alt",
             label: "PWA READY",
-            iconBg: "bg-white/20",
+            iconBg: "bg-indigo-50 dark:bg-indigo-500/10",
         },
     };
 
-    const s = styles[isPwa ? "pwa" : isSync ? "sync" : type] || styles.success;
+    const s = styles[type] || styles.success;
 
     // Workflow log rendering
     const workflowHTML =
         workflow.length > 0
-            ? `<div class="mt-3 pt-3 border-t ${isSync ? "border-indigo-500/10 dark:border-slate-800" : "border-slate-100 dark:border-slate-800"} space-y-1.5">
+            ? `<div class="mt-3 pt-3 border-t border-slate-150 dark:border-slate-800 space-y-1.5 w-full">
              ${workflow
                  .map(
                      (step) => `
                 <div class="flex items-center gap-2.5 opacity-75">
                     <span class="text-indigo-500 text-[10px]">▶</span>
-                    <span class="text-[9px] font-bold ${isSync ? "text-indigo-900/80 dark:text-indigo-300" : "text-slate-600 dark:text-slate-400"} uppercase tracking-widest leading-none">${step}</span>
+                    <span class="text-[9px] font-bold ${isSync ? "text-indigo-900/80 dark:text-indigo-300" : "text-slate-650 dark:text-slate-400"} uppercase tracking-widest leading-none">${step}</span>
                 </div>
              `,
                  )
                  .join("")}
-           </div>`
+            </div>`
             : "";
 
     // Undo/Cancel Action HUD
@@ -158,9 +155,9 @@ export const showNotification = (
     const undoHTML =
         onUndo || onComplete
             ? `
-        <div class="mt-4 flex items-center justify-between gap-4">
+        <div class="mt-4 flex items-center justify-between gap-4 w-full">
              <div class="flex-1 min-w-0 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                 <div id="notif-progress-${id}" class="h-full ${activeBarClass} w-full transition-all ease-linear" style="transition-duration: ${duration}ms"></div>
+                  <div id="notif-progress-${id}" class="h-full ${activeBarClass} w-full transition-all ease-linear" style="transition-duration: ${duration}ms"></div>
              </div>
              <button id="notif-undo-${id}" class="px-5 py-2 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-800 text-[9px] font-black uppercase tracking-widest ${s.text} shadow-sm hover:scale-105 active:scale-95 transition-all">
                 <i class="fas ${onComplete ? "fa-times" : "fa-undo-alt"} mr-1.5"></i> ${undoLabel}
@@ -169,8 +166,8 @@ export const showNotification = (
     `
             : "";
 
-    const animationClass = isSync || isPwa ? "animate-slide-down" : "animate-slide-left";
-    card.className = `${s.bg} border backdrop-blur-xl px-6 py-4.5 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.06)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.55)] flex flex-col gap-1.5 ${animationClass} pointer-events-auto transform transition-all duration-500 hover:scale-[1.01] group min-w-[320px] max-w-[380px]`;
+    const animationClass = "animate-slide-in-down md:animate-slide-in-right";
+    card.className = `${s.bg} border backdrop-blur-xl px-6 py-4.5 rounded-[2rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.08)] dark:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.4)] flex flex-col gap-1.5 ${animationClass} pointer-events-auto transform transition-all duration-500 hover:scale-[1.01] group w-full max-w-[380px]`;
     card.innerHTML = `
         <div class="flex items-center gap-4 w-full">
             <div class="w-11 h-11 ${s.iconBg} rounded-2xl flex items-center justify-center ${s.text} shadow-sm shrink-0 group-hover:scale-105 transition-transform duration-300">
@@ -179,9 +176,9 @@ export const showNotification = (
             <div class="flex flex-col flex-1 min-w-0">
                 <div class="flex items-center gap-1.5 mb-1">
                     <span class="text-[9px] font-black ${s.text} uppercase tracking-[0.25em]">${s.label}</span>
-                    <span class="w-1 h-1 ${s.text.replace("text-", "bg-")} rounded-full animate-pulse"></span>
+                    <span class="w-1.5 h-1.5 ${s.text.replace("text-", "bg-")} rounded-full animate-pulse"></span>
                 </div>
-                <h4 class="text-xs font-black ${isSync ? "text-slate-900 dark:text-indigo-100" : "text-slate-850 dark:text-white"} uppercase tracking-tight leading-none">${displayMessage}</h4>
+                <h4 class="text-xs font-black ${isSync ? "text-slate-900 dark:text-indigo-100" : "text-slate-850 dark:text-white"} uppercase tracking-tight leading-snug">${displayMessage}</h4>
             </div>
             <button id="notif-close-${id}" class="ml-2 text-slate-400 dark:text-slate-500 hover:text-rose-500 transition-colors opacity-60 hover:opacity-100 p-1">
                 <i class="fas fa-times text-xs"></i>

@@ -203,8 +203,8 @@ self.addEventListener("push", (event) => {
     event.waitUntil(
         self.registration.showNotification(title || "App Territorios", {
             body: body || "",
-            icon: "/icon-192.svg",
-            badge: "/icon-192.svg",
+            icon: "/icon-192.png",
+            badge: "/icon-192.png",
             vibrate: [200, 100, 200],
             requireInteraction: data.tipo === "alerta_privacidad",
             data: {

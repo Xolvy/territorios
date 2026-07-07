@@ -1854,9 +1854,14 @@ export const renderConductorDashboard = async (container, nameOrEmail, _appVersi
                                     </div>
                                  </summary>
                                  <div class="p-4 md:p-8 animate-fade-in group-open/maps-details:block hidden space-y-8">
-                                     <div class="w-full relative">
-                                         <i class="fas fa-search absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400"></i>
-                                         <input type="text" id="search-explorer-maps" placeholder="BUSCAR TERRITORIO..." style="padding-left: 3.5rem !important;" class="input-premium !py-4 !pr-6 text-[11px] uppercase tracking-widest bg-white dark:bg-slate-900 !text-slate-800 dark:!text-white placeholder-slate-400 dark:placeholder-slate-500 w-full">
+                                     <div class="flex flex-col sm:flex-row gap-4 items-stretch">
+                                          <div class="flex-1 relative">
+                                              <i class="fas fa-search absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400"></i>
+                                              <input type="text" id="search-explorer-maps" placeholder="BUSCAR TERRITORIO..." style="padding-left: 3.5rem !important;" class="input-premium !py-4 !pr-6 text-[11px] uppercase tracking-widest bg-white dark:bg-slate-900 !text-slate-800 dark:!text-white placeholder-slate-400 dark:placeholder-slate-500 w-full">
+                                          </div>
+                                          <button id="btn-open-global-map-explorer" type="button" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-600/20 active:scale-95 flex items-center justify-center gap-3 transition-all shrink-0">
+                                              <i class="fas fa-satellite"></i> <span>Ver Mapa General</span>
+                                          </button>
                                      </div>
                                      <div id="conductor-maps-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6"></div>
                                  </div>
@@ -2615,6 +2620,13 @@ export const renderConductorDashboard = async (container, nameOrEmail, _appVersi
             }
             if (userModsEffectivos.mapas !== false && mMaps?.renderMapsExplorer) {
                 mMaps.renderMapsExplorer(container, allTerritorios, (t) => window.openInteractiveMap(t));
+                const btnGlobalMap = container.querySelector("#btn-open-global-map-explorer");
+                if (btnGlobalMap) {
+                    btnGlobalMap.onclick = () => {
+                        if (window.openGlobalMap) window.openGlobalMap(allTerritorios);
+                        else showNotification("MapViewer global no cargado", "error");
+                    };
+                }
             }
             if (userModsEffectivos.programa !== false && mProg?.initializeWeeklyProgram) {
                 // Persist state during refresh
