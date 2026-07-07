@@ -70,7 +70,7 @@ VisualEngine.applyGlobalEcosystem();
 // moduleRegistry.init();
 
 // The version is injected by Vite at build time (Core Shell Version)
-const APP_VERSION = "3.9.2";
+const APP_VERSION = "3.9.3";
 window.XolvyApp = { user: null, version: APP_VERSION };
 
 // --- XOLVY MODULAR: MICRO-MODULE ENGINE ---

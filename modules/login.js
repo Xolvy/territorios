@@ -19,7 +19,7 @@ export const renderLogin = (container) => {
             <div class="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-indigo-500/10 dark:bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none"></div>
             <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-500/5 dark:bg-blue-500/2 rounded-full blur-[140px] pointer-events-none"></div>
 
-            <div class="z-10 w-full max-w-4xl flex flex-col items-center gap-8 px-4 relative">
+            <div class="z-10 w-full max-w-2xl flex flex-col items-center gap-8 px-4 relative">
                 
                 <!-- Logo Badge & Dynamic Title -->
                 <div id="login-logo-container" class="animate-fade-in transition-all duration-700 text-center flex flex-col items-center">
@@ -40,7 +40,7 @@ export const renderLogin = (container) => {
                 </div>
                 
                 <!-- Breathtaking Frost-Glass Responsive Grid Container -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
                 
                     <!-- Panel Administrador -->
                     <button id="btn-google-login" class="group flex flex-col p-6 md:p-8 bg-white/70 dark:bg-slate-900/60 rounded-[2.5rem] border border-slate-200/60 dark:border-white/5 shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-1.5 hover:border-indigo-500/40 dark:hover:border-indigo-400/30 w-full text-center cursor-pointer relative z-[99] focus:outline-none backdrop-blur-xl">
@@ -170,19 +170,19 @@ export const renderConductorSelection = async () => {
         "fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-black/75 backdrop-blur-md p-4 animate-fade-in";
 
     modal.innerHTML = `
-        <div class="modal-card-premium bg-white dark:bg-[#0a0f18] w-full max-w-lg rounded-[2.5rem] shadow-2xl flex flex-col max-h-[85vh] overflow-hidden border border-transparent dark:border-white/10 transform transition-all">
+        <div class="modal-card-premium bg-white dark:bg-[#0a0f18] w-full max-w-md rounded-[2.5rem] shadow-2xl flex flex-col max-h-[85vh] overflow-hidden border border-transparent dark:border-white/10 transform transition-all">
             <!-- Header Modal -->
-            <div class="p-8 border-b border-slate-100 dark:border-white/5 flex items-center justify-between shrink-0">
+            <div class="px-6 py-5 sm:px-8 sm:py-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between shrink-0">
                 <div>
                     <h2 class="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight font-sans">Directorio</h2>
                     <p class="text-[10px] text-slate-450 dark:text-slate-500 font-bold uppercase tracking-[0.25em] mt-1.5 leading-none">Busca tu nombre en el listado</p>
                 </div>
-                <button id="btn-close-modal-c" class="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-white/5 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 hover:border-rose-500/20 transition-all border border-slate-100 dark:border-white/10 shadow-inner group cursor-pointer focus:outline-none">
-                     <i class="fas fa-times group-hover:rotate-90 transition-transform"></i>
+                <button id="btn-close-modal-c" class="w-10 h-10 rounded-xl bg-slate-50 dark:bg-white/5 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 hover:border-rose-500/20 transition-all border border-slate-100 dark:border-white/10 shadow-inner group cursor-pointer focus:outline-none">
+                     <i class="fas fa-times group-hover:rotate-90 transition-transform text-xs"></i>
                 </button>
             </div>
             
-            <div class="p-8 space-y-6 flex-1 min-w-0 overflow-hidden flex flex-col bg-slate-50 dark:bg-slate-900/40">
+            <div class="p-6 sm:p-8 space-y-6 flex-1 min-w-0 overflow-hidden flex flex-col bg-slate-50 dark:bg-slate-900/40">
                 <div class="relative flex items-center w-full mb-2">
                     <div class="absolute inset-y-0 left-0 flex items-center pl-5 pointer-events-none">
                         <i class="fas fa-search text-slate-450 dark:text-slate-500 text-base"></i>
@@ -191,7 +191,7 @@ export const renderConductorSelection = async () => {
                         class="w-full py-4 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/10 rounded-2xl shadow-sm focus:ring-4 focus:ring-indigo-500/15 focus:border-indigo-500 transition-all font-bold text-base text-slate-800 dark:text-white placeholder:text-slate-350 dark:placeholder:text-slate-655 outline-none"
                         style="padding-left: 3.5rem !important;">
                 </div>
-
+ 
                 <!-- Scrollable People List -->
                 <div class="flex-1 min-w-0 overflow-y-auto pr-2 custom-scrollbar">
                     <div id="conductores-list" class="grid grid-cols-1 gap-4 py-2">
@@ -203,7 +203,6 @@ export const renderConductorSelection = async () => {
                         </div>
                     </div>
                 </div>
-            </div>
             </div>
         </div>
     `;
