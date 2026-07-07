@@ -192,6 +192,16 @@ document.addEventListener("DOMContentLoaded", async () => {
         .then((result) => {
             if (result?.user) {
                 console.log("💎 [Auth] Login exitoso vía Redirect:", result.user.email);
+                // Clean stale navigation caches (consolidated from login.js)
+                localStorage.removeItem("lastPath");
+                localStorage.removeItem("lastRoute");
+                localStorage.removeItem("redirectUrl");
+                localStorage.removeItem("redirectPath");
+                sessionStorage.removeItem("lastPath");
+                sessionStorage.removeItem("lastRoute");
+                sessionStorage.removeItem("redirectUrl");
+                sessionStorage.removeItem("redirectPath");
+                localStorage.removeItem("xolvy_session");
             }
         })
         .catch((redirectError) => {
@@ -325,9 +335,10 @@ document.addEventListener("DOMContentLoaded", async () => {
                     // This allows anonymous session to remain active so the user can read the directory list.
                     const isConductorModalOpen = !!document.getElementById("conductor-modal");
                     const isLoginView = !!document.getElementById("btn-google-login");
+                    const isLoginPath = contextPath === "/login" || contextPath === "/";
 
-                    if (isConductorModalOpen || isLoginView) {
-                        console.log("🛡️ [Auth] Anonymous session active for directory query.");
+                    if (isConductorModalOpen || isLoginView || isLoginPath) {
+                        console.log("🛡️ [Auth] Anonymous session active for directory query or login path.");
                         return;
                     }
 
@@ -572,14 +583,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     let authResolved = false;
 
-    // Failsafe Timeout: Si en 3 segundos no hay respuesta de Auth, forzamos salida del loader
+    // Failsafe Timeout: Si en 8 segundos no hay respuesta de Auth, forzamos salida del loader
     const authTimeout = setTimeout(async () => {
         if (!authResolved) {
             console.warn("⚠️ [Auth] Failsafe Timeout: Firebase Auth no respondió a tiempo. Forzando Login.");
             const render = await loadLogin();
             render(appContainer, APP_VERSION);
         }
-    }, 3500);
+    }, 8000);
 
     onAuthStateChanged(auth, (user) => {
         authResolved = true;

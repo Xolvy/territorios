@@ -1,4 +1,4 @@
-import { GoogleAuthProvider, getRedirectResult, signInAnonymously, signInWithRedirect } from "firebase/auth";
+import { GoogleAuthProvider, signInAnonymously, signInWithRedirect } from "firebase/auth";
 import { getPublicadores } from "../data/firestore-services.js";
 import { auth } from "../firebase-config.js";
 
@@ -7,28 +7,6 @@ import { applyTheme, updateDOMThemeToggles } from "./utils/theme-manager.js";
 export const renderLogin = (container) => {
     // Force auto-theme based on system preferences for the login screen
     applyTheme("auto");
-
-    // --- XOLVY REDIRECT CAPTURE (PWA SILENT LOGIN) ---
-    // SECURITY v4.0: No role check from localStorage.
-    // Post-redirect, onAuthStateChanged in app.js will fire,
-    // which calls getPermisosUsuario() to verify role from Firestore.
-    getRedirectResult(auth)
-        .then((result) => {
-            if (result?.user) {
-                console.log("💎 [Auth] Redirect Login Exitosa:", result.user.email);
-                // Clean stale navigation caches
-                localStorage.removeItem("lastPath");
-                localStorage.removeItem("lastRoute");
-                localStorage.removeItem("redirectUrl");
-                sessionStorage.removeItem("lastPath");
-                sessionStorage.removeItem("lastRoute");
-                sessionStorage.removeItem("redirectUrl");
-                // Role routing is handled by onAuthStateChanged → handleAuthChange in app.js
-            }
-        })
-        .catch((error) => {
-            console.error("❌ [Auth] Error en Redirect Login:", error);
-        });
 
     container.innerHTML = `
         <div class="bg-slate-50/60 dark:bg-[#030712]/60 min-h-screen flex items-center justify-center p-4 sm:p-6 font-sans animate-fade-in relative overflow-hidden w-full max-w-[100vw] backdrop-blur-[45px] transition-colors duration-700 ease-in-out" style="min-height: 100vh; min-height: 100dvh;">

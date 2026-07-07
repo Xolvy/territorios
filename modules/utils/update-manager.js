@@ -92,6 +92,15 @@ export const initUpdateManager = () => {
     if (unsubUpdate) return;
     console.log(`🛡️ Update Manager: Active (v${APP_VERSION})`);
 
+    const isProductionDomain =
+        window.location.hostname === "territorios-jw.web.app" ||
+        window.location.hostname === "territorios-jw.firebaseapp.com";
+
+    if (!isProductionDomain) {
+        console.log("📡 [Update Manager] Running on preview/dev domain. Auto-updates bypassed.");
+        return;
+    }
+
     // 0. RADICAL PURGE: Verify if we are coming from a "stuck" state
     try {
         const lastSessionVersion = localStorage.getItem("xolvy_last_shell_version");
@@ -172,14 +181,9 @@ export const initUpdateManager = () => {
                 await performRadicalCachePurge(false);
                 window.location.reload();
             } else if (isNewer(APP_VERSION, serverVersion)) {
-                // TELEMETRY: If I am an Admin and my version is newer, I should auto-sync the server
-                // TELEMETRY: If I am an Admin and my version is newer, I should auto-sync the server
-                const currentRole = window.XolvyApp?.user?.role;
-                const isAdmin = currentRole === "Administrador" || currentRole === "SuperAdmin";
-                if (isAdmin) {
-                    console.log("📡 [Telemetry] Admin detected with newer version. Auto-syncing Firestore...");
-                    broadcastCurrentVersion().catch((err) => console.warn("Telemetry sync failed:", err));
-                }
+                // TELEMETRY: Automatic telemetry sync disabled to prevent multi-domain reload loops.
+                // Version upgrades should only be broadcasted manually via the Settings panel.
+                console.log("📡 [Telemetry] Admin detected with newer version. Automatic broadcast bypassed.");
             }
         },
         (error) => {

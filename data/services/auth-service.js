@@ -10,11 +10,40 @@ export const getPermisosUsuario = async (email) => {
             const qEmail = query(collection(db, "publicadores"), where("email", "==", email.toLowerCase()));
             snap = await getDocs(qEmail);
         }
+        
+        let matchedDoc = null;
+        let matchedData = null;
+
         if (!snap.empty) {
-            const data = snap.docs[0].data();
-            const isAdmin = data.privilegios?.includes("Administrador");
-            if (data.es_conductor || isAdmin) {
-                return { role: isAdmin ? "Administrador" : "Conductor", ...data, id: snap.docs[0].id };
+            matchedDoc = snap.docs[0];
+            matchedData = matchedDoc.data();
+        } else {
+            // Sweep fallback for case-insensitive or formatted queries
+            console.log("🛡️ [Auth] Búsqueda directa sin resultados en getPermisosUsuario. Iniciando barrido...");
+            const normalizedEmailInput = email.toLowerCase().trim();
+            const cleanInputPhone = email.replace(/\D/g, "");
+            const allPubsSnap = await getDocs(collection(db, "publicadores"));
+            
+            for (const docObj of allPubsSnap.docs) {
+                const data = docObj.data();
+                const dbEmail = data.email ? data.email.toLowerCase().trim() : "";
+                const dbPhone = data.telefono ? String(data.telefono).replace(/\D/g, "") : "";
+
+                if (
+                    (dbEmail && dbEmail === normalizedEmailInput) ||
+                    (cleanInputPhone && dbPhone && dbPhone === cleanInputPhone)
+                ) {
+                    matchedDoc = docObj;
+                    matchedData = data;
+                    break;
+                }
+            }
+        }
+
+        if (matchedDoc && matchedData) {
+            const isAdmin = matchedData.privilegios?.includes("Administrador") || matchedData.privilegios?.includes("SuperAdmin");
+            if (matchedData.es_conductor || isAdmin) {
+                return { role: isAdmin ? "Administrador" : "Conductor", ...matchedData, id: matchedDoc.id };
             }
         }
         return null;
