@@ -62,7 +62,7 @@ export const renderLogin = (container) => {
                 </div>
                 
                 <!-- Breathtaking Frost-Glass Responsive Container (Súper Card style) -->
-                <div class="super-card w-full max-w-[390px] p-5 flex flex-col gap-4 box-border">
+                <div class="super-card w-full p-5 flex flex-col gap-4 box-border" style="max-width: 390px !important; margin: 0 auto;">
                 
                     <!-- Panel Administrador -->
                     <button id="btn-google-login" class="group flex flex-col p-4 bg-white/40 dark:bg-white/[0.03] rounded-2xl border border-white/60 dark:border-white/5 shadow-[0_4px_20px_rgba(0,0,0,0.01)] transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_20px_40px_-10px_rgba(99,102,241,0.2)] hover:border-indigo-500/40 dark:hover:border-indigo-400/30 w-full text-left cursor-pointer relative z-[99] focus:outline-none">

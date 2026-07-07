@@ -125,40 +125,40 @@ const ensureInstallUI = () => {
     banner = document.createElement("div");
     banner.id = "pwa-persistence-banner";
     banner.className =
-        "fixed bottom-24 left-4 right-4 md:bottom-12 md:left-auto md:right-8 md:w-[380px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl p-6 rounded-[2.5rem] z-[1000] border border-teal-500/20 animate-bounce-in shadow-[0_20px_50px_rgba(13,148,136,0.15)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.55)]";
+        "fixed bottom-24 left-4 right-4 md:bottom-12 md:left-auto md:right-8 md:w-[310px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl p-4.5 rounded-2xl z-[1000] border border-teal-500/20 animate-bounce-in shadow-[0_20px_40px_-5px_rgba(13,148,136,0.1)] dark:shadow-[0_20px_40px_-5px_rgba(0,0,0,0.45)]";
 
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
     banner.innerHTML = `
-        <div class="flex flex-col gap-5">
-            <div class="flex items-center gap-4">
-                <div class="w-14 h-14 bg-teal-500/10 dark:bg-teal-500/20 rounded-2xl flex items-center justify-center shadow-inner group relative shrink-0">
-                    <img src="/icon-192.png" class="w-10 h-10 rounded-xl transition-transform group-hover:scale-110" alt="App Icon">
-                    <div class="absolute -top-1 -right-1 w-4 h-4 bg-teal-500 rounded-full border-2 border-white dark:border-slate-950 animate-pulse"></div>
+        <div class="flex flex-col gap-3.5">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-teal-500/10 dark:bg-teal-500/20 rounded-xl flex items-center justify-center shadow-inner group relative shrink-0">
+                    <img src="/icon-192.png" class="w-7 h-7 rounded-lg transition-transform group-hover:scale-110" alt="App Icon">
+                    <div class="absolute -top-1 -right-1 w-3 h-3 bg-teal-500 rounded-full border-2 border-white dark:border-slate-950 animate-pulse"></div>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <h4 class="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">Gestión de Territorios</h4>
-                    <p class="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest leading-none mt-1.5">Uso Offline & Notificaciones</p>
+                    <h4 class="text-[12px] font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none">Gestión de Territorios</h4>
+                    <p class="text-[8.5px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest leading-none mt-1">Uso Offline & Notificaciones</p>
                 </div>
             </div>
             
-            <div class="space-y-3">
+            <div class="space-y-2">
                 ${
                     isIOS
                         ? `
-                    <div class="p-4 bg-teal-500/5 rounded-2xl border border-teal-500/10 text-[10px] text-teal-700 dark:text-teal-400 font-bold uppercase tracking-widest leading-relaxed">
-                        En iOS: Toca el botón compartir <i class="fa-solid fa-share-from-square mx-1"></i> y luego selecciona <br>
+                    <div class="p-3 bg-teal-500/5 rounded-xl border border-teal-500/10 text-[9px] text-teal-700 dark:text-teal-400 font-bold uppercase tracking-widest leading-relaxed">
+                        En iOS: Toca compartir <i class="fa-solid fa-share-from-square mx-1"></i> y selecciona <br>
                         <span class="text-teal-600 dark:text-teal-300">"Agregar a Pantalla de Inicio" <i class="fa-solid fa-plus-square ml-1"></i></span>
                     </div>
                 `
                         : `
-                    <button id="btn-pwa-main-install" class="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-teal-600/20 transition-all active:scale-95 flex items-center justify-center gap-3">
+                    <button id="btn-pwa-main-install" class="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white py-2.5 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] shadow-xl shadow-teal-600/20 transition-all active:scale-95 flex items-center justify-center gap-2">
                         <i class="fas fa-rocket animate-pulse"></i> Instalar Aplicación
                     </button>
                 `
                 }
                 
-                <button id="btn-pwa-later" class="w-full py-2 text-[9px] font-black text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 uppercase tracking-[0.15em] transition-colors">
+                <button id="btn-pwa-later" class="w-full py-1 text-[8px] font-black text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 uppercase tracking-[0.15em] transition-colors">
                     Continuar en el navegador
                 </button>
             </div>
