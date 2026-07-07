@@ -760,14 +760,14 @@ export const renderProgramaTab = async (container, configData = null) => {
                                     <span class="text-sm font-black text-slate-900 dark:text-white capitalize">${toTitleCase(data.conductor || "Sin Asignar")}</span>
                                     ${data.auxiliar ? `<span class="text-[10px] text-slate-500 font-bold capitalize tracking-wider">+ ${toTitleCase(data.auxiliar)}</span>` : ""}
                                 </div>
-                                <div class="flex flex-wrap items-center gap-1.5 mt-1">
-                                    ${data.lugar ? `<span class="inline-flex items-center rounded-md bg-slate-100 dark:bg-white/10 px-2 py-0.5 text-[9px] font-black text-slate-600 dark:text-slate-300 ring-1 ring-inset ring-slate-200 dark:ring-white/5 uppercase tracking-widest"><i class="fas fa-map-marker-alt mr-1 text-[7px] opacity-50"></i>${data.lugar}</span>` : ""}
-                                    ${data.faceta ? `<span class="inline-flex items-center rounded-md bg-blue-50 dark:bg-blue-500/10 px-2 py-0.5 text-[9px] font-black text-blue-700 dark:text-blue-400 ring-1 ring-inset ring-blue-700/10 dark:ring-blue-400/20 uppercase tracking-widest">${data.faceta}</span>` : ""}
+                                <div class="flex flex-wrap items-center gap-1.5 mt-1.5">
+                                    ${data.lugar ? `<span class="inline-flex items-center rounded-md bg-slate-100 dark:bg-white/10 px-2.5 py-1 text-[9.5px] font-black text-slate-600 dark:text-slate-300 ring-1 ring-inset ring-slate-200 dark:ring-white/5 uppercase tracking-widest"><i class="fas fa-map-marker-alt mr-1.5 text-[7.5px] opacity-50"></i>${data.lugar}</span>` : ""}
+                                    ${data.faceta ? `<span class="inline-flex items-center rounded-md bg-blue-50 dark:bg-blue-500/10 px-2.5 py-1 text-[9.5px] font-black text-blue-700 dark:text-blue-400 ring-1 ring-inset ring-blue-700/10 dark:ring-blue-400/20 uppercase tracking-widest">${data.faceta}</span>` : ""}
                                     ${
                                         data?.territorio
                                             ? `
                                         <div class="flex items-center gap-2">
-                                            <span class="inline-flex items-center rounded-md bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 text-[9px] font-black text-emerald-700 dark:text-emerald-400 ring-1 ring-inset ring-emerald-600/10 dark:ring-emerald-400/20 uppercase tracking-widest">
+                                            <span class="inline-flex items-center rounded-md bg-emerald-50 dark:bg-emerald-500/10 px-2.5 py-1 text-[9.5px] font-black text-emerald-700 dark:text-emerald-400 ring-1 ring-inset ring-emerald-600/10 dark:ring-emerald-400/20 uppercase tracking-widest">
                                                 Terr: ${(() => {
                                                     try {
                                                         if (!data?.territorio) return "—";
@@ -789,11 +789,11 @@ export const renderProgramaTab = async (container, configData = null) => {
                                                     .filter(Boolean);
                                                 if (terrs.length === 0) return "";
                                                 const allSync = terrs.every((t) => bancoS13Activos.has(t));
-
+ 
                                                 if (allSync) {
-                                                    return '<span class="text-[9px] font-black text-emerald-500 uppercase tracking-tighter bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20"><i class="fas fa-check-circle mr-1"></i> ✓ S-13</span>';
+                                                    return '<span class="text-[9.5px] font-black text-emerald-500 uppercase tracking-tighter bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20"><i class="fas fa-check-circle mr-1"></i> ✓ S-13</span>';
                                                 } else {
-                                                    return '<span class="text-[9px] font-black text-amber-500 uppercase tracking-tighter bg-amber-500/10 px-2 py-1 rounded-lg border border-amber-500/20"><i class="fas fa-exclamation-triangle mr-1"></i> ⚠ Pendiente</span>';
+                                                    return '<span class="text-[9.5px] font-black text-amber-500 uppercase tracking-tighter bg-amber-500/10 px-3 py-1.5 rounded-lg border border-amber-500/20"><i class="fas fa-exclamation-triangle mr-1"></i> ⚠ Pendiente</span>';
                                                 }
                                             })()}
                                         </div>
@@ -802,7 +802,7 @@ export const renderProgramaTab = async (container, configData = null) => {
                                     }
                                     ${
                                         data?.grupos
-                                            ? `<span class="inline-flex items-center rounded-md bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 text-[9px] font-black text-indigo-700 dark:text-indigo-400 ring-1 ring-inset ring-indigo-700/10 dark:ring-indigo-400/20 uppercase tracking-widest">${(() => {
+                                            ? `<span class="inline-flex items-center rounded-md bg-indigo-50 dark:bg-indigo-500/10 px-2.5 py-1 text-[9.5px] font-black text-indigo-700 dark:text-indigo-400 ring-1 ring-inset ring-indigo-700/10 dark:ring-indigo-400/20 uppercase tracking-widest">${(() => {
                                                   try {
                                                       return formatGroups(data.grupos);
                                                   } catch (_e) {

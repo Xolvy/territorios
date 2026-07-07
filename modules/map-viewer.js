@@ -279,7 +279,7 @@ export const MapViewer = {
             };
 
             const doLocate = () => {
-                leafletMap.locate({ setView: true, maxZoom: 17 });
+                leafletMap.locate({ setView: true, maxZoom: 19 });
             };
             container.querySelector("#xolvy-locate-viewer").onclick = doLocate;
 
@@ -296,7 +296,7 @@ export const MapViewer = {
                         }),
                     }).addTo(leafletMap);
                 }
-                leafletMap.flyTo(e.latlng, 17, { animate: true, duration: 1.5 });
+                leafletMap.flyTo(e.latlng, 19, { animate: true, duration: 1.5 });
             });
 
             leafletMap.on("locationerror", () => {
