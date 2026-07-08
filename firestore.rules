@@ -31,7 +31,8 @@ service cloud.firestore {
       return ("privilegios" in getPubData(pubId) && getPubData(pubId).privilegios != null && getPubData(pubId).privilegios.size() > 0) ? 
              ((('Administrador' in getPubData(pubId).privilegios) || ('SuperAdmin' in getPubData(pubId).privilegios)) ? 'Administrador' : 
               (('Conductor' in getPubData(pubId).privilegios) ? 'Conductor' : 'Publicador')) : 
-             (("es_conductor" in getPubData(pubId) && getPubData(pubId).es_conductor == true) ? 'Conductor' : 'Publicador');
+             ((("es_conductor" in getPubData(pubId) && getPubData(pubId).es_conductor == true) || 
+               ("modulos" in getPubData(pubId) && getPubData(pubId).modulos != null && "habilitado" in getPubData(pubId).modulos && getPubData(pubId).modulos.habilitado == true)) ? 'Conductor' : 'Publicador');
     }
 
     function isConductor() {

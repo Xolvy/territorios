@@ -109,7 +109,7 @@ export const IdentityShield = {
             } else if (pData.privilegios.includes("Conductor")) {
                 identityRol = "Conductor";
             }
-        } else if (pData.es_conductor) {
+        } else if (pData.es_conductor || (pData.modulos && pData.modulos.habilitado === true)) {
             identityRol = "Conductor";
         }
         const ultimaConexionStr = new Date().toISOString();
