@@ -124,7 +124,8 @@ const getOrCreateBottomHUD = () => {
     if (!hud) {
         hud = document.createElement("div");
         hud.id = hudId;
-        hud.className = "fixed bottom-24 left-4 right-4 md:bottom-12 md:left-auto md:right-8 md:w-[320px] sm:w-[360px] z-[10000] flex flex-col gap-4 pointer-events-none";
+        hud.className =
+            "fixed bottom-24 left-4 right-4 md:bottom-12 md:left-auto md:right-8 md:w-[320px] sm:w-[360px] z-[10000] flex flex-col gap-4 pointer-events-none";
         document.body.appendChild(hud);
     }
     return hud;

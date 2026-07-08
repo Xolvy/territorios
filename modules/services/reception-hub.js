@@ -1,8 +1,13 @@
 import { where } from "firebase/firestore";
-import { returnTerritorio, returnTerritorioParcial, startLivePool, getConductores } from "../../data/firestore-services.js";
-import { showNotification, normalizeRobust } from "../utils/helpers.js";
-import { UIHelpers } from "./ui-date-helpers.js";
+import {
+    getConductores,
+    returnTerritorio,
+    returnTerritorioParcial,
+    startLivePool,
+} from "../../data/firestore-services.js";
 import { auth } from "../../firebase-config.js";
+import { normalizeRobust, showNotification } from "../utils/helpers.js";
+import { UIHelpers } from "./ui-date-helpers.js";
 
 /**
  * Singleton instance tracker to prevent memory leaks and state contamination.
@@ -107,7 +112,7 @@ export class ReceptionHub {
                 (error) => {
                     console.error("❌ Error in live pool subscription:", error);
                     showNotification(`Error de conexión con base de datos: ${error.message}`, "error");
-                }
+                },
             );
 
             this.renderShell();
@@ -461,7 +466,7 @@ export class ReceptionHub {
                         <div class="grid grid-cols-2 gap-4">
                             <div class="space-y-1">
                                 <label class="text-[8px] font-black text-slate-550 dark:text-slate-400 uppercase tracking-widest ml-1 block">Fecha de devolución</label>
-                                <input type="date" class="group-date w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-3 rounded-xl text-[11px] font-bold text-slate-700 dark:text-white outline-none cursor-pointer" value="${group.key.split('_')[0] !== 'no-date' ? group.key.split('_')[0] : todayId}">
+                                <input type="date" class="group-date w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-3 rounded-xl text-[11px] font-bold text-slate-700 dark:text-white outline-none cursor-pointer" value="${group.key.split("_")[0] !== "no-date" ? group.key.split("_")[0] : todayId}">
                             </div>
                             <div class="space-y-1">
                                 <label class="text-[8px] font-black text-slate-555 dark:text-slate-400 uppercase tracking-widest ml-1 block">Conductor</label>
@@ -593,7 +598,12 @@ export class ReceptionHub {
                         const sel = this.selections[t.id];
                         if (sel?.mode === "sin_predicar") {
                             // Devolución sin predicar (Disponible)
-                            await returnTerritorio(t.id, "Devolución sin predicar desde control unificado", null, "Disponible");
+                            await returnTerritorio(
+                                t.id,
+                                "Devolución sin predicar desde control unificado",
+                                null,
+                                "Disponible",
+                            );
                             window.dispatchEvent(
                                 new CustomEvent("territorio-liberado", { detail: { id: t.id, numero: t.numero } }),
                             );
@@ -646,7 +656,7 @@ export class ReceptionHub {
                     // Auto-close if everything in the hub is processed
                     const activeStateFilter = ["Disponible", "Predicado", "Sin asignar", "Extraviado", "Libre"];
                     const remainingActive = this.territories.filter(
-                        (t) => !activeStateFilter.includes(t.estado) && !activeStateFilter.includes(t.status)
+                        (t) => !activeStateFilter.includes(t.estado) && !activeStateFilter.includes(t.status),
                     );
                     if (remainingActive.length === 0) {
                         setTimeout(() => {

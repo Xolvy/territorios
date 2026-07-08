@@ -788,7 +788,7 @@ export const renderProgramaTab = async (container, configData = null) => {
                                                     .filter(Boolean);
                                                 if (terrs.length === 0) return "";
                                                 const allSync = terrs.every((t) => bancoS13Activos.has(t));
- 
+
                                                 if (allSync) {
                                                     return '<span class="text-[9.5px] font-black text-emerald-500 uppercase tracking-tighter bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20"><i class="fas fa-check-circle mr-1"></i> ✓ S-13</span>';
                                                 } else {

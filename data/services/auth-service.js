@@ -10,7 +10,7 @@ export const getPermisosUsuario = async (email) => {
             const qEmail = query(collection(db, "publicadores"), where("email", "==", email.toLowerCase()));
             snap = await getDocs(qEmail);
         }
-        
+
         let matchedDoc = null;
         let matchedData = null;
 
@@ -23,7 +23,7 @@ export const getPermisosUsuario = async (email) => {
             const normalizedEmailInput = email.toLowerCase().trim();
             const cleanInputPhone = email.replace(/\D/g, "");
             const allPubsSnap = await getDocs(collection(db, "publicadores"));
-            
+
             for (const docObj of allPubsSnap.docs) {
                 const data = docObj.data();
                 const dbEmail = data.email ? data.email.toLowerCase().trim() : "";
@@ -41,7 +41,8 @@ export const getPermisosUsuario = async (email) => {
         }
 
         if (matchedDoc && matchedData) {
-            const isAdmin = matchedData.privilegios?.includes("Administrador") || matchedData.privilegios?.includes("SuperAdmin");
+            const isAdmin =
+                matchedData.privilegios?.includes("Administrador") || matchedData.privilegios?.includes("SuperAdmin");
             if (matchedData.es_conductor || isAdmin) {
                 return { role: isAdmin ? "Administrador" : "Conductor", ...matchedData, id: matchedDoc.id };
             }
