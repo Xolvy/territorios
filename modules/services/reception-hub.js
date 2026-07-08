@@ -120,7 +120,8 @@ export class ReceptionHub {
 
     /**
      * Renderiza el contenedor base del modal (Shell).
-      renderShell() {
+     */
+    renderShell() {
         let modal = document.getElementById("reception-hub-modal");
         if (modal) modal.remove();
 
