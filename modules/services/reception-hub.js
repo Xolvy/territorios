@@ -140,7 +140,7 @@ export class ReceptionHub {
         };
 
         modal.innerHTML = `
-            <div class="bg-white dark:bg-[#0b0e14] rounded-[20px] w-full max-w-[500px] max-h-[88vh] flex flex-col shadow-2xl overflow-hidden animate-slide-up border border-slate-200 dark:border-white/10">
+            <div class="bg-white dark:bg-[#0b0e14] rounded-[20px] w-full max-w-[500px] max-h-[88vh] flex flex-col shadow-2xl overflow-hidden animate-slide-up border border-slate-200 dark:border-white/10" style="max-width: 500px !important;">
                 <header class="p-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between shrink-0 bg-slate-50 dark:bg-slate-900">
                     <div class="flex items-center gap-4">
                         <div class="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-500 text-lg">
@@ -507,12 +507,14 @@ export class ReceptionHub {
                       .filter(Boolean)
                 : [];
 
+
+
             // Toggle delivery button
             const toggleBtn = card.querySelector(".btn-toggle-delivery");
             if (toggleBtn) {
                 toggleBtn.onclick = () => {
                     const sel = this.selections[t.id];
-                    sel.mode = sel.mode === "sin_entregar" ? "entregar" : "sin_entregar";
+                    sel.mode = sel.mode === "sin_predicar" ? "entregar" : "sin_predicar";
                     this.renderList();
                 };
             }
@@ -686,7 +688,7 @@ export class ReceptionHub {
                 "absolute inset-0 z-[10000] flex items-center justify-center p-6 bg-slate-950/60 dark:bg-black/70 backdrop-blur-md rounded-[20px] animate-fade-in";
 
             overlay.innerHTML = `
-                <div class="bg-white dark:bg-[#0a0f18]/95 border border-slate-200/60 dark:border-white/10 p-6 rounded-[2rem] shadow-2xl max-w-sm w-full text-center space-y-4 animate-scale-in relative">
+                <div class="bg-white dark:bg-[#0a0f18]/95 border border-slate-200/60 dark:border-white/10 p-6 rounded-[2rem] shadow-2xl max-w-sm w-full text-center space-y-4 animate-scale-in relative" style="max-width: 24rem !important;">
                     <div class="w-12 h-12 bg-rose-500/10 text-rose-500 rounded-2xl flex items-center justify-center text-xl mx-auto shadow-inner border border-rose-500/10">
                         <i class="fas fa-exclamation-triangle"></i>
                     </div>
