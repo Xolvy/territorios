@@ -164,7 +164,7 @@ export const renderProgramaTab = async (container, configData = null) => {
         }
 
         modalDiv.innerHTML = `
-            <div class="p-8 space-y-6 bg-white dark:bg-[#0a0f18] rounded-[2.5rem] max-w-sm w-full shadow-2xl animate-scale-in flex flex-col mx-auto my-auto relative">
+            <div class="p-8 space-y-6 bg-white dark:bg-[#0a0f18] rounded-[2.5rem] w-full shadow-2xl animate-scale-in flex flex-col mx-auto my-auto relative" style="max-width: 24rem !important;">
                 <header class="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-white/5">
                     <button onclick="window.navPickerMonth(-1)" class="w-10 h-10 rounded-xl bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-primary hover:bg-slate-100 transition-colors flex items-center justify-center">
                         <i class="fas fa-chevron-left"></i>
@@ -2072,7 +2072,7 @@ export const renderProgramaTab = async (container, configData = null) => {
         const modalDiv = document.getElementById("modal-container");
         modalDiv.classList.remove("hidden");
         modalDiv.innerHTML = `
-            <div class="p-8 space-y-6 bg-white dark:bg-[#0a0f18] rounded-[2.5rem] max-w-sm w-full shadow-2xl animate-scale-in flex flex-col mx-auto my-auto relative pointer-events-auto">
+            <div class="p-8 space-y-6 bg-white dark:bg-[#0a0f18] rounded-[2.5rem] w-full shadow-2xl animate-scale-in flex flex-col mx-auto my-auto relative pointer-events-auto" style="max-width: 24rem !important;">
                 <header class="flex items-center gap-4">
                     <div class="w-12 h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-500 text-xl">
                         <i class="fas fa-clock"></i>

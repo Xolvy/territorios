@@ -1,7 +1,8 @@
 import { where } from "firebase/firestore";
-import { returnTerritorio, returnTerritorioParcial, startLivePool } from "../../data/firestore-services.js";
-import { showNotification } from "../utils/helpers.js";
+import { returnTerritorio, returnTerritorioParcial, startLivePool, getConductores } from "../../data/firestore-services.js";
+import { showNotification, normalizeRobust } from "../utils/helpers.js";
 import { UIHelpers } from "./ui-date-helpers.js";
+import { auth } from "../../firebase-config.js";
 
 /**
  * Singleton instance tracker to prevent memory leaks and state contamination.
@@ -47,52 +48,61 @@ export class ReceptionHub {
      * Inicialización de la instancia y carga de datos.
      */
     async init() {
-        const user = window.XolvyApp?.user;
+        try {
+            const user = window.XolvyApp?.user;
 
-        // Si no se pasaron datos, intentar resolver del contexto global
-        if (!this.displayName && user) {
-            this.displayName = user.nombre;
-            this.isAdmin = user.role === "Administrador" || user.role === "SuperAdmin";
-        }
-
-        // Cargar conductores para el dropdown
-        const { getConductores } = await import("../../data/firestore-services.js");
-        getConductores().then((list) => {
-            this.conductores = list;
-            this.updateConductorSelect();
-            this.renderList();
-        });
-
-        // --- 3. FILTRO DE SERVIDOR (RBAC S-13) ---
-        // Identity Shield: Use canonical identity for absolute resolution
-        const identity = window.XolvyApp?.identity;
-        const myCanonicalName = identity?.nombreCanonico || this.displayName;
-
-        const filtros = this.isAdmin || !myCanonicalName ? [] : [where("asignado_a", "==", myCanonicalName)];
-
-        this.unsubscribe = startLivePool("territorios", filtros, (data) => {
-            this.territories = data;
-
-            // Autoselección del conductor para administradores
-            if (this.isAdmin) {
-                if (this.preSelectedId) {
-                    const target = this.territories.find((t) => t.id === this.preSelectedId);
-                    if (target?.asignado_a) {
-                        this.displayName = target.asignado_a;
-                    }
-                } else if (this.preSelectedIds && this.preSelectedIds.length > 0) {
-                    const target = this.territories.find((t) => this.preSelectedIds.includes(t.id));
-                    if (target?.asignado_a) {
-                        this.displayName = target.asignado_a;
-                    }
-                }
+            // Si no se pasaron datos, intentar resolver del contexto global
+            if (!this.displayName && user) {
+                this.displayName = user.nombre;
+                this.isAdmin = user.role === "Administrador" || user.role === "SuperAdmin";
             }
 
-            this.updateConductorSelect();
-            this.renderList();
-        });
+            // Cargar conductores para el dropdown
+            getConductores().then((list) => {
+                this.conductores = list;
+                this.updateConductorSelect();
+                this.renderList();
+            });
 
-        this.renderShell();
+            // --- 3. FILTRO DE SERVIDOR (RBAC S-13) ---
+            // Identity Shield: Use canonical identity for absolute resolution
+            const identity = window.XolvyApp?.identity;
+            const myCanonicalName = identity?.nombreCanonico || this.displayName;
+
+            const filtros = this.isAdmin || !myCanonicalName ? [] : [where("asignado_a", "==", myCanonicalName)];
+
+            this.unsubscribe = startLivePool("territorios", filtros, (data) => {
+                try {
+                    this.territories = data;
+
+                    // Autoselección del conductor para administradores
+                    if (this.isAdmin) {
+                        if (this.preSelectedId) {
+                            const target = this.territories.find((t) => t.id === this.preSelectedId);
+                            if (target?.asignado_a) {
+                                this.displayName = target.asignado_a;
+                            }
+                        } else if (this.preSelectedIds && this.preSelectedIds.length > 0) {
+                            const target = this.territories.find((t) => this.preSelectedIds.includes(t.id));
+                            if (target?.asignado_a) {
+                                this.displayName = target.asignado_a;
+                            }
+                        }
+                    }
+
+                    this.updateConductorSelect();
+                    this.renderList();
+                } catch (callbackErr) {
+                    console.error("❌ Error in live pool callback:", callbackErr);
+                }
+            });
+
+            this.renderShell();
+        } catch (initErr) {
+            console.error("❌ Error initializing ReceptionHub:", initErr);
+            showNotification(`Error al iniciar recepción: ${initErr.message}`, "error");
+            this.closeModal();
+        }
     }
 
     /**
@@ -706,9 +716,8 @@ window.closeReceptionHub = () => ReceptionHub.closeModal();
 
 window.promptReturnTerritorio = async (id, _numero) => {
     const user = window.XolvyApp?.user;
-    const authUser = (await import("../../firebase-config.js")).auth.currentUser;
+    const authUser = auth.currentUser;
 
-    const { normalizeRobust } = await import("../utils/helpers.js");
     const resolvedName = normalizeRobust(user?.nombre || authUser?.displayName || authUser?.email || "Usuario");
     const isAdmin = user?.role === "Administrador" || user?.role === "SuperAdmin";
 
