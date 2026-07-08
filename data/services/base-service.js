@@ -82,7 +82,7 @@ export const PoolManager = {
     },
 };
 
-export const startLivePool = (collectionName, filters, onUpdate) => {
+export const startLivePool = (collectionName, filters, onUpdate, onError = null) => {
     const q = query(collection(db, collectionName), ...filters);
     const unsub = onSnapshot(
         q,
@@ -92,6 +92,11 @@ export const startLivePool = (collectionName, filters, onUpdate) => {
         },
         (error) => {
             console.error(`[Live Pool] Error en ${collectionName}:`, error);
+            if (onError) {
+                onError(error);
+            } else {
+                window.dispatchEvent(new CustomEvent("live-pool-error", { detail: { collectionName, error } }));
+            }
         },
     );
     return PoolManager.register(unsub);

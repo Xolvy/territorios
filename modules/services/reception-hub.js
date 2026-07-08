@@ -58,11 +58,16 @@ export class ReceptionHub {
             }
 
             // Cargar conductores para el dropdown
-            getConductores().then((list) => {
-                this.conductores = list;
-                this.updateConductorSelect();
-                this.renderList();
-            });
+            getConductores()
+                .then((list) => {
+                    this.conductores = list;
+                    this.updateConductorSelect();
+                    this.renderList();
+                })
+                .catch((err) => {
+                    console.error("❌ Error loading conductors:", err);
+                    showNotification(`Error al cargar conductores: ${err.message}`, "error");
+                });
 
             // --- 3. FILTRO DE SERVIDOR (RBAC S-13) ---
             // Identity Shield: Use canonical identity for absolute resolution
@@ -71,31 +76,39 @@ export class ReceptionHub {
 
             const filtros = this.isAdmin || !myCanonicalName ? [] : [where("asignado_a", "==", myCanonicalName)];
 
-            this.unsubscribe = startLivePool("territorios", filtros, (data) => {
-                try {
-                    this.territories = data;
+            this.unsubscribe = startLivePool(
+                "territorios",
+                filtros,
+                (data) => {
+                    try {
+                        this.territories = data;
 
-                    // Autoselección del conductor para administradores
-                    if (this.isAdmin) {
-                        if (this.preSelectedId) {
-                            const target = this.territories.find((t) => t.id === this.preSelectedId);
-                            if (target?.asignado_a) {
-                                this.displayName = target.asignado_a;
-                            }
-                        } else if (this.preSelectedIds && this.preSelectedIds.length > 0) {
-                            const target = this.territories.find((t) => this.preSelectedIds.includes(t.id));
-                            if (target?.asignado_a) {
-                                this.displayName = target.asignado_a;
+                        // Autoselección del conductor para administradores
+                        if (this.isAdmin) {
+                            if (this.preSelectedId) {
+                                const target = this.territories.find((t) => t.id === this.preSelectedId);
+                                if (target?.asignado_a) {
+                                    this.displayName = target.asignado_a;
+                                }
+                            } else if (this.preSelectedIds && this.preSelectedIds.length > 0) {
+                                const target = this.territories.find((t) => this.preSelectedIds.includes(t.id));
+                                if (target?.asignado_a) {
+                                    this.displayName = target.asignado_a;
+                                }
                             }
                         }
-                    }
 
-                    this.updateConductorSelect();
-                    this.renderList();
-                } catch (callbackErr) {
-                    console.error("❌ Error in live pool callback:", callbackErr);
+                        this.updateConductorSelect();
+                        this.renderList();
+                    } catch (callbackErr) {
+                        console.error("❌ Error in live pool callback:", callbackErr);
+                    }
+                },
+                (error) => {
+                    console.error("❌ Error in live pool subscription:", error);
+                    showNotification(`Error de conexión con base de datos: ${error.message}`, "error");
                 }
-            });
+            );
 
             this.renderShell();
         } catch (initErr) {

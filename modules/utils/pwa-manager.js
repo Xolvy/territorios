@@ -239,6 +239,16 @@ export const requestNotifications = async () => {
 
     if (Notification.permission === "denied") return;
 
+    const lastDismissed = localStorage.getItem("dismissed_notif_rationale");
+    if (lastDismissed) {
+        const diff = Date.now() - parseInt(lastDismissed, 10);
+        const sevenDays = 7 * 24 * 60 * 60 * 1000;
+        if (diff < sevenDays) {
+            console.log("🔔 Notifications: Rationale recently dismissed. Snoozing.");
+            return;
+        }
+    }
+
     showNotificationRationale();
 };
 
@@ -315,9 +325,14 @@ const showNotificationRationale = () => {
         if (permission === "granted") {
             showNotification("¡Notificaciones activadas!", "success");
             syncFCMToken();
+        } else {
+            localStorage.setItem("dismissed_notif_rationale", Date.now().toString());
         }
         rationale.remove();
     };
 
-    document.getElementById("btn-notif-ignore").onclick = () => rationale.remove();
+    document.getElementById("btn-notif-ignore").onclick = () => {
+        localStorage.setItem("dismissed_notif_rationale", Date.now().toString());
+        rationale.remove();
+    };
 };

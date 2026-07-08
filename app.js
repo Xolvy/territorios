@@ -70,7 +70,7 @@ VisualEngine.applyGlobalEcosystem();
 // moduleRegistry.init();
 
 // The version is injected by Vite at build time (Core Shell Version)
-const APP_VERSION = "3.9.8";
+const APP_VERSION = "3.9.9";
 window.XolvyApp = { user: null, version: APP_VERSION };
 
 // --- XOLVY MODULAR: MICRO-MODULE ENGINE ---
@@ -160,32 +160,29 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // 1. App Loading State: Prevenir renderizado errático durante inicialización y checkeo asíncrono
     appContainer.innerHTML = `
-        <div class="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-white dark:from-[#02040f] dark:via-[#050819] dark:to-[#02020a] text-slate-800 dark:text-slate-200 animate-fade-in w-full max-w-[100vw] px-4 box-border" style="min-height: 100vh; min-height: 100dvh;">
-            <div class="relative flex flex-col items-center justify-center p-12 rounded-[3.5rem] shadow-[0_24px_70px_rgba(99,102,241,0.15)] dark:shadow-[0_24px_70px_rgba(0,0,0,0.55)] bg-white/30 dark:bg-[#070b19]/40 border border-white/20 dark:border-white/5 backdrop-blur-3xl" style="width: 320px; height: 320px; max-width: 320px !important;">
-                <!-- Animated Glowing Background Orbits -->
-                <div class="absolute inset-0 bg-gradient-to-tr from-indigo-500/10 via-transparent to-emerald-500/10 rounded-[3.5rem] pointer-events-none"></div>
-                <div class="absolute -top-10 -left-10 w-24 h-24 bg-indigo-500/20 dark:bg-indigo-500/10 rounded-full blur-2xl animate-pulse" style="animation-duration: 4s;"></div>
-                <div class="absolute -bottom-10 -right-10 w-24 h-24 bg-emerald-500/20 dark:bg-emerald-500/10 rounded-full blur-2xl animate-pulse" style="animation-duration: 5s;"></div>
+        <div class="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-white dark:from-[#02040f] dark:via-[#050819] dark:to-[#02020a] text-slate-800 dark:text-slate-200 animate-fade-in w-full max-w-[100vw] px-4 box-border relative overflow-hidden" style="min-height: 100vh; min-height: 100dvh;">
+            <!-- Ambient Glowing Background Orbits directly on body -->
+            <div class="absolute top-[20%] left-[20%] w-[350px] h-[350px] bg-indigo-500/10 dark:bg-indigo-600/15 rounded-full blur-[100px] animate-pulse" style="animation-duration: 6s;"></div>
+            <div class="absolute bottom-[20%] right-[20%] w-[350px] h-[350px] bg-emerald-500/10 dark:bg-emerald-600/15 rounded-full blur-[100px] animate-pulse" style="animation-duration: 8s;"></div>
 
-                <div class="relative z-10 flex flex-col items-center justify-center gap-8 text-center w-full h-full">
-                    <!-- Ultra Premium Orbit Loader -->
-                    <div class="relative w-24 h-24 flex items-center justify-center">
-                        <!-- Pulsing central core with App Icon -->
-                        <div class="absolute w-12 h-12 bg-gradient-to-tr from-indigo-600 to-indigo-500 dark:from-indigo-500 dark:to-indigo-450 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/30 animate-pulse">
-                            <i class="fas fa-layer-group text-lg"></i>
-                        </div>
-                        <!-- Outer spinning orbit -->
-                        <div class="absolute inset-0 rounded-full border-[3px] border-indigo-500/10 dark:border-white/5"></div>
-                        <div class="absolute inset-0 rounded-full border-[3px] border-transparent border-t-indigo-600 dark:border-t-indigo-400 border-r-indigo-600/30 dark:border-r-indigo-400/30 animate-spin" style="animation-duration: 1s;"></div>
-                        <!-- Secondary counter-spinning dashed orbit -->
-                        <div class="absolute -inset-3 rounded-full border border-dashed border-indigo-500/30 dark:border-indigo-400/20 animate-spin" style="animation-duration: 4s; animation-direction: reverse;"></div>
+            <div class="z-10 flex flex-col items-center justify-center gap-8 text-center max-w-sm">
+                <!-- Ultra Premium Orbit Loader -->
+                <div class="relative w-28 h-28 flex items-center justify-center">
+                    <!-- Pulsing central core with App Icon -->
+                    <div class="absolute w-14 h-14 bg-gradient-to-tr from-indigo-600 to-indigo-500 dark:from-indigo-500 dark:to-indigo-450 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/35 animate-pulse">
+                        <i class="fas fa-layer-group text-xl"></i>
                     </div>
+                    <!-- Outer spinning orbit -->
+                    <div class="absolute inset-0 rounded-full border-[3px] border-indigo-500/10 dark:border-white/5"></div>
+                    <div class="absolute inset-0 rounded-full border-[3px] border-transparent border-t-indigo-600 dark:border-t-indigo-400 border-r-indigo-600/30 dark:border-r-indigo-400/30 animate-spin" style="animation-duration: 1.2s;"></div>
+                    <!-- Secondary counter-spinning dashed orbit -->
+                    <div class="absolute -inset-3.5 rounded-full border border-dashed border-indigo-500/30 dark:border-indigo-400/25 animate-spin" style="animation-duration: 5s; animation-direction: reverse;"></div>
+                </div>
 
-                    <div class="space-y-2">
-                        <!-- Elegant Label -->
-                        <h3 class="text-[10px] font-black text-slate-800 dark:text-white uppercase tracking-[0.4em] leading-none">Cargando</h3>
-                        <p class="text-[9px] font-black text-indigo-600/60 dark:text-indigo-400/60 uppercase tracking-widest animate-pulse">Conectando con el Servidor</p>
-                    </div>
+                <div class="space-y-2.5">
+                    <!-- Elegant Label -->
+                    <h3 class="text-xs font-black text-slate-800 dark:text-white uppercase tracking-[0.45em] leading-none">Cargando</h3>
+                    <p class="text-[10px] font-black text-indigo-600/60 dark:text-indigo-400/60 uppercase tracking-widest animate-pulse">Conectando con el Servidor</p>
                 </div>
             </div>
         </div>

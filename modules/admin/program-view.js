@@ -487,9 +487,8 @@ export const renderProgramaTab = async (container, configData = null) => {
             <div style="position:absolute;bottom:-15%;right:-5%;width:500px;height:500px;background:radial-gradient(circle,rgba(139,92,246,0.18)0%,transparent 70%);border-radius:50%;filter:blur(50px);pointer-events:none;"></div>
             <div style="position:absolute;top:15%;right:6%;width:280px;height:280px;background:radial-gradient(circle,rgba(34,211,238,0.09)0%,transparent 70%);border-radius:50%;filter:blur(35px);pointer-events:none;"></div>
             <div style="position:absolute;bottom:20%;left:4%;width:220px;height:220px;background:radial-gradient(circle,rgba(244,114,182,0.07)0%,transparent 70%);border-radius:50%;filter:blur(30px);pointer-events:none;"></div>
-            <div class="relative mx-4 w-full max-w-sm p-10 text-center animate-scale-in nexo-modal-box" style="background:rgba(255,255,255,0.05);backdrop-filter:blur(24px);border-radius:2.5rem;border:1px solid rgba(255,255,255,0.10);box-shadow:0 0 0 1px rgba(99,102,241,0.18),0 40px 80px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.07);">
-                <div style="position:absolute;inset:0;border-radius:2.5rem;background:radial-gradient(ellipse at top,rgba(99,102,241,0.09)0%,transparent 60%);pointer-events:none;"></div>
-                <div class="relative w-24 h-24 mx-auto mb-8">
+            <div class="relative z-10 flex flex-col items-center justify-center text-center max-w-sm px-6 animate-scale-in">
+                <div class="relative w-28 h-28 mx-auto mb-8">
                     <div class="absolute inset-0 rounded-full" style="border:4px solid rgba(99,102,241,0.12);"></div>
                     <div class="absolute inset-2 rounded-full animate-spin" style="border:4px solid transparent;border-top-color:#6366f1;"></div>
                     <div class="absolute inset-5 rounded-full animate-spin" style="border:2px solid transparent;border-bottom-color:#a78bfa;animation-direction:reverse;animation-duration:1.4s;"></div>
@@ -497,9 +496,9 @@ export const renderProgramaTab = async (container, configData = null) => {
                         <i class="fas fa-wand-magic-sparkles animate-pulse"></i>
                     </div>
                 </div>
-                <h3 class="text-xl font-black uppercase tracking-wider mb-2" style="color:#fff;text-shadow:0 0 24px rgba(99,102,241,0.55);">Nexo Vision AI</h3>
+                <h3 class="text-2xl font-black uppercase tracking-wider mb-2" style="color:#fff;text-shadow:0 0 24px rgba(99,102,241,0.55);font-family:'Outfit',sans-serif;">Nexo Vision AI</h3>
                 <p class="font-bold text-xs uppercase tracking-widest animate-pulse" style="color:rgba(148,163,184,0.75);">Analizando imagen de programación...</p>
-                <div class="mt-6 h-0.5 rounded-full overflow-hidden" style="background:rgba(255,255,255,0.06);">
+                <div class="mt-6 w-48 h-1 rounded-full overflow-hidden" style="background:rgba(255,255,255,0.06);">
                     <div class="h-full rounded-full animate-pulse" style="width:65%;background:linear-gradient(90deg,#6366f1,#a78bfa);box-shadow:0 0 10px rgba(99,102,241,0.8);"></div>
                 </div>
             </div>
