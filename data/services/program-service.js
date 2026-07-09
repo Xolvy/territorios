@@ -479,53 +479,7 @@ export const liberarAsignacionesDeSalida = async (numerosALiberar, weekId) => {
     }
 };
 
-export const removeAssignmentFromWeeklyProgram = async (territoryNum, fechaISO, turno) => {
-    try {
-        if (!fechaISO || !turno) return;
-        const baseDateStr = `${fechaISO.split("T")[0]}T12:00:00Z`;
-        const baseDate = new Date(baseDateStr);
-        if (Number.isNaN(baseDate.getTime())) return;
 
-        const d = new Date(baseDate);
-        const day = d.getUTCDay();
-        const diff = d.getUTCDate() - (day === 0 ? 6 : day - 1);
-        d.setUTCDate(diff);
-        d.setUTCHours(12, 0, 0, 0);
-        const weekId = d.toISOString().split("T")[0];
-
-        let dayIdx = baseDate.getUTCDay();
-        dayIdx = dayIdx === 0 ? 6 : dayIdx - 1;
-
-        const prog = await getProgramaSemanal(weekId);
-        if (!prog?.dias[dayIdx]) return;
-
-        const t = prog.dias[dayIdx][turno];
-        if (t?.territorio) {
-            const terrs = String(t.territorio)
-                .split(/[/,]/)
-                .map((s) => s.trim());
-            const filtered = terrs.filter((num) => num !== territoryNum);
-            if (filtered.length === 0) {
-                prog.dias[dayIdx][turno] = {
-                    territorio: "",
-                    conductor: "",
-                    auxiliar: "",
-                    grupos: "",
-                    lugar: "",
-                    hora: "",
-                    faceta: "",
-                };
-            } else {
-                t.territorio = filtered.join(" / ");
-            }
-            // Protocolo de Sanitización Anti-Undefined de Firebase
-            const sanitizedProg = JSON.parse(JSON.stringify(prog));
-            await setDoc(doc(db, COL_VISOR, weekId), sanitizedProg);
-        }
-    } catch (e) {
-        console.error("Error in removeAssignmentFromWeeklyProgram:", e);
-    }
-};
 
 export const getCampanas = async () => {
     const snap = await getDoc(doc(db, "configuracion", "campanas"));

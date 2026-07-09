@@ -34,7 +34,11 @@ export const initPWA = () => {
                 newWorker = reg.installing;
                 newWorker.addEventListener("statechange", () => {
                     if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
-                        showUpdateBanner();
+                        console.warn("⚡ PWA Update: New service worker installed. Forcing auto-reload...");
+                        newWorker.postMessage({ type: "SKIP_WAITING" });
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 600);
                     }
                 });
             });
