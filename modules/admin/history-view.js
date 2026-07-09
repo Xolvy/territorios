@@ -379,9 +379,14 @@ export const renderHistorialView = async (container) => {
                                         ${h.turno ? `<span class="text-[8px] font-bold text-slate-600 dark:text-slate-400 uppercase bg-slate-100 dark:bg-white/5 px-2 py-1 rounded-lg">${h.turno}</span>` : ""}
                                     </div>
                                 </div>
-                                <button onclick="window.surgicalEditS13('${h.id}', '${num}')" class="w-10 h-10 bg-slate-50 dark:bg-white/5 hover:bg-primary hover:text-white rounded-xl flex items-center justify-center text-slate-600 dark:text-slate-400 transition-all active:scale-90 shadow-inner">
-                                    <i class="fas fa-pencil-alt text-xs"></i>
-                                </button>
+                                <div class="flex gap-2">
+                                    <button onclick="window.surgicalEditS13('${h.id}', '${num}')" class="w-10 h-10 bg-slate-50 dark:bg-white/5 hover:bg-primary hover:text-white rounded-xl flex items-center justify-center text-slate-600 dark:text-slate-400 transition-all active:scale-90 shadow-inner" title="Editar Registro">
+                                        <i class="fas fa-pencil-alt text-xs"></i>
+                                    </button>
+                                    <button onclick="window.surgicalDeleteS13('${h.id}', '${num}')" class="w-10 h-10 bg-slate-50 dark:bg-white/5 hover:bg-rose-500 hover:text-white text-slate-600 dark:text-slate-400 rounded-xl flex items-center justify-center transition-all active:scale-90 shadow-inner" title="Eliminar Registro">
+                                        <i class="fas fa-trash-alt text-xs"></i>
+                                    </button>
+                                </div>
                             </div>
 
                             <div class="grid grid-cols-2 gap-8 pt-4 border-t border-slate-50 dark:border-white/5">
@@ -536,6 +541,103 @@ export const renderHistorialView = async (container) => {
                 btn.innerHTML = '<i class="fas fa-save"></i> Aplicar Cambios';
             }
         };
+    };
+
+    window.surgicalDeleteS13 = async (hId, tNum) => {
+        let h = window._activeTimelineRecords?.[hId];
+        if (!h) {
+            const list = historyByNum[tNum] || [];
+            h = list.find((x) => x.id === hId);
+        }
+        if (!h) {
+            h = history.find((x) => x.id === hId);
+        }
+        if (!h) {
+            showNotification("No se encontró el registro para eliminar", "error");
+            return;
+        }
+
+        const isCompletado = h.estado === "Completado" || h.fecha_entrega;
+
+        if (isCompletado) {
+            showModal(
+                `
+                <div class="p-8 space-y-8 bg-white dark:bg-[#0a0f18] rounded-[2.5rem] max-w-md mx-auto">
+                    <header class="flex items-center gap-6">
+                        <div class="w-14 h-14 bg-rose-500/10 text-rose-500 rounded-2xl flex items-center justify-center text-2xl shrink-0">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">Gestionar Registro S-13</h3>
+                            <p class="text-[9px] text-slate-500 uppercase tracking-widest font-black mt-0.5">Territorio #${tNum} · Completado</p>
+                        </div>
+                    </header>
+
+                    <p class="text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
+                        Este territorio ya fue marcado como **entregado/completado**. ¿Qué acción deseas realizar sobre esta bitácora?
+                    </p>
+
+                    <div class="flex flex-col gap-3 pt-2">
+                        <button id="btn-delete-restore" class="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-indigo-600/15 flex items-center justify-center gap-2">
+                            <i class="fas fa-undo"></i> Restaurar Asignación (Deshacer Entrega)
+                        </button>
+                        <button id="btn-delete-permanent" class="w-full py-4 bg-rose-500 hover:bg-rose-600 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-rose-500/15 flex items-center justify-center gap-2">
+                            <i class="fas fa-trash-alt"></i> Eliminar Registro Permanentemente
+                        </button>
+                        <button onclick="window.hideModal('modal-container-nested')" class="w-full py-4 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-500 font-black rounded-2xl text-[10px] uppercase tracking-widest transition-all">
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+                `,
+                (modal) => {
+                    modal.querySelector("#btn-delete-restore").onclick = async () => {
+                        try {
+                            showNotification("Restaurando asignación...", "info");
+                            const { restoreHistoryRecord } = await import("../../data/firestore-services.js");
+                            await restoreHistoryRecord(hId);
+                            showNotification("Asignación restaurada correctamente", "success");
+                            window.hideModal("modal-container-nested");
+                            window.hideModal("modal-container");
+                            renderHistorialView(container);
+                        } catch (e) {
+                            showNotification(`Error al restaurar: ${e.message}`, "error");
+                        }
+                    };
+
+                    modal.querySelector("#btn-delete-permanent").onclick = async () => {
+                        showCustomConfirm("¿Estás absolutamente seguro de eliminar permanentemente este registro del S-13? Esta acción no se puede deshacer.", async () => {
+                            try {
+                                showNotification("Eliminando registro...", "info");
+                                const { deleteHistoryRecord } = await import("../../data/firestore-services.js");
+                                await deleteHistoryRecord(hId);
+                                showNotification("Registro eliminado del S-13", "success");
+                                window.hideModal("modal-container-nested");
+                                window.hideModal("modal-container");
+                                renderHistorialView(container);
+                            } catch (e) {
+                                showNotification(`Error al eliminar: ${e.message}`, "error");
+                            }
+                        });
+                    };
+                },
+                "max-w-md",
+                "modal-container-nested"
+            );
+        } else {
+            showCustomConfirm("¿Deseas eliminar esta asignación activa? El territorio volverá a estar Disponible en la base de datos y se desvinculará del programa semanal.", async () => {
+                try {
+                    showNotification("Eliminando asignación...", "info");
+                    const { deleteHistoryRecord } = await import("../../data/firestore-services.js");
+                    await deleteHistoryRecord(hId);
+                    showNotification("Asignación eliminada", "success");
+                    window.hideModal("modal-container");
+                    renderHistorialView(container);
+                } catch (e) {
+                    showNotification(`Error al eliminar: ${e.message}`, "error");
+                }
+            });
+        }
     };
 
     window._stopAllTimelineLivePools = () => {

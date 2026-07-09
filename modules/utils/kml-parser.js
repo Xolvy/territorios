@@ -101,10 +101,29 @@ export const extractMultiLeafletCoords = (territory) => {
     }
 
     if (geo && geo.type === "FeatureCollection" && Array.isArray(geo.features)) {
+        const normalizeName = (name) => {
+            return String(name || "")
+                .toLowerCase()
+                .replace(/[^a-z0-9]/g, "")
+                .replace(/^mz/, "");
+        };
+
+        const docMzs = String(territory.manzanas || "")
+            .split(/[,;/]/)
+            .map((m) => normalizeName(m.trim()))
+            .filter(Boolean);
+
         geo.features.forEach((f) => {
             if (f.geometry && f.geometry.type === "Polygon") {
                 const ring = f.geometry.coordinates[0];
                 if (Array.isArray(ring)) {
+                    const fName = normalizeName(f.properties?.name || f.properties?.id || "");
+                    
+                    if (docMzs.length > 0) {
+                        const isMatch = docMzs.some((dm) => fName === dm || fName.includes(dm) || dm.includes(fName));
+                        if (!isMatch) return;
+                    }
+
                     results.push({
                         nombre: f.properties?.name || f.properties?.id || "Mz",
                         coords: ring.map((pt) => [pt[1], pt[0]]),

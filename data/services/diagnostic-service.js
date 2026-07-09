@@ -147,8 +147,10 @@ export const runSystemDiagnosticsAndRepair = async (onProgress) => {
         // 1. Curación de Identificadores (Firestore ID -> Territory Number)
         // banco_s13 must strictly use the human-readable territory number in "territorio_id" and "numero"
         let tNum = null;
+        let maestroRef = null;
         if (maestroMapById[r.territorio_id]) {
             tNum = maestroMapById[r.territorio_id].numero;
+            maestroRef = maestroMapById[r.territorio_id];
             updates.territorio_id = tNum;
             updates.numero = tNum;
             updates.territorio_numero = tNum;
@@ -156,6 +158,7 @@ export const runSystemDiagnosticsAndRepair = async (onProgress) => {
             healedIdCount++;
         } else if (maestroMapById[r.numero]) {
             tNum = maestroMapById[r.numero].numero;
+            maestroRef = maestroMapById[r.numero];
             updates.territorio_id = tNum;
             updates.numero = tNum;
             updates.territorio_numero = tNum;
@@ -163,6 +166,13 @@ export const runSystemDiagnosticsAndRepair = async (onProgress) => {
             healedIdCount++;
         } else {
             tNum = String(r.territorio_id || r.numero || "").trim();
+            maestroRef = (r.territorio_doc_id && maestroMapById[r.territorio_doc_id]) || maestroMapByNumber[tNum];
+        }
+
+        // Curación de territorio_doc_id (nueva mejora de integridad)
+        if (maestroRef && r.territorio_doc_id !== maestroRef.id) {
+            updates.territorio_doc_id = maestroRef.id;
+            dirty = true;
         }
 
         // 2. Normalización de Nombres
@@ -209,7 +219,7 @@ export const runSystemDiagnosticsAndRepair = async (onProgress) => {
         // Si el registro está 'Asignado' pero en el Maestro ya está 'Disponible'
         // o reasignado a otro conductor, indica que se entregó sin reportarse al S-13.
         if (r.estado === "Asignado" && tNum) {
-            const m = maestroMapByNumber[tNum];
+            const m = (r.territorio_doc_id && maestroMapById[r.territorio_doc_id]) || maestroRef || maestroMapByNumber[tNum];
             if (m) {
                 let shouldClose = false;
                 let closeDate = null;

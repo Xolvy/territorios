@@ -68,7 +68,10 @@ const normalizeTerritorioData = (id, data, latestAssignment = null) => {
         manzanas_trabajadas: data.manzanas_trabajadas || [],
         localidad: data.localidad || "",
         geojson: geojson,
-        imagen: data.imagen || null,
+        imagen: (() => {
+            const rawImg = data.imagen || data.mapa_url || data.imagen_url || null;
+            return typeof rawImg === "string" && (rawImg === "null" || rawImg === "undefined" || !rawImg.trim()) ? null : rawImg;
+        })(),
         estado: estado,
         asignado_a: asignado_a,
         asignado_a_normalized: asignado_a_normalized,
@@ -98,11 +101,11 @@ export const getTerritorios = async () => {
             const activeAssignments = {};
             bancoSnap.docs.forEach((d) => {
                 const data = d.data();
-                const baseNum = String(data.territorio_id || "").match(/^(\d+)/)?.[1] || data.territorio_id;
-                activeAssignments[String(baseNum)] = { ...data, id: d.id };
+                const key = data.territorio_doc_id || data.territorio_id;
+                activeAssignments[String(key)] = { ...data, id: d.id };
             });
             return terrSnap.docs
-                .map((doc) => normalizeTerritorioData(doc.id, doc.data(), activeAssignments[String(doc.data().numero)]))
+                .map((doc) => normalizeTerritorioData(doc.id, doc.data(), activeAssignments[String(doc.id)] || activeAssignments[String(doc.data().numero)]))
                 .filter((t) => t.numero && t.numero.trim().length > 0)
                 .sort((a, b) => parseInt(a.numero, 10) - parseInt(b.numero, 10));
         } catch (e) {
@@ -268,6 +271,7 @@ export const assignTerritorio = async (id, conductorName, details = {}) => {
 
         const assignmentData = {
             territorio_id: String(tData.numero),
+            territorio_doc_id: id,
             conductor: conductorName,
             conductor_normalized: normalizeName(conductorName),
             fecha_asignacion: details.fecha_asignacion || new Date().toISOString(),
@@ -333,12 +337,18 @@ export const returnTerritorio = async (
 
         let bancoDocRefs = [];
         if (tNumero) {
-            const bancoQuery = query(
+            let bancoSnap = await getDocs(query(
                 collection(db, COL_BANCO_S13),
-                where("territorio_id", "==", tNumero),
+                where("territorio_doc_id", "==", id),
                 where("estado", "==", "Asignado"),
-            );
-            const bancoSnap = await getDocs(bancoQuery);
+            ));
+            if (bancoSnap.empty) {
+                bancoSnap = await getDocs(query(
+                    collection(db, COL_BANCO_S13),
+                    where("territorio_id", "==", tNumero),
+                    where("estado", "==", "Asignado"),
+                ));
+            }
             bancoDocRefs = bancoSnap.docs.map((d) => d.ref);
         }
 
@@ -459,10 +469,10 @@ export const resyncGlobalStats = async () => {
             getDocs(query(collection(db, COL_BANCO_S13), where("estado", "==", "Asignado"))),
         ]);
 
-        const activeNums = new Set(
+        const activeIds = new Set(
             bancoSnap.docs.map((d) => {
                 const data = d.data();
-                return String(data.territorio_id || "").trim();
+                return String(data.territorio_doc_id || data.territorio_id || "").trim();
             }),
         );
 
@@ -474,7 +484,7 @@ export const resyncGlobalStats = async () => {
             const data = docSnap.data();
             const tNum = String(data.numero || "").trim();
             const isAssignedInMaster = data.estado === "Asignado" || data.status === "Asignado";
-            const hasActiveAssignment = activeNums.has(tNum);
+            const hasActiveAssignment = activeIds.has(docSnap.id) || activeIds.has(tNum);
 
             if (isAssignedInMaster && !hasActiveAssignment) {
                 // Healer Logic: Si el maestro dice asignado pero no hay registro en el pool S-13, liberar.
@@ -591,14 +601,22 @@ export const cancelarAsignacion = async (id) => {
 
     // CAMBIO C: Apuntar a banco_s13 (colección autoritativa) en lugar de historial_territorios
     try {
-        const bancoQuery = query(
+        let snapshot = await getDocs(query(
             collection(db, COL_BANCO_S13),
-            where("territorio_id", "==", tNum),
+            where("territorio_doc_id", "==", id),
             where("estado", "==", "Asignado"),
             orderBy("timestamp", "desc"),
             limit(1),
-        );
-        const snapshot = await getDocs(bancoQuery);
+        ));
+        if (snapshot.empty) {
+            snapshot = await getDocs(query(
+                collection(db, COL_BANCO_S13),
+                where("territorio_id", "==", tNum),
+                where("estado", "==", "Asignado"),
+                orderBy("timestamp", "desc"),
+                limit(1),
+            ));
+        }
         if (!snapshot.empty) {
             await updateDoc(doc(db, COL_BANCO_S13, snapshot.docs[0].id), {
                 estado: "Cancelado",
@@ -648,14 +666,22 @@ export const updateAssignmentData = async (id, updates = {}) => {
         const tSnapForNum = await getDoc(doc(db, COL_TERRITORIOS, id));
         if (tSnapForNum.exists()) {
             const tNum = String(tSnapForNum.data().numero || "").trim();
-            const q = query(
+            let snapshot = await getDocs(query(
                 collection(db, COL_BANCO_S13),
-                where("territorio_id", "==", tNum),
+                where("territorio_doc_id", "==", id),
                 where("estado", "==", "Asignado"),
                 orderBy("timestamp", "desc"),
                 limit(1),
-            );
-            const snapshot = await getDocs(q);
+            ));
+            if (snapshot.empty) {
+                snapshot = await getDocs(query(
+                    collection(db, COL_BANCO_S13),
+                    where("territorio_id", "==", tNum),
+                    where("estado", "==", "Asignado"),
+                    orderBy("timestamp", "desc"),
+                    limit(1),
+                ));
+            }
             if (!snapshot.empty) {
                 const histUpdate = {};
                 fields.forEach((f) => {
@@ -837,21 +863,40 @@ export const returnTerritorioParcial = async (
 
     // C) Cerrar registro activo en banco_s13
     if (tNum) {
-        const qActive = query(
+        let bancoSnap = await getDocs(query(
             collection(db, COL_BANCO_S13),
-            where("territorio_id", "==", tNum),
+            where("territorio_doc_id", "==", originalId),
             where("estado", "==", "Asignado"),
-        );
-        const bancoSnap = await getDocs(qActive);
+        ));
+        if (bancoSnap.empty) {
+            bancoSnap = await getDocs(query(
+                collection(db, COL_BANCO_S13),
+                where("territorio_id", "==", tNum),
+                where("estado", "==", "Asignado"),
+            ));
+        }
         if (!bancoSnap.empty) {
             bancoSnap.docs.forEach((d) => {
+                const oldRecord = d.data();
                 batch.update(d.ref, {
                     fecha_entrega: dateToUse,
                     estado: "Predicado Parcial",
-                    observaciones: notes || d.data().observaciones || null,
+                    observaciones: notes || oldRecord.observaciones || null,
                     timestamp: Timestamp.now(),
                     fotos: fotos || null,
                 });
+
+                if (!unassignRemaining) {
+                    const newS13Ref = doc(collection(db, COL_BANCO_S13));
+                    batch.set(newS13Ref, {
+                        ...oldRecord,
+                        territorio_doc_id: originalId,
+                        estado: "Asignado",
+                        fecha_entrega: null,
+                        timestamp: Timestamp.now(),
+                        observaciones: `Porción restante de división de manzanas. (Original: ${oldRecord.observaciones || ""})`.trim()
+                    });
+                }
             });
         }
     }

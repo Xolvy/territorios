@@ -64,13 +64,14 @@ export const generateS12Report = async (territories, layout = 1) => {
                 if (numField) numField.setText(String(t.numero || ""));
 
                 // Embed map image
-                if (t.mapa_url) {
+                const mapUrl = t.imagen || t.imagen_url || t.mapa_url;
+                if (mapUrl && typeof mapUrl === "string" && mapUrl !== "null" && mapUrl !== "undefined" && mapUrl.trim() !== "") {
                     const mapField = form.getTextField(mapping.map);
                     if (mapField) {
                         const widgets = mapField.acroField.getWidgets();
                         if (widgets.length > 0) {
                             const rect = widgets[0].getRectangle();
-                            const imgBytes = await loadImageBytes(t.mapa_url);
+                            const imgBytes = await loadImageBytes(mapUrl);
                             if (imgBytes) {
                                 try {
                                     // Try loading as JPEG first, then PNG as fallback

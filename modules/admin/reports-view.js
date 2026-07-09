@@ -194,8 +194,9 @@ export const renderReportsTab = async (container, config, appVersion) => {
 
             showNotification("Generando vista previa...", "info");
 
+            const freshHistory = await getHistorialReport();
             const { generateS13Report } = await import("./reports-generator.js");
-            const result = await generateS13Report(history, from, to, { download: false });
+            const result = await generateS13Report(freshHistory, from, to, { download: false });
 
             if (!result?.url) return;
 
@@ -319,10 +320,15 @@ export const renderReportsTab = async (container, config, appVersion) => {
                     <div class="text-center mb-6">
                         <p class="text-[9px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.3em]">Así se verán sus tarjetas al imprimir</p>
                     </div>
-                    <div class="grid ${previewCols} gap-4" id="s12-preview-cards">
                         ${selected
                             .map((t) => {
-                                const mapImg = t.imagen || t.imagen_url || t.mapa_url || "";
+                                const isValidUrl = (str) => {
+                                    if (!str || typeof str !== "string") return false;
+                                    const clean = str.trim();
+                                    if (clean === "null" || clean === "undefined" || clean === "") return false;
+                                    return clean.startsWith("http://") || clean.startsWith("https://") || clean.startsWith("data:image/");
+                                };
+                                const mapImg = [t.imagen, t.imagen_url, t.mapa_url].find(isValidUrl) || "";
                                 return `
                             <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col">
                                 <!-- Card header -->
@@ -399,10 +405,15 @@ export const renderReportsTab = async (container, config, appVersion) => {
                         .no-map { opacity: 0.15; font-size: 10px; font-weight: 900; text-align: center; padding: 20px; }
                     </style>
                     </head><body>
-                    <div class="grid">
                     ${selected
                         .map((t) => {
-                            const mapImg = t.imagen || t.imagen_url || t.mapa_url || "";
+                            const isValidUrl = (str) => {
+                                if (!str || typeof str !== "string") return false;
+                                const clean = str.trim();
+                                if (clean === "null" || clean === "undefined" || clean === "") return false;
+                                return clean.startsWith("http://") || clean.startsWith("https://") || clean.startsWith("data:image/");
+                            };
+                            const mapImg = [t.imagen, t.imagen_url, t.mapa_url].find(isValidUrl) || "";
                             const isAssigned = t.estado === "Asignado";
                             return `<div class="card">
                             <div class="card-header">

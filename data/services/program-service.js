@@ -223,6 +223,7 @@ export const syncSlotWithTerritories = async (
                 const tNumStr = String(num).trim();
                 batch.set(ref, {
                     territorio_id: tNumStr,
+                    territorio_doc_id: numToId[tNumStr] || null,
                     numero: tNumStr,
                     conductor: conductor,
                     conductor_normalized: condNameNormalized,
@@ -322,6 +323,7 @@ export const sincronizarAsignacionesSalida = async (salida, weekId, fechaSalida)
 
                 const updates = {
                     territorio_id: String(maestro.numero).trim(),
+                    territorio_doc_id: maestro.id,
                     territorio_numero: String(maestro.numero).trim(),
                     numero: String(maestro.numero).trim(),
                     conductor,
@@ -368,6 +370,7 @@ export const sincronizarAsignacionesSalida = async (salida, weekId, fechaSalida)
                 // 5. Crear nueva asignación en banco_s13
                 await addDoc(collection(db, COL_BANCO_S13), {
                     territorio_id: String(maestro.numero).trim(),
+                    territorio_doc_id: maestro.id,
                     territorio_numero: String(maestro.numero).trim(),
                     numero: String(maestro.numero).trim(),
                     conductor,
@@ -898,5 +901,48 @@ export const importProgramFromJSON = async (weekId, aiData) => {
     } catch (e) {
         console.error("Error importing program from AI JSON:", e);
         throw e;
+    }
+};
+
+/**
+ * Remueve un territorio de una posición específica del programa semanal.
+ * @param {string|number} territoryNum - Número del territorio a remover.
+ * @param {string} weekId - ID de la semana (YYYY-MM-DD del lunes).
+ * @param {number} dayIdx - Índice del día (0-6).
+ * @param {string} shift - ID del turno ('manana', 'tarde', 'noche', 'zoom').
+ */
+export const removeAssignmentFromWeeklyProgram = async (territoryNum, weekId, dayIdx, shift) => {
+    try {
+        const progRef = doc(db, COL_VISOR, weekId);
+        const pSnap = await getDoc(progRef);
+        if (pSnap.exists()) {
+            const prog = pSnap.data();
+            if (prog.dias && prog.dias[dayIdx]) {
+                const slot = prog.dias[dayIdx][shift];
+                if (slot?.territorio) {
+                    const terrs = String(slot.territorio)
+                        .split(/ \/ | \/|,/)
+                        .map((s) => s.trim())
+                        .filter(Boolean);
+                    const cleanNum = String(territoryNum).trim();
+                    if (terrs.includes(cleanNum)) {
+                        const newTerrs = terrs.filter((s) => s !== cleanNum);
+                        slot.territorio = newTerrs.join(" / ");
+                        if (newTerrs.length === 0) {
+                            slot.conductor = "";
+                            slot.auxiliar = "";
+                            slot.lugar = "";
+                            slot.hora = "";
+                            slot.faceta = "";
+                            slot.grupos = "";
+                        }
+                        const sanitizedProg = JSON.parse(JSON.stringify(prog));
+                        await setDoc(progRef, sanitizedProg);
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        console.error("Error removing assignment from weekly program:", e);
     }
 };

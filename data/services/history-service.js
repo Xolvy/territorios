@@ -38,7 +38,7 @@ import { db } from "../../firebase-config.js";
 import { normalizeName } from "../../modules/utils/helpers.js";
 import { saveAuditLog } from "./audit-service.js";
 import { fetchCached, ServiceCache } from "./base-service.js";
-import { syncAssignmentToWeeklyProgram } from "./program-service.js";
+import { syncAssignmentToWeeklyProgram, removeAssignmentFromWeeklyProgram } from "./program-service.js";
 
 // ═══════════════════════════════════════════════════════════
 const COL_BANCO_S13 = "banco_s13"; // Fuente autoritativa S-13
@@ -291,14 +291,13 @@ export const addHistoryRecord = async (data) => {
 
 export const updateHistoryRecord = async (id, data) => {
     try {
-        // CAMBIO D: Pre-resolver el documento del territorio FUERA de la transacción
-        // getDocs no puede usarse dentro de runTransaction (viola reglas de Firestore)
         const histPreSnap = await getDoc(doc(db, COL_BANCO_S13, id));
         let territoryDocId = null;
 
         if (histPreSnap.exists()) {
             const oldData = histPreSnap.data();
-            if (oldData.estado === "Asignado") {
+            territoryDocId = oldData.territorio_doc_id || null;
+            if (!territoryDocId) {
                 const tQuery = query(collection(db, COL_TERRITORIOS), where("numero", "==", String(oldData.numero)));
                 const tSnap = await getDocs(tQuery);
                 if (!tSnap.empty) {
@@ -314,36 +313,74 @@ export const updateHistoryRecord = async (id, data) => {
             const old = oldSnap.data();
 
             // Sincronización Bidireccional con Maestro (territorios)
-            if (old.estado === "Asignado" && territoryDocId) {
+            if (territoryDocId) {
                 const tRef = doc(db, COL_TERRITORIOS, territoryDocId);
                 const tDocSnap = await transaction.get(tRef);
 
                 if (tDocSnap.exists()) {
                     const tUpdate = {};
 
-                    // Si el usuario añadió una fecha de entrega manual desde el historial, liberamos el territorio
                     if (data.fecha_entrega) {
                         data.estado = "Completado";
                         tUpdate.estado = "Disponible";
+                        tUpdate.status = "Disponible";
                         tUpdate.asignado_a = null;
+                        tUpdate.currentAssignee = null;
                         tUpdate.fecha_asignacion = null;
+                        tUpdate.assignmentDate = null;
                         tUpdate.turno = null;
                         tUpdate.is_incomplete = false;
                     } else {
-                        // Si solo cambiaron el conductor o la fecha/turno mientras sigue asignado
-                        if (data.conductor) tUpdate.asignado_a = data.conductor;
-                        if (data.fecha_asignacion) tUpdate.fecha_asignacion = data.fecha_asignacion;
-                        if (data.turno) tUpdate.turno = data.turno;
+                        data.estado = "Asignado";
+                        tUpdate.estado = "Asignado";
+                        tUpdate.status = "Asignado";
+                        tUpdate.asignado_a = data.conductor || old.conductor || null;
+                        tUpdate.currentAssignee = data.conductor || old.conductor || null;
+                        tUpdate.fecha_asignacion = data.fecha_asignacion || old.fecha_asignacion || null;
+                        tUpdate.assignmentDate = data.fecha_asignacion || old.fecha_asignacion || null;
+                        tUpdate.turno = data.turno || old.turno || null;
                     }
 
-                    if (Object.keys(tUpdate).length > 0) {
-                        transaction.update(tRef, tUpdate);
-                    }
+                    transaction.update(tRef, tUpdate);
                 }
             }
 
             transaction.update(histRef, data);
         });
+
+        if (histPreSnap.exists()) {
+            const old = histPreSnap.data();
+            const oldDateStr = old.fecha_asignacion || old.timestamp?.toDate?.()?.toISOString() || new Date().toISOString();
+            const oldDate = new Date(`${oldDateStr.split("T")[0]}T12:00:00Z`);
+            const oldTurno = old.turno || "manana";
+
+            const newDateStr = data.fecha_asignacion || oldDateStr;
+            const newTurno = data.turno || oldTurno;
+
+            const dateChanged = newDateStr.split("T")[0] !== oldDateStr.split("T")[0];
+            const turnoChanged = newTurno !== oldTurno;
+
+            if (dateChanged || turnoChanged) {
+                if (!Number.isNaN(oldDate.getTime())) {
+                    const d = new Date(oldDate);
+                    const day = d.getUTCDay();
+                    const diff = d.getUTCDate() - (day === 0 ? 6 : day - 1);
+                    d.setUTCDate(diff);
+                    const oldWeekId = d.toISOString().split("T")[0];
+                    let oldDayIdx = oldDate.getUTCDay();
+                    oldDayIdx = oldDayIdx === 0 ? 6 : oldDayIdx - 1;
+                    await removeAssignmentFromWeeklyProgram(old.numero, oldWeekId, oldDayIdx, oldTurno);
+                }
+            }
+
+            const merged = { ...old, ...data };
+            await syncAssignmentToWeeklyProgram(
+                { id: old.territorio_doc_id || territoryDocId || old.territorio_id, numero: old.numero },
+                merged.conductor,
+                merged
+            );
+        }
+
         ServiceCache.clear("historial");
         ServiceCache.clear("territorios_combined");
     } catch (e) {
@@ -352,11 +389,109 @@ export const updateHistoryRecord = async (id, data) => {
     }
 };
 
+export const restoreHistoryRecord = async (id) => {
+    try {
+        const histRef = doc(db, COL_BANCO_S13, id);
+        const histSnap = await getDoc(histRef);
+        if (!histSnap.exists()) throw new Error("Registro no encontrado");
+        const histData = histSnap.data();
+
+        let territoryDocId = histData.territorio_doc_id || null;
+        if (!territoryDocId) {
+            const tQuery = query(collection(db, COL_TERRITORIOS), where("numero", "==", String(histData.numero)));
+            const tSnap = await getDocs(tQuery);
+            if (!tSnap.empty) {
+                territoryDocId = tSnap.docs[0].id;
+            }
+        }
+
+        await runTransaction(db, async (transaction) => {
+            transaction.update(histRef, {
+                estado: "Asignado",
+                fecha_entrega: null,
+                timestamp: Timestamp.now(),
+            });
+
+            if (territoryDocId) {
+                const tRef = doc(db, COL_TERRITORIOS, territoryDocId);
+                transaction.update(tRef, {
+                    estado: "Asignado",
+                    status: "Asignado",
+                    asignado_a: histData.conductor,
+                    currentAssignee: histData.conductor,
+                    fecha_asignacion: histData.fecha_asignacion,
+                    assignmentDate: histData.fecha_asignacion,
+                    turno: histData.turno || "manana",
+                });
+            }
+        });
+
+        ServiceCache.clear("historial");
+        ServiceCache.clear("territorios_combined");
+
+        await syncAssignmentToWeeklyProgram(
+            { id: territoryDocId || histData.territorio_id, numero: histData.numero },
+            histData.conductor,
+            { ...histData, estado: "Asignado", fecha_entrega: null }
+        );
+    } catch (e) {
+        console.error("Error restoring history record:", e);
+        throw e;
+    }
+};
+
 export const deleteHistoryRecord = async (id) => {
     try {
-        // banco_s13 is the authoritative collection for all S-13 / Cronología records
-        await deleteDoc(doc(db, COL_BANCO_S13, id));
+        const histRef = doc(db, COL_BANCO_S13, id);
+        const histSnap = await getDoc(histRef);
+        if (!histSnap.exists()) return;
+        const histData = histSnap.data();
+
+        let territoryDocId = histData.territorio_doc_id || null;
+        if (!territoryDocId) {
+            const tQuery = query(collection(db, COL_TERRITORIOS), where("numero", "==", String(histData.numero)));
+            const tSnap = await getDocs(tQuery);
+            if (!tSnap.empty) {
+                territoryDocId = tSnap.docs[0].id;
+            }
+        }
+
+        await runTransaction(db, async (transaction) => {
+            transaction.delete(histRef);
+
+            if (histData.estado === "Asignado" && territoryDocId) {
+                const tRef = doc(db, COL_TERRITORIOS, territoryDocId);
+                const tDocSnap = await transaction.get(tRef);
+                if (tDocSnap.exists() && tDocSnap.data().estado === "Asignado") {
+                    transaction.update(tRef, {
+                        estado: "Disponible",
+                        status: "Disponible",
+                        asignado_a: null,
+                        currentAssignee: null,
+                        fecha_asignacion: null,
+                        assignmentDate: null,
+                        turno: null,
+                    });
+                }
+            }
+        });
+
         ServiceCache.clear("historial");
+        ServiceCache.clear("territorios_combined");
+
+        const baseDateStr = histData.fecha_asignacion || new Date().toISOString();
+        const baseDate = new Date(`${baseDateStr.split("T")[0]}T12:00:00Z`);
+        if (!Number.isNaN(baseDate.getTime())) {
+            const d = new Date(baseDate);
+            const day = d.getUTCDay();
+            const diff = d.getUTCDate() - (day === 0 ? 6 : day - 1);
+            d.setUTCDate(diff);
+            const weekId = d.toISOString().split("T")[0];
+            let dayIdx = baseDate.getUTCDay();
+            dayIdx = dayIdx === 0 ? 6 : dayIdx - 1;
+            const turno = histData.turno || "manana";
+            await removeAssignmentFromWeeklyProgram(histData.numero, weekId, dayIdx, turno);
+        }
     } catch (e) {
         console.error("Error deleting history record from banco_s13:", e);
         throw e;

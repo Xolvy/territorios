@@ -373,14 +373,13 @@ export class ReceptionHub {
                             : "—";
 
                         const toggleButtonHTML = `
-                            <button class="btn-toggle-delivery px-2.5 py-1.5 rounded-xl border text-[9px] font-black uppercase tracking-wider transition-all active:scale-95 flex items-center gap-1.5 ${
-                                isEntregar
-                                    ? "bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border-indigo-500/20"
-                                    : "bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-550 dark:text-slate-400 border-slate-200 dark:border-white/5"
-                            }" data-tid="${t.id}">
-                                <i class="fas ${isEntregar ? "fa-clipboard-check" : "fa-undo"}"></i>
-                                ${isEntregar ? "Devolver Predicado" : "Devolver sin Predicar"}
-                            </button>
+                            <label class="flex items-center gap-2 cursor-pointer select-none bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-white/5 transition-all active:scale-95">
+                                <input type="checkbox" class="cb-return-unpreached sr-only" data-tid="${t.id}" ${!isEntregar ? "checked" : ""}>
+                                <div class="w-7 h-4 rounded-full transition-all relative flex items-center px-0.5 toggler-bg ${!isEntregar ? "bg-amber-500" : "bg-slate-300 dark:bg-white/20"}">
+                                    <div class="w-3 h-3 bg-white rounded-full shadow-md transform transition-all toggler-dot ${!isEntregar ? "translate-x-3" : "translate-x-0"}"></div>
+                                </div>
+                                <span class="text-[9px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-400">Devolver sin predicar</span>
+                            </label>
                         `;
 
                         let actionContentHTML = "";
@@ -416,9 +415,19 @@ export class ReceptionHub {
                             `;
                         } else {
                             actionContentHTML = `
-                            <div class="flex items-center gap-2 p-3.5 bg-slate-50 dark:bg-white/[0.01] rounded-2xl border border-slate-250/30 dark:border-white/5">
+                            <div class="space-y-3 opacity-40 select-none pointer-events-none">
+                                <div class="flex flex-wrap items-center gap-1.5">
+                                    ${mzs
+                                        .map((m) => `
+                                    <button class="px-3 py-1.5 rounded-lg border text-[10px] font-black bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/5 text-slate-400 dark:text-slate-500" disabled>
+                                        ${String(m).trim().toLowerCase().startsWith("mz") ? m : `Mz. ${m}`}
+                                    </button>
+                                    `).join("")}
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 p-3.5 bg-amber-500/5 dark:bg-amber-500/[0.02] rounded-2xl border border-amber-500/10 dark:border-amber-500/5 mt-3 animate-fade-in">
                                 <i class="fas fa-info-circle text-[10.5px] text-amber-500 font-black"></i>
-                                <span class="text-[9.5px] font-bold text-slate-550 dark:text-slate-400 uppercase tracking-wide">El territorio se liberará y quedará libre en el mapa</span>
+                                <span class="text-[9.5px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wide">El territorio se liberará y quedará libre en el mapa</span>
                             </div>
                             `;
                         }
@@ -509,12 +518,17 @@ export class ReceptionHub {
 
 
 
-            // Toggle delivery button
-            const toggleBtn = card.querySelector(".btn-toggle-delivery");
-            if (toggleBtn) {
-                toggleBtn.onclick = () => {
+            // Toggle return unpreached checkbox/toggle
+            const unpreachedCb = card.querySelector(".cb-return-unpreached");
+            if (unpreachedCb) {
+                unpreachedCb.onchange = () => {
                     const sel = this.selections[t.id];
-                    sel.mode = sel.mode === "sin_predicar" ? "entregar" : "sin_predicar";
+                    if (unpreachedCb.checked) {
+                        sel.mode = "sin_predicar";
+                        sel.manzanas = []; // Clear selected manzanas when returned without preaching
+                    } else {
+                        sel.mode = "entregar";
+                    }
                     this.renderList();
                 };
             }
@@ -575,10 +589,10 @@ export class ReceptionHub {
                         if (t) groupTerritories.push(t);
                     });
 
-                    // Check if any territory to deliver has zero apples selected (meaning Devolución)
+                    // Check if any territory is explicitly marked to return without preaching
                     const returningWithoutPreaching = groupTerritories.filter((t) => {
                         const sel = this.selections[t.id];
-                        return sel?.mode !== "sin_predicar" && (!sel?.manzanas || sel.manzanas.length === 0);
+                        return sel?.mode === "sin_predicar";
                     });
 
                     if (returningWithoutPreaching.length > 0) {
@@ -599,6 +613,7 @@ export class ReceptionHub {
                     for (const t of groupTerritories) {
                         const sel = this.selections[t.id];
                         if (sel?.mode === "sin_predicar") {
+                            processedCount++;
                             // Devolución sin predicar (Disponible)
                             await returnTerritorio(
                                 t.id,
@@ -612,7 +627,6 @@ export class ReceptionHub {
                             continue;
                         }
 
-                        processedCount++;
                         const mzs = t.manzanas
                             ? t.manzanas
                                   .split(",")
@@ -623,12 +637,12 @@ export class ReceptionHub {
                         const remaining = mzs.filter((x) => !checksMz.includes(x));
 
                         if (checksMz.length === 0) {
-                            // Devolución sin predicar (Disponible)
-                            await returnTerritorio(t.id, "Devolución desde control unificado", null, "Disponible");
-                            window.dispatchEvent(
-                                new CustomEvent("territorio-liberado", { detail: { id: t.id, numero: t.numero } }),
-                            );
-                        } else if (remaining.length === 0) {
+                            // Sin Entregar (Pendiente) — NO HACER NADA (permanece asignado)
+                            continue;
+                        }
+
+                        processedCount++;
+                        if (remaining.length === 0) {
                             // Entrega Total
                             await returnTerritorio(t.id, null, deliveryDate, "Completado", null, conductor);
                             window.dispatchEvent(
@@ -652,7 +666,11 @@ export class ReceptionHub {
                         }
                     }
 
-                    showNotification("Actividad informada correctamente", "success");
+                    if (processedCount > 0) {
+                        showNotification("Actividad informada correctamente", "success");
+                    } else {
+                        showNotification("No se registraron devoluciones ni actividad", "info");
+                    }
                     if (window.renderTableCallback) window.renderTableCallback();
 
                     // Auto-close if everything in the hub is processed

@@ -258,12 +258,12 @@ export const openSugeridorModal = (programa, renderTableCallback) => {
         });
     });
 
-    // ── Deduplicate territories and compute centroids ───────────────────────
+    // ── Group by territory document ID (allowing split parts to coexist) ───
     const uniqueTsMap = {};
     for (const t of territorios) {
-        const num = String(t.numero || "").trim();
-        if (!uniqueTsMap[num]) {
-            uniqueTsMap[num] = { ...t, numero: num, centroid: getTerritoryCentroid(t) };
+        const docId = t.id;
+        if (!uniqueTsMap[docId]) {
+            uniqueTsMap[docId] = { ...t, centroid: getTerritoryCentroid(t) };
         }
     }
     const uniqueTs = Object.values(uniqueTsMap);
@@ -486,7 +486,7 @@ export const openSugeridorModal = (programa, renderTableCallback) => {
             leafletMap.setView([refCoords.lat, refCoords.lng], 16);
             updateGpsMarkerOnMap(refCoords.lat, refCoords.lng);
         } else if (selectedRefKey !== "none" && selectedRefKey !== "gps") {
-            const currentT = uniqueTs.find((x) => x.numero === selectedRefKey);
+            const currentT = uniqueTs.find((x) => x.id === selectedRefKey);
             if (currentT) {
                 const allItems = extractMultiLeafletCoords(currentT);
                 if (allItems.length > 0) {
@@ -617,17 +617,17 @@ export const openSugeridorModal = (programa, renderTableCallback) => {
             if (loader) loader.classList.add("hidden");
             triggerGpsLocateAndZoom();
         } else {
-            const t = uniqueTs.find((x) => x.numero === selectedRefKey);
+            const t = uniqueTs.find((x) => x.id === selectedRefKey);
             const L = window.L;
             if (t && L) {
                 refCoords = t.centroid;
                 const allItems = extractMultiLeafletCoords(t);
                 const bounds = L.featureGroup(allItems.map((item) => L.polygon(item.coords || item))).getBounds();
                 leafletMap.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
-                showNotification(`Centrado en el Territorio ${selectedRefKey}`, "info");
+                showNotification(`Centrado en el Territorio ${t.numero}`, "info");
             } else {
                 refCoords = null;
-                showNotification(`El Territorio ${selectedRefKey} no posee polígono válido`, "warning");
+                showNotification(`El Territorio seleccionado no posee polígono válido`, "warning");
             }
             if (loader) loader.classList.add("hidden");
             renderMap();
@@ -655,7 +655,9 @@ export const openSugeridorModal = (programa, renderTableCallback) => {
 
         try {
             showNotification("Asignando territorio...", "info");
-            saveLearningChoice(selectedRefKey, tNum);
+            const refT = uniqueTs.find((x) => x.id === selectedRefKey);
+            const refLabel = refT ? refT.numero : selectedRefKey;
+            saveLearningChoice(refLabel, tNum);
 
             programa.isFormalized = false;
             await saveProgramaSemanal(programa.id, programa);
@@ -708,7 +710,11 @@ export const openSugeridorModal = (programa, renderTableCallback) => {
                         <option value="none">📍 MAPA GENERAL</option>
                         <option value="gps">📍 MI UBICACIÓN</option>
                         ${uniqueTs
-                            .map((t) => `<option value="${t.numero}">📍 TERRITORIO ${t.numero}</option>`)
+                            .map((t) => {
+                                const hasDuplicates = uniqueTs.filter((x) => x.numero === t.numero).length > 1;
+                                const label = hasDuplicates ? `TERRITORIO ${t.numero} (${t.manzanas || "Sin sector"})` : `TERRITORIO ${t.numero}`;
+                                return `<option value="${t.id}">📍 ${label}</option>`;
+                            })
                             .join("")}
                     </select>
                 </div>
