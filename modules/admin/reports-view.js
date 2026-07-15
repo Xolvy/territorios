@@ -246,8 +246,9 @@ export const renderReportsTab = async (container, config, appVersion) => {
                         <button id="btn-print-sel-none" class="px-6 py-3 bg-slate-100 dark:bg-white/5 text-slate-500 font-extrabold rounded-xl text-[9px] uppercase tracking-widest border border-slate-200 dark:border-white/10 hover:bg-slate-200 transition-all">Ninguno</button>
                     </div>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     ${renderLayoutBtnPrint(1, "fas fa-stop", "1 por hoja")}
+                    ${renderLayoutBtnPrint(2, "fas fa-columns", "2 por hoja")}
                     ${renderLayoutBtnPrint(4, "fas fa-th-large", "4 por hoja")}
                 </div>
                 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4" id="print-s12-grid-sel">
@@ -299,8 +300,15 @@ export const renderReportsTab = async (container, config, appVersion) => {
 
     const showS12Preview = (selected, layout) => {
         // Determine grid columns for the preview based on layout
-        const previewCols = layout === 1 ? "grid-cols-1 max-w-lg mx-auto" : "grid-cols-2";
-        const cardsLabel = layout === 1 ? "1 tarjeta por hoja" : "4 tarjetas por hoja";
+        let previewCols = "grid-cols-1 max-w-lg mx-auto";
+        let cardsLabel = "1 tarjeta por hoja";
+        if (layout === 2) {
+            previewCols = "grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto";
+            cardsLabel = "2 tarjetas por hoja";
+        } else if (layout === 4) {
+            previewCols = "grid-cols-2 max-w-4xl mx-auto";
+            cardsLabel = "4 tarjetas por hoja";
+        }
 
         showModal(
             `
@@ -320,6 +328,7 @@ export const renderReportsTab = async (container, config, appVersion) => {
                     <div class="text-center mb-6">
                         <p class="text-[9px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.3em]">Así se verán sus tarjetas al imprimir</p>
                     </div>
+                    <div class="grid gap-6 ${previewCols}">
                         ${selected
                             .map((t) => {
                                 const isValidUrl = (str) => {
@@ -358,6 +367,7 @@ export const renderReportsTab = async (container, config, appVersion) => {
                             .join("")}
                     </div>
                 </div>
+            </div>
 
                 <!-- Footer actions -->
                 <footer class="shrink-0 p-5 md:p-6 border-t border-slate-100 dark:border-white/5 bg-white dark:bg-black/40 flex flex-wrap gap-3">
@@ -383,16 +393,22 @@ export const renderReportsTab = async (container, config, appVersion) => {
 
                 // Imprimir directamente (print nativo del browser)
                 modal.querySelector("#btn-print-s12-direct").onclick = () => {
-                    const printCols = layout === 1 ? "1" : "2";
+                    const cardsPerPage = layout;
+                    const pages = [];
+                    for (let i = 0; i < selected.length; i += cardsPerPage) {
+                        pages.push(selected.slice(i, i + cardsPerPage));
+                    }
+
                     const printWin = window.open("", "_blank", "width=900,height=700");
                     printWin.document.write(`
                     <html><head>
                     <title>Tarjetas S-12</title>
                     <style>
-                        @page { margin: 10mm; }
+                        @page { margin: 10mm; size: A4; }
                         body { margin: 0; font-family: sans-serif; background: #fff; }
-                        .grid { display: grid; grid-template-columns: repeat(${printCols}, 1fr); gap: 12px; }
-                        .card { border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; break-inside: avoid; page-break-inside: avoid; }
+                        .print-page { display: grid; grid-template-columns: repeat(${layout === 1 ? 1 : 2}, 1fr); gap: 12px; page-break-after: always; break-after: page; }
+                        .print-page:last-child { page-break-after: avoid; break-after: avoid; }
+                        .card { border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
                         .card-header { padding: 8px 12px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
                         .card-num { width: 28px; height: 28px; background: #eef2ff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 900; color: #4f46e5; font-size: 11px; }
                         .card-title { font-weight: 900; font-size: 10px; color: #1e293b; text-transform: uppercase; }
@@ -405,29 +421,30 @@ export const renderReportsTab = async (container, config, appVersion) => {
                         .no-map { opacity: 0.15; font-size: 10px; font-weight: 900; text-align: center; padding: 20px; }
                     </style>
                     </head><body>
-                    ${selected
-                        .map((t) => {
-                            const isValidUrl = (str) => {
-                                if (!str || typeof str !== "string") return false;
-                                const clean = str.trim();
-                                if (clean === "null" || clean === "undefined" || clean === "") return false;
-                                return clean.startsWith("http://") || clean.startsWith("https://") || clean.startsWith("data:image/");
-                            };
-                            const mapImg = [t.imagen, t.imagen_url, t.mapa_url].find(isValidUrl) || "";
-                            const isAssigned = t.estado === "Asignado";
-                            return `<div class="card">
-                            <div class="card-header">
-                                <div style="display:flex;gap:8px;align-items:center">
-                                    <div class="card-num">${t.numero}</div>
-                                    <div><div class="card-title">${t.localidad || t.nombre || "—"}</div><div class="card-sub">${t.manzanas ? `${t.manzanas.split(",").filter(Boolean).length} manzanas` : "S-12"}</div></div>
+                    ${pages.map(page => `
+                        <div class="print-page">
+                            ${page.map(t => {
+                                const isValidUrl = (str) => {
+                                    if (!str || typeof str !== "string") return false;
+                                    const clean = str.trim();
+                                    if (clean === "null" || clean === "undefined" || clean === "") return false;
+                                    return clean.startsWith("http://") || clean.startsWith("https://") || clean.startsWith("data:image/");
+                                };
+                                const mapImg = [t.imagen, t.imagen_url, t.mapa_url].find(isValidUrl) || "";
+                                const isAssigned = t.estado === "Asignado";
+                                return `<div class="card">
+                                <div class="card-header">
+                                    <div style="display:flex;gap:8px;align-items:center">
+                                        <div class="card-num">${t.numero}</div>
+                                        <div><div class="card-title">${t.localidad || t.nombre || "—"}</div><div class="card-sub">${t.manzanas ? `${t.manzanas.split(",").filter(Boolean).length} manzanas` : "S-12"}</div></div>
+                                    </div>
+                                    <span class="card-badge ${isAssigned ? "badge-assigned" : "badge-available"}">${t.estado || "Disponible"}</span>
                                 </div>
-                                <span class="card-badge ${isAssigned ? "badge-assigned" : "badge-available"}">${t.estado || "Disponible"}</span>
-                            </div>
-                            <div class="card-map">${mapImg ? `<img src="${mapImg}" alt="Mapa">` : '<div class="no-map">Sin imagen de mapa</div>'}</div>
-                        </div>`;
-                        })
-                        .join("")}
-                    </div>
+                                <div class="card-map">${mapImg ? `<img src="${mapImg}" alt="Mapa">` : '<div class="no-map">Sin imagen de mapa</div>'}</div>
+                            </div>`;
+                            }).join("")}
+                        </div>
+                    `).join("")}
                     </body></html>`);
                     printWin.document.close();
                     printWin.focus();

@@ -737,6 +737,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, _appVersi
                             conductorDataRef,
                             userRole,
                             usePool ? poolData : { ...poolData, programa: initialProg },
+                            { mAvail, mRec, mMaps, mRescue, mPhone, mProg }
                         );
 
                         const myPhones = await refreshPhones(true);
@@ -850,7 +851,12 @@ export const renderConductorDashboard = async (container, nameOrEmail, _appVersi
                                     );
                                 }
 
-                                if (recentUnfinalized.length > 0) {
+                                const isActiveSession = !!(
+                                    window._phoneSessionActive ||
+                                    localStorage.getItem("phone_session_active") === "true"
+                                );
+
+                                if (recentUnfinalized.length > 0 && !isActiveSession) {
                                     // Temporarily restore the button so the user can interact
                                     if (btnToDisable) {
                                         btnToDisable.disabled = false;
@@ -1625,7 +1631,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, _appVersi
         // UI Shell Injection (RESTAURACIÓN PREMIUM V2.5 - ORDEN ESTRICTO)
         container.innerHTML = `
         <div id="conductor-shell-root" class="flex flex-col w-full overflow-hidden bg-slate-50 dark:bg-[#05070a] animate-fade-in" style="height:100vh;height:100dvh;" data-adaptive-container="true">
-            <header class="flex items-center justify-between bg-white/40 dark:bg-[#030712]/40 backdrop-blur-xl border-b border-slate-200/10 dark:border-white/5 sticky top-0 z-40 shadow-sm p-4 lg:hidden flex-none transition-colors duration-300">
+            <header class="flex items-center justify-between bg-white dark:bg-[#030712] border-b border-slate-200/10 dark:border-white/5 sticky top-0 z-40 shadow-sm p-4 lg:hidden flex-none transition-colors duration-300">
                 <div class="flex items-center gap-3">
                     <button id="menu-toggle-btn" class="p-2 text-emerald-600 dark:text-emerald-400 focus:outline-none active:scale-95 transition-transform">
                         <svg class="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
@@ -1683,7 +1689,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, _appVersi
                 <main class="flex-1 min-w-0 flex flex-col min-w-0 h-auto lg:h-full overflow-hidden bg-slate-50 dark:bg-[#0a0f18] relative">
 
                 <!-- Desktop / Main Header (Ultra compact God level) -->
-                <header class="shrink-0 z-20 bg-white/40 dark:bg-[#0a0f18]/80 backdrop-blur-2xl border-b border-slate-200/50 dark:border-white/5 px-6 md:px-12 py-4 flex items-center justify-between gap-6 relative overflow-hidden">
+                <header class="shrink-0 z-20 bg-white dark:bg-[#0a0f18] border-b border-slate-200/50 dark:border-white/5 px-6 md:px-12 py-4 flex items-center justify-between gap-6 relative overflow-hidden">
                     <div class="absolute inset-0 bg-gradient-to-r from-emerald-500/5 via-transparent to-transparent pointer-events-none"></div>
                     <div class="flex items-center gap-3 relative z-10">
                         <div class="w-10 h-10 bg-gradient-to-tr from-emerald-600 to-teal-500 rounded-xl flex items-center justify-center text-white text-base font-black shadow-lg shadow-emerald-500/30 shrink-0 border border-white/20 animate-float">
@@ -2148,7 +2154,48 @@ export const renderConductorDashboard = async (container, nameOrEmail, _appVersi
         );
 
         try {
-            const allTerritorios = poolData?.territorios || [];
+            // S-13 Sincronización: Combinar territorios con las asignaciones activas de banco_s13 (Fuente única de la verdad)
+            const activeAssignments = {};
+            (poolData?.banco_s13 || []).forEach((data) => {
+                const key = data.territorio_doc_id || data.territorio_id;
+                if (key) {
+                    activeAssignments[String(key)] = data;
+                }
+                if (data.numero) {
+                    activeAssignments[String(data.numero)] = data;
+                }
+            });
+
+            const allTerritorios = (poolData?.territorios || []).map((t) => {
+                const assignment = activeAssignments[String(t.id)] || activeAssignments[String(t.numero)];
+                if (assignment) {
+                    return {
+                        ...t,
+                        estado: assignment.estado || "Asignado",
+                        status: assignment.estado || "Asignado",
+                        asignado_a: assignment.conductor || null,
+                        currentAssignee: assignment.conductor || null,
+                        fecha_asignacion: assignment.fecha_asignacion || null,
+                        assignmentDate: assignment.fecha_asignacion || null,
+                        auxiliar: assignment.auxiliar || null,
+                        turno: assignment.turno || null,
+                        last_assignment: assignment
+                    };
+                } else {
+                    return {
+                        ...t,
+                        estado: "Disponible",
+                        status: "Disponible",
+                        asignado_a: null,
+                        currentAssignee: null,
+                        fecha_asignacion: null,
+                        assignmentDate: null,
+                        auxiliar: null,
+                        turno: null,
+                        last_assignment: null
+                    };
+                }
+            });
             const userModsEffectivos = conductorData?.modulos ||
                 userMods || {
                     agenda: true,

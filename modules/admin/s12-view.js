@@ -157,8 +157,7 @@ export const renderS12View = async (container, config, appVersion) => {
 
         showModal(
             `
-            <div class="flex flex-col h-full bg-white dark:bg-[#0a0f18] rounded-[2.5rem] overflow-hidden">
-                <header class="shrink-0 bg-primary p-8 text-white relative overflow-hidden">
+             <header class="shrink-0 bg-indigo-600 p-8 text-white relative overflow-hidden">
                     <div class="absolute inset-0 bg-white/10 backdrop-blur-3xl"></div>
                     <div class="relative z-10 flex items-center gap-6">
                         <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center text-3xl shadow-2xl border border-white/30">
@@ -175,23 +174,23 @@ export const renderS12View = async (container, config, appVersion) => {
                     <div class="grid grid-cols-1 gap-8">
                          <div class="space-y-3">
                             <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Localidad</label>
-                            <input type="text" id="edit-t-localidad" value="${t.localidad || t.nombre || ""}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all uppercase shadow-inner">
+                            <input type="text" id="edit-t-localidad" value="${t.localidad || t.nombre || ""}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-indigo-500 transition-all uppercase shadow-inner">
                         </div>
                         <div class="grid grid-cols-2 gap-6">
                             <div class="space-y-3">
                                 <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Número</label>
-                                <input type="text" id="edit-t-numero" value="${t.numero || ""}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary transition-all uppercase shadow-inner">
+                                <input type="text" id="edit-t-numero" value="${t.numero || ""}" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-indigo-500 transition-all uppercase shadow-inner">
                             </div>
                             <div class="space-y-3">
                                 <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Tipo</label>
-                                <select id="edit-t-tipo" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-primary cursor-pointer appearance-none shadow-inner">
+                                <select id="edit-t-tipo" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-black text-slate-700 dark:text-white outline-none focus:border-indigo-500 cursor-pointer appearance-none shadow-inner">
                                     ${tipos.map((ti) => `<option value="${ti}" ${t.tipo === ti ? "selected" : ""}>${ti}</option>`).join("")}
                                 </select>
                             </div>
                         </div>
                         <div class="space-y-3">
                             <label class="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1 block">Manzanas (Separadas por coma)</label>
-                            <textarea id="edit-t-mzs" rows="3" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-bold text-slate-700 dark:text-white outline-none focus:border-primary resize-none shadow-inner">${t.manzanas || ""}</textarea>
+                            <textarea id="edit-t-mzs" rows="3" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-5 rounded-2xl text-[13px] font-bold text-slate-700 dark:text-white outline-none focus:border-indigo-500 resize-none shadow-inner">${t.manzanas || ""}</textarea>
                         </div>
                     </div>
                 </div>
@@ -200,11 +199,10 @@ export const renderS12View = async (container, config, appVersion) => {
                     <button id="btn-cancel-t-edit" class="flex-1 min-w-0 py-5 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-slate-600 dark:text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] border border-slate-200 dark:border-white/10 transition-all active:scale-95">
                         Cancelar
                     </button>
-                    <button id="btn-save-t-edit" class="flex-[1.5] py-5 bg-primary hover:bg-primary-light text-white font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-primary/20 transition-all active:scale-95 flex items-center justify-center gap-2">
+                    <button id="btn-save-t-edit" class="flex-[1.5] py-5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-2xl text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-indigo-600/20 transition-all active:scale-95 flex items-center justify-center gap-2">
                         <i class="fas fa-save"></i> Actualizar Registro
                     </button>
                 </footer>
-            </div>
     `,
             (modal) => {
                 modal.querySelector("#btn-cancel-t-edit").onclick = () => modal.classList.add("hidden");

@@ -462,7 +462,7 @@ export const renderPredicacionTab = async (container, configData = null) => {
                                         </div>
                                         <div class="flex items-center gap-2">
                                             <button onclick="window.editPublicRowModal(${idx})"
-                                                class="flex-1 min-w-0 flex items-center justify-center gap-2 py-2 rounded-xl bg-primary/10 hover:bg-primary text-primary hover:text-white text-[9px] font-black uppercase tracking-wider transition-all active:scale-95">
+                                                class="flex-1 min-w-0 flex items-center justify-center gap-2 py-2 rounded-xl bg-indigo-50 dark:bg-white/5 hover:bg-indigo-600 text-indigo-600 dark:text-indigo-400 hover:text-white text-[9px] font-black uppercase tracking-wider transition-all active:scale-95">
                                                 <i class="fas fa-pen text-[9px]"></i> Editar
                                             </button>
                                             <button onclick="window.deletePublicRow(${idx})"

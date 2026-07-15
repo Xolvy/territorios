@@ -275,9 +275,9 @@ export const renderPersonalTab = async (container, _configData = null, _appVersi
                             <p class="text-[9px] text-slate-600 dark:text-slate-400 ml-2 italic font-medium">Requerido para administradores y accesos de nube.</p>
                         </div>
 
-                        <div class="space-y-4">
-                            <label class="label-premium">Privilegios y Roles</label>
-                            <div id="privs-container" class="flex flex-wrap gap-3"></div>
+                        <div class="space-y-4 pt-2 pb-2">
+                            <label class="label-premium block">Privilegios y Roles</label>
+                            <div id="privs-container" class="flex flex-col sm:flex-row flex-wrap gap-3"></div>
                         </div>
 
                         <div class="enterprise-card !p-0 overflow-hidden">
@@ -307,7 +307,7 @@ export const renderPersonalTab = async (container, _configData = null, _appVersi
                                                 <div class="flex justify-center">
                                                     <label class="relative inline-flex items-center cursor-pointer group">
                                                         <input type="checkbox" class="p-avail-check peer sr-only" value="${day}_${sh.id}" ${(Array.isArray(person?.disponibilidad) ? person.disponibilidad : []).includes(`${day}_${sh.id}`) ? "checked" : ""}>
-                                                        <div class="w-10 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-emerald-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                                                        <div class="w-10 h-6 bg-slate-300 dark:bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:shadow-sm after:border after:border-gray-200 after:transition-all"></div>
                                                     </label>
                                                 </div>`,
                                                   )
@@ -328,7 +328,7 @@ export const renderPersonalTab = async (container, _configData = null, _appVersi
                                 </div>
                                 <label class="relative inline-flex items-center cursor-pointer group">
                                     <input type="checkbox" id="p-mod-enabled" class="peer sr-only" ${person?.modulos?.habilitado !== false ? "checked" : ""}>
-                                    <div class="w-11 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-primary after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                                    <div class="w-11 h-6 bg-slate-300 dark:bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:shadow-md after:border after:border-gray-200 after:transition-all"></div>
                                 </label>
                             </div>
                             <div class="p-4 md:p-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -381,13 +381,13 @@ export const renderPersonalTab = async (container, _configData = null, _appVersi
                                     <div class="flex items-center justify-between p-4 bg-white dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/10">
                                         <div class="flex items-center gap-3">
                                             <div class="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500 text-xs">
-                                                <i class="fas ${mod.icon}"></i>
+                                                <i class="fas ${m.icon}"></i>
                                             </div>
-                                            <span class="text-xs font-black text-slate-700 dark:text-slate-300 uppercase">${mod.label}</span>
+                                            <span class="text-xs font-black text-slate-700 dark:text-slate-300 uppercase">${m.label}</span>
                                         </div>
-                                        <label class="relative inline-flex items-center cursor-pointer group">
-                                            <input type="checkbox" id="${mod.id}" class="p-mod-check peer sr-only" ${mod.checked ? "checked" : ""}>
-                                            <div class="w-11 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-primary after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                                        <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                                            <input type="checkbox" class="p-mod-check peer sr-only" id="${m.id}" ${(person?.modulos?.[m.id.replace("mod-", "")] ?? true) ? "checked" : ""}>
+                                            <div class="w-11 h-6 bg-slate-300 dark:bg-slate-600 rounded-full peer peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:shadow-md after:border after:border-slate-200 peer-checked:after:translate-x-[18px] after:transition-all"></div>
                                         </label>
                                     </div>
                                 `,
@@ -490,7 +490,7 @@ export const renderPersonalTab = async (container, _configData = null, _appVersi
                         </div>
                         <label class="relative inline-flex items-center cursor-pointer shrink-0">
                             <input type="checkbox" class="p-priv-check peer sr-only" value="${pr}" ${currentPrivs.includes(pr) ? "checked" : ""}>
-                            <div class="w-11 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-primary after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                            <div class="w-11 h-6 bg-slate-300 dark:bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:shadow-md after:border after:border-gray-200 after:transition-all"></div>
                         </label>
                     </label>
                 `,

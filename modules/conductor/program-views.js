@@ -58,8 +58,27 @@ export const renderFullProgramaCards = (
                     const d = (programa.dias || []).find((x) => x.nombre === dayName);
                     if (!d) return "";
 
+                    // Dynamically get all keys of d that match manana, tarde, noche, zoom (including _2, _3...)
+                    const activeDayKeys = Object.keys(d).filter((key) => {
+                        const base = key.split("_")[0];
+                        return ["manana", "tarde", "noche", "zoom"].includes(base);
+                    });
+
+                    // Sort shifts by base shift order and suffix number
+                    const sortedKeys = activeDayKeys.sort((a, b) => {
+                        const baseOrder = { manana: 0, tarde: 1, noche: 2, zoom: 3 };
+                        const baseA = a.split("_")[0];
+                        const baseB = b.split("_")[0];
+                        if (baseA !== baseB) {
+                            return baseOrder[baseA] - baseOrder[baseB];
+                        }
+                        const numA = parseInt(a.split("_")[1] || "1", 10);
+                        const numB = parseInt(b.split("_")[1] || "1", 10);
+                        return numA - numB;
+                    });
+
                     // Check if day has any visible shift with activity content
-                    const hasVisibleData = shifts.some((s) => {
+                    const hasVisibleData = sortedKeys.some((s) => {
                         const sData = d[s];
                         return hasVisibleContent(sData);
                     });
@@ -87,7 +106,7 @@ export const renderFullProgramaCards = (
                             </div>
                         </div>
                         <div class="space-y-4">
-                            ${shifts
+                            ${sortedKeys
                                 .map((shift) => {
                                     const sData = d ? d[shift] : null;
                                     if (!hasVisibleContent(sData)) return "";
@@ -96,12 +115,14 @@ export const renderFullProgramaCards = (
                                     const isAuxiliar = sData.auxiliar === currentConductorName;
                                     const isImpacted = isConductor || isAuxiliar;
 
+                                    const baseShift = shift.split("_")[0];
+
                                     return `
                                 <div class="p-3.5 sm:p-4 rounded-2xl border border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02] ${isImpacted ? "ring-2 ring-primary/20 bg-primary/5" : ""}">
                                     <div class="flex items-center justify-between gap-2 mb-3">
                                         <div class="flex items-center gap-2">
-                                            <i class="fas ${shiftIcons[shift]} ${shiftColors[shift]} text-[10px]"></i>
-                                            <span class="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">${shiftLabels[shift]}</span>
+                                            <i class="fas ${shiftIcons[baseShift]} ${shiftColors[baseShift]} text-[10px]"></i>
+                                            <span class="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">${shiftLabels[baseShift]}${shift.includes("_") ? ` #${shift.split("_")[1]}` : ""}</span>
                                         </div>
                                         ${
                                             sData.hora

@@ -34,6 +34,7 @@ const sortChronologically = (times) => {
 };
 
 export const renderConfigTab = async (container, config, appVersion, reloadTabFn) => {
+    const isSuperAdmin = window.XolvyApp?.user?.role === "SuperAdmin";
     const [puntosInteres, territorios] = await Promise.all([getPuntosInteres(), getTerritorios()]);
 
     // Helper for showing manual LED feedback
@@ -339,6 +340,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                         </div>
                     </section>
 
+                    ${isSuperAdmin ? `
                     <!-- 5. INTELIGENCIA ARTIFICIAL -->
                     <section class="enterprise-card p-8 relative overflow-hidden">
                         <header class="flex items-center gap-3 mb-6">
@@ -385,45 +387,63 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                     </section>
 
                     <!-- 7. NOTIFICACIONES PWA (ANUNCIOS GLOBALES) -->
-                    <section class="enterprise-card p-8 relative overflow-hidden">
-                        <header class="flex items-center gap-3 mb-6">
-                            <i class="fas fa-bell text-blue-600 text-sm"></i>
-                            <h4 class="text-[11px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">7. Notificaciones PWA (Anuncios Globales)</h4>
+                    <section class="enterprise-card p-8 relative overflow-hidden bg-gradient-to-br from-indigo-50/50 to-white dark:from-indigo-950/20 dark:to-slate-900 border-indigo-100/50 dark:border-indigo-500/10">
+                        <header class="flex items-center justify-between mb-6">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-indigo-500/10 dark:bg-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                                    <i class="fas fa-satellite-dish text-lg"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-[13px] font-black uppercase tracking-widest text-slate-800 dark:text-white leading-none">Anuncios Push Globales</h4>
+                                    <p class="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-1">Transmisión Inmediata (PWA)</p>
+                                </div>
+                            </div>
                         </header>
 
-                        <div class="space-y-5">
-                            <p class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-relaxed">
-                                Envía un anuncio instantáneo a todos los dispositivos que tengan instalada la PWA y permisos activos.
-                            </p>
+                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                            <!-- Columna Izquierda: Formulario -->
+                            <div class="lg:col-span-7 flex flex-col gap-5">
+                                <div class="relative group/input">
+                                    <label class="label-premium flex items-center gap-2">
+                                        <i class="fas fa-heading text-slate-400"></i> Título del Anuncio
+                                    </label>
+                                    <input type="text" id="notif-title" class="input-premium font-bold text-slate-800 dark:text-white" placeholder="Ej. Actualización Crítica o Cambio de Horario">
+                                </div>
 
-                            <div class="relative group/input">
-                                <label class="label-premium flex items-center justify-between">
-                                    FCM Web Push VAPID Key
-                                    <span class="text-[8px] px-1.5 py-0.5 bg-teal-500/10 text-teal-500 rounded uppercase tracking-tighter">Configuración</span>
-                                </label>
-                                <input type="text" id="fcm-vapid-key" value="${config.fcm_vapid_key || ""}" 
-                                    class="input-premium font-mono"
-                                    placeholder="Ej. BFG_...">
-                                <div class="led-status-container hidden" style="right: 1.5rem; top: 2.5rem;"></div>
+                                <div class="relative group/input">
+                                    <label class="label-premium flex items-center gap-2">
+                                        <i class="fas fa-align-left text-slate-400"></i> Contenido del Mensaje
+                                    </label>
+                                    <textarea id="notif-body" class="input-premium h-24 resize-none py-3" placeholder="Detalla aquí el anuncio para todos los dispositivos..."></textarea>
+                                </div>
+
+                                <button id="btn-send-pwa-notif" class="mt-2 w-full bg-indigo-600 hover:bg-indigo-500 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-indigo-600/20 active:scale-95 transition-all flex items-center justify-center gap-3 group">
+                                    <i class="fas fa-paper-plane group-hover:-translate-y-1 group-hover:translate-x-1 transition-transform"></i> Transmitir a todos los dispositivos
+                                </button>
                             </div>
 
-                            <div class="h-px bg-slate-200/50 dark:bg-emerald-900/30 my-4"></div>
-
-                            <div class="relative group/input">
-                                <label class="label-premium">Título de la Notificación</label>
-                                <input type="text" id="notif-title" class="input-premium" placeholder="Ej. Cambio de horario o anuncio importante">
+                            <!-- Columna Derecha: Configuración Técnica (VAPID) -->
+                            <div class="lg:col-span-5 flex flex-col justify-end">
+                                <div class="p-4 bg-slate-50 dark:bg-black/20 rounded-2xl border border-slate-200/50 dark:border-white/5 space-y-3">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-cogs text-slate-400 text-xs"></i>
+                                        <h5 class="text-[9px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">Motor Firebase (FCM)</h5>
+                                    </div>
+                                    <div class="relative">
+                                        <input type="password" id="fcm-vapid-key" value="${config.fcm_vapid_key || ""}" 
+                                            class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl py-2 px-3 text-[10px] font-mono text-slate-600 dark:text-slate-400 focus:outline-none focus:border-indigo-500/50 pr-8"
+                                            placeholder="VAPID Key (BFG_...)">
+                                        <button class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-500 transition-colors focus:outline-none" onclick="const p=this.parentElement.querySelector('input'); p.type=p.type==='password'?'text':'password'">
+                                            <i class="fas fa-eye text-xs"></i>
+                                        </button>
+                                        <div class="led-status-container hidden" style="right: 2rem;"></div>
+                                    </div>
+                                    <p class="text-[8px] text-slate-500 italic leading-tight">Clave pública de autenticación VAPID para suscripciones Push. No alterar a menos que se hayan rotado las credenciales en Firebase.</p>
+                                </div>
                             </div>
-
-                            <div class="relative group/input">
-                                <label class="label-premium">Mensaje de la Notificación</label>
-                                <textarea id="notif-body" class="input-premium h-20 resize-none py-3" placeholder="Escribe el cuerpo del mensaje aquí..."></textarea>
-                            </div>
-
-                            <button id="btn-send-pwa-notif" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-indigo-600/20 active:scale-95 transition-all flex items-center justify-center gap-3">
-                                <i class="fas fa-paper-plane"></i> Enviar Notificación Push
-                            </button>
                         </div>
                     </section>
+                    ` : ""}
                 </div>
             </div>
         `;

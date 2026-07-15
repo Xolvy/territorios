@@ -447,7 +447,7 @@ class NexoUI {
 
         const styles = `
             #nexo-widget {
-                position: fixed; bottom: 20px; right: 20px; z-index: 9998; /* Justo debajo de modales z-9999 */
+                position: fixed; bottom: 24px; right: 96px; z-index: 9998; /* Justo debajo de modales z-9999 */
                 display: flex; flex-direction: column; align-items: flex-end; gap: 0;
                 font-family: 'Outfit', sans-serif;
                 transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);

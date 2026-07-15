@@ -1,4 +1,4 @@
-const APP_VERSION = '2.3.9.2';
+const APP_VERSION = '4.0.0';
 const APP_NAME = 'Gestión de Territorios';
 
 // Note: This script is intended to be run in a browser console if possible, 

@@ -1492,8 +1492,8 @@ export const renderProgramaTab = async (container, configData = null) => {
             const tNum = String(t.numero).trim();
             const s13Records = (window._progCache.historial || []).filter((h) => {
                 const histNum = String(h.territorio_id || h.numero || "").trim();
-                const hasFecha = h.fecha_entrega && String(h.fecha_entrega).trim() !== "";
-                const isCompleted = h.estado === "Completado" || hasFecha;
+                const dateObj = UIHelpers.parseFirebaseDate(h.fecha_entrega);
+                const isCompleted = h.estado === "Completado" || dateObj !== null;
                 return histNum === tNum && isCompleted;
             });
 
@@ -1502,9 +1502,9 @@ export const renderProgramaTab = async (container, configData = null) => {
 
             if (s13Records.length > 0) {
                 s13Records.sort((a, b) => {
-                    const dateA = Date.parse(a.fecha_entrega) || 0;
-                    const dateB = Date.parse(b.fecha_entrega) || 0;
-                    return dateB - dateA;
+                    const dateA = UIHelpers.parseFirebaseDate(a.fecha_entrega) || new Date(0);
+                    const dateB = UIHelpers.parseFirebaseDate(b.fecha_entrega) || new Date(0);
+                    return dateB.getTime() - dateA.getTime();
                 });
                 const latestRecord = s13Records[0];
                 const dateObj = UIHelpers.parseFirebaseDate(latestRecord.fecha_entrega);

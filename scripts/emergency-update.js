@@ -22,12 +22,12 @@ const forceUpdate = async () => {
         console.log("Signed in. Broadcasting emergency update...");
 
         await setDoc(doc(db, "configuracion", "version_control"), {
-            latestVersion: "2.4.9.9.0",
+            latestVersion: "4.0.0",
             forceUpdate: true,
             forceTimestamp: Date.now()
         });
 
-        console.log("🚀 [Xolvy Modular] Force Update 2.4.9.9.0 Re-Enabled. Radical Purge Active.");
+        console.log("🚀 [Xolvy Modular] Force Update 4.0.0 Re-Enabled. Radical Purge Active.");
         process.exit(0);
     } catch (e) {
         console.error("❌ Error updating version:", e);

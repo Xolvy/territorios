@@ -183,15 +183,19 @@ function processAllTerritories(uniqueTs, historial, refCoords, selectedRefKey) {
         const tNum = String(t.numero).trim();
         const s13Records = historial.filter((h) => {
             const histNum = String(h.territorio_id || h.numero || "").trim();
-            const hasFecha = h.fecha_entrega && String(h.fecha_entrega).trim() !== "";
-            return histNum === tNum && (h.estado === "Completado" || hasFecha);
+            const dateObj = UIHelpers.parseFirebaseDate(h.fecha_entrega);
+            return histNum === tNum && (h.estado === "Completado" || dateObj !== null);
         });
 
         let timestamp = 0;
         let labelUltimaVez = "NUNCA PREDICADO";
 
         if (s13Records.length > 0) {
-            s13Records.sort((a, b) => (Date.parse(b.fecha_entrega) || 0) - (Date.parse(a.fecha_entrega) || 0));
+            s13Records.sort((a, b) => {
+                const dateA = UIHelpers.parseFirebaseDate(a.fecha_entrega) || new Date(0);
+                const dateB = UIHelpers.parseFirebaseDate(b.fecha_entrega) || new Date(0);
+                return dateB.getTime() - dateA.getTime();
+            });
             const dateObj = UIHelpers.parseFirebaseDate(s13Records[0].fecha_entrega);
             if (dateObj) {
                 timestamp = dateObj.getTime();

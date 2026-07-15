@@ -598,6 +598,7 @@ export const MapViewer = {
                 }
                 if (mapEl) {
                     mapEl.style.cursor = "";
+                    mapEl.classList.remove("adding-note-mode");
                 }
                 if (addNoteBanner) {
                     addNoteBanner.classList.add("hidden");
@@ -705,6 +706,7 @@ export const MapViewer = {
                             '<i class="fas fa-map-marker-alt text-sm text-indigo-400 animate-pulse"></i>';
                         if (mapEl) {
                             mapEl.style.cursor = "crosshair";
+                            mapEl.classList.add("adding-note-mode");
                         }
                         if (addNoteBanner) {
                             addNoteBanner.classList.remove("hidden");

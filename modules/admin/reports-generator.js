@@ -34,9 +34,13 @@ export const generateS12Report = async (territories, layout = 1) => {
         const templateUrl = isMulti ? "/S-12_s-Mlt_S.pdf" : "/S-12_S.pdf";
         const templateBytes = await fetchPdf(templateUrl);
 
-        const cardsPerPage = isMulti ? 4 : 1;
+        const cardsPerPage = layout; // 1, 2 or 4
         const fieldMap = {
             1: [{ loc: "Text1", num: "Text2", map: "Text3" }],
+            2: [
+                { loc: "Text1", num: "Text2", map: "Text3" },
+                { loc: "Text4", num: "Text5", map: "Text6" },
+            ],
             4: [
                 { loc: "Text1", num: "Text2", map: "Text3" },
                 { loc: "Text4", num: "Text5", map: "Text6" },

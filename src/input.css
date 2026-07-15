@@ -498,6 +498,12 @@ aside, #main-sidebar {
   letter-spacing: 0.12em !important;
   text-shadow: 0 1px 4px rgba(0,0,0,0.6) !important;
   box-shadow: 0 4px 16px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.3) !important;
+  pointer-events: none !important;
+}
+
+/* Permitir clics a través de los polígonos del mapa en modo añadir nota */
+.adding-note-mode path.leaflet-interactive {
+  pointer-events: none !important;
 }
 
 /* ==========================================

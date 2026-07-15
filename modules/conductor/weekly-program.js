@@ -1,8 +1,14 @@
 import { UIHelpers } from "../services/ui-helpers.js";
+import { showNotification } from "../utils/helpers.js";
 
 const { formatDateId: getSafeDateId } = UIHelpers;
 
-import { getProgramaSemanal } from "../../data/firestore-services.js";
+import {
+    getProgramaSemanal,
+    getHistorialReport,
+    saveProgramaSemanal,
+    syncSlotWithTerritories,
+} from "../../data/firestore-services.js";
 import { generateLandscapePreviewHTML, renderFullProgramaCards } from "./program-views.js";
 
 export { generateLandscapePreviewHTML, renderFullProgramaCards };
@@ -239,7 +245,73 @@ export const initializeWeeklyProgram = (
         }
     };
 
-    // Both Share and Export are handled inline via window.generarImagenPrograma?.()
+    window.openTerritorySelector = async (dayIdx, turnoId, btn) => {
+        try {
+            showNotification("Cargando selector...", "info");
+            const history = await getHistorialReport();
+            
+            const weekAssignments = [];
+            const programa = window._globalPrograma;
+            if (programa?.dias) {
+                programa.dias.forEach((d) => {
+                    ["manana", "tarde", "noche", "zoom"].forEach((turn) => {
+                        const tStr = d[turn]?.territorio;
+                        if (tStr) {
+                            const matches = (tStr || "").matchAll(/(\d+)(?:\s*\(|$|[\s,;/])/g);
+                            for (const match of matches) {
+                                weekAssignments.push(match[1]);
+                            }
+                        }
+                    });
+                });
+            }
+
+            window.showTerritorySelectionModal(
+                btn.dataset.current || "",
+                allTerritorios,
+                async (res) => {
+                    try {
+                        showNotification("Guardando cambios...", "info");
+                        
+                        // Update local program object
+                        programa.dias[dayIdx][turnoId].territorio = res || "";
+                        if (programa.isFormalized) {
+                            programa.isFormalized = false;
+                        }
+
+                        // Silent background save of the week draft
+                        await saveProgramaSemanal(programa.id, programa);
+
+                        // Sincronizar el turno del programa con el maestro y banco_s13
+                        const d = programa.dias[dayIdx];
+                        await syncSlotWithTerritories(
+                            programa.id,
+                            dayIdx,
+                            turnoId,
+                            d[turnoId],
+                            d.fecha
+                        );
+
+                        // Actualizar el dataset.current del botón
+                        if (btn) {
+                            btn.dataset.current = res || "";
+                        }
+                        
+                        showNotification("¡Cambios guardados con éxito!", "success");
+                    } catch (e) {
+                        console.error("Error saving territory selection:", e);
+                        showNotification("Error al guardar la asignación", "error");
+                    }
+                },
+                "modal-container", // We use the main modal container
+                history,
+                weekAssignments,
+            );
+        } catch (e) {
+            console.error("Error opening territory selector:", e);
+            showNotification("Error al abrir el selector", "error");
+        }
+    };
 
     // Navigation and Logic
     loadWeekData();

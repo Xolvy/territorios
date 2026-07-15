@@ -70,7 +70,7 @@ VisualEngine.applyGlobalEcosystem();
 // moduleRegistry.init();
 
 // The version is injected by Vite at build time (Core Shell Version)
-const APP_VERSION = "3.9.13";
+const APP_VERSION = "4.0.0";
 window.XolvyApp = { user: null, version: APP_VERSION };
 
 // --- XOLVY MODULAR: MICRO-MODULE ENGINE ---
@@ -321,9 +321,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                     // Identity Shield: Validate against Firestore — the ONLY source of truth
                     const identity = await IdentityShield.resolveAndBindIdentity(nameToResolve);
 
-                    if (!identity.docId) {
-                        // User not found in Firestore — reject
-                        console.warn("⚠️ [Auth] Conductor no encontrado en Firestore. Cerrando sesión.");
+                    if (!identity.docId || (identity.rol !== "Conductor" && identity.rol !== "Administrador")) {
+                        // User not found in Firestore or not authorized — reject
+                        console.warn("⚠️ [Auth] Conductor no encontrado o no autorizado en Firestore. Cerrando sesión.");
                         localStorage.removeItem("xolvy_session");
                         localStorage.removeItem("selected_conductor_name");
                         await auth.signOut();
@@ -617,9 +617,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         // Identity Shield: Secure identity before rendering heavy modules
         const identity = await IdentityShield.resolveAndBindIdentity(email);
 
-        // Validate identity was found in Firestore
-        if (!identity.docId) {
-            console.error("🛡️ [Security] Conductor identity not found in Firestore. Blocking access.");
+        // Validate identity was found in Firestore and is authorized
+        if (!identity.docId || (identity.rol !== "Conductor" && identity.rol !== "Administrador")) {
+            console.error("🛡️ [Security] Conductor identity not authorized or not found in Firestore. Blocking access.");
+            localStorage.removeItem("xolvy_session");
+            localStorage.removeItem("selected_conductor_name");
             const render = await loadLogin();
             render(appContainer, APP_VERSION);
             return;

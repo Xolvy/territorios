@@ -119,24 +119,28 @@ export const renderRecursosSection = (container) => {
     window.showPreguntasFrecuentes = () => {
         const faqs = [
             {
+                q: "¿Cuál es la fuente de la verdad para las asignaciones?",
+                a: "La base de datos S-13 (banco_s13) es la única fuente autoritativa de la verdad. Todos los cambios de asignación y estado se gestionan a través de S-13 y se sincronizan en vivo en la aplicación.",
+            },
+            {
+                q: "¿Cómo modifico territorios en el Cronograma?",
+                a: "Si estás asignado como Conductor en un turno del Cronograma Semanal, verás un botón de lápiz. Al pulsarlo, puedes asignar o cambiar los territorios del turno, lo cual actualizará S-13 y el maestro de forma automática.",
+            },
+            {
+                q: "¿Cómo me ayuda el asistente Nexo AI?",
+                a: "Nexo es un asistente operativo inteligente ubicado en la esquina inferior derecha. Puedes usar comandos de voz o texto como 'registrar nota S-13', 'marcar teléfono ocupado', o 'mostrar mapa del territorio 5' para agilizar tus tareas.",
+            },
+            {
                 q: "¿Cómo informo un territorio?",
                 a: 'En tu Agenda Inteligente, pulsa "Informar". Ahora puedes adjuntar fotos de evidencia, dictar notas por voz y reportar avances por manzanas (informe parcial) si no terminaste todo el sector.',
             },
             {
                 q: "¿Cómo solicito números telefónicos?",
-                a: 'En "Predicación Telefónica" pulsa "Solicitar". El sistema te asignará un bloque. Al terminar, usa el botón "Finalizar Sesión" para registrar tu actividad y liberar los números pendientes.',
+                a: 'En "Predicación Telefónica" pulsa "Solicitar". El sistema te asignará un bloque con transacciones atómicas. Al terminar, usa el botón "Finalizar Sesión" para registrar la actividad y liberar los números.',
             },
             {
                 q: '¿Qué es el botón "TERRITORIOS DISPONIBLES"?',
-                a: "Muestra territorios libres (DISPONIBLE) o que han quedado a medias (INCOMPLETO). Puedes tomarlos voluntariamente para ayudar a terminar el sector de la congregación.",
-            },
-            {
-                q: "¿Cómo funcionan las Revisitas telefónicas?",
-                a: 'Usa el botón "Revisitas" en el módulo de teléfonos para ver contactos interesados. Puedes llamarlos directamente o devolverlos al pozo general si ya no son necesarios.',
-            },
-            {
-                q: "¿Se pueden informar varios territorios a la vez?",
-                a: "¡Sí! Al abrir el modal de informe, puedes marcar las casillas de varios territorios y enviar un reporte masivo con una sola nota, ahorrando tiempo.",
+                a: "Muestra territorios libres (DISPONIBLE) o a medias (INCOMPLETO) de S-13. Puedes tomarlos voluntariamente para apoyar al grupo.",
             },
         ];
 
@@ -237,17 +241,17 @@ export const renderRecursosSection = (container) => {
                 {
                     id: "agenda-section",
                     title: "¡Hola! Soy Nexo",
-                    text: "¡Hola! Soy Nexo, la IA de tu plataforma preparada para ayudarte. Hoy seré tu guía en este recorrido por tu nuevo panel de control.",
+                    text: "¡Hola! Soy Nexo, tu asistente inteligente. Estoy en el botón inferior derecho y puedo ayudarte por voz o chat a gestionar la predicación y registros de S-13 de forma rápida.",
                 },
                 {
                     id: "agenda-section",
                     title: "Agenda Inteligente",
-                    text: "Aquí en la Agenda Inteligente, yo te mostraré tus próximas asignaciones, como los territorios y compañeros de servicio que tienes para hoy.",
+                    text: "Aquí en la Agenda Inteligente verás tus asignaciones del día sincronizadas en tiempo real desde S-13, nuestra única fuente de la verdad.",
                 },
                 {
                     id: "programa-semanal-section",
                     title: "Cronograma Semanal",
-                    text: "Esta es nuestra base de operaciones. Aquí organizo toda la predicación de la semana para que sepas exactamente a quién le toca y en qué punto reunirse.",
+                    text: "Muestra la planificación de salidas. Si estás asignado como Conductor en un turno, puedes pulsar el icono de lápiz para modificar los territorios, sincronizándose de inmediato con S-13.",
                 },
                 {
                     id: "interactive-maps-module",
@@ -257,7 +261,7 @@ export const renderRecursosSection = (container) => {
                 {
                     id: "phone-module-card",
                     title: "Predicación Telefónica",
-                    text: "Si estás predicando por Zoom, esta es tu área. Solicítame números de teléfono y yo te asignaré un bloque activo de inmediato.",
+                    text: "Para predicar por teléfono, solicita números desde aquí. Los bloques de números se gestionan mediante transacciones atómicas seguras.",
                 },
             ];
 

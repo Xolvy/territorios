@@ -403,7 +403,7 @@ exports.askNexoAI = onCall(
     { 
         region: "us-central1", 
         timeoutSeconds: 60,
-        // En producción se recomienda usar: secrets: ["GEMINI_KEY"]
+        cors: true,
     },
     async (request) => {
         // 1. Auth Guard: Solo usuarios logueados pueden usar la IA
