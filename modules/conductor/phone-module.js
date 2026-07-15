@@ -182,7 +182,7 @@ export const initializePhoneModule = (initialPhones, publicadores, _displayName,
                     .join("")}
             `;
             statsContainer.className =
-                "sticky top-[60px] lg:top-0 z-30 bg-white/97 dark:bg-[#0b0f19]/97 backdrop-blur-md py-3 px-1 grid grid-cols-3 sm:grid-cols-7 gap-2 border-b border-slate-200 dark:border-white/10 mb-4";
+                "sticky top-[60px] lg:top-0 z-30 bg-white dark:bg-[#0b0f19] py-3 px-1 grid grid-cols-3 sm:grid-cols-7 gap-2 border-b border-slate-200 dark:border-white/10 mb-4";
             // Sync table header sticky offset with the actual stats bar height
             requestAnimationFrame(() => {
                 const thead = tbody.closest("table")?.querySelector("thead");
@@ -234,13 +234,8 @@ export const initializePhoneModule = (initialPhones, publicadores, _displayName,
                 // Prefijo telefónico correcto (Ecuador: números ya incluyen el 0 inicial)
                 const phoneHref = `tel:${p.telefono}`;
 
-                // Nota truncada
-                const notaHtml = p.notas
-                    ? `<p class="text-[9px] text-amber-600 dark:text-amber-400/90 font-medium italic mt-1.5 flex items-center gap-1.5 max-w-full sm:max-w-[200px] truncate" title="${p.notas.replace(/"/g, "&quot;")}">
-                       <i class="fas fa-sticky-note text-[8px] shrink-0"></i>
-                       <span class="truncate">${p.notas}</span>
-                   </p>`
-                    : "";
+                // Nota truncada (removida por petición)
+                const notaHtml = "";
 
                 return `
             <tr class="flex flex-col sm:table-row hover:bg-slate-50/80 dark:hover:bg-white/[0.02] transition-colors border-b border-black/5 dark:border-white/5 p-4 sm:p-0 gap-3 sm:gap-0 animate-fade-in" style="animation-delay: ${idx * 30}ms; animation-fill-mode: both;">
