@@ -2254,7 +2254,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, _appVersi
                                     .filter(Boolean);
                             }
 
-                            const INACTIVE_STATES = ["Disponible", "Predicado", "Sin asignar", "Extraviado", "Libre"];
+                            const INACTIVE_STATES = ["Predicado", "Extraviado"];
                             const attachedTerritories = assignedTerritoryNums
                                 .map((num) => {
                                     const t = territoryMap[num] || { numero: num, isMissingData: true };
