@@ -686,7 +686,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, _appVersi
             const cleanUserEmail = normalizeRobust(userEmail);
 
             const isActive = !!(window._phoneSessionActive || localStorage.getItem("phone_session_active") === "true");
-            return allPhones.filter((t) => {
+            const filtered = allPhones.filter((t) => {
                 const pub = normalizeRobust(t.publicador_asignado);
                 const asg = normalizeRobust(t.asignado_a);
                 const sol = normalizeRobust(t.solicitado_por);
@@ -702,6 +702,15 @@ export const renderConductorDashboard = async (container, nameOrEmail, _appVersi
                     );
                 }
             });
+
+            // Ordenar por fecha_asignacion ascendente para que los nuevos números se añadan al final
+            filtered.sort((a, b) => {
+                const timeA = a.fecha_asignacion ? new Date(a.fecha_asignacion).getTime() : 0;
+                const timeB = b.fecha_asignacion ? new Date(b.fecha_asignacion).getTime() : 0;
+                return timeA - timeB;
+            });
+
+            return filtered;
         }
 
         let _renderTimeout = null;
