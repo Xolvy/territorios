@@ -2254,43 +2254,31 @@ export const renderConductorDashboard = async (container, nameOrEmail, _appVersi
                                     .filter(Boolean);
                             }
 
-                            const INACTIVE_STATES = ["Predicado", "Extraviado"];
-                            const attachedTerritories = assignedTerritoryNums
-                                .map((num) => {
-                                    const t = territoryMap[num] || { numero: num, isMissingData: true };
-                                    return t;
-                                })
-                                .filter(
-                                    (t) =>
-                                        !t.isMissingData &&
-                                        !INACTIVE_STATES.includes(t.estado) &&
-                                        !INACTIVE_STATES.includes(t.status),
-                                );
+                            const attachedTerritories = assignedTerritoryNums.map((num) => {
+                                return territoryMap[num] || { numero: num, estado: "Disponible", status: "Disponible" };
+                            });
 
-                            const isSpecialActivity = tData.faceta && tData.faceta !== "Predicación";
-                            if (attachedTerritories.length > 0 || isSpecialActivity) {
-                                attachedTerritories.forEach((t) => {
-                                    if (t.id) shownTerritoryIds.add(t.id);
-                                });
+                            attachedTerritories.forEach((t) => {
+                                if (t.id) shownTerritoryIds.add(t.id);
+                            });
 
-                                assignments.push({
-                                    dia: d.nombre,
-                                    turno:
-                                        turno === "manana"
-                                            ? "🌅 Mañana"
-                                            : turno === "tarde"
-                                              ? "☀️ Tarde"
-                                              : turno === "zoom"
-                                                ? "📹 Zoom"
-                                                : "🌙 Noche",
-                                    role: isConductor ? "Conductor" : "Auxiliar",
-                                    isMember: true,
-                                    rawDate: d.fecha,
-                                    attachedTerritories,
-                                    faceta: tData.faceta || "Predicación",
-                                    ...tData,
-                                });
-                            }
+                            assignments.push({
+                                dia: d.nombre,
+                                turno:
+                                    turno === "manana"
+                                        ? "🌅 Mañana"
+                                        : turno === "tarde"
+                                          ? "☀️ Tarde"
+                                          : turno === "zoom"
+                                            ? "📹 Zoom"
+                                            : "🌙 Noche",
+                                role: isConductor ? "Conductor" : "Auxiliar",
+                                isMember: true,
+                                rawDate: d.fecha,
+                                attachedTerritories,
+                                faceta: tData.faceta || "Predicación",
+                                ...tData,
+                            });
                         }
                     });
                 });

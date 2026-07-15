@@ -206,31 +206,8 @@ export const renderFullProgramaCards = (
                                                             })
                                                             .join("");
 
-                                                        if (isConductor) {
-                                                            chipHtml += `
-                                                            <button onclick="window.openTerritorySelector(${dayIdx}, '${shift}', this)" 
-                                                                    data-current="${sData.territorio || ""}"
-                                                                    class="flex items-center justify-center w-7 h-7 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-white/10 hover:border-indigo-500/50 hover:bg-slate-100 dark:hover:bg-slate-700 text-indigo-600 dark:text-indigo-400 transition-all shadow-sm shrink-0"
-                                                                    title="Modificar Territorios">
-                                                                <i class="fas fa-pen-to-square text-[10px]"></i>
-                                                            </button>
-                                                            `;
-                                                        }
                                                     } else {
-                                                        if (isConductor) {
-                                                            chipHtml = `
-                                                            <button onclick="window.openTerritorySelector(${dayIdx}, '${shift}', this)" 
-                                                                    data-current=""
-                                                                    class="flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-white/10 hover:border-indigo-500/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all group/tbtn shadow-sm">
-                                                                <i class="fas fa-map-location-dot text-[10px] text-slate-400 dark:text-slate-500 opacity-60 group-hover/tbtn:text-indigo-600 transition-colors"></i>
-                                                                <span class="text-[10px] font-black text-slate-500 dark:text-slate-400 truncate max-w-[100px] uppercase">
-                                                                    Asignar...
-                                                                </span>
-                                                            </button>
-                                                            `;
-                                                        } else {
-                                                            chipHtml = `<span class="text-[9px] font-black text-slate-700 dark:text-slate-300 uppercase italic opacity-40">Libre</span>`;
-                                                        }
+                                                        chipHtml = `<span class="text-[9px] font-black text-slate-700 dark:text-slate-300 uppercase italic opacity-40">Libre</span>`;
                                                     }
                                                     return chipHtml;
                                                 })()}
@@ -250,7 +227,7 @@ export const renderFullProgramaCards = (
                                 </div>`;
                                 })
                                 .filter(Boolean)
-                                .join(`<div class="h-px bg-slate-150/50 dark:bg-white/5 my-4 border-t border-dashed border-slate-300/40 dark:border-white/5"></div>`)}
+                                .join(`<div class="w-full border-t-2 border-solid border-slate-200 dark:border-white/10 my-5"></div>`)}
                         </div>
                     </div>`;
                 })
