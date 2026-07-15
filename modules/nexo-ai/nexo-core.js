@@ -13,6 +13,7 @@ export class NexoAgent {
         this.ui = new NexoUI();
         this.latestContext = {};
         this.flujo = null; // { paso, territorioId, territorioNum }
+        this.avisoEnviado = false;
 
         // Exponer para acceso global según instrucciones
         window.nexoIniciarFlujoAvance = (id, num) => this.iniciarFlujoAvance(id, num);
@@ -34,6 +35,7 @@ export class NexoAgent {
         }
 
         this.latestContext = contexto;
+        this.avisoEnviado = false;
 
         if (this.isListening) {
             this.recognition.stop();
@@ -54,6 +56,7 @@ export class NexoAgent {
         this.recognition.onresult = async (event) => {
             const transcript = event.results[0][0].transcript;
             console.log("Nexo escuchó:", transcript);
+            this.avisoEnviado = false;
             this.limpiarTimeoutInactividad(); // Cancelo timer al escuchar interacción
             this.ui.addMessage(transcript, "usuario");
 
@@ -152,19 +155,24 @@ export class NexoAgent {
         this.limpiarTimeoutInactividad();
         if (this.flujo || this.isListening) return;
 
-        // Aviso a los 20 segundos
-        this.timeoutAviso = setTimeout(() => {
-            if (!this.flujo && !this.isListening) {
-                this.speak("¿Sigues ahí? Si no hay más comandos, voy a cerrarme.");
-            }
-        }, 20000);
+        // Aviso a los 20 segundos (solo si no se ha avisado aún)
+        if (!this.avisoEnviado) {
+            this.timeoutAviso = setTimeout(() => {
+                if (!this.flujo && !this.isListening) {
+                    this.avisoEnviado = true;
+                    this.speak("¿Sigues ahí? Si no hay más comandos, voy a cerrarme.");
+                }
+            }, 20000);
+        }
 
-        // Cierre a los 30 segundos
+        // Cierre a los 30 segundos (o 10 segundos después del aviso si ya se envió)
+        const delayCierre = this.avisoEnviado ? 10000 : 30000;
         this.timeoutCierre = setTimeout(() => {
             if (!this.flujo && !this.isListening) {
+                this.avisoEnviado = false;
                 this.ui.cerrarChat();
             }
-        }, 30000);
+        }, delayCierre);
     }
 
     limpiarTimeoutInactividad() {
@@ -467,6 +475,23 @@ class NexoUI {
                 display: none;
                 flex-direction: column;
             }
+            #nexo-chat-header {
+                display: flex; justify-content: space-between; align-items: center;
+                padding: 10px 16px; border-bottom: 1px solid rgba(0,0,0,0.05);
+                background: rgba(0,0,0,0.02);
+            }
+            .dark #nexo-chat-header {
+                border-bottom: 1px solid rgba(255,255,255,0.05);
+                background: rgba(255,255,255,0.02);
+            }
+            #nexo-close-btn {
+                border: none; background: transparent; cursor: pointer;
+                color: #94a3b8; font-size: 11px; transition: all 0.2s ease;
+            }
+            #nexo-close-btn:hover {
+                color: #ef4444; transform: scale(1.15);
+            }
+
             #nexo-messages {
                 padding: 16px; display: flex; flex-direction: column; gap: 10px;
                 max-height: 320px; overflow-y: auto;
@@ -569,6 +594,12 @@ class NexoUI {
         widget.id = "nexo-widget";
         widget.innerHTML = `
             <div id="nexo-chat-panel">
+                <div id="nexo-chat-header">
+                    <span style="font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b;">Nexo Asistente</span>
+                    <button id="nexo-close-btn" title="Cerrar chat">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
                 <div id="nexo-messages"></div>
             </div>
             <div id="nexo-pill">
@@ -586,6 +617,14 @@ class NexoUI {
             </div>
         `;
         document.body.appendChild(widget);
+
+        const closeBtn = widget.querySelector("#nexo-close-btn");
+        if (closeBtn) {
+            closeBtn.onclick = (e) => {
+                e.stopPropagation();
+                this.cerrarChat();
+            };
+        }
 
         document.getElementById("nexo-pill").onclick = (_e) => {
             const nexo = window._nexoInstance;
@@ -612,6 +651,23 @@ class NexoUI {
 
     setStatus(text) {
         this.updateStatus(text);
+    }
+
+    cerrarChat() {
+        if (this.isChatOpen) {
+            const nexo = window._nexoInstance;
+            if (nexo?.recognition) {
+                try {
+                    nexo.recognition.stop();
+                } catch (_err) {}
+            }
+            if (nexo) {
+                nexo.isListening = false;
+                nexo.avisoEnviado = false;
+            }
+            this.toggleChat();
+            this.updateStatus("En espera");
+        }
     }
 
     toggleChat() {
