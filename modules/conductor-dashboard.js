@@ -2225,6 +2225,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, _appVersi
             });
 
             // Dynamically get all active keys matching our shifts
+            const currentWeekId = getSafeDateId(getMonday(new Date()));
             const assignments = [];
             const shownTerritoryIds = new Set();
 
