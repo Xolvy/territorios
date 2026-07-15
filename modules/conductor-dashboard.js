@@ -2224,8 +2224,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, _appVersi
                 if (t.numero) territoryMap[t.numero] = t;
             });
 
-            const currentWeekId = getSafeDateId(getMonday(new Date()));
-            const turnosArr = ["manana", "tarde", "noche", "zoom"];
+            // Dynamically get all active keys matching our shifts
             const assignments = [];
             const shownTerritoryIds = new Set();
 
@@ -2238,7 +2237,12 @@ export const renderConductorDashboard = async (container, nameOrEmail, _appVersi
                         d.fecha = getSafeDateId(dayDate);
                     }
 
-                    turnosArr.forEach((turno) => {
+                    const activeDayKeys = Object.keys(d).filter((key) => {
+                        const base = key.split("_")[0];
+                        return ["manana", "tarde", "noche", "zoom"].includes(base);
+                    });
+
+                    activeDayKeys.forEach((turno) => {
                         const tData = d[turno];
                         if (tData && (tData.conductor || tData.auxiliar || tData.lugar)) {
                             const isConductor = normalizeRobust(tData.conductor) === normalizedName;
@@ -2265,11 +2269,11 @@ export const renderConductorDashboard = async (container, nameOrEmail, _appVersi
                             assignments.push({
                                 dia: d.nombre,
                                 turno:
-                                    turno === "manana"
+                                    turno.startsWith("manana")
                                         ? "🌅 Mañana"
-                                        : turno === "tarde"
+                                        : turno.startsWith("tarde")
                                           ? "☀️ Tarde"
-                                          : turno === "zoom"
+                                          : turno.startsWith("zoom")
                                             ? "📹 Zoom"
                                             : "🌙 Noche",
                                 role: isConductor ? "Conductor" : "Auxiliar",
