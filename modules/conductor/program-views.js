@@ -109,7 +109,7 @@ export const renderFullProgramaCards = (
                             ${sortedKeys
                                 .map((shift) => {
                                     const sData = d ? d[shift] : null;
-                                    if (!hasVisibleContent(sData)) return "";
+                                    if (!hasVisibleContent(sData)) return null;
 
                                     const isConductor = sData.conductor === currentConductorName;
                                     const isAuxiliar = sData.auxiliar === currentConductorName;
@@ -122,7 +122,7 @@ export const renderFullProgramaCards = (
                                     <div class="flex items-center justify-between gap-2 mb-3">
                                         <div class="flex items-center gap-2">
                                             <i class="fas ${shiftIcons[baseShift]} ${shiftColors[baseShift]} text-[10px]"></i>
-                                            <span class="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">${shiftLabels[baseShift]}${shift.includes("_") ? ` #${shift.split("_")[1]}` : ""}</span>
+                                            <span class="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">${shiftLabels[baseShift]}</span>
                                         </div>
                                         ${
                                             sData.hora
@@ -249,7 +249,8 @@ export const renderFullProgramaCards = (
                                     </div>
                                 </div>`;
                                 })
-                                .join("")}
+                                .filter(Boolean)
+                                .join(`<div class="h-px bg-slate-150/50 dark:bg-white/5 my-4 border-t border-dashed border-slate-300/40 dark:border-white/5"></div>`)}
                         </div>
                     </div>`;
                 })
