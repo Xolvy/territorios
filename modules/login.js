@@ -12,7 +12,7 @@ export const renderLogin = (container) => {
             
             <div class="noise-overlay"></div>
 
-            <div class="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-amber-500/10 dark:bg-amber-500/5 rounded-full blur-[120px] pointer-events-none"></div>
+            <div class="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-slate-500/10 dark:bg-slate-500/5 rounded-full blur-[120px] pointer-events-none"></div>
             <div class="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-emerald-500/10 dark:bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none"></div>
             <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-indigo-500/5 dark:bg-indigo-500/2 rounded-full blur-[140px] pointer-events-none"></div>
 
@@ -20,7 +20,7 @@ export const renderLogin = (container) => {
                 
                 <!-- Logo Badge & Dynamic Title -->
                 <div id="login-logo-container" class="animate-fade-in transition-all duration-700 text-center flex flex-col items-center">
-                    <div class="w-11 h-11 sm:w-14 sm:h-14 bg-gradient-to-tr from-amber-500 via-indigo-600 to-emerald-600 rounded-2xl flex items-center justify-center text-white text-lg sm:text-2xl shadow-[0_12px_40px_rgba(245,158,11,0.3)] border border-white/20 mb-2.5 animate-float relative overflow-hidden group">
+                    <div class="w-11 h-11 sm:w-14 sm:h-14 bg-gradient-to-tr from-emerald-600 via-indigo-600 to-indigo-700 rounded-2xl flex items-center justify-center text-white text-lg sm:text-2xl shadow-[0_12px_40px_rgba(99,102,241,0.35)] border border-white/20 mb-2.5 animate-float relative overflow-hidden group">
                         <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
                         <i class="fas fa-layer-group"></i>
                     </div>
@@ -29,7 +29,7 @@ export const renderLogin = (container) => {
                     </h1>
                     <div class="flex items-center gap-2 sm:gap-3 mt-1 sm:mt-2">
                         <div class="h-[1px] w-6 bg-slate-300 dark:bg-white/10"></div>
-                        <p class="text-[9px] sm:text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-[0.25em] sm:tracking-[0.3em] leading-none">
+                        <p class="text-[9px] sm:text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.25em] sm:tracking-[0.3em] leading-none">
                             CONGREGACIÓN NUEVE DE OCTUBRE
                         </p>
                         <div class="h-[1px] w-6 bg-slate-300 dark:bg-white/10"></div>
@@ -39,20 +39,20 @@ export const renderLogin = (container) => {
                 <!-- 3 CARDS RESPONSIVE GRID CONTAINER -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5 w-full max-w-4xl">
                 
-                    <!-- Card 1: ADMINISTRADOR (Naranja Elegante) -->
-                    <div class="group flex flex-col p-5 sm:p-5.5 bg-white/70 dark:bg-slate-900/60 rounded-[2.2rem] border border-slate-200/60 dark:border-white/5 shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-1.5 hover:border-amber-500/40 text-center relative z-10 backdrop-blur-xl justify-between min-h-[285px]">
+                    <!-- Card 1: ADMINISTRADOR (Azul Marino Ejecutivo / Ámbar Dorado - Serio & Autoridad) -->
+                    <div class="group flex flex-col p-5 sm:p-5.5 bg-white/70 dark:bg-slate-900/60 rounded-[2.2rem] border border-slate-200/60 dark:border-white/5 shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-1.5 hover:border-slate-700/50 dark:hover:border-blue-500/40 text-center relative z-10 backdrop-blur-xl justify-between min-h-[260px]">
                         <div>
-                            <div class="w-11 h-11 bg-gradient-to-tr from-amber-500 to-orange-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-amber-500/25 group-hover:scale-110 transition-all duration-500 mb-3 mx-auto">
+                            <div class="w-11 h-11 bg-gradient-to-tr from-slate-900 via-slate-800 to-blue-950 text-amber-400 rounded-2xl flex items-center justify-center border border-amber-400/30 shadow-lg shadow-slate-900/30 group-hover:scale-110 transition-all duration-500 mb-2.5 mx-auto">
                                 <i class="fas fa-user-shield text-base"></i>
                             </div>
-                            <h2 class="text-base font-bold text-slate-800 dark:text-white uppercase leading-none mb-2">Administrador</h2>
-                            <p class="text-[11.5px] text-slate-500 dark:text-slate-400 mb-4 leading-snug font-medium px-1">
+                            <h2 class="text-base font-bold text-slate-900 dark:text-white uppercase leading-none mb-1.5">Administrador</h2>
+                            <p class="text-[11.5px] text-slate-500 dark:text-slate-400 mb-2 leading-snug font-medium px-1">
                                 Administración del Sistema de Territorios
                             </p>
                         </div>
 
                         <div class="space-y-2 w-full">
-                            <button id="btn-login-list-admin" class="w-full bg-amber-600 hover:bg-amber-500 text-white py-2.5 px-3.5 rounded-2xl text-[9px] font-black uppercase tracking-widest shadow-md shadow-amber-600/20 transition-all flex items-center justify-center gap-2 active:scale-95">
+                            <button id="btn-login-list-admin" class="w-full bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-500 text-amber-300 dark:text-white py-2.5 px-3.5 rounded-2xl text-[9px] font-black uppercase tracking-widest shadow-md shadow-slate-900/20 border border-amber-400/20 dark:border-blue-400/20 transition-all flex items-center justify-center gap-2 active:scale-95">
                                 <i class="fas fa-list-ul text-xs"></i>
                                 <span>Iniciar Sesión</span>
                             </button>
@@ -64,14 +64,14 @@ export const renderLogin = (container) => {
                         </div>
                     </div>
 
-                    <!-- Card 2: CONDUCTOR (Verde Esmeralda) -->
-                    <div class="group flex flex-col p-5 sm:p-5.5 bg-white/70 dark:bg-slate-900/60 rounded-[2.2rem] border border-slate-200/60 dark:border-white/5 shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-1.5 hover:border-emerald-500/40 text-center relative z-10 backdrop-blur-xl justify-between min-h-[285px]">
+                    <!-- Card 2: CONDUCTOR (Verde Esmeralda Operativo) -->
+                    <div class="group flex flex-col p-5 sm:p-5.5 bg-white/70 dark:bg-slate-900/60 rounded-[2.2rem] border border-slate-200/60 dark:border-white/5 shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-1.5 hover:border-emerald-500/40 text-center relative z-10 backdrop-blur-xl justify-between min-h-[260px]">
                         <div>
-                            <div class="w-11 h-11 bg-gradient-to-tr from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/25 group-hover:scale-110 transition-all duration-500 mb-3 mx-auto">
+                            <div class="w-11 h-11 bg-gradient-to-tr from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/25 group-hover:scale-110 transition-all duration-500 mb-2.5 mx-auto">
                                 <i class="fas fa-map-marked-alt text-base"></i>
                             </div>
-                            <h2 class="text-base font-bold text-slate-800 dark:text-white uppercase leading-none mb-2">Conductor</h2>
-                            <p class="text-[11.5px] text-slate-500 dark:text-slate-400 mb-4 leading-snug font-medium px-1">
+                            <h2 class="text-base font-bold text-slate-800 dark:text-white uppercase leading-none mb-1.5">Conductor</h2>
+                            <p class="text-[11.5px] text-slate-500 dark:text-slate-400 mb-2 leading-snug font-medium px-1">
                                 Control de asignaciones de territorio.
                             </p>
                         </div>
@@ -90,13 +90,13 @@ export const renderLogin = (container) => {
                     </div>
 
                     <!-- Card 3: PUBLICADOR (Púrpura / Violeta / Índigo) -->
-                    <div class="group flex flex-col p-5 sm:p-5.5 bg-white/70 dark:bg-slate-900/60 rounded-[2.2rem] border border-slate-200/60 dark:border-white/5 shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-1.5 hover:border-indigo-500/40 text-center relative z-10 backdrop-blur-xl justify-between min-h-[285px]">
+                    <div class="group flex flex-col p-5 sm:p-5.5 bg-white/70 dark:bg-slate-900/60 rounded-[2.2rem] border border-slate-200/60 dark:border-white/5 shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-1.5 hover:border-indigo-500/40 text-center relative z-10 backdrop-blur-xl justify-between min-h-[260px]">
                         <div>
-                            <div class="w-11 h-11 bg-gradient-to-tr from-indigo-500 to-violet-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/25 group-hover:scale-110 transition-all duration-500 mb-3 mx-auto">
+                            <div class="w-11 h-11 bg-gradient-to-tr from-indigo-500 to-violet-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/25 group-hover:scale-110 transition-all duration-500 mb-2.5 mx-auto">
                                 <i class="fas fa-users text-base"></i>
                             </div>
-                            <h2 class="text-base font-bold text-slate-800 dark:text-white uppercase leading-none mb-2">Publicador</h2>
-                            <p class="text-[11.5px] text-slate-500 dark:text-slate-400 mb-4 leading-snug font-medium px-1">
+                            <h2 class="text-base font-bold text-slate-800 dark:text-white uppercase leading-none mb-1.5">Publicador</h2>
+                            <p class="text-[11.5px] text-slate-500 dark:text-slate-400 mb-2 leading-snug font-medium px-1">
                                 Mapas y programa de territorios.
                             </p>
                         </div>
@@ -303,14 +303,14 @@ export const renderRoleDirectorySelection = async (targetRole = "Conductor") => 
 
             list.innerHTML = displayList
                 .map((c) => {
-                    const badgeBg = targetRole === "Administrador" ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 group-hover:bg-amber-500" : targetRole === "Conductor" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 group-hover:bg-emerald-500" : "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20 group-hover:bg-indigo-500";
-                    const roleHoverText = targetRole === "Administrador" ? "group-hover:text-amber-600 dark:group-hover:text-amber-400" : targetRole === "Conductor" ? "group-hover:text-emerald-600 dark:group-hover:text-emerald-400" : "group-hover:text-indigo-600 dark:group-hover:text-indigo-400";
+                    const badgeBg = targetRole === "Administrador" ? "bg-slate-900/10 text-slate-800 dark:text-amber-400 border-amber-500/20 group-hover:bg-slate-900 group-hover:text-amber-400" : targetRole === "Conductor" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 group-hover:bg-emerald-500 group-hover:text-white" : "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20 group-hover:bg-indigo-500 group-hover:text-white";
+                    const roleHoverText = targetRole === "Administrador" ? "group-hover:text-slate-900 dark:group-hover:text-amber-400" : targetRole === "Conductor" ? "group-hover:text-emerald-600 dark:group-hover:text-emerald-400" : "group-hover:text-indigo-600 dark:group-hover:text-indigo-400";
                     
                     return `
                     <button data-id="${c.id}" data-name="${c.nombre}" data-phone="${c.telefono || ""}"
-                        class="conductor-btn group w-full p-4 bg-white dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-2xl shadow-sm flex items-center justify-between transition-all hover:border-indigo-500/40 hover:bg-slate-50/50 dark:hover:bg-indigo-500/5 hover:shadow-md active:scale-[0.98] text-left cursor-pointer focus:outline-none">
+                        class="conductor-btn group w-full p-4 bg-white dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-2xl shadow-sm flex items-center justify-between transition-all hover:border-slate-800/40 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 hover:shadow-md active:scale-[0.98] text-left cursor-pointer focus:outline-none">
                         <div class="flex items-center gap-4">
-                            <div class="w-10 h-10 rounded-xl ${badgeBg} flex items-center justify-center font-black text-sm border group-hover:text-white transition-all">
+                            <div class="w-10 h-10 rounded-xl ${badgeBg} flex items-center justify-center font-black text-sm border transition-all">
                                 ${c.nombre.charAt(0)}
                             </div>
                             <div>
@@ -318,7 +318,7 @@ export const renderRoleDirectorySelection = async (targetRole = "Conductor") => 
                                 <p class="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-0.5">${targetRole}</p>
                             </div>
                         </div>
-                        <i class="fas fa-key text-[10px] text-slate-400 group-hover:text-indigo-500 transition-all"></i>
+                        <i class="fas fa-key text-[10px] text-slate-400 group-hover:text-slate-800 dark:group-hover:text-amber-400 transition-all"></i>
                     </button>
                 `;
                 })
@@ -346,7 +346,7 @@ export const renderRoleDirectorySelection = async (targetRole = "Conductor") => 
                             container: "!z-[100000]",
                             popup: "!z-[100000] modern-card !rounded-[2rem] !p-6 !border !border-slate-200 dark:!border-white/10 !shadow-2xl !bg-white/95 dark:!bg-slate-900/95",
                             input: "!rounded-2xl !border !border-slate-200 dark:!border-white/10 !bg-slate-50 dark:!bg-slate-800 !text-slate-800 dark:!text-white !font-bold !text-sm !px-5 !py-4 focus:!border-indigo-500 !shadow-inner !mt-4",
-                            confirmButton: "!px-8 !py-3.5 !text-[10px] !font-black !uppercase !tracking-widest !rounded-2xl !bg-indigo-600 !text-white hover:!bg-indigo-500 !shadow-lg",
+                            confirmButton: "!px-8 !py-3.5 !text-[10px] !font-black !uppercase !tracking-widest !rounded-2xl !bg-slate-900 !text-amber-300 dark:!bg-blue-600 dark:!text-white hover:!bg-slate-800 !shadow-lg",
                             cancelButton: "!px-6 !py-3.5 !text-[10px] !font-black !uppercase !tracking-widest !rounded-2xl !bg-slate-100 dark:!bg-white/5 !text-slate-600 dark:!text-slate-300",
                         },
                         preConfirm: (val) => {
