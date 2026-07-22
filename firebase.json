@@ -19,6 +19,7 @@
         "rules": "storage.rules"
     },
     "hosting": {
+        "site": "territorios-jw",
         "public": "dist",
         "ignore": [
             "firebase.json",
