@@ -1,84 +1,302 @@
+import { LiveLocationService } from "../services/live-location-service.js";
+
 export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
     if (!container) return;
 
-    const grid = container.querySelector("#conductor-maps-grid");
-    const search = container.querySelector("#search-explorer-maps");
+    // Element references
+    const mapsSection = container.querySelector("#interactive-maps-module");
+    if (!mapsSection) return;
 
-    const render = (filter = "") => {
-        if (!grid) return;
-        let list = [...allTerritorios];
-
-        if (filter) {
-            const f = filter.toLowerCase();
-            list = list.filter(
-                (t) =>
-                    t.numero?.toString().includes(f) ||
-                    t.manzanas?.toLowerCase().includes(f) ||
-                    t.localidad?.toLowerCase().includes(f),
-            );
-        }
-
-        list.sort((a, b) => (parseInt(a.numero, 10) || 0) - (parseInt(b.numero, 10) || 0));
-
-        if (list.length === 0) {
-            grid.innerHTML = `
-                <div class="col-span-full py-20 text-center space-y-4 opacity-30 group">
-                    <div class="w-20 h-20 bg-slate-100 dark:bg-white/5 rounded-3xl flex items-center justify-center text-3xl mx-auto group-hover:scale-110 transition-transform">
-                        <i class="fas fa-search-location"></i>
-                    </div>
-                    <p class="font-black text-[10px] uppercase tracking-[0.4em]">Sin resultados</p>
-                </div>
-            `;
-        } else {
-            grid.innerHTML = list
-                .map((t) => {
-                    const mzCount = t.manzanas ? t.manzanas.split(",").filter(Boolean).length : 0;
-                    return `
-                    <div class="relative overflow-hidden p-6 rounded-[2rem] bg-white/80 dark:bg-slate-900/50 backdrop-blur-xl border border-slate-100 dark:border-white/10 hover:border-indigo-500/50 hover:shadow-[0_20px_55px_-10px_rgba(99,102,241,0.2)] transition-all duration-400 cursor-pointer group/card flex flex-col justify-between min-h-[160px] h-auto select-none hover:-translate-y-1.5 hover:scale-[1.02]" onclick="window.openInteractiveMapFromDashboard('${t.id}')">
-                        <!-- Top gradient accent line -->
-                        <div class="absolute top-0 left-0 right-0 h-[4px] bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-60 group-hover/card:opacity-100 transition-opacity duration-300"></div>
-                        <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 opacity-0 group-hover/card:opacity-100 transition-opacity duration-550 pointer-events-none"></div>
-                        
-                        <!-- Header with Badge and Location Icon -->
-                        <div class="flex justify-between items-center mb-3 relative z-10">
-                            <div class="flex items-center gap-1.5 flex-wrap">
-                                <span class="px-2.5 py-1 bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-[10px] font-black rounded-xl uppercase tracking-widest border border-indigo-500/15 shadow-inner">T-${t.numero}</span>
-                                <span class="px-2 py-0.5 bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[8px] font-black rounded-lg uppercase tracking-wider border border-emerald-500/15">
-                                    ${mzCount} ${mzCount === 1 ? "MZ" : "MZs"}
-                                </span>
-                            </div>
-                            <div class="w-8 h-8 rounded-xl bg-slate-50 dark:bg-white/5 flex items-center justify-center text-slate-400 group-hover/card:text-white group-hover/card:bg-indigo-600 border border-slate-200/50 dark:border-white/5 shadow-sm transition-all duration-300">
-                                 <i class="fas fa-location-arrow text-[10px] transform group-hover/card:rotate-45 transition-transform duration-350"></i>
-                            </div>
-                        </div>
-                        
-                        <!-- Locality / Name -->
-                        <div class="mb-3.5 relative z-10 flex-1 flex flex-col justify-center">
-                            <h4 class="text-[12.5px] font-black text-slate-800 dark:text-white uppercase tracking-tight leading-snug group-hover/card:text-indigo-500 dark:group-hover/card:text-indigo-400 transition-colors line-clamp-2" title="${t.localidad || `Territorio ${t.numero}`}">
-                                ${t.localidad || `Territorio ${t.numero}`}
-                            </h4>
-                        </div>
-
-                        <!-- Footer with Manzana list -->
-                        <div class="relative z-10 bg-slate-50/50 dark:bg-black/25 p-2.5 rounded-xl border border-slate-100/50 dark:border-white/5 mt-auto">
-                            <span class="text-[7px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-0.5">Sectores / Manzanas</span>
-                            <p class="text-[9.5px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-tight truncate" title="${t.manzanas || "Sin sector definido"}">${t.manzanas || "Sin sector definido"}</p>
-                        </div>
-                    </div>
-                `;
-                })
-                .join("");
-        }
-    };
-
-    if (search) {
-        search.oninput = (e) => render(e.target.value.trim());
+    // Clean up previous instance state
+    if (window._fullExplorerMap) {
+        try { window._fullExplorerMap.remove(); } catch (_e) {}
+        window._fullExplorerMap = null;
+    }
+    if (window._liveGpsUnsub) {
+        window._liveGpsUnsub();
+        window._liveGpsUnsub = null;
     }
 
-    render();
+    // Prepare territory list sorted 1 to 22
+    const sortedTerritorios = [...allTerritorios].sort(
+        (a, b) => (parseInt(a.numero, 10) || 0) - (parseInt(b.numero, 10) || 0)
+    );
 
-    window.openInteractiveMapFromDashboard = (tid) => {
-        const t = allTerritorios.find((x) => x.id === tid);
-        if (t && openMapFn) openMapFn(t, { readOnly: true });
+    // Build Territory Options HTML
+    const optionsHtml = sortedTerritorios
+        .map((t) => `<option value="${t.numero}">Territorio ${t.numero} ${t.localidad ? `(${t.localidad})` : ""}</option>`)
+        .join("");
+
+    mapsSection.innerHTML = `
+        <div class="flex flex-col h-[700px] w-full bg-white dark:bg-slate-900 rounded-[2.5rem] overflow-hidden border border-slate-200/80 dark:border-white/10 shadow-2xl relative">
+            <!-- TOP CONTROLS BAR -->
+            <div class="z-30 p-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-200 dark:border-white/10 flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center gap-3 flex-wrap flex-1 min-w-0">
+                    <div class="w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center text-white text-base font-black shrink-0 shadow-lg shadow-indigo-600/20">
+                        <i class="fas fa-map"></i>
+                    </div>
+                    <div class="flex flex-col min-w-[140px]">
+                        <span class="text-[9px] font-black uppercase text-indigo-600 dark:text-indigo-400 tracking-wider">Navegación Territorial</span>
+                        <select id="map-territory-select" class="bg-slate-100 dark:bg-slate-800 text-xs font-black text-slate-800 dark:text-white px-3 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 outline-none focus:border-indigo-500 cursor-pointer">
+                            <option value="all" selected>🗺️ Todos los Territorios (1 al 22)</option>
+                            ${optionsHtml}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 flex-wrap shrink-0">
+                    <!-- SATELLITE VS IMAGE TOGGLE -->
+                    <div class="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl border border-slate-200 dark:border-white/10">
+                        <button id="btn-mode-sat" class="px-3.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all bg-indigo-600 text-white shadow-md">
+                            <i class="fas fa-satellite mr-1"></i> Satélite
+                        </button>
+                        <button id="btn-mode-img" class="px-3.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all text-slate-500 hover:text-slate-800 dark:hover:text-white">
+                            <i class="fas fa-image mr-1"></i> Croquis Imagen
+                        </button>
+                    </div>
+
+                    <!-- LIVE GPS BUTTON -->
+                    <button id="btn-toggle-live-gps" class="px-3.5 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-2xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95">
+                        <span class="relative flex h-2 w-2">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                        <span>GPS en Vivo</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- MAIN DISPLAY AREA -->
+            <div class="flex-1 relative w-full h-full overflow-hidden bg-[#0f172a]">
+                <!-- SATELLITE MAP VISOR -->
+                <div id="full-map-leaflet-viewer" class="absolute inset-0 w-full h-full z-10"></div>
+
+                <!-- STATIC IMAGE VISOR (Hidden by default) -->
+                <div id="full-map-image-viewer" class="absolute inset-0 w-full h-full z-20 hidden flex items-center justify-center bg-slate-900 p-4">
+                    <div id="img-holder" class="relative max-w-full max-h-full flex flex-col items-center justify-center">
+                        <img id="territory-static-img" src="" alt="Croquis del territorio" class="max-w-full max-h-[580px] object-contain rounded-2xl shadow-2xl border border-white/10 hidden">
+                        <div id="img-empty-msg" class="text-center py-20 px-6 text-slate-400 font-bold space-y-3">
+                            <i class="fas fa-image text-4xl opacity-40"></i>
+                            <p class="text-xs uppercase tracking-wider">Selecciona un territorio para ver su croquis en imagen</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // State Variables
+    let currentMode = "satelital"; // "satelital" | "imagen"
+    let selectedNumber = "all";
+    let isGpsActive = false;
+    let gpsMarkers = {};
+    let leafletMap = null;
+    let geoJsonLayers = {};
+
+    const mapContainer = mapsSection.querySelector("#full-map-leaflet-viewer");
+    const imgViewer = mapsSection.querySelector("#full-map-image-viewer");
+    const staticImg = mapsSection.querySelector("#territory-static-img");
+    const emptyMsg = mapsSection.querySelector("#img-empty-msg");
+    const selectEl = mapsSection.querySelector("#map-territory-select");
+    const btnSat = mapsSection.querySelector("#btn-mode-sat");
+    const btnImg = mapsSection.querySelector("#btn-mode-img");
+    const btnGps = mapsSection.querySelector("#btn-toggle-live-gps");
+
+    // Initialize Leaflet Map
+    const initLeafletMap = () => {
+        if (!mapContainer || !window.L) return;
+
+        leafletMap = L.map(mapContainer, {
+            center: [-2.1894, -79.8891],
+            zoom: 14,
+            zoomControl: false,
+        });
+        window._fullExplorerMap = leafletMap;
+
+        // Tile layer (Esri World Imagery)
+        L.tileLayer(
+            "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+            { maxZoom: 19, attribution: "Esri World Imagery" }
+        ).addTo(leafletMap);
+
+        // Add Zoom Controls to bottom right
+        L.control.zoom({ position: "bottomright" }).addTo(leafletMap);
+
+        // Draw all territory GeoJSON polygons
+        const boundsGroup = L.featureGroup();
+
+        sortedTerritorios.forEach((t) => {
+            if (t.geojson) {
+                try {
+                    const layer = L.geoJSON(t.geojson, {
+                        style: {
+                            color: "#6366f1",
+                            weight: 2,
+                            opacity: 0.8,
+                            fillColor: "#6366f1",
+                            fillOpacity: 0.15,
+                        },
+                        onEachFeature: (feature, l) => {
+                            l.bindTooltip(`<b>Territorio ${t.numero}</b><br>${t.localidad || ""}`, {
+                                permanent: false,
+                                direction: "center",
+                                className: "xolvy-tooltip",
+                            });
+                            l.on("click", () => {
+                                selectEl.value = String(t.numero);
+                                focusTerritory(String(t.numero));
+                            });
+                        },
+                    }).addTo(leafletMap);
+
+                    geoJsonLayers[String(t.numero)] = layer;
+                    boundsGroup.addLayer(layer);
+                } catch (e) {
+                    console.error(`Error loading GeoJSON T-${t.numero}:`, e);
+                }
+            }
+        });
+
+        if (boundsGroup.getLayers().length > 0) {
+            leafletMap.fitBounds(boundsGroup.getBounds(), { padding: [20, 20] });
+        }
     };
+
+    // Focus / Zoom on Territory
+    const focusTerritory = (num) => {
+        selectedNumber = num;
+
+        // Reset styles for all polygons
+        Object.keys(geoJsonLayers).forEach((k) => {
+            geoJsonLayers[k].setStyle({
+                color: "#6366f1",
+                weight: 2,
+                fillOpacity: 0.15,
+            });
+        });
+
+        if (num === "all") {
+            const allBounds = L.featureGroup(Object.values(geoJsonLayers)).getBounds();
+            if (allBounds.isValid()) leafletMap.fitBounds(allBounds, { padding: [20, 20] });
+            updateImageViewer(null);
+            return;
+        }
+
+        const layer = geoJsonLayers[String(num)];
+        if (layer) {
+            layer.setStyle({
+                color: "#10b981", // Emerald highlight
+                weight: 4,
+                fillOpacity: 0.35,
+            });
+            leafletMap.fitBounds(layer.getBounds(), { padding: [50, 50] });
+        }
+
+        const targetTerritory = sortedTerritorios.find((t) => String(t.numero) === String(num));
+        updateImageViewer(targetTerritory);
+    };
+
+    // Update Image Viewer for selected territory
+    const updateImageViewer = (territory) => {
+        if (!territory || !territory.imagen) {
+            staticImg.classList.add("hidden");
+            emptyMsg.classList.remove("hidden");
+            emptyMsg.querySelector("p").textContent = territory 
+                ? `Sin imagen almacenada para el Territorio ${territory.numero}`
+                : `Selecciona un territorio para ver su croquis en imagen`;
+        } else {
+            staticImg.src = territory.imagen;
+            staticImg.classList.remove("hidden");
+            emptyMsg.classList.add("hidden");
+        }
+    };
+
+    // Toggle Satélite vs Imagen
+    const setViewMode = (mode) => {
+        currentMode = mode;
+        if (mode === "satelital") {
+            btnSat.className = "px-3.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all bg-indigo-600 text-white shadow-md";
+            btnImg.className = "px-3.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all text-slate-500 hover:text-slate-800 dark:hover:text-white";
+            imgViewer.classList.add("hidden");
+            mapContainer.classList.remove("hidden");
+            if (leafletMap) setTimeout(() => leafletMap.invalidateSize(), 100);
+        } else {
+            btnImg.className = "px-3.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all bg-indigo-600 text-white shadow-md";
+            btnSat.className = "px-3.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all text-slate-500 hover:text-slate-800 dark:hover:text-white";
+            mapContainer.classList.add("hidden");
+            imgViewer.classList.remove("hidden");
+
+            const target = sortedTerritorios.find((t) => String(t.numero) === String(selectedNumber));
+            updateImageViewer(target);
+        }
+    };
+
+    // Live GPS tracking toggle
+    const toggleLiveGps = () => {
+        isGpsActive = !isGpsActive;
+        const currentName = window.XolvyApp?.user?.nombre || localStorage.getItem("selected_conductor_name") || "Usuario";
+        const currentRole = window.XolvyApp?.user?.role || "Publicador";
+
+        if (isGpsActive) {
+            btnGps.className = "px-3.5 py-2 bg-emerald-500 text-white rounded-2xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95 shadow-lg shadow-emerald-500/25";
+            LiveLocationService.startSharingLocation(currentName, currentRole);
+
+            window._liveGpsUnsub = LiveLocationService.subscribeToLiveLocations((users) => {
+                if (!leafletMap) return;
+                // Update markers on Leaflet
+                users.forEach((u) => {
+                    if (u.lat && u.lng) {
+                        if (!gpsMarkers[u.id]) {
+                            const gpsIcon = L.divIcon({
+                                className: "",
+                                html: `
+                                    <div class="relative flex items-center justify-center">
+                                        <div class="absolute w-8 h-8 rounded-full bg-emerald-500/30 animate-ping"></div>
+                                        <div class="px-2 py-0.5 bg-emerald-600 text-white text-[8px] font-black rounded-lg shadow-md border border-white uppercase tracking-wider flex items-center gap-1">
+                                            <i class="fas fa-user text-[7px]"></i> ${u.nombre.split(" ")[0]}
+                                        </div>
+                                    </div>
+                                `,
+                                iconSize: [80, 24],
+                                iconAnchor: [40, 12],
+                            });
+                            gpsMarkers[u.id] = L.marker([u.lat, u.lng], { icon: gpsIcon }).addTo(leafletMap);
+                        } else {
+                            gpsMarkers[u.id].setLatLng([u.lat, u.lng]);
+                        }
+                    }
+                });
+            });
+        } else {
+            btnGps.className = "px-3.5 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-2xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95";
+            LiveLocationService.stopSharingLocation();
+            if (window._liveGpsUnsub) {
+                window._liveGpsUnsub();
+                window._liveGpsUnsub = null;
+            }
+            Object.keys(gpsMarkers).forEach((k) => {
+                leafletMap.removeLayer(gpsMarkers[k]);
+            });
+            gpsMarkers = {};
+        }
+    };
+
+    // Event Listeners
+    selectEl.onchange = (e) => focusTerritory(e.target.value);
+    btnSat.onclick = () => setViewMode("satelital");
+    btnImg.onclick = () => setViewMode("imagen");
+    btnGps.onclick = () => toggleLiveGps();
+
+    // Auto-invalidate map size on window resize / orientation change
+    window.addEventListener("resize", () => {
+        if (leafletMap) leafletMap.invalidateSize();
+    });
+    window.addEventListener("orientationchange", () => {
+        setTimeout(() => {
+            if (leafletMap) leafletMap.invalidateSize();
+        }, 200);
+    });
+
+    // Initialize Map
+    initLeafletMap();
 };

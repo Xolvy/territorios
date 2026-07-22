@@ -18,9 +18,6 @@ import {
     updateTelefonoStatus,
     updateTerritorio,
 } from "../data/firestore-services.js";
-import { auth, db } from "../firebase-config.js";
-import { NexoAgent } from "./nexo-ai/nexo-core.js";
-import { NexoManifest } from "./nexo-ai/territorios-manifest.js";
 import { showModal } from "./services/ui-helpers.js";
 import { AppConfig } from "./utils/config.js";
 import { getMonday, getSafeDateId, normalizeRobust, renderSkeleton, showNotification } from "./utils/helpers.js";
@@ -1320,17 +1317,11 @@ export const renderConductorDashboard = async (container, nameOrEmail, _appVersi
                                 window.renderTableCallback = () => refreshConductorView(true);
                                 ReceptionHub.openModal({
                                     preSelectedId: card.dataset.id,
-                                    viewMode: "conductor",
-                                    displayName: currentFullName,
-                                    isAdmin: false,
                                 });
                             }
                         }
                     }
                     content.style.transform = "translateX(0px)";
-                    if (leftAction) leftAction.style.opacity = 0;
-                    if (rightAction) rightAction.style.opacity = 0;
-                    setTimeout(() => (card.style.backgroundColor = "transparent"), 300);
                     currentX = 0;
                 });
             });
@@ -1339,302 +1330,6 @@ export const renderConductorDashboard = async (container, nameOrEmail, _appVersi
         initNexoSystem = async () => {
             if (document.getElementById("nexo-widget")) document.getElementById("nexo-widget").remove();
             if (document.getElementById("nexo-fab")) document.getElementById("nexo-fab").remove();
-
-            const nexo = new NexoAgent(NexoManifest);
-            window._nexoInstance = nexo;
-
-            nexo.getLatestContext = () => {
-                return {
-                    territorios_asignados: (poolData.territorios || [])
-                        .filter(
-                            (t) =>
-                                normalizeRobust(t.asignado_a) === normalizeRobust(displayName) ||
-                                normalizeRobust(t.auxiliar) === normalizeRobust(displayName),
-                        )
-                        .map((t) => ({ id: t.id, numero: t.numero, manzanas: t.manzanas })),
-                    conductor: displayName,
-                    fecha_actual: new Date().toLocaleDateString("es-ES", {
-                        weekday: "long",
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                    }),
-                };
-            };
-
-            nexo.registerAction("registrar_predicacion_territorio", async (params) => {
-                console.log("🛠️ Nexo Transaccional:", params);
-                try {
-                    const ALL_T = await getTerritorios();
-                    const tId = String(params.territorio_id || "");
-                    let target = ALL_T.find((t) => String(t.numero) === tId || t.id === tId);
-
-                    if (!target) {
-                        const assigned = (poolData.territorios || []).filter(
-                            (t) =>
-                                normalizeRobust(t.asignado_a) === normalizeRobust(displayName) ||
-                                normalizeRobust(t.auxiliar) === normalizeRobust(displayName),
-                        );
-                        if (assigned.length === 1) target = assigned[0];
-                        else if (assigned.length > 1 && !params.territorio_id) {
-                            return nexo.speak(`Tienes varios territorios asignados. ¿A cuál te refieres?`);
-                        }
-                    }
-
-                    if (target) {
-                        if (params.tipo_entrega === "completo") {
-                            await returnTerritorio(
-                                target.id,
-                                params.notas_novedades || "Entrega completa informada a Nexo AI",
-                                null,
-                                "Completado",
-                            );
-
-                            if (!params.es_flujo_interno) {
-                                window.nexoIniciarFlujoAvance(target.id, target.numero);
-                            }
-                        } else {
-                            const manzanas = Array.isArray(params.manzanas_trabajadas)
-                                ? params.manzanas_trabajadas
-                                : [];
-                            const updateData = {};
-                            if (manzanas.length > 0) {
-                                updateData.manzanas_trabajadas = arrayUnion(...manzanas.map((m) => String(m)));
-                            }
-
-                            if (Object.keys(updateData).length > 0) {
-                                await updateTerritorio(target.id, updateData);
-                            }
-
-                            if (params.notas_novedades) {
-                                await logReturn(
-                                    target.id,
-                                    new Date().toISOString(),
-                                    "Avance Parcial",
-                                    params.notas_novedades,
-                                    null,
-                                    displayName,
-                                );
-                            }
-
-                            window.dispatchEvent(
-                                new CustomEvent("territorio-liberado", {
-                                    detail: { id: target.id, numero: target.numero, status: "parcial" },
-                                }),
-                            );
-
-                            if (!params.es_flujo_interno) {
-                                window.nexoIniciarFlujoAvance(target.id, target.numero);
-                            }
-                        }
-                        if (window.refreshConductorView) window.refreshConductorView(true);
-                    } else {
-                        nexo.speak(
-                            `No logré identificar el territorio ${params.territorio_id || ""}. Por favor, confírmame el número.`,
-                        );
-                    }
-                } catch (err) {
-                    console.error("Nexo Transactional Error:", err);
-                    nexo.speak("Lo siento, tuve un problema técnico al conectar con la base de datos.");
-                }
-            });
-
-            nexo.registerAction("registrar_novedad_flujo", async (params) => {
-                console.log("📝 Registrando novedad desde Nexo:", params);
-                try {
-                    await updateTerritorio(params.territorio_id, {
-                        notas: params.novedad,
-                        ultima_novedad_nexo: params.novedad,
-                    });
-
-                    await logReturn(
-                        params.territorio_id,
-                        new Date().toISOString(),
-                        "Novedad Nexo",
-                        params.novedad,
-                        null,
-                        displayName,
-                    );
-
-                    window.dispatchEvent(
-                        new CustomEvent("territorio-liberado", {
-                            detail: { id: params.territorio_id, status: "novedad" },
-                        }),
-                    );
-                } catch (err) {
-                    console.error("Error al registrar novedad de flujo:", err);
-                }
-            });
-
-            nexo.registerAction("agregar_nota_s13", async (params) => {
-                try {
-                    const territorios = await getTerritorios();
-                    const target = territorios.find((t) => String(t.numero) === String(params.territorio_id));
-                    if (target) {
-                        await logReturn(
-                            target.id,
-                            new Date().toISOString(),
-                            "Nota S-13",
-                            params.nota,
-                            null,
-                            displayName,
-                        );
-                        if (window.XolvyAlert) {
-                            window.XolvyAlert.fire({
-                                icon: "success",
-                                title: `Nota añadida al T-${params.territorio_id}`,
-                                text: "Registro S-13 actualizado.",
-                            });
-                        }
-                        if (window.refreshConductorView) window.refreshConductorView(true);
-                    } else {
-                        nexo.speak(`No encontré el territorio ${params.territorio_id} para añadir la nota.`);
-                    }
-                } catch (err) {
-                    console.error("Nexo Error nota:", err);
-                }
-            });
-
-            nexo.registerAction("actualizar_estado_telefono", async (params) => {
-                try {
-                    const activeOwner = localStorage.getItem("phone_session_owner") || displayName;
-                    const telefonos = await getTelefonosParaSesion(activeOwner);
-                    let target = telefonos.find((t) =>
-                        String(t.telefono || t.numero).endsWith(String(params.ultimos_digitos).padStart(4, "0")),
-                    );
-
-                    if (!target) {
-                        target = (await getTelefonos()).find((t) =>
-                            String(t.telefono || t.numero).endsWith(params.ultimos_digitos),
-                        );
-                    }
-
-                    if (target) {
-                        await updateTelefonoStatus(target.id, params.nuevo_estado, displayName, "Nexo AI modificado.");
-                        if (window.XolvyAlert) {
-                            window.XolvyAlert.fire({
-                                icon: "success",
-                                title: `Teléfono terminado en ${params.ultimos_digitos} se actualizó a: ${params.nuevo_estado}`,
-                            });
-                        }
-                    } else {
-                        nexo.speak(
-                            `No he podido ubicar un teléfono terminando en ${params.ultimos_digitos} en tu libreta activa.`,
-                        );
-                    }
-                } catch (e) {
-                    console.error("Nexo Error en telefono:", e);
-                }
-            });
-
-            nexo.registerAction("mostrar_mapa_territorio", async (params) => {
-                try {
-                    if (window.XolvyAlert) {
-                        window.XolvyAlert.fire({
-                            toast: true,
-                            position: "bottom-end",
-                            title: `Buscando mapa del Territorio ${params.numero_territorio}...`,
-                            icon: "info",
-                        });
-                    }
-                    const allT = await getTerritorios();
-                    const target = allT.find((t) => String(t.numero) === String(params.numero_territorio));
-                    if (target && window.openInteractiveMap) {
-                        window.openInteractiveMap(target);
-                    } else {
-                        nexo.speak(`No encontré el territorio ${params.numero_territorio} en la base de mapas.`);
-                    }
-                } catch (err) {
-                    console.error("Nexo map error:", err);
-                }
-            });
-
-            nexo.registerAction("actualizar_dias_disponibles", async (params) => {
-                try {
-                    const { updatePublicador } = await import("../data/services/personnel-service.js");
-                    const pubs = await getPublicadores();
-                    const userNameNormalized = normalizeRobust(displayName);
-                    const userEmail = auth.currentUser?.email?.toLowerCase() || "";
-                    const target = pubs.find((c) => {
-                        const n = normalizeRobust(c.nombre);
-                        const e = String(c.email || "").toLowerCase();
-                        return n === userNameNormalized || e === userEmail;
-                    });
-
-                    if (target) {
-                        await updatePublicador(target.id, { disponibilidad_dias: params.dias_detallados });
-                        if (window.XolvyAlert) {
-                            window.XolvyAlert.fire({
-                                icon: "success",
-                                title: `Días de predicación actualizados para ${displayName}`,
-                            });
-                        }
-                        if (window.refreshConductorView) window.refreshConductorView(true);
-                    } else {
-                        nexo.speak("No encontré tu perfil activo para actualizar los días.");
-                    }
-                } catch (err) {
-                    console.error("Nexo Error días:", err);
-                }
-            });
-
-            nexo.registerAction("actualizar_disponibilidad", async () => {
-                try {
-                    if (window.XolvyAlert)
-                        window.XolvyAlert.fire({ icon: "success", title: `Disponibilidad de semana guardada.` });
-                } catch (err) {
-                    console.error("Nexo Error disponiblidad:", err);
-                }
-            });
-
-            nexo.registerAction("leer_tema_semanal", async () => {
-                try {
-                    const temaEl = document.querySelector("#dynamic-banner-content");
-                    let text =
-                        "No veo ningún tema especial configurado para esta semana. Sigue preparándote con la Guía de Actividades.";
-
-                    if (temaEl && temaEl.innerText.trim() !== "") {
-                        const firstTrack = temaEl.querySelector(".marquee-track-god > div:first-child");
-                        text = `¡Hola! ${firstTrack ? firstTrack.innerText.trim() : temaEl.innerText.trim()}`;
-                    } else if (document.querySelector(".barra-notificaciones-dinamica")) {
-                        const fallback = document.querySelector(".barra-notificaciones-dinamica").innerText;
-                        if (fallback) text = `El tema actual es: ${fallback}`;
-                    }
-
-                    if (window.XolvyAlert) {
-                        window.XolvyAlert.fire({ icon: "info", title: "Tema Semanal", text: text });
-                    }
-                } catch (e) {
-                    console.error("Nexo Error tema:", e);
-                }
-            });
-
-            nexo.registerAction("informar_territorios_vencidos", async () => {
-                try {
-                    const { getBancoS13 } = await import("../data/firestore-services.js");
-                    const banco = await getBancoS13();
-                    const hoy = new Date();
-                    const vencidos = banco.filter((t) => {
-                        if (!t.fecha_vencimiento) return false;
-                        const fv = new Date(t.fecha_vencimiento);
-                        return fv < hoy && !t.fecha_entrega;
-                    });
-
-                    if (vencidos.length > 0) {
-                        const nums = vencidos.map((v) => v.numero).join(", ");
-                        nexo.speak(
-                            `He encontrado ${vencidos.length} territorios que ya vencieron en el archivo S-13. Son los territorios: ${nums}. ¿Quieres que los revisemos?`,
-                        );
-                    } else {
-                        nexo.speak(
-                            "Todo está al día en el banco S-13. No hay territorios vencidos pendientes de entrega.",
-                        );
-                    }
-                } catch (e) {
-                    console.error("Nexo Error vencidos:", e);
-                    nexo.speak("Tuve un problema al consultar el banco S-13.");
-                }
-            });
         };
 
         // UI Shell Injection (RESTAURACIÓN PREMIUM V2.5 - ORDEN ESTRICTO)
@@ -1677,6 +1372,9 @@ export const renderConductorDashboard = async (container, nameOrEmail, _appVersi
                         </div>
                         
                         <div class="pt-4 border-t border-slate-200/50 dark:border-emerald-900/30 space-y-1.5 mt-auto">
+                            <button onclick="import('./services/user-profile-modal.js').then(m => m.openUserProfileModal());" class="w-full flex items-center gap-3 p-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-indigo-500/10 hover:text-indigo-500 text-[9px] font-black uppercase tracking-widest transition-all focus:outline-none">
+                                <i class="fas fa-id-card stroke-1.5" stroke-width="1.5"></i> <span class="sidebar-text">Mi Perfil</span>
+                            </button>
                             <button onclick="window.toggleTheme();" class="w-full flex items-center gap-3 p-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 text-[9px] font-medium uppercase tracking-widest transition-all focus:outline-none">
                                 <i class="fas fa-adjust stroke-1.5" stroke-width="1.5"></i> <span class="sidebar-text">Cambiar Tema</span>
                             </button>
@@ -1861,7 +1559,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, _appVersi
                                         </div>
                                         <div class="flex-1 min-w-0">
                                             <div class="flex items-center gap-4">
-                                                <h3 class="text-xl md:text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Explorador de Mapas</h3>
+                                                <h3 class="text-xl md:text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Mapa</h3>
                                                 <i class="fas fa-chevron-down text-sm text-slate-600 dark:text-slate-400 group-open/maps-details:rotate-180 transition-transform"></i>
                                             </div>
                                             <p class="text-[9px] md:text-[11px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-[0.2em] mt-1 opacity-80">Busca cualquier sector</p>
@@ -2698,14 +2396,13 @@ export const renderConductorDashboard = async (container, nameOrEmail, _appVersi
                 );
             }
 
-            // Nexo Agent Initialization (REACTIVACIÓN)
-            if (userModsEffectivos.cerebro !== false && typeof initNexoSystem === "function") {
-                try {
-                    await initNexoSystem();
-                    console.log("🤖 [Nexo] Sistema inicializado correctamente");
-                } catch (err) {
-                    console.warn("[Nexo] No se pudo inicializar:", err.message);
-                }
+            const isPublicadorMode = (_userRole === "Publicador" || window.XolvyApp?.user?.role === "Publicador");
+            if (isPublicadorMode) {
+                const hideSectionIds = ["availability-section", "phone-module-card", "recursos-container-section"];
+                hideSectionIds.forEach((id) => {
+                    const el = container.querySelector("#" + id);
+                    if (el) el.classList.add("hidden");
+                });
             }
         } catch (err) {
             console.error("Critical error in loadUnifiedDashboard:", err);

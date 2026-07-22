@@ -46,6 +46,18 @@ export const MapViewer = {
                 icon: "fa-user-check",
                 bgLight: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
             },
+            revisit_item: {
+                name: "Revisita 🏠",
+                color: "#8b5cf6", // Purple
+                icon: "fa-home",
+                bgLight: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
+            },
+            bible_study: {
+                name: "Estudio bíblico 📖",
+                color: "#3b82f6", // Blue
+                icon: "fa-book-open",
+                bgLight: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+            },
         };
 
         container.innerHTML = `
@@ -489,6 +501,8 @@ export const MapViewer = {
                             const conductor = data.conductor || "Conductor";
                             const note = data.nota || "Sin observaciones";
                             const category = data.category || "info";
+                            const pubCargo = data.publicador_cargo || "";
+                            const estudiante = data.estudiante || "";
 
                             notes.push({
                                 id: docSnap.id,
@@ -498,9 +512,18 @@ export const MapViewer = {
                                 dateStr,
                                 category,
                                 nota: note,
+                                pubCargo,
+                                estudiante,
                             });
 
                             const catCfg = CATEGORIES[category] || CATEGORIES.info;
+
+                            const extraInfoHtml = (pubCargo || estudiante) ? `
+                                <div class="bg-indigo-50/50 dark:bg-white/5 p-2 rounded-lg border border-indigo-100 dark:border-white/5 text-[8px] space-y-0.5 mt-1">
+                                    ${pubCargo ? `<div><span class="font-black uppercase text-indigo-600 dark:text-indigo-400">Publicador:</span> <span class="font-bold">${pubCargo}</span></div>` : ""}
+                                    ${estudiante ? `<div><span class="font-black uppercase text-indigo-600 dark:text-indigo-400">Estudiante:</span> <span class="font-bold">${estudiante}</span></div>` : ""}
+                                </div>
+                            ` : "";
 
                             const marker = L.marker(latlng, {
                                 icon: L.divIcon({
@@ -530,8 +553,9 @@ export const MapViewer = {
                                             ${catCfg.name}
                                         </span>
                                     </div>
+                                    ${extraInfoHtml}
                                     <p class="text-[10px] font-bold leading-normal text-slate-700 dark:text-slate-355">"${note}"</p>
-                                    <button onclick="window.deleteMapObservation('${docSnap.id}', '${numero}')" class="w-full mt-2 py-1.5 bg-rose-500/10 hover:bg-rose-500 hover:text-white text-rose-500 text-[8px] font-black uppercase tracking-wider rounded-lg border border-rose-500/10 transition-all flex items-center justify-center gap-1">
+                                    <button onclick="window.deleteMapObservation('${docSnap.id}', '${conductor}')" class="w-full mt-2 py-1.5 bg-rose-500/10 hover:bg-rose-500 hover:text-white text-rose-500 text-[8px] font-black uppercase tracking-wider rounded-lg border border-rose-500/10 transition-all flex items-center justify-center gap-1">
                                         <i class="fas fa-trash-alt"></i> Eliminar Nota
                                     </button>
                                 </div>
@@ -559,6 +583,11 @@ export const MapViewer = {
                             listEl.innerHTML = notes
                                 .map((n) => {
                                     const catCfg = CATEGORIES[n.category] || CATEGORIES.info;
+                                    const extraSide = (n.pubCargo || n.estudiante) ? `
+                                        <div class="text-[8px] text-slate-500 font-medium">
+                                            ${n.pubCargo ? `Pub: <b>${n.pubCargo}</b> ` : ""}${n.estudiante ? `Est: <b>${n.estudiante}</b>` : ""}
+                                        </div>
+                                    ` : "";
                                     return `
                                     <div class="p-3.5 bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 rounded-2xl hover:border-indigo-500/30 hover:bg-slate-100/50 dark:hover:bg-white/[0.04] transition-all cursor-pointer space-y-1.5"
                                          onclick="window.flyToMapObservation(${n.lat}, ${n.lng})">
@@ -566,11 +595,12 @@ export const MapViewer = {
                                             <span class="text-[9px] font-black uppercase text-indigo-600 dark:text-indigo-400 tracking-wider">${n.conductor}</span>
                                             <span class="text-[8px] text-slate-400 font-bold">${n.dateStr}</span>
                                         </div>
-                                        <div class="flex items-center">
+                                        <div class="flex items-center gap-2">
                                             <span class="px-1.5 py-0.5 rounded text-[7px] font-black uppercase border ${catCfg.bgLight}">
                                                 ${catCfg.name}
                                             </span>
                                         </div>
+                                        ${extraSide}
                                         <p class="text-[10px] font-bold text-slate-700 dark:text-slate-350 leading-snug line-clamp-3">"${n.nota}"</p>
                                     </div>
                                 `;
@@ -615,20 +645,48 @@ export const MapViewer = {
             openAddNoteDialog = async (latlng) => {
                 resetAddNoteMode();
 
-                const { value: formValues } = await window.XolvyAlert.fire({
+                const userRole = window.XolvyApp?.user?.role || "Conductor";
+                const isAdmin = userRole === "Administrador" || userRole === "SuperAdmin";
+                const isConductor = userRole === "Conductor";
+                const isPublicador = userRole === "Publicador";
+
+                let catOptions = `<option value="info" selected>📌 General</option>
+                    <option value="danger">⚠️ Peligro (perros, riesgos)</option>`;
+
+                if (isAdmin || isConductor) {
+                    catOptions += `<option value="ban">🚫 No visitar</option>`;
+                }
+                if (isAdmin) {
+                    catOptions += `<option value="key">⭐ P. Pública</option>`;
+                }
+
+                catOptions += `
+                    <option value="revisit">🙋‍♂️ Testigo</option>
+                    <option value="revisit_item">🏠 Revisita</option>
+                    <option value="bible_study">📖 Estudio bíblico</option>`;
+
+                const alertResult = await window.XolvyAlert.fire({
                     title: "Añadir Nota Geolocalizada",
                     html: `
                         <div class="space-y-4 text-left font-sans">
                             <div class="space-y-1.5">
                                 <label class="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">Categoría de la Nota</label>
-                                <select id="xolvy-note-category" class="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-800 dark:text-white px-3 py-2.5 outline-none focus:border-indigo-500">
-                                    <option value="info" selected>📌 General</option>
-                                    <option value="danger">⚠️ Peligro (perros, riesgos)</option>
-                                    <option value="ban">🚫 No visitar</option>
-                                    <option value="key">⭐ P. Pública</option>
-                                    <option value="revisit">🙋‍♂️ Testigo</option>
+                                <select id="xolvy-note-category" onchange="window.toggleExtraNoteFields(this.value)" class="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-800 dark:text-white px-3 py-2.5 outline-none focus:border-indigo-500">
+                                    ${catOptions}
                                 </select>
                             </div>
+
+                            <div id="xolvy-extra-fields" class="hidden space-y-3 p-3 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-xl border border-indigo-100 dark:border-indigo-500/20">
+                                <div class="space-y-1">
+                                    <label class="text-[9px] font-black uppercase text-indigo-600 dark:text-indigo-400 tracking-wider">Publicador a Cargo</label>
+                                    <input type="text" id="xolvy-pub-cargo" placeholder="Nombre del publicador" class="w-full rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 text-xs font-semibold px-3 py-2 outline-none">
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-[9px] font-black uppercase text-indigo-600 dark:text-indigo-400 tracking-wider">Nombre del Estudiante / Persona</label>
+                                    <input type="text" id="xolvy-estudiante" placeholder="Nombre del estudiante" class="w-full rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 text-xs font-semibold px-3 py-2 outline-none">
+                                </div>
+                            </div>
+
                             <div class="space-y-1.5 relative">
                                 <div class="flex justify-between items-center mb-1">
                                     <label class="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">Contenido de la Nota</label>
@@ -636,7 +694,7 @@ export const MapViewer = {
                                         <i class="fas fa-microphone text-[10px]"></i> <span class="text-[8px]">Dictar</span>
                                     </button>
                                 </div>
-                                <textarea id="xolvy-note-textarea" placeholder="Ej: Portón de madera, perros bravos, etc..." class="w-full min-h-[80px] rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-800 dark:text-white px-3 py-2.5 outline-none focus:border-indigo-500" style="resize: none;"></textarea>
+                                <textarea id="xolvy-note-textarea" placeholder="Ej: Portón de madera, horario de visita, etc..." class="w-full min-h-[80px] rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-800 dark:text-white px-3 py-2.5 outline-none focus:border-indigo-500" style="resize: none;"></textarea>
                             </div>
                         </div>
                     `,
@@ -651,16 +709,33 @@ export const MapViewer = {
                         confirmButton: "rounded-xl px-4 py-2 font-bold uppercase tracking-widest text-[9px]",
                         cancelButton: "rounded-xl px-4 py-2 font-bold uppercase tracking-widest text-[9px]",
                     },
+                    didOpen: () => {
+                        window.toggleExtraNoteFields = (val) => {
+                            const container = document.getElementById("xolvy-extra-fields");
+                            if (container) {
+                                if (val === "revisit_item" || val === "bible_study") {
+                                    container.classList.remove("hidden");
+                                } else {
+                                    container.classList.add("hidden");
+                                }
+                            }
+                        };
+                    },
                     preConfirm: () => {
                         const category = document.getElementById("xolvy-note-category").value;
                         const note = document.getElementById("xolvy-note-textarea").value;
+                        const pubCargo = document.getElementById("xolvy-pub-cargo")?.value?.trim() || "";
+                        const estudiante = document.getElementById("xolvy-estudiante")?.value?.trim() || "";
+
                         if (!note || note.trim().length === 0) {
                             window.XolvyAlert.showValidationMessage("Por favor escribe el contenido de la nota");
                             return false;
                         }
-                        return { category, note: note.trim() };
+                        return { category, note: note.trim(), publicador_cargo: pubCargo, estudiante };
                     },
                 });
+
+                const formValues = alertResult.value;
 
                 if (formValues) {
                     try {
@@ -676,6 +751,8 @@ export const MapViewer = {
                             conductor: conductorName,
                             category: formValues.category,
                             nota: formValues.note,
+                            publicador_cargo: formValues.publicador_cargo || "",
+                            estudiante: formValues.estudiante || "",
                             fecha: new Date().toISOString(),
                             timestamp: Timestamp.now(),
                             lat: latlng.lat,
@@ -739,6 +816,15 @@ export const MapViewer = {
         if (isInteractive) {
             initLeafletMap();
         }
+
+        window.addEventListener("resize", () => {
+            if (leafletMap) leafletMap.invalidateSize();
+        });
+        window.addEventListener("orientationchange", () => {
+            setTimeout(() => {
+                if (leafletMap) leafletMap.invalidateSize();
+            }, 200);
+        });
 
         if (btnToggle) {
             btnToggle.onclick = async () => {
@@ -1005,4 +1091,30 @@ window.openGlobalMap = (allTerritorios) => {
     modal.classList.remove("hidden");
     modal.classList.add("flex");
     MapViewer.renderGlobal(document.getElementById("map-viewer-root"), allTerritorios);
+};
+
+window.deleteMapObservation = async (noteId, noteConductor) => {
+    const user = window.XolvyApp?.user;
+    const currentName = user?.nombre || localStorage.getItem("selected_conductor_name") || "";
+    const userRole = user?.role || "";
+
+    const isCreator = currentName && noteConductor && currentName.toLowerCase().trim() === String(noteConductor).toLowerCase().trim();
+    const isAdmin = userRole === "Administrador" || userRole === "SuperAdmin";
+
+    if (!isCreator && !isAdmin) {
+        showNotification("Solo el autor de la nota o un Administrador pueden eliminarla", "warning");
+        return;
+    }
+
+    try {
+        const { doc, deleteDoc } = await import("firebase/firestore");
+        const { db } = await import("../firebase-config.js");
+        await deleteDoc(doc(db, "bitacora_observaciones", noteId));
+        showNotification("Nota eliminada correctamente", "success");
+        const closeBtn = document.querySelector(".xolvy-map-popup .leaflet-popup-close-button");
+        if (closeBtn) closeBtn.click();
+    } catch (err) {
+        console.error("Error eliminando nota:", err);
+        showNotification("Error al eliminar la nota", "error");
+    }
 };

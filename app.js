@@ -13,6 +13,8 @@ import { moduleRegistry } from "./modules/utils/module-registry.js";
 import { initTheme } from "./modules/utils/theme-manager.js";
 import { initUpdateManager, stopUpdateManager } from "./modules/utils/update-manager.js";
 import { VisualEngine } from "./modules/utils/visual-engine.js";
+import { initDynamicIslandHUD } from "./modules/services/dynamic-island-hud.js";
+import { initPWAInstallPrompt } from "./modules/services/pwa-install-prompt.js";
 
 // --- MOBILE MENU LOGIC ---
 // Deterministic open/close (never toggle) to survive dashboard re-renders
@@ -63,14 +65,16 @@ if (window.location.search.includes("rescue")) {
     window.history.replaceState({}, document.title, window.location.pathname);
 }
 
-// Initialize Visual Ecosystem
+// Initialize Visual Ecosystem & Ultra PWA Engine
 VisualEngine.applyGlobalEcosystem();
+initDynamicIslandHUD();
+initPWAInstallPrompt();
 
 // Initialize Module Registry (Deferred until authentication and user binding to avoid permission-denied errors)
 // moduleRegistry.init();
 
 // The version is injected by Vite at build time (Core Shell Version)
-const APP_VERSION = "4.0.0";
+const APP_VERSION = "4.1.0";
 window.XolvyApp = { user: null, version: APP_VERSION };
 
 // --- XOLVY MODULAR: MICRO-MODULE ENGINE ---
@@ -321,9 +325,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                     // Identity Shield: Validate against Firestore — the ONLY source of truth
                     const identity = await IdentityShield.resolveAndBindIdentity(nameToResolve);
 
-                    if (!identity.docId || (identity.rol !== "Conductor" && identity.rol !== "Administrador")) {
+                    if (!identity.docId || (identity.rol !== "Conductor" && identity.rol !== "Administrador" && identity.rol !== "Publicador")) {
                         // User not found in Firestore or not authorized — reject
-                        console.warn("⚠️ [Auth] Conductor no encontrado o no autorizado en Firestore. Cerrando sesión.");
+                        console.warn("⚠️ [Auth] Usuario no encontrado o no autorizado en Firestore. Cerrando sesión.");
                         localStorage.removeItem("xolvy_session");
                         localStorage.removeItem("selected_conductor_name");
                         await auth.signOut();
@@ -618,8 +622,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         const identity = await IdentityShield.resolveAndBindIdentity(email);
 
         // Validate identity was found in Firestore and is authorized
-        if (!identity.docId || (identity.rol !== "Conductor" && identity.rol !== "Administrador")) {
-            console.error("🛡️ [Security] Conductor identity not authorized or not found in Firestore. Blocking access.");
+        if (!identity.docId || (identity.rol !== "Conductor" && identity.rol !== "Administrador" && identity.rol !== "Publicador")) {
+            console.error("🛡️ [Security] Identity not authorized or not found in Firestore. Blocking access.");
             localStorage.removeItem("xolvy_session");
             localStorage.removeItem("selected_conductor_name");
             const render = await loadLogin();

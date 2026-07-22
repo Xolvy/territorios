@@ -31,30 +31,34 @@
     <!-- CSS Assets (Processed by Vite) -->
     <link rel="stylesheet" href="/src/input.css">
 
-    <!-- Emergency Power-Up: Hard Sync if stuck -->
+    <!-- Emergency Power-Up: Hard Sync & Forced Cache Eviction -->
     <script>
         (function () {
-            // --- DEEP EDIT 2026: FORCE RELOAD ---
-            const CURRENT_BUILD = "4.0.0";
-            console.log("🚀 XOLVY CORE: System Version [FORCE_SYNC_ACTIVE]");
+            const CURRENT_BUILD = "4.1.0";
+            console.log("🚀 XOLVY CORE v4.1.0: System Boot [FORCE_CACHE_PURGE]");
             
+            // --- Force Cache Eviction on Version Jump ---
+            try {
+                const storedVersion = localStorage.getItem('xolvy_boot_version');
+                if (storedVersion !== CURRENT_BUILD) {
+                    console.warn(`🔥 Version transition (${storedVersion} -> ${CURRENT_BUILD}). Purging browser cache & SW...`);
+                    if ('caches' in window) {
+                        caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+                    }
+                    if ('serviceWorker' in navigator) {
+                        navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
+                    }
+                    localStorage.setItem('xolvy_boot_version', CURRENT_BUILD);
+                    localStorage.setItem('last_force_sync', Date.now().toString());
+                }
+            } catch (_e) {}
+
             // --- Xolvy Theme Engine 2.0 (FOUC Prevention) ---
             const theme = localStorage.getItem('theme') || 'auto';
             if (theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
                 document.documentElement.classList.add('dark');
             } else {
                 document.documentElement.classList.remove('dark');
-            }
-
-            try {
-                const lastForce = localStorage.getItem('last_force_sync');
-                const now = Date.now();
-
-                if (!lastForce || (now - parseInt(lastForce)) > 1000 * 60 * 60 * 24) {
-                    localStorage.setItem('last_force_sync', now.toString());
-                }
-            } catch (e) {
-                console.warn("⚠️ Storage Access Denied at boot. Running in restricted mode.", e);
             }
         })();
     </script>

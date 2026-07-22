@@ -716,7 +716,7 @@ export const renderConfigTab = async (container, config, appVersion, reloadTabFn
                         <input type="text" id="poi-name" value="${poi?.nombre || ""}" class="input-premium" placeholder="P. ej: Parada de Taxis Central">
                     </div>
                     
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div class="space-y-2 group/input">
                             <label class="label-premium">Tipo</label>
                             <div class="relative">

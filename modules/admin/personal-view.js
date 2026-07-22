@@ -58,7 +58,7 @@ export const renderPersonalTab = async (container, _configData = null, _appVersi
                                     <td class="px-8 py-5">
                                         <div class="flex items-center gap-4">
                                             <div class="w-10 h-10 rounded-xl bg-slate-900 dark:bg-white/10 flex items-center justify-center text-white font-bold text-sm shadow-sm">
-                                                ${p.nombre.charAt(0)}
+                                                ${p.nombre.charAt(0).toUpperCase()}
                                             </div>
                                             <div>
                                                 <p class="text-sm font-bold text-slate-900 dark:text-white tracking-tight">${toTitleCase(p.nombre)}</p>
@@ -120,7 +120,7 @@ export const renderPersonalTab = async (container, _configData = null, _appVersi
                         <div class="flex items-center justify-between gap-4">
                             <div class="flex items-center gap-4">
                                 <div class="w-11 h-11 rounded-xl bg-slate-900 dark:bg-white/10 flex items-center justify-center text-white font-bold text-lg">
-                                    ${p.nombre.charAt(0)}
+                                    ${p.nombre.charAt(0).toUpperCase()}
                                 </div>
                                 <div class="min-w-0">
                                     <p class="text-sm font-bold text-slate-900 dark:text-white tracking-tight truncate">${toTitleCase(p.nombre)}</p>
@@ -246,7 +246,7 @@ export const renderPersonalTab = async (container, _configData = null, _appVersi
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-4 md:gap-6">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
                             <div class="space-y-2 group/input">
                                 <label class="label-premium">Género</label>
                                 <div class="relative">
@@ -381,12 +381,12 @@ export const renderPersonalTab = async (container, _configData = null, _appVersi
                                     <div class="flex items-center justify-between p-4 bg-white dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/10">
                                         <div class="flex items-center gap-3">
                                             <div class="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500 text-xs">
-                                                <i class="fas ${m.icon}"></i>
+                                                <i class="fas ${mod.icon}"></i>
                                             </div>
-                                            <span class="text-xs font-black text-slate-700 dark:text-slate-300 uppercase">${m.label}</span>
+                                            <span class="text-xs font-black text-slate-700 dark:text-slate-300 uppercase">${mod.label}</span>
                                         </div>
                                         <label class="relative inline-flex items-center cursor-pointer shrink-0">
-                                            <input type="checkbox" class="p-mod-check peer sr-only" id="${m.id}" ${(person?.modulos?.[m.id.replace("mod-", "")] ?? true) ? "checked" : ""}>
+                                            <input type="checkbox" class="p-mod-check peer sr-only" id="${mod.id}" ${(person?.modulos?.[mod.id.replace("mod-", "")] ?? true) ? "checked" : ""}>
                                             <div class="w-11 h-6 bg-slate-300 dark:bg-slate-600 rounded-full peer peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:shadow-md after:border after:border-slate-200 peer-checked:after:translate-x-[18px] after:transition-all"></div>
                                         </label>
                                     </div>

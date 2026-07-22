@@ -177,14 +177,21 @@ export const renderFullProgramaCards = (
                                                         : [];
                                                     let chipHtml = "";
 
-                                                    if (territoriesList.length > 0) {
-                                                        chipHtml += territoriesList
-                                                            .map((t) => {
-                                                                const dropId =
-                                                                    `dropdown-prog-${dayIdx}-${shift}-${t}`.replace(
-                                                                        /\s+/g,
-                                                                        "-",
-                                                                    );
+                                                     const isPublicador = window.XolvyApp?.user?.role === "Publicador";
+                                                     if (territoriesList.length > 0) {
+                                                         chipHtml += territoriesList
+                                                             .map((t) => {
+                                                                 if (isPublicador) {
+                                                                     return `
+                                                                     <div class="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-white/5 select-none">
+                                                                         <span class="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">[Asignado]</span>
+                                                                     </div>`;
+                                                                 }
+                                                                 const dropId =
+                                                                     `dropdown-prog-${dayIdx}-${shift}-${t}`.replace(
+                                                                         /\s+/g,
+                                                                         "-",
+                                                                     );
                                                                 return `
                                                             <div class="relative inline-block text-left">
                                                                 <button onclick="window.toggleTerritoryDropdown(event, '${dropId}')" 
