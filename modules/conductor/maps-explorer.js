@@ -9,6 +9,8 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
     const mapsSection = container.querySelector("#interactive-maps-module");
     if (!mapsSection) return;
 
+    const targetContainer = mapsSection.querySelector("#maps-explorer-content-container") || mapsSection;
+
     // Clean up previous instance state
     if (window._fullExplorerMap) {
         try { window._fullExplorerMap.remove(); } catch (_e) {}
@@ -29,7 +31,7 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
         .map((t) => `<option value="${t.numero}">Territorio ${t.numero} ${t.localidad ? `(${t.localidad})` : ""}</option>`)
         .join("");
 
-    mapsSection.innerHTML = `
+    targetContainer.innerHTML = `
         <div class="flex flex-col h-[720px] w-full bg-white dark:bg-slate-900 rounded-[2.5rem] overflow-hidden border border-slate-200/80 dark:border-white/10 shadow-2xl relative">
             <!-- TOP CONTROLS BAR -->
             <div class="z-30 p-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-200 dark:border-white/10 flex flex-wrap items-center justify-between gap-3">
@@ -448,6 +450,16 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
                 showNotification("Error cargando Territorios Libres", "error");
             }
         };
+    }
+
+    // Listen to accordion open event on #details-maps to invalidate Leaflet map size
+    const detailsMaps = container.querySelector("#details-maps") || mapsSection.querySelector("#details-maps");
+    if (detailsMaps) {
+        detailsMaps.addEventListener("toggle", () => {
+            if (detailsMaps.open && leafletMap) {
+                setTimeout(() => leafletMap.invalidateSize(), 150);
+            }
+        });
     }
 
     // Auto-invalidate map size on window resize / orientation change
