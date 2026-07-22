@@ -1474,26 +1474,39 @@ export const renderConductorDashboard = async (container, nameOrEmail, _appVersi
                             </details>
                         </div>
 
-                        <div id="availability-section" class="modern-card !p-0 overflow-hidden">
-                             <details id="details-availability" class="group/avail-details">
-                                 <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-6 md:p-10 cursor-pointer list-none select-none hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors border-b border-transparent group-open/avail-details:border-slate-100 dark:group-open/avail-details:border-white/5 relative">
+                        <!-- 1. MAPA (Debajo de Cronograma) -->
+                        <div id="interactive-maps-module" class="modern-card !p-0 overflow-hidden">
+                             <details id="details-maps" class="group/maps-details">
+                                 <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-6 md:p-10 cursor-pointer list-none select-none hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors border-b border-transparent group-open/maps-details:border-slate-100 dark:group-open/maps-details:border-white/5 relative">
                                     <div class="flex items-start gap-4 md:gap-8 relative z-10 w-full md:w-auto">
-                                        <div class="w-12 h-12 md:w-16 md:h-16 rounded-2xl bg-teal-500/10 flex items-center justify-center text-2xl md:text-3xl text-teal-500 border border-teal-500/10">
-                                            <i class="fas fa-user-clock"></i>
+                                        <div class="w-12 h-12 md:w-16 md:h-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-2xl md:text-3xl text-emerald-500 border border-emerald-500/10">
+                                            <i class="fas fa-map-marked-alt"></i>
                                         </div>
                                         <div class="flex-1 min-w-0">
                                             <div class="flex items-center gap-4">
-                                                <h3 class="text-xl md:text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Disponibilidad</h3>
-                                                <i class="fas fa-chevron-down text-sm text-slate-600 dark:text-slate-400 group-open/avail-details:rotate-180 transition-transform"></i>
+                                                <h3 class="text-xl md:text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Mapa</h3>
+                                                <i class="fas fa-chevron-down text-sm text-slate-600 dark:text-slate-400 group-open/maps-details:rotate-180 transition-transform"></i>
                                             </div>
-                                            <p class="text-[9px] md:text-[11px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-[0.2em] mt-1 opacity-80">Gestión de horarios</p>
+                                            <p class="text-[9px] md:text-[11px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-[0.2em] mt-1 opacity-80">Busca cualquier sector</p>
                                         </div>
                                     </div>
-                                </summary>
-                                <div id="availability-container" class="p-4 md:p-8 animate-fade-in group-open/avail-details:block hidden"></div>
+                                 </summary>
+                                 <div class="p-4 md:p-8 animate-fade-in group-open/maps-details:block hidden space-y-8">
+                                     <div class="flex flex-col sm:flex-row gap-4 items-stretch">
+                                          <div class="flex-1 relative">
+                                              <i class="fas fa-search absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400"></i>
+                                              <input type="text" id="search-explorer-maps" placeholder="BUSCAR TERRITORIO..." style="padding-left: 3.5rem !important;" class="input-premium !py-4 !pr-6 text-[11px] uppercase tracking-widest bg-white dark:bg-slate-900 !text-slate-800 dark:!text-white placeholder-slate-400 dark:placeholder-slate-500 w-full">
+                                          </div>
+                                          <button id="btn-open-global-map-explorer" type="button" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-600/20 active:scale-95 flex items-center justify-center gap-3 transition-all shrink-0">
+                                              <i class="fas fa-satellite"></i> <span>Ver Mapa General</span>
+                                          </button>
+                                     </div>
+                                     <div id="conductor-maps-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6"></div>
+                                 </div>
                              </details>
                         </div>
 
+                        <!-- 2. TELEFONÍA -->
                         <div id="phone-module-card" class="modern-card !p-0" style="overflow: visible !important;">
                             <div class="flex flex-col md:flex-row justify-between items-start md:items-center p-6 md:p-10 border-b border-slate-100 dark:border-white/5 relative">
                                 <div class="flex items-start gap-4 md:gap-8 relative z-10 w-full md:w-auto">
@@ -1551,34 +1564,24 @@ export const renderConductorDashboard = async (container, nameOrEmail, _appVersi
                             </div>
                         </div>
 
-                        <div id="interactive-maps-module" class="modern-card !p-0 overflow-hidden">
-                             <details id="details-maps" class="group/maps-details">
-                                 <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-6 md:p-10 cursor-pointer list-none select-none hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors border-b border-transparent group-open/maps-details:border-slate-100 dark:group-open/maps-details:border-white/5 relative">
+                        <!-- 3. DISPONIBILIDAD (Abajo de Telefonía) -->
+                        <div id="availability-section" class="modern-card !p-0 overflow-hidden">
+                             <details id="details-availability" class="group/avail-details">
+                                 <summary class="flex flex-col md:flex-row justify-between items-start md:items-center p-6 md:p-10 cursor-pointer list-none select-none hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors border-b border-transparent group-open/avail-details:border-slate-100 dark:group-open/avail-details:border-white/5 relative">
                                     <div class="flex items-start gap-4 md:gap-8 relative z-10 w-full md:w-auto">
-                                        <div class="w-12 h-12 md:w-16 md:h-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-2xl md:text-3xl text-emerald-500 border border-emerald-500/10">
-                                            <i class="fas fa-map-marked-alt"></i>
+                                        <div class="w-12 h-12 md:w-16 md:h-16 rounded-2xl bg-teal-500/10 flex items-center justify-center text-2xl md:text-3xl text-teal-500 border border-teal-500/10">
+                                            <i class="fas fa-user-clock"></i>
                                         </div>
                                         <div class="flex-1 min-w-0">
                                             <div class="flex items-center gap-4">
-                                                <h3 class="text-xl md:text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Mapa</h3>
-                                                <i class="fas fa-chevron-down text-sm text-slate-600 dark:text-slate-400 group-open/maps-details:rotate-180 transition-transform"></i>
+                                                <h3 class="text-xl md:text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Disponibilidad</h3>
+                                                <i class="fas fa-chevron-down text-sm text-slate-600 dark:text-slate-400 group-open/avail-details:rotate-180 transition-transform"></i>
                                             </div>
-                                            <p class="text-[9px] md:text-[11px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-[0.2em] mt-1 opacity-80">Busca cualquier sector</p>
+                                            <p class="text-[9px] md:text-[11px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-[0.2em] mt-1 opacity-80">Gestión de horarios</p>
                                         </div>
                                     </div>
-                                 </summary>
-                                 <div class="p-4 md:p-8 animate-fade-in group-open/maps-details:block hidden space-y-8">
-                                     <div class="flex flex-col sm:flex-row gap-4 items-stretch">
-                                          <div class="flex-1 relative">
-                                              <i class="fas fa-search absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400"></i>
-                                              <input type="text" id="search-explorer-maps" placeholder="BUSCAR TERRITORIO..." style="padding-left: 3.5rem !important;" class="input-premium !py-4 !pr-6 text-[11px] uppercase tracking-widest bg-white dark:bg-slate-900 !text-slate-800 dark:!text-white placeholder-slate-400 dark:placeholder-slate-500 w-full">
-                                          </div>
-                                          <button id="btn-open-global-map-explorer" type="button" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-600/20 active:scale-95 flex items-center justify-center gap-3 transition-all shrink-0">
-                                              <i class="fas fa-satellite"></i> <span>Ver Mapa General</span>
-                                          </button>
-                                     </div>
-                                     <div id="conductor-maps-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6"></div>
-                                 </div>
+                                </summary>
+                                <div id="availability-container" class="p-4 md:p-8 animate-fade-in group-open/avail-details:block hidden"></div>
                              </details>
                         </div>
 
