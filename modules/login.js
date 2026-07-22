@@ -37,7 +37,7 @@ export const renderLogin = (container) => {
                 </div>
                 
                 <!-- 3 CARDS RESPONSIVE GRID CONTAINER (Compact max-w-3xl) -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5 sm:gap-4 w-full max-w-3xl">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5 sm:gap-4 w-full max-w-2xl">
                 
                     <!-- Card 1: ADMINISTRADOR (Azul Marino Ejecutivo / Ámbar Dorado) -->
                     <div class="group flex flex-col p-4 sm:p-4.5 bg-white/70 dark:bg-slate-900/60 rounded-[2rem] border border-slate-200/60 dark:border-white/5 shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-1.5 hover:border-slate-700/50 dark:hover:border-blue-500/40 text-center relative z-10 backdrop-blur-xl justify-between min-h-[255px]">
@@ -157,32 +157,40 @@ export const renderLogin = (container) => {
         if (btnPublicadorGoogle) btnPublicadorGoogle.onclick = () => triggerGoogleAuth(btnPublicadorGoogle);
 
         const ensureAnonAuth = async () => {
-            try {
-                if (!auth.currentUser) {
+            if (auth.currentUser) return true;
+            for (let attempt = 0; attempt < 3; attempt++) {
+                try {
                     await signInAnonymously(auth);
+                    return true;
+                } catch (err) {
+                    console.warn(`[Login] Anon auth attempt ${attempt + 1} failed:`, err.message);
+                    if (attempt < 2) await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
                 }
-            } catch (err) {
-                console.error("Anon auth fail:", err);
             }
+            console.error("[Login] Anonymous auth failed after 3 attempts");
+            return false;
         };
 
         if (btnAdminList) {
             btnAdminList.onclick = async () => {
-                await ensureAnonAuth();
+                const ok = await ensureAnonAuth();
+                if (!ok) { if (errorEl) { errorEl.textContent = 'Error de autenticación. Verifica tu conexión.'; errorEl.classList.remove('hidden'); } return; }
                 renderRoleDirectorySelection("Administrador");
             };
         }
 
         if (btnConductorList) {
             btnConductorList.onclick = async () => {
-                await ensureAnonAuth();
+                const ok = await ensureAnonAuth();
+                if (!ok) { if (errorEl) { errorEl.textContent = 'Error de autenticación. Verifica tu conexión.'; errorEl.classList.remove('hidden'); } return; }
                 renderRoleDirectorySelection("Conductor");
             };
         }
 
         if (btnPublicadorList) {
             btnPublicadorList.onclick = async () => {
-                await ensureAnonAuth();
+                const ok = await ensureAnonAuth();
+                if (!ok) { if (errorEl) { errorEl.textContent = 'Error de autenticación. Verifica tu conexión.'; errorEl.classList.remove('hidden'); } return; }
                 renderRoleDirectorySelection("Publicador");
             };
         }
@@ -342,12 +350,16 @@ export const renderRoleDirectorySelection = async (targetRole = "Conductor") => 
                         showCancelButton: true,
                         confirmButtonText: "Ingresar",
                         cancelButtonText: "Cancelar",
+                        width: 360,
                         customClass: {
                             container: "!z-[100000]",
-                            popup: "!z-[100000] modern-card !rounded-[2rem] !p-6 !border !border-slate-200 dark:!border-white/10 !shadow-2xl !bg-white/95 dark:!bg-slate-900/95",
-                            input: "!rounded-2xl !border !border-slate-200 dark:!border-white/10 !bg-slate-50 dark:!bg-slate-800 !text-slate-800 dark:!text-white !font-bold !text-sm !px-5 !py-4 focus:!border-indigo-500 !shadow-inner !mt-4",
-                            confirmButton: "!px-8 !py-3.5 !text-[10px] !font-black !uppercase !tracking-widest !rounded-2xl !bg-slate-900 !text-amber-300 dark:!bg-blue-600 dark:!text-white hover:!bg-slate-800 !shadow-lg",
-                            cancelButton: "!px-6 !py-3.5 !text-[10px] !font-black !uppercase !tracking-widest !rounded-2xl !bg-slate-100 dark:!bg-white/5 !text-slate-600 dark:!text-slate-300",
+                            popup: "!z-[100000] modern-card !rounded-[2rem] !p-5 !border !border-slate-200 dark:!border-white/10 !shadow-2xl !bg-white/95 dark:!bg-slate-900/95 !max-w-[360px]",
+                            title: "!text-base !px-5 !pt-5 !pb-1",
+                            htmlContainer: "!px-5 !pb-0 !text-xs !text-slate-500 dark:!text-slate-400",
+                            input: "!rounded-xl !border !border-slate-200 dark:!border-white/10 !bg-slate-50 dark:!bg-slate-800 !text-slate-800 dark:!text-white !font-bold !text-sm !px-4 !py-3 focus:!border-indigo-500 !shadow-inner !mt-3",
+                            confirmButton: "!px-6 !py-3 !text-[9px] !font-black !uppercase !tracking-widest !rounded-xl !bg-slate-900 !text-amber-300 dark:!bg-blue-600 dark:!text-white hover:!bg-slate-800 !shadow-lg",
+                            cancelButton: "!px-5 !py-3 !text-[9px] !font-black !uppercase !tracking-widest !rounded-xl !bg-slate-100 dark:!bg-white/5 !text-slate-600 dark:!text-slate-300",
+                            actions: "!px-5 !pb-5 !pt-3 !gap-2.5",
                         },
                         preConfirm: (val) => {
                             if (!val || val.trim().length === 0) {
@@ -406,9 +418,13 @@ export const renderRoleDirectorySelection = async (targetRole = "Conductor") => 
                                 icon: "error",
                                 title: "Contraseña incorrecta",
                                 text: `La contraseña ingresada no es válida para ${targetRole}.`,
+                                width: 360,
                                 customClass: {
                                     container: "!z-[100000]",
-                                    popup: "!z-[100000] modern-card !rounded-[2rem] !p-6 !border !border-slate-200 dark:!border-white/10 !shadow-2xl !bg-white/95 dark:!bg-slate-900/95",
+                                    popup: "!z-[100000] modern-card !rounded-[2rem] !p-5 !border !border-slate-200 dark:!border-white/10 !shadow-2xl !bg-white/95 dark:!bg-slate-900/95 !max-w-[360px]",
+                                    title: "!text-base !px-5 !pt-5 !pb-1",
+                                    htmlContainer: "!px-5 !pb-0 !text-xs",
+                                    actions: "!px-5 !pb-5 !pt-3",
                                 }
                             });
                         }
