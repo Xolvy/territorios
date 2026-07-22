@@ -239,11 +239,15 @@ export const openSugeridorModal = (programa = { dias: [] }, renderTableCallback 
     const territorios = window._progCache?.territorios || [];
     const historial = window._progCache?.historial || [];
 
-    // ── Analyze current weekly assignments ──────────────────────────────────
+    // ── Analyze current weekly assignments (active week only) ──────────────
     const assignedTerritoryNumbers = new Set();
     const assignedToDays = {};
 
-    programa.dias.forEach((dia) => {
+    const activeProg = (programa && programa.dias && programa.dias.length > 0)
+        ? programa
+        : window._progCache?.programa || { dias: [] };
+
+    activeProg.dias?.forEach((dia) => {
         Object.keys(dia).forEach((key) => {
             if (key !== "nombre" && key !== "fecha" && dia[key]?.territorio) {
                 String(dia[key].territorio)
@@ -251,10 +255,12 @@ export const openSugeridorModal = (programa = { dias: [] }, renderTableCallback 
                     .map((t) => t.trim())
                     .filter(Boolean)
                     .forEach((num) => {
+                        const cleanNum = num.replace(/^T-?/i, "").trim();
+                        assignedTerritoryNumbers.add(cleanNum);
                         assignedTerritoryNumbers.add(num);
-                        if (!assignedToDays[num]) assignedToDays[num] = [];
-                        if (!assignedToDays[num].includes(dia.nombre)) {
-                            assignedToDays[num].push(dia.nombre);
+                        if (!assignedToDays[cleanNum]) assignedToDays[cleanNum] = [];
+                        if (!assignedToDays[cleanNum].includes(dia.nombre)) {
+                            assignedToDays[cleanNum].push(dia.nombre);
                         }
                     });
             }
@@ -288,10 +294,10 @@ export const openSugeridorModal = (programa = { dias: [] }, renderTableCallback 
     let leafletMap = null;
     let gpsMarker = null;
 
-    const getTerritoryStatus = (num, estado) => {
-        const isAssigned = assignedTerritoryNumbers.has(num);
-        if (isAssigned || estado === "Asignado") return "ocupado";
-        return "libre";
+    const getTerritoryStatus = (num) => {
+        const strNum = String(num).replace(/^T-?/i, "").trim();
+        const isAssigned = assignedTerritoryNumbers.has(strNum) || assignedTerritoryNumbers.has(String(num));
+        return isAssigned ? "ocupado" : "libre";
     };
 
     // ════════════════════════════════════════════════════════════════════════
@@ -671,32 +677,25 @@ export const openSugeridorModal = (programa = { dias: [] }, renderTableCallback 
         
         <div id="modal-sheet" onclick="event.stopPropagation()" style="max-width: 850px;" class="relative w-[95vw] h-[92vh] max-h-[92vh] bg-white dark:bg-[#0a0f18] rounded-2xl md:rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden z-50 transition-all duration-300 mx-auto my-auto border border-slate-200/50 dark:border-white/10">
             
-            <!-- Header -->
-            <header class="px-5 md:px-7 py-4 shrink-0 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-slate-900/30 flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 bg-emerald-500/10 text-emerald-500 rounded-xl flex items-center justify-center shadow-inner">
-                        <i class="fas fa-lightbulb text-base"></i>
+            <!-- Compact Header with integrated Location Selector -->
+            <header class="px-4 py-2.5 shrink-0 border-b border-slate-100 dark:border-white/5 bg-slate-50/80 dark:bg-slate-900/50 flex flex-wrap items-center justify-between gap-3 relative">
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <div class="w-8 h-8 bg-emerald-500/10 text-emerald-500 rounded-xl flex items-center justify-center shrink-0 shadow-inner">
+                        <i class="fas fa-lightbulb text-sm"></i>
                     </div>
-                    <div>
-                        <h3 class="text-[13px] font-black text-slate-800 dark:text-white uppercase tracking-wider leading-none">Asistente Inteligente</h3>
-                        <p class="text-[7.5px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mt-0.5">Sugerencias y Optimización de Asignación</p>
+                    <div class="min-w-0">
+                        <h3 class="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-wider leading-tight truncate">Asistente Inteligente</h3>
+                        <p class="text-[7px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest leading-none">Sugerencias y Asignación Semanal</p>
                     </div>
                 </div>
-                <button id="modal-sugerencias-close" class="w-9 h-9 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center justify-center transition-all">
-                    <i class="fas fa-times text-[13px]"></i>
-                </button>
-            </header>
 
-            <!-- Location Context Selection (Resumed labels: Mapa general, Mi ubicación, Territorio X) -->
-            <div class="px-5 md:px-7 pt-4 pb-3 shrink-0">
-                <div class="p-3 bg-slate-50 dark:bg-[#0e1320] border border-slate-200/60 dark:border-white/5 rounded-xl space-y-2 relative">
+                <div class="flex items-center gap-2 flex-1 max-w-xs md:max-w-sm min-w-[180px] relative">
                     <div id="ai-sugeridor-loader" class="hidden absolute inset-0 bg-white/60 dark:bg-[#0e1320]/60 backdrop-blur-xs flex items-center justify-center rounded-xl z-30">
-                        <i class="fas fa-spinner fa-spin text-indigo-500 text-lg"></i>
+                        <i class="fas fa-spinner fa-spin text-indigo-500 text-xs"></i>
                     </div>
-                    <label class="text-[8px] font-black text-slate-600 dark:text-slate-400 tracking-widest uppercase block font-semibold">📍 Centro de Referencia del Mapa</label>
-                    <select id="ai-ref-select" onchange="window.handleRefChange(this)" class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 p-2.5 rounded-xl text-[10px] font-bold text-slate-700 dark:text-white outline-none cursor-pointer">
+                    <select id="ai-ref-select" onchange="window.handleRefChange(this)" class="w-full bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-white/10 px-3 py-1.5 rounded-xl text-[9.5px] font-bold text-slate-700 dark:text-white outline-none cursor-pointer shadow-sm">
                         <option value="none">📍 MAPA GENERAL</option>
-                        <option value="gps">📍 MI UBICACIÓN</option>
+                        <option value="gps">📍 MI UBICACIÓN (GPS)</option>
                         ${uniqueTs
                             .map((t) => {
                                 const hasDuplicates = uniqueTs.filter((x) => x.numero === t.numero).length > 1;
@@ -706,7 +705,11 @@ export const openSugeridorModal = (programa = { dias: [] }, renderTableCallback 
                             .join("")}
                     </select>
                 </div>
-            </div>
+
+                <button id="modal-sugerencias-close" class="w-8 h-8 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center justify-center transition-all shrink-0">
+                    <i class="fas fa-times text-xs"></i>
+                </button>
+            </header>
 
             <!-- Map container (Main View) -->
             <div id="ai-sugeridor-map-container" class="flex-1 min-w-0 relative overflow-hidden">

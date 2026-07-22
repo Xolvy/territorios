@@ -32,7 +32,7 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
     mapsSection.innerHTML = `
         <div class="flex flex-col h-[720px] w-full bg-white dark:bg-slate-900 rounded-[2.5rem] overflow-hidden border border-slate-200/80 dark:border-white/10 shadow-2xl relative">
             <!-- TOP CONTROLS BAR -->
-            <div class="z-30 p-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-200 dark:border-white/10 flex flex-wrap items-center justify-between gap-4">
+            <div class="z-30 p-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-200 dark:border-white/10 flex flex-wrap items-center justify-between gap-3">
                 <div class="flex items-center gap-3 flex-wrap flex-1 min-w-0">
                     <div class="w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center text-white text-base font-black shrink-0 shadow-lg shadow-indigo-600/20">
                         <i class="fas fa-map"></i>
@@ -47,12 +47,22 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
                 </div>
 
                 <div class="flex items-center gap-2 flex-wrap shrink-0">
+                    <!-- NORMAL VS DISPONIBILIDAD (TERRITORIOS LIBRES) TOGGLE -->
+                    <div class="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl border border-slate-200 dark:border-white/10">
+                        <button id="btn-style-normal" class="px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all bg-indigo-600 text-white shadow-md">
+                            <i class="fas fa-map-marked-alt mr-1"></i> Vista Normal
+                        </button>
+                        <button id="btn-style-dispo" class="px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all text-slate-500 hover:text-slate-800 dark:hover:text-white">
+                            <i class="fas fa-check-circle text-emerald-500 mr-1"></i> Territorios Libres
+                        </button>
+                    </div>
+
                     <!-- SATELLITE VS IMAGE TOGGLE -->
                     <div class="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl border border-slate-200 dark:border-white/10">
-                        <button id="btn-mode-sat" class="px-3.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all bg-indigo-600 text-white shadow-md">
+                        <button id="btn-mode-sat" class="px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all bg-indigo-600 text-white shadow-md">
                             <i class="fas fa-satellite mr-1"></i> Satélite
                         </button>
-                        <button id="btn-mode-img" class="px-3.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all text-slate-500 hover:text-slate-800 dark:hover:text-white">
+                        <button id="btn-mode-img" class="px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all text-slate-500 hover:text-slate-800 dark:hover:text-white">
                             <i class="fas fa-image mr-1"></i> Croquis Imagen
                         </button>
                     </div>
@@ -67,7 +77,7 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
                     </button>
 
                     <!-- SUGERENCIAS BUTTON FOR CONDUCTORS -->
-                    <button id="btn-open-sugerencias" class="px-3.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95 shadow-sm" title="Ver Sugerencias Inteligentes de Territorio">
+                    <button id="btn-open-sugerencias" class="px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95 shadow-sm" title="Ver Sugerencias Inteligentes de Territorio">
                         <i class="fas fa-lightbulb text-amber-500 animate-pulse text-xs"></i>
                         <span>Sugerencias</span>
                     </button>
@@ -90,6 +100,12 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
                         <button id="banner-btn-croquis" class="ml-2 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-md active:scale-95">
                             <i class="fas fa-image text-xs"></i> <span>Ver Croquis</span>
                         </button>
+                    </div>
+
+                    <!-- FLOATING LEGEND FOR TERRITORIOS LIBRES MODE -->
+                    <div id="explorer-dispo-legend" class="hidden absolute bottom-6 left-4 z-[1000] flex items-center gap-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl px-3.5 py-2 shadow-2xl border border-slate-200/60 dark:border-white/10 pointer-events-auto">
+                        <span class="flex items-center gap-1.5 text-[8.5px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm"></span>Libre</span>
+                        <span class="flex items-center gap-1.5 text-[8.5px] font-black text-red-600 dark:text-red-400 uppercase tracking-widest"><span class="w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm"></span>Ocupado</span>
                     </div>
 
                     <!-- FLOATING MAP CONTROLS -->
@@ -116,6 +132,7 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
 
     // State Variables
     let currentMode = "satelital"; // "satelital" | "imagen"
+    let mapStyle = "normal"; // "normal" | "disponibilidad"
     let selectedNumber = "all";
     let isGpsActive = false;
     let gpsMarkers = {};
@@ -129,12 +146,81 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
     const selectEl = mapsSection.querySelector("#map-territory-select");
     const btnSat = mapsSection.querySelector("#btn-mode-sat");
     const btnImg = mapsSection.querySelector("#btn-mode-img");
+    const btnStyleNormal = mapsSection.querySelector("#btn-style-normal");
+    const btnStyleDispo = mapsSection.querySelector("#btn-style-dispo");
     const btnGps = mapsSection.querySelector("#btn-toggle-live-gps");
     const btnSugerencias = mapsSection.querySelector("#btn-open-sugerencias");
     const territoryBanner = mapsSection.querySelector("#explorer-territory-banner");
     const bannerTitle = mapsSection.querySelector("#banner-t-title");
     const bannerSub = mapsSection.querySelector("#banner-t-sub");
     const bannerBtnCroquis = mapsSection.querySelector("#banner-btn-croquis");
+    const dispoLegend = mapsSection.querySelector("#explorer-dispo-legend");
+
+    // Helper: Compute assigned territory numbers for the current active week
+    const getWeeklyAssignedNumbers = () => {
+        const assigned = new Set();
+        const prog = window._progCache?.programa;
+        if (prog && Array.isArray(prog.dias)) {
+            prog.dias.forEach((dia) => {
+                Object.keys(dia).forEach((key) => {
+                    if (key !== "nombre" && key !== "fecha" && dia[key]?.territorio) {
+                        String(dia[key].territorio)
+                            .split(/[,;/]/)
+                            .map((t) => t.trim())
+                            .filter(Boolean)
+                            .forEach((num) => {
+                                const cleanNum = num.replace(/^T-?/i, "").trim();
+                                assigned.add(cleanNum);
+                                assigned.add(num);
+                            });
+                    }
+                });
+            });
+        }
+        return assigned;
+    };
+
+    // Apply Styles to All Map Polygons
+    const updatePolygonStyles = () => {
+        const POLY_COLORS = ["#4f46e5", "#0ea5e9", "#10b981", "#f59e0b", "#ec4899", "#8b5cf6"];
+        const assigned = getWeeklyAssignedNumbers();
+
+        sortedTerritorios.forEach((t) => {
+            const numStr = String(t.numero);
+            const group = geoJsonLayers[numStr];
+            if (!group || !group.eachLayer) return;
+
+            const isSelected = selectedNumber !== "all" && numStr === selectedNumber;
+            const isAssignedInWeek = assigned.has(numStr) || assigned.has(numStr.replace(/^T-?/i, "").trim());
+
+            group.eachLayer((poly, idx) => {
+                if (!poly.setStyle) return;
+
+                if (mapStyle === "disponibilidad") {
+                    // Availability Mode: Green (Libre) vs Red (Ocupado)
+                    const color = isAssignedInWeek ? "#dc2626" : "#059669";
+                    const fillColor = isAssignedInWeek ? "#ef4444" : "#10b981";
+                    poly.setStyle({
+                        color: color,
+                        weight: isSelected ? 4 : 2.5,
+                        opacity: 0.95,
+                        fillColor: fillColor,
+                        fillOpacity: isSelected ? 0.6 : 0.35,
+                    });
+                } else {
+                    // Normal Mode: Rich Manzana Colors
+                    const accentColor = POLY_COLORS[idx % POLY_COLORS.length];
+                    poly.setStyle({
+                        color: accentColor,
+                        weight: isSelected ? 4 : 2.5,
+                        opacity: 0.9,
+                        fillColor: accentColor,
+                        fillOpacity: isSelected ? 0.5 : 0.25,
+                    });
+                }
+            });
+        });
+    };
 
     // Initialize Leaflet Map
     const initLeafletMap = () => {
@@ -218,16 +304,7 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
     // Focus / Zoom on Territory
     const focusTerritory = (num) => {
         selectedNumber = num;
-
-        // Reset styles for all polygons
-        Object.keys(geoJsonLayers).forEach((k) => {
-            const group = geoJsonLayers[k];
-            if (group && group.eachLayer) {
-                group.eachLayer((l) => {
-                    if (l.setStyle) l.setStyle({ weight: 2, fillOpacity: 0.18 });
-                });
-            }
-        });
+        updatePolygonStyles();
 
         if (num === "all") {
             territoryBanner?.classList.add("hidden");
@@ -244,11 +321,6 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
         const layerGroup = geoJsonLayers[String(num)];
 
         if (layerGroup) {
-            if (layerGroup.eachLayer) {
-                layerGroup.eachLayer((l) => {
-                    if (l.setStyle) l.setStyle({ weight: 4, fillOpacity: 0.45 });
-                });
-            }
             const b = layerGroup.getBounds ? layerGroup.getBounds() : null;
             if (b && b.isValid()) {
                 leafletMap.fitBounds(b, { padding: [40, 40], maxZoom: 18 });
@@ -281,18 +353,33 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
         }
     };
 
+    // Switch Map Style (Vista Normal vs Territorios Libres)
+    const setMapStyle = (style) => {
+        mapStyle = style;
+        if (style === "normal") {
+            btnStyleNormal.className = "px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all bg-indigo-600 text-white shadow-md";
+            btnStyleDispo.className = "px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all text-slate-500 hover:text-slate-800 dark:hover:text-white";
+            dispoLegend?.classList.add("hidden");
+        } else {
+            btnStyleDispo.className = "px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all bg-emerald-600 text-white shadow-md";
+            btnStyleNormal.className = "px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all text-slate-500 hover:text-slate-800 dark:hover:text-white";
+            dispoLegend?.classList.remove("hidden");
+        }
+        updatePolygonStyles();
+    };
+
     // Toggle Satélite vs Imagen
     const setViewMode = (mode) => {
         currentMode = mode;
         if (mode === "satelital") {
-            btnSat.className = "px-3.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all bg-indigo-600 text-white shadow-md";
-            btnImg.className = "px-3.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all text-slate-500 hover:text-slate-800 dark:hover:text-white";
+            btnSat.className = "px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all bg-indigo-600 text-white shadow-md";
+            btnImg.className = "px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all text-slate-500 hover:text-slate-800 dark:hover:text-white";
             imgViewer.classList.add("hidden");
             mapContainer.classList.remove("hidden");
             if (leafletMap) setTimeout(() => leafletMap.invalidateSize(), 100);
         } else {
-            btnImg.className = "px-3.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all bg-indigo-600 text-white shadow-md";
-            btnSat.className = "px-3.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all text-slate-500 hover:text-slate-800 dark:hover:text-white";
+            btnImg.className = "px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all bg-indigo-600 text-white shadow-md";
+            btnSat.className = "px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all text-slate-500 hover:text-slate-800 dark:hover:text-white";
             mapContainer.classList.add("hidden");
             imgViewer.classList.remove("hidden");
 
@@ -354,6 +441,8 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
     selectEl.onchange = (e) => focusTerritory(e.target.value);
     btnSat.onclick = () => setViewMode("satelital");
     btnImg.onclick = () => setViewMode("imagen");
+    btnStyleNormal.onclick = () => setMapStyle("normal");
+    btnStyleDispo.onclick = () => setMapStyle("disponibilidad");
     btnGps.onclick = () => toggleLiveGps();
 
     if (bannerBtnCroquis) {
