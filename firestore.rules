@@ -63,7 +63,7 @@ service cloud.firestore {
     // --- CORE DATA COLLECTIONS ---
 
     match /publicadores/{docId} {
-      allow read: if isAuthenticated();
+      allow read: if true;
       allow write: if isAuthenticated() && (
         isAdmin() || 
         isConductor() ||

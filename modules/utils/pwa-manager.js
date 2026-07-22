@@ -272,6 +272,10 @@ const syncFCMToken = async () => {
 
         const { getMessaging, getToken, onMessage } = await import("firebase/messaging");
         const { httpsCallable } = await import("firebase/functions");
+        if (!auth.currentUser || auth.currentUser.isAnonymous) {
+            return;
+        }
+
         const { functions } = await import("../../firebase-config.js");
 
         const messaging = getMessaging(app);
