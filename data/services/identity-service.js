@@ -102,15 +102,28 @@ export const IdentityShield = {
             };
         }
 
-        let identityRol = "Publicador";
-        if (pData.privilegios && Array.isArray(pData.privilegios) && pData.privilegios.length > 0) {
-            if (pData.privilegios.includes("Administrador") || pData.privilegios.includes("SuperAdmin")) {
-                identityRol = "Administrador";
-            } else if (pData.privilegios.includes("Conductor")) {
-                identityRol = "Conductor";
-            }
-        } else if (pData.es_conductor || (pData.modulos && pData.modulos.habilitado === true)) {
+        let identityRol = pData.rol || "Publicador";
+        const rLower = String(identityRol).toLowerCase();
+        const privs = Array.isArray(pData.privilegios) ? pData.privilegios.map(x => String(x).toLowerCase()) : [];
+
+        if (
+            rLower === "administrador" ||
+            rLower === "superadmin" ||
+            pData.es_admin === true ||
+            pData.es_superadmin === true ||
+            privs.includes("administrador") ||
+            privs.includes("superadmin")
+        ) {
+            identityRol = "Administrador";
+        } else if (
+            rLower === "conductor" ||
+            pData.es_conductor === true ||
+            privs.includes("conductor") ||
+            (pData.modulos && pData.modulos.habilitado === true)
+        ) {
             identityRol = "Conductor";
+        } else {
+            identityRol = "Publicador";
         }
         const ultimaConexionStr = new Date().toISOString();
 

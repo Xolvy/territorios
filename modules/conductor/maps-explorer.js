@@ -1,4 +1,5 @@
 import { LiveLocationService } from "../services/live-location-service.js";
+import { extractMultiLeafletCoords } from "../utils/kml-parser.js";
 
 export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
     if (!container) return;
@@ -71,13 +72,13 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
                 <!-- SATELLITE MAP VISOR -->
                 <div id="full-map-leaflet-viewer" class="absolute inset-0 w-full h-full z-10"></div>
 
-                <!-- STATIC IMAGE VISOR (Hidden by default) -->
-                <div id="full-map-image-viewer" class="absolute inset-0 w-full h-full z-20 hidden flex items-center justify-center bg-slate-900 p-4">
-                    <div id="img-holder" class="relative max-w-full max-h-full flex flex-col items-center justify-center">
-                        <img id="territory-static-img" src="" alt="Croquis del territorio" class="max-w-full max-h-[580px] object-contain rounded-2xl shadow-2xl border border-white/10 hidden">
-                        <div id="img-empty-msg" class="text-center py-20 px-6 text-slate-400 font-bold space-y-3">
-                            <i class="fas fa-image text-4xl opacity-40"></i>
-                            <p class="text-xs uppercase tracking-wider">Selecciona un territorio para ver su croquis en imagen</p>
+                <!-- STATIC IMAGE VISOR (Solid White Canvas for maximum croquis clarity) -->
+                <div id="full-map-image-viewer" class="absolute inset-0 w-full h-full z-20 hidden flex items-center justify-center bg-white p-4 md:p-8" style="background-color: #ffffff !important;">
+                    <div id="img-holder" class="relative max-w-full max-h-full flex flex-col items-center justify-center bg-white p-3 rounded-[2rem] shadow-2xl border border-slate-200" style="background-color: #ffffff !important;">
+                        <img id="territory-static-img" src="" alt="Croquis del territorio" class="max-w-full max-h-[580px] object-contain rounded-xl shadow-md hidden bg-white" style="background-color: #ffffff !important;">
+                        <div id="img-empty-msg" class="text-center py-20 px-6 text-slate-500 font-bold space-y-3 bg-white" style="background-color: #ffffff !important;">
+                            <i class="fas fa-image text-4xl opacity-40 text-slate-400"></i>
+                            <p class="text-xs uppercase tracking-wider text-slate-600 font-black">Selecciona un territorio para ver su croquis en imagen</p>
                         </div>
                     </div>
                 </div>
@@ -122,43 +123,46 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
         // Add Zoom Controls to bottom right
         L.control.zoom({ position: "bottomright" }).addTo(leafletMap);
 
-        // Draw all territory GeoJSON polygons
+        // Draw all territory polygons robustly using extractMultiLeafletCoords
         const boundsGroup = L.featureGroup();
 
         sortedTerritorios.forEach((t) => {
-            if (t.geojson) {
+            const allItems = extractMultiLeafletCoords(t);
+            if (allItems && allItems.length > 0) {
                 try {
-                    const layer = L.geoJSON(t.geojson, {
-                        style: {
+                    const subGroup = L.featureGroup();
+                    allItems.forEach((item, idx) => {
+                        const coords = item.coords || item;
+                        const poly = L.polygon(coords, {
                             color: "#6366f1",
-                            weight: 2,
+                            weight: 2.5,
                             opacity: 0.8,
                             fillColor: "#6366f1",
-                            fillOpacity: 0.15,
-                        },
-                        onEachFeature: (feature, l) => {
-                            l.bindTooltip(`<b>Territorio ${t.numero}</b><br>${t.localidad || ""}`, {
-                                permanent: false,
-                                direction: "center",
-                                className: "xolvy-tooltip",
-                            });
-                            l.on("click", () => {
-                                selectEl.value = String(t.numero);
-                                focusTerritory(String(t.numero));
-                            });
-                        },
-                    }).addTo(leafletMap);
+                            fillOpacity: 0.2,
+                        }).addTo(subGroup);
 
-                    geoJsonLayers[String(t.numero)] = layer;
-                    boundsGroup.addLayer(layer);
+                        poly.bindTooltip(`<b>Territorio ${t.numero}</b><br>${t.localidad || ""}`, {
+                            permanent: false,
+                            direction: "center",
+                            className: "xolvy-tooltip",
+                        });
+                        poly.on("click", () => {
+                            selectEl.value = String(t.numero);
+                            focusTerritory(String(t.numero));
+                        });
+                    });
+
+                    subGroup.addTo(leafletMap);
+                    geoJsonLayers[String(t.numero)] = subGroup;
+                    boundsGroup.addLayer(subGroup);
                 } catch (e) {
-                    console.error(`Error loading GeoJSON T-${t.numero}:`, e);
+                    console.error(`Error loading polygon T-${t.numero}:`, e);
                 }
             }
         });
 
         if (boundsGroup.getLayers().length > 0) {
-            leafletMap.fitBounds(boundsGroup.getBounds(), { padding: [20, 20] });
+            leafletMap.fitBounds(boundsGroup.getBounds(), { padding: [30, 30] });
         }
     };
 
@@ -168,28 +172,39 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
 
         // Reset styles for all polygons
         Object.keys(geoJsonLayers).forEach((k) => {
-            geoJsonLayers[k].setStyle({
-                color: "#6366f1",
-                weight: 2,
-                fillOpacity: 0.15,
-            });
+            const group = geoJsonLayers[k];
+            if (group && group.eachLayer) {
+                group.eachLayer((l) => {
+                    if (l.setStyle) l.setStyle({ color: "#6366f1", weight: 2, fillOpacity: 0.18 });
+                });
+            } else if (group && group.setStyle) {
+                group.setStyle({ color: "#6366f1", weight: 2, fillOpacity: 0.18 });
+            }
         });
 
         if (num === "all") {
-            const allBounds = L.featureGroup(Object.values(geoJsonLayers)).getBounds();
-            if (allBounds.isValid()) leafletMap.fitBounds(allBounds, { padding: [20, 20] });
+            const allLayers = Object.values(geoJsonLayers).filter(Boolean);
+            if (allLayers.length > 0) {
+                const allBounds = L.featureGroup(allLayers).getBounds();
+                if (allBounds.isValid()) leafletMap.fitBounds(allBounds, { padding: [30, 30] });
+            }
             updateImageViewer(null);
             return;
         }
 
-        const layer = geoJsonLayers[String(num)];
-        if (layer) {
-            layer.setStyle({
-                color: "#10b981", // Emerald highlight
-                weight: 4,
-                fillOpacity: 0.35,
-            });
-            leafletMap.fitBounds(layer.getBounds(), { padding: [50, 50] });
+        const layerGroup = geoJsonLayers[String(num)];
+        if (layerGroup) {
+            if (layerGroup.eachLayer) {
+                layerGroup.eachLayer((l) => {
+                    if (l.setStyle) l.setStyle({ color: "#10b981", weight: 4, fillOpacity: 0.45 });
+                });
+            } else if (layerGroup.setStyle) {
+                layerGroup.setStyle({ color: "#10b981", weight: 4, fillOpacity: 0.45 });
+            }
+            const b = layerGroup.getBounds ? layerGroup.getBounds() : null;
+            if (b && b.isValid()) {
+                leafletMap.fitBounds(b, { padding: [40, 40], maxZoom: 18 });
+            }
         }
 
         const targetTerritory = sortedTerritorios.find((t) => String(t.numero) === String(num));

@@ -97,8 +97,8 @@ export const MapViewer = {
                 <div class="flex-1 min-w-0 w-full relative overflow-hidden bg-[#0f172a]">
                     
                     <!-- STATIC IMAGE VIEW (PNG VISOR) -->
-                    <div id="static-image-viewer" class="absolute inset-0 w-full h-full flex items-center justify-center p-6 transition-all duration-500 ${isInteractive ? "opacity-0 invisible z-20" : "opacity-100 visible z-30"} overflow-hidden bg-slate-200 dark:bg-slate-700/40 z-30 touch-none">
-                        <div id="map-img-container" class="relative w-full h-full max-w-full max-h-full flex items-center justify-center bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden" style="max-height:100%;">
+                    <div id="static-image-viewer" class="absolute inset-0 w-full h-full flex items-center justify-center p-4 transition-all duration-500 ${isInteractive ? "opacity-0 invisible z-20" : "opacity-100 visible z-30"} overflow-hidden bg-white z-30 touch-none" style="background-color: #ffffff !important;">
+                        <div id="map-img-container" class="relative w-full h-full max-w-full max-h-full flex items-center justify-center bg-white rounded-2xl shadow-2xl overflow-hidden p-2" style="max-height:100%; background-color: #ffffff !important;">
                             <!-- Spinner/Skeleton state -->
                             <div id="map-loader-ui" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-800 z-10 transition-opacity duration-300">
                                 <div class="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mb-4 shadow-sm"></div>

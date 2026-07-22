@@ -277,9 +277,28 @@ document.addEventListener("DOMContentLoaded", async () => {
                             moduleRegistry.init();
                             initUpdateManager();
 
-                            // Validated against Firestore — safe to render
+                            const role = identity.rol || session?.rol || "Conductor";
+                            const isAdmin = role === "Administrador" || role === "SuperAdmin";
+                            const contextPath = window.location.pathname;
+
+                            if (isAdmin && !contextPath.startsWith("/conductores")) {
+                                if (!contextPath.startsWith("/administrador")) window.history.replaceState({}, "", "/administrador");
+                                const subPath = contextPath.split("/")[2] || "dashboard";
+                                const urlToTab = {
+                                    territorios: "casa-en-casa",
+                                    predicacion: "predicacion",
+                                    telefonos: "telefonos",
+                                    config: "config",
+                                };
+                                const tabId = urlToTab[subPath] || "dashboard";
+                                const render = await loadAdmin();
+                                render(appContainer, APP_VERSION, tabId);
+                                return; // CRITICAL: Stop execution here
+                            }
+
+                            if (!contextPath.startsWith("/conductores")) window.history.replaceState({}, "", "/conductores");
                             const render = await loadConductor();
-                            render(appContainer, identity.nombreCanonico, APP_VERSION, identity.rol || "Conductor");
+                            render(appContainer, identity.nombreCanonico, APP_VERSION, role);
                             return; // CRITICAL: Stop execution here
                         }
                     } catch (e) {
@@ -650,11 +669,19 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         // Zero-Latency Execution: Enrutamiento en milisegundos ignorando latencia de red
         window._fastBootRendered = true;
-        window.XolvyApp.user = { nombre: identity.nombreCanonico, email: email, role: identity.rol || "Conductor" };
-        if (!window.location.pathname.startsWith("/conductores")) window.history.pushState({}, "", "/conductores");
+        const finalRole = identity.rol || role || "Conductor";
+        const isAdmin = finalRole === "Administrador" || finalRole === "SuperAdmin";
+        window.XolvyApp.user = { nombre: identity.nombreCanonico, email: email, role: finalRole };
 
-        const render = await loadConductor();
-        render(appContainer, identity.nombreCanonico, APP_VERSION, identity.rol || role);
+        if (isAdmin) {
+            window.history.pushState({}, "", "/administrador");
+            const render = await loadAdmin();
+            render(appContainer, APP_VERSION, "dashboard");
+        } else {
+            if (!window.location.pathname.startsWith("/conductores")) window.history.pushState({}, "", "/conductores");
+            const render = await loadConductor();
+            render(appContainer, identity.nombreCanonico, APP_VERSION, finalRole);
+        }
     });
 
     // CAMBIO 3: Listener Delegado Global para Logout de Conductor
