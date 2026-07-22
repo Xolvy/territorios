@@ -1,3 +1,4 @@
+import { auth } from "../firebase-config.js";
 import { onAuthStateChanged } from "firebase/auth";
 import { arrayUnion, doc, documentId, setDoc, where } from "firebase/firestore";
 import {

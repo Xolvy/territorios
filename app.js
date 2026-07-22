@@ -320,12 +320,10 @@ document.addEventListener("DOMContentLoaded", async () => {
                         return;
                     }
 
-                    if (!contextPath.startsWith("/conductores")) window.history.replaceState({}, "", "/conductores");
-
                     // Identity Shield: Validate against Firestore — the ONLY source of truth
                     const identity = await IdentityShield.resolveAndBindIdentity(nameToResolve);
 
-                    if (!identity.docId || (identity.rol !== "Conductor" && identity.rol !== "Administrador" && identity.rol !== "Publicador")) {
+                    if (!identity.docId || (identity.rol !== "Conductor" && identity.rol !== "Administrador" && identity.rol !== "SuperAdmin" && identity.rol !== "Publicador")) {
                         // User not found in Firestore or not authorized — reject
                         console.warn("⚠️ [Auth] Usuario no encontrado o no autorizado en Firestore. Cerrando sesión.");
                         localStorage.removeItem("xolvy_session");
@@ -339,8 +337,27 @@ document.addEventListener("DOMContentLoaded", async () => {
                     moduleRegistry.init();
                     initUpdateManager();
 
+                    const role = identity.rol || "Conductor";
+                    const isAdmin = role === "Administrador" || role === "SuperAdmin";
+
+                    if (isAdmin && !contextPath.startsWith("/conductores")) {
+                        if (!contextPath.startsWith("/administrador")) window.history.replaceState({}, "", "/administrador");
+                        const subPath = contextPath.split("/")[2] || "dashboard";
+                        const urlToTab = {
+                            territorios: "casa-en-casa",
+                            predicacion: "predicacion",
+                            telefonos: "telefonos",
+                            config: "config",
+                        };
+                        const tabId = urlToTab[subPath] || "dashboard";
+                        const render = await loadAdmin();
+                        render(appContainer, APP_VERSION, tabId);
+                        return;
+                    }
+
+                    if (!contextPath.startsWith("/conductores")) window.history.replaceState({}, "", "/conductores");
                     const render = await loadConductor();
-                    render(appContainer, identity.nombreCanonico, APP_VERSION, identity.rol || "Conductor");
+                    render(appContainer, identity.nombreCanonico, APP_VERSION, role);
                     return;
                 } else {
                     // Anonymous but no conductor session?
