@@ -20,7 +20,7 @@ import { setCacheNameDetails } from "workbox-core";
 import { precacheAndRoute } from "workbox-precaching";
 
 setCacheNameDetails({
-    prefix: "territorios-shell-4-1-3",
+    prefix: "territorios-shell-4-1-4",
     suffix: "v1",
     precache: "precache",
     runtime: "runtime",
