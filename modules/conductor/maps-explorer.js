@@ -57,7 +57,7 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
                         </button>
                     </div>
 
-                    <!-- TERRITORIOS LIBRES BUTTON (Launches AI Sugerencias & Free Territories Modal) -->
+                    <!-- TERRITORIOS LIBRES BUTTON -->
                     <button id="btn-open-sugerencias-dispo" class="px-3.5 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95 shadow-sm" title="Ver Territorios Libres y Sugerencias de la Semana">
                         <i class="fas fa-check-circle text-emerald-500 text-xs"></i>
                         <span>Territorios Libres</span>
@@ -102,9 +102,9 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
 
                 <!-- STATIC IMAGE VISOR (Solid White Canvas for maximum croquis clarity) -->
                 <div id="full-map-image-viewer" class="absolute inset-0 w-full h-full z-20 hidden flex items-center justify-center bg-white p-4 md:p-8" style="background-color: #ffffff !important;">
-                    <div id="img-holder" class="relative max-w-full max-h-full flex flex-col items-center justify-center bg-white p-3 rounded-[2rem] shadow-2xl border border-slate-200" style="background-color: #ffffff !important;">
-                        <img id="territory-static-img" src="" alt="Croquis del territorio" class="max-w-full max-h-[580px] object-contain rounded-xl shadow-md hidden bg-white" style="background-color: #ffffff !important;">
-                        <div id="img-empty-msg" class="text-center py-20 px-6 text-slate-500 font-bold space-y-3 bg-white" style="background-color: #ffffff !important;">
+                    <div id="img-holder" class="relative max-w-full max-h-full flex flex-col items-center justify-center bg-white p-3 rounded-[2rem] shadow-2xl border border-slate-200 overflow-hidden" style="background-color: #ffffff !important;">
+                        <img id="territory-static-img" src="/assets/mapa-general.png" alt="Croquis de la congregación" class="max-w-full max-h-[620px] object-contain rounded-xl shadow-md bg-white" style="background-color: #ffffff !important;">
+                        <div id="img-empty-msg" class="hidden text-center py-20 px-6 text-slate-500 font-bold space-y-3 bg-white" style="background-color: #ffffff !important;">
                             <i class="fas fa-image text-4xl opacity-40 text-slate-400"></i>
                             <p class="text-xs uppercase tracking-wider text-slate-600 font-black">Selecciona un territorio para ver su croquis en imagen</p>
                         </div>
@@ -121,6 +121,7 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
     let gpsMarkers = {};
     let leafletMap = null;
     let geoJsonLayers = {};
+    let territoryCenterMarkers = {};
 
     const mapContainer = mapsSection.querySelector("#full-map-leaflet-viewer");
     const imgViewer = mapsSection.querySelector("#full-map-image-viewer");
@@ -136,23 +137,35 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
     const bannerSub = mapsSection.querySelector("#banner-t-sub");
     const bannerBtnCroquis = mapsSection.querySelector("#banner-btn-croquis");
 
-    // Dynamic Tooltip Visibility: Show manzana block labels ONLY when zoomed in close (zoom >= 16) or selecting a specific territory
-    const updateTooltipVisibility = () => {
+    // Dynamic Label Visibility:
+    // General Map View (`selectedNumber === "all"`): Show ONLY Terr. 1, Terr. 2... badges at centroids. Hide Mz tooltips.
+    // Specific Territory View (`selectedNumber !== "all"`): Hide Terr. X centroid badges. Show Mz. 1, Mz. 2... tooltips on polygons.
+    const updateLabelVisibility = () => {
         if (!leafletMap) return;
-        const currentZoom = leafletMap.getZoom();
-        const isZoomedIn = currentZoom >= 16;
         const isSingleSelected = selectedNumber !== "all";
 
+        // 1. Territory Centroid Markers (Terr. 1, Terr. 2, ...)
+        Object.keys(territoryCenterMarkers).forEach((numStr) => {
+            const marker = territoryCenterMarkers[numStr];
+            if (marker) {
+                if (!isSingleSelected) {
+                    if (!leafletMap.hasLayer(marker)) marker.addTo(leafletMap);
+                } else {
+                    if (leafletMap.hasLayer(marker)) leafletMap.removeLayer(marker);
+                }
+            }
+        });
+
+        // 2. Individual Manzana Block Tooltips (Mz. 1, Mz. 2, ...)
         Object.keys(geoJsonLayers).forEach((numStr) => {
             const group = geoJsonLayers[numStr];
             const isThisSelected = isSingleSelected && numStr === selectedNumber;
-            const showMz = isThisSelected || isZoomedIn;
 
             if (group && group.eachLayer) {
                 group.eachLayer((poly) => {
                     const tooltip = poly.getTooltip();
                     if (tooltip) {
-                        if (showMz) poly.openTooltip();
+                        if (isThisSelected) poly.openTooltip();
                         else poly.closeTooltip();
                     }
                 });
@@ -216,6 +229,28 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
                     subGroup.addTo(leafletMap);
                     geoJsonLayers[String(t.numero)] = subGroup;
                     boundsGroup.addLayer(subGroup);
+
+                    // Create prominent Centroid Badge Marker for General View (Terr. 1, Terr. 2, ...)
+                    const center = subGroup.getBounds().getCenter();
+                    const territoryBadgeIcon = L.divIcon({
+                        className: "xolvy-territory-centroid-icon",
+                        html: `
+                            <div class="px-2.5 py-1 bg-slate-900/90 text-white border border-indigo-500/40 rounded-xl shadow-2xl backdrop-blur-md flex items-center gap-1.5 cursor-pointer hover:scale-110 transition-transform select-none">
+                                <span class="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
+                                <span class="text-[10px] font-black uppercase tracking-wider">Terr. ${t.numero}</span>
+                            </div>
+                        `,
+                        iconSize: [84, 26],
+                        iconAnchor: [42, 13],
+                    });
+                    const cMarker = L.marker(center, { icon: territoryBadgeIcon, zIndexOffset: 1000 }).addTo(leafletMap);
+                    cMarker.on("click", (e) => {
+                        if (e.originalEvent) e.originalEvent.stopPropagation();
+                        selectEl.value = String(t.numero);
+                        focusTerritory(String(t.numero));
+                    });
+                    territoryCenterMarkers[String(t.numero)] = cMarker;
+
                 } catch (e) {
                     console.error(`Error loading polygon T-${t.numero}:`, e);
                 }
@@ -226,9 +261,9 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
             leafletMap.fitBounds(boundsGroup.getBounds(), { padding: [30, 30] });
         }
 
-        // Listen for map zoom events to toggle manzana tooltips cleanly
-        leafletMap.on("zoomend", updateTooltipVisibility);
-        setTimeout(() => updateTooltipVisibility(), 150);
+        // Listen for map zoom & view events to keep labels synced
+        leafletMap.on("zoomend", updateLabelVisibility);
+        setTimeout(() => updateLabelVisibility(), 150);
 
         // Map Control bindings
         mapsSection.querySelector("#explorer-zoom-in")?.addEventListener("click", () => leafletMap.zoomIn());
@@ -265,7 +300,7 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
                 if (allBounds.isValid()) leafletMap.fitBounds(allBounds, { padding: [30, 30] });
             }
             updateImageViewer(null);
-            updateTooltipVisibility();
+            updateLabelVisibility();
             return;
         }
 
@@ -293,21 +328,27 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
         }
 
         updateImageViewer(targetTerritory);
-        updateTooltipVisibility();
+        updateLabelVisibility();
     };
 
-    // Update Image Viewer for selected territory
+    // Update Image Viewer for selected territory or master croquis image (Image 2)
     const updateImageViewer = (territory) => {
-        if (!territory || !territory.imagen) {
-            staticImg.classList.add("hidden");
-            emptyMsg.classList.remove("hidden");
-            emptyMsg.querySelector("p").textContent = territory 
-                ? `Sin imagen almacenada para el Territorio ${territory.numero}`
-                : `Selecciona un territorio para ver su croquis en imagen`;
-        } else {
-            staticImg.src = territory.imagen;
+        if (!territory) {
+            // General Map Croquis: Display master congregation croquis image (Image 2)
+            staticImg.src = "/assets/mapa-general.png";
             staticImg.classList.remove("hidden");
             emptyMsg.classList.add("hidden");
+        } else {
+            const targetSrc = territory.imagen || `/assets/maps/T-${territory.numero}.png`;
+            staticImg.src = targetSrc;
+            staticImg.classList.remove("hidden");
+            emptyMsg.classList.add("hidden");
+
+            staticImg.onerror = () => {
+                staticImg.classList.add("hidden");
+                emptyMsg.classList.remove("hidden");
+                emptyMsg.querySelector("p").textContent = `Sin imagen almacenada para el Territorio ${territory.numero}`;
+            };
         }
     };
 
