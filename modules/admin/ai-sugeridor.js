@@ -7,8 +7,7 @@ import { extractMultiLeafletCoords, waitForLeaflet } from "../utils/kml-parser.j
 const TURNO_LABELS = { manana: "Mañana", tarde: "Tarde", noche: "Noche", zoom: "Zoom" };
 const POLY_COLORS = {
     libre: { fill: "#10b981", stroke: "#059669", opacity: 0.3 },
-    devuelto: { fill: "#f59e0b", stroke: "#d97706", opacity: 0.3 },
-    ocupado: { fill: "#ef4444", stroke: "#dc2626", opacity: 0.22 },
+    ocupado: { fill: "#ef4444", stroke: "#dc2626", opacity: 0.25 },
 };
 
 // ─── GEOGRAPHIC MATH UTILS ──────────────────────────────────────────────────────
@@ -229,7 +228,7 @@ function buildSlotDropdownHTML(tNum, futureSlots) {
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN EXPORT
 // ═══════════════════════════════════════════════════════════════════════════════
-export const openSugeridorModal = (programa, renderTableCallback) => {
+export const openSugeridorModal = (programa = { dias: [] }, renderTableCallback = () => {}) => {
     const modalDiv = document.getElementById("modal-container");
     if (!modalDiv) return;
 
@@ -292,17 +291,6 @@ export const openSugeridorModal = (programa, renderTableCallback) => {
     const getTerritoryStatus = (num, estado) => {
         const isAssigned = assignedTerritoryNumbers.has(num);
         if (isAssigned || estado === "Asignado") return "ocupado";
-
-        // Check if there is any history for this territory number
-        const hasHistory = historial.some((h) => {
-            const histNum = String(h.territorio_id || h.numero || "").trim();
-            return (
-                histNum === num &&
-                (h.estado === "Completado" || (h.fecha_entrega && String(h.fecha_entrega).trim() !== ""))
-            );
-        });
-
-        if (hasHistory) return "devuelto";
         return "libre";
     };
 
@@ -352,7 +340,6 @@ export const openSugeridorModal = (programa, renderTableCallback) => {
                     backdrop-filter: blur(4px);
                 }
                 .xolvy-t-label-libre { background: rgba(16,185,129,0.92) !important; border-color: rgba(5,150,105,0.5) !important; }
-                .xolvy-t-label-devuelto { background: rgba(245,158,11,0.92) !important; border-color: rgba(217,119,6,0.5) !important; }
                 .xolvy-t-label-ocupado { background: rgba(239,68,68,0.88) !important; border-color: rgba(220,38,38,0.5) !important; }
                 .xolvy-t-label::before { display: none !important; }
                 .xolvy-t-num {
@@ -438,13 +425,10 @@ export const openSugeridorModal = (programa, renderTableCallback) => {
                     this.setStyle({ fillOpacity: colors.opacity, weight: 2 });
                 });
 
-                if (status === "libre" || status === "devuelto") {
+                if (status === "libre") {
                     poly.on("click", () => {
                         const distLabel = t.distance !== null ? `${t.distance.toFixed(2)} km` : "Sin GPS";
-                        const statusBadge =
-                            status === "libre"
-                                ? '<span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[8px] font-black uppercase tracking-widest">Libre</span>'
-                                : '<span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 text-[8px] font-black uppercase tracking-widest">Devuelto</span>';
+                        const statusBadge = '<span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[8px] font-black uppercase tracking-widest">Libre</span>';
 
                         const popupContent = `
                             <div style="min-width: 200px; font-family: system-ui, sans-serif;">
@@ -471,7 +455,7 @@ export const openSugeridorModal = (programa, renderTableCallback) => {
             }
 
             if (t.centroid) {
-                const statusLabel = status === "libre" ? "LIBRE" : status === "devuelto" ? "DEVUELTO" : "OCUPADO";
+                const statusLabel = status === "libre" ? "LIBRE" : "OCUPADO";
                 const cssClass = `xolvy-t-label xolvy-t-label-${status}`;
                 L.marker([t.centroid.lat, t.centroid.lng], {
                     icon: L.divIcon({

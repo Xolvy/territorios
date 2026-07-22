@@ -1,5 +1,6 @@
 import { LiveLocationService } from "../services/live-location-service.js";
 import { extractMultiLeafletCoords } from "../utils/kml-parser.js";
+import { showNotification } from "../utils/helpers.js";
 
 export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
     if (!container) return;
@@ -29,7 +30,7 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
         .join("");
 
     mapsSection.innerHTML = `
-        <div class="flex flex-col h-[700px] w-full bg-white dark:bg-slate-900 rounded-[2.5rem] overflow-hidden border border-slate-200/80 dark:border-white/10 shadow-2xl relative">
+        <div class="flex flex-col h-[720px] w-full bg-white dark:bg-slate-900 rounded-[2.5rem] overflow-hidden border border-slate-200/80 dark:border-white/10 shadow-2xl relative">
             <!-- TOP CONTROLS BAR -->
             <div class="z-30 p-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-200 dark:border-white/10 flex flex-wrap items-center justify-between gap-4">
                 <div class="flex items-center gap-3 flex-wrap flex-1 min-w-0">
@@ -57,12 +58,18 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
                     </div>
 
                     <!-- LIVE GPS BUTTON -->
-                    <button id="btn-toggle-live-gps" class="px-3.5 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-2xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95">
+                    <button id="btn-toggle-live-gps" class="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95">
                         <span class="relative flex h-2 w-2">
                             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                             <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                         </span>
                         <span>GPS en Vivo</span>
+                    </button>
+
+                    <!-- SUGERENCIAS BUTTON FOR CONDUCTORS -->
+                    <button id="btn-open-sugerencias" class="px-3.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95 shadow-sm" title="Ver Sugerencias Inteligentes de Territorio">
+                        <i class="fas fa-lightbulb text-amber-500 animate-pulse text-xs"></i>
+                        <span>Sugerencias</span>
                     </button>
                 </div>
             </div>
@@ -70,7 +77,28 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
             <!-- MAIN DISPLAY AREA -->
             <div class="flex-1 relative w-full h-full overflow-hidden bg-[#0f172a]">
                 <!-- SATELLITE MAP VISOR -->
-                <div id="full-map-leaflet-viewer" class="absolute inset-0 w-full h-full z-10"></div>
+                <div id="full-map-leaflet-viewer" class="absolute inset-0 w-full h-full z-10">
+                    <!-- HEADER OVERLAY BANNER FOR SELECTED TERRITORY (Admin Style) -->
+                    <div id="explorer-territory-banner" class="hidden absolute top-4 left-4 z-[1000] bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl p-3 px-4 rounded-2xl shadow-2xl border border-slate-200 dark:border-white/10 flex items-center gap-3 animate-fade-in pointer-events-auto">
+                        <div class="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white text-sm font-black shrink-0 shadow-md">
+                            <i class="fas fa-map-marked-alt"></i>
+                        </div>
+                        <div class="flex flex-col min-w-0">
+                            <div id="banner-t-title" class="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight truncate">Territorio #1</div>
+                            <div id="banner-t-sub" class="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">MANZANAS: 4</div>
+                        </div>
+                        <button id="banner-btn-croquis" class="ml-2 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-md active:scale-95">
+                            <i class="fas fa-image text-xs"></i> <span>Ver Croquis</span>
+                        </button>
+                    </div>
+
+                    <!-- FLOATING MAP CONTROLS -->
+                    <div class="absolute bottom-6 right-4 z-[1000] flex flex-col gap-2 pointer-events-auto">
+                        <button id="explorer-zoom-in" class="w-10 h-10 bg-white/95 dark:bg-slate-900/90 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200/60 dark:border-white/10 text-slate-700 dark:text-white flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all active:scale-90" title="Acercar"><i class="fas fa-plus text-xs"></i></button>
+                        <button id="explorer-zoom-out" class="w-10 h-10 bg-white/95 dark:bg-slate-900/90 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200/60 dark:border-white/10 text-slate-700 dark:text-white flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all active:scale-90" title="Alejar"><i class="fas fa-minus text-xs"></i></button>
+                        <button id="explorer-recenter" class="w-10 h-10 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg flex items-center justify-center transition-all active:scale-90" title="Recentar"><i class="fas fa-compress-arrows-alt text-xs"></i></button>
+                    </div>
+                </div>
 
                 <!-- STATIC IMAGE VISOR (Solid White Canvas for maximum croquis clarity) -->
                 <div id="full-map-image-viewer" class="absolute inset-0 w-full h-full z-20 hidden flex items-center justify-center bg-white p-4 md:p-8" style="background-color: #ffffff !important;">
@@ -102,6 +130,11 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
     const btnSat = mapsSection.querySelector("#btn-mode-sat");
     const btnImg = mapsSection.querySelector("#btn-mode-img");
     const btnGps = mapsSection.querySelector("#btn-toggle-live-gps");
+    const btnSugerencias = mapsSection.querySelector("#btn-open-sugerencias");
+    const territoryBanner = mapsSection.querySelector("#explorer-territory-banner");
+    const bannerTitle = mapsSection.querySelector("#banner-t-title");
+    const bannerSub = mapsSection.querySelector("#banner-t-sub");
+    const bannerBtnCroquis = mapsSection.querySelector("#banner-btn-croquis");
 
     // Initialize Leaflet Map
     const initLeafletMap = () => {
@@ -114,16 +147,13 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
         });
         window._fullExplorerMap = leafletMap;
 
-        // Tile layer (Esri World Imagery)
+        // Tile layer (Google Satellite Hybrid for maximum crispness)
         L.tileLayer(
-            "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-            { maxZoom: 19, attribution: "Esri World Imagery" }
+            "https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}",
+            { maxZoom: 20, attribution: "&copy; Google Maps" }
         ).addTo(leafletMap);
 
-        // Add Zoom Controls to bottom right
-        L.control.zoom({ position: "bottomright" }).addTo(leafletMap);
-
-        // Draw all territory polygons robustly using extractMultiLeafletCoords
+        const POLY_COLORS = ["#4f46e5", "#0ea5e9", "#10b981", "#f59e0b", "#ec4899", "#8b5cf6"];
         const boundsGroup = L.featureGroup();
 
         sortedTerritorios.forEach((t) => {
@@ -133,20 +163,27 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
                     const subGroup = L.featureGroup();
                     allItems.forEach((item, idx) => {
                         const coords = item.coords || item;
+                        const labelText = (item.nombre || `Mz. ${idx + 1}`).split("(")[0].trim();
+                        const accentColor = POLY_COLORS[idx % POLY_COLORS.length];
+
                         const poly = L.polygon(coords, {
-                            color: "#6366f1",
+                            color: accentColor,
                             weight: 2.5,
-                            opacity: 0.8,
-                            fillColor: "#6366f1",
-                            fillOpacity: 0.2,
+                            opacity: 0.9,
+                            fillColor: accentColor,
+                            fillOpacity: 0.25,
+                            lineCap: "round",
+                            lineJoin: "round",
                         }).addTo(subGroup);
 
-                        poly.bindTooltip(`<b>Territorio ${t.numero}</b><br>${t.localidad || ""}`, {
-                            permanent: false,
+                        poly.bindTooltip(labelText, {
+                            permanent: true,
                             direction: "center",
-                            className: "xolvy-tooltip",
+                            className: "xolvy-mz-label",
                         });
-                        poly.on("click", () => {
+
+                        poly.on("click", (e) => {
+                            if (e.originalEvent) e.originalEvent.stopPropagation();
                             selectEl.value = String(t.numero);
                             focusTerritory(String(t.numero));
                         });
@@ -164,6 +201,18 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
         if (boundsGroup.getLayers().length > 0) {
             leafletMap.fitBounds(boundsGroup.getBounds(), { padding: [30, 30] });
         }
+
+        // Map Control bindings
+        mapsSection.querySelector("#explorer-zoom-in")?.addEventListener("click", () => leafletMap.zoomIn());
+        mapsSection.querySelector("#explorer-zoom-out")?.addEventListener("click", () => leafletMap.zoomOut());
+        mapsSection.querySelector("#explorer-recenter")?.addEventListener("click", () => {
+            if (selectedNumber !== "all" && geoJsonLayers[selectedNumber]) {
+                const b = geoJsonLayers[selectedNumber].getBounds();
+                if (b && b.isValid()) leafletMap.fitBounds(b, { padding: [40, 40], maxZoom: 18 });
+            } else if (boundsGroup.getLayers().length > 0) {
+                leafletMap.fitBounds(boundsGroup.getBounds(), { padding: [30, 30] });
+            }
+        });
     };
 
     // Focus / Zoom on Territory
@@ -175,14 +224,13 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
             const group = geoJsonLayers[k];
             if (group && group.eachLayer) {
                 group.eachLayer((l) => {
-                    if (l.setStyle) l.setStyle({ color: "#6366f1", weight: 2, fillOpacity: 0.18 });
+                    if (l.setStyle) l.setStyle({ weight: 2, fillOpacity: 0.18 });
                 });
-            } else if (group && group.setStyle) {
-                group.setStyle({ color: "#6366f1", weight: 2, fillOpacity: 0.18 });
             }
         });
 
         if (num === "all") {
+            territoryBanner?.classList.add("hidden");
             const allLayers = Object.values(geoJsonLayers).filter(Boolean);
             if (allLayers.length > 0) {
                 const allBounds = L.featureGroup(allLayers).getBounds();
@@ -192,14 +240,14 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
             return;
         }
 
+        const targetTerritory = sortedTerritorios.find((t) => String(t.numero) === String(num));
         const layerGroup = geoJsonLayers[String(num)];
+
         if (layerGroup) {
             if (layerGroup.eachLayer) {
                 layerGroup.eachLayer((l) => {
-                    if (l.setStyle) l.setStyle({ color: "#10b981", weight: 4, fillOpacity: 0.45 });
+                    if (l.setStyle) l.setStyle({ weight: 4, fillOpacity: 0.45 });
                 });
-            } else if (layerGroup.setStyle) {
-                layerGroup.setStyle({ color: "#10b981", weight: 4, fillOpacity: 0.45 });
             }
             const b = layerGroup.getBounds ? layerGroup.getBounds() : null;
             if (b && b.isValid()) {
@@ -207,7 +255,14 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
             }
         }
 
-        const targetTerritory = sortedTerritorios.find((t) => String(t.numero) === String(num));
+        // Update Header Banner Overlay (Admin style)
+        if (targetTerritory) {
+            const allItems = extractMultiLeafletCoords(targetTerritory);
+            if (bannerTitle) bannerTitle.textContent = `Territorio #${targetTerritory.numero} ${targetTerritory.localidad ? `(${targetTerritory.localidad})` : ""}`;
+            if (bannerSub) bannerSub.textContent = `MANZANAS: ${allItems.length || 1}`;
+            territoryBanner?.classList.remove("hidden");
+        }
+
         updateImageViewer(targetTerritory);
     };
 
@@ -253,12 +308,11 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
         const currentRole = window.XolvyApp?.user?.role || "Publicador";
 
         if (isGpsActive) {
-            btnGps.className = "px-3.5 py-2 bg-emerald-500 text-white rounded-2xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95 shadow-lg shadow-emerald-500/25";
+            btnGps.className = "px-3 py-1.5 bg-emerald-500 text-white rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95 shadow-lg shadow-emerald-500/25";
             LiveLocationService.startSharingLocation(currentName, currentRole);
 
             window._liveGpsUnsub = LiveLocationService.subscribeToLiveLocations((users) => {
                 if (!leafletMap) return;
-                // Update markers on Leaflet
                 users.forEach((u) => {
                     if (u.lat && u.lng) {
                         if (!gpsMarkers[u.id]) {
@@ -283,7 +337,7 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
                 });
             });
         } else {
-            btnGps.className = "px-3.5 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-2xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95";
+            btnGps.className = "px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95";
             LiveLocationService.stopSharingLocation();
             if (window._liveGpsUnsub) {
                 window._liveGpsUnsub();
@@ -301,6 +355,28 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
     btnSat.onclick = () => setViewMode("satelital");
     btnImg.onclick = () => setViewMode("imagen");
     btnGps.onclick = () => toggleLiveGps();
+
+    if (bannerBtnCroquis) {
+        bannerBtnCroquis.onclick = () => {
+            const target = sortedTerritorios.find((t) => String(t.numero) === String(selectedNumber));
+            if (target) {
+                if (window.openInteractiveMap) window.openInteractiveMap(target);
+                else setViewMode("imagen");
+            }
+        };
+    }
+
+    if (btnSugerencias) {
+        btnSugerencias.onclick = async () => {
+            try {
+                const { openSugeridorModal } = await import("../admin/ai-sugeridor.js");
+                openSugeridorModal(window._progCache?.programa || { dias: [] });
+            } catch (err) {
+                console.error("Error al abrir Sugerencias:", err);
+                showNotification("Error cargando Sugerencias de Territorios", "error");
+            }
+        };
+    }
 
     // Auto-invalidate map size on window resize / orientation change
     window.addEventListener("resize", () => {
