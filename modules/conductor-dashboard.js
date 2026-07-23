@@ -207,6 +207,11 @@ export const renderConductorDashboard = async (container, nameOrEmail, _appVersi
         const [allT, allTel, allPublicadores, initialProg] = baseData;
         const [mAvail, mRec, mMaps, mRescue, mPhone, mProg] = modules;
 
+        // Global Data Cache: Provide single source of truth for weekly program and territories
+        window._progCache = window._progCache || {};
+        if (initialProg) window._progCache.programa = initialProg;
+        window._progCache.territorios = allT;
+
         // Xolvy Identity Shield: Use canonical identity as the Single Source of Truth
         const identity = window.XolvyApp?.identity;
         let displayName = identity ? identity.nombreCanonico : nameOrEmail;

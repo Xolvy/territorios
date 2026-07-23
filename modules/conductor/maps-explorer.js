@@ -193,7 +193,7 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
     // Helper: Compute assigned territory numbers for active week program
     const getWeeklyAssignedNumbers = () => {
         const assignedInProg = new Set();
-        const prog = window._progCache?.programa;
+        const prog = window._progCache?.programa || window._activeWeeklyProgram;
         if (prog && Array.isArray(prog.dias)) {
             prog.dias.forEach((dia) => {
                 Object.keys(dia).forEach((key) => {
@@ -203,9 +203,11 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
                             .map((num) => num.trim())
                             .filter(Boolean)
                             .forEach((num) => {
-                                const cleanNum = num.replace(/^T-?/i, "").trim();
-                                assignedInProg.add(cleanNum);
-                                assignedInProg.add(num);
+                                const cleanNum = num.replace(/^T-?/i, "").replace(/^Territorio\s*/i, "").trim();
+                                const digits = num.match(/\d+/)?.[0];
+                                if (cleanNum) assignedInProg.add(cleanNum);
+                                if (num) assignedInProg.add(num);
+                                if (digits) assignedInProg.add(digits);
                             });
                     }
                 });
@@ -221,14 +223,16 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
 
         sortedTerritorios.forEach((t) => {
             const numStr = String(t.numero).trim();
-            const cleanNum = numStr.replace(/^T-?/i, "").trim();
+            const cleanNum = numStr.replace(/^T-?/i, "").replace(/^Territorio\s*/i, "").trim();
+            const digits = numStr.match(/\d+/)?.[0];
             const group = geoJsonLayers[numStr];
             if (!group || !group.eachLayer) return;
 
             const isSelected = selectedNumber !== "all" && numStr === selectedNumber;
-            const isInWeeklyProgram = assignedInProg.has(cleanNum) || assignedInProg.has(numStr);
-            const isLiveAssigned = String(t.estado || "").toLowerCase() === "asignado" || String(t.status || "").toLowerCase() === "asignado";
-            const isOcupado = isInWeeklyProgram && isLiveAssigned;
+            const isInWeeklyProgram = assignedInProg.has(cleanNum) || assignedInProg.has(numStr) || (digits && assignedInProg.has(digits));
+            const statusClean = String(t.estado || t.status || "").toLowerCase().trim();
+            // A territory is Ocupado (Red) IF assigned in this week's program AND not yet returned (estado !== "disponible")
+            const isOcupado = isInWeeklyProgram && statusClean !== "disponible";
 
             let polyIdx = 0;
             group.eachLayer((poly) => {
@@ -245,7 +249,7 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
                         fillOpacity: isSelected ? 0.6 : 0.35,
                     });
                 } else {
-                    const accentColor = poly.options._originalColor || POLY_COLORS[polyIdx % POLY_COLORS.length];
+                    const accentColor = poly._originalColor || poly.options?._originalColor || POLY_COLORS[polyIdx % POLY_COLORS.length];
                     poly.setStyle({
                         color: accentColor,
                         weight: isSelected ? 4.5 : 2.5,
@@ -335,6 +339,7 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
                             lineJoin: "round",
                             _originalColor: accentColor,
                         }).addTo(subGroup);
+                        poly._originalColor = accentColor;
 
                         poly.bindTooltip(labelText, {
                             permanent: false,
@@ -402,6 +407,22 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
             }
             updateLabelVisibility();
         }, 300);
+
+        // Async Fallback: Fetch weekly program if not present in cache yet
+        if (!window._progCache?.programa) {
+            import("../services/ui-helpers.js").then(({ UIHelpers }) => {
+                import("../../data/firestore-services.js").then(({ getProgramaSemanal }) => {
+                    const weekId = UIHelpers.formatDateId(UIHelpers.getMonday(new Date()));
+                    getProgramaSemanal(weekId).then((pData) => {
+                        if (pData) {
+                            window._progCache = window._progCache || {};
+                            window._progCache.programa = pData;
+                            updatePolygonStyles();
+                        }
+                    });
+                });
+            }).catch(() => {});
+        }
 
         // Map Control bindings
         mapsSection.querySelector("#explorer-zoom-in")?.addEventListener("click", () => leafletMap.zoomIn());
@@ -568,7 +589,6 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
             if (mapStyleMode === "disponibilidad") {
                 btnFreeTerritories.className = "px-3.5 py-1.5 bg-emerald-600 text-white rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-lg shadow-emerald-600/30 active:scale-95";
                 dispoLegend?.classList.remove("hidden");
-                showNotification("Modo Disponibilidad: Verde (Libre) / Rojo (Ocupado)", "info");
             } else {
                 btnFreeTerritories.className = "px-3.5 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95 shadow-sm";
                 dispoLegend?.classList.add("hidden");
