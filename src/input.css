@@ -106,6 +106,27 @@
     display: none;
   }
 
+  /* Universal Search Input & Icon Padding Fix */
+  input[id*="search"], .search-input-pl {
+    padding-left: 3.5rem !important;
+  }
+
+  .search-wrapper-v3 {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+  }
+
+  .search-wrapper-v3 > i, .search-wrapper-v3 > span {
+    position: absolute;
+    left: 1.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    z-index: 10;
+  }
+
   /* Premium SaaS Layout Shadow */
   .floating-panel-shell {
     box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05),

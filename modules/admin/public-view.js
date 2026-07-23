@@ -53,8 +53,8 @@ export const renderPredicacionTab = async (container, configData = null) => {
                     
                     <div class="flex flex-wrap items-center gap-4 w-full lg:w-auto">
                         <div class="relative flex-1 min-w-0 lg:min-w-[400px] group no-print">
-                            <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400 group-focus-within:text-blue-600 transition-colors"><i class="fas fa-search text-xs"></i></span>
-                            <input type="text" id="public-search" placeholder="Filtrar día o publicador..." value="${currentSearchQuery}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl !pl-12 pr-4 py-4 text-xs font-black shadow-inner outline-none focus:border-blue-500 transition-all uppercase">
+                            <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors pointer-events-none z-10"><i class="fas fa-search text-xs"></i></span>
+                            <input type="text" id="public-search" placeholder="Filtrar día o publicador..." value="${currentSearchQuery}" class="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl pr-4 py-4 text-xs font-black shadow-inner outline-none focus:border-blue-500 transition-all uppercase" style="padding-left: 3.5rem !important;">
                         </div>
                         
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full lg:w-auto no-print">

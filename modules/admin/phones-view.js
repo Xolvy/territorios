@@ -29,38 +29,41 @@ export const renderTelefonosTab = async (container, _configData = null) => {
     setAdminLivePool(unsub);
 
     container.innerHTML = `
-        <div class="space-y-12 animate-fade-in">
-            <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                <div>
-                    <h3 class="text-2xl md:text-3xl font-black text-slate-900 dark:text-white flex items-center gap-3 uppercase tracking-tighter">
-                        <i class="fas fa-phone-alt text-blue-600"></i> Directorio Telefónico
-                    </h3>
-                    <p class="text-[10px] text-slate-500 font-black uppercase tracking-[0.3em] mt-1 ml-1">Gestión de registros y asignaciones para predicación</p>
-                </div>
-                
-                <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
-                    <div class="relative flex-1 min-w-0 md:flex-none md:w-64 group">
-                        <span class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400 group-focus-within:text-blue-600 transition-colors"><i class="fas fa-search"></i></span>
-                        <input type="text" id="phone-search" placeholder="Número o nombre..." class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl !pl-14 pr-4 py-4 text-sm font-bold shadow-sm outline-none focus:border-blue-600 transition-all text-slate-700 dark:text-white">
+        <div class="space-y-6 animate-fade-in">
+            <!-- Sticky Header & Summary Cards Panel -->
+            <div class="sticky top-0 z-30 bg-slate-50/95 dark:bg-[#05070a]/95 backdrop-blur-xl pt-2 pb-5 -mt-4 -mx-4 px-4 md:-mx-8 md:px-8 space-y-6 border-b border-slate-200/50 dark:border-white/5 transition-all shadow-sm">
+                <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h3 class="text-xl md:text-2xl font-black text-slate-900 dark:text-white flex items-center gap-3 uppercase tracking-tighter">
+                            <i class="fas fa-phone-alt text-blue-600"></i> Directorio Telefónico
+                        </h3>
+                        <p class="text-[9px] text-slate-500 font-black uppercase tracking-[0.3em] mt-0.5 ml-1">Gestión de registros y asignaciones para predicación</p>
                     </div>
-                    <button id="add-phone-btn" class="flex-1 min-w-0 md:flex-none px-8 py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-sm transition-all active:scale-95 flex items-center justify-center gap-3">
-                        <i class="fas fa-plus-circle"></i> Agregar Registro
-                    </button>
-                    <label class="relative inline-flex items-center cursor-pointer group px-5 py-3.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl transition-all hover:border-slate-300 dark:hover:border-white/20 whitespace-nowrap">
-                        <input type="checkbox" id="show-hidden-phones" class="peer sr-only">
-                        <div class="relative w-10 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all shrink-0"></div>
-                        <span class="text-[9px] font-black uppercase text-slate-600 dark:text-slate-400 tracking-widest ml-3">Ver Ocultos</span>
-                    </label>
-                </div>
-            </header>
+                    
+                    <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                        <div class="relative flex-1 min-w-0 md:flex-none md:w-72 group">
+                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors pointer-events-none z-10"><i class="fas fa-search"></i></span>
+                            <input type="text" id="phone-search" placeholder="Número o nombre..." class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl pr-4 py-3 text-xs font-bold shadow-sm outline-none focus:border-blue-600 transition-all text-slate-700 dark:text-white" style="padding-left: 3.25rem !important;">
+                        </div>
+                        <button id="add-phone-btn" class="flex-1 min-w-0 md:flex-none px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] shadow-sm transition-all active:scale-95 flex items-center justify-center gap-2">
+                            <i class="fas fa-plus-circle"></i> Agregar Registro
+                        </button>
+                        <label class="relative inline-flex items-center cursor-pointer group px-4 py-2.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl transition-all hover:border-slate-300 dark:hover:border-white/20 whitespace-nowrap">
+                            <input type="checkbox" id="show-hidden-phones" class="peer sr-only">
+                            <div class="relative w-9 h-5 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all shrink-0"></div>
+                            <span class="text-[8.5px] font-black uppercase text-slate-600 dark:text-slate-400 tracking-widest ml-2.5">Ver Ocultos</span>
+                        </label>
+                    </div>
+                </header>
 
-            <!-- Xolvy Telemetry Card S-13 -->
-            <div id="telemetry-card-container" class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-                <!-- Skeleton while loading -->
-                <div class="animate-pulse bg-white dark:bg-white/5 p-6 rounded-[2rem] border border-slate-100 dark:border-white/5 h-32"></div>
-                <div class="animate-pulse bg-white dark:bg-white/5 p-6 rounded-[2rem] border border-slate-100 dark:border-white/5 h-32"></div>
-                <div class="animate-pulse bg-white dark:bg-white/5 p-6 rounded-[2rem] border border-slate-100 dark:border-white/5 h-32"></div>
-                <div class="animate-pulse bg-white dark:bg-white/5 p-6 rounded-[2rem] border border-slate-100 dark:border-white/5 h-32"></div>
+                <!-- Xolvy Telemetry Card S-13 -->
+                <div id="telemetry-card-container" class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+                    <!-- Skeleton while loading -->
+                    <div class="animate-pulse bg-white dark:bg-white/5 p-6 rounded-[2rem] border border-slate-100 dark:border-white/5 h-32"></div>
+                    <div class="animate-pulse bg-white dark:bg-white/5 p-6 rounded-[2rem] border border-slate-100 dark:border-white/5 h-32"></div>
+                    <div class="animate-pulse bg-white dark:bg-white/5 p-6 rounded-[2rem] border border-slate-100 dark:border-white/5 h-32"></div>
+                    <div class="animate-pulse bg-white dark:bg-white/5 p-6 rounded-[2rem] border border-slate-100 dark:border-white/5 h-32"></div>
+                </div>
             </div>
 
             <div class="hidden lg:block enterprise-card overflow-x-auto custom-scrollbar border-slate-200 dark:border-white/5 shadow-sm relative">
@@ -120,11 +123,8 @@ export const renderTelefonosTab = async (container, _configData = null) => {
 
         if (!showHidden) {
             filtered = filtered.filter((t) => {
-                // Hide Revisita
-                if (t.estado === "Revisita") return false;
-
-                // Hide 'No llamar' if within 6 months
-                if (t.ultimo_estado === "No llamar") {
+                // Hide 'No llamar' or 'Suspendido' if within 6 months
+                if (t.estado === "No llamar" || t.ultimo_estado === "No llamar" || t.estado === "Suspendido") {
                     const lastDate = t.fecha_ultimo_estado ? new Date(t.fecha_ultimo_estado) : new Date(0);
                     if (lastDate > sixMonthsAgo) return false;
                 }
