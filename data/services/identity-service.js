@@ -147,6 +147,31 @@ export const IdentityShield = {
             console.warn("🛡️ [IdentityShield] Error en Escritura de Binding:", e);
         }
 
+        const isAdmin =
+            rLower === "administrador" ||
+            rLower === "superadmin" ||
+            rLower === "admin" ||
+            pData.es_admin === true ||
+            pData.esAdmin === true ||
+            pData.isAdmin === true ||
+            pData.es_superadmin === true ||
+            privs.includes("administrador") ||
+            privs.includes("superadmin") ||
+            privs.includes("admin");
+
+        const esConductor =
+            isAdmin ||
+            rLower === "conductor" ||
+            pData.es_conductor === true ||
+            pData.esConductor === true ||
+            privs.includes("conductor") ||
+            (pData.modulos && pData.modulos.habilitado === true);
+
+        const availableRoles = [];
+        if (isAdmin) availableRoles.push("Administrador");
+        if (esConductor) availableRoles.push("Conductor");
+        availableRoles.push("Publicador");
+
         // 4. CANON OPTIMIZER: Retornar objeto inmutable
         const identity = {
             uid: uid,
@@ -155,6 +180,10 @@ export const IdentityShield = {
             email: pData.email || "",
             telefono: pData.telefono || "",
             rol: identityRol,
+            baseRole: identityRol,
+            isAdmin,
+            esConductor,
+            availableRoles,
             isAnonymous: currentUser.isAnonymous,
         };
 

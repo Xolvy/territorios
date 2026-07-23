@@ -77,6 +77,41 @@ initPWAInstallPrompt();
 const APP_VERSION = "4.1.4";
 window.XolvyApp = { user: null, version: APP_VERSION };
 
+window.switchAppRole = (targetRole) => {
+    console.log("🔄 [Role Switcher 1-Tap] Cambiando a modo:", targetRole);
+    window.XolvyApp = window.XolvyApp || {};
+    const currentUser = window.XolvyApp.user || {};
+
+    const updatedUser = {
+        ...currentUser,
+        role: targetRole,
+        rol: targetRole
+    };
+    window.XolvyApp.user = updatedUser;
+
+    const currentSession = JSON.parse(localStorage.getItem("xolvy_session") || "{}");
+    localStorage.setItem("xolvy_session", JSON.stringify({
+        ...currentSession,
+        ...updatedUser,
+        role: targetRole,
+        rol: targetRole
+    }));
+
+    if (targetRole === "Administrador") {
+        if (typeof window.showNotification === "function") window.showNotification("Cambiado a Modo Administrador", "success");
+        location.href = "/administrador";
+    } else {
+        if (typeof window.showNotification === "function") window.showNotification(`Cambiado a Modo ${targetRole}`, "success");
+        if (location.pathname.startsWith("/administrador")) {
+            location.href = "/conductores";
+        } else if (typeof window.refreshConductorView === "function") {
+            window.refreshConductorView(true);
+        } else {
+            location.href = "/conductores";
+        }
+    }
+};
+
 // --- XOLVY MODULAR: MICRO-MODULE ENGINE ---
 const dynamicModules = import.meta.glob("./modules/**/*.js");
 
@@ -423,12 +458,21 @@ document.addEventListener("DOMContentLoaded", async () => {
             moduleRegistry.init();
             initUpdateManager();
 
-            // Actualizar estado global (from Firestore, not localStorage)
+            // Actualizar estado global (from Firestore, keeping UX active role selection)
+            const savedSession = JSON.parse(localStorage.getItem("xolvy_session") || "{}");
+            const activeRole = savedSession.role || savedSession.rol || role || window.XolvyApp.identity?.rol || "Publicador";
+
             window.XolvyApp.user = {
                 uid: user.uid,
                 email: user.email,
                 nombre: window.XolvyApp.identity?.nombreCanonico || permisos?.nombre || user.displayName || user.email,
-                role: role || window.XolvyApp.identity?.rol || "Visitante",
+                role: activeRole,
+                rol: activeRole,
+                baseRole: role || window.XolvyApp.identity?.baseRole || activeRole,
+                isAdmin: permisos?.isAdmin || window.XolvyApp.identity?.isAdmin || false,
+                esConductor: permisos?.esConductor || window.XolvyApp.identity?.esConductor || false,
+                availableRoles: permisos?.availableRoles || window.XolvyApp.identity?.availableRoles || [activeRole],
+                ...permisos,
             };
 
             if (!role) {
