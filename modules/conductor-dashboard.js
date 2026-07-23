@@ -28,6 +28,8 @@ window.AppConfig = AppConfig;
 import { moduleRegistry } from "./utils/module-registry.js";
 import { ReceptionHub } from "./services/reception-hub.js";
 import { renderMiInformeModule } from "./conductor/mi-informe.js";
+import { openUserProfileModal } from "./services/user-profile-modal.js";
+window.openUserProfileModal = openUserProfileModal;
 
 // --- MICRO-MODULE LOADER ---
 const dynamicSubModules = import.meta.glob("./**/*.js");
@@ -1381,7 +1383,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, _appVersi
                         </div>
                         
                         <div class="pt-4 border-t border-slate-200/50 dark:border-emerald-900/30 space-y-1.5 mt-auto">
-                            <button onclick="import('./services/user-profile-modal.js').then(m => m.openUserProfileModal());" class="w-full flex items-center gap-3 p-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-indigo-500/10 hover:text-indigo-500 text-[9px] font-black uppercase tracking-widest transition-all focus:outline-none">
+                            <button onclick="if(window.openUserProfileModal){ window.openUserProfileModal(); }" class="w-full flex items-center gap-3 p-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-indigo-500/10 hover:text-indigo-500 text-[9px] font-black uppercase tracking-widest transition-all focus:outline-none">
                                 <i class="fas fa-id-card stroke-1.5" stroke-width="1.5"></i> <span class="sidebar-text">Mi Perfil</span>
                             </button>
                             <button onclick="window.toggleTheme();" class="w-full flex items-center gap-3 p-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 text-[9px] font-medium uppercase tracking-widest transition-all focus:outline-none">

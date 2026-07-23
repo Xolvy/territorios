@@ -15,6 +15,9 @@ import { initUpdateManager, stopUpdateManager } from "./modules/utils/update-man
 import { VisualEngine } from "./modules/utils/visual-engine.js";
 import { initDynamicIslandHUD } from "./modules/services/dynamic-island-hud.js";
 import { initPWAInstallPrompt } from "./modules/services/pwa-install-prompt.js";
+import { checkAdminPrivileges } from "./modules/utils/helpers.js";
+import { openUserProfileModal } from "./modules/services/user-profile-modal.js";
+window.openUserProfileModal = openUserProfileModal;
 
 // --- MOBILE MENU LOGIC ---
 // Deterministic open/close (never toggle) to survive dashboard re-renders
@@ -74,7 +77,7 @@ initPWAInstallPrompt();
 // moduleRegistry.init();
 
 // The version is injected by Vite at build time (Core Shell Version)
-const APP_VERSION = "4.8.2";
+const APP_VERSION = "4.8.3";
 window.XolvyApp = { user: null, version: APP_VERSION };
 
 window.switchAppRole = (targetRole) => {
@@ -130,7 +133,17 @@ async function loadModule(moduleName, basePath) {
 
 // Shell View Accessors
 const loadLogin = async () => (await loadModule("login", "./modules/login.js")).renderLogin;
-const loadAdmin = async () => (await loadModule("admin", "./modules/admin-dashboard.js")).renderAdminDashboard;
+const loadAdmin = async () => {
+    if (!checkAdminPrivileges()) {
+        console.warn("⛔ [Security Shield] Acceso restringido al Panel Admin.");
+        if (typeof window.showNotification === "function") {
+            window.showNotification("Acceso denegado: Se requieren privilegios de Administrador", "error");
+        }
+        location.href = "/conductores";
+        return async () => {};
+    }
+    return (await loadModule("admin", "./modules/admin-dashboard.js")).renderAdminDashboard;
+};
 let _conductorPromise = null;
 const loadConductor = async () => {
     if (window.XolvyApp?.lastConductorRender) {

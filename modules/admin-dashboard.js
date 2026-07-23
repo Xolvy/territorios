@@ -1,8 +1,10 @@
 import { getConfiguracion, getSystemVersion, setSystemVersion } from "../data/firestore-services.js";
 import { auth } from "../firebase-config.js";
 import { XolvyAdaptive } from "./utils/adaptive.js";
-import { showNotification } from "./utils/helpers.js";
+import { checkAdminPrivileges, showNotification } from "./utils/helpers.js";
 import { moduleRegistry } from "./utils/module-registry.js";
+import { openUserProfileModal } from "./services/user-profile-modal.js";
+window.openUserProfileModal = openUserProfileModal;
 
 // --- MICRO-MODULE LOADER ---
 const dynamicSubModules = import.meta.glob("./**/*.js");
@@ -220,6 +222,14 @@ const setupNavigation = (appVersion, configData) => {
 
 export const renderAdminDashboard = async (container, appVersion, initialTab = "dashboard") => {
     try {
+        if (!checkAdminPrivileges()) {
+            console.warn("⛔ [Security Shield] Intento de acceso no autorizado al Panel Admin.");
+            if (typeof showNotification === "function") {
+                showNotification("Acceso denegado: Se requieren privilegios de Administrador", "error");
+            }
+            location.href = "/conductores";
+            return;
+        }
         window.isAdminMode = true;
 
         // --- GLOBAL ADMIN HELPERS ---
@@ -305,7 +315,7 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = "
                     </div>
                     
                     <div class="pt-4 border-t border-slate-200/50 dark:border-emerald-900/30 space-y-1.5 mt-auto">
-                        <button onclick="import('./services/user-profile-modal.js').then(m => m.openUserProfileModal());" class="w-full flex items-center gap-3 p-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-indigo-500/10 hover:text-indigo-500 text-[9px] font-black uppercase tracking-widest transition-all focus:outline-none">
+                        <button onclick="if(window.openUserProfileModal){ window.openUserProfileModal(); }" class="w-full flex items-center gap-3 p-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-indigo-500/10 hover:text-indigo-500 text-[9px] font-black uppercase tracking-widest transition-all focus:outline-none">
                             <i class="fas fa-id-card stroke-1.5" stroke-width="1.5"></i> <span class="sidebar-text">Mi Perfil</span>
                         </button>
                         <button onclick="window.toggleTheme();" class="w-full flex items-center gap-3 p-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 text-[9px] font-medium uppercase tracking-widest transition-all focus:outline-none">
