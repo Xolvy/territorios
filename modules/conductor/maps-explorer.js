@@ -21,8 +21,24 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
         window._liveGpsUnsub = null;
     }
 
-    // Prepare territory list sorted 1 to 22
-    const sortedTerritorios = [...allTerritorios].sort(
+    // Prepare territory list sorted 1 to 22 (strictly deduplicated by territory number)
+    const uniqueMap = new Map();
+    allTerritorios.forEach((t) => {
+        const cleanNum = String(t.numero || "").trim();
+        if (!cleanNum) return;
+        if (!uniqueMap.has(cleanNum)) {
+            uniqueMap.set(cleanNum, t);
+        } else {
+            const existing = uniqueMap.get(cleanNum);
+            const hasGeo = (x) => x.geojson && (typeof x.geojson === "object" ? Object.keys(x.geojson).length > 0 : String(x.geojson).length > 10);
+            const hasImg = (x) => x.imagen && String(x.imagen).length > 5;
+            if ((!hasGeo(existing) && hasGeo(t)) || (!hasImg(existing) && hasImg(t))) {
+                uniqueMap.set(cleanNum, t);
+            }
+        }
+    });
+
+    const sortedTerritorios = Array.from(uniqueMap.values()).sort(
         (a, b) => (parseInt(a.numero, 10) || 0) - (parseInt(b.numero, 10) || 0)
     );
 
@@ -232,6 +248,13 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
                     geoJsonLayers[String(t.numero)] = subGroup;
                     boundsGroup.addLayer(subGroup);
 
+                    // Clean up any existing centroid marker for this territory number to prevent duplicates
+                    const numKey = String(t.numero).trim();
+                    if (territoryCenterMarkers[numKey]) {
+                        try { leafletMap.removeLayer(territoryCenterMarkers[numKey]); } catch (_e) {}
+                        delete territoryCenterMarkers[numKey];
+                    }
+
                     // Create prominent Centroid Badge Marker for General View (Terr. 1, Terr. 2, ...)
                     const center = subGroup.getBounds().getCenter();
                     const territoryBadgeIcon = L.divIcon({
@@ -251,7 +274,7 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
                         selectEl.value = String(t.numero);
                         focusTerritory(String(t.numero));
                     });
-                    territoryCenterMarkers[String(t.numero)] = cMarker;
+                    territoryCenterMarkers[numKey] = cMarker;
 
                 } catch (e) {
                     console.error(`Error loading polygon T-${t.numero}:`, e);

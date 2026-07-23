@@ -267,12 +267,19 @@ export const openSugeridorModal = (programa = { dias: [] }, renderTableCallback 
         });
     });
 
-    // ── Group by territory document ID (allowing split parts to coexist) ───
+    // ── Group strictly by territory number (deduplicating pool entries) ───
     const uniqueTsMap = {};
     for (const t of territorios) {
-        const docId = t.id;
-        if (!uniqueTsMap[docId]) {
-            uniqueTsMap[docId] = { ...t, centroid: getTerritoryCentroid(t) };
+        const num = String(t.numero || "").trim();
+        if (!num) continue;
+        if (!uniqueTsMap[num]) {
+            uniqueTsMap[num] = { ...t, centroid: getTerritoryCentroid(t) };
+        } else {
+            const existing = uniqueTsMap[num];
+            const hasGeo = (x) => x.geojson && (typeof x.geojson === "object" ? Object.keys(x.geojson).length > 0 : String(x.geojson).length > 10);
+            if (!hasGeo(existing) && hasGeo(t)) {
+                uniqueTsMap[num] = { ...t, centroid: getTerritoryCentroid(t) };
+            }
         }
     }
     const uniqueTs = Object.values(uniqueTsMap);

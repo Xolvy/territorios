@@ -104,10 +104,30 @@ export const getTerritorios = async () => {
                 const key = data.territorio_doc_id || data.territorio_id;
                 activeAssignments[String(key)] = { ...data, id: d.id };
             });
-            return terrSnap.docs
+
+            const allNormalized = terrSnap.docs
                 .map((doc) => normalizeTerritorioData(doc.id, doc.data(), activeAssignments[String(doc.id)] || activeAssignments[String(doc.data().numero)]))
-                .filter((t) => t.numero && t.numero.trim().length > 0)
-                .sort((a, b) => parseInt(a.numero, 10) - parseInt(b.numero, 10));
+                .filter((t) => t.numero && String(t.numero).trim().length > 0);
+
+            // Strict Deduplication by Territory Number (prefers records with geojson/imagen)
+            const uniqueMap = new Map();
+            allNormalized.forEach((t) => {
+                const cleanNum = String(t.numero).trim();
+                if (!uniqueMap.has(cleanNum)) {
+                    uniqueMap.set(cleanNum, t);
+                } else {
+                    const existing = uniqueMap.get(cleanNum);
+                    const hasGeo = (x) => x.geojson && (typeof x.geojson === "object" ? Object.keys(x.geojson).length > 0 : String(x.geojson).length > 10);
+                    const hasImg = (x) => x.imagen && String(x.imagen).length > 5;
+                    if ((!hasGeo(existing) && hasGeo(t)) || (!hasImg(existing) && hasImg(t))) {
+                        uniqueMap.set(cleanNum, t);
+                    }
+                }
+            });
+
+            return Array.from(uniqueMap.values()).sort(
+                (a, b) => parseInt(a.numero, 10) - parseInt(b.numero, 10)
+            );
         } catch (e) {
             console.error("Critical error fetching territories:", e);
             return [];
