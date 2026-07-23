@@ -421,13 +421,15 @@ document.addEventListener("DOMContentLoaded", async () => {
                     const isLoginView = !!document.getElementById("btn-google-login");
                     const isLoginPath = contextPath === "/login" || contextPath === "/";
 
-                    if (isConductorModalOpen || isLoginView || isLoginPath) {
-                        console.log("🛡️ [Auth] Anonymous session active for directory query or login path.");
+                    if (isConductorModalOpen || isLoginView) {
+                        console.log("🛡️ [Auth] Anonymous session active for directory query or login view.");
                         return;
                     }
 
-                    console.warn("⚠️ [Auth] Sesión anónima sin rol de Conductor. Redirigiendo.");
-                    await auth.signOut();
+                    console.log("🛡️ [Auth] Anonymous session on login path. Rendering Login View...");
+                    window.XolvyApp.user = null;
+                    const render = await loadLogin();
+                    render(appContainer, APP_VERSION);
                     return;
                 }
             }
