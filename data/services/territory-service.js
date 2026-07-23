@@ -109,7 +109,7 @@ export const getTerritorios = async () => {
                 .map((doc) => normalizeTerritorioData(doc.id, doc.data(), activeAssignments[String(doc.id)] || activeAssignments[String(doc.data().numero)]))
                 .filter((t) => t.numero && String(t.numero).trim().length > 0);
 
-            // Strict Deduplication by Territory Number (prefers records with geojson/imagen)
+            // Merge Multi-Doc Records & Deduplicate by Territory Number
             const uniqueMap = new Map();
             allNormalized.forEach((t) => {
                 const cleanNum = String(t.numero).trim();
@@ -117,15 +117,68 @@ export const getTerritorios = async () => {
                     uniqueMap.set(cleanNum, t);
                 } else {
                     const existing = uniqueMap.get(cleanNum);
-                    const hasGeo = (x) => x.geojson && (typeof x.geojson === "object" ? Object.keys(x.geojson).length > 0 : String(x.geojson).length > 10);
-                    const hasImg = (x) => x.imagen && String(x.imagen).length > 5;
-                    if ((!hasGeo(existing) && hasGeo(t)) || (!hasImg(existing) && hasImg(t))) {
-                        uniqueMap.set(cleanNum, t);
+                    // Merge GeoJSON features from split documents
+                    let geo1 = existing.geojson;
+                    if (typeof geo1 === "string" && geo1.trim().startsWith("{")) {
+                        try { geo1 = JSON.parse(geo1); } catch (_e) { geo1 = null; }
+                    }
+                    let geo2 = t.geojson;
+                    if (typeof geo2 === "string" && geo2.trim().startsWith("{")) {
+                        try { geo2 = JSON.parse(geo2); } catch (_e) { geo2 = null; }
+                    }
+
+                    let mergedFeatures = [];
+                    if (geo1 && Array.isArray(geo1.features)) mergedFeatures.push(...geo1.features);
+                    if (geo2 && Array.isArray(geo2.features)) mergedFeatures.push(...geo2.features);
+
+                    const featMap = new Map();
+                    mergedFeatures.forEach((f, idx) => {
+                        const featKey = f.geometry?.coordinates ? JSON.stringify(f.geometry.coordinates) : `idx_${idx}`;
+                        if (!featMap.has(featKey)) featMap.set(featKey, f);
+                    });
+
+                    const finalFeatures = Array.from(featMap.values());
+                    const mergedGeoJSON = finalFeatures.length > 0 ? {
+                        type: "FeatureCollection",
+                        features: finalFeatures
+                    } : (geo1 || geo2);
+
+                    const m1 = String(existing.manzanas || "").trim();
+                    const m2 = String(t.manzanas || "").trim();
+                    const mergedManzanas = Array.from(new Set([...m1.split(","), ...m2.split(",")].map(s => s.trim()).filter(Boolean))).join(", ");
+
+                    uniqueMap.set(cleanNum, {
+                        ...existing,
+                        geojson: mergedGeoJSON,
+                        manzanas: mergedManzanas || existing.manzanas || t.manzanas,
+                        imagen: existing.imagen || t.imagen,
+                        localidad: existing.localidad || t.localidad,
+                    });
+                }
+            });
+
+            const resultList = Array.from(uniqueMap.values());
+
+            // Specific Rule for Territorio 22: Enforce max 3 manzanas (remove Mz. 4 if present)
+            resultList.forEach((t) => {
+                if (String(t.numero).trim() === "22") {
+                    if (t.geojson && Array.isArray(t.geojson.features)) {
+                        t.geojson.features = t.geojson.features.filter((f) => {
+                            const name = String(f.properties?.name || f.properties?.id || "").toLowerCase();
+                            return !name.includes("mz. 4") && !name.includes("mz 4") && !name.includes("manzana 4");
+                        });
+                    }
+                    if (t.manzanas) {
+                        const mzList = String(t.manzanas)
+                            .split(",")
+                            .map((s) => s.trim())
+                            .filter((s) => s && s !== "4" && s !== "Mz. 4" && s !== "Mz 4" && s !== "Manzana 4");
+                        t.manzanas = mzList.join(", ");
                     }
                 }
             });
 
-            return Array.from(uniqueMap.values()).sort(
+            return resultList.sort(
                 (a, b) => parseInt(a.numero, 10) - parseInt(b.numero, 10)
             );
         } catch (e) {

@@ -21,7 +21,7 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
         window._liveGpsUnsub = null;
     }
 
-    // Prepare territory list sorted 1 to 22 (strictly deduplicated by territory number)
+    // Prepare territory list sorted 1 to 22 (strictly merged & deduplicated by territory number)
     const uniqueMap = new Map();
     allTerritorios.forEach((t) => {
         const cleanNum = String(t.numero || "").trim();
@@ -30,11 +30,37 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
             uniqueMap.set(cleanNum, t);
         } else {
             const existing = uniqueMap.get(cleanNum);
-            const hasGeo = (x) => x.geojson && (typeof x.geojson === "object" ? Object.keys(x.geojson).length > 0 : String(x.geojson).length > 10);
-            const hasImg = (x) => x.imagen && String(x.imagen).length > 5;
-            if ((!hasGeo(existing) && hasGeo(t)) || (!hasImg(existing) && hasImg(t))) {
-                uniqueMap.set(cleanNum, t);
+            let geo1 = existing.geojson;
+            if (typeof geo1 === "string" && geo1.trim().startsWith("{")) {
+                try { geo1 = JSON.parse(geo1); } catch (_e) { geo1 = null; }
             }
+            let geo2 = t.geojson;
+            if (typeof geo2 === "string" && geo2.trim().startsWith("{")) {
+                try { geo2 = JSON.parse(geo2); } catch (_e) { geo2 = null; }
+            }
+
+            let mergedFeatures = [];
+            if (geo1 && Array.isArray(geo1.features)) mergedFeatures.push(...geo1.features);
+            if (geo2 && Array.isArray(geo2.features)) mergedFeatures.push(...geo2.features);
+
+            const featMap = new Map();
+            mergedFeatures.forEach((f, idx) => {
+                const featKey = f.geometry?.coordinates ? JSON.stringify(f.geometry.coordinates) : `idx_${idx}`;
+                if (!featMap.has(featKey)) featMap.set(featKey, f);
+            });
+
+            const finalFeatures = Array.from(featMap.values());
+            const mergedGeoJSON = finalFeatures.length > 0 ? {
+                type: "FeatureCollection",
+                features: finalFeatures
+            } : (geo1 || geo2);
+
+            uniqueMap.set(cleanNum, {
+                ...existing,
+                geojson: mergedGeoJSON,
+                imagen: existing.imagen || t.imagen,
+                localidad: existing.localidad || t.localidad,
+            });
         }
     });
 
