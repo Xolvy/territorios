@@ -323,22 +323,57 @@ export const renderPersonalTab = async (container, _configData = null, _appVersi
                                 <label class="label-premium">Género</label>
                                 <div class="relative">
                                     <select id="p-gender" class="input-premium appearance-none cursor-pointer pr-10">
-                                        <option value="Hombre" ${person?.genero === "Hombre" ? "selected" : ""}>Hombre</option>
-                                        <option value="Mujer" ${person?.genero === "Mujer" ? "selected" : ""}>Mujer</option>
+                                        <option value="Hombre" ${person?.genero === "Hombre" ? "selected" : ""}>Hombre 🙋‍♂️</option>
+                                        <option value="Mujer" ${person?.genero === "Mujer" ? "selected" : ""}>Mujer 🙋‍♀️</option>
                                     </select>
                                     <i class="fas fa-chevron-down absolute right-5 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400 text-[10px] pointer-events-none"></i>
                                 </div>
                             </div>
                             <div class="space-y-2 group/input">
-                                <label class="label-premium">Grupo Asignado</label>
+                                <label class="label-premium">Perfil / Servicio</label>
                                 <div class="relative">
-                                    <select id="p-group" class="input-premium appearance-none cursor-pointer pr-10">
-                                        <option value="0" ${!person?.grupo || person?.grupo === 0 ? "selected" : ""}>Sin asignar</option>
-                                        ${(groups || []).map((g) => `<option value="${g.id}" ${person?.grupo === g.id ? "selected" : ""}>${g.numero_nombre || `Grupo ${g.id}`} - ${g.lugar || "Sin ubicación"}</option>`).join("")}
+                                    <select id="p-perfil" class="input-premium appearance-none cursor-pointer pr-10">
+                                        <option value="Publicador" ${(person?.perfil || person?.precursor) === "Publicador" || !person?.perfil ? "selected" : ""}>Publicador</option>
+                                        <option value="Precursor Auxiliar" ${(person?.perfil || person?.precursor) === "Precursor Auxiliar" ? "selected" : ""}>Precursor Auxiliar</option>
+                                        <option value="Precursor Regular" ${(person?.perfil || person?.precursor) === "Precursor Regular" ? "selected" : ""}>Precursor Regular</option>
+                                        <option value="Siervo Ministerial" ${(person?.perfil || person?.precursor) === "Siervo Ministerial" ? "selected" : ""}>Siervo Ministerial</option>
+                                        <option value="Anciano" ${(person?.perfil || person?.precursor) === "Anciano" ? "selected" : ""}>Anciano</option>
                                     </select>
                                     <i class="fas fa-chevron-down absolute right-5 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400 text-[10px] pointer-events-none"></i>
                                 </div>
                             </div>
+                        </div>
+
+                        <div class="space-y-2 group/input">
+                            <label class="label-premium">Grupo Asignado</label>
+                            <div class="relative">
+                                <select id="p-group" class="input-premium appearance-none cursor-pointer pr-10">
+                                    <option value="0" ${!person?.grupo || person?.grupo === 0 ? "selected" : ""}>Sin asignar</option>
+                                    ${(groups || []).map((g) => `<option value="${g.id}" ${String(person?.grupo) === String(g.id) ? "selected" : ""}>${g.numero_nombre || `Grupo ${g.id}`} ${g.lugar ? `- ${g.lugar}` : ""}</option>`).join("")}
+                                </select>
+                                <i class="fas fa-chevron-down absolute right-5 top-1/2 -translate-y-1/2 text-slate-600 dark:text-slate-400 text-[10px] pointer-events-none"></i>
+                            </div>
+                        </div>
+
+                        <!-- Superintendente y Auxiliar Dinámicos -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 bg-slate-100/60 dark:bg-white/5 p-4 rounded-2xl border border-slate-200/60 dark:border-white/5">
+                            <div class="space-y-1">
+                                <label class="text-[9px] font-black uppercase text-slate-500">Superintendente de Grupo</label>
+                                <input type="text" id="p-superintendente" value="${groups.find((g) => String(g.id) === String(person?.grupo))?.encargado || groups.find((g) => String(g.id) === String(person?.grupo))?.superintendente || person?.superintendente || "Sin asignar"}" readonly
+                                    class="w-full py-2.5 px-3 bg-slate-200/50 dark:bg-slate-800 border border-slate-300/60 dark:border-white/10 rounded-xl font-bold text-xs opacity-80 cursor-not-allowed select-none">
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[9px] font-black uppercase text-slate-500">Auxiliar de Grupo</label>
+                                <input type="text" id="p-auxiliar" value="${groups.find((g) => String(g.id) === String(person?.grupo))?.auxiliar || person?.auxiliar || "Sin asignar"}" readonly
+                                    class="w-full py-2.5 px-3 bg-slate-200/50 dark:bg-slate-800 border border-slate-300/60 dark:border-white/10 rounded-xl font-bold text-xs opacity-80 cursor-not-allowed select-none">
+                            </div>
+                        </div>
+
+                        <!-- Contraseña Personalizada -->
+                        <div class="space-y-2 group/input">
+                            <label class="label-premium">Contraseña Personalizada (Opcional)</label>
+                            <input type="password" id="p-password" value="${person?.password || person?.contrasena || ""}" placeholder="Dejar vacío para usar clave genérica..." class="input-premium">
+                            <p class="text-[9px] text-slate-500 dark:text-slate-400 ml-2 font-medium">Si el usuario tiene clave personalizada, no podrá ingresar con la clave genérica.</p>
                         </div>
 
                         <div id="p-email-container" class="${person?.privilegios?.includes("Administrador") ? "" : "hidden"} animate-fade-in space-y-2 group/input">
@@ -586,16 +621,38 @@ export const renderPersonalTab = async (container, _configData = null, _appVersi
                 modal.querySelector("#mod-disponibilidad").addEventListener("change", syncConductorUI);
                 modal.querySelector("#p-mod-enabled").addEventListener("change", syncConductorUI);
 
+                const groupSelect = modal.querySelector("#p-group");
+                if (groupSelect) {
+                    groupSelect.addEventListener("change", (e) => {
+                        const gId = e.target.value;
+                        const gObj = groups.find((g) => String(g.id) === String(gId));
+                        const superInp = modal.querySelector("#p-superintendente");
+                        const auxInp = modal.querySelector("#p-auxiliar");
+                        if (superInp) superInp.value = gObj?.encargado || gObj?.superintendente || "Sin asignar";
+                        if (auxInp) auxInp.value = gObj?.auxiliar || "Sin asignar";
+                    });
+                }
+
                 saveBtn.onclick = async () => {
                     const original = saveBtn.innerHTML;
                     saveBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Guardando...';
                     saveBtn.disabled = true;
 
+                    const perfilVal = modal.querySelector("#p-perfil")?.value || "Publicador";
+                    const passwordVal = modal.querySelector("#p-password")?.value.trim() || "";
+                    const superVal = modal.querySelector("#p-superintendente")?.value || "";
+                    const auxVal = modal.querySelector("#p-auxiliar")?.value || "";
+
                     const data = {
                         nombre: modal.querySelector("#p-name").value.trim(),
                         telefono: modal.querySelector("#p-phone").value.trim(),
                         genero: modal.querySelector("#p-gender").value,
-                        grupo: parseInt(modal.querySelector("#p-group").value, 10),
+                        perfil: perfilVal,
+                        precursor: perfilVal,
+                        grupo: parseInt(modal.querySelector("#p-group").value, 10) || 0,
+                        superintendente: superVal,
+                        auxiliar: auxVal,
+                        ...(passwordVal ? { password: passwordVal, contrasena: passwordVal } : {}),
                         es_conductor: Array.from(modal.querySelectorAll(".p-priv-check:checked")).some(
                             (cb) => cb.value === "Conductor",
                         ),
@@ -618,6 +675,16 @@ export const renderPersonalTab = async (container, _configData = null, _appVersi
                             rescue: modal.querySelector("#mod-agenda").checked,
                         },
                     };
+
+                    if (passwordVal) {
+                        let customCreds = {};
+                        try {
+                            customCreds = JSON.parse(localStorage.getItem("xolvy_custom_credentials") || "{}");
+                        } catch (_e) {}
+                        const userKey = data.nombre.toLowerCase().replace(/\s+/g, "");
+                        customCreds[userKey] = { password: passwordVal, nombre: data.nombre };
+                        localStorage.setItem("xolvy_custom_credentials", JSON.stringify(customCreds));
+                    }
 
                     if (!data.nombre) {
                         showNotification("El nombre es obligatorio", "error");

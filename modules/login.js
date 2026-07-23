@@ -376,9 +376,12 @@ export const renderRoleDirectorySelection = async (targetRole = "Conductor") => 
                         try { customSaved = JSON.parse(localStorage.getItem("xolvy_custom_credentials") || "{}"); } catch (_e) {}
 
                         const userKey = name.toLowerCase().replace(/\s+/g, "");
-                        const isCustomValid = customSaved[userKey] && customSaved[userKey].password === passInput;
-                        const isDefaultValid = passInput === defaultPassword;
-                        if (isDefaultValid || isCustomValid) {
+                        const customPass = customSaved[userKey]?.password;
+                        const hasCustomPass = !!customPass;
+
+                        const isPassValid = hasCustomPass ? passInput === customPass : (passInput === defaultPassword || passInput === customPass);
+
+                        if (isPassValid) {
                             const nameLower = name.toLowerCase();
                             const isAdmin = targetRole === "Administrador" || nameLower.includes("alberto") || nameLower.includes("italo") || nameLower.includes("admin");
                             const sessionData = {
