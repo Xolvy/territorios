@@ -396,23 +396,9 @@ export const renderRoleDirectorySelection = async (targetRole = "Conductor") => 
                             window.XolvyApp = window.XolvyApp || {};
                             window.XolvyApp.user = sessionData;
 
-                            modal.innerHTML = `
-                                <div class="w-full h-full flex items-center justify-center bg-slate-50/90 dark:bg-[#030712]/95 backdrop-blur-3xl animate-fade-in relative overflow-hidden p-8">
-                                    <div class="z-10 flex flex-col items-center gap-6 text-center">
-                                        <div class="relative">
-                                            <div class="w-20 h-20 border-4 border-indigo-500/10 border-t-indigo-500 rounded-full animate-spin"></div>
-                                            <div class="absolute inset-0 flex items-center justify-center">
-                                                <i class="fas fa-check text-indigo-500 text-xl animate-pulse"></i>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <h3 class="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Acceso Autorizado</h3>
-                                            <p class="text-[9px] font-bold text-indigo-500 uppercase tracking-widest mt-2">Iniciando Modo ${targetRole}...</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            `;
-                            modal.className = "fixed inset-0 z-[99999] flex items-center justify-center p-0";
+                            if (typeof window.showUniversalLoader === "function") {
+                                window.showUniversalLoader(`Acceso Autorizado — Modo ${targetRole}...`);
+                            }
 
                             window._authSuspended = true;
                             setTimeout(() => (window._authSuspended = false), 500);

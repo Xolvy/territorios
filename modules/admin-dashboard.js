@@ -65,7 +65,6 @@ const loadTab = async (tabName, appVersion, configData = null) => {
     if (typeof window._stopAllTimelineLivePools === "function") {
         window._stopAllTimelineLivePools();
     }
-    renderSkeleton(contentDiv);
 
     try {
         // Fallback for direct calls that might miss configData
@@ -136,6 +135,10 @@ const loadTab = async (tabName, appVersion, configData = null) => {
                 </div>
             </div>
         `;
+    } finally {
+        if (typeof window.hideUniversalLoader === "function") {
+            window.hideUniversalLoader();
+        }
     }
 };
 

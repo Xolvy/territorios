@@ -74,11 +74,14 @@ initPWAInstallPrompt();
 // moduleRegistry.init();
 
 // The version is injected by Vite at build time (Core Shell Version)
-const APP_VERSION = "4.8.1";
+const APP_VERSION = "4.8.2";
 window.XolvyApp = { user: null, version: APP_VERSION };
 
 window.switchAppRole = (targetRole) => {
     console.log("🔄 [Role Switcher 1-Tap] Cambiando a modo:", targetRole);
+    if (typeof window.showUniversalLoader === "function") {
+        window.showUniversalLoader(`Cambiando a Modo ${targetRole}...`);
+    }
     window.XolvyApp = window.XolvyApp || {};
     const currentUser = window.XolvyApp.user || {};
 

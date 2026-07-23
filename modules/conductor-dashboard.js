@@ -139,10 +139,13 @@ let s13LivePoolUnsubscribe = null;
 
 // --- UTILS: OVERLAY CONTROL ---
 const ocultarOverlay = () => {
+    if (typeof window.hideUniversalLoader === "function") {
+        window.hideUniversalLoader();
+    }
     const overlay = document.getElementById("login-sync-overlay");
     if (overlay) {
         overlay.classList.add("opacity-0");
-        setTimeout(() => overlay.remove(), 500);
+        setTimeout(() => overlay.remove(), 400);
     }
 };
 
@@ -152,16 +155,16 @@ export const renderConductorDashboard = async (container, nameOrEmail, _appVersi
         return;
     }
 
+    if (typeof window.showUniversalLoader === "function") {
+        window.showUniversalLoader("Iniciando Dashboard...");
+    }
+
     let initSwipeActions = null;
     let initNexoSystem = null;
 
     console.log("🚀 [Conductor] Starting Parallel Initialization...");
 
-    // 1. Render Skeleton + Immediate Overlay Dismissal (with safety timeout)
-    const safetyTimeout = setTimeout(ocultarOverlay, 3000);
-    renderSkeleton(container);
-    ocultarOverlay();
-    clearTimeout(safetyTimeout);
+    const safetyTimeout = setTimeout(ocultarOverlay, 4000);
 
     // --- AUTH GUARD (FASTBOOT SYNC) ---
     const esperarAuth = () =>
@@ -2428,6 +2431,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, _appVersi
                     if (el) el.classList.add("hidden");
                 });
             }
+            ocultarOverlay();
         } catch (err) {
             console.error("Critical error in renderConductorDashboard:", err);
             ocultarOverlay();
