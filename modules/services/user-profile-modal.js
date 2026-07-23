@@ -135,26 +135,33 @@ export function openUserProfileModal() {
                     </div>
                 </div>
 
-                <!-- SECCIÓN 4: CAMBIO DE VISTA / MODOS (SOLO CONDUCTORES Y ADMINS) -->
-                ${
-                    ["Conductor", "Administrador", "SuperAdmin"].includes(currentRole)
-                        ? `
+                <!-- SECCIÓN 4: CONMUTADOR DE ROL / MODO DE VISTA EN 1-TAP -->
                 <div class="bg-indigo-500/5 dark:bg-indigo-500/10 p-5 rounded-2xl border border-indigo-500/20 space-y-3">
-                    <h4 class="text-[10px] font-black uppercase text-indigo-600 dark:text-indigo-400 tracking-wider flex items-center gap-2">
-                        <i class="fas fa-eye"></i> Modo de Vista (Simulacro)
-                    </h4>
-                    <div class="flex gap-2">
-                        <button id="btn-switch-publicador" type="button" class="flex-1 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl text-[9px] font-black uppercase tracking-wider hover:border-indigo-500 transition-all ${currentRole === 'Publicador' ? 'text-indigo-600 dark:text-indigo-400 border-indigo-500' : 'text-slate-500'}">
-                            Publicador
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-[10px] font-black uppercase text-indigo-600 dark:text-indigo-400 tracking-wider flex items-center gap-2">
+                            <i class="fas fa-user-shield"></i> Modo de Vista Activo
+                        </h4>
+                        <span class="text-[8px] font-black uppercase tracking-widest bg-indigo-500/10 text-indigo-500 px-2 py-0.5 rounded-full border border-indigo-500/20">
+                            ${currentRole}
+                        </span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button id="btn-switch-publicador" type="button" class="py-2.5 px-2 bg-white dark:bg-slate-800 border rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex flex-col items-center justify-center gap-1 ${currentRole === 'Publicador' ? 'text-emerald-600 dark:text-emerald-400 border-emerald-500 bg-emerald-500/10 shadow-sm' : 'text-slate-500 hover:border-slate-300'}">
+                            <i class="fas fa-user text-xs"></i>
+                            <span>Publicador</span>
                         </button>
-                        <button id="btn-switch-conductor" type="button" class="flex-1 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl text-[9px] font-black uppercase tracking-wider hover:border-indigo-500 transition-all ${currentRole === 'Conductor' ? 'text-indigo-600 dark:text-indigo-400 border-indigo-500' : 'text-slate-500'}">
-                            Conductor
+
+                        <button id="btn-switch-conductor" type="button" class="py-2.5 px-2 bg-white dark:bg-slate-800 border rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex flex-col items-center justify-center gap-1 ${currentRole === 'Conductor' ? 'text-indigo-600 dark:text-indigo-400 border-indigo-500 bg-indigo-500/10 shadow-sm' : 'text-slate-500 hover:border-slate-300'}">
+                            <i class="fas fa-id-badge text-xs"></i>
+                            <span>Conductor</span>
+                        </button>
+
+                        <button id="btn-switch-admin" type="button" class="py-2.5 px-2 bg-white dark:bg-slate-800 border rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex flex-col items-center justify-center gap-1 ${['Administrador', 'SuperAdmin', 'Admin'].includes(currentRole) ? 'text-amber-600 dark:text-amber-400 border-amber-500 bg-amber-500/10 shadow-sm' : 'text-slate-500 hover:border-slate-300'}">
+                            <i class="fas fa-user-shield text-xs"></i>
+                            <span>Admin</span>
                         </button>
                     </div>
                 </div>
-                `
-                        : ""
-                }
             </div>
 
             <!-- Footer -->
@@ -190,12 +197,14 @@ export function openUserProfileModal() {
         const btnPub = modal.querySelector("#btn-switch-publicador");
         if (btnPub) {
             btnPub.onclick = () => {
+                window.XolvyApp = window.XolvyApp || {};
+                window.XolvyApp.user = window.XolvyApp.user || {};
                 window.XolvyApp.user.role = "Publicador";
-                localStorage.setItem("xolvy_session", JSON.stringify({ ...window.XolvyApp.user, rol: "Publicador" }));
+                localStorage.setItem("xolvy_session", JSON.stringify({ ...window.XolvyApp.user, rol: "Publicador", role: "Publicador" }));
                 showNotification("Cambiado a Modo Publicador", "success");
                 modal.classList.add("hidden");
                 if (window.refreshConductorView) window.refreshConductorView(true);
-                else location.reload();
+                else location.href = "/conductores";
             };
         }
 
@@ -203,12 +212,28 @@ export function openUserProfileModal() {
         const btnCond = modal.querySelector("#btn-switch-conductor");
         if (btnCond) {
             btnCond.onclick = () => {
+                window.XolvyApp = window.XolvyApp || {};
+                window.XolvyApp.user = window.XolvyApp.user || {};
                 window.XolvyApp.user.role = "Conductor";
-                localStorage.setItem("xolvy_session", JSON.stringify({ ...window.XolvyApp.user, rol: "Conductor" }));
+                localStorage.setItem("xolvy_session", JSON.stringify({ ...window.XolvyApp.user, rol: "Conductor", role: "Conductor" }));
                 showNotification("Cambiado a Modo Conductor", "success");
                 modal.classList.add("hidden");
                 if (window.refreshConductorView) window.refreshConductorView(true);
-                else location.reload();
+                else location.href = "/conductores";
+            };
+        }
+
+        // Switch to Admin mode
+        const btnAdmin = modal.querySelector("#btn-switch-admin");
+        if (btnAdmin) {
+            btnAdmin.onclick = () => {
+                window.XolvyApp = window.XolvyApp || {};
+                window.XolvyApp.user = window.XolvyApp.user || {};
+                window.XolvyApp.user.role = "Administrador";
+                localStorage.setItem("xolvy_session", JSON.stringify({ ...window.XolvyApp.user, rol: "Administrador", role: "Administrador" }));
+                showNotification("Cambiado a Modo Administrador", "success");
+                modal.classList.add("hidden");
+                location.href = "/admin";
             };
         }
 

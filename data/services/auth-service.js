@@ -42,10 +42,29 @@ export const getPermisosUsuario = async (email) => {
 
         if (matchedDoc && matchedData) {
             const isAdmin =
-                matchedData.privilegios?.includes("Administrador") || matchedData.privilegios?.includes("SuperAdmin");
-            if (matchedData.es_conductor || isAdmin) {
-                return { role: isAdmin ? "Administrador" : "Conductor", ...matchedData, id: matchedDoc.id };
-            }
+                matchedData.privilegios?.includes("Administrador") ||
+                matchedData.privilegios?.includes("SuperAdmin") ||
+                matchedData.rol === "Admin" ||
+                matchedData.role === "Admin";
+            const esConductor =
+                matchedData.es_conductor ||
+                isAdmin ||
+                matchedData.privilegios?.includes("Conductor") ||
+                matchedData.rol === "Conductor";
+
+            const availableRoles = [];
+            if (isAdmin) availableRoles.push("Administrador");
+            if (esConductor) availableRoles.push("Conductor");
+            availableRoles.push("Publicador");
+
+            return {
+                role: isAdmin ? "Administrador" : esConductor ? "Conductor" : "Publicador",
+                isAdmin,
+                esConductor,
+                availableRoles,
+                ...matchedData,
+                id: matchedDoc.id,
+            };
         }
         return null;
     } catch (e) {
