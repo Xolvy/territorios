@@ -350,10 +350,10 @@ export const renderRoleDirectorySelection = async (targetRole = "Conductor") => 
                         showCancelButton: true,
                         confirmButtonText: "Ingresar",
                         cancelButtonText: "Cancelar",
-                        width: "340px",
+                        width: "420px",
                         customClass: {
-                            container: "!z-[100000] !flex !items-center !justify-center",
-                            popup: "!z-[100000] modern-card !rounded-[2.5rem] !p-6 !border !border-slate-200 dark:!border-white/10 !shadow-2xl !bg-white/95 dark:!bg-slate-900/95 !w-[340px] !max-w-[90vw] !mx-auto !box-border",
+                            container: "!z-[100000] !flex !items-center !justify-center !p-4",
+                            popup: "!z-[100000] modern-card !rounded-[2.5rem] !p-6 !border !border-slate-200 dark:!border-white/10 !shadow-2xl !bg-white/95 dark:!bg-slate-900/95 !max-w-[420px] !w-[90vw] !mx-auto !box-border",
                             title: "!text-base !px-2 !pt-2 !pb-1 !font-black !text-slate-800 dark:!text-white !uppercase",
                             htmlContainer: "!px-2 !pb-0 !text-xs !text-slate-500 dark:!text-slate-400 !font-bold",
                             input: "!w-full !rounded-2xl !border !border-slate-200 dark:!border-white/10 !bg-slate-50 dark:!bg-slate-800 !text-slate-800 dark:!text-white !font-bold !text-sm !px-4 !py-3 focus:!border-indigo-500 !shadow-inner !mt-3 !text-center !box-border",

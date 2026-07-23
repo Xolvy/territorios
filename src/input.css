@@ -752,11 +752,25 @@ textarea.input-premium, textarea {
   backdrop-filter: blur(8px) !important;
   -webkit-backdrop-filter: blur(8px) !important;
   transition: background-color 0.3s ease, backdrop-filter 0.3s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 1rem !important;
 }
 .dark .swal2-container {
   background-color: rgba(3, 7, 18, 0.75) !important;
   backdrop-filter: blur(12px) !important;
   -webkit-backdrop-filter: blur(12px) !important;
+}
+
+/* SweetAlert2 Popup Width Containment (Fix Modal Ancho Extendido) */
+.swal2-popup,
+div.swal2-popup,
+.swal2-modal {
+  max-width: 440px !important;
+  width: 90vw !important;
+  margin: auto !important;
+  box-sizing: border-box !important;
 }
 
 /* =========================================

@@ -9,7 +9,7 @@ import Swal from "sweetalert2";
 // We use pure Tailwind responsive modifiers (dark:bg-slate-900/90, etc.)
 // to ensure the alert components instantly and reactively adapt to theme changes.
 const BASE_CLASSES = {
-    popup: "modern-card !rounded-[2rem] !p-0 !overflow-hidden !border !border-slate-200 dark:!border-white/10 !shadow-[0_60px_120px_-20px_rgba(0,0,0,0.6)] !backdrop-blur-3xl !bg-white/95 dark:!bg-slate-900/90",
+    popup: "modern-card !rounded-[2.5rem] !p-0 !overflow-hidden !border !border-slate-200 dark:!border-white/10 !shadow-[0_60px_120px_-20px_rgba(0,0,0,0.6)] !backdrop-blur-3xl !bg-white/95 dark:!bg-slate-900/90 !max-w-[440px] !w-[90vw] !mx-auto",
     htmlContainer: "!px-8 !pb-0 !text-slate-700 dark:!text-slate-200",
     title: "!px-8 !pt-8 !pb-3 !font-black !text-slate-800 dark:!text-slate-100 !tracking-tighter !text-xl !uppercase",
     confirmButton:
