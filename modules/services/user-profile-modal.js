@@ -2,7 +2,7 @@ import { GoogleAuthProvider, linkWithRedirect, signInWithRedirect, unlink } from
 import { collection, doc, getDoc, getDocs, query, updateDoc, where } from "firebase/firestore";
 import { getGroupsConfig } from "../../data/firestore-services.js";
 import { auth, db } from "../../firebase-config.js";
-import { checkAdminPrivileges, showNotification } from "../utils/helpers.js";
+import { checkAdminPrivileges, showNotification, toTitleCase } from "../utils/helpers.js";
 import { showModal } from "./ui-helpers.js";
 
 export const switchAppRole = (targetRole) => {
@@ -125,7 +125,7 @@ export async function openUserProfileModal() {
                     <!-- Nombre Completo -->
                     <div class="space-y-1">
                         <label class="text-[9px] font-black uppercase text-slate-500">Nombre Completo</label>
-                        <input type="text" id="prof-nombre" value="${profile.nombre}" ${!isAdmin ? "readonly" : ""}
+                        <input type="text" id="prof-nombre" value="${toTitleCase(profile.nombre)}" ${!isAdmin ? "readonly" : ""}
                             class="w-full py-2.5 px-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl font-bold text-xs outline-none ${!isAdmin ? "opacity-80 cursor-not-allowed select-none bg-slate-100/70 dark:bg-white/[0.02]" : "focus:border-indigo-500"}">
                     </div>
 
@@ -171,6 +171,7 @@ export async function openUserProfileModal() {
                                 <option value="Precursor Regular" ${profile.perfil === "Precursor Regular" ? "selected" : ""}>Precursor Regular</option>
                                 <option value="Siervo Ministerial" ${profile.perfil === "Siervo Ministerial" ? "selected" : ""}>Siervo Ministerial</option>
                                 <option value="Anciano" ${profile.perfil === "Anciano" ? "selected" : ""}>Anciano</option>
+                                <option value="Sup. de Circuito" ${profile.perfil === "Sup. de Circuito" ? "selected" : ""}>Sup. de Circuito</option>
                             </select>
                         `
                                 : `
@@ -201,12 +202,12 @@ export async function openUserProfileModal() {
                     <div class="grid grid-cols-2 gap-3">
                         <div class="space-y-1">
                             <label class="text-[9px] font-black uppercase text-slate-500">Superintendente</label>
-                            <input type="text" id="prof-superintendente" value="${initSuperintendente}" readonly 
+                            <input type="text" id="prof-superintendente" value="${toTitleCase(initSuperintendente)}" readonly 
                                 class="w-full py-2.5 px-3.5 bg-slate-100/80 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-xl font-bold text-xs opacity-80 cursor-not-allowed select-none">
                         </div>
                         <div class="space-y-1">
                             <label class="text-[9px] font-black uppercase text-slate-500">Auxiliar</label>
-                            <input type="text" id="prof-auxiliar" value="${initAuxiliar}" readonly 
+                            <input type="text" id="prof-auxiliar" value="${toTitleCase(initAuxiliar)}" readonly 
                                 class="w-full py-2.5 px-3.5 bg-slate-100/80 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-xl font-bold text-xs opacity-80 cursor-not-allowed select-none">
                         </div>
                     </div>
@@ -276,8 +277,8 @@ export async function openUserProfileModal() {
                 const gObj = groups.find((g) => String(g.id) === String(selectedGroupId));
                 const superInp = modal.querySelector("#prof-superintendente");
                 const auxInp = modal.querySelector("#prof-auxiliar");
-                if (superInp) superInp.value = gObj?.encargado || gObj?.superintendente || "Sin asignar";
-                if (auxInp) auxInp.value = gObj?.auxiliar || "Sin asignar";
+                if (superInp) superInp.value = toTitleCase(gObj?.encargado || gObj?.superintendente || "Sin asignar");
+                if (auxInp) auxInp.value = toTitleCase(gObj?.auxiliar || "Sin asignar");
             };
         }
 

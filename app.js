@@ -77,7 +77,7 @@ initPWAInstallPrompt();
 // moduleRegistry.init();
 
 // The version is injected by Vite at build time (Core Shell Version)
-const APP_VERSION = "4.8.4";
+const APP_VERSION = "4.8.5";
 window.XolvyApp = { user: null, version: APP_VERSION };
 
 window.switchAppRole = (targetRole) => {

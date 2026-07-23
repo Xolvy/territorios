@@ -359,12 +359,12 @@ export const renderPersonalTab = async (container, _configData = null, _appVersi
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 bg-slate-100/60 dark:bg-white/5 p-4 rounded-2xl border border-slate-200/60 dark:border-white/5">
                             <div class="space-y-1">
                                 <label class="text-[9px] font-black uppercase text-slate-500">Superintendente de Grupo</label>
-                                <input type="text" id="p-superintendente" value="${groups.find((g) => String(g.id) === String(person?.grupo))?.encargado || groups.find((g) => String(g.id) === String(person?.grupo))?.superintendente || person?.superintendente || "Sin asignar"}" readonly
+                                <input type="text" id="p-superintendente" value="${toTitleCase(groups.find((g) => String(g.id) === String(person?.grupo))?.encargado || groups.find((g) => String(g.id) === String(person?.grupo))?.superintendente || person?.superintendente || "Sin asignar")}" readonly
                                     class="w-full py-2.5 px-3 bg-slate-200/50 dark:bg-slate-800 border border-slate-300/60 dark:border-white/10 rounded-xl font-bold text-xs opacity-80 cursor-not-allowed select-none">
                             </div>
                             <div class="space-y-1">
                                 <label class="text-[9px] font-black uppercase text-slate-500">Auxiliar de Grupo</label>
-                                <input type="text" id="p-auxiliar" value="${groups.find((g) => String(g.id) === String(person?.grupo))?.auxiliar || person?.auxiliar || "Sin asignar"}" readonly
+                                <input type="text" id="p-auxiliar" value="${toTitleCase(groups.find((g) => String(g.id) === String(person?.grupo))?.auxiliar || person?.auxiliar || "Sin asignar")}" readonly
                                     class="w-full py-2.5 px-3 bg-slate-200/50 dark:bg-slate-800 border border-slate-300/60 dark:border-white/10 rounded-xl font-bold text-xs opacity-80 cursor-not-allowed select-none">
                             </div>
                         </div>
@@ -628,8 +628,8 @@ export const renderPersonalTab = async (container, _configData = null, _appVersi
                         const gObj = groups.find((g) => String(g.id) === String(gId));
                         const superInp = modal.querySelector("#p-superintendente");
                         const auxInp = modal.querySelector("#p-auxiliar");
-                        if (superInp) superInp.value = gObj?.encargado || gObj?.superintendente || "Sin asignar";
-                        if (auxInp) auxInp.value = gObj?.auxiliar || "Sin asignar";
+                        if (superInp) superInp.value = toTitleCase(gObj?.encargado || gObj?.superintendente || "Sin asignar");
+                        if (auxInp) auxInp.value = toTitleCase(gObj?.auxiliar || "Sin asignar");
                     });
                 }
 
