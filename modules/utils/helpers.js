@@ -11,6 +11,35 @@ export const normalizeName = (val) =>
         .trim()
         .toLowerCase();
 export const normalizeRobust = normalizeName;
+
+/**
+ * Verificación ultra robusta de privilegios de Administrador
+ * @returns {boolean}
+ */
+export const checkAdminPrivileges = () => {
+    const user = window.XolvyApp?.user || {};
+    let session = {};
+    try { session = JSON.parse(localStorage.getItem("xolvy_session") || "{}"); } catch (_e) {}
+    const identity = window.XolvyApp?.identity || {};
+    const selectedName = localStorage.getItem("selected_conductor_name") || "";
+
+    const checkStr = (val) => {
+        if (!val) return false;
+        const s = String(val).toLowerCase();
+        return s.includes("administrador") || s.includes("superadmin") || s.includes("admin");
+    };
+
+    if (user.isAdmin || session.isAdmin || user.esAdmin || session.esAdmin) return true;
+    if (checkStr(user.role) || checkStr(user.rol) || checkStr(session.role) || checkStr(session.rol) || checkStr(identity.role)) return true;
+
+    // Resguardo por nombre reconocido en sistema (ej. Alberto Conza, Italo, etc.)
+    const nameToTest = String(user.nombre || session.nombre || identity.nombreCanonico || selectedName).toLowerCase();
+    if (nameToTest.includes("alberto") || nameToTest.includes("italo")) {
+        return true;
+    }
+
+    return false;
+};
 export const toTitleCase = (str) => {
     if (!str) return "";
     return str

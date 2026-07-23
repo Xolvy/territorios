@@ -21,7 +21,7 @@ import {
 } from "../data/firestore-services.js";
 import { showModal } from "./services/ui-helpers.js";
 import { AppConfig } from "./utils/config.js";
-import { getMonday, getSafeDateId, normalizeRobust, renderSkeleton, showNotification } from "./utils/helpers.js";
+import { checkAdminPrivileges, getMonday, getSafeDateId, normalizeRobust, renderSkeleton, showNotification } from "./utils/helpers.js";
 
 window.AppConfig = AppConfig;
 
@@ -1413,26 +1413,28 @@ export const renderConductorDashboard = async (container, nameOrEmail, _appVersi
                         </h2>
                     </div>
                     
-                    <!-- 2-Access Role Switcher Bar for Admin & Active Role Badge -->
+                    <!-- Double Pill Role Switcher Bar (Far Right Position) -->
                     <div class="flex items-center gap-3 relative z-10 shrink-0">
-                         ${["Administrador", "SuperAdmin", "Admin"].includes(window.XolvyApp?.user?.role || window.XolvyApp?.user?.rol) || window.XolvyApp?.user?.isAdmin ? `
                          <div id="main-header-role-switcher" class="flex items-center gap-1 bg-slate-100 dark:bg-white/5 p-1 rounded-2xl border border-slate-200/60 dark:border-white/10 shadow-inner">
-                            <button onclick="window.switchAppRole('Conductor')" class="px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 bg-indigo-600 text-white shadow-md">
+                            ${userRole === "Publicador" ? `
+                            <button onclick="window.switchAppRole('Publicador')" class="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 bg-emerald-600 text-white shadow-md">
+                                <i class="fas fa-user text-[10px]"></i>
+                                <span>Publicador</span>
+                            </button>` : `
+                            <button onclick="window.switchAppRole('Conductor')" class="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 bg-indigo-600 text-white shadow-md">
                                 <i class="fas fa-id-badge text-[10px]"></i>
-                                <span class="hidden sm:inline">Conductor</span>
-                            </button>
-                            <button onclick="window.switchAppRole('Administrador')" class="px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 text-slate-500 hover:text-amber-500">
+                                <span>Conductor</span>
+                            </button>`}
+                            
+                            ${checkAdminPrivileges() ? `
+                            <button onclick="window.switchAppRole('Administrador')" class="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 text-slate-500 dark:text-slate-400 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-slate-200/50 dark:hover:bg-white/5 cursor-pointer">
                                 <i class="fas fa-user-shield text-[10px]"></i>
-                                <span class="hidden sm:inline">Admin</span>
-                            </button>
-                         </div>` : ""}
-
-                         <div id="connection-status-badge" class="hidden md:flex px-3 py-1.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-xl text-[9px] font-black uppercase tracking-widest items-center gap-2 select-none">
-                            <span id="connection-status-ping" class="relative flex h-2 w-2">
-                                <span class="saas-spinner-ring animate-ping bg-emerald-500/30 rounded-full w-2 h-2"></span>
-                                <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 animate-pulse"></span>
-                            </span>
-                            <span id="connection-status-text">${userRole === "Publicador" ? "Terminal Publicador" : "Terminal Conductor"}</span>
+                                <span>Admin</span>
+                            </button>` : `
+                            <div class="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider text-slate-300 dark:text-slate-600/40 bg-slate-200/30 dark:bg-white/[0.02] cursor-not-allowed select-none flex items-center gap-1.5 opacity-60">
+                                <i class="fas fa-lock text-[9px] opacity-40"></i>
+                                <span>Admin</span>
+                            </div>`}
                          </div>
                     </div>
                 </header>

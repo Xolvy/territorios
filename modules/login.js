@@ -378,9 +378,9 @@ export const renderRoleDirectorySelection = async (targetRole = "Conductor") => 
                         const userKey = name.toLowerCase().replace(/\s+/g, "");
                         const isCustomValid = customSaved[userKey] && customSaved[userKey].password === passInput;
                         const isDefaultValid = passInput === defaultPassword;
-
                         if (isDefaultValid || isCustomValid) {
-                            const isAdmin = targetRole === "Administrador" || name.toLowerCase().includes("italo") || name.toLowerCase().includes("admin");
+                            const nameLower = name.toLowerCase();
+                            const isAdmin = targetRole === "Administrador" || nameLower.includes("alberto") || nameLower.includes("italo") || nameLower.includes("admin");
                             const sessionData = {
                                 nombre: name,
                                 email: name,

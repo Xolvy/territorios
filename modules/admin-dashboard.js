@@ -327,25 +327,17 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = "
                         </h2>
                     </div>
                     
-                    <!-- 2-Access Role Switcher Bar for Admin & Active Role Badge -->
+                    <!-- Double Pill Role Switcher Bar (Far Right Position) -->
                     <div class="flex items-center gap-3 relative z-10 shrink-0">
                          <div id="main-header-role-switcher" class="flex items-center gap-1 bg-slate-100 dark:bg-white/5 p-1 rounded-2xl border border-slate-200/60 dark:border-white/10 shadow-inner">
-                            <button onclick="window.switchAppRole('Conductor')" class="px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400">
+                            <button onclick="window.switchAppRole('Conductor')" class="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-200/50 dark:hover:bg-white/5 cursor-pointer">
                                 <i class="fas fa-id-badge text-[10px]"></i>
-                                <span class="hidden sm:inline">Conductor</span>
+                                <span>Conductor</span>
                             </button>
-                            <button onclick="window.switchAppRole('Administrador')" class="px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 bg-amber-500 text-white shadow-md">
+                            <button onclick="window.switchAppRole('Administrador')" class="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 bg-amber-500 text-white shadow-md">
                                 <i class="fas fa-user-shield text-[10px]"></i>
-                                <span class="hidden sm:inline">Admin</span>
+                                <span>Admin</span>
                             </button>
-                         </div>
-
-                         <div class="hidden md:flex px-3 py-1.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded-xl text-[9px] font-black uppercase tracking-widest items-center gap-2 select-none">
-                            <span class="relative flex h-2 w-2">
-                                <span class="animate-ping bg-amber-500/30 rounded-full w-2 h-2"></span>
-                                <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500 animate-pulse"></span>
-                            </span>
-                            <span>Terminal Admin</span>
                          </div>
                     </div>
                 </header>
