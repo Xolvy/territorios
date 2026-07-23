@@ -2421,8 +2421,29 @@ export const renderConductorDashboard = async (container, nameOrEmail, _appVersi
                 });
             }
         } catch (err) {
-            console.error("Critical error in loadUnifiedDashboard:", err);
-            showNotification("Error parcial al renderizar interfaz", "warning");
+            console.error("Critical error in renderConductorDashboard:", err);
+            ocultarOverlay();
+            if (container) {
+                container.innerHTML = `
+                    <div class="flex flex-col items-center justify-center min-h-screen p-8 text-center animate-fade-in bg-slate-50 dark:bg-[#02040f] text-slate-800 dark:text-slate-100" style="min-height: 100vh; min-height: 100dvh;">
+                        <div class="w-20 h-20 bg-rose-500/10 text-rose-500 rounded-3xl flex items-center justify-center text-3xl mb-6 shadow-xl border border-rose-500/20">
+                            <i class="fas fa-triangle-exclamation"></i>
+                        </div>
+                        <h3 class="text-xl font-black uppercase tracking-tight">Error de Conexión</h3>
+                        <p class="text-slate-500 dark:text-slate-400 max-w-md mt-2 font-bold text-xs">
+                            No se pudieron cargar los datos del Dashboard (${err?.message || "Error de red o Firestore"}).
+                        </p>
+                        <div class="flex flex-wrap justify-center gap-3 mt-8">
+                            <button onclick="if(window.refreshConductorView){ window.refreshConductorView(true); } else { location.reload(); }" class="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3.5 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-emerald-600/20 active:scale-95 transition-all">
+                                <i class="fas fa-rotate-right mr-2"></i> Reintentar Carga
+                            </button>
+                            <button onclick="localStorage.clear(); sessionStorage.clear(); location.href='/'" class="bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-slate-200 px-6 py-3.5 rounded-2xl font-black uppercase text-[10px] tracking-widest active:scale-95 transition-all">
+                                <i class="fas fa-user-gear mr-2"></i> Cambiar Perfil
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
         } finally {
             // FASE 2: Release render lock after brief cooldown
             setTimeout(() => {

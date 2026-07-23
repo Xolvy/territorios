@@ -74,7 +74,7 @@ initPWAInstallPrompt();
 // moduleRegistry.init();
 
 // The version is injected by Vite at build time (Core Shell Version)
-const APP_VERSION = "4.1.4";
+const APP_VERSION = "4.5.0";
 window.XolvyApp = { user: null, version: APP_VERSION };
 
 window.switchAppRole = (targetRole) => {
@@ -122,38 +122,43 @@ async function loadModule(moduleName, basePath) {
 // Shell View Accessors
 const loadLogin = async () => (await loadModule("login", "./modules/login.js")).renderLogin;
 const loadAdmin = async () => (await loadModule("admin", "./modules/admin-dashboard.js")).renderAdminDashboard;
-let _conductorLoading = false;
+let _conductorPromise = null;
 const loadConductor = async () => {
-    if (_conductorLoading) {
-        console.warn("[App] loadConductor ya está en ejecución, ignorando llamada duplicada");
-        return window.XolvyApp.lastConductorRender || (async () => {});
+    if (window.XolvyApp?.lastConductorRender) {
+        return window.XolvyApp.lastConductorRender;
     }
-    _conductorLoading = true;
-    try {
-        // ERROR 2 — Esperar a que Firebase Auth tenga usuario antes de cargar módulos
-        await new Promise((resolve) => {
-            if (auth.currentUser) {
-                resolve();
-                return;
-            }
-            const timeout = setTimeout(() => {
-                console.warn("⚠️ [Auth] Timeout en loadConductor — procediendo sin usuario");
-                resolve();
-            }, 3500);
-            const unsub = onAuthStateChanged(auth, (u) => {
-                if (u) {
-                    clearTimeout(timeout);
-                    unsub();
+    if (_conductorPromise) {
+        console.log("⚡ [App] loadConductor ya está en ejecución, reutilizando promesa en vuelo...");
+        return _conductorPromise;
+    }
+    _conductorPromise = (async () => {
+        try {
+            // Esperar a que Firebase Auth tenga usuario antes de cargar módulos
+            await new Promise((resolve) => {
+                if (auth.currentUser) {
                     resolve();
+                    return;
                 }
+                const timeout = setTimeout(() => {
+                    console.warn("⚠️ [Auth] Timeout en loadConductor — procediendo sin usuario");
+                    resolve();
+                }, 3500);
+                const unsub = onAuthStateChanged(auth, (u) => {
+                    if (u) {
+                        clearTimeout(timeout);
+                        unsub();
+                        resolve();
+                    }
+                });
             });
-        });
-        const render = (await loadModule("conductor", "./modules/conductor-dashboard.js")).renderConductorDashboard;
-        window.XolvyApp.lastConductorRender = render;
-        return render;
-    } finally {
-        _conductorLoading = false;
-    }
+            const render = (await loadModule("conductor", "./modules/conductor-dashboard.js")).renderConductorDashboard;
+            window.XolvyApp.lastConductorRender = render;
+            return render;
+        } finally {
+            _conductorPromise = null;
+        }
+    })();
+    return _conductorPromise;
 };
 
 // --- DIFFUSION LISTENER ---
@@ -418,7 +423,12 @@ document.addEventListener("DOMContentLoaded", async () => {
                     // If we are currently showing the login screen / selection modal, DO NOT sign out!
                     // This allows anonymous session to remain active so the user can read the directory list.
                     const isConductorModalOpen = !!document.getElementById("conductor-modal");
-                    const isLoginView = !!document.getElementById("btn-google-login");
+                    const isLoginView = !!(
+                        document.getElementById("btn-login-google-admin") ||
+                        document.getElementById("btn-login-google-conductor") ||
+                        document.getElementById("btn-login-google-publicador") ||
+                        document.getElementById("login-logo-container")
+                    );
                     const isLoginPath = contextPath === "/login" || contextPath === "/";
 
                     if (isConductorModalOpen || isLoginView) {
@@ -561,7 +571,24 @@ document.addEventListener("DOMContentLoaded", async () => {
                 render(appContainer, user.email || "Usuario", APP_VERSION, role);
             }
         } catch (e) {
-            console.error("🚀 [Boot] Error:", e);
+            console.error("🚀 [Boot] Critical Auth/Render Error:", e);
+            if (appContainer) {
+                appContainer.innerHTML = `
+                    <div class="flex flex-col items-center justify-center min-h-screen p-6 text-center animate-fade-in bg-gradient-to-br from-slate-50 via-slate-100 to-rose-50/20 dark:from-[#02040f] dark:via-[#050819] dark:to-[#1a080c] text-slate-800 dark:text-slate-100 w-full" style="min-height: 100vh; min-height: 100dvh;">
+                        <div class="w-16 h-16 bg-rose-500/10 text-rose-500 rounded-3xl flex items-center justify-center text-2xl mb-6 shadow-xl border border-rose-500/20"><i class="fas fa-triangle-exclamation"></i></div>
+                        <h2 class="text-xl font-black uppercase tracking-tight">Error de Inicialización</h2>
+                        <p class="text-slate-500 dark:text-slate-400 max-w-sm mt-2 text-xs font-bold">${e?.message || "No se pudo conectar con el servidor."}</p>
+                        <div class="flex flex-wrap gap-3 mt-8 justify-center">
+                            <button onclick="location.reload()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3.5 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-indigo-600/25 active:scale-95 transition-all">
+                                <i class="fas fa-rotate-right mr-2"></i> Reintentar
+                            </button>
+                            <button onclick="localStorage.clear(); sessionStorage.clear(); location.href='/'" class="bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-slate-200 px-6 py-3.5 rounded-2xl font-black uppercase text-[10px] tracking-widest active:scale-95 transition-all">
+                                <i class="fas fa-sign-out-alt mr-2"></i> Reiniciar Sesión
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
         }
     };
 

@@ -344,5 +344,26 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = "
     } catch (e) {
         console.error("Admin Boot Error:", e);
         showNotification(`Error: ${e.message}`, "error");
+        if (container) {
+            container.innerHTML = `
+                <div class="flex flex-col items-center justify-center min-h-screen p-8 text-center animate-fade-in bg-slate-50 dark:bg-[#05070a] text-slate-800 dark:text-slate-100" style="min-height: 100vh; min-height: 100dvh;">
+                    <div class="w-20 h-20 bg-rose-500/10 text-rose-500 rounded-3xl flex items-center justify-center text-3xl mb-6 shadow-xl border border-rose-500/20">
+                        <i class="fas fa-user-shield"></i>
+                    </div>
+                    <h3 class="text-xl font-black uppercase tracking-tight">Error de Panel Administrador</h3>
+                    <p class="text-slate-500 dark:text-slate-400 max-w-md mt-2 font-bold text-xs">
+                        No se pudo inicializar la consola de administración (${e?.message || "Error de permisos o red"}).
+                    </p>
+                    <div class="flex flex-wrap justify-center gap-3 mt-8">
+                        <button onclick="if(window.refreshAdminView){ window.refreshAdminView(); } else { location.reload(); }" class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3.5 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-blue-600/20 active:scale-95 transition-all">
+                            <i class="fas fa-rotate-right mr-2"></i> Reintentar Carga
+                        </button>
+                        <button onclick="localStorage.clear(); sessionStorage.clear(); location.href='/'" class="bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-slate-200 px-6 py-3.5 rounded-2xl font-black uppercase text-[10px] tracking-widest active:scale-95 transition-all">
+                            <i class="fas fa-sign-out-alt mr-2"></i> Salir al Inicio
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
     }
 };
