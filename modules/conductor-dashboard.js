@@ -1357,7 +1357,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, _appVersi
                             <span class="saas-spinner-ring-mobile animate-ping bg-emerald-500/30 rounded-full w-1.5 h-1.5 absolute"></span>
                             <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500 animate-pulse"></span>
                         </span>
-                        <span id="connection-status-text-mobile">En Línea</span>
+                        <span id="connection-status-text-mobile">Conductor</span>
                      </div>
                 </div>
             </header>
@@ -1436,7 +1436,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, _appVersi
                                 <span class="saas-spinner-ring animate-ping bg-emerald-500/30 rounded-full w-2 h-2"></span>
                                 <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 animate-pulse"></span>
                             </span>
-                            <span id="connection-status-text">En Línea • Terminal Conductor</span>
+                            <span id="connection-status-text">Terminal Conductor</span>
                          </div>
                     </div>
                 </header>
@@ -1764,7 +1764,9 @@ export const renderConductorDashboard = async (container, nameOrEmail, _appVersi
                         dotRing.className = "saas-spinner-ring animate-ping bg-emerald-500/30 rounded-full w-2 h-2";
                     if (dotDot)
                         dotDot.className = "relative inline-flex rounded-full h-2 w-2 bg-emerald-500 animate-pulse";
-                    if (text) text.textContent = "En Línea • Terminal Conductor";
+                    const activeRole = window.XolvyApp?.user?.role || window.XolvyApp?.user?.rol || "Conductor";
+                    const roleLabel = activeRole === "Administrador" ? "Terminal Admin" : activeRole === "Publicador" ? "Terminal Publicador" : "Terminal Conductor";
+                    if (text) text.textContent = roleLabel.toUpperCase();
 
                     if (badgeMobile) {
                         badgeMobile.className =
@@ -1776,7 +1778,7 @@ export const renderConductorDashboard = async (container, nameOrEmail, _appVersi
                     if (dotDotMobile)
                         dotDotMobile.className =
                             "relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500 animate-pulse";
-                    if (textMobile) textMobile.textContent = "En Línea";
+                    if (textMobile) textMobile.textContent = activeRole.toUpperCase();
                 } else {
                     if (badge) {
                         badge.className =

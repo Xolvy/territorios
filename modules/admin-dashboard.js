@@ -255,27 +255,27 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = "
                 .catch((e) => console.warn("Version check skipped", e));
         }
 
+        const displayName = window.XolvyApp?.identity?.nombreCanonico || window.XolvyApp?.user?.nombre || localStorage.getItem("selected_conductor_name") || auth.currentUser?.displayName || "Administrador";
+
         // --- MAIN SHELL RENDER ---
         container.innerHTML = `
     <div class="flex flex-col w-full overflow-hidden bg-slate-50 dark:bg-[#05070a] animate-fade-in" style="height:100vh;height:100dvh;" data-adaptive-container="true">
         <header class="flex items-center justify-between bg-white/40 dark:bg-[#030712]/40 backdrop-blur-xl border-b border-slate-200/10 dark:border-white/5 sticky top-0 z-40 shadow-sm p-4 lg:hidden flex-none transition-colors duration-300">
-            <button id="menu-toggle-btn" class="p-2 text-emerald-600 dark:text-emerald-400 focus:outline-none active:scale-95 transition-transform">
+            <button id="menu-toggle-btn" class="p-2 text-amber-500 focus:outline-none active:scale-95 transition-transform">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
             </button>
             <div class="flex items-center gap-2">
                 <span class="text-amber-400 text-sm">❖</span>
-                <span class="text-emerald-750 dark:text-emerald-400 font-black text-[10px] sm:text-xs tracking-[0.2em] uppercase">CONGREGACIÓN "NUEVE DE OCTUBRE"</span>
-                <span class="text-[8px] tracking-wider bg-amber-400/20 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded font-black">ADMIN</span>
-            <div class="flex items-center gap-1 bg-slate-100 dark:bg-white/5 p-1 rounded-2xl border border-slate-200/60 dark:border-white/10 shadow-inner">
-                <button onclick="window.switchAppRole('Publicador')" class="px-2 py-1 rounded-xl text-[8px] font-black uppercase tracking-wider transition-all text-slate-500 hover:text-emerald-500">
-                    <i class="fas fa-user"></i>
-                </button>
-                <button onclick="window.switchAppRole('Conductor')" class="px-2 py-1 rounded-xl text-[8px] font-black uppercase tracking-wider transition-all text-slate-500 hover:text-indigo-500">
-                    <i class="fas fa-id-badge"></i>
-                </button>
-                <button onclick="window.switchAppRole('Administrador')" class="px-2 py-1 rounded-xl text-[8px] font-black uppercase tracking-wider transition-all bg-amber-500 text-white shadow-md">
-                    <i class="fas fa-user-shield"></i>
-                </button>
+                <span class="text-slate-800 dark:text-white font-black text-[10px] sm:text-xs tracking-[0.2em] uppercase">CONGREGACIÓN "NUEVE DE OCTUBRE"</span>
+            </div>
+            <div class="flex items-center gap-2 relative z-10 shrink-0">
+                 <div class="px-2.5 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded-xl text-[8px] font-black uppercase tracking-wider flex items-center gap-1.5 select-none">
+                    <span class="relative flex h-1.5 w-1.5">
+                        <span class="animate-ping bg-amber-500/30 rounded-full w-1.5 h-1.5 absolute"></span>
+                        <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500 animate-pulse"></span>
+                    </span>
+                    <span>Admin</span>
+                 </div>
             </div>
         </header>
         <div class="flex flex-col lg:flex-row flex-1 min-w-0 min-h-0 overflow-hidden relative">
@@ -302,11 +302,11 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = "
                     </div>
                     
                     <div class="pt-4 border-t border-slate-200/50 dark:border-emerald-900/30 space-y-1.5 mt-auto">
+                        <button onclick="import('./services/user-profile-modal.js').then(m => m.openUserProfileModal());" class="w-full flex items-center gap-3 p-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-indigo-500/10 hover:text-indigo-500 text-[9px] font-black uppercase tracking-widest transition-all focus:outline-none">
+                            <i class="fas fa-id-card stroke-1.5" stroke-width="1.5"></i> <span class="sidebar-text">Mi Perfil</span>
+                        </button>
                         <button onclick="window.toggleTheme();" class="w-full flex items-center gap-3 p-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 text-[9px] font-medium uppercase tracking-widest transition-all focus:outline-none">
                             <i class="fas fa-adjust stroke-1.5" stroke-width="1.5"></i> <span class="sidebar-text">Cambiar Tema</span>
-                        </button>
-                        <button onclick="window.switchAppRole('Conductor');" class="w-full flex items-center gap-3 p-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 text-[9px] font-medium uppercase tracking-widest transition-all focus:outline-none">
-                            <i class="fas fa-random stroke-1.5" stroke-width="1.5"></i> <span class="sidebar-text">Modo Conductor</span>
                         </button>
                         <button id="logout-btn" class="w-full flex items-center gap-3 p-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-rose-500/10 hover:text-rose-500 text-[9px] font-medium uppercase tracking-widest transition-all focus:outline-none">
                             <i class="fas fa-sign-out-alt stroke-1.5" stroke-width="1.5"></i> <span class="sidebar-text">Salir</span>
@@ -315,11 +315,42 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = "
                 </nav>
             </aside>
             <main class="flex-1 min-w-0 flex flex-col min-w-0 h-auto lg:h-full overflow-hidden bg-slate-50 dark:bg-[#0a0f18] relative">
-                <header class="hidden lg:flex justify-between items-center p-6 border-b border-slate-100 dark:border-white/5 shrink-0">
-                    <h2 class="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Panel de Gestión</h2>
-                    <div class="flex items-center gap-2">
-                        <span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span></span>
-                        <p class="text-[9px] text-slate-500 font-black uppercase tracking-widest">En línea • v${appVersion}</p>
+                <!-- Desktop / Main Header (Matching Conductor Mode) -->
+                <header class="shrink-0 z-20 bg-white dark:bg-[#0a0f18] border-b border-slate-200/50 dark:border-white/5 px-6 md:px-12 py-4 hidden lg:flex items-center justify-between gap-6 relative overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-r from-amber-500/5 via-transparent to-transparent pointer-events-none"></div>
+                    <div class="flex items-center gap-3 relative z-10">
+                        <div class="w-10 h-10 bg-gradient-to-tr from-amber-500 to-amber-600 rounded-xl flex items-center justify-center text-white text-base font-black shadow-lg shadow-amber-500/30 shrink-0 border border-white/20 animate-float">
+                            ${displayName.charAt(0)}
+                        </div>
+                        <h2 class="text-xl md:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter leading-none font-sans">
+                            Hola, ${displayName.split(" ")[0]}
+                        </h2>
+                    </div>
+                    
+                    <!-- 1-Tap Role Switcher Bar & Active Role Badge -->
+                    <div class="flex items-center gap-3 relative z-10 shrink-0">
+                         <div id="main-header-role-switcher" class="flex items-center gap-1 bg-slate-100 dark:bg-white/5 p-1 rounded-2xl border border-slate-200/60 dark:border-white/10 shadow-inner">
+                            <button onclick="window.switchAppRole('Publicador')" class="px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400">
+                                <i class="fas fa-user text-[10px]"></i>
+                                <span class="hidden sm:inline">Publicador</span>
+                            </button>
+                            <button onclick="window.switchAppRole('Conductor')" class="px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400">
+                                <i class="fas fa-id-badge text-[10px]"></i>
+                                <span class="hidden sm:inline">Conductor</span>
+                            </button>
+                            <button onclick="window.switchAppRole('Administrador')" class="px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 bg-amber-500 text-white shadow-md">
+                                <i class="fas fa-user-shield text-[10px]"></i>
+                                <span class="hidden sm:inline">Admin</span>
+                            </button>
+                         </div>
+
+                         <div class="hidden md:flex px-3 py-1.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded-xl text-[9px] font-black uppercase tracking-widest items-center gap-2 select-none">
+                            <span class="relative flex h-2 w-2">
+                                <span class="animate-ping bg-amber-500/30 rounded-full w-2 h-2"></span>
+                                <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500 animate-pulse"></span>
+                            </span>
+                            <span>Terminal Admin</span>
+                         </div>
                     </div>
                 </header>
                 <div id="admin-content" class="flex-1 min-w-0 overflow-y-auto custom-scrollbar p-4 md:p-8 pb-32 bg-slate-50/50 dark:bg-black/10"></div>
