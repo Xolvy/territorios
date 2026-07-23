@@ -601,3 +601,130 @@ export const initializePhoneModule = (initialPhones, publicadores, _displayName,
     // Render inicial
     render();
 };
+
+/**
+ * Lanzador de Sesión Personalizable (Modal de Selección de Lote)
+ */
+export const showSessionLauncherModal = (onConfirm) => {
+    showModal(
+        `
+        <div class="p-6 space-y-6">
+            <div class="flex items-center gap-4 pb-3 border-b border-slate-100 dark:border-white/5">
+                <div class="w-12 h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-500 text-xl border border-indigo-500/10">
+                    <i class="fas fa-rocket"></i>
+                </div>
+                <div>
+                    <p class="text-[9px] font-black uppercase tracking-widest text-slate-400">Lanzador de Sesión</p>
+                    <h3 class="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight">Iniciar Predicación Telefónica</h3>
+                </div>
+            </div>
+
+            <div class="space-y-3">
+                <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Selecciona la Cantidad de Números</label>
+                <div class="grid grid-cols-4 gap-2" id="batch-size-selector">
+                    <button type="button" data-qty="5" class="qty-chip p-3.5 rounded-2xl font-black text-xs border-2 border-indigo-600 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shadow-sm transition-all">5</button>
+                    <button type="button" data-qty="10" class="qty-chip p-3.5 rounded-2xl font-black text-xs border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:border-indigo-400 transition-all">10</button>
+                    <button type="button" data-qty="15" class="qty-chip p-3.5 rounded-2xl font-black text-xs border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:border-indigo-400 transition-all">15</button>
+                    <button type="button" data-qty="20" class="qty-chip p-3.5 rounded-2xl font-black text-xs border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:border-indigo-400 transition-all">20</button>
+                </div>
+            </div>
+
+            <div class="flex gap-3 pt-2">
+                <button type="button" onclick="window.closeModal()" class="flex-1 py-3.5 bg-slate-100 dark:bg-white/5 text-slate-500 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all">Cancelar</button>
+                <button type="button" id="btn-start-session-submit" class="flex-[1.5] py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-600/20 active:scale-95 transition-all">
+                    <i class="fas fa-play mr-1.5"></i> Iniciar Sesión
+                </button>
+            </div>
+        </div>
+        `,
+        (modal) => {
+            let selectedQty = 5;
+            const chips = modal.querySelectorAll(".qty-chip");
+            chips.forEach((chip) => {
+                chip.onclick = () => {
+                    chips.forEach((c) => {
+                        c.className = "qty-chip p-3.5 rounded-2xl font-black text-xs border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:border-indigo-400 transition-all";
+                    });
+                    chip.className = "qty-chip p-3.5 rounded-2xl font-black text-xs border-2 border-indigo-600 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shadow-sm transition-all";
+                    selectedQty = parseInt(chip.dataset.qty, 10);
+                };
+            });
+
+            modal.querySelector("#btn-start-session-submit").onclick = () => {
+                window.closeModal();
+                if (onConfirm) onConfirm(selectedQty);
+            };
+        },
+        "max-w-sm"
+    );
+};
+
+/**
+ * Reporte Resumen de Cierre de Sesión Telefónica (Analytics + Exportación WhatsApp)
+ */
+export const showSessionSummaryModal = (stats, onConfirmRelease) => {
+    const total = stats.total || 0;
+    const marcados = stats.marcados || 0;
+    const pct = total > 0 ? Math.round((marcados / total) * 100) : 0;
+
+    const summaryText = `📋 *RESUMEN DE PREDICACIÓN TELEFÓNICA*
+📞 *Total Asignados:* ${total}
+✅ *Marcados / Completados:* ${marcados} (${pct}%)
+🟢 *Contestaron:* ${stats.Contestaron || 0}
+🔵 *Revisitas Creadas:* ${stats.Revisita || 0}
+🔴 *No Llamar / Suspendidos:* ${stats["No llamar"] || 0}
+📱 *App Territorios — Xolvy Live Pool*`;
+
+    showModal(
+        `
+        <div class="p-6 space-y-6 text-center">
+            <div class="w-16 h-16 bg-indigo-500/10 text-indigo-500 rounded-3xl flex items-center justify-center text-3xl mx-auto shadow-xl border border-indigo-500/20">
+                <i class="fas fa-chart-pie"></i>
+            </div>
+            <div class="space-y-1">
+                <h3 class="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Resumen de Sesión</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase">Predicación Telefónica Finalizada</p>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2">
+                <div class="bg-indigo-500/10 border border-indigo-500/20 p-3 rounded-2xl">
+                    <span class="block text-[8px] font-black text-indigo-500 uppercase tracking-widest">Efectividad</span>
+                    <span class="text-lg font-black text-indigo-600 dark:text-indigo-400">${pct}%</span>
+                </div>
+                <div class="bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-2xl">
+                    <span class="block text-[8px] font-black text-emerald-500 uppercase tracking-widest">Contestaron</span>
+                    <span class="text-lg font-black text-emerald-600 dark:text-emerald-400">${stats.Contestaron || 0}</span>
+                </div>
+                <div class="bg-indigo-500/10 border border-indigo-500/20 p-3 rounded-2xl">
+                    <span class="block text-[8px] font-black text-indigo-500 uppercase tracking-widest">Revisitas</span>
+                    <span class="text-lg font-black text-indigo-600 dark:text-indigo-400">${stats.Revisita || 0}</span>
+                </div>
+            </div>
+
+            <button type="button" id="btn-copy-wa-summary" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 transition-all active:scale-95">
+                <i class="fab fa-whatsapp text-sm"></i> Copiar Resumen para WhatsApp
+            </button>
+
+            <div class="flex gap-3 pt-2">
+                <button type="button" onclick="window.closeModal()" class="flex-1 py-3.5 bg-slate-100 dark:bg-white/5 text-slate-500 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all">Cancelar</button>
+                <button type="button" id="btn-confirm-release-session" class="flex-[1.5] py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-600/20 active:scale-95 transition-all">
+                    Finalizar Sesión
+                </button>
+            </div>
+        </div>
+        `,
+        (modal) => {
+            modal.querySelector("#btn-copy-wa-summary").onclick = () => {
+                navigator.clipboard.writeText(summaryText);
+                showNotification("Resumen copiado al portapapeles para WhatsApp", "success");
+            };
+
+            modal.querySelector("#btn-confirm-release-session").onclick = () => {
+                window.closeModal();
+                if (onConfirmRelease) onConfirmRelease();
+            };
+        },
+        "max-w-sm"
+    );
+};
+
