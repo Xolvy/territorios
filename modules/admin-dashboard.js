@@ -327,13 +327,9 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = "
                         </h2>
                     </div>
                     
-                    <!-- 1-Tap Role Switcher Bar & Active Role Badge -->
+                    <!-- 2-Access Role Switcher Bar for Admin & Active Role Badge -->
                     <div class="flex items-center gap-3 relative z-10 shrink-0">
                          <div id="main-header-role-switcher" class="flex items-center gap-1 bg-slate-100 dark:bg-white/5 p-1 rounded-2xl border border-slate-200/60 dark:border-white/10 shadow-inner">
-                            <button onclick="window.switchAppRole('Publicador')" class="px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400">
-                                <i class="fas fa-user text-[10px]"></i>
-                                <span class="hidden sm:inline">Publicador</span>
-                            </button>
                             <button onclick="window.switchAppRole('Conductor')" class="px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400">
                                 <i class="fas fa-id-badge text-[10px]"></i>
                                 <span class="hidden sm:inline">Conductor</span>

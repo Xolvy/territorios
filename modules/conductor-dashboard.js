@@ -26,8 +26,8 @@ import { getMonday, getSafeDateId, normalizeRobust, renderSkeleton, showNotifica
 window.AppConfig = AppConfig;
 
 import { moduleRegistry } from "./utils/module-registry.js";
-import "./conductor/conductor-actions.js";
 import { ReceptionHub } from "./services/reception-hub.js";
+import { renderMiInformeModule } from "./conductor/mi-informe.js";
 
 // --- MICRO-MODULE LOADER ---
 const dynamicSubModules = import.meta.glob("./**/*.js");
@@ -1413,30 +1413,26 @@ export const renderConductorDashboard = async (container, nameOrEmail, _appVersi
                         </h2>
                     </div>
                     
-                    <!-- 1-Tap Role Switcher Bar & Online/Offline status badge -->
+                    <!-- 2-Access Role Switcher Bar for Admin & Active Role Badge -->
                     <div class="flex items-center gap-3 relative z-10 shrink-0">
+                         ${["Administrador", "SuperAdmin", "Admin"].includes(window.XolvyApp?.user?.role || window.XolvyApp?.user?.rol) || window.XolvyApp?.user?.isAdmin ? `
                          <div id="main-header-role-switcher" class="flex items-center gap-1 bg-slate-100 dark:bg-white/5 p-1 rounded-2xl border border-slate-200/60 dark:border-white/10 shadow-inner">
-                            <button onclick="window.switchAppRole('Publicador')" class="px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400">
-                                <i class="fas fa-user text-[10px]"></i>
-                                <span class="hidden sm:inline">Publicador</span>
-                            </button>
                             <button onclick="window.switchAppRole('Conductor')" class="px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 bg-indigo-600 text-white shadow-md">
                                 <i class="fas fa-id-badge text-[10px]"></i>
                                 <span class="hidden sm:inline">Conductor</span>
                             </button>
-                            ${["Administrador", "SuperAdmin", "Admin"].includes(window.XolvyApp?.user?.role || window.XolvyApp?.user?.rol) || window.XolvyApp?.user?.isAdmin ? `
                             <button onclick="window.switchAppRole('Administrador')" class="px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 text-slate-500 hover:text-amber-500">
                                 <i class="fas fa-user-shield text-[10px]"></i>
                                 <span class="hidden sm:inline">Admin</span>
-                            </button>` : ""}
-                         </div>
+                            </button>
+                         </div>` : ""}
 
                          <div id="connection-status-badge" class="hidden md:flex px-3 py-1.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-xl text-[9px] font-black uppercase tracking-widest items-center gap-2 select-none">
                             <span id="connection-status-ping" class="relative flex h-2 w-2">
                                 <span class="saas-spinner-ring animate-ping bg-emerald-500/30 rounded-full w-2 h-2"></span>
                                 <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 animate-pulse"></span>
                             </span>
-                            <span id="connection-status-text">Terminal Conductor</span>
+                            <span id="connection-status-text">${userRole === "Publicador" ? "Terminal Publicador" : "Terminal Conductor"}</span>
                          </div>
                     </div>
                 </header>
@@ -1613,6 +1609,9 @@ export const renderConductorDashboard = async (container, nameOrEmail, _appVersi
                                 <div id="recursos-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6"></div>
                             </div>
                         </div>
+
+                        <!-- 4. MI INFORME (Registro de Horas) -->
+                        <div id="mi-informe-section"></div>
                     </div>
                 </div>
                 </main>
@@ -2414,9 +2413,14 @@ export const renderConductorDashboard = async (container, nameOrEmail, _appVersi
                 );
             }
 
+            const miInformeSec = container.querySelector("#mi-informe-section");
+            if (miInformeSec) {
+                await renderMiInformeModule(miInformeSec, name || displayName);
+            }
+
             const isPublicadorMode = (_userRole === "Publicador" || window.XolvyApp?.user?.role === "Publicador");
             if (isPublicadorMode) {
-                const hideSectionIds = ["availability-section", "phone-module-card", "recursos-container-section"];
+                const hideSectionIds = ["availability-section", "phone-module-card"];
                 hideSectionIds.forEach((id) => {
                     const el = container.querySelector("#" + id);
                     if (el) el.classList.add("hidden");
