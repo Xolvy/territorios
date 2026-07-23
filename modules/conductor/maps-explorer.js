@@ -192,7 +192,7 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
 
     // Helper: Compute assigned territory numbers for active week program
     const getWeeklyAssignedNumbers = () => {
-        const assigned = new Set();
+        const assignedInProg = new Set();
         const prog = window._progCache?.programa;
         if (prog && Array.isArray(prog.dias)) {
             prog.dias.forEach((dia) => {
@@ -200,39 +200,43 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
                     if (key !== "nombre" && key !== "fecha" && dia[key]?.territorio) {
                         String(dia[key].territorio)
                             .split(/[,;/]/)
-                            .map((t) => t.trim())
+                            .map((num) => num.trim())
                             .filter(Boolean)
                             .forEach((num) => {
                                 const cleanNum = num.replace(/^T-?/i, "").trim();
-                                assigned.add(cleanNum);
-                                assigned.add(num);
+                                assignedInProg.add(cleanNum);
+                                assignedInProg.add(num);
                             });
                     }
                 });
             });
         }
-        return assigned;
+        return assignedInProg;
     };
 
     // In-place Toggle: Update polygon styles (Normal vs Disponibilidad)
     const updatePolygonStyles = () => {
         const POLY_COLORS = ["#4f46e5", "#0ea5e9", "#10b981", "#f59e0b", "#ec4899", "#8b5cf6"];
-        const assigned = getWeeklyAssignedNumbers();
+        const assignedInProg = getWeeklyAssignedNumbers();
 
         sortedTerritorios.forEach((t) => {
-            const numStr = String(t.numero);
+            const numStr = String(t.numero).trim();
+            const cleanNum = numStr.replace(/^T-?/i, "").trim();
             const group = geoJsonLayers[numStr];
             if (!group || !group.eachLayer) return;
 
             const isSelected = selectedNumber !== "all" && numStr === selectedNumber;
-            const isAssignedInWeek = assigned.has(numStr) || assigned.has(numStr.replace(/^T-?/i, "").trim());
+            const isInWeeklyProgram = assignedInProg.has(cleanNum) || assignedInProg.has(numStr);
+            const isLiveAssigned = String(t.estado || "").toLowerCase() === "asignado" || String(t.status || "").toLowerCase() === "asignado";
+            const isOcupado = isInWeeklyProgram && isLiveAssigned;
 
-            group.eachLayer((poly, idx) => {
+            let polyIdx = 0;
+            group.eachLayer((poly) => {
                 if (!poly.setStyle) return;
 
                 if (mapStyleMode === "disponibilidad") {
-                    const color = isAssignedInWeek ? "#dc2626" : "#059669";
-                    const fillColor = isAssignedInWeek ? "#ef4444" : "#10b981";
+                    const color = isOcupado ? "#dc2626" : "#059669";
+                    const fillColor = isOcupado ? "#ef4444" : "#10b981";
                     poly.setStyle({
                         color: color,
                         weight: isSelected ? 4.5 : 2.5,
@@ -241,7 +245,7 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
                         fillOpacity: isSelected ? 0.6 : 0.35,
                     });
                 } else {
-                    const accentColor = POLY_COLORS[idx % POLY_COLORS.length];
+                    const accentColor = poly.options._originalColor || POLY_COLORS[polyIdx % POLY_COLORS.length];
                     poly.setStyle({
                         color: accentColor,
                         weight: isSelected ? 4.5 : 2.5,
@@ -250,6 +254,7 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
                         fillOpacity: isSelected ? 0.5 : 0.25,
                     });
                 }
+                polyIdx++;
             });
         });
     };
@@ -328,6 +333,7 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
                             fillOpacity: 0.25,
                             lineCap: "round",
                             lineJoin: "round",
+                            _originalColor: accentColor,
                         }).addTo(subGroup);
 
                         poly.bindTooltip(labelText, {
