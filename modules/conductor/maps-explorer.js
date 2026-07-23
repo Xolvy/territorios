@@ -101,8 +101,8 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
                         </button>
                     </div>
 
-                    <!-- TERRITORIOS LIBRES BUTTON -->
-                    <button id="btn-open-sugerencias-dispo" class="px-3.5 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95 shadow-sm" title="Ver Territorios Libres y Sugerencias de la Semana">
+                    <!-- IN-PLACE TOGGLE: TERRITORIOS LIBRES VS VISTA NORMAL -->
+                    <button id="btn-open-sugerencias-dispo" class="px-3.5 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95 shadow-sm" title="Alternar Vista entre Modo Normal y Territorios Libres (Disponibilidad)">
                         <i class="fas fa-check-circle text-emerald-500 text-xs"></i>
                         <span>Territorios Libres</span>
                     </button>
@@ -136,6 +136,12 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
                         </button>
                     </div>
 
+                    <!-- FLOATING LEGEND FOR TERRITORIOS LIBRES MODE -->
+                    <div id="explorer-dispo-legend" class="hidden absolute bottom-6 left-4 z-[1000] flex items-center gap-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl px-3.5 py-2 shadow-2xl border border-slate-200/60 dark:border-white/10 pointer-events-auto select-none">
+                        <span class="flex items-center gap-1.5 text-[8.5px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm"></span>Libre</span>
+                        <span class="flex items-center gap-1.5 text-[8.5px] font-black text-red-600 dark:text-red-400 uppercase tracking-widest"><span class="w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm"></span>Ocupado</span>
+                    </div>
+
                     <!-- FLOATING MAP CONTROLS -->
                     <div class="absolute bottom-6 right-4 z-[1000] flex flex-col gap-2 pointer-events-auto">
                         <button id="explorer-zoom-in" class="w-10 h-10 bg-white/95 dark:bg-slate-900/90 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200/60 dark:border-white/10 text-slate-700 dark:text-white flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all active:scale-90" title="Acercar"><i class="fas fa-plus text-xs"></i></button>
@@ -160,12 +166,14 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
 
     // State Variables
     let currentMode = "satelital"; // "satelital" | "imagen"
+    let mapStyleMode = "normal"; // "normal" | "disponibilidad"
     let selectedNumber = "all";
     let isGpsActive = false;
     let gpsMarkers = {};
     let leafletMap = null;
     let geoJsonLayers = {};
     let territoryCenterMarkers = {};
+    let boundsGroup = null;
 
     const mapContainer = mapsSection.querySelector("#full-map-leaflet-viewer");
     const imgViewer = mapsSection.querySelector("#full-map-image-viewer");
@@ -180,6 +188,71 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
     const bannerTitle = mapsSection.querySelector("#banner-t-title");
     const bannerSub = mapsSection.querySelector("#banner-t-sub");
     const bannerBtnCroquis = mapsSection.querySelector("#banner-btn-croquis");
+    const dispoLegend = mapsSection.querySelector("#explorer-dispo-legend");
+
+    // Helper: Compute assigned territory numbers for active week program
+    const getWeeklyAssignedNumbers = () => {
+        const assigned = new Set();
+        const prog = window._progCache?.programa;
+        if (prog && Array.isArray(prog.dias)) {
+            prog.dias.forEach((dia) => {
+                Object.keys(dia).forEach((key) => {
+                    if (key !== "nombre" && key !== "fecha" && dia[key]?.territorio) {
+                        String(dia[key].territorio)
+                            .split(/[,;/]/)
+                            .map((t) => t.trim())
+                            .filter(Boolean)
+                            .forEach((num) => {
+                                const cleanNum = num.replace(/^T-?/i, "").trim();
+                                assigned.add(cleanNum);
+                                assigned.add(num);
+                            });
+                    }
+                });
+            });
+        }
+        return assigned;
+    };
+
+    // In-place Toggle: Update polygon styles (Normal vs Disponibilidad)
+    const updatePolygonStyles = () => {
+        const POLY_COLORS = ["#4f46e5", "#0ea5e9", "#10b981", "#f59e0b", "#ec4899", "#8b5cf6"];
+        const assigned = getWeeklyAssignedNumbers();
+
+        sortedTerritorios.forEach((t) => {
+            const numStr = String(t.numero);
+            const group = geoJsonLayers[numStr];
+            if (!group || !group.eachLayer) return;
+
+            const isSelected = selectedNumber !== "all" && numStr === selectedNumber;
+            const isAssignedInWeek = assigned.has(numStr) || assigned.has(numStr.replace(/^T-?/i, "").trim());
+
+            group.eachLayer((poly, idx) => {
+                if (!poly.setStyle) return;
+
+                if (mapStyleMode === "disponibilidad") {
+                    const color = isAssignedInWeek ? "#dc2626" : "#059669";
+                    const fillColor = isAssignedInWeek ? "#ef4444" : "#10b981";
+                    poly.setStyle({
+                        color: color,
+                        weight: isSelected ? 4.5 : 2.5,
+                        opacity: 0.95,
+                        fillColor: fillColor,
+                        fillOpacity: isSelected ? 0.6 : 0.35,
+                    });
+                } else {
+                    const accentColor = POLY_COLORS[idx % POLY_COLORS.length];
+                    poly.setStyle({
+                        color: accentColor,
+                        weight: isSelected ? 4.5 : 2.5,
+                        opacity: 0.9,
+                        fillColor: accentColor,
+                        fillOpacity: isSelected ? 0.5 : 0.25,
+                    });
+                }
+            });
+        });
+    };
 
     // Dynamic Label Visibility:
     // General Map View (`selectedNumber === "all"`): Show ONLY Terr. 1, Terr. 2... badges at centroids. Hide Mz tooltips.
@@ -235,7 +308,7 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
         ).addTo(leafletMap);
 
         const POLY_COLORS = ["#4f46e5", "#0ea5e9", "#10b981", "#f59e0b", "#ec4899", "#8b5cf6"];
-        const boundsGroup = L.featureGroup();
+        boundsGroup = L.featureGroup();
 
         sortedTerritorios.forEach((t) => {
             const allItems = extractMultiLeafletCoords(t);
@@ -314,7 +387,15 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
 
         // Listen for map zoom & view events to keep labels synced
         leafletMap.on("zoomend", updateLabelVisibility);
-        setTimeout(() => updateLabelVisibility(), 150);
+        setTimeout(() => {
+            if (leafletMap) {
+                leafletMap.invalidateSize();
+                if (boundsGroup.getLayers().length > 0) {
+                    leafletMap.fitBounds(boundsGroup.getBounds(), { padding: [30, 30] });
+                }
+            }
+            updateLabelVisibility();
+        }, 300);
 
         // Map Control bindings
         mapsSection.querySelector("#explorer-zoom-in")?.addEventListener("click", () => leafletMap.zoomIn());
@@ -332,16 +413,7 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
     // Focus / Zoom on Territory
     const focusTerritory = (num) => {
         selectedNumber = num;
-
-        // Reset polygon stroke weights
-        Object.keys(geoJsonLayers).forEach((k) => {
-            const group = geoJsonLayers[k];
-            if (group && group.eachLayer) {
-                group.eachLayer((l) => {
-                    if (l.setStyle) l.setStyle({ weight: 2.5, fillOpacity: 0.25 });
-                });
-            }
-        });
+        updatePolygonStyles();
 
         if (num === "all") {
             territoryBanner?.classList.add("hidden");
@@ -359,11 +431,6 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
         const layerGroup = geoJsonLayers[String(num)];
 
         if (layerGroup) {
-            if (layerGroup.eachLayer) {
-                layerGroup.eachLayer((l) => {
-                    if (l.setStyle) l.setStyle({ weight: 4.5, fillOpacity: 0.5 });
-                });
-            }
             const b = layerGroup.getBounds ? layerGroup.getBounds() : null;
             if (b && b.isValid()) {
                 leafletMap.fitBounds(b, { padding: [40, 40], maxZoom: 18 });
@@ -385,7 +452,7 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
     // Update Image Viewer for selected territory or master croquis image (Image 2)
     const updateImageViewer = (territory) => {
         if (!territory) {
-            // General Map Croquis: Display master congregation croquis image (Image 2)
+            // General Map Croquis: Display master congregation croquis image
             staticImg.src = "/assets/mapa-general.png";
             staticImg.classList.remove("hidden");
             emptyMsg.classList.add("hidden");
@@ -488,36 +555,57 @@ export const renderMapsExplorer = (container, allTerritorios, openMapFn) => {
         };
     }
 
-    // "Territorios Libres" button opens AI Sugerencias & Free Territories Modal directly
+    // IN-PLACE TOGGLE: "Territorios Libres" button switches map polygon colors (Libre vs Ocupado)
     if (btnFreeTerritories) {
-        btnFreeTerritories.onclick = async () => {
-            try {
-                const { openSugeridorModal } = await import("../admin/ai-sugeridor.js");
-                openSugeridorModal(window._progCache?.programa || { dias: [] });
-            } catch (err) {
-                console.error("Error al abrir Territorios Libres:", err);
-                showNotification("Error cargando Territorios Libres", "error");
+        btnFreeTerritories.onclick = () => {
+            mapStyleMode = mapStyleMode === "normal" ? "disponibilidad" : "normal";
+            if (mapStyleMode === "disponibilidad") {
+                btnFreeTerritories.className = "px-3.5 py-1.5 bg-emerald-600 text-white rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-lg shadow-emerald-600/30 active:scale-95";
+                dispoLegend?.classList.remove("hidden");
+                showNotification("Modo Disponibilidad: Verde (Libre) / Rojo (Ocupado)", "info");
+            } else {
+                btnFreeTerritories.className = "px-3.5 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95 shadow-sm";
+                dispoLegend?.classList.add("hidden");
             }
+            updatePolygonStyles();
         };
     }
 
-    // Listen to accordion open event on #details-maps to invalidate Leaflet map size
+    // Listen to accordion open event on #details-maps to re-center & invalidate Leaflet map size
     const detailsMaps = container.querySelector("#details-maps") || mapsSection.querySelector("#details-maps");
     if (detailsMaps) {
         detailsMaps.addEventListener("toggle", () => {
             if (detailsMaps.open && leafletMap) {
-                setTimeout(() => leafletMap.invalidateSize(), 150);
+                setTimeout(() => {
+                    leafletMap.invalidateSize();
+                    if (selectedNumber !== "all" && geoJsonLayers[selectedNumber]) {
+                        const b = geoJsonLayers[selectedNumber].getBounds();
+                        if (b && b.isValid()) leafletMap.fitBounds(b, { padding: [40, 40], maxZoom: 18 });
+                    } else if (boundsGroup && boundsGroup.getLayers().length > 0) {
+                        leafletMap.fitBounds(boundsGroup.getBounds(), { padding: [30, 30] });
+                    }
+                }, 200);
             }
         });
     }
 
     // Auto-invalidate map size on window resize / orientation change
     window.addEventListener("resize", () => {
-        if (leafletMap) leafletMap.invalidateSize();
+        if (leafletMap) {
+            leafletMap.invalidateSize();
+            if (selectedNumber === "all" && boundsGroup && boundsGroup.getLayers().length > 0) {
+                leafletMap.fitBounds(boundsGroup.getBounds(), { padding: [30, 30] });
+            }
+        }
     });
     window.addEventListener("orientationchange", () => {
         setTimeout(() => {
-            if (leafletMap) leafletMap.invalidateSize();
+            if (leafletMap) {
+                leafletMap.invalidateSize();
+                if (selectedNumber === "all" && boundsGroup && boundsGroup.getLayers().length > 0) {
+                    leafletMap.fitBounds(boundsGroup.getBounds(), { padding: [30, 30] });
+                }
+            }
         }, 200);
     });
 
