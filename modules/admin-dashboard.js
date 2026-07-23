@@ -109,6 +109,13 @@ const loadTab = async (tabName, appVersion, configData = null) => {
                 await mPers.renderPersonalTab(contentDiv, config, appVersion);
                 break;
             }
+            case "difusion": {
+                const mDiff = await loadSubModule("diffusion_view", "./admin/diffusion-view.js");
+                await mDiff.renderDiffusionTab(contentDiv, config, appVersion, (tabId) =>
+                    loadTab(tabId, appVersion, config),
+                );
+                break;
+            }
             default: {
                 const mAnalytics = await loadSubModule("analytics_view", "./analytics-view.js");
                 await mAnalytics.renderAnalyticsView(contentDiv, appVersion, config);
@@ -259,8 +266,17 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = "
                 <span class="text-amber-400 text-sm">❖</span>
                 <span class="text-emerald-750 dark:text-emerald-400 font-black text-[10px] sm:text-xs tracking-[0.2em] uppercase">CONGREGACIÓN "NUEVE DE OCTUBRE"</span>
                 <span class="text-[8px] tracking-wider bg-amber-400/20 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded font-black">ADMIN</span>
+            <div class="flex items-center gap-1 bg-slate-100 dark:bg-white/5 p-1 rounded-2xl border border-slate-200/60 dark:border-white/10 shadow-inner">
+                <button onclick="window.switchAppRole('Publicador')" class="px-2 py-1 rounded-xl text-[8px] font-black uppercase tracking-wider transition-all text-slate-500 hover:text-emerald-500">
+                    <i class="fas fa-user"></i>
+                </button>
+                <button onclick="window.switchAppRole('Conductor')" class="px-2 py-1 rounded-xl text-[8px] font-black uppercase tracking-wider transition-all text-slate-500 hover:text-indigo-500">
+                    <i class="fas fa-id-badge"></i>
+                </button>
+                <button onclick="window.switchAppRole('Administrador')" class="px-2 py-1 rounded-xl text-[8px] font-black uppercase tracking-wider transition-all bg-amber-500 text-white shadow-md">
+                    <i class="fas fa-user-shield"></i>
+                </button>
             </div>
-            <div class="w-6"></div>
         </header>
         <div class="flex flex-col lg:flex-row flex-1 min-w-0 min-h-0 overflow-hidden relative">
             <div id="mobile-overlay" class="fixed inset-0 bg-slate-900/50 z-40 hidden lg:hidden backdrop-blur-sm transition-opacity cursor-pointer"></div>
@@ -280,6 +296,7 @@ export const renderAdminDashboard = async (container, appVersion, initialTab = "
                         ${renderNavItem("reportes", "fas fa-file-invoice", "Reportes", initialTab === "reportes")}
                         ${renderNavItem("personal", "fas fa-users", "Publicadores", initialTab === "personal")}
                         ${renderNavItem("recursos", "fas fa-book-open", "Recursos", initialTab === "recursos")}
+                        ${renderNavItem("difusion", "fas fa-broadcast-tower", "Difusión", initialTab === "difusion")}
                         <div class="h-px bg-slate-200/50 dark:bg-emerald-900/30 my-3 mx-2"></div>
                         ${renderNavItem("config", "fas fa-sliders", "Ajustes", initialTab === "config")}
                     </div>

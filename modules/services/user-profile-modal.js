@@ -3,6 +3,31 @@ import { auth, db } from "../../firebase-config.js";
 import { showModal } from "./ui-helpers.js";
 import { showNotification } from "../utils/helpers.js";
 
+export const switchAppRole = (targetRole) => {
+    window.XolvyApp = window.XolvyApp || {};
+    window.XolvyApp.user = window.XolvyApp.user || {};
+    window.XolvyApp.user.role = targetRole;
+    window.XolvyApp.user.rol = targetRole;
+
+    const currentSession = JSON.parse(localStorage.getItem("xolvy_session") || "{}");
+    localStorage.setItem("xolvy_session", JSON.stringify({ ...currentSession, ...window.XolvyApp.user, rol: targetRole, role: targetRole }));
+
+    if (targetRole === "Administrador") {
+        showNotification("Cambiado a Modo Administrador", "success");
+        location.href = "/admin";
+    } else {
+        showNotification(`Cambiado a Modo ${targetRole}`, "success");
+        if (location.pathname.includes("/admin")) {
+            location.href = "/conductores";
+        } else if (typeof window.refreshConductorView === "function") {
+            window.refreshConductorView(true);
+        } else {
+            location.href = "/conductores";
+        }
+    }
+};
+window.switchAppRole = switchAppRole;
+
 export function openUserProfileModal() {
     const user = window.XolvyApp?.user || {};
     const currentName = user.nombre || localStorage.getItem("selected_conductor_name") || "Usuario";
@@ -196,45 +221,19 @@ export function openUserProfileModal() {
         // Switch to Publicador mode
         const btnPub = modal.querySelector("#btn-switch-publicador");
         if (btnPub) {
-            btnPub.onclick = () => {
-                window.XolvyApp = window.XolvyApp || {};
-                window.XolvyApp.user = window.XolvyApp.user || {};
-                window.XolvyApp.user.role = "Publicador";
-                localStorage.setItem("xolvy_session", JSON.stringify({ ...window.XolvyApp.user, rol: "Publicador", role: "Publicador" }));
-                showNotification("Cambiado a Modo Publicador", "success");
-                modal.classList.add("hidden");
-                if (window.refreshConductorView) window.refreshConductorView(true);
-                else location.href = "/conductores";
-            };
+            btnPub.onclick = () => switchAppRole("Publicador");
         }
 
         // Switch to Conductor mode
         const btnCond = modal.querySelector("#btn-switch-conductor");
         if (btnCond) {
-            btnCond.onclick = () => {
-                window.XolvyApp = window.XolvyApp || {};
-                window.XolvyApp.user = window.XolvyApp.user || {};
-                window.XolvyApp.user.role = "Conductor";
-                localStorage.setItem("xolvy_session", JSON.stringify({ ...window.XolvyApp.user, rol: "Conductor", role: "Conductor" }));
-                showNotification("Cambiado a Modo Conductor", "success");
-                modal.classList.add("hidden");
-                if (window.refreshConductorView) window.refreshConductorView(true);
-                else location.href = "/conductores";
-            };
+            btnCond.onclick = () => switchAppRole("Conductor");
         }
 
         // Switch to Admin mode
         const btnAdmin = modal.querySelector("#btn-switch-admin");
         if (btnAdmin) {
-            btnAdmin.onclick = () => {
-                window.XolvyApp = window.XolvyApp || {};
-                window.XolvyApp.user = window.XolvyApp.user || {};
-                window.XolvyApp.user.role = "Administrador";
-                localStorage.setItem("xolvy_session", JSON.stringify({ ...window.XolvyApp.user, rol: "Administrador", role: "Administrador" }));
-                showNotification("Cambiado a Modo Administrador", "success");
-                modal.classList.add("hidden");
-                location.href = "/admin";
-            };
+            btnAdmin.onclick = () => switchAppRole("Administrador");
         }
 
         // Save Profile

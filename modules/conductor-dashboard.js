@@ -1413,9 +1413,25 @@ export const renderConductorDashboard = async (container, nameOrEmail, _appVersi
                         </h2>
                     </div>
                     
-                    <!-- Online/Offline connection status badge -->
-                    <div class="flex items-center gap-2 relative z-10 shrink-0">
-                         <div id="connection-status-badge" class="px-3 py-1.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 select-none">
+                    <!-- 1-Tap Role Switcher Bar & Online/Offline status badge -->
+                    <div class="flex items-center gap-3 relative z-10 shrink-0">
+                         <div id="main-header-role-switcher" class="flex items-center gap-1 bg-slate-100 dark:bg-white/5 p-1 rounded-2xl border border-slate-200/60 dark:border-white/10 shadow-inner">
+                            <button onclick="window.switchAppRole('Publicador')" class="px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400">
+                                <i class="fas fa-user text-[10px]"></i>
+                                <span class="hidden sm:inline">Publicador</span>
+                            </button>
+                            <button onclick="window.switchAppRole('Conductor')" class="px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 bg-indigo-600 text-white shadow-md">
+                                <i class="fas fa-id-badge text-[10px]"></i>
+                                <span class="hidden sm:inline">Conductor</span>
+                            </button>
+                            ${["Administrador", "SuperAdmin", "Admin"].includes(window.XolvyApp?.user?.role || window.XolvyApp?.user?.rol) || window.XolvyApp?.user?.isAdmin ? `
+                            <button onclick="window.switchAppRole('Administrador')" class="px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 text-slate-500 hover:text-amber-500">
+                                <i class="fas fa-user-shield text-[10px]"></i>
+                                <span class="hidden sm:inline">Admin</span>
+                            </button>` : ""}
+                         </div>
+
+                         <div id="connection-status-badge" class="hidden md:flex px-3 py-1.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-xl text-[9px] font-black uppercase tracking-widest items-center gap-2 select-none">
                             <span id="connection-status-ping" class="relative flex h-2 w-2">
                                 <span class="saas-spinner-ring animate-ping bg-emerald-500/30 rounded-full w-2 h-2"></span>
                                 <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 animate-pulse"></span>
