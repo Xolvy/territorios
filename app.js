@@ -74,7 +74,7 @@ initPWAInstallPrompt();
 // moduleRegistry.init();
 
 // The version is injected by Vite at build time (Core Shell Version)
-const APP_VERSION = "4.5.1";
+const APP_VERSION = "4.6.0";
 window.XolvyApp = { user: null, version: APP_VERSION };
 
 window.switchAppRole = (targetRole) => {
@@ -88,6 +88,7 @@ window.switchAppRole = (targetRole) => {
         rol: targetRole
     };
     window.XolvyApp.user = updatedUser;
+    sessionStorage.setItem("xolvy_active_mode", targetRole);
 
     const currentSession = JSON.parse(localStorage.getItem("xolvy_session") || "{}");
     localStorage.setItem("xolvy_session", JSON.stringify({
@@ -96,6 +97,11 @@ window.switchAppRole = (targetRole) => {
         role: targetRole,
         rol: targetRole
     }));
+
+    const adminName = window.XolvyApp.user?.nombre || window.XolvyApp.identity?.nombreCanonico || currentUser.nombre;
+    if (adminName) {
+        localStorage.setItem("selected_conductor_name", adminName);
+    }
 
     if (targetRole === "Administrador") {
         if (typeof window.showNotification === "function") window.showNotification("Cambiado a Modo Administrador", "success");
@@ -534,24 +540,20 @@ document.addEventListener("DOMContentLoaded", async () => {
                 // Modo Simulacro: Si un administrador navega a /conductores, se le permite.
                 console.log("🛡️ [Security] Admin entrando a vista Conductor (Modo Simulacro/Supervisión).");
 
-                let storedName = localStorage.getItem("selected_conductor_name");
-                if (!storedName && window.XolvyApp?.identity?.nombreCanonico) {
-                    storedName = window.XolvyApp.identity.nombreCanonico;
+                let storedName = localStorage.getItem("selected_conductor_name") || window.XolvyApp?.identity?.nombreCanonico || permisos?.nombre || user.displayName || user.email;
+                if (storedName) {
                     localStorage.setItem("selected_conductor_name", storedName);
                 }
 
-                if (!storedName) {
-                    appContainer.innerHTML = "";
-                    const mLogin = await loadModule("login", "./modules/login.js");
-                    mLogin.renderConductorSelection();
-                    return;
-                }
+                const activeTargetRole = sessionStorage.getItem("xolvy_active_mode") || "Conductor";
                 const render = await loadConductor();
-                render(appContainer, storedName, APP_VERSION, role);
+                render(appContainer, storedName, APP_VERSION, activeTargetRole);
             } else if (isAdmin) {
-                // Admin route: Clear conductor session artifacts
-                localStorage.removeItem("xolvy_session");
-                localStorage.removeItem("selected_conductor_name");
+                // Admin route: Preserve selected conductor identity for role switching
+                const adminCanonicalName = window.XolvyApp?.identity?.nombreCanonico || permisos?.nombre || user.displayName;
+                if (adminCanonicalName) {
+                    localStorage.setItem("selected_conductor_name", adminCanonicalName);
+                }
 
                 const subPath = path.split("/")[2] || "dashboard";
                 const urlToTab = {

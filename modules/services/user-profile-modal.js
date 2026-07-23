@@ -8,19 +8,22 @@ export const switchAppRole = (targetRole) => {
     window.XolvyApp.user = window.XolvyApp.user || {};
     window.XolvyApp.user.role = targetRole;
     window.XolvyApp.user.rol = targetRole;
+    sessionStorage.setItem("xolvy_active_mode", targetRole);
 
     const currentSession = JSON.parse(localStorage.getItem("xolvy_session") || "{}");
     localStorage.setItem("xolvy_session", JSON.stringify({ ...currentSession, ...window.XolvyApp.user, rol: targetRole, role: targetRole }));
 
     if (targetRole === "Administrador") {
         showNotification("Cambiado a Modo Administrador", "success");
-        location.href = "/admin";
+        if (typeof window.switchToAdminView === "function") {
+            window.switchToAdminView();
+        } else {
+            location.href = "/administrador";
+        }
     } else {
         showNotification(`Cambiado a Modo ${targetRole}`, "success");
-        if (location.pathname.includes("/admin")) {
-            location.href = "/conductores";
-        } else if (typeof window.refreshConductorView === "function") {
-            window.refreshConductorView(true);
+        if (typeof window.switchToConductorView === "function") {
+            window.switchToConductorView();
         } else {
             location.href = "/conductores";
         }

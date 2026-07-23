@@ -15,9 +15,31 @@ export const renderPersonalTab = async (container, _configData = null, _appVersi
     const groups = await getGroupsConfig();
     let publicadores = [];
 
+    let searchQuery = "";
+    let selectedGroup = "";
+    let selectedRole = "";
+
     const renderMainLayout = () => {
+        let filteredPublicadores = publicadores.filter((p) => {
+            if (searchQuery) {
+                const q = searchQuery.toLowerCase();
+                const matchName = String(p.nombre || "").toLowerCase().includes(q);
+                const matchPhone = String(p.telefono || "").toLowerCase().includes(q);
+                const matchEmail = String(p.email || "").toLowerCase().includes(q);
+                if (!matchName && !matchPhone && !matchEmail) return false;
+            }
+            if (selectedGroup && String(p.grupo) !== String(selectedGroup)) return false;
+            if (selectedRole) {
+                if (selectedRole === "Conductor" && !p.es_conductor) return false;
+                if (selectedRole === "Administrador" && !p.privilegios?.includes("Administrador")) return false;
+                if (selectedRole === "Superintendente" && !p.privilegios?.includes("Superintendente de Circuito")) return false;
+                if (selectedRole === "Publicador" && (p.es_conductor || p.privilegios?.includes("Administrador"))) return false;
+            }
+            return true;
+        });
+
         container.innerHTML = `
-            <div class="space-y-12 animate-fade-in">
+            <div class="space-y-6 animate-fade-in">
                 <!-- Header Clean Aesthetic -->
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 pb-2 border-b border-slate-100 dark:border-white/5">
                     <div class="flex flex-col">
@@ -39,7 +61,26 @@ export const renderPersonalTab = async (container, _configData = null, _appVersi
                     </div>
                 </div>
 
-            <div class="hidden md:block bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden mt-8">
+                <!-- Sticky Controls Panel: Search & Filters -->
+                <div class="sticky top-0 z-30 bg-slate-50/95 dark:bg-[#05070a]/95 backdrop-blur-xl py-3 -mx-4 px-4 md:-mx-8 md:px-8 flex flex-wrap items-center gap-3 border-b border-slate-200/40 dark:border-white/5">
+                    <div class="relative flex-1 min-w-0 md:w-72 group">
+                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors pointer-events-none z-10"><i class="fas fa-search"></i></span>
+                        <input type="text" id="personal-search" value="${searchQuery}" placeholder="Buscar por nombre, teléfono..." class="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl pr-4 py-3 text-xs font-bold shadow-sm outline-none focus:border-indigo-600 transition-all text-slate-700 dark:text-white" style="padding-left: 3.25rem !important;">
+                    </div>
+                    <select id="personal-group-filter" class="px-4 py-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-xs font-bold text-slate-700 dark:text-white outline-none focus:border-indigo-600 transition-all cursor-pointer">
+                        <option value="" ${!selectedGroup ? "selected" : ""}>Todos los Grupos</option>
+                        ${(groups || []).map((g) => `<option value="${g.id}" ${String(selectedGroup) === String(g.id) ? "selected" : ""}>${g.numero_nombre || `Grupo ${g.id}`}</option>`).join("")}
+                    </select>
+                    <select id="personal-role-filter" class="px-4 py-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-xs font-bold text-slate-700 dark:text-white outline-none focus:border-indigo-600 transition-all cursor-pointer">
+                        <option value="" ${!selectedRole ? "selected" : ""}>Todos los Roles</option>
+                        <option value="Conductor" ${selectedRole === "Conductor" ? "selected" : ""}>Conductores</option>
+                        <option value="Administrador" ${selectedRole === "Administrador" ? "selected" : ""}>Administradores</option>
+                        <option value="Superintendente" ${selectedRole === "Superintendente" ? "selected" : ""}>Sup. Circuito</option>
+                        <option value="Publicador" ${selectedRole === "Publicador" ? "selected" : ""}>Publicadores</option>
+                    </select>
+                </div>
+
+            <div class="hidden md:block bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden mt-4">
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse">
                         <thead>
@@ -51,7 +92,7 @@ export const renderPersonalTab = async (container, _configData = null, _appVersi
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-50 dark:divide-white/5">
-                            ${publicadores
+                            ${filteredPublicadores
                                 .map(
                                     (p) => `
                                 <tr class="group hover:bg-slate-50/50 dark:hover:bg-white/[0.01] transition-colors">
@@ -113,7 +154,7 @@ export const renderPersonalTab = async (container, _configData = null, _appVersi
             </div>
 
             <div class="md:hidden space-y-3 mt-4">
-                ${publicadores
+                ${filteredPublicadores
                     .map(
                         (p) => `
                     <div onclick="window.editPerson('${p.id}')" class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-white/5 shadow-sm p-5 space-y-4 relative active:scale-[0.98] transition-all cursor-pointer">
@@ -143,6 +184,37 @@ export const renderPersonalTab = async (container, _configData = null, _appVersi
 
         container.querySelector("#btn-add-person").onclick = () => openPersonModal();
         container.querySelector("#btn-manage-groups").onclick = () => openGroupsConfigModal();
+
+        const sInput = container.querySelector("#personal-search");
+        const gFilter = container.querySelector("#personal-group-filter");
+        const rFilter = container.querySelector("#personal-role-filter");
+
+        if (sInput) {
+            sInput.oninput = (e) => {
+                searchQuery = e.target.value;
+                renderMainLayout();
+                // Restore focus & cursor position
+                const el = container.querySelector("#personal-search");
+                if (el) {
+                    el.focus();
+                    el.setSelectionRange(searchQuery.length, searchQuery.length);
+                }
+            };
+        }
+
+        if (gFilter) {
+            gFilter.onchange = (e) => {
+                selectedGroup = e.target.value;
+                renderMainLayout();
+            };
+        }
+
+        if (rFilter) {
+            rFilter.onchange = (e) => {
+                selectedRole = e.target.value;
+                renderMainLayout();
+            };
+        }
     };
 
     // Xolvy Live Pool: Real-time synchronization for Personnel
