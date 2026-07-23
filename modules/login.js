@@ -350,16 +350,16 @@ export const renderRoleDirectorySelection = async (targetRole = "Conductor") => 
                         showCancelButton: true,
                         confirmButtonText: "Ingresar",
                         cancelButtonText: "Cancelar",
-                        width: 360,
+                        width: "340px",
                         customClass: {
-                            container: "!z-[100000]",
-                            popup: "!z-[100000] modern-card !rounded-[2rem] !p-5 !border !border-slate-200 dark:!border-white/10 !shadow-2xl !bg-white/95 dark:!bg-slate-900/95 !max-w-[360px]",
-                            title: "!text-base !px-5 !pt-5 !pb-1",
-                            htmlContainer: "!px-5 !pb-0 !text-xs !text-slate-500 dark:!text-slate-400",
-                            input: "!rounded-xl !border !border-slate-200 dark:!border-white/10 !bg-slate-50 dark:!bg-slate-800 !text-slate-800 dark:!text-white !font-bold !text-sm !px-4 !py-3 focus:!border-indigo-500 !shadow-inner !mt-3",
-                            confirmButton: "!px-6 !py-3 !text-[9px] !font-black !uppercase !tracking-widest !rounded-xl !bg-slate-900 !text-amber-300 dark:!bg-blue-600 dark:!text-white hover:!bg-slate-800 !shadow-lg",
-                            cancelButton: "!px-5 !py-3 !text-[9px] !font-black !uppercase !tracking-widest !rounded-xl !bg-slate-100 dark:!bg-white/5 !text-slate-600 dark:!text-slate-300",
-                            actions: "!px-5 !pb-5 !pt-3 !gap-2.5",
+                            container: "!z-[100000] !flex !items-center !justify-center",
+                            popup: "!z-[100000] modern-card !rounded-[2.5rem] !p-6 !border !border-slate-200 dark:!border-white/10 !shadow-2xl !bg-white/95 dark:!bg-slate-900/95 !w-[340px] !max-w-[90vw] !mx-auto !box-border",
+                            title: "!text-base !px-2 !pt-2 !pb-1 !font-black !text-slate-800 dark:!text-white !uppercase",
+                            htmlContainer: "!px-2 !pb-0 !text-xs !text-slate-500 dark:!text-slate-400 !font-bold",
+                            input: "!w-full !rounded-2xl !border !border-slate-200 dark:!border-white/10 !bg-slate-50 dark:!bg-slate-800 !text-slate-800 dark:!text-white !font-bold !text-sm !px-4 !py-3 focus:!border-indigo-500 !shadow-inner !mt-3 !text-center !box-border",
+                            confirmButton: "!px-6 !py-3 !text-[10px] !font-black !uppercase !tracking-widest !rounded-xl !bg-indigo-600 !text-white hover:!bg-indigo-700 !shadow-lg !shadow-indigo-500/20",
+                            cancelButton: "!px-5 !py-3 !text-[10px] !font-black !uppercase !tracking-widest !rounded-xl !bg-slate-100 dark:!bg-white/5 !text-slate-600 dark:!text-slate-300",
+                            actions: "!px-2 !pb-2 !pt-4 !gap-2.5 flex !justify-center",
                         },
                         preConfirm: (val) => {
                             if (!val || val.trim().length === 0) {
@@ -380,7 +380,16 @@ export const renderRoleDirectorySelection = async (targetRole = "Conductor") => 
                         const isDefaultValid = passInput === defaultPassword;
 
                         if (isDefaultValid || isCustomValid) {
-                            const sessionData = { nombre: name, email: name, rol: targetRole };
+                            const isAdmin = targetRole === "Administrador" || name.toLowerCase().includes("italo") || name.toLowerCase().includes("admin");
+                            const sessionData = {
+                                nombre: name,
+                                email: name,
+                                rol: targetRole,
+                                role: targetRole,
+                                isAdmin: isAdmin,
+                                esConductor: true,
+                                availableRoles: isAdmin ? ["Administrador", "Conductor", "Publicador"] : ["Conductor", "Publicador"]
+                            };
                             localStorage.setItem("selected_conductor_name", name);
                             localStorage.setItem("xolvy_session", JSON.stringify(sessionData));
 

@@ -713,18 +713,30 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         // Zero-Latency Execution: Enrutamiento en milisegundos ignorando latencia de red
         window._fastBootRendered = true;
-        const finalRole = identity.rol || role || "Conductor";
-        const isAdmin = finalRole === "Administrador" || finalRole === "SuperAdmin";
-        window.XolvyApp.user = { nombre: identity.nombreCanonico, email: email, role: finalRole };
+        const activeRole = role || identity.rol || "Conductor";
+        const isUserAdmin = identity.isAdmin || activeRole === "Administrador" || activeRole === "SuperAdmin";
 
-        if (isAdmin) {
+        window.XolvyApp.user = {
+            ...identity,
+            nombre: identity.nombreCanonico || email,
+            email: email,
+            role: activeRole,
+            rol: activeRole,
+            baseRole: identity.baseRole || identity.rol || activeRole,
+            isAdmin: isUserAdmin,
+            esConductor: identity.esConductor || true,
+            availableRoles: identity.availableRoles || (isUserAdmin ? ["Administrador", "Conductor", "Publicador"] : ["Conductor", "Publicador"]),
+        };
+        localStorage.setItem("xolvy_session", JSON.stringify(window.XolvyApp.user));
+
+        if (activeRole === "Administrador") {
             window.history.pushState({}, "", "/administrador");
             const render = await loadAdmin();
             render(appContainer, APP_VERSION, "dashboard");
         } else {
             if (!window.location.pathname.startsWith("/conductores")) window.history.pushState({}, "", "/conductores");
             const render = await loadConductor();
-            render(appContainer, identity.nombreCanonico, APP_VERSION, finalRole);
+            render(appContainer, identity.nombreCanonico, APP_VERSION, activeRole);
         }
     });
 
